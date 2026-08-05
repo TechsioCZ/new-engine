@@ -16,7 +16,7 @@ class TestPaykitPaymentProvider extends PaykitPaymentProviderBase {
   // the base constructor is protected.
   constructor(
     container: PaykitInjectedDependencies,
-    options: PaykitAdapterOptions
+    options: PaykitAdapterOptions,
   ) {
     super(container, options)
   }
@@ -80,7 +80,7 @@ describe(PaykitPaymentProviderBase, () => {
           session_id: "payses_123",
         },
         provider_metadata: { return_url: "https://shop.example/return" },
-      })
+      }),
     )
   })
 
@@ -101,7 +101,7 @@ describe(PaykitPaymentProviderBase, () => {
         data: {
           item_id: "cart_123",
         },
-      })
+      }),
     ).rejects.toThrow("PayKit requires session_id in payment session data")
     expect(client.payments.create).not.toHaveBeenCalled()
   })
@@ -151,7 +151,7 @@ describe(PaykitPaymentProviderBase, () => {
           },
           currency: "czk",
         },
-      })
+      }),
     )
   })
 
@@ -203,7 +203,7 @@ describe(PaykitPaymentProviderBase, () => {
           carrier: "standard",
           currency: "czk",
         },
-      })
+      }),
     )
   })
 
@@ -247,7 +247,7 @@ describe(PaykitPaymentProviderBase, () => {
           }),
           currency: "czk",
         },
-      })
+      }),
     )
   })
 
@@ -300,7 +300,7 @@ describe(PaykitPaymentProviderBase, () => {
           }),
           currency: "czk",
         },
-      })
+      }),
     )
   })
 
@@ -334,13 +334,13 @@ describe(PaykitPaymentProviderBase, () => {
       1,
       expect.objectContaining({
         customer: { email: "customer@example.com" },
-      })
+      }),
     )
     expect(client.payments.create).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
         customer: { id: "cus_123" },
-      })
+      }),
     )
   })
 
@@ -365,7 +365,7 @@ describe(PaykitPaymentProviderBase, () => {
     expect(client.payments.create).toHaveBeenCalledWith(
       expect.objectContaining({
         customer: { id: "cus_123" },
-      })
+      }),
     )
   })
 
@@ -445,7 +445,7 @@ describe(PaykitPaymentProviderBase, () => {
           currency: "czk",
           id: "provider-payment-1",
         },
-      })
+      }),
     ).rejects.toMatchObject({
       message: expect.stringMatching(unsupportedRefundMessage),
       type: MedusaError.Types.NOT_ALLOWED,
@@ -474,7 +474,7 @@ describe(PaykitPaymentProviderBase, () => {
           currency: "czk",
           id: "provider-payment-1",
         },
-      })
+      }),
     ).rejects.toMatchObject({
       message: expect.stringMatching(refundMissingIdMessage),
       type: MedusaError.Types.INVALID_DATA,
@@ -522,7 +522,7 @@ describe(PaykitPaymentProviderBase, () => {
         data: {
           session_id: "payses_123",
         },
-      })
+      }),
     ).resolves.toStrictEqual({
       data: {
         session_id: "payses_123",
@@ -539,7 +539,7 @@ describe(PaykitPaymentProviderBase, () => {
         data: {
           session_id: "payses_123",
         },
-      })
+      }),
     ).resolves.toStrictEqual({
       data: {
         session_id: "payses_123",
@@ -555,7 +555,7 @@ describe(PaykitPaymentProviderBase, () => {
         data: {
           session_id: "payses_123",
         },
-      })
+      }),
     ).rejects.toThrow("PayKit payment id is missing from payment data.id")
   })
 
@@ -569,7 +569,7 @@ describe(PaykitPaymentProviderBase, () => {
         data: {
           id: "missing-payment",
         },
-      })
+      }),
     ).rejects.toThrow("PayKit payment missing-payment could not be retrieved")
   })
 
@@ -588,7 +588,7 @@ describe(PaykitPaymentProviderBase, () => {
             phone: "+420123456789",
           },
         },
-      })
+      }),
     ).resolves.toStrictEqual({
       data: {
         email: "customer@example.com",
@@ -627,7 +627,7 @@ describe(PaykitPaymentProviderBase, () => {
             id: "cus_123",
           },
         },
-      })
+      }),
     ).resolves.toStrictEqual({})
   })
 
@@ -644,7 +644,7 @@ describe(PaykitPaymentProviderBase, () => {
     await expect(
       provider.retrieveAccountHolder({
         id: "customer-1",
-      })
+      }),
     ).resolves.toStrictEqual({
       id: "customer-1",
     })
@@ -678,7 +678,7 @@ describe(PaykitPaymentProviderBase, () => {
         data: {},
         headers: {},
         rawData: "",
-      })
+      }),
     ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {
@@ -698,7 +698,7 @@ describe(PaykitPaymentProviderBase, () => {
         data: {},
         headers: {},
         rawData: "",
-      })
+      }),
     ).resolves.toStrictEqual({
       action: PaymentActions.NOT_SUPPORTED,
     })
@@ -726,7 +726,7 @@ describe(PaykitPaymentProviderBase, () => {
         data: {},
         headers: {},
         rawData: "",
-      })
+      }),
     ).resolves.toStrictEqual({
       action: PaymentActions.PENDING,
     })
@@ -754,7 +754,7 @@ describe(PaykitPaymentProviderBase, () => {
         data: {},
         headers: {},
         rawData: "",
-      })
+      }),
     ).resolves.toStrictEqual({
       action: PaymentActions.FAILED,
     })

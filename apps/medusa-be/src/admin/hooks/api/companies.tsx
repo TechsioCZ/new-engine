@@ -26,7 +26,7 @@ type QueryOptions<TData> = Omit<
 
 export const useCompanies = (
   query?: Record<string, string>,
-  options?: QueryOptions<AdminCompaniesResponse>
+  options?: QueryOptions<AdminCompaniesResponse>,
 ) => {
   const filterQuery = new URLSearchParams(query).toString()
 
@@ -35,7 +35,7 @@ export const useCompanies = (
       `/admin/companies${filterQuery ? `?${filterQuery}` : ""}`,
       {
         method: "GET",
-      }
+      },
     )
 
   return useQuery({
@@ -48,7 +48,7 @@ export const useCompanies = (
 export const useCompany = (
   companyId: string,
   query?: Record<string, string>,
-  options?: QueryOptions<AdminCompanyResponse>
+  options?: QueryOptions<AdminCompanyResponse>,
 ) => {
   const filterQuery = new URLSearchParams(query).toString()
 
@@ -57,7 +57,7 @@ export const useCompany = (
       `/admin/companies/${companyId}${filterQuery ? `?${filterQuery}` : ""}`,
       {
         method: "GET",
-      }
+      },
     )
 
   return useQuery({
@@ -72,7 +72,7 @@ export const useCreateCompany = (
     AdminCreateCompaniesResponse,
     FetchError,
     AdminCreateCompany
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -106,7 +106,7 @@ export const useUpdateCompany = (
     AdminCompanyResponse,
     FetchError,
     AdminUpdateCompany
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -137,7 +137,7 @@ export const useUpdateCompany = (
 
 export const useDeleteCompany = (
   companyId: string,
-  options?: UseMutationOptions<void, FetchError>
+  options?: UseMutationOptions<void, FetchError>,
 ) => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -163,7 +163,7 @@ export const useDeleteCompany = (
 
 export const useRestoreCompany = (
   companyId: string,
-  options?: UseMutationOptions<AdminCompanyResponse, FetchError>
+  options?: UseMutationOptions<AdminCompanyResponse, FetchError>,
 ) => {
   const queryClient = useQueryClient()
 
@@ -173,7 +173,7 @@ export const useRestoreCompany = (
         `/admin/companies/${companyId}/restore`,
         {
           method: "POST",
-        }
+        },
       ),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
@@ -193,7 +193,7 @@ export const useRestoreCompany = (
 
 export const useAddCompanyToCustomerGroup = (
   companyId: string,
-  options?: UseMutationOptions<void, FetchError, string>
+  options?: UseMutationOptions<void, FetchError, string>,
 ) => {
   const queryClient = useQueryClient()
 
@@ -225,7 +225,7 @@ export const useAddCompanyToCustomerGroup = (
 
 export const useRemoveCompanyFromCustomerGroup = (
   companyId: string,
-  options?: UseMutationOptions<void, FetchError, string>
+  options?: UseMutationOptions<void, FetchError, string>,
 ) => {
   const queryClient = useQueryClient()
 
@@ -238,7 +238,7 @@ export const useRemoveCompanyFromCustomerGroup = (
             Accept: "text/plain",
           },
           method: "DELETE",
-        }
+        },
       )
     },
     onSuccess: async (_, variables, context) => {

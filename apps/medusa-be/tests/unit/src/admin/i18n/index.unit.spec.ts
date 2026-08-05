@@ -10,7 +10,7 @@ function collectLeafPaths(value: unknown, prefix = ""): string[] {
 
   return Object.entries(value)
     .flatMap(([key, child]) =>
-      collectLeafPaths(child, prefix ? `${prefix}.${key}` : key)
+      collectLeafPaths(child, prefix ? `${prefix}.${key}` : key),
     )
     .sort()
 }
@@ -19,7 +19,7 @@ describe("order business status admin translations", () => {
   it("defines labels for every approved status in supported admin locales", () => {
     for (const locale of ["cs", "en"] as const) {
       expect(
-        Object.keys(resources[locale].orderBusinessStatuses.statuses).sort()
+        Object.keys(resources[locale].orderBusinessStatuses.statuses).sort(),
       ).toStrictEqual([...ORDER_BUSINESS_STATUS_IDS].sort())
     }
   })
@@ -55,7 +55,7 @@ describe("B2B admin translations", () => {
       "translation",
     ] as const) {
       expect(collectLeafPaths(resources.cs[namespace])).toStrictEqual(
-        collectLeafPaths(resources.en[namespace])
+        collectLeafPaths(resources.en[namespace]),
       )
     }
   })
@@ -76,7 +76,7 @@ describe("storefront text admin translations", () => {
     expect(resources.cs.storefrontTexts.menuItem).toBe("Jazyky")
     expect(resources.en.storefrontTexts.menuItem).toBe("Languages")
     expect(collectLeafPaths(resources.cs.storefrontTexts)).toStrictEqual(
-      collectLeafPaths(resources.en.storefrontTexts)
+      collectLeafPaths(resources.en.storefrontTexts),
     )
   })
 })

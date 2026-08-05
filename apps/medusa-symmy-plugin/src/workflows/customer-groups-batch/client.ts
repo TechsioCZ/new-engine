@@ -51,13 +51,13 @@ export class CustomerGroupsBatchClient {
     this.container = container
     this.customerGroupCodeService =
       container.resolve<SymmyCustomerGroupCodeModuleService>(
-        SYMMY_CUSTOMER_GROUP_CODE_MODULE
+        SYMMY_CUSTOMER_GROUP_CODE_MODULE,
       )
     this.query = getQuery(container)
   }
 
   async preload(
-    groups: CustomerGroupInput[]
+    groups: CustomerGroupInput[],
   ): Promise<ExistingCustomerGroupIndex> {
     const { ids, names, codes, erpCodes } =
       this.mapper.collectLookupKeys(groups)
@@ -82,7 +82,7 @@ export class CustomerGroupsBatchClient {
 
   findExistingCustomerGroup(
     group: CustomerGroupInput,
-    index: ExistingCustomerGroupIndex
+    index: ExistingCustomerGroupIndex,
   ): ExistingCustomerGroup | null {
     return this.mapper.findExistingCustomerGroup(group, index)
   }
@@ -90,14 +90,14 @@ export class CustomerGroupsBatchClient {
   cacheCustomerGroup(
     index: ExistingCustomerGroupIndex,
     group: CustomerGroupInput,
-    groupId: string
+    groupId: string,
   ): void {
     this.mapper.addCreatedCustomerGroupToIndex(index, group, groupId)
   }
 
   async createCustomerGroup(
     group: CustomerGroupInput,
-    createdBy?: string
+    createdBy?: string,
   ): Promise<ExistingCustomerGroup> {
     const { result } = await createCustomerGroupsWorkflow(this.container).run({
       input: {
@@ -110,7 +110,7 @@ export class CustomerGroupsBatchClient {
     if (!created) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "createCustomerGroupsWorkflow returned empty result"
+        "createCustomerGroupsWorkflow returned empty result",
       )
     }
     await this.customerGroupCodeService.upsertCode({
@@ -128,7 +128,7 @@ export class CustomerGroupsBatchClient {
   async updateCustomerGroup(
     groupId: string,
     existing: ExistingCustomerGroup,
-    group: CustomerGroupInput
+    group: CustomerGroupInput,
   ): Promise<void> {
     await updateCustomerGroupsWorkflow(this.container).run({
       input: {
@@ -144,7 +144,7 @@ export class CustomerGroupsBatchClient {
   }
 
   private async queryCustomerGroups(
-    filters: Record<string, string[]>
+    filters: Record<string, string[]>,
   ): Promise<ExistingCustomerGroup[]> {
     if (Object.values(filters).every((values) => values.length === 0)) {
       return []
@@ -158,7 +158,7 @@ export class CustomerGroupsBatchClient {
   }
 
   private async queryGroupCodeMappings(
-    identifiers: Pick<CustomerGroupLookupKeys, "codes" | "erpCodes">
+    identifiers: Pick<CustomerGroupLookupKeys, "codes" | "erpCodes">,
   ): Promise<SymmyCustomerGroupCodeDTO[]> {
     const codes = new Set([...identifiers.codes, ...identifiers.erpCodes])
     return this.customerGroupCodeService.listByCodes(codes)

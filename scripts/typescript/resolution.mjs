@@ -24,8 +24,8 @@ const showConfig = (configPath) =>
     execFileSync(
       path.join(repositoryRoot, "node_modules/.bin/tsc"),
       ["--showConfig", "-p", configPath],
-      { cwd: repositoryRoot, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 }
-    )
+      { cwd: repositoryRoot, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 },
+    ),
   )
 
 const rootConfig = readJson(path.join(repositoryRoot, "tsconfig.json"))
@@ -34,7 +34,7 @@ for (const { path: referencePath } of rootConfig.references ?? []) {
   const wrapper = readJson(wrapperPath)
   const sourcePath = path.resolve(
     path.dirname(wrapperPath),
-    wrapper.extends.at(-1)
+    wrapper.extends.at(-1),
   )
   const source = showConfig(sourcePath).compilerOptions ?? {}
   const effective = showConfig(wrapperPath).compilerOptions ?? {}
@@ -59,18 +59,18 @@ for (const { path: referencePath } of rootConfig.references ?? []) {
         ?.get(option)
       if (allowedValue === undefined || effectiveValue !== allowedValue) {
         fail(
-          `${path.relative(repositoryRoot, wrapperPath)} changes source compiler resolution option ${option}`
+          `${path.relative(repositoryRoot, wrapperPath)} changes source compiler resolution option ${option}`,
         )
       }
     }
   }
   if (!wrapperPath.startsWith(`${projectsDirectory}${path.sep}`)) {
     fail(
-      `${path.relative(repositoryRoot, wrapperPath)} is outside wrapper directory`
+      `${path.relative(repositoryRoot, wrapperPath)} is outside wrapper directory`,
     )
   }
 }
 
 console.log(
-  `TypeScript resolution passed: ${rootConfig.references?.length ?? 0} wrappers preserve source module, JSX, library, path, plugin, and type settings.`
+  `TypeScript resolution passed: ${rootConfig.references?.length ?? 0} wrappers preserve source module, JSX, library, path, plugin, and type settings.`,
 )

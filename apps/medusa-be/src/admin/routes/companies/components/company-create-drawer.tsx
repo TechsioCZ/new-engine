@@ -19,7 +19,7 @@ export function CompanyCreateDrawer() {
       setOpen(false)
     } catch (error) {
       toast.error(
-        `${t("errors.createCompanyFailed")}: ${getErrorMessage(error)}`
+        `${t("errors.createCompanyFailed")}: ${getErrorMessage(error)}`,
       )
     }
   }

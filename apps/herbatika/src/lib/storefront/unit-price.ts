@@ -28,7 +28,7 @@ export const resolveVariantPricePerUnit = (
     | StoreProductVariantWithPricePerUnit
     | null
     | undefined,
-  priceContext: StorefrontPriceContext
+  priceContext: StorefrontPriceContext,
 ): StorePricePerUnit | null => {
   if (priceContext.source !== "calculated_price") {
     return null
@@ -40,7 +40,7 @@ export const resolveVariantPricePerUnit = (
     variantWithPricePerUnit?.calculated_price?.price_per_unit ?? null
   const displayedCurrencyCode = normalizeCurrencyCode(priceContext.currencyCode)
   const unitPriceCurrencyCode = normalizeCurrencyCode(
-    pricePerUnit?.currency_code
+    pricePerUnit?.currency_code,
   )
 
   return pricePerUnit &&
@@ -51,7 +51,7 @@ export const resolveVariantPricePerUnit = (
 }
 
 export const formatUnitPriceLabel = (
-  pricePerUnit?: StorePricePerUnit | null
+  pricePerUnit?: StorePricePerUnit | null,
 ): string | null => {
   if (!pricePerUnit) {
     return null

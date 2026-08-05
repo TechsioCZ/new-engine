@@ -18,11 +18,11 @@ import { withWorkspaceBinPath } from "../orchestration/workspace-bin-path.js"
 const repoRoot = resolve(import.meta.dirname, "../../../..")
 const stackManifestPath = join(
   repoRoot,
-  "apps/new-engine-ctl/config/stack-manifest.yaml"
+  "apps/new-engine-ctl/config/stack-manifest.yaml",
 )
 const stackInputsPath = join(
   repoRoot,
-  "apps/new-engine-ctl/config/stack-inputs.yaml"
+  "apps/new-engine-ctl/config/stack-inputs.yaml",
 )
 const explicitPreviewRejectPattern =
   /Explicit services are not deployable on lane preview: medusa-db/
@@ -36,7 +36,7 @@ test("scope preserves existing Path casing when prefixing workspace bin", () => 
   })
 
   expect(env.Path).toBe(
-    [workspaceBinPath, "C:\\Windows\\System32"].join(delimiter)
+    [workspaceBinPath, "C:\\Windows\\System32"].join(delimiter),
   )
   expect(Object.hasOwn(env, "PATH")).toBeFalsy()
   expect(env.OTHER_VALUE).toBe("kept")
@@ -70,7 +70,7 @@ test("Zane service lookup preserves its less restrictive deployability guard", (
 
   expect(getZaneService(manifest, "optional").serviceSlug).toBe("optional")
   expect(() => getDeployableService(manifest, "optional")).toThrow(
-    "Service is not deployable or missing Zane metadata: optional"
+    "Service is not deployable or missing Zane metadata: optional",
   )
 })
 
@@ -121,12 +121,12 @@ test("preview scope skips prepare for non-DB services after baseline is complete
 test("N1 is explicitly selectable but excluded from default CI scope", async () => {
   const contracts = await loadDeployContracts(
     stackManifestPath,
-    stackInputsPath
+    stackInputsPath,
   )
 
   expect(listLaneServiceIds(contracts.manifest, "main")).toContain("n1")
   expect(listLaneServiceIds(contracts.manifest, "main", true)).not.toContain(
-    "n1"
+    "n1",
   )
 
   const result = await executeScope({
@@ -145,7 +145,7 @@ test("N1 is explicitly selectable but excluded from default CI scope", async () 
 test("explicit N1 preview selection includes N1 and its provider outputs", async () => {
   const contracts = await loadDeployContracts(
     stackManifestPath,
-    stackInputsPath
+    stackInputsPath,
   )
   const plan = await executePlan({
     lane: "preview",
@@ -175,7 +175,7 @@ test("explicit N1 preview selection includes N1 and its provider outputs", async
         outputConsumerIds: { frontend_key: ["n1"] },
         providerId: "medusa_publishable_key",
       }),
-    ])
+    ]),
   )
 })
 
@@ -189,7 +189,7 @@ test("preview scope rejects explicit services excluded from preview cloning", as
       servicesCsv: "medusa-db",
       stackInputsPath,
       stackManifestPath,
-    })
+    }),
   ).rejects.toThrow(explicitPreviewRejectPattern)
 })
 
@@ -202,6 +202,6 @@ test("preview plan rejects services marked clone_to_preview false", async () => 
       previewEnvPrefix: "pr-",
       servicesCsv: "medusa-db",
       stackManifestPath,
-    })
+    }),
   ).rejects.toThrow(cloneToPreviewRejectPattern)
 })

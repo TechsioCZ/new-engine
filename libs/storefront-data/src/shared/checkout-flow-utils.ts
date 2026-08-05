@@ -43,7 +43,7 @@ export const resolveEffectiveCheckoutCart = <TCart>({
 }): TCart | null => cart ?? getCachedCart(cartId)
 
 const resolveSelectedPaymentSession = (
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ) => {
   const paymentSessions = cart?.payment_collection?.payment_sessions
   if (!paymentSessions?.length) {
@@ -52,18 +52,18 @@ const resolveSelectedPaymentSession = (
 
   return (
     paymentSessions.find(
-      (session) => (session as { is_selected?: unknown }).is_selected === true
+      (session) => (session as { is_selected?: unknown }).is_selected === true,
     ) ?? paymentSessions[0]
   )
 }
 
 export const resolveSelectedPaymentProviderId = (
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ): string | undefined => resolveSelectedPaymentSession(cart)?.provider_id
 
 export const resolveExistingPaymentCollection = (
   cart: HttpTypes.StoreCart | null | undefined,
-  paymentProviderId: string
+  paymentProviderId: string,
 ): HttpTypes.StorePaymentCollection | null => {
   const paymentCollection = cart?.payment_collection
   if (!paymentCollection) {

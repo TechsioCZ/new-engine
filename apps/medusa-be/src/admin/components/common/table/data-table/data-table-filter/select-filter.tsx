@@ -120,7 +120,7 @@ export const SelectFilter = ({
           <PopoverContent
             align="start"
             className={clx(
-              "z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none"
+              "z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none",
             )}
             collisionPadding={8}
             hideWhenDetached
@@ -153,7 +153,7 @@ export const SelectFilter = ({
                           "rounded-md text-ui-fg-muted outline-none transition-fg focus-visible:bg-ui-bg-base-pressed",
                           {
                             invisible: !search,
-                          }
+                          },
                         )}
                         disabled={!search}
                         onClick={handleClearSearch}
@@ -190,7 +190,7 @@ export const SelectFilter = ({
                           "flex h-5 w-5 items-center justify-center transition-fg",
                           {
                             "[&_svg]:invisible": !isSelected,
-                          }
+                          },
                         )}
                       >
                         {multiple ? <CheckMini /> : <EllipseMiniSolid />}

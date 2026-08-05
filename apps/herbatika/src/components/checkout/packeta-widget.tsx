@@ -64,7 +64,7 @@ export const PacketaPickupWidget = function PacketaPickupWidget({
 
                 onCloseRef.current?.()
               },
-              optionsRef.current
+              optionsRef.current,
             )
           } catch (error) {
             onErrorRef.current?.({
@@ -84,7 +84,7 @@ export const PacketaPickupWidget = function PacketaPickupWidget({
                 ? error.message
                 : "Packeta widget sa nepodarilo načítať.",
           })
-        })
+        }),
     )
   }, [apiKey])
 
@@ -94,7 +94,7 @@ export const PacketaPickupWidget = function PacketaPickupWidget({
       close: closeWidget,
       open: openWidget,
     }),
-    [closeWidget, openWidget]
+    [closeWidget, openWidget],
   )
 
   return null

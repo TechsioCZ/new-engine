@@ -107,7 +107,7 @@ export function useCheckoutActions({
 
   const handleSelectShipping = (
     optionId: string,
-    data?: Record<string, unknown>
+    data?: Record<string, unknown>,
   ) => {
     resetFeedback()
 
@@ -124,7 +124,7 @@ export function useCheckoutActions({
       setShippingMethod(optionId, data)
     } catch (error) {
       onCheckoutErrorChange(
-        resolveErrorMessage(error, tCheckout("shipping_update_failed"))
+        resolveErrorMessage(error, tCheckout("shipping_update_failed")),
       )
     }
   }
@@ -141,7 +141,7 @@ export function useCheckoutActions({
       onPaymentProviderSelect(providerId)
     } catch (error) {
       onCheckoutErrorChange(
-        resolveErrorMessage(error, tCheckout("payment_update_failed"))
+        resolveErrorMessage(error, tCheckout("payment_update_failed")),
       )
     }
   }
@@ -162,10 +162,10 @@ export function useCheckoutActions({
         cartEmpty: tCheckout("cart_empty"),
         cartNotReady: tCheckout("cart_not_ready"),
         selectPaymentBeforeCompletion: tCheckout(
-          "select_payment_before_completion"
+          "select_payment_before_completion",
         ),
         selectShippingBeforeCompletion: tCheckout(
-          "select_shipping_before_completion"
+          "select_shipping_before_completion",
         ),
       },
     })
@@ -192,7 +192,7 @@ export function useCheckoutActions({
         reusablePaymentCollection ??
         (await initiatePayment(selectedPaymentProviderId))
       const paymentRedirectUrl = resolvePaymentRedirectUrl(
-        resolvedPaymentCollection
+        resolvedPaymentCollection,
       )
 
       if (paymentRedirectUrl) {
@@ -222,7 +222,7 @@ export function useCheckoutActions({
     } catch (error) {
       onOrderCompletionAbort()
       onCheckoutErrorChange(
-        resolveErrorMessage(error, tCheckout("complete_failed"))
+        resolveErrorMessage(error, tCheckout("complete_failed")),
       )
     }
   }

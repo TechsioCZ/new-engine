@@ -20,7 +20,7 @@ const ORDER_FIELDS = new Set(["handle", "status", "title", "created_at"])
 const LEADING_DASH_REGEX = /^-/
 
 const parseOrder = (
-  value: string = "title"
+  value: string = "title",
 ): { direction: "ASC" | "DESC"; field: string } => {
   const direction: "ASC" | "DESC" = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
@@ -38,7 +38,7 @@ const getProductOrder = (field: string, direction: "ASC" | "DESC") => ({
 
 export async function GET(
   req: AuthenticatedMedusaRequest<unknown, AdminGetBrandProductsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const brandId = req.params["id"] ?? ""
 
@@ -46,7 +46,7 @@ export async function GET(
 
   const { limit, offset, q } = req.validatedQuery
   const order = parseOrder(
-    req.validatedQuery.order_by ?? req.validatedQuery.order
+    req.validatedQuery.order_by ?? req.validatedQuery.order,
   )
   const productIds = await listProductIdsForBrand(req.scope, brandId)
   const [products, count] = await listAndCountProductsByIds(
@@ -57,7 +57,7 @@ export async function GET(
       q,
       skip: offset,
       take: limit,
-    }
+    },
   )
 
   res.status(200).json({
@@ -71,7 +71,7 @@ export async function GET(
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminUpdateBrandProductsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const brandId = req.params["id"] ?? ""
 

@@ -16,7 +16,7 @@ export const createEmployeesStep = createStep(
   "create-employees",
   async (
     input: ModuleCreateEmployee,
-    { container }
+    { container },
   ): Promise<StepResponse<QueryGraphEmployee, string>> => {
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
@@ -33,13 +33,13 @@ export const createEmployeesStep = createStep(
         fields: ["id", "company.*"],
         filters: { id: createdEmployee.id },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!employee) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Created employee "${createdEmployee.id}" was not found`
+        `Created employee "${createdEmployee.id}" was not found`,
       )
     }
 
@@ -53,5 +53,5 @@ export const createEmployeesStep = createStep(
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
     await companyModuleService.deleteEmployees([employeeId])
-  }
+  },
 )

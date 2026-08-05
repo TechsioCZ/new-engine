@@ -20,13 +20,13 @@ describe("legacy Warranty migration preparation", () => {
       isLegacyHerbaticaWarrantyMetadata({
         source: "herbatica-products-complete-xml",
         warranty: "2 roky",
-      })
+      }),
     ).toBeTruthy()
     expect(
       isLegacyHerbaticaWarrantyMetadata({
         source: "n1",
         warranty: "2 roky",
-      })
+      }),
     ).toBeFalsy()
   })
 
@@ -57,10 +57,10 @@ describe("legacy Warranty migration preparation", () => {
     expect(result.metadata["unrelated"]).toStrictEqual({ keep: true })
     expect(result.metadata["content_sections"]).toHaveLength(5)
     expect(
-      (result.metadata["content_sections"] as { html: string }[])[4]?.html
+      (result.metadata["content_sections"] as { html: string }[])[4]?.html,
     ).toBe("<p>Keep before</p>\n<p>Keep after</p>")
     expect(
-      (result.metadata["content_sections_map"] as { other: string }).other
+      (result.metadata["content_sections_map"] as { other: string }).other,
     ).toBe("<p>Keep before</p>\n<p>Keep after</p>")
   })
 

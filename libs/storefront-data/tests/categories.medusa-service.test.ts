@@ -16,12 +16,12 @@ interface SdkLike {
 const createCategory = (
   id: string,
   name = "Category",
-  handle = id
+  handle = id,
 ): HttpTypes.StoreProductCategory =>
   ({ handle, id, name }) as HttpTypes.StoreProductCategory
 
 function createSdkMock(
-  response?: Partial<HttpTypes.StoreProductCategoryListResponse>
+  response?: Partial<HttpTypes.StoreProductCategoryListResponse>,
 ): SdkLike {
   return {
     client: {
@@ -49,7 +49,7 @@ describe(createMedusaCategoryService, () => {
 
     await service.getCategories(
       { enabled: true, limit: 12, offset: 0 },
-      controller.signal
+      controller.signal,
     )
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/product-categories", {
@@ -145,7 +145,7 @@ describe(createMedusaCategoryService, () => {
           fields: "id,name,handle,parent_category_id",
         },
         signal: null,
-      }
+      },
     )
     expect(result).toStrictEqual({ slug: "jackets", title: "Jackets" })
   })

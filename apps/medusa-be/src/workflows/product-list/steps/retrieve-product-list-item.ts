@@ -12,5 +12,5 @@ export const retrieveProductListItemStep = createStep(
     const item = await service.retrieveProductListItem(itemId)
 
     return new StepResponse<ProductListItemRecord>(item)
-  }
+  },
 )

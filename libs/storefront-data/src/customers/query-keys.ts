@@ -3,7 +3,7 @@ import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { CustomerQueryKeys } from "./types"
 
 export function createCustomerQueryKeys<TListParams>(
-  namespace: QueryNamespace
+  namespace: QueryNamespace,
 ): CustomerQueryKeys<TListParams> {
   return {
     addresses: (params) =>
@@ -11,7 +11,7 @@ export function createCustomerQueryKeys<TListParams>(
         namespace,
         "customer",
         "addresses",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
     all: () => createQueryKey(namespace, "customer"),
     profile: () => createQueryKey(namespace, "customer", "profile"),

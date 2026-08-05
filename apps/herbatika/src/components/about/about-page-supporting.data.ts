@@ -134,12 +134,12 @@ export const ABOUT_PAGE_SUPPORTING = {
         "Zaujíma vás, ako nás vnímajú ostatní zákazníci, ktorí už naše produkty či služby vyskúšali? Prečítajte si, čo o nás napísali: Tu je ",
         aboutLink(
           "hodnotenie obchodu na našom e-shope",
-          "/hodnotenie-obchodu/"
+          "/hodnotenie-obchodu/",
         ),
         " a tu nájdete hodnotenia/recenzie na ",
         aboutLink(
           "Heuréke",
-          "https://obchody.heureka.sk/herbatica-sk/recenze/"
+          "https://obchody.heureka.sk/herbatica-sk/recenze/",
         ),
         ".",
       ],

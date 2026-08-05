@@ -185,7 +185,7 @@ const StorefrontTextEditDrawer = ({
   useEffect(() => {
     if (open && storefrontText) {
       setOverrideValue(
-        storefrontText.override_value ?? storefrontText.default_value
+        storefrontText.override_value ?? storefrontText.default_value,
       )
       setStatus(storefrontText.status)
     }
@@ -201,7 +201,7 @@ const StorefrontTextEditDrawer = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       )
     },
     onSuccess: async (_, input) => {
@@ -209,7 +209,7 @@ const StorefrontTextEditDrawer = ({
         queryKey: storefrontTextQueryKeys.lists(),
       })
       toast.success(
-        input.override_value === null ? t("toasts.reset") : t("toasts.saved")
+        input.override_value === null ? t("toasts.reset") : t("toasts.saved"),
       )
       onOpenChange(false)
     },
@@ -253,7 +253,7 @@ const StorefrontTextEditDrawer = ({
                   <Text size="small" weight="plus">
                     {t(`markets.${storefrontText.market}`, {
                       defaultValue: getMarketFallbackLabel(
-                        storefrontText.market
+                        storefrontText.market,
                       ),
                     })}
                   </Text>
@@ -394,7 +394,7 @@ const StorefrontTextsPage = () => {
     mutationFn: syncStorefrontTexts,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.syncFailed")
+        error instanceof Error ? error.message : t("errors.syncFailed"),
       )
     },
     onSuccess: async (response) => {
@@ -405,7 +405,7 @@ const StorefrontTextsPage = () => {
         t("toasts.synchronized", {
           created: response.result.created_count,
           updated: response.result.updated_count,
-        })
+        }),
       )
     },
   })
@@ -476,7 +476,7 @@ const StorefrontTextsPage = () => {
               setMarket(
                 value !== ALL_VALUE && isStorefrontTextMarket(value)
                   ? value
-                  : undefined
+                  : undefined,
               )
             }}
             value={market ?? ALL_VALUE}
@@ -501,7 +501,7 @@ const StorefrontTextsPage = () => {
               setNamespace(
                 value !== ALL_VALUE && isStorefrontTextNamespace(value)
                   ? value
-                  : undefined
+                  : undefined,
               )
             }}
             value={namespace ?? ALL_VALUE}
@@ -526,7 +526,7 @@ const StorefrontTextsPage = () => {
               setStatus(
                 value !== ALL_VALUE && isStorefrontTextStatus(value)
                   ? value
-                  : undefined
+                  : undefined,
               )
             }}
             value={status ?? ALL_VALUE}

@@ -84,7 +84,7 @@ function BrandProvider({
   // On the server readStoredBrand() returns null, so SSR uses the default and
   // the provider renders no brand-dependent markup (consumers gate on mounted).
   const [brand, setBrandState] = useState<BrandKey>(
-    () => readStoredBrand() ?? defaultBrand
+    () => readStoredBrand() ?? defaultBrand,
   )
   const [mounted, setMounted] = useState(false)
 
@@ -199,9 +199,9 @@ export function BrandThemeScript({
   // Validates the stored key against known brands before falling back to the
   // default, so a stale/invalid value can't slip through as "no brand".
   const script = `(function(){try{var d=${JSON.stringify(
-    defaultBrand
+    defaultBrand,
   )};var m=${JSON.stringify(attrByBrand)};var k=localStorage.getItem(${JSON.stringify(
-    BRAND_STORAGE_KEY
+    BRAND_STORAGE_KEY,
   )});if(!k||!Object.prototype.hasOwnProperty.call(m,k)){k=d;}var a=m[k];var e=document.documentElement;if(a){e.setAttribute('data-theme',a);}else{e.removeAttribute('data-theme');}}catch(e){}})();`
 
   return (

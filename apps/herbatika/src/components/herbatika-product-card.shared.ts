@@ -22,7 +22,7 @@ interface HerbatikaProductCardStateOptions {
 
 export function useHerbatikaProductCardState(
   product: HttpTypes.StoreProduct,
-  { priceUnavailableLabel, onImageError }: HerbatikaProductCardStateOptions
+  { priceUnavailableLabel, onImageError }: HerbatikaProductCardStateOptions,
 ) {
   const region = useRegionContext()
   const currencyCode = resolveRegionCurrency(region)
@@ -42,7 +42,7 @@ export function useHerbatikaProductCardState(
     setImageSrc((currentImageSrc) =>
       currentImageSrc === PRODUCT_FALLBACK_IMAGE
         ? currentImageSrc
-        : PRODUCT_FALLBACK_IMAGE
+        : PRODUCT_FALLBACK_IMAGE,
     )
   }
 

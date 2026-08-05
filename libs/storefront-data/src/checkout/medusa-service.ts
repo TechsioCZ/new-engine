@@ -15,12 +15,12 @@ type MaybePromise<T> = T | Promise<T>
 export interface MedusaCheckoutServiceConfig {
   cartFields?: string
   buildPaymentSessionData?: (
-    input: MedusaPaymentSessionDataInput
+    input: MedusaPaymentSessionDataInput,
   ) => MaybePromise<Record<string, unknown> | undefined>
 }
 
 const buildCartSelectParams = (
-  fields?: string
+  fields?: string,
 ): HttpTypes.SelectParams | undefined => {
   if (!fields) {
     return
@@ -56,7 +56,7 @@ export type MedusaCheckoutService = Required<
 
 export function createMedusaCheckoutService(
   sdk: Medusa,
-  config?: MedusaCheckoutServiceConfig
+  config?: MedusaCheckoutServiceConfig,
 ): MedusaCheckoutService {
   const cartQuery = buildCartSelectParams(config?.cartFields)
 
@@ -64,17 +64,17 @@ export function createMedusaCheckoutService(
     async addShippingMethod(
       cartId: string,
       optionId: string,
-      data?: Record<string, unknown>
+      data?: Record<string, unknown>,
     ): Promise<HttpTypes.StoreCart> {
       const response = cartQuery
         ? await sdk.store.cart.addShippingMethod(
             cartId,
             omitUndefined({ option_id: optionId, data }),
-            cartQuery
+            cartQuery,
           )
         : await sdk.store.cart.addShippingMethod(
             cartId,
-            omitUndefined({ option_id: optionId, data })
+            omitUndefined({ option_id: optionId, data }),
           )
       if (!response.cart) {
         throw new Error("Failed to add shipping method")
@@ -85,7 +85,7 @@ export function createMedusaCheckoutService(
     async calculateShippingOption(
       optionId: string,
       input: { cart_id: string; data?: Record<string, unknown> },
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<HttpTypes.StoreCartShippingOption> {
       const response =
         await sdk.client.fetch<HttpTypes.StoreShippingOptionResponse>(
@@ -97,13 +97,13 @@ export function createMedusaCheckoutService(
               data: input.data,
             },
             signal: signal ?? null,
-          }
+          },
         )
       return response.shipping_option
     },
 
     async completeCart(
-      cartId: string
+      cartId: string,
     ): Promise<HttpTypes.StoreCompleteCartResponse> {
       return sdk.store.cart.complete(cartId)
     },
@@ -111,7 +111,7 @@ export function createMedusaCheckoutService(
     async initiatePaymentSession(
       cartId: string,
       providerId: string,
-      cart?: HttpTypes.StoreCart | null
+      cart?: HttpTypes.StoreCart | null,
     ): Promise<HttpTypes.StorePaymentCollection> {
       const resolvedCart =
         cart ??
@@ -133,7 +133,7 @@ export function createMedusaCheckoutService(
         {
           provider_id: providerId,
           ...(paymentSessionData ? { data: paymentSessionData } : {}),
-        }
+        },
       )
       if (!response.payment_collection) {
         throw new Error("Failed to initiate payment session")
@@ -143,7 +143,7 @@ export function createMedusaCheckoutService(
 
     async listPaymentProviders(
       regionId: string,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<HttpTypes.StorePaymentProvider[]> {
       const response =
         await sdk.client.fetch<HttpTypes.StorePaymentProviderListResponse>(
@@ -153,14 +153,14 @@ export function createMedusaCheckoutService(
               region_id: regionId,
             },
             signal: signal ?? null,
-          }
+          },
         )
       return response.payment_providers ?? []
     },
 
     async listShippingOptions(
       cartId: string,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<HttpTypes.StoreCartShippingOption[]> {
       const response =
         await sdk.client.fetch<HttpTypes.StoreShippingOptionListResponse>(
@@ -170,7 +170,7 @@ export function createMedusaCheckoutService(
               cart_id: cartId,
             },
             signal: signal ?? null,
-          }
+          },
         )
       return response.shipping_options ?? []
     },

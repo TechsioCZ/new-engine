@@ -49,5 +49,5 @@ figma.connect(
         outline: "outline",
       }),
     },
-  }
+  },
 )

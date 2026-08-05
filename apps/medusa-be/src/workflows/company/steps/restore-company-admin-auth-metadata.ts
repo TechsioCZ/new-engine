@@ -32,7 +32,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
   "restore-company-admin-auth-metadata",
   async (
     companyIds: string[],
-    { container }
+    { container },
   ): Promise<
     StepResponse<undefined, RestoreCompanyAdminAuthMetadataCompensation>
   > => {
@@ -59,7 +59,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
       ...new Set(
         adminCandidates
           .map((candidate) => candidate.email)
-          .filter((email): email is string => Boolean(email))
+          .filter((email): email is string => Boolean(email)),
       ),
     ]
     const { data: providerIdentities }: { data: ProviderIdentity[] } =
@@ -76,12 +76,12 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
     const providerIdentityIds = providerIdentities
       .map((providerIdentity) => providerIdentity.id)
       .filter((providerIdentityId): providerIdentityId is string =>
-        Boolean(providerIdentityId)
+        Boolean(providerIdentityId),
       )
 
     if (providerIdentityIds.length) {
       const authModuleService = container.resolve<IAuthModuleService>(
-        Modules.AUTH
+        Modules.AUTH,
       )
 
       await authModuleService.updateProviderIdentities(
@@ -90,7 +90,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
           user_metadata: {
             role: "company_admin",
           },
-        }))
+        })),
       )
     }
 
@@ -102,7 +102,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
   },
   async (
     input: RestoreCompanyAdminAuthMetadataCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (!input?.provider_identity_ids.length) {
       return
@@ -117,7 +117,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
       })
     const providerIdentityIdSet = new Set(providerIdentityIds)
     const providerIdentityIdsToClear = input.provider_identity_ids.filter(
-      (providerIdentityId) => providerIdentityIdSet.has(providerIdentityId)
+      (providerIdentityId) => providerIdentityIdSet.has(providerIdentityId),
     )
 
     if (!providerIdentityIdsToClear.length) {
@@ -125,7 +125,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
     }
 
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     await authModuleService.updateProviderIdentities(
@@ -134,7 +134,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
         user_metadata: {
           role: null,
         },
-      }))
+      })),
     )
-  }
+  },
 )

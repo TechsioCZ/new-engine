@@ -25,7 +25,7 @@ const BOTTOM_DESCRIPTION_METADATA_KEY = "bottom_description_html"
 
 const getMetadataHtml = (
   metadata: ProductCategoryWithMetadata["metadata"],
-  key: string
+  key: string,
 ) => {
   const value = metadata?.[key]
 
@@ -37,10 +37,10 @@ const CategoryDescriptionEditor = ({
 }: CategoryDescriptionEditorProps) => {
   const queryClient = useQueryClient()
   const [savedTopDescriptionHtml, setSavedTopDescriptionHtml] = useState(() =>
-    getMetadataHtml(category?.metadata, TOP_DESCRIPTION_METADATA_KEY)
+    getMetadataHtml(category?.metadata, TOP_DESCRIPTION_METADATA_KEY),
   )
   const [savedBottomDescriptionHtml, setSavedBottomDescriptionHtml] = useState(
-    () => getMetadataHtml(category?.metadata, BOTTOM_DESCRIPTION_METADATA_KEY)
+    () => getMetadataHtml(category?.metadata, BOTTOM_DESCRIPTION_METADATA_KEY),
   )
   const topDescriptionHtmlRef = useRef(savedTopDescriptionHtml)
   const bottomDescriptionHtmlRef = useRef(savedBottomDescriptionHtml)
@@ -48,11 +48,11 @@ const CategoryDescriptionEditor = ({
   useEffect(() => {
     const nextTopDescriptionHtml = getMetadataHtml(
       category?.metadata,
-      TOP_DESCRIPTION_METADATA_KEY
+      TOP_DESCRIPTION_METADATA_KEY,
     )
     const nextBottomDescriptionHtml = getMetadataHtml(
       category?.metadata,
-      BOTTOM_DESCRIPTION_METADATA_KEY
+      BOTTOM_DESCRIPTION_METADATA_KEY,
     )
 
     topDescriptionHtmlRef.current = nextTopDescriptionHtml
@@ -80,23 +80,23 @@ const CategoryDescriptionEditor = ({
             },
           },
           method: "POST",
-        }
+        },
       ),
     onError: (error) => {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to save category descriptions"
+          : "Failed to save category descriptions",
       )
     },
     onSuccess: async (response, variables) => {
       const responseTopDescriptionHtml = getMetadataHtml(
         response.product_category.metadata,
-        TOP_DESCRIPTION_METADATA_KEY
+        TOP_DESCRIPTION_METADATA_KEY,
       )
       const responseBottomDescriptionHtml = getMetadataHtml(
         response.product_category.metadata,
-        BOTTOM_DESCRIPTION_METADATA_KEY
+        BOTTOM_DESCRIPTION_METADATA_KEY,
       )
       const nextTopDescriptionHtml =
         responseTopDescriptionHtml || variables.topDescriptionHtml

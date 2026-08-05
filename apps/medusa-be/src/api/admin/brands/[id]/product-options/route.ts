@@ -33,7 +33,7 @@ interface ProductPageOptions {
 const getPageWindow = (
   options: ProductPageOptions,
   remainingOffset: number,
-  remainingLimit: number
+  remainingLimit: number,
 ) => ({
   order: PRODUCT_ORDER,
   q: options.q,
@@ -74,7 +74,7 @@ const listProductGroup = async ({
 const listRankedProductPage = async (
   scope: MedusaContainer,
   productIdGroups: ProductIdGroup[],
-  options: ProductPageOptions
+  options: ProductPageOptions,
 ) => {
   let count = 0
   let remainingOffset = options.offset
@@ -118,7 +118,7 @@ export async function GET(
     unknown,
     AdminGetBrandProductOptionsSchemaType
   >,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const brandId = req.params["id"] ?? ""
 
@@ -170,7 +170,7 @@ export async function GET(
 
                 return typeof productId === "string" ? [productId] : []
               })
-            : []
+            : [],
         )
 
         return [
@@ -181,31 +181,31 @@ export async function GET(
   const { count, page: products } = await listRankedProductPage(
     req.scope,
     groups,
-    { limit, offset, q }
+    { limit, offset, q },
   )
   const links = await listProductBrandLinksByProductIds(
     req.scope,
-    products.map((product) => product.id)
+    products.map((product) => product.id),
   )
   const linkedBrandIds = uniqueIds(links.map((link) => link.brand_id))
   const linkedBrands = await listBrandsByIds(req.scope, linkedBrandIds)
   const activeProductCounts = await getBrandActiveProductCounts(
     req.scope,
-    linkedBrands.map((brand) => brand.id)
+    linkedBrands.map((brand) => brand.id),
   )
   const brandsById = new Map(
     linkedBrands.map((brand) => [
       brand.id,
       toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0),
-    ])
+    ]),
   )
   const activeBrandIds = new Set(
-    linkedBrands.filter((brand) => !brand.deleted_at).map((brand) => brand.id)
+    linkedBrands.filter((brand) => !brand.deleted_at).map((brand) => brand.id),
   )
   const activeBrandIdByProductId = new Map(
     links
       .filter((link) => activeBrandIds.has(link.brand_id))
-      .map((link) => [link.product_id, link.brand_id])
+      .map((link) => [link.product_id, link.brand_id]),
   )
   const options = products.map((product) => {
     const assignedBrandId = activeBrandIdByProductId.get(product.id)

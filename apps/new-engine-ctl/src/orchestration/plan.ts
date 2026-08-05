@@ -58,7 +58,7 @@ async function loadManifest(path: string): Promise<StackManifest> {
 function assertServiceAllowedInLane(
   service: DeployableService,
   lane: PlanCommandInput["lane"],
-  label: string
+  label: string,
 ): void {
   if (!service.deployLanes.includes(lane)) {
     throw new Error(`${label} ${service.id} is not eligible for lane ${lane}.`)
@@ -66,13 +66,13 @@ function assertServiceAllowedInLane(
 
   if (lane === "preview" && !service.cloneToPreview) {
     throw new Error(
-      `${label} ${service.id} is not eligible for lane preview because clone_to_preview is false.`
+      `${label} ${service.id} is not eligible for lane preview because clone_to_preview is false.`,
     )
   }
 }
 
 function buildPlanService(
-  service: DeployableService
+  service: DeployableService,
 ): PlanResponse["deploy_services"][number] {
   return {
     clone_to_preview: service.cloneToPreview,
@@ -87,11 +87,11 @@ function buildPlanService(
 
 function buildPreviewServiceSets(
   manifest: StackManifest,
-  explicitlyRequestedServiceIds: Set<string>
+  explicitlyRequestedServiceIds: Set<string>,
 ): PreviewServiceSets {
   const services = listDeployableServices(manifest).filter(
     (service) =>
-      service.enabledByDefault || explicitlyRequestedServiceIds.has(service.id)
+      service.enabledByDefault || explicitlyRequestedServiceIds.has(service.id),
   )
 
   return {
@@ -103,7 +103,7 @@ function buildPreviewServiceSets(
 function buildRequestedAndDeploySets(
   manifest: StackManifest,
   lane: PlanCommandInput["lane"],
-  sourceServiceIds: string[]
+  sourceServiceIds: string[],
 ): {
   requestedServiceIds: Set<string>
   deployServiceIds: Set<string>
@@ -130,25 +130,25 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
 }
 
 export async function executePlan(
-  input: PlanCommandInput
+  input: PlanCommandInput,
 ): Promise<PlanResponse> {
   const manifest = await loadManifest(input.stackManifestPath)
   const sourceServiceIds = normalizeCsvToArray(input.servicesCsv)
   const laneServices = listDeployableServices(manifest).filter(
     (service) =>
       service.deployLanes.includes(input.lane) &&
-      (input.lane !== "preview" || service.cloneToPreview)
+      (input.lane !== "preview" || service.cloneToPreview),
   )
   const { requestedServiceIds, deployServiceIds } = buildRequestedAndDeploySets(
     manifest,
     input.lane,
-    sourceServiceIds
+    sourceServiceIds,
   )
   const requestedServices = laneServices.filter((service) =>
-    requestedServiceIds.has(service.id)
+    requestedServiceIds.has(service.id),
   )
   const deployServices = laneServices.filter((service) =>
-    deployServiceIds.has(service.id)
+    deployServiceIds.has(service.id),
   )
   const previewServiceSets =
     input.lane === "preview"

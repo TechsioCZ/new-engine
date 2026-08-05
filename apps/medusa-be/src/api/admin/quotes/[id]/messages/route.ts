@@ -11,7 +11,7 @@ import type { AdminCreateQuoteMessageType } from "../../validators"
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<AdminCreateQuoteMessageType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const id = requirePathParam(req.params["id"], "Quote id")
@@ -32,7 +32,7 @@ export const POST = async (
       fields: req.queryConfig.fields,
       filters: { id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ quote })

@@ -34,7 +34,7 @@ const createService = () => ({
 const createCatalogEnvelope = (
   messages: Record<string, string>,
   market: "cz" = "cz",
-  locale: "cs-CZ" = "cs-CZ"
+  locale: "cs-CZ" = "cs-CZ",
 ) => ({
   locale,
   market,
@@ -57,7 +57,7 @@ describe("updateStorefrontTextStep", () => {
           override_value: "{quantity, plural, =0 {Filtr} other {Filtr (#)}}",
           status: "draft",
         },
-      })
+      }),
     ).rejects.toThrow("must preserve the default ICU arguments")
     expect(service.updateStorefrontTexts).not.toHaveBeenCalled()
   })
@@ -69,7 +69,7 @@ describe("updateStorefrontTextStep", () => {
       updateStorefrontTextRecord(service, {
         id: "sftxt_01",
         update: { status: "archived" as never },
-      })
+      }),
     ).rejects.toThrow('Unsupported storefront text status "archived"')
     expect(service.retrieveStorefrontText).not.toHaveBeenCalled()
   })
@@ -132,7 +132,7 @@ describe("updateStorefrontTextStep", () => {
       updateStorefrontTextRecord(service, {
         id: "sftxt_01",
         update: { status: "active" },
-      })
+      }),
     ).rejects.toThrow("must preserve the default ICU arguments")
     expect(service.updateStorefrontTexts).not.toHaveBeenCalled()
   })
@@ -153,7 +153,7 @@ describe("updateStorefrontTextStep", () => {
       updateStorefrontTextRecord(service, {
         id: "sftxt_01",
         update: { override_value: "Posledních {count} ks" },
-      })
+      }),
     ).rejects.toThrow("must preserve the default ICU arguments")
     expect(service.updateStorefrontTexts).not.toHaveBeenCalled()
   })
@@ -185,7 +185,7 @@ describe("syncStorefrontTextsStep", () => {
     }
 
     await expect(
-      synchronizeStorefrontTexts(service, {}, sharedContext)
+      synchronizeStorefrontTexts(service, {}, sharedContext),
     ).rejects.toThrow("must preserve the default ICU arguments")
     expect(service.createStorefrontTexts).not.toHaveBeenCalled()
     expect(service.updateStorefrontTexts).not.toHaveBeenCalled()
@@ -196,7 +196,7 @@ describe("syncStorefrontTextsStep", () => {
       createStorefrontTexts: vi
         .fn()
         .mockImplementation(async (rows: StorefrontTextSeedRow[]) =>
-          rows.map((row, index) => ({ ...row, id: `sftxt_new_${index}` }))
+          rows.map((row, index) => ({ ...row, id: `sftxt_new_${index}` })),
         ),
       deleteStorefrontTexts: vi.fn().mockResolvedValue(),
       listStorefrontTexts: vi.fn().mockResolvedValue([]),
@@ -207,7 +207,7 @@ describe("syncStorefrontTextsStep", () => {
 
     expect(service.createStorefrontTexts).toHaveBeenCalledOnce()
     expect(service.createStorefrontTexts.mock.calls[0]?.[0]).toHaveLength(
-      getStorefrontTextSeedRows().length
+      getStorefrontTextSeedRows().length,
     )
   })
 
@@ -216,7 +216,7 @@ describe("syncStorefrontTextsStep", () => {
       createStorefrontTexts: vi
         .fn()
         .mockImplementation(async (rows: StorefrontTextSeedRow[]) =>
-          rows.map((row, index) => ({ ...row, id: `sftxt_${index}` }))
+          rows.map((row, index) => ({ ...row, id: `sftxt_${index}` })),
         ),
       deleteStorefrontTexts: vi.fn(),
       listStorefrontTexts: vi.fn().mockResolvedValue([]),
@@ -228,13 +228,13 @@ describe("syncStorefrontTextsStep", () => {
     expect(service.listStorefrontTexts).toHaveBeenCalledWith(
       { market: "cz" },
       {},
-      expect.any(Object)
+      expect.any(Object),
     )
     expect(service.createStorefrontTexts).toHaveBeenCalledOnce()
     expect(
       service.createStorefrontTexts.mock.calls[0]?.[0].every(
-        (row: StorefrontTextSeedRow) => row.market === "cz"
-      )
+        (row: StorefrontTextSeedRow) => row.market === "cz",
+      ),
     ).toBeTruthy()
   })
 })
@@ -267,7 +267,7 @@ describe("importStorefrontTextCatalogStep", () => {
       "cart.add_to_cart": "Přidat do košíku",
     } as Record<string, string>
     const changedRecord = service.records.find(
-      (record) => record.key === "cart.add_to_cart"
+      (record) => record.key === "cart.add_to_cart",
     )
 
     const result = await importStorefrontTextCatalog(
@@ -276,7 +276,7 @@ describe("importStorefrontTextCatalogStep", () => {
         catalog: createCatalogEnvelope(messages),
         market: "cz",
       },
-      sharedContext
+      sharedContext,
     )
 
     expect(service.updateStorefrontTexts).toHaveBeenCalledOnce()
@@ -288,7 +288,7 @@ describe("importStorefrontTextCatalogStep", () => {
           status: "active",
         },
       ],
-      expect.any(Object)
+      expect.any(Object),
     )
     expect(result.result).toStrictEqual({
       unchanged_count: Object.keys(messages).length - 1,
@@ -310,8 +310,8 @@ describe("importStorefrontTextCatalogStep", () => {
           catalog: createCatalogEnvelope(messages),
           market: "cz",
         },
-        sharedContext
-      )
+        sharedContext,
+      ),
     ).rejects.toThrow("must preserve the default ICU arguments")
     expect(service.updateStorefrontTexts).not.toHaveBeenCalled()
   })
@@ -331,8 +331,8 @@ describe("importStorefrontTextCatalogStep", () => {
           },
           market: "cz",
         },
-        sharedContext
-      )
+        sharedContext,
+      ),
     ).rejects.toThrow("Missing keys")
     expect(service.listStorefrontTexts).not.toHaveBeenCalled()
     expect(service.updateStorefrontTexts).not.toHaveBeenCalled()
@@ -341,7 +341,7 @@ describe("importStorefrontTextCatalogStep", () => {
   it("keeps a hidden draft when the imported value matches the effective value", async () => {
     const service = createImportService()
     const draftRecord = service.records.find(
-      (record) => record.key === "cart.add_to_cart"
+      (record) => record.key === "cart.add_to_cart",
     )
 
     if (!draftRecord) {
@@ -360,7 +360,7 @@ describe("importStorefrontTextCatalogStep", () => {
         catalog: createCatalogEnvelope(messages),
         market: "cz",
       },
-      sharedContext
+      sharedContext,
     )
 
     expect(service.updateStorefrontTexts).not.toHaveBeenCalled()
@@ -373,7 +373,7 @@ describe("importStorefrontTextCatalogStep", () => {
   it("publishes an imported value that currently exists only as a draft", async () => {
     const service = createImportService()
     const draftRecord = service.records.find(
-      (record) => record.key === "cart.add_to_cart"
+      (record) => record.key === "cart.add_to_cart",
     )
 
     if (!draftRecord) {
@@ -393,7 +393,7 @@ describe("importStorefrontTextCatalogStep", () => {
         catalog: createCatalogEnvelope(messages),
         market: "cz",
       },
-      sharedContext
+      sharedContext,
     )
 
     expect(service.updateStorefrontTexts).toHaveBeenCalledWith(
@@ -404,7 +404,7 @@ describe("importStorefrontTextCatalogStep", () => {
           status: "active",
         },
       ],
-      expect.any(Object)
+      expect.any(Object),
     )
     expect(result.result).toStrictEqual({
       unchanged_count: Object.keys(messages).length - 1,
@@ -421,7 +421,7 @@ describe("importStorefrontTextCatalogStep", () => {
     } as Record<string, string>
 
     service.updateStorefrontTexts.mockRejectedValue(
-      new Error("Database write failed")
+      new Error("Database write failed"),
     )
 
     await expect(
@@ -431,8 +431,8 @@ describe("importStorefrontTextCatalogStep", () => {
           catalog: createCatalogEnvelope(messages),
           market: "cz",
         },
-        sharedContext
-      )
+        sharedContext,
+      ),
     ).rejects.toThrow("Database write failed")
     expect(service.updateStorefrontTexts).toHaveBeenCalledOnce()
     expect(service.updateStorefrontTexts.mock.calls[0]?.[0]).toHaveLength(2)

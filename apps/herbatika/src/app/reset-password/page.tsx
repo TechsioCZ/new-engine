@@ -9,7 +9,7 @@ interface ResetPasswordRedirectPageProps {
 const appendSearchParam = (
   params: URLSearchParams,
   key: string,
-  value: string | string[] | undefined
+  value: string | string[] | undefined,
 ) => {
   if (Array.isArray(value)) {
     const firstValue = value[0]
@@ -37,6 +37,6 @@ export default async function ResetPasswordRedirectPage({
   const queryString = targetSearchParams.toString()
 
   redirect(
-    appHref(`/auth/reset-password${queryString ? `?${queryString}` : ""}`)
+    appHref(`/auth/reset-password${queryString ? `?${queryString}` : ""}`),
   )
 }

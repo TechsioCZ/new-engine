@@ -14,7 +14,7 @@ type ProductQueryInput = RegionInfo & {
 
 export const resolveProductQueryInput = <TInput extends ProductQueryInput>(
   input: TInput,
-  region?: RegionInfo | null
+  region?: RegionInfo | null,
 ): TInput => {
   const { enabled: _inputEnabled, ...baseInput } = input
   return applyRegion(baseInput as TInput, region)

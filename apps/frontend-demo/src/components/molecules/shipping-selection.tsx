@@ -29,7 +29,7 @@ const ShippingMethodDetail = ({
   const priceWithTax = (method.calculated_price?.calculated_amount || 0) * 1.21
   const formattedPrice = formatPrice(
     priceWithTax,
-    method.calculated_price.currency_code || "CZK"
+    method.calculated_price.currency_code || "CZK",
   )
 
   return (

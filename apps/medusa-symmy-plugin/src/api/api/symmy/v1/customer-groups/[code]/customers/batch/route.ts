@@ -75,7 +75,7 @@ import type { AssignCustomersToGroupBatchSchemaType } from "./validators"
  */
 export const POST = async (
   req: MedusaRequest<AssignCustomersToGroupBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   await enqueueImportJob(req, res, {
     payload: {

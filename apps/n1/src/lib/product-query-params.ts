@@ -20,7 +20,7 @@ interface BuilderParams extends Partial<ProductQueryParams> {
 }
 
 export function buildProductQueryParams(
-  params: BuilderParams
+  params: BuilderParams,
 ): ProductQueryParams {
   const { page = 1, limit = PRODUCT_LIMIT, ...rest } = params
 
@@ -37,7 +37,7 @@ export function buildProductQueryParams(
  * Always prefetches page 1
  */
 export function buildPrefetchParams(
-  params: Pick<BuilderParams, "category_id" | "region_id" | "country_code">
+  params: Pick<BuilderParams, "category_id" | "region_id" | "country_code">,
 ): ProductQueryParams {
   return buildProductQueryParams({
     ...params,
@@ -58,7 +58,7 @@ type QueryParamValue =
   | undefined
 
 export function buildQueryString(
-  params: Record<string, QueryParamValue>
+  params: Record<string, QueryParamValue>,
 ): string {
   const searchParams = new URLSearchParams()
 

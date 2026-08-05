@@ -17,7 +17,7 @@ export async function loadPplWidgetLoader() {
 
   loaderPromise = new Promise<void>((resolve, reject) => {
     const existingScript = document.querySelector<HTMLScriptElement>(
-      `script[src="${PPL_WIDGET_LOADER_URL}"]`
+      `script[src="${PPL_WIDGET_LOADER_URL}"]`,
     )
 
     if (existingScript) {

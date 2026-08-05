@@ -15,7 +15,7 @@ interface CompanyApprovalSettingsLinkRow {
 
 const getCompanyApprovalSettingsLink = (
   companyId: string,
-  approvalSettingsId: string
+  approvalSettingsId: string,
 ) => ({
   [COMPANY_MODULE]: {
     company_id: companyId,
@@ -44,13 +44,13 @@ export const dismissCompanyApprovalSettingsLinksStep = createStep(
       })
     const existingLinks = linkRows
       .filter((linkRow): linkRow is Required<CompanyApprovalSettingsLinkRow> =>
-        Boolean(linkRow.company_id && linkRow.approval_settings_id)
+        Boolean(linkRow.company_id && linkRow.approval_settings_id),
       )
       .map((linkRow) =>
         getCompanyApprovalSettingsLink(
           linkRow.company_id,
-          linkRow.approval_settings_id
-        )
+          linkRow.approval_settings_id,
+        ),
       ) as LinkDefinition[]
 
     if (existingLinks.length) {
@@ -67,5 +67,5 @@ export const dismissCompanyApprovalSettingsLinksStep = createStep(
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
 
     await link.create(existingLinks)
-  }
+  },
 )

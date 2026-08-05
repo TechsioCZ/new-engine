@@ -34,7 +34,7 @@ export function AddToCartDialog({
     const price = variant.calculated_price
       ? formatPrice(
           variant.calculated_price.calculated_amount || 0,
-          variant.calculated_price.currency_code ?? undefined
+          variant.calculated_price.currency_code ?? undefined,
         )
       : ""
 

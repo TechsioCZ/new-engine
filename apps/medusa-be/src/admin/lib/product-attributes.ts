@@ -94,7 +94,7 @@ export type SetProductAttributeOperation =
     }
 
 const toSearch = (
-  params: Record<string, boolean | number | string | undefined>
+  params: Record<string, boolean | number | string | undefined>,
 ) => {
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
@@ -129,7 +129,7 @@ export const listProductAttributeDefinitions = async (params: {
   status?: ProductAttributeStatus
 }) =>
   sdk.client.fetch<ProductAttributeDefinitionsResponse>(
-    `/admin/product-attributes/definitions?${toSearch(params)}`
+    `/admin/product-attributes/definitions?${toSearch(params)}`,
   )
 
 export const createProductAttributeDefinition = async (input: {
@@ -140,7 +140,7 @@ export const createProductAttributeDefinition = async (input: {
 }) =>
   sdk.client.fetch<ProductAttributeDefinitionResponse>(
     "/admin/product-attributes/definitions",
-    { body: input, method: "POST" }
+    { body: input, method: "POST" },
   )
 
 export const updateProductAttributeDefinition = async (
@@ -149,11 +149,11 @@ export const updateProductAttributeDefinition = async (
     input_type?: ProductAttributeInputType
     is_public?: boolean
     label?: string
-  }
+  },
 ) =>
   sdk.client.fetch<ProductAttributeDefinitionResponse>(
     `/admin/product-attributes/definitions/${id}`,
-    { body: input, method: "POST" }
+    { body: input, method: "POST" },
   )
 
 export const deleteProductAttributeDefinition = async (id: string) =>
@@ -169,7 +169,7 @@ export const permanentlyDeleteProductAttributeDefinition = async (id: string) =>
 export const restoreProductAttributeDefinition = async (id: string) =>
   sdk.client.fetch<ProductAttributeDefinitionResponse>(
     `/admin/product-attributes/definitions/${id}/restore`,
-    { method: "POST" }
+    { method: "POST" },
   )
 
 export const listProductAttributeOptions = async (
@@ -180,13 +180,13 @@ export const listProductAttributeOptions = async (
     order?: string
     q?: string
     status?: ProductAttributeStatus
-  }
+  },
 ) =>
   sdk.client.fetch<ProductAttributeOptionsResponse>(
     `/admin/product-attributes/options?${toSearch({
       ...params,
       definition_id: definitionId,
-    })}`
+    })}`,
   )
 
 export const listProductAttributeOptionAssignedProducts = async (
@@ -196,28 +196,28 @@ export const listProductAttributeOptionAssignedProducts = async (
     offset: number
     order?: string
     q?: string
-  }
+  },
 ) =>
   sdk.client.fetch<ProductAttributeAssignedProductsResponse>(
-    `/admin/product-attributes/options/${optionId}/products?${toSearch(params)}`
+    `/admin/product-attributes/options/${optionId}/products?${toSearch(params)}`,
   )
 
 export const createProductAttributeOption = async (
   definitionId: string,
-  input: { key: string; label: string }
+  input: { key: string; label: string },
 ) =>
   sdk.client.fetch<ProductAttributeOptionResponse>(
     `/admin/product-attributes/definitions/${definitionId}/options`,
-    { body: input, method: "POST" }
+    { body: input, method: "POST" },
   )
 
 export const updateProductAttributeOption = async (
   id: string,
-  input: { label: string }
+  input: { label: string },
 ) =>
   sdk.client.fetch<ProductAttributeOptionResponse>(
     `/admin/product-attributes/options/${id}`,
-    { body: input, method: "POST" }
+    { body: input, method: "POST" },
   )
 
 export const deleteProductAttributeOption = async (id: string) =>
@@ -233,22 +233,22 @@ export const permanentlyDeleteProductAttributeOption = async (id: string) =>
 export const restoreProductAttributeOption = async (id: string) =>
   sdk.client.fetch<ProductAttributeOptionResponse>(
     `/admin/product-attributes/options/${id}/restore`,
-    { method: "POST" }
+    { method: "POST" },
   )
 
 export const retrieveProductAttributes = async (productId: string) =>
   sdk.client.fetch<ProductAttributesResponse>(
-    `/admin/products/${productId}/product-attributes`
+    `/admin/products/${productId}/product-attributes`,
   )
 
 export const setProductAttributes = async (
   productId: string,
-  operations: SetProductAttributeOperation[]
+  operations: SetProductAttributeOperation[],
 ) =>
   sdk.client.fetch<ProductAttributesResponse>(
     `/admin/products/${productId}/product-attributes`,
     {
       body: { operations },
       method: "POST",
-    }
+    },
   )

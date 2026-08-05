@@ -63,7 +63,7 @@ describe(listCustomerProductListIds, () => {
     }
 
     await expect(
-      listCustomerProductListIds(makeContainer(query), "cus_1")
+      listCustomerProductListIds(makeContainer(query), "cus_1"),
     ).resolves.toStrictEqual([
       ...firstPageLinks.map((link) => link.product_list_id),
       "list-final",
@@ -80,7 +80,7 @@ describe(assertCustomerOwnsProductList, () => {
     }
 
     await expect(
-      assertCustomerOwnsProductList(makeContainer(query), "cus_1", "plist_1")
+      assertCustomerOwnsProductList(makeContainer(query), "cus_1", "plist_1"),
     ).resolves.toBeUndefined()
   })
 
@@ -90,7 +90,7 @@ describe(assertCustomerOwnsProductList, () => {
     }
 
     await expect(
-      assertCustomerOwnsProductList(makeContainer(query), "cus_1", "missing")
+      assertCustomerOwnsProductList(makeContainer(query), "cus_1", "missing"),
     ).rejects.toMatchObject({
       message: "Product list missing was not found",
       type: MedusaError.Types.NOT_FOUND,

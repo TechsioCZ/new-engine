@@ -1,6 +1,6 @@
 export const normalizeTrimmedText = (
   value: string | undefined,
-  fallback: string
+  fallback: string,
 ) => {
   const trimmed = value?.trim()
 

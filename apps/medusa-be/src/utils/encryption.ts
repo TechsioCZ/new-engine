@@ -16,13 +16,13 @@ function getEncryptionKey(): Buffer {
   if (!keyHex) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "SETTINGS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32"
+      "SETTINGS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32",
     )
   }
   if (!HEX_KEY_REGEX.test(keyHex)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `SETTINGS_ENCRYPTION_KEY must be a 64-character hex string (got length: ${keyHex.length}). Generate with: openssl rand -hex 32`
+      `SETTINGS_ENCRYPTION_KEY must be a 64-character hex string (got length: ${keyHex.length}). Generate with: openssl rand -hex 32`,
     )
   }
   return Buffer.from(keyHex, "hex")
@@ -66,7 +66,7 @@ function decrypt(ciphertext: string): string {
   const authTag = combined.subarray(combined.length - AUTH_TAG_LENGTH)
   const encryptedData = combined.subarray(
     IV_LENGTH,
-    combined.length - AUTH_TAG_LENGTH
+    combined.length - AUTH_TAG_LENGTH,
   )
 
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, {
@@ -86,7 +86,7 @@ function decrypt(ciphertext: string): string {
  */
 export function encryptFields<T extends Record<string, unknown>>(
   data: T,
-  fields: (keyof T)[]
+  fields: (keyof T)[],
 ): T {
   const result = { ...data }
 
@@ -106,7 +106,7 @@ export function encryptFields<T extends Record<string, unknown>>(
  */
 export function decryptFields<T extends Record<string, unknown>>(
   data: T,
-  fields: (keyof T)[]
+  fields: (keyof T)[],
 ): T {
   const result = { ...data }
 

@@ -25,7 +25,7 @@ export const linkSalesChannelsStockLocationStep = createStep(
 
     for (const stockLocation of input.stockLocations) {
       const linkResult = await linkSalesChannelsToStockLocationWorkflow(
-        container
+        container,
       ).run({
         input: {
           add: input.salesChannels.map((i) => i.id),
@@ -41,5 +41,5 @@ export const linkSalesChannelsStockLocationStep = createStep(
     return new StepResponse({
       result,
     })
-  }
+  },
 )

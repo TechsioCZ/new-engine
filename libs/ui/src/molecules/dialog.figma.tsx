@@ -26,5 +26,5 @@ figma.connect(
         bottom: "bottom",
       }),
     },
-  }
+  },
 )

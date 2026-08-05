@@ -45,5 +45,5 @@ export const deleteApprovalSettingsStep = createStep(
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModule.restoreApprovalSettings(approvalSettingsIds)
-  }
+  },
 )

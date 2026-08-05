@@ -21,7 +21,7 @@ export const updateEmployeesStep = createStep(
   "update-employees",
   async (
     input: ModuleUpdateEmployee,
-    { container }
+    { container },
   ): Promise<StepResponse<QueryGraphEmployee, UpdateEmployeeCompensation>> => {
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
@@ -41,13 +41,13 @@ export const updateEmployeesStep = createStep(
         fields: ["*"],
         filters,
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!currentData) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        "Employee was not found for the requested company."
+        "Employee was not found for the requested company.",
       )
     }
 
@@ -65,13 +65,13 @@ export const updateEmployeesStep = createStep(
           id: updatedEmployee.id,
         },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!employee) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Updated employee "${updatedEmployee.id}" was not found`
+        `Updated employee "${updatedEmployee.id}" was not found`,
       )
     }
 
@@ -83,7 +83,7 @@ export const updateEmployeesStep = createStep(
   },
   async (
     currentData: UpdateEmployeeCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (!currentData) {
       return
@@ -93,5 +93,5 @@ export const updateEmployeesStep = createStep(
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
     await companyModuleService.updateEmployees(currentData)
-  }
+  },
 )

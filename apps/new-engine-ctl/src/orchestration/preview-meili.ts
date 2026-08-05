@@ -15,18 +15,18 @@ import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 export function getMeiliApiCredentialsProviderSourceService(
   manifest: StackManifest,
   stackInputs: StackInputs,
-  providerId: string
+  providerId: string,
 ): {
   serviceId: string
   serviceSlug: string
 } {
   const serviceId = getRuntimeProviderSourceServiceId(stackInputs, providerId)
   const service = listDeployableServices(manifest).find(
-    (candidate) => candidate.id === serviceId
+    (candidate) => candidate.id === serviceId,
   )
   if (!service) {
     throw new Error(
-      `Missing service_slug for provider source service ${serviceId}.`
+      `Missing service_slug for provider source service ${serviceId}.`,
     )
   }
 
@@ -38,14 +38,14 @@ export function getMeiliApiCredentialsProviderSourceService(
 
 function requireRuntimeProviderOutput(
   response: RuntimeProviderRunResponse,
-  outputId: string
+  outputId: string,
 ) {
   const output = response.outputs.find(
-    (candidate) => candidate.output_id === outputId
+    (candidate) => candidate.output_id === outputId,
   )
   if (!output) {
     throw new Error(
-      `Runtime provider ${response.provider_id} did not return output ${outputId}.`
+      `Runtime provider ${response.provider_id} did not return output ${outputId}.`,
     )
   }
 
@@ -63,7 +63,7 @@ function resolveSharedPersistedValue(input: {
 
   const values = input.serviceIds.map((serviceId) => {
     const target = input.targets.find(
-      (candidate) => candidate.service_id === serviceId
+      (candidate) => candidate.service_id === serviceId,
     )
     return target?.current_production_deployment?.env?.[input.envVar] ?? ""
   })
@@ -89,12 +89,12 @@ export function reusePersistedMeiliKeysFromTargets(input: {
   const backendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
-    "backend_key"
+    "backend_key",
   )
   const frontendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
-    "frontend_key"
+    "frontend_key",
   )
 
   return {
@@ -128,31 +128,31 @@ export async function provisionMeiliKeys(input: {
   const backendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
-    "backend_key"
+    "backend_key",
   )
   const frontendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
-    "frontend_key"
+    "frontend_key",
   )
   const readinessPath = getRuntimeProviderReadinessPath(
     input.stackInputs,
-    input.providerId
+    input.providerId,
   )
   const backendPolicy = getRuntimeProviderMeiliKeyPolicy(
     input.stackInputs,
     input.providerId,
-    "backend_key"
+    "backend_key",
   )
   const frontendPolicy = getRuntimeProviderMeiliKeyPolicy(
     input.stackInputs,
     input.providerId,
-    "frontend_key"
+    "frontend_key",
   )
 
   if (!(input.needBackendKey || input.needFrontendKey)) {
     throw new Error(
-      "Meili key provisioning requested with no required outputs."
+      "Meili key provisioning requested with no required outputs.",
     )
   }
 
@@ -207,7 +207,7 @@ export async function provisionMeiliKeys(input: {
 
   const response = await new ZaneOperatorClient(
     input.baseUrl,
-    input.apiToken
+    input.apiToken,
   ).runRuntimeProvider({
     environment_name: input.environmentName,
     outputs,
@@ -243,16 +243,16 @@ export async function provisionMeiliKeys(input: {
 function resolveOutputEnvVar(
   stackInputs: StackInputs,
   providerId: string,
-  outputId: string
+  outputId: string,
 ): string {
   const target = listRuntimeProviderOutputTargets(
     stackInputs,
     providerId,
-    outputId
+    outputId,
   )[0]
   if (!target?.env_var) {
     throw new Error(
-      `Missing target env var for runtime provider ${providerId} output ${outputId}.`
+      `Missing target env var for runtime provider ${providerId} output ${outputId}.`,
     )
   }
 

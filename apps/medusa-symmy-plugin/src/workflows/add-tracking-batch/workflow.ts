@@ -11,7 +11,7 @@ const symmyAddTrackingBatchWorkflow = createWorkflow(
   (input: AddTrackingBatchInput) => {
     const result = symmyProcessTrackingBatchStep(input)
     return new WorkflowResponse<AddTrackingBatchOutput>(result)
-  }
+  },
 )
 
 export { symmyAddTrackingBatchWorkflow as addTrackingBatchWorkflow }

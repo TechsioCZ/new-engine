@@ -1,7 +1,7 @@
 import { isRecord } from "@techsio/std/object"
 
 export const asStorefrontRecord = (
-  value: unknown
+  value: unknown,
 ): Record<string, unknown> | null => (isRecord(value) ? value : null)
 
 export const asStorefrontString = (value: unknown): string | null => {

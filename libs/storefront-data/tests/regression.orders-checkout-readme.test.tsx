@@ -60,7 +60,7 @@ describe("phase 2 regressions", () => {
 
     const list = await service.getOrders(
       { limit: 10, offset: 20 },
-      controller.signal
+      controller.signal,
     )
     expect(list.orders).toHaveLength(1)
 
@@ -104,12 +104,12 @@ describe("phase 2 regressions", () => {
 
     const list = await service.getOrders(
       { limit: 10, offset: 20 },
-      controller.signal
+      controller.signal,
     )
     expect(list.orders).toHaveLength(1)
 
     await expect(
-      service.getOrder({ id: "order_missing" }, controller.signal)
+      service.getOrder({ id: "order_missing" }, controller.signal),
     ).resolves.toBeNull()
 
     expect(fetch).toHaveBeenNthCalledWith(1, "/store/orders", {
@@ -173,7 +173,7 @@ describe("phase 2 regressions", () => {
       "/store/customers/me/addresses",
       {
         signal: controller.signal,
-      }
+      },
     )
 
     const unauthorized = await service.getAddresses({}, controller.signal)
@@ -218,7 +218,7 @@ describe("phase 2 regressions", () => {
     await service.calculateShippingOption(
       "opt_1",
       { cart_id: "cart_1", data: { note: "x" } },
-      controller.signal
+      controller.signal,
     )
     await service.listPaymentProviders("reg_1", controller.signal)
 
@@ -236,7 +236,7 @@ describe("phase 2 regressions", () => {
         },
         method: "POST",
         signal: controller.signal,
-      }
+      },
     )
     expect(fetch).toHaveBeenNthCalledWith(3, "/store/payment-providers", {
       query: { region_id: "reg_1" },
@@ -309,7 +309,7 @@ describe("phase 2 regressions", () => {
           cart: { id: "cart_1", region_id: "reg_1" },
           cartId: "cart_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -323,7 +323,7 @@ describe("phase 2 regressions", () => {
   it("documents preset-first SSR prefetch without hardcoded query keys", () => {
     const readme = readFileSync(
       resolveTestRelativePath("../README.md"),
-      "utf-8"
+      "utf-8",
     )
 
     expect(readme).toContain("createMedusaStorefrontPreset")

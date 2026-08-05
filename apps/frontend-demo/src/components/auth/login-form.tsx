@@ -68,7 +68,7 @@ export function LoginForm() {
               },
               value: email,
             }),
-            isFormLoading
+            isFormLoading,
           )}
           helpText={getFieldError("email")}
           validateStatus={getFieldError("email") ? "error" : "default"}
@@ -83,7 +83,7 @@ export function LoginForm() {
               },
               value: password,
             }),
-            isFormLoading
+            isFormLoading,
           )}
           helpText={getFieldError("password")}
           validateStatus={getFieldError("password") ? "error" : "default"}

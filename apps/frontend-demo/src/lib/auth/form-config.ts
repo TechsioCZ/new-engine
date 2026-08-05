@@ -73,7 +73,7 @@ export const authFormFields = {
  */
 export function withLoading(
   fieldProps: FormInputProps,
-  isLoading: boolean
+  isLoading: boolean,
 ): FormInputProps {
   return {
     ...fieldProps,

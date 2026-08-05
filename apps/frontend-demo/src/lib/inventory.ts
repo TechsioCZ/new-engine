@@ -15,7 +15,7 @@ export interface InventoryInfo {
  * This is the single source of truth for variant availability
  */
 export function getVariantInventory(
-  variant: ProductVariant | StoreProductVariant | undefined | null
+  variant: ProductVariant | StoreProductVariant | undefined | null,
 ): InventoryInfo {
   if (!variant) {
     return {
@@ -87,7 +87,7 @@ export function getVariantInventory(
  */
 export function isQuantityAvailable(
   variant: ProductVariant | StoreProductVariant | undefined | null,
-  requestedQuantity: number
+  requestedQuantity: number,
 ): boolean {
   if (!variant || requestedQuantity <= 0) {
     return false

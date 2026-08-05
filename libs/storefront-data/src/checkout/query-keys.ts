@@ -3,7 +3,7 @@ import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { CheckoutQueryKeys } from "./types"
 
 export function createCheckoutQueryKeys(
-  namespace: QueryNamespace
+  namespace: QueryNamespace,
 ): CheckoutQueryKeys {
   return {
     all: () => createQueryKey(namespace, "checkout"),
@@ -14,7 +14,7 @@ export function createCheckoutQueryKeys(
         namespace,
         "checkout",
         "shipping-option",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
     shippingOptions: (cartId, cacheKey) =>
       cacheKey
@@ -23,7 +23,7 @@ export function createCheckoutQueryKeys(
             "checkout",
             "shipping-options",
             cartId,
-            cacheKey
+            cacheKey,
           )
         : createQueryKey(namespace, "checkout", "shipping-options", cartId),
   }

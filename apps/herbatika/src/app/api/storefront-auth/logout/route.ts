@@ -9,7 +9,7 @@ interface LogoutResponse {
 export function POST() {
   const response = NextResponse.json<LogoutResponse>(
     { ok: true },
-    { status: 200 }
+    { status: 200 },
   )
   clearSessionTokenCookie(response)
   return response

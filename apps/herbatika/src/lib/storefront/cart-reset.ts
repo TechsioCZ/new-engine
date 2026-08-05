@@ -15,7 +15,7 @@ const queryKeyContainsCartId = (value: unknown, cartId: string): boolean => {
 
   if (value && typeof value === "object") {
     return Object.values(value as Record<string, unknown>).some((item) =>
-      queryKeyContainsCartId(item, cartId)
+      queryKeyContainsCartId(item, cartId),
     )
   }
 
@@ -24,7 +24,7 @@ const queryKeyContainsCartId = (value: unknown, cartId: string): boolean => {
 
 export const resetEmptyCartState = (
   queryClient: QueryClient,
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ): boolean => {
   if (!(cart?.id && Array.isArray(cart.items)) || cart.items.length > 0) {
     return false

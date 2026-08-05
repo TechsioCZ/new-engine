@@ -46,7 +46,7 @@ const CATEGORY_IMAGE_ALIASES_BY_LABEL = {
 } satisfies Record<string, CategoryImageSlug>
 
 const resolveImageBySlug = (
-  slug?: string | null
+  slug?: string | null,
 ): StaticImageData | undefined => {
   if (!slug) {
     return
@@ -61,7 +61,7 @@ const resolveImageBySlug = (
 }
 
 const resolveImageByPrefixedHandle = (
-  handle?: string | null
+  handle?: string | null,
 ): StaticImageData | undefined => {
   if (!handle) {
     return
@@ -79,7 +79,7 @@ const resolveImageByPrefixedHandle = (
 
 const resolveImageByAlias = (
   aliasMap: Record<string, CategoryImageSlug>,
-  value?: string | null
+  value?: string | null,
 ): StaticImageData | undefined => {
   if (!value) {
     return

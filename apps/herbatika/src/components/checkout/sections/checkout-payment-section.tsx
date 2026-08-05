@@ -141,7 +141,7 @@ export function CheckoutPaymentSection({
                 isInitiatingPayment,
                 provider,
                 translate: tCheckout,
-              })
+              }),
             )}
             value={selectedPaymentProviderId ?? null}
           />

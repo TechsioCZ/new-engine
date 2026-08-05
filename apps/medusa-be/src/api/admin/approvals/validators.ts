@@ -13,7 +13,7 @@ export const AdminGetApprovals = createFindParams()
       status: z
         .union([z.string(), z.array(z.string()), createOperatorMap()])
         .optional(),
-    })
+    }),
   )
   .strict()
 

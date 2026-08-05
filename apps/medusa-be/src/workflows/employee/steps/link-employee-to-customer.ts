@@ -8,7 +8,7 @@ export const linkEmployeeToCustomerStep = createStep(
   "link-employee-to-customer",
   async (
     input: { employeeId: string; customerId: string },
-    { container }
+    { container },
   ): Promise<
     StepResponse<undefined, { employeeId: string; customerId: string }>
   > => {
@@ -29,7 +29,7 @@ export const linkEmployeeToCustomerStep = createStep(
   },
   async (
     input: { employeeId: string; customerId: string } | undefined,
-    { container }
+    { container },
   ): Promise<
     StepResponse<
       undefined,
@@ -54,5 +54,5 @@ export const linkEmployeeToCustomerStep = createStep(
     await linkService.dismiss(link)
 
     return new StepResponse(undefined, input)
-  }
+  },
 )

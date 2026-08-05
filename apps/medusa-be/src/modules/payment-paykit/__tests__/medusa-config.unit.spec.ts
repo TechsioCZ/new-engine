@@ -30,7 +30,7 @@ describe(buildPaykitPaymentProviders, () => {
         PAYKIT_DEBUG: "1",
         STRIPE_API_KEY: "sk_test_123",
         STRIPE_WEBHOOK_SECRET: "whsec_123",
-      })
+      }),
     ).toStrictEqual([
       {
         id: PAYKIT_GOPAY_PROVIDER_ID,
@@ -72,9 +72,9 @@ describe(buildPaykitPaymentProviders, () => {
       buildPaykitPaymentProviders({
         FEATURE_PAYKIT_GOPAY_ENABLED: "1",
         GOPAY_CLIENT_ID: "gopay-client",
-      })
+      }),
     ).toThrow(
-      "PayKit GoPay missing required environment variable(s): GOPAY_CLIENT_SECRET, GOPAY_GO_ID, GOPAY_WEBHOOK_URL"
+      "PayKit GoPay missing required environment variable(s): GOPAY_CLIENT_SECRET, GOPAY_GO_ID, GOPAY_WEBHOOK_URL",
     )
   })
 })

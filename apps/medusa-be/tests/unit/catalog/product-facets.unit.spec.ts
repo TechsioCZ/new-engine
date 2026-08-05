@@ -46,10 +46,10 @@ describe("product facet document builder", () => {
     expect(result.facet_product_status).toBe("published")
     expect(result.facet_sales_channel_ids).toStrictEqual(["sc_visible"])
     expect(result.facet_status).toStrictEqual(
-      expect.arrayContaining(["in-stock", "action"])
+      expect.arrayContaining(["in-stock", "action"]),
     )
     expect(result.facet_form).toStrictEqual(
-      expect.arrayContaining(["form-capsules"])
+      expect.arrayContaining(["form-capsules"]),
     )
     expect(result.facet_brand).toStrictEqual(["brand-natura-balance"])
     expect(result.facet_ingredient).toStrictEqual([

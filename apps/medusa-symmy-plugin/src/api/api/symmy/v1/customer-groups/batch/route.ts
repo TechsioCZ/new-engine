@@ -58,7 +58,7 @@ type AuthenticatedRequest =
  */
 export const POST = async (
   req: MedusaRequest<UpsertCustomerGroupsBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const authReq = req as AuthenticatedRequest
   const { result } = await upsertCustomerGroupsBatchWorkflow(req.scope).run({

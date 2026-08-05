@@ -41,14 +41,14 @@ export interface CategoryQueryOptionsFactory<
     options?: {
       queryOptions?: ReadQueryOptions<CategoryListResponse<TCategory>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<CategoryListResponse<TCategory>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TCategory | null>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TCategory | null>
 }
 
@@ -86,6 +86,6 @@ export function createCategoryQueryOptionsFactory<
       getList: service.getCategories,
       missingDetailErrorMessage: "Category id is required for category queries",
       queryKeys: resolvedQueryKeys,
-    })
+    }),
   )
 }

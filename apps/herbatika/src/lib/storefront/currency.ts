@@ -5,7 +5,7 @@ export type HerbatikaCurrencyCode = string
 const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/
 
 export const normalizeSupportedCurrencyCode = (
-  value: unknown
+  value: unknown,
 ): HerbatikaCurrencyCode | null => {
   if (typeof value !== "string") {
     return null
@@ -19,6 +19,6 @@ export const normalizeSupportedCurrencyCode = (
 
 export const resolveSupportedCurrencyCode = (
   value: unknown,
-  fallbackCurrencyCode: HerbatikaCurrencyCode = DEFAULT_CURRENCY_CODE
+  fallbackCurrencyCode: HerbatikaCurrencyCode = DEFAULT_CURRENCY_CODE,
 ): HerbatikaCurrencyCode =>
   normalizeSupportedCurrencyCode(value) ?? fallbackCurrencyCode

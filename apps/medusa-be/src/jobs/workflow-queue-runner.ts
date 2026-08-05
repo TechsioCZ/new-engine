@@ -22,13 +22,13 @@ interface WorkflowQueueItemDTO {
 type WorkflowQueueService = WorkflowQueueModuleService & {
   listWorkflowQueueItems: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<WorkflowQueueItemDTO[]>
 }
 
 function getWorkflowQueueRunnerBatchSize() {
   const configuredBatchSize = Number(
-    process.env["WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"]
+    process.env["WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"],
   )
 
   if (Number.isInteger(configuredBatchSize) && configuredBatchSize > 0) {
@@ -47,10 +47,10 @@ function withQueueItemId(item: WorkflowQueueItemDTO): Record<string, unknown> {
 
 async function executeWorkflowQueueRunner(
   container: MedusaContainer,
-  logger: Logger
+  logger: Logger,
 ) {
   const workflowQueueService = container.resolve<WorkflowQueueService>(
-    WORKFLOW_QUEUE_MODULE
+    WORKFLOW_QUEUE_MODULE,
   )
   const now = new Date()
   const batchSize = getWorkflowQueueRunnerBatchSize()
@@ -64,7 +64,7 @@ async function executeWorkflowQueueRunner(
     {
       order: { run_at: "ASC" },
       take: batchSize,
-    }
+    },
   )
 
   if (!dueItems.length) {
@@ -79,7 +79,7 @@ async function executeWorkflowQueueRunner(
     const runner = getQueuedWorkflowRunner(item.workflow)
     if (!runner) {
       logger.error(
-        `Workflow Queue Runner: Unknown workflow ${item.workflow} for queue item ${item.id}`
+        `Workflow Queue Runner: Unknown workflow ${item.workflow} for queue item ${item.id}`,
       )
       continue
     }
@@ -90,18 +90,18 @@ async function executeWorkflowQueueRunner(
     } catch (error) {
       logger.error(
         `Workflow Queue Runner: Failed queue item ${item.id} (${item.workflow})`,
-        error instanceof Error ? error : new Error(String(error))
+        error instanceof Error ? error : new Error(String(error)),
       )
     }
   }
 
   logger.info(
-    `Workflow Queue Runner: Completed, processed ${processedCount}/${dueItems.length} due items`
+    `Workflow Queue Runner: Completed, processed ${processedCount}/${dueItems.length} due items`,
   )
 }
 
 export default async function workflowQueueRunnerJob(
-  container: MedusaContainer
+  container: MedusaContainer,
 ) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
@@ -112,12 +112,12 @@ export default async function workflowQueueRunnerJob(
     JOB_LOCK_TIMEOUT,
     async () => {
       await executeWorkflowQueueRunner(container, logger)
-    }
+    },
   )
 
   if (result.status === "timed_out") {
     logger.info(
-      "Workflow Queue Runner: Skipping - another instance is already running"
+      "Workflow Queue Runner: Skipping - another instance is already running",
     )
   }
 }

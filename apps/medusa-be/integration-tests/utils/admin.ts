@@ -18,7 +18,7 @@ interface TestHeaders {
 
 export const createAdminUser = async (
   targetAdminHeaders: TestHeaders,
-  appContainer: MedusaContainer
+  appContainer: MedusaContainer,
 ) => {
   const userModule = appContainer.resolve<IUserModuleService>(Modules.USER)
   const authModule = appContainer.resolve<IAuthModuleService>(Modules.AUTH)
@@ -49,7 +49,7 @@ export const createAdminUser = async (
   const jwtSecret = process.env["JWT_SECRET"]
   if (!jwtSecret) {
     throw new Error(
-      "JWT_SECRET is required to create an integration-test admin"
+      "JWT_SECRET is required to create an integration-test admin",
     )
   }
 
@@ -92,7 +92,7 @@ export const createStoreUser = async ({
           Authorization: `Bearer ${registerToken}`,
           ...storeHeaders.headers,
         },
-      }
+      },
     )
   ).data
 

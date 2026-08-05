@@ -23,7 +23,7 @@ const resolveBrandPageData = async (slug: string) => {
 }
 
 const createSearchParamsSuffix = (
-  searchParams: Record<string, string | string[] | undefined>
+  searchParams: Record<string, string | string[] | undefined>,
 ) => {
   const params = new URLSearchParams()
 
@@ -84,15 +84,15 @@ export default async function BrandPage({
   if (slug !== brand.slug) {
     redirect(
       appHref(
-        `${createBrandHref(brand)}${createSearchParamsSuffix(resolvedSearchParams)}`
-      )
+        `${createBrandHref(brand)}${createSearchParamsSuffix(resolvedSearchParams)}`,
+      ),
     )
   }
 
   const queryState = parsePlpQueryStateFromSearchParams(resolvedSearchParams)
   const { dehydratedState } = await prefetchBrandPageStorefrontData(
     brand.facetId,
-    queryState
+    queryState,
   )
 
   return (

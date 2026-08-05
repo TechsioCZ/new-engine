@@ -128,8 +128,8 @@ describe("checkout address defaults", () => {
         },
         {
           countryCodeTransform: (countryCode) => ` ${countryCode} `,
-        }
-      )
+        },
+      ),
     ).toStrictEqual({
       address_1: "Main 1",
       address_2: "Floor 2",
@@ -152,8 +152,8 @@ describe("checkout address defaults", () => {
           postalCode: "11000",
           street: "Main 1",
         },
-        { defaultCountryCode: "CZ" }
-      )
+        { defaultCountryCode: "CZ" },
+      ),
     ).toMatchObject({
       country_code: "cz",
     })
@@ -170,7 +170,7 @@ describe("checkout address defaults", () => {
         postalCode: "11000",
         street: "Main 1",
         street2: "   ",
-      })
+      }),
     ).toStrictEqual({
       address_1: "Main 1",
       city: "Prague",
@@ -207,8 +207,8 @@ describe("checkout address defaults", () => {
         },
         {
           defaultCountryCode: "CZ",
-        }
-      )
+        },
+      ),
     ).toStrictEqual({
       billingAddress: {
         address_1: "Billing 2",
@@ -250,7 +250,7 @@ describe("checkout address defaults", () => {
           street: "Main 1",
         },
         useSameAddress: true,
-      })
+      }),
     ).toStrictEqual({
       billingAddress: {
         address_1: "Main 1",
@@ -293,7 +293,7 @@ describe("checkout address defaults", () => {
         last_name: " Novak ",
         metadata: { source: "test" },
         postal_code: " 11000 ",
-      })
+      }),
     ).toStrictEqual({
       city: "Prague",
       company: undefined,
@@ -326,8 +326,8 @@ describe("checkout address defaults", () => {
         },
         {
           scope: "shipping",
-        }
-      )
+        },
+      ),
     ).toStrictEqual([
       {
         code: "required",
@@ -373,8 +373,8 @@ describe("checkout address defaults", () => {
         },
         {
           scope: "shipping",
-        }
-      )
+        },
+      ),
     ).toStrictEqual({
       address_1: "Main 1",
       address_2: undefined,
@@ -404,8 +404,8 @@ describe("checkout address defaults", () => {
         },
         {
           mode: "create",
-        }
-      )
+        },
+      ),
     ).toStrictEqual({
       address_1: "Main 1",
       address_2: "Floor 2",
@@ -443,8 +443,8 @@ describe("checkout address defaults", () => {
         },
         {
           mode: "update",
-        }
-      )
+        },
+      ),
     ).toStrictEqual([
       {
         code: "required",
@@ -466,8 +466,8 @@ describe("checkout address defaults", () => {
         },
         {
           mode: "update",
-        }
-      )
+        },
+      ),
     ).toStrictEqual({
       address_2: "",
       company: "",

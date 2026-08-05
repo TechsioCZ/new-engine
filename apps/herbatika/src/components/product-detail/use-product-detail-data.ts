@@ -53,7 +53,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [quantity, setQuantity] = useState(1)
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
-    null
+    null,
   )
   const [selectedVolumeDiscountId, setSelectedVolumeDiscountId] = useState<
     string | null
@@ -73,7 +73,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     storefront.hooks.productLocationAvailability.useProductLocationAvailability(
       {
         productId: product?.id ?? null,
-      }
+      },
     )
   const productAttributesQuery =
     storefront.hooks.productAttributes.useProductAttributes({
@@ -84,7 +84,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     selectedVariant?.id ?? null,
     {
       isInventoryManaged: selectedVariant?.manage_inventory,
-    }
+    },
   )
   const optionTitlesById = resolveOptionTitlesById(product)
   const variantItems = resolveVariantItems(variants, optionTitlesById)
@@ -95,26 +95,26 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   })
   const selectedVariantInventory = resolveVariantInventoryState(
     selectedVariant,
-    quantity
+    quantity,
   )
   const productPrice = product
     ? resolvePriceState(
         product,
         selectedVariantId,
         regionCurrencyCode,
-        tCatalog("product_detail.price_on_request")
+        tCatalog("product_detail.price_on_request"),
       )
     : null
   const shortDescriptionHtml = resolveShortDescriptionHtml(product)
   const productSummaryText = resolveProductSummaryText(
     product,
-    shortDescriptionHtml
+    shortDescriptionHtml,
   )
   const productImages = resolveProductImages(product)
   const galleryItems = resolveGalleryItems(
     productImages,
     product?.title,
-    product?.handle?.trim() || product?.id || handle
+    product?.handle?.trim() || product?.id || handle,
   )
   const productHighlights = resolveProductHighlights(productSummaryText)
   const otherSectionTitle = tCatalog("product_detail.sections.other")
@@ -128,7 +128,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
       warning: tCatalog("product_detail.sections.warning"),
     }),
     resolveProductWarranty(productAttributesQuery.productAttributes),
-    otherSectionTitle
+    otherSectionTitle,
   )
   const mediaFacts = resolveProductMediaFacts(product, productContentSections, {
     dailyCapsules: (count) =>
@@ -172,7 +172,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   })
   const selectedVolumeDiscountOption = resolveSelectedVolumeDiscountOption(
     volumeDiscountOptions,
-    selectedVolumeDiscountId
+    selectedVolumeDiscountId,
   )
 
   const relatedSections = useProductDetailRelatedProducts({
@@ -215,7 +215,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     productCategories,
     product,
     handle,
-    tNavigation("breadcrumbs.home")
+    tNavigation("breadcrumbs.home"),
   )
   const freeShippingThresholdLabel =
     resolveFreeShippingThresholdLabel(currentCurrencyCode)

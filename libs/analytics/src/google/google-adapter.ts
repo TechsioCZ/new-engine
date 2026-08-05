@@ -27,7 +27,7 @@ export interface UseGoogleAdapterConfig {
  * ```
  */
 export function useGoogleAdapter(
-  config?: UseGoogleAdapterConfig
+  config?: UseGoogleAdapterConfig,
 ): AnalyticsAdapter {
   const { conversionLabel, debug } = config ?? {}
   const adapterKey = "google" as const
@@ -38,7 +38,7 @@ export function useGoogleAdapter(
       gtag("event", args.eventName, args.params)
     },
     debug,
-    adapterKey
+    adapterKey,
   )
 
   return {
@@ -64,7 +64,7 @@ export function useGoogleAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackCustom: (eventName, params) =>
@@ -90,7 +90,7 @@ export function useGoogleAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackPurchase: createTracker(
@@ -120,7 +120,7 @@ export function useGoogleAdapter(
         }
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackViewContent: createTracker(
@@ -141,7 +141,7 @@ export function useGoogleAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
   }
 }

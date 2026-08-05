@@ -576,13 +576,13 @@ export const WithItemGroups: Story = {
   name: "With Item Groups (Compound Benefit)",
   render: () => {
     const europeCountries = countries.filter((c) =>
-      ["de", "fr", "gb", "it", "es"].includes(c.value)
+      ["de", "fr", "gb", "it", "es"].includes(c.value),
     )
     const americaCountries = countries.filter((c) =>
-      ["us", "ca", "mx", "br", "ar"].includes(c.value)
+      ["us", "ca", "mx", "br", "ar"].includes(c.value),
     )
     const asiaCountries = countries.filter((c) =>
-      ["jp", "cn", "in"].includes(c.value)
+      ["jp", "cn", "in"].includes(c.value),
     )
 
     return (
@@ -776,7 +776,7 @@ export const Multiple: Story = {
                   {items
                     .filter(
                       (i): i is SelectItem & { label: string } =>
-                        typeof i.label === "string"
+                        typeof i.label === "string",
                     )
                     .map((i) => i.label)
                     .join(", ")}
@@ -810,7 +810,7 @@ export const WithinForm: Story = {
       language: [] as string[],
     })
     const [submittedData, setSubmittedData] = useState<null | typeof formState>(
-      null
+      null,
     )
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -869,7 +869,7 @@ export const WithinForm: Story = {
                     ? items
                         .filter(
                           (i): i is SelectItem & { label: string } =>
-                            typeof i.label === "string"
+                            typeof i.label === "string",
                         )
                         .map((i) => i.label)
                         .join(", ")

@@ -29,14 +29,14 @@ export const createTaxRegionsStep = createStep(
     })
 
     const missingTaxRegions = input.countries.filter(
-      (i) => !existingTaxRegions.find((j) => j.country_code === i)
+      (i) => !existingTaxRegions.find((j) => j.country_code === i),
     )
 
     if (missingTaxRegions.length !== 0) {
       logger.info("Creating missing tax regions...")
 
       const { result: createTaxRegionsResult } = await createTaxRegionsWorkflow(
-        container
+        container,
       ).run({
         input: missingTaxRegions.map((country_code) => ({
           country_code,
@@ -56,7 +56,7 @@ export const createTaxRegionsStep = createStep(
       }))
 
       const { result: updateTaxRegionResult } = await updateTaxRegionsWorkflow(
-        container
+        container,
       ).run({
         input: toUpdate,
       })
@@ -67,5 +67,5 @@ export const createTaxRegionsStep = createStep(
     return new StepResponse({
       result,
     })
-  }
+  },
 )

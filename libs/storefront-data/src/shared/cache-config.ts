@@ -53,7 +53,7 @@ export const defaultCacheConfig: CacheConfig = {
 }
 
 export function createCacheConfig(
-  overrides: CacheConfigOverrides = {}
+  overrides: CacheConfigOverrides = {},
 ): CacheConfig {
   return {
     realtime: { ...defaultCacheConfig.realtime, ...overrides.realtime },
@@ -65,7 +65,7 @@ export function createCacheConfig(
 
 export function getPrefetchCacheOptions(
   cacheConfig: CacheConfig,
-  strategy: keyof CacheConfig
+  strategy: keyof CacheConfig,
 ): PrefetchCacheOptions {
   const config = cacheConfig[strategy]
   return {

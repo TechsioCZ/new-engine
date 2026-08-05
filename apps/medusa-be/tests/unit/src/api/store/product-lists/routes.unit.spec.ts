@@ -40,14 +40,14 @@ vi.mock(
   import("../../../../../../src/links/product-list-item-product"),
   () => ({
     ProductListItemProductLink: { entryPoint: "product_list_item_product" },
-  })
+  }),
 )
 
 vi.mock(
   import("../../../../../../src/links/product-list-item-variant"),
   () => ({
     ProductListItemVariantLink: { entryPoint: "product_list_item_variant" },
-  })
+  }),
 )
 
 vi.mock(
@@ -55,7 +55,7 @@ vi.mock(
   () => ({
     addFavoriteProductListItemWorkflow:
       workflowMocks.addFavoriteProductListItemWorkflow,
-  })
+  }),
 )
 
 vi.mock(
@@ -63,14 +63,14 @@ vi.mock(
   () => ({
     createCustomerProductListWorkflow:
       workflowMocks.createCustomerProductListWorkflow,
-  })
+  }),
 )
 
 vi.mock(
   import("../../../../../../src/workflows/product-list/workflows/create-product-list-item"),
   () => ({
     createProductListItemWorkflow: workflowMocks.createProductListItemWorkflow,
-  })
+  }),
 )
 
 vi.mock(
@@ -78,7 +78,7 @@ vi.mock(
   () => ({
     incrementProductListItemWorkflow:
       workflowMocks.incrementProductListItemWorkflow,
-  })
+  }),
 )
 
 interface ProductListServiceMock {
@@ -88,7 +88,7 @@ interface ProductListServiceMock {
 }
 
 const createProductList = (
-  overrides: Partial<Record<string, unknown>> = {}
+  overrides: Partial<Record<string, unknown>> = {},
 ) => ({
   access_type: "private",
   created_at: "2026-01-01T00:00:00.000Z",
@@ -103,7 +103,7 @@ const createProductList = (
 })
 
 const createProductListItem = (
-  overrides: Partial<Record<string, unknown>> = {}
+  overrides: Partial<Record<string, unknown>> = {},
 ) => ({
   created_at: "2026-01-03T00:00:00.000Z",
   id: "pli_1",
@@ -117,7 +117,7 @@ const createProductListItem = (
 })
 
 const createProductListService = (
-  overrides: Partial<ProductListServiceMock> = {}
+  overrides: Partial<ProductListServiceMock> = {},
 ): ProductListServiceMock => ({
   listAndCountProductLists: vi.fn(),
   listProductListItems: vi.fn().mockResolvedValue([]),
@@ -294,14 +294,14 @@ describe("Store product-list routes", () => {
           order: { created_at: "DESC" },
           skip: 5,
           take: 10,
-        }
+        },
       )
       expect(productListService.listProductListItems).toHaveBeenCalledWith(
         { list_id: "plist_1" },
         {
           order: { created_at: "ASC", list_id: "ASC", sort_order: "ASC" },
           take: 100,
-        }
+        },
       )
       expect(res.json).toHaveBeenCalledWith({
         count: 1,
@@ -361,7 +361,7 @@ describe("Store product-list routes", () => {
       await GET(req, res)
 
       expect(productListService.retrieveProductList).toHaveBeenCalledWith(
-        "plist_public"
+        "plist_public",
       )
       expect(res.json).toHaveBeenCalledWith({
         product_list: expect.objectContaining({
@@ -476,7 +476,7 @@ describe("Store product-list routes", () => {
             type: expectedType,
           }),
         })
-      }
+      },
     )
   })
 
@@ -590,7 +590,7 @@ describe("Store product-list routes", () => {
         {
           order: { created_at: "ASC", list_id: "ASC", sort_order: "ASC" },
           take: 100,
-        }
+        },
       )
       expect(res.status).toHaveBeenCalledWith(200)
       expect(res.json).toHaveBeenCalledWith({

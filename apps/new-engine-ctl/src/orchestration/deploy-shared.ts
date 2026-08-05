@@ -63,7 +63,7 @@ interface WaitForDeploymentsInput {
 
 export function mergeCsvValues(existing: string, current: string): string {
   return normalizeCsvToArray(
-    [existing, current].filter(Boolean).join(",")
+    [existing, current].filter(Boolean).join(","),
   ).join(",")
 }
 
@@ -75,10 +75,10 @@ export function collectStageNumbers(plan: PlanResponse): number[] {
 
 export function buildStagePlan(
   plan: PlanResponse,
-  stage: number
+  stage: number,
 ): PlanResponse {
   const deployServices = plan.deploy_services.filter(
-    (service) => service.deploy_stage === stage
+    (service) => service.deploy_stage === stage,
   )
 
   return {
@@ -91,16 +91,16 @@ export function buildStagePlan(
 export function stageHasService(
   plan: PlanResponse,
   stage: number,
-  serviceId: string
+  serviceId: string,
 ): boolean {
   return plan.deploy_services.some(
-    (service) => service.id === serviceId && service.deploy_stage === stage
+    (service) => service.id === serviceId && service.deploy_stage === stage,
   )
 }
 
 export function mergeDeployments(
   existing: DeploymentLike[],
-  current: DeploymentLike[]
+  current: DeploymentLike[],
 ): DeploymentLike[] {
   const merged = [...existing, ...current]
   const deduped = new Map<string, DeploymentLike>()
@@ -108,7 +108,7 @@ export function mergeDeployments(
   for (const deployment of merged) {
     deduped.set(
       `${deployment.service_id}:${deployment.deployment_hash}`,
-      deployment
+      deployment,
     )
   }
 
@@ -121,15 +121,15 @@ export function mergeDeployments(
 
 function currentEnvMatches(
   currentEnv: Record<string, string> | undefined,
-  expectedEnv: Record<string, string>
+  expectedEnv: Record<string, string>,
 ): boolean {
   return Object.entries(expectedEnv).every(
-    ([key, value]) => currentEnv?.[key] === value
+    ([key, value]) => currentEnv?.[key] === value,
   )
 }
 
 function tracksBranchHead(
-  configuredCommitSha: string | null | undefined
+  configuredCommitSha: string | null | undefined,
 ): boolean {
   const normalized = (configuredCommitSha ?? "").toUpperCase()
   return normalized === "" || normalized === "HEAD"
@@ -138,33 +138,33 @@ function tracksBranchHead(
 function isHealthyCurrentCommitMatch(
   target: ResolveTargetsResponse["services"][number],
   expectedEnv: Record<string, string>,
-  desiredCommitSha: string
+  desiredCommitSha: string,
 ): boolean {
   return Boolean(
     target.current_production_deployment &&
     target.current_production_deployment.status.toUpperCase() === "HEALTHY" &&
     (target.current_production_deployment.commit_sha ?? "") ===
       desiredCommitSha &&
-    currentEnvMatches(target.current_production_deployment.env, expectedEnv)
+    currentEnvMatches(target.current_production_deployment.env, expectedEnv),
   )
 }
 
 function isReusableActiveDeployment(
   target: ResolveTargetsResponse["services"][number],
   expectedEnv: Record<string, string>,
-  desiredCommitSha: string
+  desiredCommitSha: string,
 ): boolean {
   return Boolean(
     target.active_deployment &&
     (target.active_deployment.commit_sha ?? "") === desiredCommitSha &&
-    currentEnvMatches(target.active_deployment.env, expectedEnv)
+    currentEnvMatches(target.active_deployment.env, expectedEnv),
   )
 }
 
 function resolveSkipReason(
   target: ResolveTargetsResponse["services"][number],
   expectedEnv: Record<string, string>,
-  desiredCommitSha: string
+  desiredCommitSha: string,
 ): string | null {
   if (target.service_type !== "git") {
     return null
@@ -215,7 +215,7 @@ function resolveSkipReason(
 export function filterTargetsForGitCommit(
   targets: ResolveTargetsResponse["services"],
   envOverrides: RenderEnvOverridesResponse["services"],
-  desiredCommitSha: string
+  desiredCommitSha: string,
 ): FilteredTargets {
   if (!desiredCommitSha) {
     return {
@@ -227,7 +227,7 @@ export function filterTargetsForGitCommit(
   }
 
   const expectedEnvByServiceId = new Map(
-    envOverrides.map((service) => [service.service_id, service.env])
+    envOverrides.map((service) => [service.service_id, service.env]),
   )
   const filteredTargets: ResolveTargetsResponse["services"] = []
   const skippedServices: SkippedService[] = []
@@ -264,15 +264,15 @@ export function filterTargetsForGitCommit(
   }
 
   const allowedServiceIds = new Set(
-    filteredTargets.map((target) => target.service_id)
+    filteredTargets.map((target) => target.service_id),
   )
   const filteredEnvOverrides = envOverrides.filter((service) =>
-    allowedServiceIds.has(service.service_id)
+    allowedServiceIds.has(service.service_id),
   )
 
   return {
     adoptedDeployments: adoptedDeployments.filter(
-      (deployment) => deployment.deployment_hash && deployment.status
+      (deployment) => deployment.deployment_hash && deployment.status,
     ),
     filteredEnvOverrides,
     services: filteredTargets,
@@ -294,21 +294,21 @@ function checkedDeploymentFailureSummary(response: VerifyResponse): string {
   return response.checked_deployments
     .filter((deployment) =>
       ["FAILED", "UNHEALTHY", "CANCELLED", "REMOVED"].includes(
-        deployment.status.toUpperCase()
-      )
+        deployment.status.toUpperCase(),
+      ),
     )
     .map(
       (deployment) =>
         `${deployment.service_slug}#${deployment.deployment_hash}=${deployment.status}${
           deployment.status_reason ? `: ${deployment.status_reason}` : ""
-        }`
+        }`,
     )
     .join("; ")
 }
 
 function checkedDeploymentInProgressCount(response: VerifyResponse): number {
   return response.checked_deployments.filter(
-    (deployment) => deployment.status.toUpperCase() !== "HEALTHY"
+    (deployment) => deployment.status.toUpperCase() !== "HEALTHY",
   ).length
 }
 
@@ -319,7 +319,7 @@ function checkedDeploymentNonHealthySummary(response: VerifyResponse): string {
       (deployment) =>
         `${deployment.service_slug}#${deployment.deployment_hash}=${deployment.status}${
           deployment.status_reason ? `: ${deployment.status_reason}` : ""
-        }`
+        }`,
     )
     .join("; ")
 }
@@ -330,13 +330,13 @@ function checkedDeploymentSummary(response: VerifyResponse): string {
       (deployment) =>
         `${deployment.service_slug}#${deployment.deployment_hash}=${deployment.status}${
           deployment.status_reason ? `: ${deployment.status_reason}` : ""
-        }`
+        }`,
     )
     .join("; ")
 }
 
 async function verifyDeploymentsOnce(
-  input: WaitForDeploymentsInput
+  input: WaitForDeploymentsInput,
 ): Promise<VerifyResponse> {
   return executeVerify({
     apiToken: input.apiToken,
@@ -362,7 +362,7 @@ async function verifyDeploymentsOnce(
 }
 
 async function cancelTriggeredDeployments(
-  input: WaitForDeploymentsInput
+  input: WaitForDeploymentsInput,
 ): Promise<void> {
   if (
     input.dryRun ||
@@ -374,13 +374,13 @@ async function cancelTriggeredDeployments(
   }
 
   const triggeredServiceIds = new Set(
-    normalizeCsvToArray(input.triggeredServicesCsv)
+    normalizeCsvToArray(input.triggeredServicesCsv),
   )
   const deploymentsToCancel = input.deployments.filter(
     (deployment) =>
       triggeredServiceIds.has(deployment.service_id) &&
       deployment.deployment_hash &&
-      !deployment.deployment_hash.startsWith("dry-run:")
+      !deployment.deployment_hash.startsWith("dry-run:"),
   )
 
   if (deploymentsToCancel.length === 0) {
@@ -402,14 +402,14 @@ async function cancelTriggeredDeployments(
       errors.push(
         `${deployment.service_slug}#${deployment.deployment_hash}: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       )
     }
   }
 
   if (errors.length > 0) {
     throw new Error(
-      `Failed to cancel interrupted deployments: ${errors.join("; ")}`
+      `Failed to cancel interrupted deployments: ${errors.join("; ")}`,
     )
   }
 }
@@ -417,7 +417,7 @@ async function cancelTriggeredDeployments(
 function shouldRetryTransientError(
   input: WaitForDeploymentsInput,
   startedAt: number,
-  error: unknown
+  error: unknown,
 ): boolean {
   const message = error instanceof Error ? error.message : String(error)
   if (
@@ -430,7 +430,7 @@ function shouldRetryTransientError(
 
   if (Date.now() - startedAt >= input.waitTimeoutSeconds * 1000) {
     throw new Error(
-      `Timed out after ${input.waitTimeoutSeconds}s waiting for zane-operator to become reachable again.`
+      `Timed out after ${input.waitTimeoutSeconds}s waiting for zane-operator to become reachable again.`,
     )
   }
 
@@ -440,12 +440,12 @@ function shouldRetryTransientError(
 function ensureDeploymentsHealthy(
   response: VerifyResponse,
   input: WaitForDeploymentsInput,
-  startedAt: number
+  startedAt: number,
 ): boolean {
   const failedServices = checkedDeploymentFailureSummary(response)
   if (failedServices) {
     throw new Error(
-      `Deploy wait failed for triggered deployments: ${failedServices}`
+      `Deploy wait failed for triggered deployments: ${failedServices}`,
     )
   }
 
@@ -456,8 +456,8 @@ function ensureDeploymentsHealthy(
   if (Date.now() - startedAt >= input.waitTimeoutSeconds * 1000) {
     throw new Error(
       `Timed out after ${input.waitTimeoutSeconds}s waiting for deployments to become HEALTHY: ${checkedDeploymentNonHealthySummary(
-        response
-      )}`
+        response,
+      )}`,
     )
   }
 
@@ -465,7 +465,7 @@ function ensureDeploymentsHealthy(
 }
 
 export async function waitForDeployments(
-  input: WaitForDeploymentsInput
+  input: WaitForDeploymentsInput,
 ): Promise<VerifyResponse> {
   const startedAt = Date.now()
   let lastProgressMessage = ""
@@ -517,7 +517,7 @@ export async function waitForDeployments(
     while (true) {
       if (interrupted) {
         input.onProgress?.(
-          "Interrupt received while waiting; cancelling currently waited triggered deployments."
+          "Interrupt received while waiting; cancelling currently waited triggered deployments.",
         )
         await cancelTriggeredDeployments(input)
         throw new Error("Deployment wait interrupted.")
@@ -530,12 +530,12 @@ export async function waitForDeployments(
         if (checkedDeploymentInProgressCount(response) === 0) {
           input.onProgress?.(
             `Deployments are healthy after ${elapsedSeconds}s: ${checkedDeploymentSummary(
-              response
-            )}`
+              response,
+            )}`,
           )
         } else {
           const progressMessage = `Waiting for deployments (${elapsedSeconds}s elapsed): ${checkedDeploymentNonHealthySummary(
-            response
+            response,
           )}`
           if (progressMessage !== lastProgressMessage) {
             input.onProgress?.(progressMessage)

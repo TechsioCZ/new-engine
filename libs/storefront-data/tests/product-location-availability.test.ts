@@ -18,7 +18,7 @@ describe("product location availability", () => {
       queryKeys.detail({
         enabled: false,
         productId: "prod_1",
-      })
+      }),
     ).toStrictEqual([
       "shop",
       "product-location-availability",
@@ -38,11 +38,11 @@ describe("product location availability", () => {
     const service = createMedusaProductLocationAvailabilityService(sdk)
 
     await expect(
-      service.getProductLocationAvailability({ productId: "prod 1" }, signal)
+      service.getProductLocationAvailability({ productId: "prod 1" }, signal),
     ).resolves.toStrictEqual(availabilityResponse)
     expect(fetch).toHaveBeenCalledWith(
       "/store/products/prod%201/location-availability",
-      { signal }
+      { signal },
     )
   })
 
@@ -61,7 +61,7 @@ describe("product location availability", () => {
     expect(
       preset.queryKeys.productLocationAvailability.detail({
         productId: "prod_1",
-      })
+      }),
     ).toStrictEqual([
       "shop",
       "product-location-availability",
@@ -69,7 +69,7 @@ describe("product location availability", () => {
       { productId: "prod_1" },
     ])
     expect(
-      preset.hooks.productLocationAvailability.useProductLocationAvailability
+      preset.hooks.productLocationAvailability.useProductLocationAvailability,
     ).toBeDefined()
   })
 })

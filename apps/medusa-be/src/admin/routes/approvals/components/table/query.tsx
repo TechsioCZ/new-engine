@@ -9,7 +9,7 @@ export const useApprovalsTableQuery = ({
 }) => {
   const raw = useQueryParams(
     ["q", "offset", "order", "created_at", "updated_at", "status"],
-    prefix
+    prefix,
   )
 
   const { offset, created_at, updated_at, ...rest } = raw

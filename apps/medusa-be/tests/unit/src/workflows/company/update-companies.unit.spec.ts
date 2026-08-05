@@ -17,7 +17,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -33,7 +33,7 @@ type MockStep = (
     id: string
     update: Record<string, unknown>
   },
-  context: { container: MockContainer }
+  context: { container: MockContainer },
 ) => Promise<{
   compensateInput?: unknown
   payload: unknown
@@ -42,7 +42,7 @@ type MockStep = (
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -93,7 +93,7 @@ describe("updateCompaniesStep", () => {
           name: "New name",
         },
       },
-      { container }
+      { container },
     )
 
     expect(companyService.listCompanies).toHaveBeenCalledWith({

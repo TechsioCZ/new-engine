@@ -14,7 +14,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const { activeOrderChange, order } = await fetchCommercialValuesSnapshotOrder(
     req.scope,
     query,
-    id
+    id,
   )
 
   res.json({

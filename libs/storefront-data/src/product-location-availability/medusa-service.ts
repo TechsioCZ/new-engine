@@ -16,7 +16,7 @@ export interface MedusaProductLocationAvailabilityServiceConfig {
 
 export function createMedusaProductLocationAvailabilityService(
   sdk: Medusa,
-  config?: MedusaProductLocationAvailabilityServiceConfig
+  config?: MedusaProductLocationAvailabilityServiceConfig,
 ): ProductLocationAvailabilityService<
   ProductLocationAvailabilityResponse,
   MedusaProductLocationAvailabilityInput
@@ -31,7 +31,7 @@ export function createMedusaProductLocationAvailabilityService(
 
       return sdk.client.fetch<ProductLocationAvailabilityResponse>(
         `${productsPath}/${encodeURIComponent(params.productId)}/location-availability`,
-        signal === undefined ? {} : { signal }
+        signal === undefined ? {} : { signal },
       )
     },
   }

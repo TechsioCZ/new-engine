@@ -12,7 +12,7 @@ const outputPath = readArg("--output")
 
 if (!inputPath || !outputPath) {
   console.error(
-    "Usage: storybook-a11y-index.mjs --input <index.json> --output <index.json>"
+    "Usage: storybook-a11y-index.mjs --input <index.json> --output <index.json>",
   )
   process.exit(1)
 }
@@ -30,7 +30,7 @@ try {
       return leftId === rightId
         ? leftKey.localeCompare(rightKey)
         : leftId.localeCompare(rightId)
-    })
+    }),
   )
   const canonicalIndex = { ...index, entries }
   const temporaryPath = `${outputPath}.${process.pid}.tmp`
@@ -39,7 +39,7 @@ try {
   fs.writeFileSync(
     temporaryPath,
     `${JSON.stringify(canonicalIndex)}\n`,
-    "utf-8"
+    "utf-8",
   )
   fs.renameSync(temporaryPath, outputPath)
 
@@ -47,7 +47,7 @@ try {
     (entry) =>
       entry?.type === "story" &&
       Array.isArray(entry.tags) &&
-      entry.tags.includes("test")
+      entry.tags.includes("test"),
   ).length
   console.log(`Canonical Storybook index: ${storyCount} test stories.`)
 } catch (error) {

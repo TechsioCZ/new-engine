@@ -44,7 +44,7 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
   const { selectedRegion } = useRegions()
   const { product, isLoading, error } = useProduct(handle, selectedRegion?.id)
   const [selectedVariant, setSelectedVariant] = useState(
-    product?.variants?.[0] || null
+    product?.variants?.[0] || null,
   )
   const titleQuery = product?.title.split(" ").slice(0, 2).join(" ") || ""
   // Update selected variant when product loads or changes
@@ -116,7 +116,7 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
     variantPrice?.calculated_amount_with_tax &&
     formatPrice(
       variantPrice.calculated_amount_with_tax,
-      selectedRegion?.currency_code
+      selectedRegion?.currency_code,
     )
   // Get badges for the product
   const badges = getProductBadges(product.metadata)

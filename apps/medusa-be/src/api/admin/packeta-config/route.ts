@@ -39,14 +39,14 @@ const toConfigResponse = (config: PacketaConfigDTO): PacketaConfigResponse => ({
  */
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const packetaService = req.scope.resolve<PacketaClientModuleService>(
-    PACKETA_CLIENT_MODULE
+    PACKETA_CLIENT_MODULE,
   )
 
   const packetaConfig = await packetaService.getConfig()
   if (!packetaConfig) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      "Packeta configuration not found. Please restart the server to initialize."
+      "Packeta configuration not found. Please restart the server to initialize.",
     )
   }
 
@@ -61,7 +61,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
  */
 export async function POST(
   req: MedusaRequest<PostAdminPacketaConfigSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result: updated } = await updatePacketaConfigWorkflow(req.scope).run({
     input: definedProperties(req.validatedBody),

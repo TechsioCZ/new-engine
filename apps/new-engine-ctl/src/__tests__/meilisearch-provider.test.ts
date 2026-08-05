@@ -77,7 +77,7 @@ function createStackInputs(): StackInputs {
 
 function createStoredKey(
   policy: KeyPolicy,
-  overrides: Partial<StoredKey> = {}
+  overrides: Partial<StoredKey> = {},
 ): StoredKey {
   return {
     ...policy,
@@ -102,10 +102,10 @@ function createMeiliFetch(initialKeys: StoredKey[]) {
 
   const handleRequest = (
     input: Parameters<typeof fetch>[0],
-    init?: Parameters<typeof fetch>[1]
+    init?: Parameters<typeof fetch>[1],
   ): Response => {
     const url = new URL(
-      typeof input === "string" || input instanceof URL ? input : input.url
+      typeof input === "string" || input instanceof URL ? input : input.url,
     )
     const method = init?.method ?? "GET"
     const body =
@@ -167,7 +167,7 @@ function createMeiliFetch(initialKeys: StoredKey[]) {
     return jsonResponse({ message: "Unexpected request" }, 400)
   }
   const fetchMock = vi.fn<typeof fetch>(async (input, init) =>
-    Promise.resolve(handleRequest(input, init))
+    Promise.resolve(handleRequest(input, init)),
   )
 
   return {
@@ -212,7 +212,7 @@ describe("Meilisearch key reconciliation", () => {
     expect(result.frontend_created).toBeFalsy()
     expect(result.frontend_updated).toBeFalsy()
     expect(
-      meili.requests.filter(({ method }) => method !== "GET")
+      meili.requests.filter(({ method }) => method !== "GET"),
     ).toStrictEqual([])
   })
 
@@ -273,14 +273,14 @@ describe("Meilisearch key reconciliation", () => {
     ])
     expect(meili.keys.get(backendPolicy.uid)?.key).toBe(originalBackend.key)
     expect(meili.keys.get(backendPolicy.uid)?.indexes).toStrictEqual(
-      backendPolicy.indexes
+      backendPolicy.indexes,
     )
   })
 })
 
 test("configured Meilisearch policies authorize brands without producers", async () => {
   const stackInputsPath = fileURLToPath(
-    new URL("../../config/stack-inputs.yaml", import.meta.url)
+    new URL("../../config/stack-inputs.yaml", import.meta.url),
   )
   const stackInputs = await loadStackInputs(stackInputsPath)
 
@@ -288,7 +288,7 @@ test("configured Meilisearch policies authorize brands without producers", async
     const policy = getRuntimeProviderMeiliKeyPolicy(
       stackInputs,
       PROVIDER_ID,
-      outputId
+      outputId,
     )
     expect(policy.indexes).toContain("brands")
     expect(policy.indexes).not.toContain("producers")

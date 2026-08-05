@@ -48,14 +48,14 @@ interface CompanyCustomerGroupLinkRow {
 
 const getCustomerGroupCustomers = (
   employees: EmployeeWithCustomer[] | undefined,
-  groupId: string
+  groupId: string,
 ) =>
   (employees ?? [])
     .filter(
       (
-        employee
+        employee,
       ): employee is EmployeeWithCustomer & { customer: { id: string } } =>
-        Boolean(employee?.customer?.id)
+        Boolean(employee?.customer?.id),
     )
     .map((employee) => ({
       customer_group_id: groupId,
@@ -66,7 +66,7 @@ export const setCompanyCustomerGroupStep = createStep(
   "set-company-customer-group",
   async (
     input: SetCompanyCustomerGroupInput,
-    { container }
+    { container },
   ): Promise<
     StepResponse<
       { group_id: string; previous_group_id?: string },
@@ -78,7 +78,7 @@ export const setCompanyCustomerGroupStep = createStep(
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
     const {
@@ -94,13 +94,13 @@ export const setCompanyCustomerGroupStep = createStep(
         ],
         filters: { id: input.company_id },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!company) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Company ${input.company_id} was not found`
+        `Company ${input.company_id} was not found`,
       )
     }
 
@@ -108,12 +108,12 @@ export const setCompanyCustomerGroupStep = createStep(
     const previousGroupCustomers = previousGroupId
       ? getCustomerGroupCustomers(
           company.employees as EmployeeWithCustomer[] | undefined,
-          previousGroupId
+          previousGroupId,
         )
       : []
     const newGroupCustomers = getCustomerGroupCustomers(
       company.employees as EmployeeWithCustomer[] | undefined,
-      input.group_id
+      input.group_id,
     )
     const { data: targetGroupLinks } = await query.graph({
       entity: COMPANY_CUSTOMER_GROUP_LINK_ENTRY_POINT,
@@ -128,8 +128,8 @@ export const setCompanyCustomerGroupStep = createStep(
           .map((targetGroupLink) => targetGroupLink.company_id)
           .filter(
             (companyId): companyId is string =>
-              typeof companyId === "string" && companyId !== input.company_id
-          )
+              typeof companyId === "string" && companyId !== input.company_id,
+          ),
       ),
     ]
 
@@ -139,41 +139,41 @@ export const setCompanyCustomerGroupStep = createStep(
         {
           select: ["id", "name", "deleted_at"],
           withDeleted: true,
-        }
+        },
       )
       const activeOwner = targetGroupOwners.find(
-        (targetGroupOwner) => !targetGroupOwner.deleted_at
+        (targetGroupOwner) => !targetGroupOwner.deleted_at,
       )
 
       if (activeOwner) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          `Customer group is already linked to active company "${activeOwner.name}".`
+          `Customer group is already linked to active company "${activeOwner.name}".`,
         )
       }
 
       await link.dismiss(
         targetGroupOwnerIds.map((ownerId) =>
-          getCompanyCustomerGroupLink(ownerId, input.group_id)
-        )
+          getCompanyCustomerGroupLink(ownerId, input.group_id),
+        ),
       )
     }
 
     if (previousGroupId && previousGroupId !== input.group_id) {
       if (previousGroupCustomers.length) {
         await customerModuleService.removeCustomerFromGroup(
-          previousGroupCustomers
+          previousGroupCustomers,
         )
       }
 
       await link.dismiss(
-        getCompanyCustomerGroupLink(input.company_id, previousGroupId)
+        getCompanyCustomerGroupLink(input.company_id, previousGroupId),
       )
     }
 
     if (previousGroupId !== input.group_id) {
       await link.create(
-        getCompanyCustomerGroupLink(input.company_id, input.group_id)
+        getCompanyCustomerGroupLink(input.company_id, input.group_id),
       )
     }
 
@@ -197,12 +197,12 @@ export const setCompanyCustomerGroupStep = createStep(
         })),
         new_group_id: input.group_id,
         ...previousGroupPayload,
-      }
+      },
     )
   },
   async (
     input: SetCompanyCustomerGroupCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (!input) {
       return
@@ -210,7 +210,7 @@ export const setCompanyCustomerGroupStep = createStep(
 
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
     if (input.customer_ids.length) {
@@ -218,19 +218,19 @@ export const setCompanyCustomerGroupStep = createStep(
         input.customer_ids.map((id) => ({
           customer_group_id: input.new_group_id,
           customer_id: id,
-        }))
+        })),
       )
     }
 
     await link.dismiss(
-      getCompanyCustomerGroupLink(input.company_id, input.new_group_id)
+      getCompanyCustomerGroupLink(input.company_id, input.new_group_id),
     )
 
     if (input.previous_group_id) {
       const previousGroupId = input.previous_group_id
 
       await link.create(
-        getCompanyCustomerGroupLink(input.company_id, previousGroupId)
+        getCompanyCustomerGroupLink(input.company_id, previousGroupId),
       )
 
       if (input.customer_ids.length) {
@@ -238,7 +238,7 @@ export const setCompanyCustomerGroupStep = createStep(
           input.customer_ids.map((id) => ({
             customer_group_id: previousGroupId,
             customer_id: id,
-          }))
+          })),
         )
       }
     }
@@ -248,10 +248,10 @@ export const setCompanyCustomerGroupStep = createStep(
         input.dismissed_deleted_owner_links.map((dismissedLink) =>
           getCompanyCustomerGroupLink(
             dismissedLink.company_id,
-            dismissedLink.customer_group_id
-          )
-        )
+            dismissedLink.customer_group_id,
+          ),
+        ),
       )
     }
-  }
+  },
 )

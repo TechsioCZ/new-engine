@@ -30,7 +30,7 @@ interface WholesaleParseResult {
 }
 
 export const parseWholesaleRegistration = (
-  value: unknown
+  value: unknown,
 ): WholesaleParseResult => {
   if (value === undefined || value === null) {
     return { error: null, value: null }

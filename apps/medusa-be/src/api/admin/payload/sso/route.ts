@@ -44,7 +44,7 @@ const sanitizeReturnTo = (value: string | undefined) => {
   }
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    "returnTo must be a same-origin relative path."
+    "returnTo must be a same-origin relative path.",
   )
 }
 
@@ -63,7 +63,7 @@ const resolveSafeReturnTo = (value: string | undefined) => {
 /** Read a request header from Medusa's underlying Express request. */
 const getRequestHeader = (
   req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>,
-  name: string
+  name: string,
 ) => {
   const header = req.headers?.[name.toLowerCase()]
   if (Array.isArray(header)) {
@@ -94,13 +94,13 @@ const getHostname = (host: string | undefined) => {
  */
 const resolvePayloadSsoUrl = (
   payloadIframeUrl: string,
-  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>
+  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>,
 ) => {
   const url = new URL(payloadIframeUrl)
   if (!(url.protocol === "http:" || url.protocol === "https:")) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "PAYLOAD_IFRAME_URL must use http or https."
+      "PAYLOAD_IFRAME_URL must use http or https.",
     )
   }
 
@@ -126,7 +126,7 @@ const resolvePayloadSsoUrl = (
 }
 
 const getAdminUserAuthContext = (
-  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>
+  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>,
 ) => {
   const authContext: unknown =
     "auth_context" in req ? req.auth_context : undefined
@@ -157,7 +157,7 @@ function isAdminUserAuthContext(value: unknown): value is AdminUserAuthContext {
 /** Admin API handler that issues an SSO token and auto-posts to Payload. */
 export async function GET(
   req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const adminAuthContext = getAdminUserAuthContext(req)
   if (!adminAuthContext) {
@@ -175,7 +175,7 @@ export async function GET(
   const ttl = (() => {
     const parsedTtl = Number.parseInt(
       process.env["PAYLOAD_SSO_TOKEN_TTL"] ?? "",
-      10
+      10,
     )
     return parsedTtl > 0 ? parsedTtl : DEFAULT_TOKEN_TTL_SECONDS
   })()

@@ -18,7 +18,7 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
   "clear-company-admin-auth-metadata",
   async (
     companyIds: string[],
-    { container }
+    { container },
   ): Promise<StepResponse<undefined, string[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const { data: companies } = (await query.graph({
@@ -51,7 +51,7 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
 
     if (providerIdentityIds.length) {
       const authModuleService = container.resolve<IAuthModuleService>(
-        Modules.AUTH
+        Modules.AUTH,
       )
 
       await authModuleService.updateProviderIdentities(
@@ -60,7 +60,7 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
           user_metadata: {
             role: null,
           },
-        }))
+        })),
       )
     }
 
@@ -72,7 +72,7 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
     }
 
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     await authModuleService.updateProviderIdentities(
@@ -81,7 +81,7 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
         user_metadata: {
           role: "company_admin",
         },
-      }))
+      })),
     )
-  }
+  },
 )

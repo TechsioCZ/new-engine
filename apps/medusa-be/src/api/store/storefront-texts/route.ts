@@ -16,7 +16,7 @@ const resolveLocale = (locale?: string): StorefrontTextLocale => {
   if (!locale) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Field 'locale' is required"
+      "Field 'locale' is required",
     )
   }
 
@@ -26,13 +26,13 @@ const resolveLocale = (locale?: string): StorefrontTextLocale => {
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `Unsupported storefront text locale "${locale}"`
+    `Unsupported storefront text locale "${locale}"`,
   )
 }
 
 export async function GET(
   req: MedusaRequest<unknown, StoreGetStorefrontTextsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { market, namespace } = req.validatedQuery
   const locale = resolveLocale(req.locale)
@@ -40,12 +40,12 @@ export async function GET(
   if (!isStorefrontTextMarketLocalePair(market, locale)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Locale "${locale}" does not belong to market "${market}"`
+      `Locale "${locale}" does not belong to market "${market}"`,
     )
   }
 
   const service = req.scope.resolve<StorefrontTextModuleService>(
-    STOREFRONT_TEXT_MODULE
+    STOREFRONT_TEXT_MODULE,
   )
   const storefrontTexts = await service.listStorefrontTexts({
     locale,
@@ -59,7 +59,7 @@ export async function GET(
       ...(namespace ? { namespace } : {}),
     }),
     storefrontTexts,
-    locale
+    locale,
   )
 
   res.json({

@@ -3,7 +3,7 @@ import { z } from "@medusajs/framework/zod"
 const optionalHandle = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().trim().min(1).optional()
+  z.string().trim().min(1).optional(),
 )
 
 const queryBoolean = z.preprocess((value) => {
@@ -37,12 +37,12 @@ const normalizeOptionalText = (value: unknown) => {
 
 const optionalText = z.preprocess(
   normalizeOptionalText,
-  z.string().trim().nullable().optional()
+  z.string().trim().nullable().optional(),
 )
 
 const optionalEmail = z.preprocess(
   normalizeOptionalText,
-  z.string().trim().email().nullable().optional()
+  z.string().trim().email().nullable().optional(),
 )
 
 const addGpsrConditionalIssues = (
@@ -55,7 +55,7 @@ const addGpsrConditionalIssues = (
     gpsr_european_reseller_postal_address?: string | null | undefined
     gpsr_manufactured_outside_eu?: boolean | undefined
   },
-  context: z.RefinementCtx
+  context: z.RefinementCtx,
 ) => {
   const requiredFields = [
     "gpsr_european_reseller_manufacturing_company_name",

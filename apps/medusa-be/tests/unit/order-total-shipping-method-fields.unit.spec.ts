@@ -27,7 +27,7 @@ describe("order field lists that select computed totals", () => {
 
       expect(
         fields.some((field) => field.startsWith("shipping_methods.")),
-        `${name} selects \`total\` without any \`shipping_methods.*\` field, so the order module cannot load shipping-method adjustments`
+        `${name} selects \`total\` without any \`shipping_methods.*\` field, so the order module cannot load shipping-method adjustments`,
       ).toBeTruthy()
     })
   }

@@ -34,7 +34,7 @@ import { SearchAutocomplete } from "./search/search-autocomplete"
 import { resolveSearchHref } from "./search/search-query-config"
 
 const SUBMENU_ROOT_HANDLES = new Set<string>(
-  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle)
+  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle),
 )
 
 const resolveRootHandleFromHref = (href: string) => {
@@ -65,17 +65,17 @@ export function HerbatikaHeader() {
     },
     {
       queryOptions: cartReadQueryOptions,
-    }
+    },
   )
 
   const regionCurrency = resolveRegionCurrency(region)
   const cartCurrency = resolveSupportedCurrencyCode(
     cart?.currency_code,
-    regionCurrency
+    regionCurrency,
   )
   const cartTotalLabel = formatCurrencyAmount(
     resolveCartTotalAmount(cart),
-    cartCurrency
+    cartCurrency,
   )
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -218,7 +218,7 @@ export function HerbatikaHeader() {
             {PRIMARY_NAV_ITEMS.map((item) => {
               const rootHandle = resolveRootHandleFromHref(item.href)
               const hasSubmenu = Boolean(
-                rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle)
+                rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle),
               )
 
               return (

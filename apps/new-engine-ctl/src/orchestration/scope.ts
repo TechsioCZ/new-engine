@@ -49,7 +49,7 @@ async function runCommand(
   args: string[],
   options?: {
     env?: NodeJS.ProcessEnv
-  }
+  },
 ): Promise<ExecResult> {
   const result = await execFileAsync(command, args, {
     cwd: process.cwd(),
@@ -65,7 +65,7 @@ async function runCommand(
 
 async function verifyGitRevision(
   revision: string,
-  label: string
+  label: string,
 ): Promise<void> {
   try {
     await runCommand("git", ["rev-parse", "--verify", `${revision}^{commit}`])
@@ -76,7 +76,7 @@ async function verifyGitRevision(
 
 async function resolveChangedFiles(
   baseSha: string,
-  headSha: string
+  headSha: string,
 ): Promise<string[]> {
   const result = await runCommand("git", [
     "diff",
@@ -97,7 +97,7 @@ function pathMatchesAnyGlob(path: string, globs: string[]): boolean {
 
 function filterRelevantChangedFiles(
   changedFiles: string[],
-  ignoreGlobs: string[]
+  ignoreGlobs: string[],
 ): string[] {
   return changedFiles.filter((path) => !pathMatchesAnyGlob(path, ignoreGlobs))
 }
@@ -129,7 +129,7 @@ async function resolveNxAffectedProjects(input: {
           NX_DAEMON: "false",
           NX_ISOLATE_PLUGINS: String(input.nxIsolatePlugins),
         },
-      }
+      },
     )
     const parsed = JSON.parse(result.stdout) as unknown
     if (!Array.isArray(parsed)) {
@@ -139,7 +139,7 @@ async function resolveNxAffectedProjects(input: {
     return {
       nxStatus: "ok",
       projects: parsed.filter(
-        (value): value is string => typeof value === "string"
+        (value): value is string => typeof value === "string",
       ),
     }
   } catch (error) {
@@ -162,7 +162,7 @@ async function resolveNxAffectedProjects(input: {
 function assertExplicitServicesAllowed(
   manifest: StackManifest,
   lane: ScopeCommandInput["lane"],
-  servicesCsv: string
+  servicesCsv: string,
 ): string[] {
   const requested = normalizeCsvToArray(servicesCsv)
   const allowed = new Set(listLaneServiceIds(manifest, lane))
@@ -170,7 +170,7 @@ function assertExplicitServicesAllowed(
 
   if (invalid.length > 0) {
     throw new Error(
-      `Explicit services are not deployable on lane ${lane}: ${invalid.join(",")}`
+      `Explicit services are not deployable on lane ${lane}: ${invalid.join(",")}`,
     )
   }
 
@@ -197,18 +197,18 @@ function applyPrepareAndDowntimeState(input: {
       ? normalizeCsvToArray(
           [
             ...listPrepareServiceIds(input.manifest, "preview_db").filter(
-              (serviceId) => selected.has(serviceId)
+              (serviceId) => selected.has(serviceId),
             ),
             ...(input.previewBaselineComplete
               ? []
               : listPreviewBaselinePrepareServiceIds(input.manifest)),
-          ].join(",")
+          ].join(","),
         )
       : []
   const downtimeServiceIds =
     input.lane === "main"
       ? listDowntimeRiskServiceIds(input.manifest, "main").filter((serviceId) =>
-          selected.has(serviceId)
+          selected.has(serviceId),
         )
       : []
 
@@ -222,7 +222,7 @@ function applyPrepareAndDowntimeState(input: {
 }
 
 function listPreviewBaselinePrepareServiceIds(
-  manifest: StackManifest
+  manifest: StackManifest,
 ): string[] {
   const previewClonedServiceIds = new Set(
     listDeployableServices(manifest)
@@ -230,13 +230,13 @@ function listPreviewBaselinePrepareServiceIds(
         (service) =>
           service.enabledByDefault &&
           service.deployLanes.includes("preview") &&
-          service.cloneToPreview
+          service.cloneToPreview,
       )
-      .map((service) => service.id)
+      .map((service) => service.id),
   )
 
   return listPrepareServiceIds(manifest, "preview_db").filter((serviceId) =>
-    previewClonedServiceIds.has(serviceId)
+    previewClonedServiceIds.has(serviceId),
   )
 }
 
@@ -247,12 +247,12 @@ function logMainRuntimeProviderScope(input: {
   const selected = new Set(normalizeCsvToArray(input.servicesCsv))
   const serviceIds = listRuntimeProviderServiceIds(
     input.stackInputs,
-    "meili_api_credentials"
+    "meili_api_credentials",
   ).filter((serviceId) => selected.has(serviceId))
 
   if (serviceIds.length > 0) {
     process.stderr.write(
-      `[scope] Main runtime provider meili_api_credentials is relevant for: ${serviceIds.join(",")}.\n`
+      `[scope] Main runtime provider meili_api_credentials is relevant for: ${serviceIds.join(",")}.\n`,
     )
   }
 }
@@ -274,7 +274,7 @@ function markTriggeredRuntimeRuleServices(input: {
 }): void {
   for (const rule of getGlobalRuntimeRules(input.manifest)) {
     const triggered = input.relevantChangedFiles.some((path) =>
-      pathMatchesAnyGlob(path, rule.pathGlobs)
+      pathMatchesAnyGlob(path, rule.pathGlobs),
     )
     if (!triggered) {
       continue
@@ -320,7 +320,7 @@ function isServiceAffectedByScope(input: {
   }
 
   return input.relevantChangedFiles.some((path) =>
-    pathMatchesAnyGlob(path, input.service.ci.affected_path_globs)
+    pathMatchesAnyGlob(path, input.service.ci.affected_path_globs),
   )
 }
 
@@ -381,7 +381,7 @@ function filterServicesAllowedInLane(input: {
   defaultOnly?: boolean
 }): string {
   const allowed = new Set(
-    listLaneServiceIds(input.manifest, input.lane, input.defaultOnly ?? false)
+    listLaneServiceIds(input.manifest, input.lane, input.defaultOnly ?? false),
   )
 
   return normalizeCsvToArray(input.servicesCsv)
@@ -390,11 +390,11 @@ function filterServicesAllowedInLane(input: {
 }
 
 export async function executeScope(
-  input: ScopeCommandInput
+  input: ScopeCommandInput,
 ): Promise<ScopeResponse> {
   const contracts = await loadDeployContracts(
     input.stackManifestPath,
-    input.stackInputsPath
+    input.stackInputsPath,
   )
   const { manifest } = contracts
 
@@ -412,7 +412,7 @@ export async function executeScope(
     servicesCsv = assertExplicitServicesAllowed(
       manifest,
       input.lane,
-      input.servicesCsv
+      input.servicesCsv,
     ).join(",")
     baseSha = null
     headSha = null
@@ -424,7 +424,7 @@ export async function executeScope(
     changedFiles = await resolveChangedFiles(resolvedBaseSha, input.headSha)
     relevantChangedFiles = filterRelevantChangedFiles(
       changedFiles,
-      getIgnorePathGlobs(manifest)
+      getIgnorePathGlobs(manifest),
     )
 
     const nx = await resolveNxAffectedProjects({

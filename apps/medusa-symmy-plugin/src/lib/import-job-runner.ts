@@ -51,7 +51,7 @@ const toErrorMessage = (error: unknown) => {
 }
 
 const buildJobFinishedWebhookPayload = (
-  job: SymmyImportJobDTO
+  job: SymmyImportJobDTO,
 ): SymmyWebhookJobPayload => ({
   event:
     job.status === "failed"
@@ -77,16 +77,16 @@ const buildJobFinishedWebhookPayload = (
 const deliverJobFinishedWebhook = async (
   webhookConfigService: SymmyWebhookConfigModuleService,
   logger: Logger,
-  job: SymmyImportJobDTO
+  job: SymmyImportJobDTO,
 ) => {
   try {
     await webhookConfigService.deliverJobFinished(
-      buildJobFinishedWebhookPayload(job)
+      buildJobFinishedWebhookPayload(job),
     )
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to dispatch webhook for job ${job.id}: ${message}`
+      `[symmy-plugin] Failed to dispatch webhook for job ${job.id}: ${message}`,
     )
   }
 }
@@ -109,7 +109,7 @@ const failJobAfterLockError = async ({
   const message = toErrorMessage(error)
   logger.error(
     `[symmy-plugin] ${jobLabel} job ${jobId} failed before lock-protected processing completed: ${message}`,
-    error instanceof Error ? error : new Error(message)
+    error instanceof Error ? error : new Error(message),
   )
 
   try {
@@ -126,7 +126,7 @@ const failJobAfterLockError = async ({
       `[symmy-plugin] Failed to mark ${jobLabel} job ${jobId} as failed after lock error: ${failureUpdateMessage}`,
       failureUpdateError instanceof Error
         ? failureUpdateError
-        : new Error(failureUpdateMessage)
+        : new Error(failureUpdateMessage),
     )
   }
 }
@@ -144,11 +144,11 @@ export const runImportJob = async <
 }: RunImportJobInput<TInput, TOutput>) => {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const importJobService = container.resolve<SymmyImportJobModuleService>(
-    SYMMY_IMPORT_JOB_MODULE
+    SYMMY_IMPORT_JOB_MODULE,
   )
   const webhookConfigService =
     container.resolve<SymmyWebhookConfigModuleService>(
-      SYMMY_WEBHOOK_CONFIG_MODULE
+      SYMMY_WEBHOOK_CONFIG_MODULE,
     )
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
@@ -163,7 +163,7 @@ export const runImportJob = async <
 
         if (job.status === "running") {
           logger.warn(
-            `[symmy-plugin] ${jobLabel} job ${job.id} was already running when the lock was acquired; retrying the job.`
+            `[symmy-plugin] ${jobLabel} job ${job.id} was already running when the lock was acquired; retrying the job.`,
           )
         }
 
@@ -181,23 +181,23 @@ export const runImportJob = async <
           await deliverJobFinishedWebhook(
             webhookConfigService,
             logger,
-            completedJob
+            completedJob,
           )
         } catch (error) {
           const message = toErrorMessage(error)
           logger.error(
             `[symmy-plugin] ${jobLabel} job ${job.id} failed: ${message}`,
-            error instanceof Error ? error : new Error(message)
+            error instanceof Error ? error : new Error(message),
           )
           const failedJob = await importJobService.markFailed(job.id, message)
           await deliverJobFinishedWebhook(
             webhookConfigService,
             logger,
-            failedJob
+            failedJob,
           )
         }
       },
-      { timeout: LOCK_ACQUIRE_TIMEOUT_SECONDS }
+      { timeout: LOCK_ACQUIRE_TIMEOUT_SECONDS },
     )
   } catch (error) {
     await failJobAfterLockError({

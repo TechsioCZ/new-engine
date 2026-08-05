@@ -121,31 +121,31 @@ type BrandService = BrandModuleService & {
       | { name: string }
       | {
           name: string
-        }[]
+        }[],
   ) => Promise<BrandAttributeTypeRecord[]>
   listAndCountBrandAttributeTypes: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<[BrandAttributeTypeRecord[], number]>
   listBrandAttributes: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<BrandAttributeRecord[]>
   listAndCountBrandAttributes: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<[BrandAttributeRecord[], number]>
   listBrands: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<BrandRecord[]>
   listAndCountBrands: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<[BrandRecord[], number]>
   retrieveBrand: (
     id: string,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<BrandRecord>
 }
 
@@ -181,7 +181,7 @@ const getProductService = (scope: MedusaContainer) =>
 
 export const toBrandResponse = (
   brand: BrandRecord,
-  activeProductCount = 0
+  activeProductCount = 0,
 ): BrandResponse => ({
   active_product_count: activeProductCount,
   attributes: (brand.attributes ?? []).flatMap((attribute) => {
@@ -227,7 +227,7 @@ export const toBrandResponse = (
 
 export const toBrandAttributeTypeResponse = (
   attributeType: BrandAttributeTypeRecord,
-  usageCount: number
+  usageCount: number,
 ): BrandAttributeTypeResponse => ({
   deleted_at: attributeType.deleted_at ?? null,
   id: attributeType.id,
@@ -237,7 +237,7 @@ export const toBrandAttributeTypeResponse = (
 
 export const toBrandAttributeTypeBrandResponse = (
   attribute: BrandAttributeRecord,
-  activeProductCount = 0
+  activeProductCount = 0,
 ): BrandAttributeTypeBrandResponse | null => {
   if (!attribute.brand?.id) {
     return null
@@ -256,7 +256,7 @@ export const toBrandAttributeTypeBrandResponse = (
 
 export const getBrandAttributeTypeUsageCounts = async (
   scope: MedusaContainer,
-  attributeTypeIds: string[]
+  attributeTypeIds: string[],
 ) => {
   if (!attributeTypeIds.length) {
     return new Map<string, number>()
@@ -268,7 +268,7 @@ export const getBrandAttributeTypeUsageCounts = async (
     },
     {
       relations: ["brand"],
-    }
+    },
   )
 
   const brandIdsByAttributeTypeId = new Map<string, Set<string>>()
@@ -290,14 +290,14 @@ export const getBrandAttributeTypeUsageCounts = async (
 
   return new Map(
     [...brandIdsByAttributeTypeId.entries()].map(
-      ([attributeTypeId, brandIds]) => [attributeTypeId, brandIds.size]
-    )
+      ([attributeTypeId, brandIds]) => [attributeTypeId, brandIds.size],
+    ),
   )
 }
 
 export const getBrandActiveProductCounts = async (
   scope: MedusaContainer,
-  brandIds: string[]
+  brandIds: string[],
 ) => {
   if (!brandIds.length) {
     return new Map<string, number>()
@@ -320,7 +320,7 @@ export const getBrandActiveProductCounts = async (
   const productIds = uniqueIds(
     links
       .map((link) => link.product_id)
-      .filter((productId): productId is string => !!productId)
+      .filter((productId): productId is string => !!productId),
   )
 
   if (!productIds.length) {
@@ -363,7 +363,7 @@ export const getBrandActiveProductCounts = async (
     [...activeProductIdsByBrandId.entries()].map(([brandId, activeIds]) => [
       brandId,
       activeIds.size,
-    ])
+    ]),
   )
 }
 
@@ -385,7 +385,7 @@ export const uniqueIds = (ids: string[]) => [...new Set(ids)]
 export const retrieveBrandOrThrow = async (
   scope: MedusaContainer,
   brandId: string,
-  options: RetrieveBrandOptions = {}
+  options: RetrieveBrandOptions = {},
 ) => {
   const [brand] = await getBrandService(scope).listBrands(
     {
@@ -395,13 +395,13 @@ export const retrieveBrandOrThrow = async (
       relations: ["attributes", "attributes.attributeType"],
       take: 1,
       withDeleted: options.withDeleted ?? false,
-    }
+    },
   )
 
   if (!brand) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Brand with id "${brandId}" was not found`
+      `Brand with id "${brandId}" was not found`,
     )
   }
 
@@ -410,7 +410,7 @@ export const retrieveBrandOrThrow = async (
 
 export const ensureProductIdsExist = async (
   scope: MedusaContainer,
-  productIds: string[]
+  productIds: string[],
 ) => {
   const ids = uniqueIds(productIds)
 
@@ -432,7 +432,7 @@ export const ensureProductIdsExist = async (
   if (missing.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Product ids were not found: ${missing.join(", ")}`
+      `Product ids were not found: ${missing.join(", ")}`,
     )
   }
 
@@ -442,7 +442,7 @@ export const ensureProductIdsExist = async (
 export const listProductBrandLinksByProductIds = async (
   scope: MedusaContainer,
   productIds: string[],
-  options: { withDeleted?: boolean } = {}
+  options: { withDeleted?: boolean } = {},
 ): Promise<ProductBrandLinkRecord[]> => {
   const ids = uniqueIds(productIds)
 
@@ -464,13 +464,13 @@ export const listProductBrandLinksByProductIds = async (
 
   return (data as LinkRecord[]).filter(
     (link): link is ProductBrandLinkRecord =>
-      !!(link.product_id && link.brand_id)
+      !!(link.product_id && link.brand_id),
   )
 }
 
 export const listProductBrandLinks = async (
   scope: MedusaContainer,
-  options: { withDeleted?: boolean } = {}
+  options: { withDeleted?: boolean } = {},
 ): Promise<ProductBrandLinkRecord[]> => {
   const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -483,13 +483,13 @@ export const listProductBrandLinks = async (
 
   return (data as LinkRecord[]).filter(
     (link): link is ProductBrandLinkRecord =>
-      !!(link.product_id && link.brand_id)
+      !!(link.product_id && link.brand_id),
   )
 }
 
 export const retrieveProductOrThrow = async (
   scope: MedusaContainer,
-  productId: string
+  productId: string,
 ) => {
   const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -505,7 +505,7 @@ export const retrieveProductOrThrow = async (
   if (!product) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product with id "${productId}" was not found`
+      `Product with id "${productId}" was not found`,
     )
   }
 
@@ -514,7 +514,7 @@ export const retrieveProductOrThrow = async (
 
 export const listBrandIdsForProduct = async (
   scope: MedusaContainer,
-  productId: string
+  productId: string,
 ) => {
   const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -532,7 +532,7 @@ export const listBrandIdsForProduct = async (
 
 export const listProductIdsForBrand = async (
   scope: MedusaContainer,
-  brandId: string
+  brandId: string,
 ) => {
   const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -550,7 +550,7 @@ export const listProductIdsForBrand = async (
 
 export const listBrandsByIds = async (
   scope: MedusaContainer,
-  brandIds: string[]
+  brandIds: string[],
 ) => {
   if (!brandIds.length) {
     return []
@@ -566,13 +566,13 @@ export const listBrandsByIds = async (
       },
       relations: ["attributes", "attributes.attributeType"],
       withDeleted: true,
-    }
+    },
   )
 }
 
 export const listProductsByIds = async (
   scope: MedusaContainer,
-  productIds: string[]
+  productIds: string[],
 ) => {
   if (!productIds.length) {
     return []
@@ -593,7 +593,7 @@ export const listProductsByIds = async (
 export const listAndCountProducts = async (
   scope: MedusaContainer,
   filters: Record<string, unknown> = {},
-  options: ListProductsOptions = {}
+  options: ListProductsOptions = {},
 ): Promise<[ProductRecord[], number]> => {
   const { order, q, skip, take } = options
 
@@ -607,14 +607,14 @@ export const listAndCountProducts = async (
       ...(order === undefined ? {} : { order }),
       ...(skip === undefined ? {} : { skip }),
       ...(take === undefined ? {} : { take }),
-    }
+    },
   )
 }
 
 export const listAndCountProductsByIds = async (
   scope: MedusaContainer,
   productIds: string[],
-  options: ListProductsOptions = {}
+  options: ListProductsOptions = {},
 ) => {
   const ids = uniqueIds(productIds)
 
@@ -627,6 +627,6 @@ export const listAndCountProductsByIds = async (
     {
       id: { $in: ids },
     },
-    options
+    options,
   )
 }

@@ -14,7 +14,7 @@ const isRequiredCompanyField = (field: string): field is RequiredCompanyField =>
   requiredCompanyFields.includes(field as RequiredCompanyField)
 
 const normalizeCompanyFormData = (
-  company?: AdminUpdateCompany
+  company?: AdminUpdateCompany,
 ): AdminUpdateCompany => ({
   address: company?.address ?? "",
   city: company?.city ?? "",
@@ -109,7 +109,7 @@ export function CompanyForm({
 }) {
   const { t } = useTranslation("companies")
   const [formData, setFormData] = useState<AdminUpdateCompany>(
-    normalizeCompanyFormData(company)
+    normalizeCompanyFormData(company),
   )
   const [validationErrors, setValidationErrors] = useState<
     Partial<Record<RequiredCompanyField, string>>

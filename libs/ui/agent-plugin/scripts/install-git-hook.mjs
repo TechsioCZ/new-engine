@@ -94,7 +94,7 @@ function isTrackedInRepo(file) {
       ["-C", topLevel, "ls-files", "--error-unmatch", "--", rel],
       {
         stdio: ["ignore", "ignore", "ignore"],
-      }
+      },
     )
     return true
   } catch {
@@ -175,7 +175,7 @@ function installRedirect() {
     mkdirSync(shimDir, { recursive: true })
     writeFileSync(
       join(shimDir, "original-hooks-path"),
-      `${configuredHooksPath}\n`
+      `${configuredHooksPath}\n`,
     )
     for (const name of GIT_HOOK_NAMES) {
       if (name === "pre-push") {
@@ -191,11 +191,11 @@ function installRedirect() {
     note(
       `"${target}" is tracked in the repo — left untouched. core.hooksPath now points at ` +
         `"${shimDir}", which forwards every hook to "${configuredHooksPath}" (originals run ` +
-        "first) and adds the pre-push gate."
+        "first) and adds the pre-push gate.",
     )
   } catch (error) {
     note(
-      `could not set up the hooks shim (${error.message}) — gate NOT installed.`
+      `could not set up the hooks shim (${error.message}) — gate NOT installed.`,
     )
   }
   process.exit(0)
@@ -207,7 +207,7 @@ function removeRedirect() {
   try {
     original = readFileSync(
       join(shimDir, "original-hooks-path"),
-      "utf-8"
+      "utf-8",
     ).trim()
   } catch {
     // shim without the marker file — just unset
@@ -226,7 +226,7 @@ function removeRedirect() {
     // shim forwards to) from firing — the exact outcome the shim exists to prevent. Leave it all in
     // place; the next session start retries.
     note(
-      `could not restore core.hooksPath (${error.message}) — leaving the shim in place.`
+      `could not restore core.hooksPath (${error.message}) — leaving the shim in place.`,
     )
     return
   }
@@ -237,7 +237,7 @@ function removeRedirect() {
   }
   note(
     `removed the ui-kit hooks shim from this non-ui-kit repo; core.hooksPath restored to ` +
-      `"${original || "(unset)"}".`
+      `"${original || "(unset)"}".`,
   )
 }
 
@@ -255,7 +255,7 @@ if (!isUiKitSourceRepo(topLevel)) {
         const newest = existing.at(-1)
         renameSync(newest, target)
         note(
-          `removed the ui-kit pre-push hook from this non-ui-kit repo and restored "${newest}".`
+          `removed the ui-kit pre-push hook from this non-ui-kit repo and restored "${newest}".`,
         )
       } else {
         rmSync(target)
@@ -288,12 +288,12 @@ if (existsSync(target)) {
       renameSync(target, next)
       chmodSync(next, 0o755)
       note(
-        `existing pre-push hook preserved as "${next}" and chained — it runs first.`
+        `existing pre-push hook preserved as "${next}" and chained — it runs first.`,
       )
     } catch (error) {
       note(
         `could not preserve the existing pre-push hook (${error.message}) — leaving it ` +
-          "untouched, gate NOT installed."
+          "untouched, gate NOT installed.",
       )
       process.exit(0) // never destroy a hook we cannot back up
     }

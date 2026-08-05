@@ -24,7 +24,7 @@ export async function GET(
     unknown,
     AdminGetProductAttributeDefinitionsSchemaType
   >,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { input_type, is_public, limit, offset, order, q, status } =
     req.validatedQuery
@@ -42,7 +42,7 @@ export async function GET(
   applyProductAttributeStatusFilter(filters, status)
 
   const [definitions, count] = await getProductAttributeService(
-    req.scope
+    req.scope,
   ).listAndCountProductAttributeDefinitions(filters, {
     order: parseProductAttributeOrder(order),
     skip: offset,
@@ -51,7 +51,7 @@ export async function GET(
   })
   const usageCounts = await getDefinitionUsageCountMap(
     req.scope,
-    definitions.map((definition) => definition.id)
+    definitions.map((definition) => definition.id),
   )
 
   res.json({
@@ -59,8 +59,8 @@ export async function GET(
     definitions: definitions.map((definition) =>
       toProductAttributeDefinitionResponse(
         definition,
-        usageCounts.get(definition.id) ?? 0
-      )
+        usageCounts.get(definition.id) ?? 0,
+      ),
     ),
     limit,
     offset,
@@ -69,10 +69,10 @@ export async function GET(
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminCreateProductAttributeDefinitionSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result } = await createProductAttributeDefinitionWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: req.validatedBody,
   })

@@ -564,7 +564,7 @@ export function createMedusaStorefrontServerReadPreset<
     TCollection,
     TCatalogProduct,
     TCatalogFacets
-  >
+  >,
 ): MedusaStorefrontServerReadPresetResult<
   TProduct,
   TCategory,
@@ -606,7 +606,7 @@ export function createMedusaStorefrontServerReadPreset<
     >(config.sdk, config.catalog?.serviceConfig),
     categories: createMedusaCategoryService<TCategory, MedusaCategoryListInput>(
       config.sdk,
-      config.categories?.serviceConfig
+      config.categories?.serviceConfig,
     ),
     collections: createMedusaCollectionService<
       TCollection,
@@ -619,30 +619,30 @@ export function createMedusaStorefrontServerReadPreset<
       config.productAttributes?.service ??
       createMedusaProductAttributeService(
         config.sdk,
-        config.productAttributes?.serviceConfig
+        config.productAttributes?.serviceConfig,
       ),
     productLists:
       config.productLists?.service ??
       createMedusaProductListService(
         config.sdk,
-        config.productLists?.serviceConfig
+        config.productLists?.serviceConfig,
       ),
     productLocationAvailability:
       config.productLocationAvailability?.service ??
       createMedusaProductLocationAvailabilityService(
         config.sdk,
-        config.productLocationAvailability?.serviceConfig
+        config.productLocationAvailability?.serviceConfig,
       ),
     products: createMedusaProductService<TProduct, MedusaProductListInput>(
       config.sdk,
-      config.products?.serviceConfig
+      config.products?.serviceConfig,
     ),
     regions: createMedusaRegionService(config.sdk),
     reviews:
       config.reviews?.service ??
       createMedusaProductReviewService(
         config.sdk,
-        config.reviews?.serviceConfig
+        config.reviews?.serviceConfig,
       ),
   }
 

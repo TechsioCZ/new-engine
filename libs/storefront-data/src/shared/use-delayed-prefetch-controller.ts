@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react"
 
 export const useDelayedPrefetchController = () => {
   const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map()
+    new Map(),
   )
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export const useDelayedPrefetchController = () => {
   const schedulePrefetch = (
     execute: () => unknown,
     prefetchId: string,
-    delay: number
+    delay: number,
   ) => {
     const existing = timeoutsRef.current.get(prefetchId)
     if (existing) {

@@ -48,19 +48,19 @@ const toAttributeOrder = ({
 
 const retrieveAttributeType = async (req: AuthenticatedMedusaRequest) => {
   const [attributeType] = await getBrandService(
-    req.scope
+    req.scope,
   ).listBrandAttributeTypes(
     { id: req.params["id"] ?? "" },
     {
       take: 1,
       withDeleted: true,
-    }
+    },
   )
 
   if (!attributeType) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Brand attribute type with id "${req.params["id"]}" was not found`
+      `Brand attribute type with id "${req.params["id"]}" was not found`,
     )
   }
 
@@ -69,7 +69,7 @@ const retrieveAttributeType = async (req: AuthenticatedMedusaRequest) => {
 
 export async function DELETE(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const id = req.params["id"] ?? ""
   await deleteBrandAttributeTypesWorkflow(req.scope).run({
@@ -84,7 +84,7 @@ export async function DELETE(
   res.status(200).json({
     attribute_type: toBrandAttributeTypeResponse(
       attributeType,
-      usageCounts.get(id) ?? 0
+      usageCounts.get(id) ?? 0,
     ),
     deleted: true,
     id,
@@ -97,13 +97,13 @@ export async function GET(
     unknown,
     AdminGetBrandAttributeTypesSchemaType
   >,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const service = getBrandService(req.scope)
   const attributeType = await retrieveAttributeType(req)
   const { include_deleted, limit, offset, q } = req.validatedQuery
   const order = parseOrder(
-    req.validatedQuery.order_by ?? req.validatedQuery.order
+    req.validatedQuery.order_by ?? req.validatedQuery.order,
   )
   const usageCounts = await getBrandAttributeTypeUsageCounts(req.scope, [
     attributeType.id,
@@ -130,20 +130,20 @@ export async function GET(
       skip: offset,
       take: limit,
       withDeleted: true,
-    }
+    },
   )
   const brandIds = page
     .map((attribute) => attribute.brand?.id)
     .filter((brandId): brandId is string => !!brandId)
   const activeProductCounts = await getBrandActiveProductCounts(
     req.scope,
-    brandIds
+    brandIds,
   )
 
   res.status(200).json({
     attribute_type: toBrandAttributeTypeResponse(
       attributeType,
-      usageCounts.get(attributeType.id) ?? 0
+      usageCounts.get(attributeType.id) ?? 0,
     ),
     brands: page.flatMap((attribute) => {
       const activeProductCount = attribute.brand?.id
@@ -151,7 +151,7 @@ export async function GET(
         : 0
       const brand = toBrandAttributeTypeBrandResponse(
         attribute,
-        activeProductCount
+        activeProductCount,
       )
 
       return brand ? [brand] : []
@@ -164,7 +164,7 @@ export async function GET(
 
 export async function POST(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const id = req.params["id"] ?? ""
   await restoreBrandAttributeTypesWorkflow(req.scope).run({
@@ -179,7 +179,7 @@ export async function POST(
   res.status(200).json({
     attribute_type: toBrandAttributeTypeResponse(
       attributeType,
-      usageCounts.get(id) ?? 0
+      usageCounts.get(id) ?? 0,
     ),
   })
 }

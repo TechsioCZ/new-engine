@@ -13,7 +13,7 @@ import { afterEach, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 
 const SCRIPT_PATH = fileURLToPath(
-  new URL("check-migration-immutability.mjs", import.meta.url)
+  new URL("check-migration-immutability.mjs", import.meta.url),
 )
 const repositories = []
 
@@ -91,7 +91,7 @@ void describe("migration immutability check", () => {
         rmSync(path.join(repository, "app/migrations/001.ts"))
         symlinkSync(
           "../target.ts",
-          path.join(repository, "app/migrations/001.ts")
+          path.join(repository, "app/migrations/001.ts"),
         )
       },
       name: "type changes",

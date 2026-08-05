@@ -28,5 +28,5 @@ export const deleteCompaniesWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(undefined)
-  }
+  },
 )

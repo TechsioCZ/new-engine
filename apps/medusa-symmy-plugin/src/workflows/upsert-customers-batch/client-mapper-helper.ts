@@ -44,7 +44,7 @@ export class CustomerBatchClientMapperHelper {
       ) {
         const value = this.stringMetadataValue(
           customer.metadata,
-          customer.identifier_type
+          customer.identifier_type,
         )
         if (value) {
           metadataIdentifiers[customer.identifier_type].add(value)
@@ -57,7 +57,7 @@ export class CustomerBatchClientMapperHelper {
 
   collectGroupCodes(customers: CustomerInput[]): Set<string> {
     return new Set(
-      customers.flatMap((customer) => customer.customer_group_codes ?? [])
+      customers.flatMap((customer) => customer.customer_group_codes ?? []),
     )
   }
 
@@ -80,7 +80,7 @@ export class CustomerBatchClientMapperHelper {
   addCreatedCustomerToIndex(
     index: ExistingCustomerIndex,
     customer: CustomerInput,
-    customerId: string
+    customerId: string,
   ): void {
     this.addCustomerToIndex(index, {
       addresses: [],
@@ -93,7 +93,7 @@ export class CustomerBatchClientMapperHelper {
 
   findExistingCustomer(
     customer: CustomerInput,
-    index: ExistingCustomerIndex
+    index: ExistingCustomerIndex,
   ): ExistingCustomer | null {
     if (customer.identifier_type === "customer_id" && customer.customer_id) {
       return index.byId.get(customer.customer_id) ?? null
@@ -104,7 +104,7 @@ export class CustomerBatchClientMapperHelper {
 
     const identifier = this.stringMetadataValue(
       customer.metadata,
-      customer.identifier_type
+      customer.identifier_type,
     )
     if (!identifier) {
       return null
@@ -124,7 +124,7 @@ export class CustomerBatchClientMapperHelper {
 
   buildGroupIndex(
     groups: ExistingGroup[],
-    codes: Set<string>
+    codes: Set<string>,
   ): CustomerGroupIndex {
     const byCode = new Map<string, ExistingGroup>()
 
@@ -145,10 +145,10 @@ export class CustomerBatchClientMapperHelper {
       code: string | null
       erp_code: string | null
       customer_group_id: string
-    }[]
+    }[],
   ): ExistingGroup[] {
     const mappingsByGroupId = new Map(
-      mappings.map((mapping) => [mapping.customer_group_id, mapping])
+      mappings.map((mapping) => [mapping.customer_group_id, mapping]),
     )
 
     return groups.map((group) => {
@@ -212,7 +212,7 @@ export class CustomerBatchClientMapperHelper {
 
   private addCustomerToIndex(
     index: ExistingCustomerIndex,
-    customer: ExistingCustomer
+    customer: ExistingCustomer,
   ): void {
     index.byId.set(customer.id, customer)
     const email = this.normalizeEmail(customer.email)
@@ -229,7 +229,7 @@ export class CustomerBatchClientMapperHelper {
     }
     const registrationNumber = this.stringMetadataValue(
       customer.metadata,
-      "company_registration_number"
+      "company_registration_number",
     )
     if (registrationNumber) {
       index.byCompanyRegistrationNumber.set(registrationNumber, customer)
@@ -238,7 +238,7 @@ export class CustomerBatchClientMapperHelper {
 
   private buildMetadata(
     existingMetadata: Metadata | null | undefined,
-    customer: CustomerInput
+    customer: CustomerInput,
   ) {
     return {
       ...existingMetadata,

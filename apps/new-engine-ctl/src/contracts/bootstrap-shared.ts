@@ -72,7 +72,7 @@ export const bootstrapInspectServiceDetailsSchema = z.looseObject({
       z.looseObject({
         id: z.string().min(1),
         field: z.string().optional(),
-      })
+      }),
     )
     .default([]),
   urls: z.array(bootstrapInspectUrlSchema).default([]),

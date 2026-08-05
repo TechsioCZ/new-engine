@@ -41,7 +41,7 @@ const isInsufficientInventoryError = (message: string) =>
 
 export const resolveAddProductToCartErrorMessage = (
   error: unknown,
-  fallbackMessage: string
+  fallbackMessage: string,
 ) => (error instanceof AddProductToCartError ? error.message : fallbackMessage)
 
 const resolveInsufficientQuantityMessage = ({
@@ -71,7 +71,7 @@ const resolveInsufficientQuantityMessage = ({
 
 const resolveProductVariantId = (
   product: AddProductToCartInput["product"],
-  variantId?: string | null
+  variantId?: string | null,
 ) => {
   if (variantId) {
     return variantId
@@ -82,7 +82,7 @@ const resolveProductVariantId = (
 
 const resolveProductVariant = (
   product: AddProductToCartInput["product"],
-  variantId?: string | null
+  variantId?: string | null,
 ) => {
   const resolvedVariantId = resolveProductVariantId(product, variantId)
   if (!resolvedVariantId) {
@@ -102,7 +102,7 @@ const resolveLineItemMetadata = (product: AddProductToCartInput["product"]) => {
 }
 
 const resolveLineItemVariantId = (
-  item: HttpTypes.StoreCartLineItem
+  item: HttpTypes.StoreCartLineItem,
 ): string | null => {
   const itemRecord = asStorefrontRecord(item)
 
@@ -116,7 +116,7 @@ const resolveLineItemVariantId = (
 
 const resolveExistingCartVariantQuantity = (
   cart: HttpTypes.StoreCart | null,
-  variantId: string | null
+  variantId: string | null,
 ) => {
   if (!variantId) {
     return 0
@@ -158,7 +158,7 @@ const assertAddProductToCartVariant = ({
   const requestedTotalQuantity = cartQuantity + quantity
   const inventoryState = resolveVariantInventoryState(
     resolvedVariant,
-    requestedTotalQuantity
+    requestedTotalQuantity,
   )
 
   if (!inventoryState.isInStock) {
@@ -171,7 +171,7 @@ const assertAddProductToCartVariant = ({
         availableQuantity: inventoryState.availableQuantity,
         cartQuantity,
         translateCart,
-      })
+      }),
     )
   }
 
@@ -195,7 +195,7 @@ export function useAddProductToCart({
     },
     {
       queryOptions: cartReadQueryOptions,
-    }
+    },
   )
 
   const addProductToCart = async ({
@@ -211,7 +211,7 @@ export function useAddProductToCart({
     const resolvedVariantId = assertAddProductToCartVariant({
       cartQuantity: resolveExistingCartVariantQuantity(
         cartQuery.cart,
-        resolvedProductVariantId
+        resolvedProductVariantId,
       ),
       product,
       quantity,
@@ -239,7 +239,7 @@ export function useAddProductToCart({
       throw new AddProductToCartError(
         isInsufficientInventoryError(errorMessage)
           ? translateCart("insufficient_quantity")
-          : translateCart("failed")
+          : translateCart("failed"),
       )
     } finally {
       setActiveProductId(null)

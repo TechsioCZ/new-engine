@@ -18,7 +18,7 @@ type SyncExistingPaykitRegion = SyncExistingPaykitRegionsStepInput[number] & {
 const SyncExistingPaykitRegionsStepId = "sync-existing-paykit-regions-step"
 
 const hasIdAndCurrency = (
-  region: SyncExistingPaykitRegionsStepInput[number]
+  region: SyncExistingPaykitRegionsStepInput[number],
 ): region is SyncExistingPaykitRegion =>
   typeof region.id === "string" &&
   region.id.length > 0 &&
@@ -35,7 +35,7 @@ export const syncExistingPaykitRegionsStep = createStep(
 
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const regionService = container.resolve<IRegionModuleService>(
-      Modules.REGION
+      Modules.REGION,
     )
 
     logger.info("Syncing existing PayKit seed regions...")
@@ -45,7 +45,7 @@ export const syncExistingPaykitRegionsStep = createStep(
     for (const region of regionsToSync) {
       const [updatedRegion] = await regionService.updateRegions(
         { id: region.id },
-        { currency_code: region.currencyCode.trim().toLowerCase() }
+        { currency_code: region.currencyCode.trim().toLowerCase() },
       )
 
       if (updatedRegion) {
@@ -54,5 +54,5 @@ export const syncExistingPaykitRegionsStep = createStep(
     }
 
     return new StepResponse(updatedRegions)
-  }
+  },
 )

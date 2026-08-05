@@ -32,7 +32,7 @@ export const resolveProductReferenceHandle = (code: string) => {
 }
 
 export const resolveRelatedProductReferenceCodes = (
-  product: Product | null
+  product: Product | null,
 ): string[] => {
   const metadata = isRecord(product?.metadata) ? product.metadata : null
   const codes = [
@@ -57,7 +57,7 @@ export const resolveRelatedProductReferenceCodes = (
 
 export const orderProductsByReferenceCodes = (
   products: Product[],
-  referenceCodes: string[]
+  referenceCodes: string[],
 ): Product[] => {
   const productBySourceId = new Map<string, Product>()
   const productByHandle = new Map<string, Product>()
@@ -95,7 +95,7 @@ export const orderProductsByReferenceCodes = (
 
 const fillSectionProducts = (
   products: Product[],
-  sectionIndex: number
+  sectionIndex: number,
 ): Product[] => {
   if (products.length === 0) {
     return []
@@ -104,7 +104,7 @@ const fillSectionProducts = (
   const start = sectionIndex * RELATED_PRODUCTS_PER_SECTION
   const initialSlice = products.slice(
     start,
-    start + RELATED_PRODUCTS_PER_SECTION
+    start + RELATED_PRODUCTS_PER_SECTION,
   )
 
   if (initialSlice.length >= RELATED_PRODUCTS_PER_SECTION) {
@@ -132,7 +132,7 @@ const fillSectionProducts = (
 
 export const resolveRelatedSections = (
   products: Product[],
-  sectionTitles: readonly string[]
+  sectionTitles: readonly string[],
 ): RelatedProductsSection[] => {
   const recommendationSections = sectionTitles.map((title, sectionIndex) => ({
     id: `related-${sectionIndex}`,

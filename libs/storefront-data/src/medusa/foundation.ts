@@ -91,7 +91,7 @@ export interface MedusaStorefrontFoundationConfig {
 }
 
 export function createMedusaStorefrontQueryKeys(
-  namespace: QueryNamespace
+  namespace: QueryNamespace,
 ): MedusaStorefrontQueryKeys {
   return {
     auth: createAuthQueryKeys(namespace),
@@ -108,7 +108,7 @@ export function createMedusaStorefrontQueryKeys(
     >(namespace),
     customers: createCustomerQueryKeys<MedusaCustomerListInput>(namespace),
     orders: createOrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>(
-      namespace
+      namespace,
     ),
     productAttributes:
       createProductAttributeQueryKeys<MedusaProductAttributesInput>(namespace),
@@ -118,7 +118,7 @@ export function createMedusaStorefrontQueryKeys(
     >(namespace),
     productLocationAvailability:
       createProductLocationAvailabilityQueryKeys<MedusaProductLocationAvailabilityInput>(
-        namespace
+        namespace,
       ),
     products: createProductQueryKeys<
       MedusaProductListInput,
@@ -134,7 +134,7 @@ export function createMedusaStorefrontQueryKeys(
 }
 
 export function resolveMedusaStorefrontFoundation(
-  config: MedusaStorefrontFoundationConfig
+  config: MedusaStorefrontFoundationConfig,
 ) {
   const namespace = config.queryKeyNamespace ?? "storefront-data"
   const cacheConfig = config.cacheConfig ?? createCacheConfig()

@@ -42,21 +42,21 @@ type OrderAddress = ReturnType<typeof resolveOrderAddresses>["shipping"]
 
 const readOrderAmount = (
   order: HttpTypes.StoreOrder,
-  key: string
+  key: string,
 ): number | null => {
   const value = isRecord(order) ? order[key] : undefined
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
 const resolveOrderAmountSummary = (
-  order: HttpTypes.StoreOrder
+  order: HttpTypes.StoreOrder,
 ): OrderAmountSummary => {
   const orderItems = order.items ?? []
   const orderItemsTotal =
     readOrderAmount(order, "item_total") ??
     orderItems.reduce(
       (total, item) => total + resolveOrderItemTotalAmount(item),
-      0
+      0,
     )
   const orderItemTaxTotal = readOrderAmount(order, "item_tax_total") ?? 0
   const orderSubtotal =
@@ -130,11 +130,11 @@ export function AccountOrderDetailSummary({
   const orderProgress = resolveOrderProgressState(order, translateOrderStatus)
   const paymentStatus = resolveOrderPaymentStatusLabel(
     order,
-    translateOrderStatus
+    translateOrderStatus,
   )
   const fulfillmentStatus = resolveOrderFulfillmentStatusLabel(
     order,
-    translateOrderStatus
+    translateOrderStatus,
   )
 
   return (
@@ -184,7 +184,7 @@ export function AccountOrderDetailSummary({
             {tCart("shipping_excl_tax")}:{" "}
             {formatOrderAmount(
               amountSummary.shippingSubtotal,
-              order.currency_code
+              order.currency_code,
             )}
           </p>
           <p className="text-fg-secondary text-sm">

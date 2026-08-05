@@ -16,14 +16,14 @@ export async function POST(req: NextRequest) {
     if (!(firstName && lastName && email && message)) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
     if (!process.env.RESEND_API_KEY) {
       return NextResponse.json(
         { error: "Email service is not configured" },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       console.error("Resend error:", error)
       return NextResponse.json(
         { error: "Failed to send email" },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     console.error("API error:", error)
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

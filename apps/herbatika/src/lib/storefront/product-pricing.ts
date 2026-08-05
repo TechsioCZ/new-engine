@@ -21,28 +21,28 @@ interface StorefrontMetadataSource {
 }
 
 export const resolveProductTopOffer = (
-  product?: StorefrontMetadataSource | null
+  product?: StorefrontMetadataSource | null,
 ) => {
   const metadata = asStorefrontRecord(product?.metadata)
   return asStorefrontRecord(metadata?.top_offer)
 }
 
 const resolveTopOfferCurrentAmount = (
-  topOffer: Record<string, unknown> | null
+  topOffer: Record<string, unknown> | null,
 ) =>
   asStorefrontNumber(topOffer?.current_price) ??
   asStorefrontNumber(topOffer?.action_price) ??
   asStorefrontNumber(topOffer?.price_vat)
 
 const resolveTopOfferStockAmount = (
-  topOffer: Record<string, unknown> | null
+  topOffer: Record<string, unknown> | null,
 ): number | null => {
   const stock = asStorefrontRecord(topOffer?.stock)
   return asStorefrontNumber(stock?.amount)
 }
 
 export const resolveTopOfferInStock = (
-  topOffer: Record<string, unknown> | null
+  topOffer: Record<string, unknown> | null,
 ): boolean => {
   const amount = resolveTopOfferStockAmount(topOffer)
   return typeof amount === "number" ? amount > 0 : true
@@ -105,7 +105,7 @@ export interface ResolvedStorefrontPrice {
 
 const resolvePositiveOriginalAmount = (
   currentAmount: number,
-  originalAmount: unknown
+  originalAmount: unknown,
 ): number | null => {
   const normalizedOriginalAmount = asStorefrontNumber(originalAmount)
 
@@ -125,7 +125,7 @@ const resolveMatchingTopOfferOriginalAmount = ({
   topOffer: Record<string, unknown> | null
 }) => {
   const topOfferCurrencyCode = normalizeSupportedCurrencyCode(
-    topOffer?.currency
+    topOffer?.currency,
   )
 
   if (topOfferCurrencyCode !== currencyCode) {
@@ -148,7 +148,7 @@ export const resolveStorefrontPrice = ({
   const expectedCurrency = normalizeSupportedCurrencyCode(expectedCurrencyCode)
   const resolvedCalculatedAmount = asStorefrontNumber(calculatedAmount)
   const resolvedCalculatedCurrency = normalizeSupportedCurrencyCode(
-    calculatedCurrencyCode
+    calculatedCurrencyCode,
   )
 
   if (
@@ -162,7 +162,7 @@ export const resolveStorefrontPrice = ({
       originalAmount:
         resolvePositiveOriginalAmount(
           resolvedCalculatedAmount,
-          calculatedOriginalAmount
+          calculatedOriginalAmount,
         ) ??
         resolveMatchingTopOfferOriginalAmount({
           currentAmount: resolvedCalculatedAmount,
@@ -175,7 +175,7 @@ export const resolveStorefrontPrice = ({
 
   const resolvedTopOfferAmount = resolveTopOfferCurrentAmount(topOffer)
   const resolvedTopOfferCurrency = normalizeSupportedCurrencyCode(
-    topOffer?.currency
+    topOffer?.currency,
   )
 
   if (

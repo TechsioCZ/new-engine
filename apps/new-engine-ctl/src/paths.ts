@@ -6,9 +6,9 @@ const sourceDir = import.meta.dirname
 export const repoRoot = resolve(sourceDir, "../../..")
 export const defaultStackManifestPath = resolve(
   repoRoot,
-  "apps/new-engine-ctl/config/stack-manifest.yaml"
+  "apps/new-engine-ctl/config/stack-manifest.yaml",
 )
 export const defaultStackInputsPath = resolve(
   repoRoot,
-  "apps/new-engine-ctl/config/stack-inputs.yaml"
+  "apps/new-engine-ctl/config/stack-inputs.yaml",
 )

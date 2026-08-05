@@ -7,10 +7,10 @@ import { permanentlyDeleteProductAttributeOptionsWorkflow } from "../../../../..
 
 export async function DELETE(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result } = await permanentlyDeleteProductAttributeOptionsWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: { ids: [req.params["id"] ?? ""] },
   })

@@ -10,7 +10,7 @@ function defaultErrorFactory(message: string): Error {
 export function assertSafeIdentifier(
   value: string,
   label: string,
-  errorFactory: ErrorFactory = defaultErrorFactory
+  errorFactory: ErrorFactory = defaultErrorFactory,
 ): void {
   if (!IDENTIFIER_REGEX.test(value)) {
     throw errorFactory(`${label} must match ${IDENTIFIER_REGEX.source}`)
@@ -18,7 +18,7 @@ export function assertSafeIdentifier(
 
   if (value.length > MAX_IDENTIFIER_LENGTH) {
     throw errorFactory(
-      `${label} must be at most ${MAX_IDENTIFIER_LENGTH} characters`
+      `${label} must be at most ${MAX_IDENTIFIER_LENGTH} characters`,
     )
   }
 }
@@ -26,7 +26,7 @@ export function assertSafeIdentifier(
 export function quoteIdentifier(
   identifier: string,
   label = "identifier",
-  errorFactory: ErrorFactory = defaultErrorFactory
+  errorFactory: ErrorFactory = defaultErrorFactory,
 ): string {
   assertSafeIdentifier(identifier, label, errorFactory)
   return `"${identifier}"`
@@ -38,7 +38,7 @@ export function quoteLiteral(value: string): string {
 
 export async function roleExists(
   sql: Bun.SQL,
-  roleName: string
+  roleName: string,
 ): Promise<boolean> {
   const rows = await sql<{ exists: boolean }[]>`
     SELECT EXISTS(
@@ -53,7 +53,7 @@ export async function roleExists(
 
 export async function databaseExists(
   sql: Bun.SQL,
-  databaseName: string
+  databaseName: string,
 ): Promise<boolean> {
   const rows = await sql<{ exists: boolean }[]>`
     SELECT EXISTS(

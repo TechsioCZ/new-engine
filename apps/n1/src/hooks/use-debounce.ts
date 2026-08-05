@@ -8,7 +8,7 @@ export function useDebounce<Args extends unknown[], R>(
   delay: number,
   options?: {
     leading?: boolean
-  }
+  },
 ): DebouncedFunction<Args> {
   const callbackRef = useRef(callback)
 
@@ -23,9 +23,9 @@ export function useDebounce<Args extends unknown[], R>(
           callbackRef.current(...args)
         },
         delay,
-        options
+        options,
       ),
-    [delay, options?.leading, options] // Recreate if delay or leading option changes
+    [delay, options?.leading, options], // Recreate if delay or leading option changes
   )
 
   // Cleanup: cancel pending execution on unmount or dependency change
@@ -33,7 +33,7 @@ export function useDebounce<Args extends unknown[], R>(
     () => () => {
       debouncedFn.cancel()
     },
-    [debouncedFn]
+    [debouncedFn],
   )
 
   return debouncedFn

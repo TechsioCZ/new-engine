@@ -14,11 +14,14 @@ describe("Product Attribute Admin detail pagination", () => {
     const records = Array.from({ length: 101 }, (_, index) => index)
     const listPage = vi.fn(
       async (skip: number, take: number) =>
-        [records.slice(skip, skip + take), records.length] as [number[], number]
+        [records.slice(skip, skip + take), records.length] as [
+          number[],
+          number,
+        ],
     )
 
     await expect(
-      listAllProductAttributeRecords(listPage)
+      listAllProductAttributeRecords(listPage),
     ).resolves.toStrictEqual(records)
     expect(listPage).toHaveBeenNthCalledWith(1, 0, 100)
     expect(listPage).toHaveBeenNthCalledWith(2, 100, 100)
@@ -102,10 +105,10 @@ describe("Product Attribute Admin detail option loading", () => {
         order: { id: "ASC", label: "ASC" },
         take: 1,
         withDeleted: true,
-      }
+      },
     )
     expect(detail[0]?.selected_option).toStrictEqual(
-      expect.objectContaining({ id: "patopt_selected", usage_count: 3 })
+      expect.objectContaining({ id: "patopt_selected", usage_count: 3 }),
     )
     expect(detail[0]?.definition.usage_count).toBe(4)
     expect(detail[1]?.definition.usage_count).toBe(2)
@@ -184,7 +187,7 @@ describe("Product Attribute Admin detail option loading", () => {
           id: "patopt_deleted",
           label: "Deleted option",
         }),
-      })
+      }),
     )
   })
 })
@@ -215,7 +218,7 @@ describe("Product Attribute option Product usage", () => {
     }
     const scope = {
       resolve: vi.fn((key: string) =>
-        key === PRODUCT_ATTRIBUTE_MODULE ? attributeService : productService
+        key === PRODUCT_ATTRIBUTE_MODULE ? attributeService : productService,
       ),
     }
 
@@ -226,7 +229,7 @@ describe("Product Attribute option Product usage", () => {
         optionId: "patopt_1",
         q: "50%",
         scope: scope as never,
-      })
+      }),
     ).resolves.toStrictEqual({
       count: 1,
       products: [
@@ -254,7 +257,7 @@ describe("Product Attribute option Product usage", () => {
         select: ["id", "title", "handle", "status", "updated_at"],
         skip: 0,
         take: 20,
-      }
+      },
     )
   })
 })

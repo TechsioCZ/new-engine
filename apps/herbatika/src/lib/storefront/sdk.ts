@@ -31,7 +31,7 @@ const resolveAuthMode = (): StorefrontAuthMode => {
 
   if (process.env.NODE_ENV !== "test") {
     console.warn(
-      `Unsupported NEXT_PUBLIC_STOREFRONT_AUTH_MODE="${rawMode}". Falling back to "${DEFAULT_AUTH_MODE}".`
+      `Unsupported NEXT_PUBLIC_STOREFRONT_AUTH_MODE="${rawMode}". Falling back to "${DEFAULT_AUTH_MODE}".`,
     )
   }
 
@@ -43,7 +43,7 @@ export const isSessionProxyAuthMode = STOREFRONT_AUTH_MODE === "session_proxy"
 
 if (!MEDUSA_PUBLISHABLE_KEY && process.env.NODE_ENV !== "test") {
   console.warn(
-    "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set. Storefront requests may be rejected by Medusa."
+    "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set. Storefront requests may be rejected by Medusa.",
   )
 }
 

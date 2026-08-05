@@ -26,7 +26,7 @@ function resolveMediaQuery(query: string) {
 
 export function useMediaQuery(
   query: string,
-  { defaultMatches = false }: UseMediaQueryOptions = {}
+  { defaultMatches = false }: UseMediaQueryOptions = {},
 ) {
   const mediaQuery = resolveMediaQuery(query)
 
@@ -43,7 +43,7 @@ export function useMediaQuery(
         mediaQueryList.removeEventListener("change", onStoreChange)
       }
     },
-    [mediaQuery]
+    [mediaQuery],
   )
 
   const getSnapshot = useCallback(() => {

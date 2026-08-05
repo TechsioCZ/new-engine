@@ -38,5 +38,5 @@ export const createMissingPaykitRegionsStep = createStep(
     })
 
     return new StepResponse(result)
-  }
+  },
 )

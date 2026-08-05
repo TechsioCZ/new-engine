@@ -63,7 +63,7 @@ export function CategoryTreeFilter({
         selectedCategoryId,
         leafCategoryIds,
         leafParentIds,
-        leafParents
+        leafParents,
       )
       onSelectionChange(leafIds)
     }
@@ -75,7 +75,7 @@ export function CategoryTreeFilter({
 
     // Find which nodes were newly expanded
     const newlyExpanded = finalExpanded.filter(
-      (nodeId: string) => !expandedNodes.includes(nodeId)
+      (nodeId: string) => !expandedNodes.includes(nodeId),
     )
 
     // Process each newly expanded node
@@ -127,7 +127,7 @@ export function CategoryTreeFilter({
                   `[Prefetch] - ParentLeaf child "${childParentLeaf.name}": ${childParentLeaf.leafs.length} leafs`
                 )*/
               prefetchCategoryProducts(childParentLeaf.leafs).catch(
-                console.error
+                console.error,
               )
             }
           }

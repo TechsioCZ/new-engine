@@ -26,7 +26,7 @@ import {
 export const ensureQuoteCustomer = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-  next: MedusaNextFunction
+  next: MedusaNextFunction,
 ) => {
   const { id } = req.params
   const customerId = req.auth_context.actor_id
@@ -79,7 +79,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(CreateQuote),
       validateAndTransformQuery(
         GetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
@@ -90,7 +90,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
       ensureQuoteCustomer,
       validateAndTransformQuery(
         GetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
@@ -102,7 +102,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(AcceptQuote),
       validateAndTransformQuery(
         GetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
@@ -114,7 +114,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(RejectQuote),
       validateAndTransformQuery(
         GetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
@@ -125,7 +125,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
       ensureQuoteCustomer,
       validateAndTransformQuery(
         GetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
@@ -137,7 +137,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(StoreCreateQuoteMessage),
       validateAndTransformQuery(
         GetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },

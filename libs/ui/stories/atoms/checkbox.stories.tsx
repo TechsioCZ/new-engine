@@ -176,11 +176,11 @@ export const IndeterminateTest: Story = {
 
     const handleChildChange = (
       id: number,
-      e: React.ChangeEvent<HTMLInputElement>
+      e: React.ChangeEvent<HTMLInputElement>,
     ) => {
       const { checked } = e.target
       setItems((prevItems) =>
-        prevItems.map((item) => (item.id === id ? { ...item, checked } : item))
+        prevItems.map((item) => (item.id === id ? { ...item, checked } : item)),
       )
     }
 

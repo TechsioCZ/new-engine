@@ -57,7 +57,7 @@ interface EmailLogDTO {
 type EmailLogService = EmailLogModuleService & {
   listEmailLogs: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<EmailLogDTO[]>
 }
 
@@ -78,11 +78,11 @@ type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
       order_id: string
       product_id: string
       token: string
-    }[]
+    }[],
   ) => Promise<ReviewTokenDTO[]>
   listReviewTokens: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<ReviewTokenDTO[]>
 }
 
@@ -157,7 +157,7 @@ function getProductTitle(item: ReviewRequestOrderItem) {
 }
 
 function isReviewRequestOrderWithItems(
-  value: unknown
+  value: unknown,
 ): value is ReviewRequestOrderWithItems {
   if (typeof value !== "object" || value === null) {
     return false
@@ -201,7 +201,7 @@ async function hasReviewRequestEmailLog({
     {
       select: ["order_id"],
       take: 1,
-    }
+    },
   )
 
   return logs.length > 0
@@ -230,13 +230,13 @@ async function getOrCreateReviewTokens({
     },
     {
       select: ["id", "email", "order_id", "product_id", "token"],
-    }
+    },
   )
   const tokensByProductId = new Map<string, ReviewTokenDTO>(
-    existingTokens.map((token) => [token.product_id, token])
+    existingTokens.map((token) => [token.product_id, token]),
   )
   const missingProductIds = productIds.filter(
-    (productId) => !tokensByProductId.has(productId)
+    (productId) => !tokensByProductId.has(productId),
   )
 
   if (missingProductIds.length) {
@@ -249,7 +249,7 @@ async function getOrCreateReviewTokens({
         order_id: order.id,
         product_id: productId,
         token: createToken(),
-      }))
+      })),
     )
 
     for (const token of createdTokens) {
@@ -264,14 +264,14 @@ const buildProductReviewRequestNotificationStep = createStep(
   "build-product-review-request-notification",
   async (
     input: SendProductReviewRequestWorkflowInput,
-    { container }
+    { container },
   ): Promise<StepResponse<CreateNotificationDTO[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
     const reviewService =
       container.resolve<ProductReviewModuleServiceWithTokens>(
-        PRODUCT_REVIEW_MODULE
+        PRODUCT_REVIEW_MODULE,
       )
 
     const { data } = await query.graph({
@@ -293,7 +293,7 @@ const buildProductReviewRequestNotificationStep = createStep(
 
     if (!order.email) {
       logger.warn(
-        `Order ${order.id} has no email; product review request skipped.`
+        `Order ${order.id} has no email; product review request skipped.`,
       )
       return new StepResponse([])
     }
@@ -305,7 +305,7 @@ const buildProductReviewRequestNotificationStep = createStep(
       })
     ) {
       logger.info(
-        `Order ${getOrderDisplayId(order)} already has a product review request email log; skipping notification.`
+        `Order ${getOrderDisplayId(order)} already has a product review request email log; skipping notification.`,
       )
       return new StepResponse([])
     }
@@ -313,7 +313,7 @@ const buildProductReviewRequestNotificationStep = createStep(
     const items = getUniqueProductItems(order)
     if (!items.length) {
       logger.warn(
-        `Order ${order.id} has no product items; product review request skipped.`
+        `Order ${order.id} has no product items; product review request skipped.`,
       )
       return new StepResponse([])
     }
@@ -372,7 +372,7 @@ const buildProductReviewRequestNotificationStep = createStep(
         trigger_type: "order.product_review_request",
       },
     ])
-  }
+  },
 )
 
 export const sendProductReviewRequestWorkflow = createWorkflow(
@@ -386,5 +386,5 @@ export const sendProductReviewRequestWorkflow = createWorkflow(
       deletedQueueItem,
       notification,
     })
-  }
+  },
 )

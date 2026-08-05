@@ -32,7 +32,7 @@ describe("Custom promotion rules HTTP E2E", () => {
       {
         brandId: brand.id,
         title: `Brand Match ${suffix()}`,
-      }
+      },
     )
     const otherProduct = await createProduct(
       context.admin,
@@ -40,7 +40,7 @@ describe("Custom promotion rules HTTP E2E", () => {
       {
         brandId: otherBrand.id,
         title: `Brand Non Match ${suffix()}`,
-      }
+      },
     )
     const positiveCartBeforePromotion = await createCart(context, [
       { quantity: 1, variantId: matchingProduct.variants[0].id },
@@ -61,12 +61,12 @@ describe("Custom promotion rules HTTP E2E", () => {
     const positiveCart = await applyPromotion(
       context,
       positiveCartBeforePromotion.id,
-      promotion.code
+      promotion.code,
     )
 
     expectAdjusted(
       getItem(positiveCart, matchingProduct.variants[0].id),
-      promotion
+      promotion,
     )
     expectUnadjusted(getItem(positiveCart, otherProduct.variants[0].id))
     expectCartDiscounted(positiveCart)
@@ -74,7 +74,7 @@ describe("Custom promotion rules HTTP E2E", () => {
     const negativeCart = await applyPromotion(
       context,
       negativeCartBeforePromotion.id,
-      promotion.code
+      promotion.code,
     )
 
     expectUnadjusted(getItem(negativeCart, otherProduct.variants[0].id))
@@ -91,7 +91,7 @@ describe("Custom promotion rules HTTP E2E", () => {
         amount: 1500,
         brandId: brand.id,
         title: `Buy Get Qualifier ${suffix()}`,
-      }
+      },
     )
     const getProduct = await createProduct(
       context.admin,
@@ -99,7 +99,7 @@ describe("Custom promotion rules HTTP E2E", () => {
       {
         amount: 700,
         title: `Buy Get Target ${suffix()}`,
-      }
+      },
     )
     const otherProduct = await createProduct(
       context.admin,
@@ -107,7 +107,7 @@ describe("Custom promotion rules HTTP E2E", () => {
       {
         amount: 700,
         title: `Buy Get Other ${suffix()}`,
-      }
+      },
     )
     const promotion = await createBuyGetPromotion(context.admin, {
       buyRules: [
@@ -134,7 +134,7 @@ describe("Custom promotion rules HTTP E2E", () => {
         { quantity: 1, variantId: getProduct.variants[0].id },
         { quantity: 1, variantId: otherProduct.variants[0].id },
       ],
-      promotion.code
+      promotion.code,
     )
 
     expectUnadjusted(getItem(positiveCart, buyProduct.variants[0].id))
@@ -148,7 +148,7 @@ describe("Custom promotion rules HTTP E2E", () => {
         { quantity: 1, variantId: getProduct.variants[0].id },
         { quantity: 1, variantId: otherProduct.variants[0].id },
       ],
-      promotion.code
+      promotion.code,
     )
 
     expectUnadjusted(getItem(negativeCart, getProduct.variants[0].id))
@@ -205,7 +205,7 @@ describe("Custom promotion rules HTTP E2E", () => {
         {
           amount: matchingAmount,
           title: `Matching Rule Product ${suffix()}`,
-        }
+        },
       )
       const unmatchedProduct = await createProduct(
         context.admin,
@@ -213,7 +213,7 @@ describe("Custom promotion rules HTTP E2E", () => {
         {
           amount: unmatchedAmount,
           title: `Unmatched Rule Product ${suffix()}`,
-        }
+        },
       )
       const promotion = await createPromotion(context.admin, {
         targetRules: [
@@ -237,13 +237,13 @@ describe("Custom promotion rules HTTP E2E", () => {
             variantId: unmatchedProduct.variants[0].id,
           },
         ],
-        promotion.code
+        promotion.code,
       )
 
       expectAdjusted(getItem(cart, matchingProduct.variants[0].id), promotion)
       expectUnadjusted(getItem(cart, unmatchedProduct.variants[0].id))
       expectCartDiscounted(cart)
-    }
+    },
   )
 
   it("applies cart item total rules only when the cart reaches the threshold", async () => {
@@ -254,7 +254,7 @@ describe("Custom promotion rules HTTP E2E", () => {
       {
         amount: 1200,
         title: `High Cart Total Product ${suffix()}`,
-      }
+      },
     )
     const lowTotalProduct = await createProduct(
       context.admin,
@@ -262,7 +262,7 @@ describe("Custom promotion rules HTTP E2E", () => {
       {
         amount: 500,
         title: `Low Cart Total Product ${suffix()}`,
-      }
+      },
     )
     const promotion = await createPromotion(context.admin, {
       rules: [
@@ -277,17 +277,17 @@ describe("Custom promotion rules HTTP E2E", () => {
     const positiveCart = await createCartAndApplyPromotion(
       context,
       [{ quantity: 1, variantId: highTotalProduct.variants[0].id }],
-      promotion.code
+      promotion.code,
     )
     const negativeCart = await createCartAndApplyPromotion(
       context,
       [{ quantity: 1, variantId: lowTotalProduct.variants[0].id }],
-      promotion.code
+      promotion.code,
     )
 
     expectAdjusted(
       getItem(positiveCart, highTotalProduct.variants[0].id),
-      promotion
+      promotion,
     )
     expectUnadjusted(getItem(negativeCart, lowTotalProduct.variants[0].id))
     expectCartDiscounted(positiveCart)
@@ -306,7 +306,7 @@ describe("Custom promotion rules HTTP E2E", () => {
       context.salesChannelId,
       {
         title: `Draft Brand Non Match ${suffix()}`,
-      }
+      },
     )
     const variant = product.variants[0]
     const otherVariant = otherProduct.variants[0]

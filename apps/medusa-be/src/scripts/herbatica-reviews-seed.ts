@@ -49,12 +49,12 @@ interface ReviewRecord {
 }
 
 const isReviewImportRecord = (
-  value: unknown
+  value: unknown,
 ): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isProductVariantRecord = (
-  value: unknown
+  value: unknown,
 ): value is ProductVariantRecord =>
   isReviewImportRecord(value) && typeof value["id"] === "string"
 
@@ -101,7 +101,7 @@ const parseReviewProducts = (source: string): ParsedReviewProduct[] => {
 
   return extractElements(productsSource, "product").map((product) => {
     const url = normalizeInlineText(
-      extractFirstText(product.inner, "product_url")
+      extractFirstText(product.inner, "product_url"),
     )
 
     const variantId = getUrlVariantId(url)
@@ -133,11 +133,11 @@ const parseHerbaticaReviewsXml = (xml: string): ParsedReview[] => {
     const reviewerName = normalizeInlineText(
       extractFirstText(
         extractFirstElementContent(review.inner, "reviewer") ?? "",
-        "name"
-      )
+        "name",
+      ),
     )
     const timestamp = normalizeInlineText(
-      extractFirstText(review.inner, "review_timestamp")
+      extractFirstText(review.inner, "review_timestamp"),
     )
 
     reviews.push({
@@ -155,7 +155,7 @@ const parseHerbaticaReviewsXml = (xml: string): ParsedReview[] => {
 
 const getMetadataString = (
   metadata: ProductVariantRecord["metadata"],
-  key: string
+  key: string,
 ) => {
   const value = metadata?.[key]
   return typeof value === "string" ? normalizeInlineText(value) : undefined
@@ -164,7 +164,7 @@ const getMetadataString = (
 const addMapValue = (
   map: Map<string, Set<string>>,
   key: null | string | undefined,
-  productId: null | string | undefined
+  productId: null | string | undefined,
 ) => {
   const normalizedKey = normalizeInlineText(key ?? undefined)
   if (!(normalizedKey && productId)) {
@@ -196,19 +196,19 @@ const buildVariantProductIndexes = async (container: ExecArgs["container"]) => {
     addMapValue(
       bySku,
       getMetadataString(variant.metadata, "source_sku"),
-      productId
+      productId,
     )
     addMapValue(byGtin, variant.ean, productId)
     addMapValue(byGtin, getMetadataString(variant.metadata, "ean"), productId)
     addMapValue(
       byVariantId,
       getMetadataString(variant.metadata, "variant_id"),
-      productId
+      productId,
     )
     addMapValue(
       byVariantId,
       getMetadataString(variant.metadata, "source_variant_id"),
-      productId
+      productId,
     )
   }
 
@@ -218,7 +218,7 @@ const buildVariantProductIndexes = async (container: ExecArgs["container"]) => {
 const addMatchedProducts = (
   matches: Set<string>,
   index: Map<string, Set<string>>,
-  values: (string | undefined)[]
+  values: (string | undefined)[],
 ) => {
   for (const value of values) {
     const normalized = normalizeInlineText(value)
@@ -234,7 +234,7 @@ const addMatchedProducts = (
 
 const resolveReviewProductIds = (
   review: ParsedReview,
-  indexes: Awaited<ReturnType<typeof buildVariantProductIndexes>>
+  indexes: Awaited<ReturnType<typeof buildVariantProductIndexes>>,
 ) => {
   const productIds = new Set<string>()
 
@@ -259,7 +259,7 @@ const resolveReviewsXmlPath = (args?: string[]) => {
   }
 
   throw new Error(
-    `Could not find Herbatica reviews XML. Pass it as an argument or set ${HERBATICA_REVIEWS_XML_ENV}.`
+    `Could not find Herbatica reviews XML. Pass it as an argument or set ${HERBATICA_REVIEWS_XML_ENV}.`,
   )
 }
 
@@ -297,7 +297,7 @@ export const importHerbaticaReviews = async ({
   const reviews = parseHerbaticaReviewsXml(await readXmlSource(xmlPath))
   const indexes = await buildVariantProductIndexes(container)
   const reviewService = container.resolve<ProductReviewModuleService>(
-    PRODUCT_REVIEW_MODULE
+    PRODUCT_REVIEW_MODULE,
   )
   const existingReviews = (
     await reviewService.listReviews(
@@ -308,13 +308,13 @@ export const importHerbaticaReviews = async ({
       },
       {
         select: ["id", "customer_id", "product_id"],
-      }
+      },
     )
   ).filter(isReviewRecord)
   const existingKeys = new Set(
     existingReviews.map(
-      (review) => `${review.customer_id}:${review.product_id}`
-    )
+      (review) => `${review.customer_id}:${review.product_id}`,
+    ),
   )
   const pendingReviews: Record<string, unknown>[] = []
   let matchedReviews = 0
@@ -356,13 +356,13 @@ export const importHerbaticaReviews = async ({
 
   for (const reviewBatch of chunkReviewBatches(
     pendingReviews,
-    REVIEW_BATCH_SIZE
+    REVIEW_BATCH_SIZE,
   )) {
     await reviewService.createReviews(reviewBatch)
   }
 
   logger.info(
-    `Herbatica reviews import completed: parsed=${reviews.length}, matched=${matchedReviews}, unmatched=${unmatchedReviews}, created=${pendingReviews.length}, skipped_existing=${skippedExisting}`
+    `Herbatica reviews import completed: parsed=${reviews.length}, matched=${matchedReviews}, unmatched=${unmatchedReviews}, created=${pendingReviews.length}, skipped_existing=${skippedExisting}`,
   )
 }
 

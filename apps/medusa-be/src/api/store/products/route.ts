@@ -21,7 +21,7 @@ interface ProductRecord {
 
 type GraphWithOptions = (
   config: Parameters<Query["graph"]>[0],
-  options?: Record<string, unknown>
+  options?: Record<string, unknown>,
 ) => ReturnType<Query["graph"]>
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
@@ -31,7 +31,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const fields = req.queryConfig.fields ?? []
   const measurementDecorationOptions = getMeasurementDecorationOptions(fields)
   const withInventoryQuantity = fields.some((field) =>
-    field.includes("variants.inventory_quantity")
+    field.includes("variants.inventory_quantity"),
   )
 
   const productFieldsBeforeDecoration = withInventoryQuantity
@@ -39,7 +39,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     : fields
   const productFields = getMeasurementDecorationQueryFields(
     productFieldsBeforeDecoration,
-    measurementDecorationOptions
+    measurementDecorationOptions,
   )
 
   if (isPresent(req.pricingContext)) {
@@ -56,7 +56,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       filters: await normalizeProductSalesChannelFilter(
         query,
         remoteQuery,
-        req.filterableFields
+        req.filterableFields,
       ),
       pagination: req.queryConfig.pagination,
     },
@@ -65,7 +65,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
         enable: true,
       },
       locale: req.locale,
-    }
+    },
   )
 
   if (withInventoryQuantity) {
@@ -74,21 +74,21 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
         typeof wrapVariantsWithInventoryQuantityForSalesChannel
       >[0],
       (products as ProductRecord[]).flatMap(
-        (product) => product.variants ?? []
+        (product) => product.variants ?? [],
       ) as Parameters<
         typeof wrapVariantsWithInventoryQuantityForSalesChannel
-      >[1]
+      >[1],
     )
   }
 
   await wrapProductsWithTaxPrices(
     req as Parameters<typeof wrapProductsWithTaxPrices>[0],
-    products
+    products,
   )
   await decorateProductsWithMeasurements(
     req.scope,
     products as Parameters<typeof decorateProductsWithMeasurements>[1],
-    measurementDecorationOptions
+    measurementDecorationOptions,
   )
 
   res.json({

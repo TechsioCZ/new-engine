@@ -8,7 +8,7 @@ import { resolveDefaultStockInventoryQuantity } from "@/lib/storefront/default-s
 export const FALLBACK_MAX_QUANTITY = 99
 
 export const resolveLineItemProductHandle = (
-  item: HttpTypes.StoreCartLineItem
+  item: HttpTypes.StoreCartLineItem,
 ) => {
   const itemRecord = isRecord(item) ? item : null
   return typeof itemRecord?.product_handle === "string"

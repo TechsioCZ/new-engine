@@ -10,7 +10,7 @@ export const symmyUpdateWebhookConfigStep = createStep(
   "symmy-update-webhook-config",
   async (input: UpdateSymmyWebhookConfigInput, { container }) => {
     const service = container.resolve<SymmyWebhookConfigModuleService>(
-      SYMMY_WEBHOOK_CONFIG_MODULE
+      SYMMY_WEBHOOK_CONFIG_MODULE,
     )
     const previous = await service.getConfig()
     const updated = await service.updateConfig(input)
@@ -22,15 +22,15 @@ export const symmyUpdateWebhookConfigStep = createStep(
   },
   async (
     previous: UpdateSymmyWebhookConfigInput | undefined,
-    { container }
+    { container },
   ) => {
     if (!previous) {
       return
     }
 
     const service = container.resolve<SymmyWebhookConfigModuleService>(
-      SYMMY_WEBHOOK_CONFIG_MODULE
+      SYMMY_WEBHOOK_CONFIG_MODULE,
     )
     await service.updateConfig(previous)
-  }
+  },
 )

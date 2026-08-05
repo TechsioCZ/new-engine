@@ -41,7 +41,7 @@ export function MobileMenu({
     setExpandedItems((prev) =>
       prev.includes(title)
         ? prev.filter((item) => item !== title)
-        : [...prev, title]
+        : [...prev, title],
     )
   }
 

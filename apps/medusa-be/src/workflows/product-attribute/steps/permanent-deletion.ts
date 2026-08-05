@@ -35,7 +35,7 @@ const assertRecordsExistAndAreDeleted = ({
   if (missing.length) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product Attribute ${kind} ids were not found: ${missing.join(", ")}`
+      `Product Attribute ${kind} ids were not found: ${missing.join(", ")}`,
     )
   }
 
@@ -43,13 +43,13 @@ const assertRecordsExistAndAreDeleted = ({
   if (active.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Product Attribute ${kind} ids must be soft-deleted before permanent removal: ${active.join(", ")}`
+      `Product Attribute ${kind} ids must be soft-deleted before permanent removal: ${active.join(", ")}`,
     )
   }
 }
 
 const listAllRecordIds = async (
-  listPage: (skip: number, take: number) => Promise<{ id: string }[]>
+  listPage: (skip: number, take: number) => Promise<{ id: string }[]>,
 ) => {
   const ids: string[] = []
   while (true) {
@@ -63,7 +63,7 @@ const listAllRecordIds = async (
 
 export const permanentlyDeleteProductAttributeDefinitions = async (
   input: ProductAttributeDefinitionIdsInput,
-  container: Parameters<typeof getProductAttributeService>[0]
+  container: Parameters<typeof getProductAttributeService>[0],
 ) => {
   const service = getProductAttributeService(container)
 
@@ -71,7 +71,7 @@ export const permanentlyDeleteProductAttributeDefinitions = async (
     const definitions = await service.listProductAttributeDefinitions(
       { id: { $in: input.ids } },
       { take: Math.max(input.ids.length, 1), withDeleted: true },
-      context
+      context,
     )
     assertRecordsExistAndAreDeleted({
       ids: input.ids,
@@ -89,8 +89,8 @@ export const permanentlyDeleteProductAttributeDefinitions = async (
           take,
           withDeleted: true,
         },
-        context
-      )
+        context,
+      ),
     )
     const optionIds = await listAllRecordIds(async (skip, take) =>
       service.listProductAttributeOptions(
@@ -102,8 +102,8 @@ export const permanentlyDeleteProductAttributeDefinitions = async (
           take,
           withDeleted: true,
         },
-        context
-      )
+        context,
+      ),
     )
 
     if (assignmentIds.length) {
@@ -124,7 +124,7 @@ export const permanentlyDeleteProductAttributeDefinitions = async (
 
 export const permanentlyDeleteProductAttributeOptions = async (
   input: ProductAttributeOptionIdsInput,
-  container: Parameters<typeof getProductAttributeService>[0]
+  container: Parameters<typeof getProductAttributeService>[0],
 ) => {
   const service = getProductAttributeService(container)
 
@@ -132,7 +132,7 @@ export const permanentlyDeleteProductAttributeOptions = async (
     const options = await service.listProductAttributeOptions(
       { id: { $in: input.ids } },
       { take: Math.max(input.ids.length, 1), withDeleted: true },
-      context
+      context,
     )
     assertRecordsExistAndAreDeleted({
       ids: input.ids,
@@ -150,8 +150,8 @@ export const permanentlyDeleteProductAttributeOptions = async (
           take,
           withDeleted: true,
         },
-        context
-      )
+        context,
+      ),
     )
 
     if (assignmentIds.length) {
@@ -170,14 +170,14 @@ export const permanentlyDeleteProductAttributeDefinitionsStep = createStep(
   "permanently-delete-product-attribute-definitions",
   async (input: ProductAttributeDefinitionIdsInput, { container }) =>
     new StepResponse(
-      await permanentlyDeleteProductAttributeDefinitions(input, container)
-    )
+      await permanentlyDeleteProductAttributeDefinitions(input, container),
+    ),
 )
 
 export const permanentlyDeleteProductAttributeOptionsStep = createStep(
   "permanently-delete-product-attribute-options",
   async (input: ProductAttributeOptionIdsInput, { container }) =>
     new StepResponse(
-      await permanentlyDeleteProductAttributeOptions(input, container)
-    )
+      await permanentlyDeleteProductAttributeOptions(input, container),
+    ),
 )

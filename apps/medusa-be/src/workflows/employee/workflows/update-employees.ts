@@ -18,7 +18,7 @@ import {
 export const updateEmployeesWorkflow = createWorkflow(
   "update-employees",
   (
-    input: WorkflowData<ModuleUpdateEmployee>
+    input: WorkflowData<ModuleUpdateEmployee>,
   ): WorkflowResponse<QueryGraphEmployee> => {
     validateCompanyActiveStep(input.company_id)
 
@@ -28,7 +28,7 @@ export const updateEmployeesWorkflow = createWorkflow(
     })
     const updateInput = transform(
       { input, previousEmployee },
-      (updateData) => updateData.input
+      (updateData) => updateData.input,
     )
     const updatedEmployee = updateEmployeesStep(updateInput)
 
@@ -46,12 +46,12 @@ export const updateEmployeesWorkflow = createWorkflow(
           !roleData.previousEmployee.is_admin &&
           roleData.updatedEmployee.is_admin &&
           !!roleData.updatedEmployee.customer?.id,
-      })
+      }),
     )
 
     when(
       adminRoleChange,
-      ({ shouldRemoveAdminRole }) => shouldRemoveAdminRole
+      ({ shouldRemoveAdminRole }) => shouldRemoveAdminRole,
     ).then(() => {
       removeAdminRoleStep({
         customer_id: adminRoleChange.customerId,
@@ -66,9 +66,9 @@ export const updateEmployeesWorkflow = createWorkflow(
           customerId: adminRoleChange.customerId,
           employeeId: updatedEmployee.id,
         })
-      }
+      },
     )
 
     return new WorkflowResponse(updatedEmployee)
-  }
+  },
 )

@@ -53,7 +53,7 @@ const trackClient = (client: QueryClient) => {
 }
 
 const createTestClient = (
-  config?: ConstructorParameters<typeof QueryClient>[0]
+  config?: ConstructorParameters<typeof QueryClient>[0],
 ) => trackClient(new QueryClient(config))
 
 afterEach(() => {

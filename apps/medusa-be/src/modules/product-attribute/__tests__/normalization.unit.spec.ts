@@ -15,13 +15,13 @@ const ACTIVE_COLLISION_ERROR = /Use a different key/
 describe("Product Attribute keys", () => {
   it("normalizes Admin and import keys through one canonical path", () => {
     expect(normalizeProductAttributeKey("  Záruka výrobcu  ")).toBe(
-      "záruka-výrobcu"
+      "záruka-výrobcu",
     )
   })
 
   it("rejects values without a usable normalized key", () => {
     expect(() => normalizeRequiredProductAttributeKey(" --- ")).toThrow(
-      INVALID_KEY_ERROR
+      INVALID_KEY_ERROR,
     )
   })
 
@@ -59,7 +59,7 @@ describe("Product Attribute soft-delete partitions", () => {
       partitionProductAttributeRecordIds([
         { deleted_at: null, id: "active" },
         { deleted_at: new Date("2026-01-01"), id: "deleted" },
-      ])
+      ]),
     ).toStrictEqual({
       active_ids: ["active"],
       deleted_ids: ["deleted"],

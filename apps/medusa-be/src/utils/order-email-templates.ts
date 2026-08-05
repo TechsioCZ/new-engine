@@ -21,7 +21,7 @@ export const orderEmailTemplates = [
   {
     label: "Payment reminder",
     subject: getResendTemplateSubject(
-      resendEmailTemplates.ORDER_PAYMENT_REMINDER
+      resendEmailTemplates.ORDER_PAYMENT_REMINDER,
     ),
     template: resendEmailTemplates.ORDER_PAYMENT_REMINDER,
     trigger_type: "order.payment_reminder",
@@ -29,7 +29,7 @@ export const orderEmailTemplates = [
 ] satisfies OrderEmailTemplate[]
 
 export function isOrderEmailTemplate(
-  template: string | undefined
+  template: string | undefined,
 ): template is OrderEmailTemplateName {
   return orderEmailTemplates.some((item) => item.template === template)
 }

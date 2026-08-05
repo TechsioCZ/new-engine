@@ -27,7 +27,7 @@ export const buildBrandSearchProjectionLockKeys = ({
 
 export const resolveBrandSearchProjectionTargets = async (
   input: BrandSearchProjectionChangedEventData,
-  container: MedusaContainer
+  container: MedusaContainer,
 ): Promise<BrandSearchProjectionTargets> => {
   const normalized = buildBrandSearchProjectionEventData({
     brandIds: input.brand_ids,
@@ -75,6 +75,6 @@ export const resolveBrandSearchProjectionTargetsStep = createStep(
   "resolve-brand-search-projection-targets",
   async (input: BrandSearchProjectionChangedEventData, { container }) =>
     new StepResponse(
-      await resolveBrandSearchProjectionTargets(input, container)
-    )
+      await resolveBrandSearchProjectionTargets(input, container),
+    ),
 )

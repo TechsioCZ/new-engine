@@ -12,7 +12,7 @@ interface AppToastMessage {
 const showToast = (
   toaster: ReturnType<typeof useToast>,
   type: AppToastType,
-  message: AppToastMessage
+  message: AppToastMessage,
 ) =>
   toaster.create({
     description: message.description,

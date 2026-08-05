@@ -92,14 +92,14 @@ export const listStorefrontTexts = async (params: StorefrontTextListParams) =>
 
 export const updateStorefrontText = async (
   id: string,
-  input: StorefrontTextInput
+  input: StorefrontTextInput,
 ) =>
   sdk.client.fetch<StorefrontTextResponse>(
     `/admin/storefront-texts/${id}/update`,
     {
       body: input,
       method: "POST",
-    }
+    },
   )
 
 export const syncStorefrontTexts = async () =>
@@ -108,20 +108,20 @@ export const syncStorefrontTexts = async () =>
   })
 
 export const getStorefrontTextCatalog = async (
-  market: RegistryStorefrontTextMarket
+  market: RegistryStorefrontTextMarket,
 ) =>
   sdk.client.fetch<StorefrontTextCatalogResponse>(
     "/admin/storefront-texts/catalog",
-    { query: { market } }
+    { query: { market } },
   )
 
 export const importStorefrontTextCatalog = async (
-  input: StorefrontTextCatalogImportInput
+  input: StorefrontTextCatalogImportInput,
 ) =>
   sdk.client.fetch<StorefrontTextCatalogImportResponse>(
     "/admin/storefront-texts/catalog",
     {
       body: input,
       method: "POST",
-    }
+    },
   )

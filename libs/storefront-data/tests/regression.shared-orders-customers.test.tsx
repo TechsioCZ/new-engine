@@ -161,22 +161,22 @@ describe("phase 3 regressions", () => {
         enabled: true,
         limit: 5,
         page: 2,
-      })
+      }),
     )
     await queryClient.prefetchQuery(
       getDetailQueryOptions({
         enabled: true,
         id: "order_1",
-      })
+      }),
     )
 
     expect(service.getOrders).toHaveBeenCalledWith(
       { limit: 5, page: 2 },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
     expect(service.getOrder).toHaveBeenCalledWith(
       { id: "order_1" },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
   })
 
@@ -268,24 +268,24 @@ describe("phase 3 regressions", () => {
         },
         {
           useGlobalFetcher: true,
-        }
-      )
+        },
+      ),
     )
     await queryClient.prefetchQuery(
       getDetailQueryOptions({
         enabled: true,
         handle: "hoodie",
         region_id: "reg_1",
-      })
+      }),
     )
 
     expect(service.getProductsGlobal).toHaveBeenCalledWith(
       { limit: 4, offset: 8, page: 3, region_id: "reg_1" },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
     expect(service.getProductByHandle).toHaveBeenCalledWith(
       { handle: "hoodie", region_id: "reg_1" },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
   })
 
@@ -412,7 +412,7 @@ describe("phase 3 regressions", () => {
 
     await act(async () => {
       await expect(result.current.mutateAsync({} as never)).rejects.toThrow(
-        "Address id is required"
+        "Address id is required",
       )
     })
 

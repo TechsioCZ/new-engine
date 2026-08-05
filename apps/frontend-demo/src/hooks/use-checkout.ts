@@ -24,7 +24,7 @@ export function useCheckout(): UseCheckoutReturn {
   const [selectedPayment, setSelectedPayment] = useState("")
   const [selectedShipping, setSelectedShipping] = useState("")
   const [addressData, setAddressData] = useState<CheckoutAddressData | null>(
-    null
+    null,
   )
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
 

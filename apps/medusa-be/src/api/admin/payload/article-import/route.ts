@@ -49,8 +49,8 @@ const createLimitedUploadStream = (req: MedusaRequest, maxBytes: number) => {
           controller.error(
             new MedusaError(
               MedusaError.Types.INVALID_DATA,
-              `Upload exceeds ${maxBytes} bytes limit`
-            )
+              `Upload exceeds ${maxBytes} bytes limit`,
+            ),
           )
           return
         }
@@ -106,7 +106,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   if (!payloadApiKey) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "PAYLOAD_API_KEY is not configured"
+      "PAYLOAD_API_KEY is not configured",
     )
   }
 
@@ -119,7 +119,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Expected multipart/form-data upload"
+      "Expected multipart/form-data upload",
     )
   }
 
@@ -128,7 +128,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   if (Number.isFinite(contentLength) && contentLength > maxUploadBytes) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Upload exceeds ${maxUploadBytes} bytes limit`
+      `Upload exceeds ${maxUploadBytes} bytes limit`,
     )
   }
 
@@ -149,14 +149,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         },
         method: "POST",
         signal: controller.signal,
-      }
+      },
     )
 
     const responseBody = await response.text()
     res.status(response.status)
     res.setHeader(
       "Content-Type",
-      response.headers.get("content-type") ?? "application/json"
+      response.headers.get("content-type") ?? "application/json",
     )
     return res.send(responseBody)
   } catch (error) {

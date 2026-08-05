@@ -442,7 +442,7 @@ function RegistrationFormExample() {
 
   const getHelpText = (
     field: keyof typeof validations,
-    defaultText: string
+    defaultText: string,
   ) => {
     if (!touched[field] || !form[field]) {
       return defaultText
@@ -489,7 +489,7 @@ function RegistrationFormExample() {
           validateStatus={getStatus("email")}
           helpText={getHelpText(
             "email",
-            "We'll send confirmation to this email"
+            "We'll send confirmation to this email",
           )}
         />
 

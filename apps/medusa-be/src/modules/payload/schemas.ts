@@ -32,7 +32,7 @@ const CmsPageCategorySchema = passthroughObject({
     passthroughObject({
       title: z.string(),
       slug: z.string().nullable().optional(),
-    })
+    }),
   ),
   slug: z.string(),
   title: z.string(),
@@ -58,7 +58,7 @@ const CmsArticleCategorySchema = passthroughObject({
       slug: z.string().nullable().optional(),
       excerpt: z.string().nullable().optional(),
       featuredImage: z.string().nullable().optional(),
-    })
+    }),
   ),
   id: z.number(),
   slug: z.string(),
@@ -89,26 +89,26 @@ const createPayloadBulkResultSchema = <T extends z.ZodTypeAny>(docSchema: T) =>
       prevPage: z.number().nullable(),
       totalDocs: z.number(),
       totalPages: z.number(),
-    })
+    }),
   )
 
 const PageCategoriesWithPagesSchema = nonStrictSchema(
   passthroughObject({
     categories: z.array(CmsPageCategorySchema),
-  })
+  }),
 )
 
 const ArticleCategoriesWithArticlesSchema = nonStrictSchema(
   passthroughObject({
     categories: z.array(CmsArticleCategorySchema),
-  })
+  }),
 )
 
 const CmsPagesBulkResultSchema = createPayloadBulkResultSchema(CmsPageSchema)
 const CmsArticlesBulkResultSchema =
   createPayloadBulkResultSchema(CmsArticleSchema)
 const CmsHeroCarouselsBulkResultSchema = createPayloadBulkResultSchema(
-  CmsHeroCarouselSchema
+  CmsHeroCarouselSchema,
 )
 
 const CmsListOptionsSchema = z.object({

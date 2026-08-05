@@ -77,7 +77,7 @@ const getFirstContentCellIndex = <TData,>(cells: Cell<TData, unknown>[]) =>
 const getIsFirstContentCell = <TData,>(
   cell: Cell<TData, unknown>,
   cells: Cell<TData, unknown>[],
-  index: number
+  index: number,
 ) => {
   const firstCell = getFirstContentCellIndex(cells)
 
@@ -255,7 +255,7 @@ export const DataTableRoot = <TData,>({
                       const isSpecialHeader = isActionHeader || isSelectHeader
 
                       const firstHeader = headerGroup.headers.findIndex(
-                        (h) => h.id !== "select"
+                        (h) => h.id !== "select",
                       )
                       const isFirstHeader =
                         firstHeader === -1
@@ -284,7 +284,7 @@ export const DataTableRoot = <TData,>({
                         >
                           {flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                         </Table.HeaderCell>
                       )
@@ -314,7 +314,7 @@ export const DataTableRoot = <TData,>({
                           row.getIsSelected(),
                         "bg-ui-bg-subtle hover:bg-ui-bg-subtle-hover": isOdd,
                         "cursor-pointer": !!to,
-                      }
+                      },
                     )}
                     data-selected={row.getIsSelected()}
                     key={row.id}

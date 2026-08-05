@@ -144,7 +144,9 @@ export class GLSClient {
 
   constructor(options: GLSOptions) {
     this.options = options
-    this.passwordBytes = [...createHash('sha512').update(options.password, 'utf8').digest()]
+    this.passwordBytes = [
+      ...createHash("sha512").update(options.password, "utf8").digest(),
+    ]
   }
 
   async createPacket(
@@ -398,7 +400,7 @@ export class GLSClient {
     options: RequestOptions = {},
   ): Promise<T> {
     return await this.withRetry(
-       async () =>
+      async () =>
         this.fetchWithTimeout(this.getServiceUrl(serviceName, methodName), {
           body: JSON.stringify(body),
           headers: {
@@ -602,7 +604,7 @@ export class GLSClient {
     return status === 429 || status >= 500
   }
 
-  private  async sleep(ms: number): Promise<void> {
+  private async sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
@@ -614,8 +616,12 @@ export class GLSClient {
     const timeoutController = new AbortController()
     const controller = new AbortController()
     const requestSignal = init.signal
-    const abortFromRequestSignal = () =>{  controller.abort(); }
-    const abortFromTimeout = () =>{  controller.abort(); }
+    const abortFromRequestSignal = () => {
+      controller.abort()
+    }
+    const abortFromTimeout = () => {
+      controller.abort()
+    }
 
     if (requestSignal?.aborted) {
       controller.abort()
@@ -629,7 +635,9 @@ export class GLSClient {
       once: true,
     })
 
-    const timeoutId = setTimeout(() =>{  timeoutController.abort(); }, timeoutMs)
+    const timeoutId = setTimeout(() => {
+      timeoutController.abort()
+    }, timeoutMs)
 
     try {
       return await fetch(url, { ...init, signal: controller.signal })

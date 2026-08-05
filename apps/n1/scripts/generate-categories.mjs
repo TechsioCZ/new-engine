@@ -53,7 +53,7 @@ function formatGeneratedFile(filePath) {
   }
 
   console.warn(
-    `⚠️ Could not auto-format generated file: ${filePath}. Run oxfmt manually.`
+    `⚠️ Could not auto-format generated file: ${filePath}. Run oxfmt manually.`,
   )
 }
 
@@ -83,7 +83,7 @@ async function fetchCategoriesDirectly() {
     `${baseUrl}/store/product-categories?limit=1000&fields=id,name,handle,parent_category_id,description`,
     {
       headers,
-    }
+    },
   )
 
   if (!response.ok) {
@@ -122,7 +122,7 @@ async function fetchProductsAndCategorizesByCategory() {
       `${baseUrl}/store/products?limit=${limit}&offset=${offset}&fields=id,categories.id,categories.name,categories.handle`,
       {
         headers,
-      }
+      },
     )
 
     if (!response.ok) {
@@ -146,7 +146,7 @@ async function fetchProductsAndCategorizesByCategory() {
     offset += limit
 
     console.log(
-      `Processed ${offset} products, found ${categoriesWithProducts.size} categories with products`
+      `Processed ${offset} products, found ${categoriesWithProducts.size} categories with products`,
     )
   }
 
@@ -229,7 +229,7 @@ function categoryHasProducts(
   categoryId,
   categoriesWithProducts,
   categoryTree,
-  _categoryMap
+  _categoryMap,
 ) {
   if (categoriesWithProducts.has(categoryId)) {
     return true
@@ -273,7 +273,7 @@ function filterCategoriesWithProducts(
   categories,
   categoriesWithProducts,
   categoryTree,
-  categoryMap
+  categoryMap,
 ) {
   const categoriesToKeep = new Set()
 
@@ -283,7 +283,7 @@ function filterCategoriesWithProducts(
         category.id,
         categoriesWithProducts,
         categoryTree,
-        categoryMap
+        categoryMap,
       )
     ) {
       categoriesToKeep.add(category.id)
@@ -408,7 +408,7 @@ function extractLeafsAndParents(categoryTree, allCategoriesMap) {
 
   function checkForLeafParents(node) {
     const hasDirectLeafChild = node.children.some((child) =>
-      allLeafIds.has(child.id)
+      allLeafIds.has(child.id),
     )
 
     if (hasDirectLeafChild && !allLeafIds.has(node.id)) {
@@ -458,7 +458,7 @@ function testRootCategoryIds(allCategories, categoryMap, rootCategories) {
       passedTests += 1
     } else {
       console.error(
-        `    ❌ FAIL: Root category "${root.name}" (${root.id}) has root_category_id=${root.root_category_id}, expected null`
+        `    ❌ FAIL: Root category "${root.name}" (${root.id}) has root_category_id=${root.root_category_id}, expected null`,
       )
       failedTests += 1
     }
@@ -468,14 +468,14 @@ function testRootCategoryIds(allCategories, categoryMap, rootCategories) {
   // Test 2: Non-root categories should have root_category_id set
   console.log("\n  Test 2: Non-root categories have root_category_id set")
   const nonRootCategories = allCategories.filter(
-    (cat) => cat.parent_category_id !== null
+    (cat) => cat.parent_category_id !== null,
   )
   let nonRootWithoutRootId = 0
 
   for (const cat of nonRootCategories) {
     if (cat.root_category_id === null || cat.root_category_id === undefined) {
       console.error(
-        `    ❌ FAIL: Non-root category "${cat.name}" (${cat.id}) has root_category_id=${cat.root_category_id}`
+        `    ❌ FAIL: Non-root category "${cat.name}" (${cat.id}) has root_category_id=${cat.root_category_id}`,
       )
       failedTests += 1
       nonRootWithoutRootId += 1
@@ -486,11 +486,11 @@ function testRootCategoryIds(allCategories, categoryMap, rootCategories) {
 
   if (nonRootWithoutRootId === 0) {
     console.log(
-      `    ✅ All ${nonRootCategories.length} non-root categories have root_category_id set`
+      `    ✅ All ${nonRootCategories.length} non-root categories have root_category_id set`,
     )
   } else {
     console.error(
-      `    ❌ ${nonRootWithoutRootId} non-root categories missing root_category_id`
+      `    ❌ ${nonRootWithoutRootId} non-root categories missing root_category_id`,
     )
   }
 
@@ -501,7 +501,7 @@ function testRootCategoryIds(allCategories, categoryMap, rootCategories) {
   for (const cat of nonRootCategories) {
     if (cat.root_category_id && !rootIds.has(cat.root_category_id)) {
       console.error(
-        `    ❌ FAIL: Category "${cat.name}" has invalid root_category_id=${cat.root_category_id}`
+        `    ❌ FAIL: Category "${cat.name}" has invalid root_category_id=${cat.root_category_id}`,
       )
       failedTests += 1
     } else if (cat.root_category_id) {
@@ -509,7 +509,7 @@ function testRootCategoryIds(allCategories, categoryMap, rootCategories) {
     }
   }
   console.log(
-    "    ✅ All root_category_id values point to valid root categories"
+    "    ✅ All root_category_id values point to valid root categories",
   )
 
   // Test 4: Sample deep categories
@@ -534,7 +534,7 @@ function testRootCategoryIds(allCategories, categoryMap, rootCategories) {
       passedTests += 1
     } else {
       console.error(
-        `    ❌ FAIL: Deep category "${cat.name}" has incorrect root_category_id`
+        `    ❌ FAIL: Deep category "${cat.name}" has incorrect root_category_id`,
       )
       failedTests += 1
     }
@@ -595,12 +595,12 @@ async function generateCategories() {
       allCategoriesRaw,
       categoriesWithProducts,
       initialCategoryTree,
-      categoryMapRaw
+      categoryMapRaw,
     )
 
     console.log(`Total categories after filtering: ${allCategories.length}`)
     console.log(
-      `Filtered out ${allCategoriesRaw.length - allCategories.length} categories without products`
+      `Filtered out ${allCategoriesRaw.length - allCategories.length} categories without products`,
     )
 
     // Create category map from filtered categories
@@ -641,7 +641,7 @@ async function generateCategories() {
     // Extract leafs and their parents with all nested leafs
     const { leafCategories, leafParents } = extractLeafsAndParents(
       categoryTree,
-      categoryMap
+      categoryMap,
     )
 
     // ⭐ RUN TESTS
@@ -666,7 +666,7 @@ async function generateCategories() {
     // Write TypeScript module to src/data/static/categories.ts
     const tsOutputPath = path.join(
       __dirname,
-      "../src/data/static/categories.ts"
+      "../src/data/static/categories.ts",
     )
     const tsDir = path.dirname(tsOutputPath)
 
@@ -725,27 +725,27 @@ export const { allCategories, categoryTree, rootCategories, categoryMap, leafCat
     formatGeneratedFile(tsOutputPath)
 
     console.log(
-      "\n✅ Category data with root_category_id generated successfully!"
+      "\n✅ Category data with root_category_id generated successfully!",
     )
     console.log(`📁 TypeScript module saved to: ${tsOutputPath}`)
     console.log("📊 Stats:")
     console.log(
-      `   - Total categories (before filtering): ${allCategoriesRaw.length}`
+      `   - Total categories (before filtering): ${allCategoriesRaw.length}`,
     )
     console.log(
-      `   - Total categories (after filtering): ${allCategories.length}`
+      `   - Total categories (after filtering): ${allCategories.length}`,
     )
     console.log(
-      `   - Categories with direct products: ${categoriesWithProducts.size}`
+      `   - Categories with direct products: ${categoriesWithProducts.size}`,
     )
     console.log(
-      `   - Filtered out categories: ${allCategoriesRaw.length - allCategories.length}`
+      `   - Filtered out categories: ${allCategoriesRaw.length - allCategories.length}`,
     )
     console.log(`   - Root categories: ${rootCategories.length}`)
     console.log(`   - Leaf categories: ${leafCategories.length}`)
     console.log(`   - Leaf parents: ${leafParents.length}`)
     console.log(
-      "\n   ⭐ NEW: All categories now have root_category_id attribute"
+      "\n   ⭐ NEW: All categories now have root_category_id attribute",
     )
   } catch (error) {
     console.error("❌ Error generating categories:", error)

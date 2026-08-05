@@ -571,7 +571,7 @@ export const WithSelection: Story = {
 
     const handleSelectRow = (id: number) => {
       setSelection((prev) =>
-        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
       )
     }
 
@@ -657,7 +657,7 @@ export const WithSelectionAndActions: Story = {
 
     const handleSelectRow = (id: number) => {
       setSelection((prev) =>
-        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
       )
     }
 

@@ -35,7 +35,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   if (!id) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Review id is required"
+      "Review id is required",
     )
   }
 
@@ -44,14 +44,14 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
 export async function PATCH(
   req: MedusaRequest<AdminUpdateReviewSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const id = getReviewRouteId(req)
 
   if (!id) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Review id is required"
+      "Review id is required",
     )
   }
 

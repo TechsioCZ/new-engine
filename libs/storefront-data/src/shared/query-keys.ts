@@ -28,7 +28,7 @@ const normalizeNamespace = (namespace: QueryNamespace): readonly string[] => {
 const walkValue = (
   value: unknown,
   visited: WeakSet<object>,
-  options?: WalkValueOptions
+  options?: WalkValueOptions,
 ): unknown => {
   if (Array.isArray(value)) {
     if (visited.has(value)) {
@@ -79,11 +79,11 @@ export function normalizeQueryKeyParams<
   TParams extends Record<string, unknown>,
 >(
   params: TParams,
-  options?: NormalizeQueryKeyParamsOptions
+  options?: NormalizeQueryKeyParamsOptions,
 ): Record<string, unknown> {
   if (!isPlainObject(params)) {
     throw new Error(
-      "QueryKey params must be a plain object. Use a serializer before normalizeQueryKeyParams."
+      "QueryKey params must be a plain object. Use a serializer before normalizeQueryKeyParams.",
     )
   }
   const visited = new WeakSet()
@@ -107,7 +107,7 @@ export function normalizeQueryKeyParams<
  */
 export function normalizeQueryKeyPart(
   value: unknown,
-  options?: NormalizeQueryKeyParamsOptions
+  options?: NormalizeQueryKeyParamsOptions,
 ): unknown {
   if (value === undefined) {
     return {}
@@ -137,7 +137,7 @@ export function appendQueryKey(
 
 export function createDomainQueryKeys<TListParams, TDetailParams>(
   namespace: QueryNamespace,
-  domain: string
+  domain: string,
 ): {
   all: () => QueryKey
   list: (params: TListParams) => QueryKey
@@ -150,14 +150,14 @@ export function createDomainQueryKeys<TListParams, TDetailParams>(
         namespace,
         domain,
         "detail",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
     list: (params) =>
       createQueryKey(
         namespace,
         domain,
         "list",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
   }
 }

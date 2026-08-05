@@ -27,7 +27,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
 export async function POST(
   req: MedusaRequest<AdminSetProductMeasurementSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const productId = req.params["id"] ?? ""
 

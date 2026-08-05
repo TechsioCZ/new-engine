@@ -41,7 +41,7 @@ export interface SyncAttemptInfo {
  */
 export function checkTimeoutConditions(
   fulfillment: PendingFulfillment,
-  attemptInfo: SyncAttemptInfo
+  attemptInfo: SyncAttemptInfo,
 ): { reason: string; message: string } | null {
   if (attemptInfo.syncAttempts >= MAX_SYNC_ATTEMPTS) {
     return {

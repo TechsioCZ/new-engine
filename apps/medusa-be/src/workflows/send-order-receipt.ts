@@ -45,7 +45,7 @@ type QueryOrder = OrderReceiptOrder &
   }
 
 function findQueryOrder(
-  candidates: readonly unknown[]
+  candidates: readonly unknown[],
 ): QueryOrder | undefined {
   return candidates.find(isQueryOrder)
 }
@@ -124,7 +124,7 @@ const sendOrderReceiptStep = createStep(
   "send-order-receipt",
   async (
     input: WorkflowInput,
-    { container }
+    { container },
   ): Promise<StepResponse<OrderReceiptWorkflowResult>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
@@ -186,7 +186,7 @@ const sendOrderReceiptStep = createStep(
       order_id: order.id,
       sent: true,
     })
-  }
+  },
 )
 
 export const sendOrderReceiptWorkflow = createWorkflow(
@@ -195,5 +195,5 @@ export const sendOrderReceiptWorkflow = createWorkflow(
     const result = sendOrderReceiptStep(input)
 
     return new WorkflowResponse(result)
-  }
+  },
 )

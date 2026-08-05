@@ -40,11 +40,11 @@ export const linkStockLocationFulfillmentSetStep = createStep(
         const message = error instanceof Error ? error.message : String(error)
         if (
           message.includes(
-            "Cannot create multiple links between 'stock_location' and 'fulfillment'"
+            "Cannot create multiple links between 'stock_location' and 'fulfillment'",
           )
         ) {
           logger.warn(
-            `Skipping existing stock location -> fulfillment set link for stock location "${stockLocation.id}" and fulfillment set "${input.fulfillmentSet.id}"`
+            `Skipping existing stock location -> fulfillment set link for stock location "${stockLocation.id}" and fulfillment set "${input.fulfillmentSet.id}"`,
           )
           continue
         }
@@ -55,5 +55,5 @@ export const linkStockLocationFulfillmentSetStep = createStep(
     return new StepResponse({
       result,
     })
-  }
+  },
 )

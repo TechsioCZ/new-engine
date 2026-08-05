@@ -362,7 +362,7 @@ export default async function seedN1({ container }: ExecArgs) {
   async function getCachedOrFetch<T>(
     key: string,
     fetcher: () => Promise<T>,
-    label: string
+    label: string,
   ): Promise<T> {
     // Check cache first (unless forcing fresh data)
     if (FORCE_FRESH_DATA) {
@@ -395,16 +395,16 @@ export default async function seedN1({ container }: ExecArgs) {
     getCachedOrFetch<CategoryRaw[]>(
       CACHE_KEYS.CATEGORIES,
       async () => dbService.sqlRaw<CategoryRaw>(categoriesSql),
-      "categories"
+      "categories",
     ),
     getCachedOrFetch<ProductRaw[]>(
       CACHE_KEYS.PRODUCTS,
       async () => dbService.sqlRaw<ProductRaw>(productsSql),
-      "products"
+      "products",
     ),
   ])
   logger.info(
-    `Found ${resultCategories.length} categories, ${resultProducts.length} products`
+    `Found ${resultCategories.length} categories, ${resultProducts.length} products`,
   )
 
   logger.info("Running seed workflow...")

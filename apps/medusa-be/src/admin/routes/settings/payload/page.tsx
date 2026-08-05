@@ -101,7 +101,7 @@ const PayloadRedirectPage = () => {
         : 0
       const nextHeight = Math.max(
         0,
-        window.innerHeight - rect.top - paddingBottom
+        window.innerHeight - rect.top - paddingBottom,
       )
       setHeight(nextHeight)
     }

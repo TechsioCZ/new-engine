@@ -32,7 +32,7 @@ const resolvePageSize = (pageSize?: number) => {
 
 export function createMedusaProductAttributeService(
   sdk: Medusa,
-  config?: MedusaProductAttributeServiceConfig
+  config?: MedusaProductAttributeServiceConfig,
 ): ProductAttributeService<ProductAttribute, MedusaProductAttributesInput> {
   const productsPath = config?.productsPath ?? "/store/products"
   const pageSize = resolvePageSize(config?.pageSize)
@@ -55,7 +55,7 @@ export function createMedusaProductAttributeService(
               offset,
             },
             ...(signal === undefined ? {} : { signal }),
-          }
+          },
         )
 
         productAttributes.push(...response.product_attributes)

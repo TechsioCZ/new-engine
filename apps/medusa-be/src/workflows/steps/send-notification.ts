@@ -36,17 +36,17 @@ type EmailLogService = EmailLogModuleService & {
       sent_to: string
       subject: string
       type: string
-    }[]
+    }[],
   ) => Promise<EmailLogDTO[]>
   listEmailWebhookEvents: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<EmailWebhookEventDTO[]>
   updateEmailLogs: (
-    data: { id: string; checked_at: Date }[]
+    data: { id: string; checked_at: Date }[],
   ) => Promise<EmailLogDTO[]>
   updateEmailWebhookEvents: (
-    data: { id: string; processed_at: Date }[]
+    data: { id: string; processed_at: Date }[],
   ) => Promise<EmailWebhookEventDTO[]>
 }
 
@@ -54,7 +54,7 @@ const CUSTOMER_LOOKUP_CHUNK_SIZE = 25
 
 function getStringField(
   data: Record<string, unknown> | null | undefined,
-  field: string
+  field: string,
 ) {
   const raw: unknown = data?.[field]
 
@@ -95,19 +95,19 @@ function getEmailType(input: CreateNotificationDTO) {
 }
 
 function getNotificationList(
-  notification: NotificationDTO | NotificationDTO[]
+  notification: NotificationDTO | NotificationDTO[],
 ) {
   return Array.isArray(notification) ? notification : [notification]
 }
 
 async function getCustomerIdByEmail(
   customerModuleService: ICustomerModuleService,
-  email: string
+  email: string,
 ) {
   const customer = (
     await customerModuleService.listCustomers(
       { email },
-      { select: ["id"], take: 1 }
+      { select: ["id"], take: 1 },
     )
   ).shift()
 
@@ -126,7 +126,7 @@ function chunkItems<T>(items: T[], chunkSize: number) {
 
 async function getCustomerIdsByEmail(
   customerModuleService: ICustomerModuleService,
-  emails: string[]
+  emails: string[],
 ) {
   const customerIdsByEmail = new Map<string, string | null>()
 
@@ -135,7 +135,7 @@ async function getCustomerIdsByEmail(
       chunk.map(async (email) => ({
         customerId: await getCustomerIdByEmail(customerModuleService, email),
         email,
-      }))
+      })),
     )
 
     for (const result of results) {
@@ -163,11 +163,11 @@ async function replayPendingCheckedEvents({
       {
         order: { received_at: "ASC" },
         select: ["id", "email_id", "processed_at", "received_at", "type"],
-      }
+      },
     )
     const checkedEvents = pendingEvents.filter(
       (event) =>
-        !event.processed_at && CHECKED_RESEND_EVENT_TYPES.has(event.type)
+        !event.processed_at && CHECKED_RESEND_EVENT_TYPES.has(event.type),
     )
 
     if (!checkedEvents.length) {
@@ -192,7 +192,7 @@ async function replayPendingCheckedEvents({
       checkedEvents.map((event) => ({
         id: event.id,
         processed_at: processedAt,
-      }))
+      })),
     )
   }
 }
@@ -205,7 +205,7 @@ export const sendNotificationStep = createStep(
     const notification =
       await notificationModuleService.createNotifications(data)
     const customerModuleService: ICustomerModuleService = container.resolve(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
     const notificationList = getNotificationList(notification)
@@ -235,12 +235,12 @@ export const sendNotificationStep = createStep(
       ...new Set(
         emailLogInputs
           .filter((item) => !item.explicitCustomerId)
-          .map((item) => item.input.to)
+          .map((item) => item.input.to),
       ),
     ]
     const customerIdsByEmail = await getCustomerIdsByEmail(
       customerModuleService,
-      customerLookupEmails
+      customerLookupEmails,
     )
     const emailLogs = emailLogInputs.map(
       ({ createdNotification, explicitCustomerId, input }) => ({
@@ -253,7 +253,7 @@ export const sendNotificationStep = createStep(
         sent_to: createdNotification.to ?? input.to,
         subject: getNotificationSubject(input),
         type: createdNotification.template ?? getEmailType(input),
-      })
+      }),
     )
 
     if (emailLogs.length) {
@@ -269,5 +269,5 @@ export const sendNotificationStep = createStep(
     }
 
     return new StepResponse(notification)
-  }
+  },
 )

@@ -29,7 +29,7 @@ export function decodeXml(value: string): string {
     })
     .replaceAll(
       /&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g,
-      (entity) => ENTITY_MAP[entity] ?? entity
+      (entity) => ENTITY_MAP[entity] ?? entity,
     )
 }
 
@@ -77,7 +77,7 @@ export function extractElements(source: string, tag: string): XmlElement[] {
   const escapedTag = escapeRegExp(tag)
   const regex = new RegExp(
     `<${escapedTag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`,
-    "g"
+    "g",
   )
   const result: XmlElement[] = []
 
@@ -93,18 +93,18 @@ export function extractElements(source: string, tag: string): XmlElement[] {
 
 export function extractFirstElementContent(
   source: string,
-  tag: string
+  tag: string,
 ): string | undefined {
   const escapedTag = escapeRegExp(tag)
   const regex = new RegExp(
-    `<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`
+    `<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`,
   )
   return source.match(regex)?.[1]
 }
 
 export function extractFirstText(
   source: string,
-  tag: string
+  tag: string,
 ): string | undefined {
   return normalizeText(extractFirstElementContent(source, tag))
 }
@@ -121,7 +121,7 @@ export async function readXmlSource(source: string): Promise<string> {
   const response = await fetch(source)
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch XML source ${source}: ${response.status} ${response.statusText}`
+      `Failed to fetch XML source ${source}: ${response.status} ${response.statusText}`,
     )
   }
 

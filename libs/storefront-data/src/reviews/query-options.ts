@@ -41,7 +41,7 @@ export interface ProductReviewQueryOptionsFactory<
     options?: {
       queryOptions?: ReadQueryOptions<ProductReviewListResponse<TReview>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<ProductReviewListResponse<TReview>>
 }
 
@@ -72,7 +72,7 @@ export function createProductReviewQueryOptionsFactory<
   return {
     getProductReviewsQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<ProductReviewListResponse<TReview>> => {
       const listParams = buildList(input)
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"

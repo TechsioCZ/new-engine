@@ -11,10 +11,10 @@ import {
 
 export async function POST(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result } = await restoreProductAttributeDefinitionsWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: { ids: [req.params["id"] ?? ""] },
   })
@@ -26,7 +26,7 @@ export async function POST(
     definition: definition
       ? toProductAttributeDefinitionResponse(
           definition,
-          usageCounts.get(definition.id) ?? 0
+          usageCounts.get(definition.id) ?? 0,
         )
       : null,
   })

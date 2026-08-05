@@ -39,5 +39,5 @@ export const incrementProductListItemStep = createStep(
         id: input.item_id,
         quantity: input.previous_quantity,
       })
-  }
+  },
 )

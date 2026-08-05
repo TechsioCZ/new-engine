@@ -9,14 +9,14 @@ import {
 describe("admin company query config", () => {
   it("uses the rich display field contract for list and retrieve defaults", () => {
     expect(adminCompanyDisplayFieldsQuery).toBe(
-      adminCompanyDisplayFields.join(",")
+      adminCompanyDisplayFields.join(","),
     )
 
     expect(adminCompanyQueryConfig.list.defaults).toStrictEqual(
-      adminCompanyDisplayFields
+      adminCompanyDisplayFields,
     )
     expect(adminCompanyQueryConfig.retrieve.defaults).toStrictEqual(
-      adminCompanyDisplayFields
+      adminCompanyDisplayFields,
     )
   })
 
@@ -29,7 +29,7 @@ describe("admin company query config", () => {
         "*customer_group",
         "*approval_settings",
         "deleted_at",
-      ])
+      ]),
     )
   })
 })

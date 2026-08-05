@@ -5,8 +5,23 @@ import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import { GLSClient } from "./client"
 import GLSConfig from "./models/gls-config"
-import { GLS_COUNTRY_CODES, GLS_PRINTER_TYPES, GLS_SENSITIVE_FIELDS } from './types';
-import type { GLSBranch, GLSConfigDTO, GLSCountryCode, GLSCreatePacketResult, GLSEnvironment, GLSOptions, GLSPacketAttributes, GLSPacketStatusRecord, GLSPrinterType, UpdateGLSConfigInput } from './types';
+import {
+  GLS_COUNTRY_CODES,
+  GLS_PRINTER_TYPES,
+  GLS_SENSITIVE_FIELDS,
+} from "./types"
+import type {
+  GLSBranch,
+  GLSConfigDTO,
+  GLSCountryCode,
+  GLSCreatePacketResult,
+  GLSEnvironment,
+  GLSOptions,
+  GLSPacketAttributes,
+  GLSPacketStatusRecord,
+  GLSPrinterType,
+  UpdateGLSConfigInput,
+} from "./types"
 
 const DEFAULT_COUNTRY_CODE: GLSCountryCode = "SK"
 const DEFAULT_PRINTER_TYPE: GLSPrinterType = "A4_2x2"
@@ -439,7 +454,9 @@ export class GLSClientModuleService extends MedusaService({
   }
 
   private async getConfigCacheKey(): Promise<string> {
-    return await this.computeCacheKey("config", { environment: this.environment_ })
+    return await this.computeCacheKey("config", {
+      environment: this.environment_,
+    })
   }
 
   private async getBranchesCacheKey(): Promise<string> {

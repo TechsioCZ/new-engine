@@ -16,7 +16,7 @@ export const createApprovalsWorkflow = createWorkflow(
   (
     input:
       | Omit<ModuleCreateApproval, "type">
-      | Omit<ModuleCreateApproval, "type">[]
+      | Omit<ModuleCreateApproval, "type">[],
   ) => {
     const result = createApprovalStep(input)
 
@@ -55,11 +55,11 @@ export const createApprovalsWorkflow = createWorkflow(
 
     const linkData = transform(
       [approvalLinkData, approvalStatusLinkData],
-      (data) => data.flat()
+      (data) => data.flat(),
     )
 
     createRemoteLinkStep(linkData)
 
     return new WorkflowResponse(result)
-  }
+  },
 )

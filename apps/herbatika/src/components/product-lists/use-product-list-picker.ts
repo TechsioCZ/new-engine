@@ -88,19 +88,19 @@ export function useProductListPicker({
     addFavoriteItemMutation.isPending
   const detailListsById = listById(detailQueries.map((query) => query.data))
   const hydratedLists = listsQuery.productLists.map(
-    (list) => detailListsById.get(list.id) ?? list
+    (list) => detailListsById.get(list.id) ?? list,
   )
   const favoriteList =
     hydratedLists.find((list) => isFavoriteProductList(list)) ?? null
   const customLists = hydratedLists.filter(
-    (list) => !isFavoriteProductList(list)
+    (list) => !isFavoriteProductList(list),
   )
   const rows: ProductListPickerRow[] = [
     {
       checked: isProductInProductList(
         favoriteList,
         product.id,
-        selectedVariantId
+        selectedVariantId,
       ),
       count: getProductListItemCount(favoriteList),
       isFavorite: true,
@@ -161,7 +161,7 @@ export function useProductListPicker({
       toast.error({
         title: resolveErrorMessage(
           mutationError,
-          tAuth("product_lists.errors.add_product_failed")
+          tAuth("product_lists.errors.add_product_failed"),
         ),
       })
     } finally {
@@ -205,7 +205,7 @@ export function useProductListPicker({
       toast.error({
         title: resolveErrorMessage(
           mutationError,
-          tAuth("product_lists.errors.create_failed")
+          tAuth("product_lists.errors.create_failed"),
         ),
       })
     } finally {

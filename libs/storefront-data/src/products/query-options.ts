@@ -46,7 +46,7 @@ export interface ProductQueryOptionsFactory<
       region?: RegionInfo | null
       useGlobalFetcher?: boolean
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<ProductListResponse<TProduct>>
   getDetailQueryOptions: (
     input: TDetailInput,
@@ -54,7 +54,7 @@ export interface ProductQueryOptionsFactory<
       queryOptions?: ReadQueryOptions<TProduct | null>
       region?: RegionInfo | null
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TProduct | null>
 }
 
@@ -92,7 +92,7 @@ export function createProductQueryOptionsFactory<
   return {
     getDetailQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<TProduct | null> => {
       const { queryKey, queryFn } = createProductDetailQueryDefinition({
         input,
@@ -112,7 +112,7 @@ export function createProductQueryOptionsFactory<
     },
     getListQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<ProductListResponse<TProduct>> => {
       const { queryKey, queryFn } = createProductListQueryDefinition({
         input,

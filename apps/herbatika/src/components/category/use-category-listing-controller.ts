@@ -67,14 +67,14 @@ export function useCategoryListingController({
       prefetchCategory.delayedPrefetch(
         { id: category.id },
         200,
-        `prefetch-category-${category.id}`
+        `prefetch-category-${category.id}`,
       )
     },
     onCategoryMouseEnter: (category: HttpTypes.StoreProductCategory) => {
       prefetchCategory.delayedPrefetch(
         { id: category.id },
         200,
-        `prefetch-category-${category.id}`
+        `prefetch-category-${category.id}`,
       )
       prefetchCategories.delayedPrefetch(
         {
@@ -84,13 +84,13 @@ export function useCategoryListingController({
           parent_category_id: category.id,
         },
         300,
-        `prefetch-category-children-${category.id}`
+        `prefetch-category-children-${category.id}`,
       )
     },
     onCategoryMouseLeave: (category: HttpTypes.StoreProductCategory) => {
       prefetchCategory.cancelPrefetch(`prefetch-category-${category.id}`)
       prefetchCategories.cancelPrefetch(
-        `prefetch-category-children-${category.id}`
+        `prefetch-category-children-${category.id}`,
       )
     },
   }

@@ -36,7 +36,7 @@ interface ProductVariantRecord {
 export async function buildBrandPromotionContext(
   source: PromotionContextSource | undefined,
   container: MedusaContainer,
-  productBrandLinkEntryPoint: string
+  productBrandLinkEntryPoint: string,
 ): Promise<Record<string, unknown>> {
   const items = Array.isArray(source?.items)
     ? source.items.filter(isPromotionContextItem)
@@ -47,7 +47,7 @@ export async function buildBrandPromotionContext(
     ...new Set(
       items
         .map((item) => getItemProductId(item, productIdsByVariantId))
-        .filter((id): id is string => !!id)
+        .filter((id): id is string => !!id),
     ),
   ]
 
@@ -67,7 +67,7 @@ export async function buildBrandPromotionContext(
   const links = Array.isArray(data) ? data.filter(isProductBrandLink) : []
   const activeBrandIds = await getActiveBrandIds(
     container,
-    links.map((link) => link.brand_id)
+    links.map((link) => link.brand_id),
   )
 
   for (const link of links) {
@@ -87,7 +87,7 @@ export async function buildBrandPromotionContext(
       const { brand_ids: _brandIds, ...itemContext } = item
       const brandIds =
         brandIdsByProductId.get(
-          getItemProductId(item, productIdsByVariantId) ?? ""
+          getItemProductId(item, productIdsByVariantId) ?? "",
         ) ?? []
 
       return brandIds.length
@@ -99,14 +99,14 @@ export async function buildBrandPromotionContext(
 
 async function resolveProductIdsByVariantId(
   query: Pick<RemoteQueryFunction, "graph">,
-  items: PromotionContextItem[]
+  items: PromotionContextItem[],
 ) {
   const variantIds = [
     ...new Set(
       items
         .filter((item) => !getItemProductId(item))
         .map(getItemVariantId)
-        .filter((id): id is string => !!id)
+        .filter((id): id is string => !!id),
     ),
   ]
 
@@ -124,8 +124,8 @@ async function resolveProductIdsByVariantId(
 
   return new Map(
     (Array.isArray(data) ? data.filter(isProductVariantRecord) : []).map(
-      (variant) => [variant.id, variant.product_id]
-    )
+      (variant) => [variant.id, variant.product_id],
+    ),
   )
 }
 
@@ -134,7 +134,7 @@ function isPromotionContextItem(item: unknown): item is PromotionContextItem {
 }
 
 function isProductBrandLink(
-  value: unknown
+  value: unknown,
 ): value is Required<ProductBrandLinkRecord> {
   return (
     typeof value === "object" &&
@@ -145,7 +145,7 @@ function isProductBrandLink(
 }
 
 function isProductVariantRecord<T>(
-  value: T
+  value: T,
 ): value is T & Required<ProductVariantRecord> {
   return (
     typeof value === "object" &&
@@ -157,7 +157,7 @@ function isProductVariantRecord<T>(
 
 function getItemProductId(
   item: PromotionContextItem,
-  productIdsByVariantId = new Map<string, string>()
+  productIdsByVariantId = new Map<string, string>(),
 ) {
   return (
     item.product_id ??

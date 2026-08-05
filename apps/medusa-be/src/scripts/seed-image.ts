@@ -21,7 +21,7 @@ export default async function seedImages({ container }: ExecArgs) {
 
   async function readLocalUploadFile(
     filePath: string,
-    access: "private" | "public"
+    access: "private" | "public",
   ) {
     try {
       logger.info(`Reading file: ${filePath}`)
@@ -41,7 +41,7 @@ export default async function seedImages({ container }: ExecArgs) {
         error instanceof Error ? error.message : String(error)
       const errorStack = error instanceof Error ? error.stack : undefined
       logger.error(
-        `Error reading file ${filePath}: ${errorMessage}\n${errorStack || ""}`
+        `Error reading file ${filePath}: ${errorMessage}\n${errorStack || ""}`,
       )
       return null
     }
@@ -50,26 +50,26 @@ export default async function seedImages({ container }: ExecArgs) {
   async function uploadProductFiles(
     productName: string,
     filePaths: string[],
-    access: "private" | "public"
+    access: "private" | "public",
   ) {
     logger.info(
-      `Processing product: ${productName} with ${filePaths.length} files`
+      `Processing product: ${productName} with ${filePaths.length} files`,
     )
 
     const files = await Promise.all(
-      filePaths.map(async (filePath) => readLocalUploadFile(filePath, access))
+      filePaths.map(async (filePath) => readLocalUploadFile(filePath, access)),
     )
     const validFiles = files.filter(
-      (f): f is NonNullable<typeof f> => f !== null
+      (f): f is NonNullable<typeof f> => f !== null,
     )
     logger.info(
-      `Valid files for ${productName}: ${validFiles.length}/${files.length}`
+      `Valid files for ${productName}: ${validFiles.length}/${files.length}`,
     )
 
     if (validFiles.length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `No valid files processed for product ${productName}`
+        `No valid files processed for product ${productName}`,
       )
     }
 
@@ -92,8 +92,8 @@ export default async function seedImages({ container }: ExecArgs) {
       `Upload successful for ${productName}. Files uploaded: ${JSON.stringify(
         transformedResult,
         null,
-        2
-      )}`
+        2,
+      )}`,
     )
 
     return transformedResult
@@ -102,7 +102,7 @@ export default async function seedImages({ container }: ExecArgs) {
   async function uploadProductFilesOrThrow(
     productName: string,
     filePaths: string[],
-    access: "private" | "public"
+    access: "private" | "public",
   ) {
     try {
       return await uploadProductFiles(productName, filePaths, access)
@@ -113,18 +113,18 @@ export default async function seedImages({ container }: ExecArgs) {
       logger.error(
         `Error processing product ${productName}: ${errorMessage}\n${
           errorStack || ""
-        }`
+        }`,
       )
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Error processing ${productName}: ${errorMessage}`
+        `Error processing ${productName}: ${errorMessage}`,
       )
     }
   }
 
   async function uploadLocalFiles(
     productImageMap: Record<string, string[]>,
-    access: "private" | "public" = "private"
+    access: "private" | "public" = "private",
   ): Promise<Record<string, FileDTO[]>> {
     try {
       const results: Record<string, FileDTO[]> = {}
@@ -133,17 +133,17 @@ export default async function seedImages({ container }: ExecArgs) {
         results[productName] = await uploadProductFilesOrThrow(
           productName,
           filePaths,
-          access
+          access,
         )
       }
 
       logger.info(
         `All products processed successfully. Products: ${Object.keys(
-          results
+          results,
         ).join(", ")}. Total files: ${Object.values(results).reduce(
           (acc, files) => acc + files.length,
-          0
-        )}`
+          0,
+        )}`,
       )
 
       return results
@@ -152,7 +152,7 @@ export default async function seedImages({ container }: ExecArgs) {
         error instanceof Error ? error.message : String(error)
       const errorStack = error instanceof Error ? error.stack : undefined
       logger.error(
-        `Fatal error in uploadLocalFiles: ${errorMessage}\n${errorStack || ""}`
+        `Fatal error in uploadLocalFiles: ${errorMessage}\n${errorStack || ""}`,
       )
       throw new MedusaError(MedusaError.Types.INVALID_DATA, errorMessage)
     }
@@ -186,16 +186,16 @@ export default async function seedImages({ container }: ExecArgs) {
           Object.keys(productImageMap).length
         }, Files: ${Object.values(productImageMap).reduce(
           (acc, files) => acc + files.length,
-          0
-        )}`
+          0,
+        )}`,
       )
 
       const result = await uploadLocalFiles(productImageMap, "public")
 
       logger.info(
         `Image upload completed successfully. Products processed: ${Object.keys(
-          result
-        ).join(", ")}`
+          result,
+        ).join(", ")}`,
       )
 
       return result
@@ -214,14 +214,14 @@ export default async function seedImages({ container }: ExecArgs) {
     const images = await seedDefaultImages()
     logger.info(
       `Seeding completed successfully. Products: ${Object.keys(images).join(
-        ", "
-      )}`
+        ", ",
+      )}`,
     )
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     const errorStack = error instanceof Error ? error.stack : undefined
     logger.error(
-      `Fatal error during image seeding: ${errorMessage}\n${errorStack || ""}`
+      `Fatal error during image seeding: ${errorMessage}\n${errorStack || ""}`,
     )
     process.exit(1)
   }

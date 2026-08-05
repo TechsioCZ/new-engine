@@ -87,7 +87,7 @@ export function CategoryContextPanel({
     ? stripHtml(sanitizedIntroHtml)
     : (introText ?? "")
   const shouldShowIntroToggle = Boolean(
-    resolvedIntroText && resolvedIntroText.length > 260
+    resolvedIntroText && resolvedIntroText.length > 260,
   )
 
   if (!(sanitizedIntroHtml || introText || imageTiles?.length)) {

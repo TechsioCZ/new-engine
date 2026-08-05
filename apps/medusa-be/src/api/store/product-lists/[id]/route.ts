@@ -24,7 +24,7 @@ type RequestWithOptionalCustomerAuth = MedusaRequest & {
 }
 
 const getAuthenticatedCustomerId = (
-  req: RequestWithOptionalCustomerAuth
+  req: RequestWithOptionalCustomerAuth,
 ): string | undefined => {
   const authContext = req.auth_context
 
@@ -39,7 +39,7 @@ const getAuthenticatedCustomerId = (
 
 export async function GET(
   req: RequestWithOptionalCustomerAuth,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const productListService =
@@ -52,7 +52,7 @@ export async function GET(
     if (!customerId) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Product list ${listId} was not found`
+        `Product list ${listId} was not found`,
       )
     }
 
@@ -61,7 +61,7 @@ export async function GET(
   const productListsWithItems = await withProductListItems(
     req.scope,
     [productList],
-    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT }
+    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT },
   )
   const productListWithItems = productListsWithItems[0]
 
@@ -75,11 +75,11 @@ export async function GET(
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreUpdateProductListSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result: productList } = await updateProductListWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
       customer_id: req.auth_context.actor_id,
@@ -90,7 +90,7 @@ export async function POST(
   const [productListWithItems] = await withProductListItems(
     req.scope,
     [productList],
-    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT }
+    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT },
   )
 
   res.json({
@@ -100,7 +100,7 @@ export async function POST(
 
 export async function DELETE(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   await deleteProductListWorkflow(req.scope).run({

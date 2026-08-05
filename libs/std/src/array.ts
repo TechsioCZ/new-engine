@@ -6,6 +6,6 @@ export const chunk = <T>(values: readonly T[], size: number): T[][] => {
   }
 
   return Array.from({ length: Math.ceil(values.length / size) }, (_, index) =>
-    values.slice(index * size, (index + 1) * size)
+    values.slice(index * size, (index + 1) * size),
   )
 }

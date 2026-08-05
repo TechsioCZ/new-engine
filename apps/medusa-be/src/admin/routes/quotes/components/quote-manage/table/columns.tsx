@@ -62,6 +62,6 @@ export const useManageItemsTableColumns = (_currencyCode: string) => {
         header: t("fields.title"),
       }),
     ],
-    [t]
+    [t],
   )
 }

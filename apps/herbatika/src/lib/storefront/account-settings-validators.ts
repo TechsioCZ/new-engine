@@ -22,24 +22,24 @@ interface AccountSettingsValidationMessages {
 }
 
 export const createAccountSettingsValidators = (
-  messages: AccountSettingsValidationMessages
+  messages: AccountSettingsValidationMessages,
 ) => ({
   first_name: createChangeBlurFieldValidators(
-    createCustomerNameValidator(messages.firstNameMinLength)
+    createCustomerNameValidator(messages.firstNameMinLength),
   ),
   last_name: createChangeBlurFieldValidators(
-    createCustomerNameValidator(messages.lastNameMinLength)
+    createCustomerNameValidator(messages.lastNameMinLength),
   ),
   phone: createChangeBlurFieldValidators(
     createOptionalPhoneNumberValidator({
       invalid: messages.phoneInvalid,
       minDigits: messages.phoneMinDigits,
-    })
+    }),
   ),
 })
 
 export const toAccountSettingsValues = (
-  customer: HttpTypes.StoreCustomer | null | undefined
+  customer: HttpTypes.StoreCustomer | null | undefined,
 ): AccountSettingsValues => ({
   company_name:
     isRecord(customer) && typeof customer.company_name === "string"

@@ -34,14 +34,14 @@ const galleryFiles = [
   "watch-4.jpg",
 ]
 const galleryBuffers = galleryFiles.map((file) =>
-  readFileSync(path.join(galleryDir, file))
+  readFileSync(path.join(galleryDir, file)),
 )
 
 // Neutral stand-in for non-product remote images (logos, badges) whose
 // natural size must stay small so substitution does not distort layout.
 const placeholderPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAAAAACPAi4CAAAAKklEQVR4nO3MQREAAAwCIPunM5Ih9ttBANKjCAQCgUAgEAgEAoFAIPgeDED6AMS2vrHWAAAAAElFTkSuQmCC",
-  "base64"
+  "base64",
 )
 
 function stableGalleryBuffer(url: string): Buffer {
@@ -62,7 +62,7 @@ const rawCaptureStories = new Set([
 ])
 
 const storybookHostname = new URL(
-  process.env.TEST_BASE_URL ?? "http://127.0.0.1:6006"
+  process.env.TEST_BASE_URL ?? "http://127.0.0.1:6006",
 ).hostname
 
 async function installHermeticImageRoutes(page: Page): Promise<void> {
@@ -82,12 +82,12 @@ async function installHermeticImageRoutes(page: Page): Promise<void> {
                 body: stableGalleryBuffer(request.url()),
                 contentType: "image/jpeg",
               }
-            : { body: placeholderPng, contentType: "image/png" }
+            : { body: placeholderPng, contentType: "image/png" },
         )
         return
       }
       await route.abort()
-    }
+    },
   )
 }
 const resetEnv = (process.env.PLAYWRIGHT_PAGE_RESET ?? "").toLowerCase()
@@ -99,10 +99,10 @@ const shouldResetBetweenTests =
 let storybookIndex: StorybookIndex
 
 function definedContextOptions(
-  options: Record<string, unknown>
+  options: Record<string, unknown>,
 ): BrowserContextOptions {
   return Object.fromEntries(
-    Object.entries(options).filter(([, value]) => value !== undefined)
+    Object.entries(options).filter(([, value]) => value !== undefined),
   )
 }
 
@@ -110,7 +110,7 @@ const test = base.extend<{}, { workerPage: Page }>({
   workerPage: [
     async ({ browser }, use, testInfo) => {
       const context = await browser.newContext(
-        definedContextOptions(testInfo.project.use)
+        definedContextOptions(testInfo.project.use),
       )
       const page = await context.newPage()
       await installHermeticImageRoutes(page)
@@ -128,14 +128,14 @@ try {
   if ((error as NodeJS.ErrnoException).code === "ENOENT") {
     throw new Error(
       "Storybook index.json not found. Run 'pnpm build:storybook' first.",
-      { cause: error }
+      { cause: error },
     )
   }
   throw error
 }
 
 const stories = Object.values(storybookIndex.entries).filter(
-  (entry) => entry.type === "story"
+  (entry) => entry.type === "story",
 )
 
 const storyFilter = (process.env.TEST_STORIES ?? "")
@@ -169,7 +169,7 @@ test.describe.parallel("storybook visual", () => {
           await ownedContext.close()
         }
         ownedContext = await browser.newContext(
-          definedContextOptions(testInfo.project.use)
+          definedContextOptions(testInfo.project.use),
         )
         page = await ownedContext.newPage()
         await installHermeticImageRoutes(page)
@@ -193,13 +193,13 @@ test.describe.parallel("storybook visual", () => {
       }
 
       const defaultCaptureMode = rawCaptureStories.has(
-        `${story.id}:${testInfo.project.name}`
+        `${story.id}:${testInfo.project.name}`,
       )
         ? ("raw" as const)
         : ("expect" as const)
 
       const run = async (
-        captureMode: "expect" | "raw" = defaultCaptureMode
+        captureMode: "expect" | "raw" = defaultCaptureMode,
       ) => {
         const params = new URLSearchParams({
           id: story.id,
@@ -261,7 +261,7 @@ test.describe.parallel("storybook visual", () => {
             const root = document.querySelector("#storybook-root")
             return root && root.children.length > 0
           },
-          { timeout: 30_000 }
+          { timeout: 30_000 },
         )
         // Story CSS is injected as stylesheet links by dynamically imported
         // chunks; capturing before every sheet applies yields unstyled layout.
@@ -269,10 +269,10 @@ test.describe.parallel("storybook visual", () => {
           () =>
             [
               ...document.querySelectorAll<HTMLLinkElement>(
-                'link[rel="stylesheet"]'
+                'link[rel="stylesheet"]',
               ),
             ].every((link) => link.sheet !== null),
-          { timeout: 30_000 }
+          { timeout: 30_000 },
         )
         await page.evaluate(async () => {
           if (!("fonts" in document)) {
@@ -311,7 +311,7 @@ test.describe.parallel("storybook visual", () => {
               } catch {
                 // decode failures fall through to the completeness wait
               }
-            })
+            }),
           )
         })
         try {
@@ -326,10 +326,10 @@ test.describe.parallel("storybook visual", () => {
                 return true
               }
               return [...images].every(
-                (img) => !img.src || (img.complete && img.naturalWidth > 0)
+                (img) => !img.src || (img.complete && img.naturalWidth > 0),
               )
             },
-            { timeout: 30_000 }
+            { timeout: 30_000 },
           )
         } catch {
           throw new Error("hermetic images failed to settle")
@@ -352,7 +352,7 @@ test.describe.parallel("storybook visual", () => {
           story.id.startsWith("templates-carouseltemplate--")
         if (isCarouselStory) {
           const firstIndicators = page.locator(
-            '[data-scope="carousel"][data-part="indicator"][data-index="0"]'
+            '[data-scope="carousel"][data-part="indicator"][data-index="0"]',
           )
           for (
             let index = 0;
@@ -365,7 +365,7 @@ test.describe.parallel("storybook visual", () => {
           await page.evaluate(async () => {
             const groups = [
               ...document.querySelectorAll<HTMLElement>(
-                '[data-scope="carousel"][data-part="item-group"]'
+                '[data-scope="carousel"][data-part="item-group"]',
               ),
             ]
 
@@ -379,7 +379,7 @@ test.describe.parallel("storybook visual", () => {
                 await new Promise<void>((resolve) =>
                   requestAnimationFrame(() => {
                     resolve()
-                  })
+                  }),
                 )
                 const current = el.scrollLeft + el.scrollTop
                 if (Math.abs(current - last) < 1) {
@@ -390,14 +390,14 @@ test.describe.parallel("storybook visual", () => {
             }
 
             await Promise.all(
-              groups.map(async (group) => waitForStableScroll(group))
+              groups.map(async (group) => waitForStableScroll(group)),
             )
           })
         }
 
         if (story.id.includes("carousel--autoplay")) {
           const autoplayTrigger = page.locator(
-            '[data-scope="carousel"][data-part="autoplay-trigger"]'
+            '[data-scope="carousel"][data-part="autoplay-trigger"]',
           )
           if (await autoplayTrigger.count()) {
             const label = await autoplayTrigger.getAttribute("aria-label")
@@ -428,7 +428,7 @@ test.describe.parallel("storybook visual", () => {
             trees.forEach((tree) => {
               tree
                 .querySelectorAll(
-                  "[data-selected], [data-highlighted], [data-focused]"
+                  "[data-selected], [data-highlighted], [data-focused]",
                 )
                 .forEach((el) => {
                   delete el.dataset.selected
@@ -455,9 +455,9 @@ test.describe.parallel("storybook visual", () => {
               requestAnimationFrame(() =>
                 requestAnimationFrame(() => {
                   resolve()
-                })
-              )
-            )
+                }),
+              ),
+            ),
         )
 
         if (story.id === "atoms-button--states") {

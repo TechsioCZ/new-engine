@@ -11,7 +11,7 @@ interface PaykitWebhookMappingOptions {
   normalizeAmount?: (
     amount: BigNumberValue | undefined,
     payment: PaykitPayment,
-    event: PaykitWebhookEvent
+    event: PaykitWebhookEvent,
   ) => BigNumberValue | undefined
 }
 
@@ -34,7 +34,7 @@ interface SerializableBigNumber {
 }
 
 const isSerializableBigNumber = (
-  value: unknown
+  value: unknown,
 ): value is SerializableBigNumber =>
   isRecord(value) &&
   typeof value["toJSON"] === "function" &&
@@ -54,7 +54,7 @@ const toBigNumberValue = (value: unknown): BigNumberValue | undefined => {
 }
 
 export const mapPaykitStatusToMedusa = (
-  status: unknown
+  status: unknown,
 ): PaymentSessionStatus => {
   switch (status) {
     case "requires_action":
@@ -96,7 +96,7 @@ const getPaymentUrl = (payment: PaykitPayment): string | undefined =>
   undefined
 
 export const toPaykitPaymentData = (
-  payment: PaykitPayment
+  payment: PaykitPayment,
 ): Record<string, unknown> => {
   const paymentUrl = getPaymentUrl(payment)
 
@@ -108,7 +108,7 @@ export const toPaykitPaymentData = (
 }
 
 export const toPaykitRefundData = (
-  refund: PaykitRefund
+  refund: PaykitRefund,
 ): Record<string, unknown> => ({ ...refund })
 
 const getWebhookPayment = (event: PaykitWebhookEvent): PaykitPayment | null => {
@@ -135,7 +135,7 @@ const getWebhookPayment = (event: PaykitWebhookEvent): PaykitPayment | null => {
 
 const getWebhookSessionId = (
   event: PaykitWebhookEvent,
-  payment: PaykitPayment
+  payment: PaykitPayment,
 ): string | undefined => {
   if (
     isRecord(payment.metadata) &&
@@ -156,12 +156,12 @@ const getWebhookSessionId = (
 
 const getWebhookAmount = (
   event: PaykitWebhookEvent,
-  payment: PaykitPayment
+  payment: PaykitPayment,
 ): BigNumberValue | undefined =>
   normalizeWebhookAmount(event.amount ?? payment.amount ?? payment.amount_paid)
 
 const normalizeWebhookAmount = (
-  amount: unknown
+  amount: unknown,
 ): BigNumberValue | undefined => {
   if (
     typeof amount === "object" &&
@@ -177,7 +177,7 @@ const normalizeWebhookAmount = (
 
 const mapPaykitWebhookAction = (
   event: PaykitWebhookEvent,
-  payment: PaykitPayment
+  payment: PaykitPayment,
 ): PaymentActions => {
   if (event.is_raw) {
     return PaymentActions.NOT_SUPPORTED
@@ -232,7 +232,7 @@ const mapPaykitWebhookAction = (
 
 export const mapPaykitWebhookEvent = (
   event?: PaykitWebhookEvent,
-  options: PaykitWebhookMappingOptions = {}
+  options: PaykitWebhookMappingOptions = {},
 ): WebhookActionResult => {
   if (!event) {
     return { action: PaymentActions.NOT_SUPPORTED }

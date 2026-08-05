@@ -59,14 +59,14 @@ const isDateOrString = (value: unknown): value is Date | string =>
   value instanceof Date || typeof value === "string"
 
 const isSymmyWebhookEndpoint = (
-  value: unknown
+  value: unknown,
 ): value is SymmyWebhookEndpoint =>
   isObjectMap(value) &&
   typeof value.url === "string" &&
   typeof value.enabled === "boolean"
 
 const isRawSymmyWebhookConfigDTO = (
-  value: unknown
+  value: unknown,
 ): value is RawSymmyWebhookConfigDTO =>
   isObjectMap(value) &&
   typeof value.id === "string" &&
@@ -78,7 +78,7 @@ const isRawSymmyWebhookConfigDTO = (
   (value.updated_at === undefined || isDateOrString(value.updated_at))
 
 const normalizeEndpoint = (
-  endpoint: SymmyWebhookEndpoint
+  endpoint: SymmyWebhookEndpoint,
 ): SymmyWebhookEndpoint => ({
   enabled: endpoint.enabled,
   url: endpoint.url.trim(),
@@ -101,7 +101,7 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
     if (!isRawSymmyWebhookConfigDTO(raw)) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "[symmy-plugin] Invalid webhook config data"
+        "[symmy-plugin] Invalid webhook config data",
       )
     }
 
@@ -114,7 +114,7 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
   async getConfig(): Promise<SymmyWebhookConfigDTO> {
     const configs = await this.listSymmyWebhookConfigs(
       { config_key: DEFAULT_CONFIG_KEY },
-      { take: 1 }
+      { take: 1 },
     )
     const existing = configs[0]
     if (existing) {
@@ -131,7 +131,7 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
   }
 
   async updateConfig(
-    input: UpdateSymmyWebhookConfigInput
+    input: UpdateSymmyWebhookConfigInput,
   ): Promise<SymmyWebhookConfigDTO> {
     const existing = await this.getConfig()
     const updated = await this.updateSymmyWebhookConfigs({
@@ -175,17 +175,17 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
 
           if (!response.ok) {
             this.logger_.warn(
-              `[symmy-plugin] Webhook ${endpoint.url} returned ${response.status} for job ${payload.job.id}`
+              `[symmy-plugin] Webhook ${endpoint.url} returned ${response.status} for job ${payload.job.id}`,
             )
           }
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Unknown webhook error"
           this.logger_.warn(
-            `[symmy-plugin] Failed to deliver webhook ${endpoint.url} for job ${payload.job.id}: ${message}`
+            `[symmy-plugin] Failed to deliver webhook ${endpoint.url} for job ${payload.job.id}: ${message}`,
           )
         }
-      })
+      }),
     )
   }
 }

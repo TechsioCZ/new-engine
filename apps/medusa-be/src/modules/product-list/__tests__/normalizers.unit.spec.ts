@@ -30,12 +30,12 @@ describe("product-list normalizers", () => {
       "accepts %s access",
       (accessType) => {
         expect(normalizeProductListAccessType(accessType)).toBe(accessType)
-      }
+      },
     )
 
     it("rejects unsupported access values", () => {
       expect(
-        catchError(() => normalizeProductListAccessType("shared"))
+        catchError(() => normalizeProductListAccessType("shared")),
       ).toMatchObject({
         message: "Unsupported product list access type: shared",
         type: MedusaError.Types.INVALID_DATA,
@@ -57,7 +57,7 @@ describe("product-list normalizers", () => {
 
     it("rejects unsupported list types", () => {
       expect(
-        catchError(() => normalizeProductListType("collection"))
+        catchError(() => normalizeProductListType("collection")),
       ).toMatchObject({
         message: "Unsupported product list type: collection",
         type: MedusaError.Types.INVALID_DATA,
@@ -78,7 +78,7 @@ describe("product-list normalizers", () => {
 
     it.each([0, -1, 1.5, "2"])("rejects %s", (value) => {
       expect(
-        catchError(() => normalizePositiveInteger("quantity", value))
+        catchError(() => normalizePositiveInteger("quantity", value)),
       ).toMatchObject({
         message: "quantity must be a positive integer",
         type: MedusaError.Types.INVALID_DATA,
@@ -99,7 +99,7 @@ describe("product-list normalizers", () => {
 
     it.each([-1, 1.5, "0"])("rejects %s", (value) => {
       expect(
-        catchError(() => normalizeNonNegativeInteger("sort_order", value))
+        catchError(() => normalizeNonNegativeInteger("sort_order", value)),
       ).toMatchObject({
         message: "sort_order must be a non-negative integer",
         type: MedusaError.Types.INVALID_DATA,

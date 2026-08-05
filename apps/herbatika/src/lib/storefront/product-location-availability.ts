@@ -18,7 +18,7 @@ export interface ProductLocationAvailabilityQueryState {
 
 export const resolveSelectedVariantLocationAvailability = (
   availability: ProductLocationAvailabilityResponse | null,
-  variantId: string | null
+  variantId: string | null,
 ) => {
   if (!(availability && variantId)) {
     return null
@@ -33,20 +33,20 @@ export const resolveSelectedVariantLocationAvailability = (
 export const resolveProductLocationAvailabilityState = (
   availabilityQuery: ProductLocationAvailabilityQueryState,
   variantId: string | null,
-  options: { isInventoryManaged?: boolean | null | undefined } = {}
+  options: { isInventoryManaged?: boolean | null | undefined } = {},
 ): ProductLocationAvailabilityState => ({
   error: availabilityQuery.error,
   isInventoryManaged: options.isInventoryManaged !== false,
   isLoading: availabilityQuery.isLoading,
   items: resolveSelectedVariantLocationAvailability(
     availabilityQuery.productLocationAvailability,
-    variantId
+    variantId,
   ),
 })
 
 export const formatLocationAvailability = (
   availableQuantity: number,
-  options: { isInventoryManaged?: boolean | null | undefined } = {}
+  options: { isInventoryManaged?: boolean | null | undefined } = {},
 ) => {
   if (options.isInventoryManaged === false) {
     return "Skladom"

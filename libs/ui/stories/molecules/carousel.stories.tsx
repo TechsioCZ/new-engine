@@ -5,11 +5,11 @@ import type { CarouselSlide } from "../../src/molecules/carousel"
 
 const mixedImageOne = new URL(
   "../../assets/gallery/shoes-1.jpg",
-  import.meta.url
+  import.meta.url,
 ).href
 const mixedImageTwo = new URL(
   "../../assets/gallery/shoes-2.jpg",
-  import.meta.url
+  import.meta.url,
 ).href
 
 const sampleImages: CarouselSlide[] = [

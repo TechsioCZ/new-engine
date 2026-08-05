@@ -51,7 +51,7 @@ import type { UpdateStockBatchSchemaType } from "./validators"
  */
 export const POST = async (
   req: MedusaRequest<UpdateStockBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const { result } = await updateStockBatchWorkflow(req.scope).run({
     input: { updates: req.validatedBody.updates },

@@ -85,7 +85,7 @@ export interface CartService<
   updateLineItem?: (
     cartId: string,
     lineItemId: string,
-    params: TUpdateItemParams
+    params: TUpdateItemParams,
   ) => Promise<TCart>
   removeLineItem?: (cartId: string, lineItemId: string) => Promise<TCart>
   transferCart?: (cartId: string) => Promise<TCart>

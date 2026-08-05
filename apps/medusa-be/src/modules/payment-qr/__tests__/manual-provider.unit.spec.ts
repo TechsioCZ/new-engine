@@ -13,7 +13,7 @@ const PNG_DATA_URL_PATTERN = /^data:image\/png;base64,/
 // through `unknown` because `QrPaymentModuleService` (which has every
 // member, including `getIban`) is assignable to this narrower literal type.
 const createMockQrPaymentModule = (
-  getIban: () => Promise<string | null>
+  getIban: () => Promise<string | null>,
 ): QrPaymentModuleService => ({ getIban }) as QrPaymentModuleService
 
 // updatePayment delegates to initiatePayment at runtime (which resolves an
@@ -40,13 +40,13 @@ describe(QrManualPaymentProvider, () => {
     expect(result.id).toBe("1234567890")
     expect(result.status).toBe("pending")
     expect(result.data?.["payment_qr_spayd"]).toContain(
-      "ACC:CZ6508000000192000145399"
+      "ACC:CZ6508000000192000145399",
     )
     expect(result.data?.["payment_qr_spayd"]).toContain("AM:1234.50")
     expect(result.data?.["payment_qr_spayd"]).toContain("CC:CZK")
     expect(result.data?.["payment_qr_spayd"]).toContain("X-VS:1234567890")
     expect(result.data?.["payment_qr_data_url"]).toStrictEqual(
-      expect.stringMatching(PNG_DATA_URL_PATTERN)
+      expect.stringMatching(PNG_DATA_URL_PATTERN),
     )
     expect(result.data?.["qr_payment"]).toMatchObject({
       amount: 1234.5,
@@ -109,7 +109,7 @@ describe(QrManualPaymentProvider, () => {
         data: {
           payment_qr_spayd: "SPD*1.0",
         },
-      })
+      }),
     ).resolves.toStrictEqual({
       data: {
         payment_qr_spayd: "SPD*1.0",

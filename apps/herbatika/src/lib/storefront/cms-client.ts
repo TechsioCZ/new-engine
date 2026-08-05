@@ -15,7 +15,7 @@ const trimSlashes = (value: string) => value.replaceAll(/^\/+|\/+$/g, "")
 
 const buildCmsUrl = (
   path: string,
-  params?: Record<string, string | number>
+  params?: Record<string, string | number>,
 ) => {
   const url = new URL(`/store/cms/${trimSlashes(path)}`, CMS_MEDUSA_BASE_URL)
 
@@ -30,7 +30,7 @@ const buildCmsUrl = (
 
 export const fetchCmsJson = async <TResponse>(
   path: string,
-  params?: Record<string, string | number>
+  params?: Record<string, string | number>,
 ): Promise<TResponse | null> => {
   let response: Response
 
@@ -56,7 +56,7 @@ export const fetchCmsJson = async <TResponse>(
 }
 
 const resolveCmsMediaPath = (
-  media: CmsMedia | string | null | undefined
+  media: CmsMedia | string | null | undefined,
 ): string | null => {
   if (typeof media === "string") {
     return media
@@ -66,7 +66,7 @@ const resolveCmsMediaPath = (
 }
 
 export const resolveCmsMediaUrl = (
-  media: CmsMedia | string | null | undefined
+  media: CmsMedia | string | null | undefined,
 ): string | null => {
   const mediaPath = resolveCmsMediaPath(media)
 
@@ -95,7 +95,7 @@ export const rewriteCmsHtmlMediaUrls = (html: string) => {
   return html.replaceAll(
     /\b(src|href)=["'](\/api\/media\/file\/[^"']+)["']/g,
     (_match, attribute: string, url: string) =>
-      `${attribute}="${new URL(url, CMS_MEDIA_BASE_URL).toString()}"`
+      `${attribute}="${new URL(url, CMS_MEDIA_BASE_URL).toString()}"`,
   )
 }
 

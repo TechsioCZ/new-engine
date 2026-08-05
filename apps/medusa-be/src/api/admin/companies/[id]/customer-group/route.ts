@@ -10,7 +10,7 @@ import type { AdminAddCompanyToCustomerGroupType } from "../../validators"
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<AdminAddCompanyToCustomerGroupType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const id = requirePathParam(req.params["id"], "Company id")
@@ -28,7 +28,7 @@ export const POST = async (
       fields: req.queryConfig.fields,
       filters: { id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ company })

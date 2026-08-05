@@ -109,8 +109,8 @@ export function createAuthHooks<
   const invalidateCrossDomain = async (queryClient: QueryClient) => {
     await Promise.all(
       invalidateKeys.map(async (queryKey) =>
-        queryClient.invalidateQueries({ queryKey })
-      )
+        queryClient.invalidateQueries({ queryKey }),
+      ),
     )
   }
 
@@ -121,7 +121,7 @@ export function createAuthHooks<
   }
 
   function useAuth(
-    options?: AuthQueryInput<TCustomer>
+    options?: AuthQueryInput<TCustomer>,
   ): UseAuthResult<TCustomer> {
     const query = useQuery({
       enabled: options?.enabled ?? true,
@@ -172,7 +172,7 @@ export function createAuthHooks<
   }
 
   function useLogin<TContext = unknown>(
-    options?: AuthMutationOptions<TLoginResult, TLoginInput, TContext>
+    options?: AuthMutationOptions<TLoginResult, TLoginInput, TContext>,
   ) {
     const queryClient = useQueryClient()
     return useMutation<TLoginResult, unknown, TLoginInput, TContext>({
@@ -196,7 +196,7 @@ export function createAuthHooks<
   }
 
   function useRegister<TContext = unknown>(
-    options?: AuthMutationOptions<TRegisterResult, TRegisterInput, TContext>
+    options?: AuthMutationOptions<TRegisterResult, TRegisterInput, TContext>,
   ) {
     const queryClient = useQueryClient()
     return useMutation<TRegisterResult, unknown, TRegisterInput, TContext>({
@@ -220,7 +220,7 @@ export function createAuthHooks<
   }
 
   function useCreateCustomer<TContext = unknown>(
-    options?: AuthMutationOptions<TCustomer, TCreateCustomerInput, TContext>
+    options?: AuthMutationOptions<TCustomer, TCreateCustomerInput, TContext>,
   ) {
     const queryClient = useQueryClient()
     return useMutation<TCustomer, unknown, TCreateCustomerInput, TContext>({
@@ -249,7 +249,7 @@ export function createAuthHooks<
   }
 
   function useLogout<TContext = unknown>(
-    options?: AuthMutationOptions<void, void, TContext>
+    options?: AuthMutationOptions<void, void, TContext>,
   ) {
     const queryClient = useQueryClient()
     return useMutation<void, unknown, void, TContext>({
@@ -274,7 +274,7 @@ export function createAuthHooks<
   }
 
   function useUpdateCustomer<TContext = unknown>(
-    options?: AuthMutationOptions<TCustomer, TUpdateInput, TContext>
+    options?: AuthMutationOptions<TCustomer, TUpdateInput, TContext>,
   ) {
     const queryClient = useQueryClient()
     return useMutation<TCustomer, unknown, TUpdateInput, TContext>({
@@ -300,7 +300,7 @@ export function createAuthHooks<
   }
 
   function useRefreshAuth<TContext = unknown>(
-    options?: AuthMutationOptions<unknown, void, TContext>
+    options?: AuthMutationOptions<unknown, void, TContext>,
   ) {
     const queryClient = useQueryClient()
     return useMutation<unknown, unknown, void, TContext>({

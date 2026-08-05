@@ -6,7 +6,7 @@ type DebouncedFunction<TArguments extends unknown[]> = ((
 
 export function debounce<TArguments extends unknown[]>(
   callback: (...arguments_: TArguments) => void,
-  delay: number
+  delay: number,
 ): DebouncedFunction<TArguments> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined
 

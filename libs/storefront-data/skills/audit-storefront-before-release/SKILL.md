@@ -39,7 +39,7 @@ await queryClient.prefetchQuery(
     region_id: "reg_123",
     country_code: "cz",
     limit: 24,
-  })
+  }),
 )
 ```
 

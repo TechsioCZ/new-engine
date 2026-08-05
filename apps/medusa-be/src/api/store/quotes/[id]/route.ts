@@ -12,19 +12,19 @@ import type { GetQuoteParamsType } from "../validators"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<GetQuoteParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const { id } = req.params
 
   if (!id) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "The id path parameter is required"
+      "The id path parameter is required",
     )
   }
 
   const query = req.scope.resolve<RemoteQueryFunction>(
-    ContainerRegistrationKeys.QUERY
+    ContainerRegistrationKeys.QUERY,
   )
 
   const {
@@ -38,7 +38,7 @@ export const GET = async (
         id,
       },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ quote })

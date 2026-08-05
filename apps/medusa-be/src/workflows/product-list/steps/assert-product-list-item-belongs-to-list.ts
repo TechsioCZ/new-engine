@@ -18,10 +18,10 @@ export const assertProductListItemBelongsToListStep = createStep(
       // Intentionally return NOT_FOUND to avoid leaking that an item exists on another list.
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Product list item ${input.item.id} was not found`
+        `Product list item ${input.item.id} was not found`,
       )
     }
 
     return new StepResponse({ item_id: input.item.id })
-  }
+  },
 )

@@ -4,7 +4,7 @@ type QueryParams<T extends string> = Record<T, string | undefined>
 
 export function useQueryParams<T extends string>(
   keys: T[],
-  prefix?: string
+  prefix?: string,
 ): QueryParams<T> {
   const [params] = useSearchParams()
 

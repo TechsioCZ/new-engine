@@ -85,7 +85,7 @@ const resolveTopOfferCode = (product: HttpTypes.StoreProduct) => {
 }
 
 export const resolveRecommendedProductFamilyKey = (
-  product: HttpTypes.StoreProduct
+  product: HttpTypes.StoreProduct,
 ) => {
   const primarySetItem = resolvePrimarySetItem(product)
   if (primarySetItem?.code) {
@@ -107,7 +107,7 @@ export const resolveRecommendedProductFamilyKey = (
 }
 
 const resolveRecommendedProductPackageMultiplier = (
-  product: HttpTypes.StoreProduct
+  product: HttpTypes.StoreProduct,
 ) => {
   const primarySetItem = resolvePrimarySetItem(product)
   if (primarySetItem?.amount) {
@@ -137,7 +137,7 @@ const resolveRecommendedProductInStock = (product: HttpTypes.StoreProduct) => {
 
 const isBetterRecommendedProductCandidate = (
   nextCandidate: RecommendedProductCandidate,
-  currentCandidate: RecommendedProductCandidate
+  currentCandidate: RecommendedProductCandidate,
 ) => {
   if (nextCandidate.isInStock !== currentCandidate.isInStock) {
     return nextCandidate.isInStock
@@ -152,7 +152,7 @@ const isBetterRecommendedProductCandidate = (
 
 export const selectRecommendedProductRepresentatives = (
   products: HttpTypes.StoreProduct[],
-  limit: number
+  limit: number,
 ) => {
   const resolvedLimit = Math.max(limit, 0)
   if (resolvedLimit === 0 || products.length === 0) {

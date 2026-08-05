@@ -2,7 +2,7 @@ import { z } from "zod"
 
 export function requireLiveZaneCredentials(
   value: { apiToken: string; baseUrl: string; dryRun: boolean },
-  ctx: z.RefinementCtx
+  ctx: z.RefinementCtx,
 ): void {
   if (!(value.dryRun || value.baseUrl)) {
     ctx.addIssue({

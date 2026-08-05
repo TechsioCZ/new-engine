@@ -24,7 +24,7 @@ function getRequired<T>(values: readonly T[], index: number): T {
 }
 
 function createMockOrder(
-  overrides: Partial<CommercialValuesOrder> = {}
+  overrides: Partial<CommercialValuesOrder> = {},
 ): CommercialValuesOrder {
   const baseOrder: CommercialValuesOrder = {
     currency_code: "czk",
@@ -77,14 +77,15 @@ describe("commercial values route utils", () => {
         ],
         total: 19.49,
         version: 2,
-      })
+      }),
     )
 
     expect(snapshot.totals.current_total).toBe(19.49)
     expect(getRequired(snapshot.items, 0).quantity).toBe(1.5)
     expect(getRequired(snapshot.items, 0).unit_price).toBe(19.99)
     expect(
-      getRequired(getRequired(snapshot.items, 0).existing_adjustments, 0).amount
+      getRequired(getRequired(snapshot.items, 0).existing_adjustments, 0)
+        .amount,
     ).toBe(0.5)
   })
 
@@ -105,7 +106,7 @@ describe("commercial values route utils", () => {
             variant_title: "Black",
           },
         ],
-      })
+      }),
     )
 
     expect(getRequired(snapshot.items, 0)).toMatchObject({
@@ -126,7 +127,7 @@ describe("commercial values route utils", () => {
         id: "oc_1",
         status: "pending",
         version: 1,
-      }
+      },
     )
 
     expect(snapshot.edit_blockers).toStrictEqual([
@@ -201,11 +202,11 @@ describe("commercial values route utils", () => {
       await fetchCommercialValuesSnapshotOrder(
         container as never,
         query as never,
-        "order_1"
+        "order_1",
       )
     const snapshot = toCommercialValuesSnapshot(
       snapshotOrder,
-      activeOrderChange
+      activeOrderChange,
     )
 
     expect(snapshot.currency_code).toBe("czk")
@@ -231,7 +232,7 @@ describe("commercial values route utils", () => {
           },
         ],
         total: 500,
-      })
+      }),
     )
 
     expect(getRequired(snapshot.items, 0).unit_price).toBe(250)
@@ -252,7 +253,7 @@ describe("commercial values route utils", () => {
           },
         ],
         total: 500,
-      })
+      }),
     )
 
     expect(getRequired(snapshot.items, 0).quantity).toBe(2)
@@ -271,7 +272,7 @@ describe("commercial values route utils", () => {
           },
         ],
         total: 500,
-      })
+      }),
     )
 
     expect(getRequired(snapshot.items, 0).quantity).toBe(2)
@@ -290,7 +291,7 @@ describe("commercial values route utils", () => {
           },
         ],
         total: 500,
-      })
+      }),
     )
 
     expect(getRequired(snapshot.items, 0).quantity).toBe(2)
@@ -318,7 +319,7 @@ describe("commercial values route utils", () => {
       {
         expected_order_version: 2,
         items: [{ item_id: "item_1", unit_price: 100 }],
-      }
+      },
     )
 
     const preview = calculateCommercialValuesPreview(calculationInput)
@@ -357,7 +358,7 @@ describe("commercial values route utils", () => {
       {
         expected_order_version: 2,
         items: [{ item_id: "item_2", unit_price: 600 }],
-      }
+      },
     )
 
     const preview = calculateCommercialValuesPreview(calculationInput)
@@ -407,7 +408,7 @@ describe("commercial values route utils", () => {
 
     expect(preview.shipping_discount_total).toBe(25)
     expect(getRequired(preview.shipping_methods, 0).final_total).toBeCloseTo(
-      69.16666666666667
+      69.16666666666667,
     )
     expect(getRequired(preview.shipping_methods, 0)).toMatchObject({
       final_total_with_tax: 83,
@@ -415,7 +416,7 @@ describe("commercial values route utils", () => {
       shipping_method_id: "ship_1",
     })
     expect(getRequired(preview.shipping_methods, 0).tax_total).toBeCloseTo(
-      13.833333333333329
+      13.833333333333329,
     )
     expect(preview.new_total).toBe(1083)
   })
@@ -454,14 +455,14 @@ describe("commercial values route utils", () => {
             shipping_method_id: "ship_1",
           },
         ],
-      }
+      },
     )
 
     const preview = calculateCommercialValuesPreview(calculationInput)
 
     expect(getRequired(preview.items, 0).final_line_total_with_tax).toBe(8.49)
     expect(
-      getRequired(preview.shipping_methods, 0).final_total_with_tax
+      getRequired(preview.shipping_methods, 0).final_total_with_tax,
     ).toBeCloseTo(9)
     expect(preview.new_total).toBeCloseTo(17.49)
   })
@@ -502,7 +503,7 @@ describe("commercial values route utils", () => {
             unit_price: 8.49,
           },
         ],
-      })
+      }),
     )
     const shippingPreview = calculateCommercialValuesPreview(
       toCommercialValuesCalculationInput(order, {
@@ -514,13 +515,13 @@ describe("commercial values route utils", () => {
             shipping_method_id: "ship_1",
           },
         ],
-      })
+      }),
     )
 
     expect(getRequired(itemPreview.items, 0).final_line_total_with_tax).toBe(0)
     expect(itemPreview.new_total).toBeCloseTo(10)
     expect(
-      getRequired(shippingPreview.shipping_methods, 0).final_total_with_tax
+      getRequired(shippingPreview.shipping_methods, 0).final_total_with_tax,
     ).toBe(0)
     expect(shippingPreview.new_total).toBeCloseTo(8.49)
   })
@@ -578,8 +579,8 @@ describe("commercial values route utils", () => {
     expect(
       getRequired(
         getRequired(snapshot.shipping_methods, 0).existing_adjustments,
-        0
-      ).amount
+        0,
+      ).amount,
     ).toBeCloseTo(9)
     expect(preview.new_total).toBeCloseTo(1)
   })
@@ -604,12 +605,12 @@ describe("commercial values route utils", () => {
             unit_price: 1000,
           },
         ],
-      })
+      }),
     )
 
     expect(
       getRequired(getRequired(snapshot.items, 0).existing_adjustments, 0)
-        .discount_intent
+        .discount_intent,
     ).toStrictEqual({
       type: "percentage",
       value_bps: 9000,
@@ -681,13 +682,13 @@ describe("commercial values route utils", () => {
     expect(snapshot.totals.current_total).toBe(-1.07)
     expect(snapshot.totals.original_total).toBeCloseTo(18.49)
     expect(
-      getRequired(snapshot.shipping_methods, 0).current_tax_total
+      getRequired(snapshot.shipping_methods, 0).current_tax_total,
     ).toBeCloseTo(1.8699186991869918)
     expect(
       getRequired(
         getRequired(snapshot.shipping_methods, 0).existing_adjustments,
-        0
-      ).amount
+        0,
+      ).amount,
     ).toBeCloseTo(11.07)
     expect(preview.new_total).toBeCloseTo(1)
   })
@@ -709,21 +710,21 @@ describe("commercial values route utils", () => {
         expected_order_version: 1,
         items: [{ item_id: "item_1", unit_price: 1000 }],
         order_discount: { amount: 150, type: "amount" },
-      }
+      },
     )
 
     const preview = calculateCommercialValuesPreview(calculationInput)
 
     expect(getRequired(preview.items, 0).manual_order_discount_amount).toBe(100)
     expect(
-      getRequired(preview.shipping_methods, 0).manual_order_discount_amount
+      getRequired(preview.shipping_methods, 0).manual_order_discount_amount,
     ).toBe(50)
     expect(preview.new_total).toBe(1350)
   })
 
   it("rejects orders without a currency code", () => {
     expect(() =>
-      toCommercialValuesSnapshot(createMockOrder({ currency_code: null }))
+      toCommercialValuesSnapshot(createMockOrder({ currency_code: null })),
     ).toThrow("Order currency_code is missing")
   })
 

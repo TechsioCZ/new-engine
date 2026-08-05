@@ -32,7 +32,7 @@ const resolveRequestedQuantity = (quantity: number) => {
 
 export const resolveVariantInventoryState = (
   variant?: HttpTypes.StoreProductVariant | null,
-  quantity = 1
+  quantity = 1,
 ): VariantInventoryState => {
   const variantRecord = asStorefrontRecord(variant)
   const requestedQuantity = resolveRequestedQuantity(quantity)
@@ -108,7 +108,7 @@ export const resolveVariantInventoryState = (
     manageInventory,
     maxPurchaseQuantity: Math.max(
       1,
-      Math.min(DEFAULT_MAX_PURCHASE_QUANTITY, availableQuantity)
+      Math.min(DEFAULT_MAX_PURCHASE_QUANTITY, availableQuantity),
     ),
   }
 }

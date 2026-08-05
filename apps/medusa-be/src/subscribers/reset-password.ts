@@ -17,7 +17,7 @@ export default async function resetPasswordHandler({
   if (!storefrontUrl) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "STOREFRONT_URL env var is not set — cannot build password reset link"
+      "STOREFRONT_URL env var is not set — cannot build password reset link",
     )
   }
 

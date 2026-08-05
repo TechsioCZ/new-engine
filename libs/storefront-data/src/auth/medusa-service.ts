@@ -31,7 +31,7 @@ export class MedusaRegistrationSignInError extends Error {
 
   constructor(email: string, reason: unknown) {
     super(
-      "Customer account was created, but automatic sign-in failed. Please sign in again."
+      "Customer account was created, but automatic sign-in failed. Please sign in again.",
     )
     this.name = "MedusaRegistrationSignInError"
     this.email = email
@@ -50,7 +50,7 @@ export interface MedusaAuthServiceConfig {
 
 const defaultReportLogoutError = (
   error: unknown,
-  context: MedusaLogoutErrorContext
+  context: MedusaLogoutErrorContext,
 ) => {
   let message =
     "[storefront-data/auth] Failed to cleanup auth session after register error."
@@ -90,7 +90,7 @@ const defaultReportLogoutError = (
  */
 export function createMedusaAuthService(
   sdk: Medusa,
-  config?: MedusaAuthServiceConfig
+  config?: MedusaAuthServiceConfig,
 ): AuthService<
   HttpTypes.StoreCustomer,
   MedusaAuthCredentials,
@@ -102,7 +102,7 @@ export function createMedusaAuthService(
 > {
   const reportLogoutError = (
     error: unknown,
-    context: MedusaLogoutErrorContext
+    context: MedusaLogoutErrorContext,
   ) => {
     if (config?.onLogoutError) {
       try {
@@ -149,7 +149,7 @@ export function createMedusaAuthService(
         const { customer } =
           await sdk.client.fetch<HttpTypes.StoreCustomerResponse>(
             "/store/customers/me",
-            { signal: signal ?? null }
+            { signal: signal ?? null },
           )
         if (!customer) {
           return null
@@ -160,7 +160,7 @@ export function createMedusaAuthService(
           customer.addresses = [...customer.addresses].sort(
             (a, b) =>
               toComparableTimestamp(a.created_at) -
-              toComparableTimestamp(b.created_at)
+              toComparableTimestamp(b.created_at),
           )
         }
         return customer
@@ -204,7 +204,7 @@ export function createMedusaAuthService(
         {
           email: data.email,
           password: data.password,
-        }
+        },
       )
       let customerCreated = false
 
@@ -233,7 +233,7 @@ export function createMedusaAuthService(
             email: data.email,
             first_name: data.first_name,
             last_name: data.last_name,
-          })
+          }),
         )
         customerCreated = true
 

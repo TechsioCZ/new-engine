@@ -74,16 +74,16 @@ type PacketaConfigPayload = Partial<PacketaConfigInput> &
   Partial<Record<ClearableField, string | null>>
 
 const CLEARABLE_FIELD_SET: ReadonlySet<keyof PacketaConfigInput> = new Set(
-  CLEARABLE_FIELDS
+  CLEARABLE_FIELDS,
 )
 
 const isClearableField = (
-  field: keyof PacketaConfigInput
+  field: keyof PacketaConfigInput,
 ): field is ClearableField => CLEARABLE_FIELD_SET.has(field)
 
 const getStringField = (
   data: PacketaConfigInput,
-  field: keyof PacketaConfigInput
+  field: keyof PacketaConfigInput,
 ): string => {
   const value: unknown = data[field]
   return typeof value === "string" ? value : ""
@@ -107,7 +107,7 @@ interface FieldConfig {
 
 const getPlaceholder = (
   isCleared: boolean | undefined,
-  fieldConfig: FieldConfig
+  fieldConfig: FieldConfig,
 ): string => {
   if (isCleared) {
     return "Value will be cleared"
@@ -180,13 +180,13 @@ const PacketaSettingsPage = () => {
   const queryClient = useQueryClient()
   const [formData, setFormData] = useState<PacketaConfigInput>({})
   const [clearedFields, setClearedFields] = useState<Set<ClearableField>>(
-    new Set()
+    new Set(),
   )
 
   const { data, isLoading, error } = useQuery({
     queryFn: async () =>
       sdk.client.fetch<{ config: PacketaConfigResponse }>(
-        "/admin/packeta-config"
+        "/admin/packeta-config",
       ),
     queryKey: ["packeta-config"],
   })
@@ -243,7 +243,7 @@ const PacketaSettingsPage = () => {
 
   const updateField = (
     field: keyof PacketaConfigInput,
-    value: string | boolean | number
+    value: string | boolean | number,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (isClearableField(field) && clearedFields.has(field)) {
@@ -441,7 +441,7 @@ const PacketaSettingsPage = () => {
                   onChange={(e) => {
                     updateField(
                       "default_label_offset",
-                      Number.parseInt(e.target.value, 10) || 0
+                      Number.parseInt(e.target.value, 10) || 0,
                     )
                   }}
                   type="number"

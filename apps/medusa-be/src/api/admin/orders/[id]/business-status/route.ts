@@ -15,7 +15,7 @@ import type { PostAdminOrderBusinessStatusSchemaType } from "./validators"
 
 export async function POST(
   req: MedusaRequest<PostAdminOrderBusinessStatusSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id } = req.params
   const { status } = req.validatedBody

@@ -72,34 +72,34 @@ class ProductListModuleService extends MedusaService({
   @InjectManager()
   async createFavoriteProductList(
     input: CreateFavoriteProductListDTO = {},
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     return await this.createProductLists(
       {
         description: input.description ?? null,
         handle: normalizeTrimmedText(
           input.handle,
-          DEFAULT_FAVORITE_LIST_HANDLE
+          DEFAULT_FAVORITE_LIST_HANDLE,
         ),
         metadata: input.metadata ?? null,
         title: normalizeTrimmedText(input.title, DEFAULT_FAVORITE_LIST_TITLE),
         type: "favorite",
       },
-      sharedContext
+      sharedContext,
     )
   }
 
   @InjectManager()
   async createCustomProductList(
     input: CreateCustomProductListDTO,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const title = input.title.trim()
 
     if (!title) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Product list title is required"
+        "Product list title is required",
       )
     }
     const trimmedHandle = input.handle?.trim()
@@ -117,7 +117,7 @@ class ProductListModuleService extends MedusaService({
         title,
         type: "custom",
       },
-      sharedContext
+      sharedContext,
     )
   }
 
@@ -125,19 +125,19 @@ class ProductListModuleService extends MedusaService({
   async updateCustomProductList(
     listId: string,
     input: UpdateCustomProductListDTO,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const productList = await this.retrieveProductList(
       listId,
       {},
-      sharedContext
+      sharedContext,
     )
     const productListType = normalizeProductListType(productList.type)
 
     if (productListType !== "custom") {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Only custom product lists can be updated"
+        "Only custom product lists can be updated",
       )
     }
 
@@ -149,7 +149,7 @@ class ProductListModuleService extends MedusaService({
       if (!title) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          "Product list title is required"
+          "Product list title is required",
         )
       }
 
@@ -182,7 +182,7 @@ class ProductListModuleService extends MedusaService({
   @InjectManager()
   async createProductListItemForList(
     input: CreateProductListItemDTO,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     normalizeProductListType(input.list_type)
     const quantity = normalizePositiveInteger("quantity", input.quantity)
@@ -195,7 +195,7 @@ class ProductListModuleService extends MedusaService({
         quantity,
         sort_order: normalizeNonNegativeInteger("sort_order", input.sort_order),
       },
-      sharedContext
+      sharedContext,
     )
   }
 
@@ -203,13 +203,13 @@ class ProductListModuleService extends MedusaService({
   async incrementProductListItemQuantity(
     itemId: string,
     quantityToAdd = 1,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const incrementBy = normalizePositiveInteger("quantityToAdd", quantityToAdd)
     const item: ProductListItemRecord = await this.retrieveProductListItem(
       itemId,
       {},
-      sharedContext
+      sharedContext,
     )
 
     return await this.updateProductListItems(
@@ -217,7 +217,7 @@ class ProductListModuleService extends MedusaService({
         id: itemId,
         quantity: item.quantity + incrementBy,
       },
-      sharedContext
+      sharedContext,
     )
   }
 
@@ -225,23 +225,23 @@ class ProductListModuleService extends MedusaService({
   async decrementProductListItemQuantity(
     itemId: string,
     quantityToSubtract = 1,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const decrementBy = normalizePositiveInteger(
       "quantityToSubtract",
-      quantityToSubtract
+      quantityToSubtract,
     )
     const item: ProductListItemRecord = await this.retrieveProductListItem(
       itemId,
       {},
-      sharedContext
+      sharedContext,
     )
     const quantity = item.quantity - decrementBy
 
     if (quantity < 1) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Quantity cannot be decremented below 1"
+        "Quantity cannot be decremented below 1",
       )
     }
 
@@ -250,7 +250,7 @@ class ProductListModuleService extends MedusaService({
         id: itemId,
         quantity,
       },
-      sharedContext
+      sharedContext,
     )
   }
 
@@ -258,7 +258,7 @@ class ProductListModuleService extends MedusaService({
   async updateProductListItemForList(
     itemId: string,
     input: UpdateProductListItemDTO,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const data: UpdateProductListItemDTO & { id: string } = { id: itemId }
 
@@ -273,7 +273,7 @@ class ProductListModuleService extends MedusaService({
     if (input.sort_order !== undefined) {
       data.sort_order = normalizeNonNegativeInteger(
         "sort_order",
-        input.sort_order
+        input.sort_order,
       )
     }
 

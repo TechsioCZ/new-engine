@@ -835,7 +835,7 @@ export function createMedusaStorefrontPreset<
     TCartAddressPayload,
     TCustomerAddressCreateInput,
     TCustomerAddressUpdateInput
-  >
+  >,
 ): MedusaStorefrontPresetResult<
   TProduct,
   TCategory,
@@ -949,7 +949,7 @@ export function createMedusaStorefrontPreset<
     categories: serverRead.services.categories,
     checkout: createMedusaCheckoutService(
       config.sdk,
-      config.checkout?.serviceConfig
+      config.checkout?.serviceConfig,
     ),
     collections: serverRead.services.collections,
     customers:
@@ -1006,7 +1006,7 @@ export function createMedusaStorefrontPreset<
   const fallbackCatalogFacets = (config.catalog?.fallbackFacets ??
     createDefaultCatalogFacets()) as TCatalogFacets
   const buildMedusaAddLineItemParams = (
-    input: AddLineItemInputBase
+    input: AddLineItemInputBase,
   ): MedusaCartAddItemParams => ({
     quantity: input.quantity ?? 1,
     variant_id: input.variantId,

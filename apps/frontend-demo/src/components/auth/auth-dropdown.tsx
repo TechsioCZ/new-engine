@@ -159,7 +159,7 @@ function QuickLoginForm() {
               size: "sm",
               value: email,
             }),
-            isFormLoading
+            isFormLoading,
           )}
         />
 
@@ -173,7 +173,7 @@ function QuickLoginForm() {
               size: "sm",
               value: password,
             }),
-            isFormLoading
+            isFormLoading,
           )}
         />
       </div>

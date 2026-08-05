@@ -38,12 +38,12 @@ const parseOrder = (value: string = "name") => {
 
 export async function GET(
   req: MedusaRequest<unknown, AdminGetMeasurementUnitsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const service = getMeasurementUnitService(req.scope)
   const { code, include_deleted, limit, offset, q, status } = req.validatedQuery
   const order = parseOrder(
-    req.validatedQuery.order_by ?? req.validatedQuery.order
+    req.validatedQuery.order_by ?? req.validatedQuery.order,
   )
   const resolvedStatus = status ?? (include_deleted ? "all" : "active")
   const escapedQuery = q ? escapeLikePattern(q) : undefined
@@ -76,14 +76,14 @@ export async function GET(
   })
   const activeProductCounts = await getMeasurementUnitActiveProductCounts(
     req.scope,
-    units.map((unit) => unit.id)
+    units.map((unit) => unit.id),
   )
 
   res.json({
     count,
     limit,
     measurement_units: units.map((unit) =>
-      toMeasurementUnitResponse(unit, activeProductCounts.get(unit.id) ?? 0)
+      toMeasurementUnitResponse(unit, activeProductCounts.get(unit.id) ?? 0),
     ),
     offset,
   })
@@ -91,7 +91,7 @@ export async function GET(
 
 export async function POST(
   req: MedusaRequest<AdminCreateMeasurementUnitSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const input: MeasurementUnitInput = {
     base_quantity: req.validatedBody.base_quantity,
@@ -110,12 +110,12 @@ export async function POST(
   if (!created?.id) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Measurement unit creation failed: missing id"
+      "Measurement unit creation failed: missing id",
     )
   }
 
   const unit = await getMeasurementUnitService(
-    req.scope
+    req.scope,
   ).retrieveMeasurementUnit(created.id)
 
   res.status(201).json({

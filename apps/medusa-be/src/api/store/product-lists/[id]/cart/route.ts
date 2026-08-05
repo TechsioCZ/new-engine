@@ -24,7 +24,7 @@ const refetchCart = async (id: string, scope: MedusaContainer) => {
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreCreateProductListCartSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result } = await createCartFromProductListWorkflow(req.scope).run({

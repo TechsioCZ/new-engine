@@ -20,7 +20,7 @@ export const StoreGetApprovals = createFindParams()
           createOperatorMap(),
         ])
         .optional(),
-    })
+    }),
   )
   .strict()
 

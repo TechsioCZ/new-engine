@@ -11,11 +11,11 @@ const repoRoot = path.resolve(uiRoot, "../..")
 
 const dockerfilePath = path.resolve(
   repoRoot,
-  "docker/development/playwright/Dockerfile"
+  "docker/development/playwright/Dockerfile",
 )
 const dockerfileContents = fs.readFileSync(dockerfilePath, "utf-8")
 const playwrightVersion = /^ARG\s+PLAYWRIGHT_VERSION\s*=\s*([^\s]+)\s*$/m.exec(
-  dockerfileContents
+  dockerfileContents,
 )?.[1]
 const dockerfileHash = crypto
   .createHash("sha256")
@@ -60,7 +60,7 @@ const run = (command, args, options = {}) => {
   })
   if (result.error) {
     throw new Error(
-      `Failed to spawn command: ${command} ${args.join(" ")} (${result.error.message})`
+      `Failed to spawn command: ${command} ${args.join(" ")} (${result.error.message})`,
     )
   }
   if (result.status !== 0) {
@@ -141,7 +141,7 @@ console.log("Starting container...")
 
 // Start container in background (keeps running)
 const containerEnvArgs = optionalContainerEnv.flatMap(([key, value]) =>
-  value ? ["-e", `${key}=${value}`] : []
+  value ? ["-e", `${key}=${value}`] : [],
 )
 const dockerRunArgs = [
   "run",
@@ -232,7 +232,7 @@ try {
         ...(project ? ["--project", project] : []),
         ...extraArgs,
       ],
-      { stdio: "inherit" }
+      { stdio: "inherit" },
     )
 
   let testStatus = 0
@@ -244,7 +244,7 @@ try {
       const result = runPlaywright(project)
       const outcome = getProcessOutcome(
         result,
-        `Playwright project "${project}"`
+        `Playwright project "${project}"`,
       )
       if (outcome.status !== 0 || outcome.signal) {
         testStatus = outcome.status
@@ -276,7 +276,7 @@ try {
   copyArtifact(
     "snapshots",
     "/app/test/visual.spec.ts-snapshots/.",
-    snapshotsDir
+    snapshotsDir,
   )
   copyArtifact("HTML report", "/app/playwright-report/.", reportDir)
   copyArtifact("test results", "/app/test-results/.", resultsDir)

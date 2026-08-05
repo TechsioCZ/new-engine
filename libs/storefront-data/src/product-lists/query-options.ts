@@ -42,11 +42,11 @@ export interface CreateProductListQueryOptionsFactoryConfig<
   buildDetailParams?: (input: TDetailInput) => TDetailParams
   buildListKeyParams?: (
     input: TListInput,
-    params: TListParams
+    params: TListParams,
   ) => TListKeyParams
   buildDetailKeyParams?: (
     input: TDetailInput,
-    params: TDetailParams
+    params: TDetailParams,
   ) => TDetailKeyParams
   queryKeys?: ProductListQueryKeys<TListKeyParams, TDetailKeyParams>
   queryKeyNamespace?: QueryNamespace
@@ -64,14 +64,14 @@ export interface ProductListQueryOptionsFactory<
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<ProductListListResult<TProductList>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TProductList | null>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TProductList | null>
 }
 
@@ -110,7 +110,7 @@ export function createProductListQueryOptionsFactory<
   const resolvedQueryKeys =
     queryKeys ??
     createProductListQueryKeys<TListKeyParams, TDetailKeyParams>(
-      queryKeyNamespace
+      queryKeyNamespace,
     )
   const buildList =
     buildListParams ??

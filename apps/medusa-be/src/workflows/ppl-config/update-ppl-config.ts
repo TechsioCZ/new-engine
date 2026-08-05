@@ -15,11 +15,11 @@ const updatePplConfigStep = createStep(
     const service = container.resolve<PplClientModuleService>(PPL_CLIENT_MODULE)
 
     return new StepResponse(await service.updateConfig(input))
-  }
+  },
 )
 
 export const updatePplConfigWorkflow = createWorkflow(
   "update-ppl-config",
   (input: UpdatePplConfigInput) =>
-    new WorkflowResponse(updatePplConfigStep(input))
+    new WorkflowResponse(updatePplConfigStep(input)),
 )

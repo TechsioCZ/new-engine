@@ -9,7 +9,7 @@ export type PrefetchSkipMode = "fresh" | "any"
 export const isQueryFresh = (
   queryClient: QueryClient,
   queryKey: QueryKey,
-  staleTime: number
+  staleTime: number,
 ) => {
   const state = queryClient.getQueryState(queryKey)
   if (!state || state.isInvalidated || state.data === undefined) {
@@ -20,7 +20,7 @@ export const isQueryFresh = (
 
 export const isQueryInFlight = (
   queryClient: QueryClient,
-  queryKey: QueryKey
+  queryKey: QueryKey,
 ) => {
   const state = queryClient.getQueryState(queryKey)
   return state?.fetchStatus === "fetching"
@@ -49,7 +49,7 @@ export const shouldSkipPrefetch = (params: {
       return isQueryFresh(
         params.queryClient,
         params.queryKey,
-        params.cacheOptions.staleTime
+        params.cacheOptions.staleTime,
       )
     }
     default: {

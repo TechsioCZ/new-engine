@@ -28,5 +28,5 @@ export const restoreMeasurementUnitsWorkflow = createWorkflow(
     releaseLockStep(releaseInput)
 
     return new WorkflowResponse(restored)
-  }
+  },
 )

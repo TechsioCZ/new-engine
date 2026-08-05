@@ -15,7 +15,7 @@ const parseProxyError = async (response: Response) => {
 
 export const requestAuthProxy = async <TBody extends Record<string, unknown>>(
   path: "login" | "register",
-  body: TBody
+  body: TBody,
 ): Promise<AuthProxyResponse> => {
   const response = await fetch(`/api/storefront-auth/${path}`, {
     body: JSON.stringify(body),

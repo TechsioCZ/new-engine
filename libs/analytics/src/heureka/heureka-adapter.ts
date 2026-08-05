@@ -30,7 +30,7 @@ export interface UseHeurekaAdapterConfig {
  * ```
  */
 export function useHeurekaAdapter(
-  config: UseHeurekaAdapterConfig
+  config: UseHeurekaAdapterConfig,
 ): AnalyticsAdapter {
   const { apiKey, debug } = config
   const adapterKey = "heureka" as const
@@ -55,7 +55,7 @@ export function useHeurekaAdapter(
             product.id,
             product.name,
             String(product.price),
-            String(product.quantity ?? 1)
+            String(product.quantity ?? 1),
           )
         }
 
@@ -67,7 +67,7 @@ export function useHeurekaAdapter(
         heureka("send", "Order")
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
   }
 }

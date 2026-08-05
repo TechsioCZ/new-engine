@@ -103,27 +103,27 @@ const hasRequestedField = (fields: string[], targets: string[]) =>
 
     return targets.some(
       (target) =>
-        normalizedField === target || normalizedField.startsWith(`${target}.`)
+        normalizedField === target || normalizedField.startsWith(`${target}.`),
     )
   })
 
 export const getMeasurementDecorationOptions = (
-  fields: string[] = []
+  fields: string[] = [],
 ): MeasurementDecorationOptions => ({
   includePricePerUnit: hasRequestedField(fields, PRICE_PER_UNIT_FIELDS),
   includeProductMeasurement: hasRequestedField(
     fields,
-    PRODUCT_MEASUREMENT_FIELDS
+    PRODUCT_MEASUREMENT_FIELDS,
   ),
   includeVariantMeasurement: hasRequestedField(
     fields,
-    VARIANT_MEASUREMENT_FIELDS
+    VARIANT_MEASUREMENT_FIELDS,
   ),
 })
 
 export const getMeasurementDecorationQueryFields = (
   fields: string[],
-  options: MeasurementDecorationOptions
+  options: MeasurementDecorationOptions,
 ) => {
   const decorationFields = [
     ...PRODUCT_MEASUREMENT_FIELDS,
@@ -131,7 +131,7 @@ export const getMeasurementDecorationQueryFields = (
     ...PRICE_PER_UNIT_FIELDS,
   ]
   const queryFields = fields.filter(
-    (field) => !hasRequestedField([field], decorationFields)
+    (field) => !hasRequestedField([field], decorationFields),
   )
 
   if (options.includeVariantMeasurement) {
@@ -172,14 +172,14 @@ export const toNumber = (value: unknown) => {
 
 export const toMeasurementUnitResponse = (
   unit: MeasurementUnitRecord,
-  activeProductCount?: number
+  activeProductCount?: number,
 ): MeasurementUnitResponse => {
   const baseQuantity = toNumber(unit.base_quantity)
 
   if (!(Number.isFinite(baseQuantity) && baseQuantity > 0)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Measurement unit "${unit.id}" has an invalid base quantity.`
+      `Measurement unit "${unit.id}" has an invalid base quantity.`,
     )
   }
 
@@ -198,7 +198,7 @@ export const toMeasurementUnitResponse = (
 }
 
 export const toProductVariantMeasurementResponse = (
-  measurement: ProductVariantMeasurementRecord
+  measurement: ProductVariantMeasurementRecord,
 ): ProductVariantMeasurementResponse | null => {
   if (measurement.deleted_at) {
     return null
@@ -209,7 +209,7 @@ export const toProductVariantMeasurementResponse = (
   if (!Number.isFinite(quantity) || quantity <= 0) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Product variant measurement "${measurement.id}" has an invalid quantity.`
+      `Product variant measurement "${measurement.id}" has an invalid quantity.`,
     )
   }
 
@@ -223,7 +223,7 @@ export const toProductVariantMeasurementResponse = (
 }
 
 export const toProductMeasurementResponse = (
-  measurement: ProductMeasurementRecord
+  measurement: ProductMeasurementRecord,
 ): ProductMeasurementResponse | null => {
   if (!measurement.measurement_unit) {
     return null
@@ -233,7 +233,7 @@ export const toProductMeasurementResponse = (
     (variantMeasurement) => {
       const response = toProductVariantMeasurementResponse(variantMeasurement)
       return response ? [response] : []
-    }
+    },
   )
 
   return {
@@ -248,7 +248,7 @@ export const toProductMeasurementResponse = (
 
 export const listProductMeasurementsByProductIds = async (
   scope: MedusaContainer,
-  productIds: string[]
+  productIds: string[],
 ) => {
   const ids = [...new Set(productIds)].filter(Boolean)
 
@@ -272,7 +272,7 @@ export const listProductMeasurementsByProductIds = async (
       {
         relations: ["measurement_unit", "variant_measurements"],
         take: chunk.length,
-      }
+      },
     )
     measurements.push(...chunkMeasurements)
   }
@@ -282,7 +282,7 @@ export const listProductMeasurementsByProductIds = async (
 
 export const getMeasurementUnitActiveProductCounts = async (
   scope: MedusaContainer,
-  unitIds: string[]
+  unitIds: string[],
 ) => {
   const ids = [...new Set(unitIds)].filter(Boolean)
 
@@ -294,14 +294,14 @@ export const getMeasurementUnitActiveProductCounts = async (
     await getMeasurementUnitService(scope).getActiveProductCounts(ids)
 
   return new Map(
-    counts.map((row) => [row.measurement_unit_id, Number(row.count)])
+    counts.map((row) => [row.measurement_unit_id, Number(row.count)]),
   )
 }
 
 const addPricePerUnit = (
   calculatedPrice: CalculatedPriceLike,
   measurement: ProductMeasurementResponse,
-  variantMeasurement: ProductVariantMeasurementResponse
+  variantMeasurement: ProductVariantMeasurementResponse,
 ) => {
   const quantity = variantMeasurement.product_unit_quantity
   const baseQuantity = measurement.unit.base_quantity
@@ -351,7 +351,7 @@ const decorateVariantWithMeasurement = (
   variant: NonNullable<ProductLike["variants"]>[number],
   measurement: ProductMeasurementResponse,
   variantMeasurement: ProductVariantMeasurementResponse | undefined,
-  options: MeasurementDecorationOptions
+  options: MeasurementDecorationOptions,
 ) => {
   if (options.includeVariantMeasurement) {
     variant.measurement = variantMeasurement ?? null
@@ -369,7 +369,7 @@ const decorateVariantWithMeasurement = (
 const decorateProductVariantsWithMeasurement = (
   product: ProductLike,
   measurement: ProductMeasurementResponse | null,
-  options: MeasurementDecorationOptions
+  options: MeasurementDecorationOptions,
 ) => {
   if (!measurement) {
     if (options.includeVariantMeasurement) {
@@ -384,7 +384,7 @@ const decorateProductVariantsWithMeasurement = (
     measurement.variant_measurements.map((variantMeasurement) => [
       variantMeasurement.product_variant_id,
       variantMeasurement,
-    ])
+    ]),
   )
 
   for (const variant of product.variants ?? []) {
@@ -397,7 +397,7 @@ const decorateProductVariantsWithMeasurement = (
       variant,
       measurement,
       variantMeasurement,
-      options
+      options,
     )
   }
 }
@@ -405,7 +405,7 @@ const decorateProductVariantsWithMeasurement = (
 export const decorateProductsWithMeasurements = async (
   scope: MedusaContainer,
   products: ProductLike[],
-  options: MeasurementDecorationOptions
+  options: MeasurementDecorationOptions,
 ) => {
   if (
     !(
@@ -418,17 +418,17 @@ export const decorateProductsWithMeasurements = async (
   }
 
   const productIds = products.flatMap((product) =>
-    typeof product.id === "string" ? [product.id] : []
+    typeof product.id === "string" ? [product.id] : [],
   )
   const measurements = await listProductMeasurementsByProductIds(
     scope,
-    productIds
+    productIds,
   )
   const measurementByProductId = new Map(
     measurements.flatMap((measurement) => {
       const response = toProductMeasurementResponse(measurement)
       return response ? [[measurement.product_id, response] as const] : []
-    })
+    }),
   )
 
   for (const product of products) {

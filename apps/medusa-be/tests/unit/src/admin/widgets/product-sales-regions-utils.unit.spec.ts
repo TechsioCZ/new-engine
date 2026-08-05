@@ -16,7 +16,7 @@ describe("product sales regions widget utils", () => {
 
   it("prefers explicit country names and falls back to country codes", () => {
     expect(
-      getCountryName({ display_name: "Česko", name: "Czechia" }, "cz", "en")
+      getCountryName({ display_name: "Česko", name: "Czechia" }, "cz", "en"),
     ).toBe("Česko")
     expect(getCountryName(undefined, "zz", "invalid_locale")).toBe("ZZ")
   })
@@ -51,7 +51,7 @@ describe("product sales regions widget utils", () => {
     ]
 
     expect(
-      rows.sort(sortSalesRegionRows).map((row) => row.country_code)
+      rows.sort(sortSalesRegionRows).map((row) => row.country_code),
     ).toStrictEqual(["sk", "cz", "at", "de"])
   })
 
@@ -69,14 +69,14 @@ describe("product sales regions widget utils", () => {
         ["cz", { display_name: "Czechia", iso_2: "cz" }],
         ["sk", { display_name: "Slovakia", iso_2: "sk" }],
       ]),
-      "en"
+      "en",
     )
 
     expect(
       rows.map(({ country_code, countryName }) => ({
         countryName,
         country_code,
-      }))
+      })),
     ).toStrictEqual([
       { countryName: "Slovakia", country_code: "sk" },
       { countryName: "Czechia", country_code: "cz" },

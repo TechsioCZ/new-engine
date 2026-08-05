@@ -109,7 +109,7 @@ export interface OrderReceiptAttachment {
 }
 
 function objectToNumberValue(
-  value: Exclude<OrderReceiptMoney, number | string | null>
+  value: Exclude<OrderReceiptMoney, number | string | null>,
 ): number {
   const explicitValue = value.value ?? value.amount
   if (explicitValue !== null && explicitValue !== undefined) {
@@ -250,7 +250,7 @@ export function formatDate(value: Date | string | null | undefined) {
 
 export function formatMoney(
   value: OrderReceiptMoney | undefined,
-  currency?: string | null
+  currency?: string | null,
 ) {
   const amount = toNumber(value)
   const normalizedCurrency = (currency || "CZK").toUpperCase()
@@ -272,7 +272,7 @@ export function getOrderNumber(order: OrderReceiptOrder) {
 export function getOrderReceiptFilename(order: OrderReceiptOrder) {
   return `invoice-${ascii(getOrderNumber(order)).replaceAll(
     /[^a-zA-Z0-9_-]/g,
-    "-"
+    "-",
   )}.pdf`
 }
 
@@ -301,7 +301,7 @@ function getTaxRate(item: {
   tax_lines?: ({ rate?: OrderReceiptMoney } | null)[] | null
 }) {
   const rate = item.tax_lines?.find(
-    (taxLine) => taxLine?.rate !== null && taxLine?.rate !== undefined
+    (taxLine) => taxLine?.rate !== null && taxLine?.rate !== undefined,
   )?.rate
 
   if (rate === null || rate === undefined) {
@@ -326,7 +326,7 @@ function getNetFromGross(grossValue: number, rate: number) {
 function getTaxExclusiveAmount(
   amount: number,
   rate: number,
-  isTaxInclusive?: boolean | null
+  isTaxInclusive?: boolean | null,
 ) {
   return isTaxInclusive === true ? getNetFromGross(amount, rate) : amount
 }
@@ -336,7 +336,7 @@ export function getItemGrossUnitPrice(item: OrderReceiptLineItem) {
     item.unit_price ??
       item.raw_unit_price ??
       item.detail?.unit_price ??
-      item.detail?.raw_unit_price
+      item.detail?.raw_unit_price,
   )
 }
 
@@ -354,7 +354,7 @@ export function getItemTaxLabel(item: OrderReceiptLineItem) {
 }
 
 export function getShippingTaxLabel(
-  shippingMethod: OrderReceiptShippingMethod
+  shippingMethod: OrderReceiptShippingMethod,
 ) {
   const rate = getTaxRate(shippingMethod)
 
@@ -366,7 +366,7 @@ export function getItemQuantity(item: OrderReceiptLineItem) {
     item.quantity ??
       item.detail?.quantity ??
       item.raw_quantity ??
-      item.detail?.raw_quantity
+      item.detail?.raw_quantity,
   )
 
   return quantity > 0 ? quantity : 1
@@ -405,7 +405,7 @@ function getItemUndiscountedSubtotal(item: OrderReceiptLineItem) {
   return getTaxExclusiveAmount(
     unitPrice * quantity,
     getTaxRate(item),
-    item.is_tax_inclusive
+    item.is_tax_inclusive,
   )
 }
 
@@ -422,8 +422,8 @@ export function getDiscountTotal(order: OrderReceiptOrder) {
   const reflectedLineDiscount = Math.max(
     0,
     roundMoney(
-      getItemsUndiscountedSubtotal(order.items ?? []) - getSubtotal(order)
-    )
+      getItemsUndiscountedSubtotal(order.items ?? []) - getSubtotal(order),
+    ),
   )
 
   return Math.max(0, roundMoney(discountTotal - reflectedLineDiscount))
@@ -450,7 +450,7 @@ function getItemTaxTotal(item: OrderReceiptLineItem) {
 }
 
 export function getShippingSubtotal(
-  shippingMethod?: OrderReceiptShippingMethod | null
+  shippingMethod?: OrderReceiptShippingMethod | null,
 ) {
   if (!shippingMethod) {
     return 0
@@ -460,19 +460,19 @@ export function getShippingSubtotal(
     shippingMethod.subtotal ??
       shippingMethod.total ??
       shippingMethod.amount ??
-      shippingMethod.raw_amount
+      shippingMethod.raw_amount,
   )
   const rate = getTaxRate(shippingMethod)
 
   return getTaxExclusiveAmount(
     grossSubtotal,
     rate,
-    shippingMethod.is_tax_inclusive
+    shippingMethod.is_tax_inclusive,
   )
 }
 
 export function getShippingTaxTotal(
-  shippingMethod?: OrderReceiptShippingMethod | null
+  shippingMethod?: OrderReceiptShippingMethod | null,
 ) {
   if (!shippingMethod) {
     return 0
@@ -487,7 +487,7 @@ export function getShippingTaxTotal(
     shippingMethod.subtotal ??
       shippingMethod.total ??
       shippingMethod.amount ??
-      shippingMethod.raw_amount
+      shippingMethod.raw_amount,
   )
   const rate = getTaxRate(shippingMethod)
 
@@ -511,17 +511,17 @@ function getLineItemsTaxTotal(items: OrderReceiptLineItem[]) {
 }
 
 function getShippingMethodsTaxTotal(
-  shippingMethods: OrderReceiptShippingMethod[]
+  shippingMethods: OrderReceiptShippingMethod[],
 ) {
   return shippingMethods.reduce(
     (sum, shippingMethod) => sum + getShippingTaxTotal(shippingMethod),
-    0
+    0,
   )
 }
 
 function hasCompleteRelationTaxSignal(
   relation: { tax_total?: OrderReceiptMoney }[] | null | undefined,
-  taxTotal: number | null
+  taxTotal: number | null,
 ) {
   if (!Array.isArray(relation)) {
     return false
@@ -549,7 +549,7 @@ function getCurrentOrderTaxBalance(order: OrderReceiptOrder) {
     toNumber(order.summary.current_order_total) +
       getDiscountTotal(order) -
       getSubtotal(order) -
-      getShippingSubtotalTotal(order)
+      getShippingSubtotalTotal(order),
   )
 }
 
@@ -574,17 +574,18 @@ function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
     shippingTaxTotal === null ? null : Math.max(0, shippingTaxTotal)
   const hasItemTaxSignal = hasCompleteRelationTaxSignal(
     order.items,
-    itemTaxTotal
+    itemTaxTotal,
   )
   const hasShippingTaxSignal = hasCompleteRelationTaxSignal(
     order.shipping_methods,
-    clampedShippingTaxTotal
+    clampedShippingTaxTotal,
   )
 
   if (hasItemTaxSignal && hasShippingTaxSignal) {
     const explicitTaxTotal = roundMoney(
       (itemTaxTotal ?? getLineItemsTaxTotal(items)) +
-        (clampedShippingTaxTotal ?? getShippingMethodsTaxTotal(shippingMethods))
+        (clampedShippingTaxTotal ??
+          getShippingMethodsTaxTotal(shippingMethods)),
     )
     const currentOrderTaxBalance = getCurrentOrderTaxBalance(order)
     const currentOrderTaxTotal = getCurrentOrderTaxTotal(order)
@@ -622,7 +623,7 @@ export function getTaxTotal(order: OrderReceiptOrder) {
 
   const itemTaxTotal = getLineItemsTaxTotal(order.items ?? [])
   const shippingTaxTotal = getShippingMethodsTaxTotal(
-    order.shipping_methods ?? []
+    order.shipping_methods ?? [],
   )
 
   return roundMoney(itemTaxTotal + shippingTaxTotal)
@@ -634,7 +635,7 @@ export function getShippingSubtotalTotal(order: OrderReceiptOrder) {
   if (shippingMethods.length > 0) {
     return shippingMethods.reduce(
       (sum, shippingMethod) => sum + getShippingSubtotal(shippingMethod),
-      0
+      0,
     )
   }
 
@@ -839,12 +840,12 @@ export function truncate(value: TextValue, maxLength: number) {
 export function estimateTextWidth(
   textValue: string,
   fontSize: number,
-  font: PdfFont = "F1"
+  font: PdfFont = "F1",
 ) {
   return (
     [...ascii(textValue)].reduce(
       (width, character) => width + helveticaCharacterWidth(character, font),
-      0
+      0,
     ) *
     (fontSize / 1000)
   )
@@ -854,7 +855,7 @@ function splitTokenToEstimatedWidth(
   token: string,
   maxWidth: number,
   fontSize: number,
-  font: PdfFont
+  font: PdfFont,
 ) {
   const lines: string[] = []
   let currentLine = ""
@@ -891,7 +892,7 @@ function appendWrappedLine(
   lines: string[],
   currentLine: string,
   tokenLine: string,
-  context: TextWrapContext
+  context: TextWrapContext,
 ) {
   const candidate = currentLine ? `${currentLine} ${tokenLine}` : tokenLine
 
@@ -911,7 +912,7 @@ function tokenLinesToEstimatedWidth(
   token: string,
   maxWidth: number,
   fontSize: number,
-  font: PdfFont
+  font: PdfFont,
 ) {
   return estimateTextWidth(token, fontSize, font) <= maxWidth
     ? [token]
@@ -922,7 +923,7 @@ export function wrapToEstimatedWidth(
   value: TextValue,
   maxWidth: number,
   fontSize: number,
-  font: PdfFont = "F1"
+  font: PdfFont = "F1",
 ) {
   const context = { font, fontSize, maxWidth }
   const textValue = normalizeTextValue(value)
@@ -946,7 +947,7 @@ export function wrapToEstimatedWidth(
       token,
       maxWidth,
       fontSize,
-      font
+      font,
     )) {
       currentLine = appendWrappedLine(lines, currentLine, tokenLine, context)
     }
@@ -968,7 +969,7 @@ export function pdfText(
     align?: "left" | "right"
     font?: PdfFont
     size?: number
-  } = {}
+  } = {},
 ): PdfCommand {
   const fontSize = options.size ?? 10
   const content = escapePdfText(value)
@@ -978,7 +979,7 @@ export function pdfText(
       : x
 
   return `BT /${options.font ?? "F1"} ${fontSize} Tf ${alignedX.toFixed(
-    2
+    2,
   )} ${y.toFixed(2)} Td (${content}) Tj ET`
 }
 

@@ -32,7 +32,7 @@ figma.connect(
         secondary: "secondary",
       }),
     },
-  }
+  },
 )
 
 figma.connect(
@@ -66,7 +66,7 @@ figma.connect(
         secondary: "secondary",
       }),
     },
-  }
+  },
 )
 
 figma.connect(
@@ -119,5 +119,5 @@ figma.connect(
         secondary: "secondary",
       }),
     },
-  }
+  },
 )

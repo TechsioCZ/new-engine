@@ -23,19 +23,19 @@ type DefinitionUpdateSnapshot = Pick<
 const retrieveDefinition = async (
   input: { id: string },
   container: Parameters<typeof getProductAttributeService>[0],
-  withDeleted = false
+  withDeleted = false,
 ) => {
   const service = getProductAttributeService(container)
   const definitions = await service.listProductAttributeDefinitions(
     { id: input.id },
-    { take: 1, withDeleted }
+    { take: 1, withDeleted },
   )
   const definition = definitions[0]
 
   if (!definition) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product Attribute definition "${input.id}" was not found.`
+      `Product Attribute definition "${input.id}" was not found.`,
     )
   }
 
@@ -49,7 +49,7 @@ export const createProductAttributeDefinitionStep = createStep(
     const key = normalizeRequiredProductAttributeKey(input.key)
     const matches = await service.listProductAttributeDefinitions(
       { key },
-      { take: 1, withDeleted: true }
+      { take: 1, withDeleted: true },
     )
     assertProductAttributeKeyAvailable({
       ...(matches[0] === undefined ? {} : { collision: matches[0] }),
@@ -69,10 +69,10 @@ export const createProductAttributeDefinitionStep = createStep(
   async (createdId, { container }) => {
     if (createdId) {
       await getProductAttributeService(
-        container
+        container,
       ).deleteProductAttributeDefinitions(createdId)
     }
-  }
+  },
 )
 
 export const updateProductAttributeDefinitionStep = createStep(
@@ -85,18 +85,18 @@ export const updateProductAttributeDefinitionStep = createStep(
       const [options, assignments] = await Promise.all([
         service.listProductAttributeOptions(
           { definition_id: previous.id },
-          { take: 1, withDeleted: true }
+          { take: 1, withDeleted: true },
         ),
         service.listProductAttributes(
           { definition_id: previous.id },
-          { take: 1, withDeleted: true }
+          { take: 1, withDeleted: true },
         ),
       ])
 
       if (options.length || assignments.length) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          `Product Attribute definition "${previous.key}" cannot change input type after options or assignments exist.`
+          `Product Attribute definition "${previous.key}" cannot change input type after options or assignments exist.`,
         )
       }
     }
@@ -119,10 +119,10 @@ export const updateProductAttributeDefinitionStep = createStep(
   async (previous, { container }) => {
     if (previous) {
       await getProductAttributeService(
-        container
+        container,
       ).updateProductAttributeDefinitions(previous)
     }
-  }
+  },
 )
 
 export const deleteProductAttributeDefinitionsStep = createStep(
@@ -131,7 +131,7 @@ export const deleteProductAttributeDefinitionsStep = createStep(
     const service = getProductAttributeService(container)
     const definitions = await service.listProductAttributeDefinitions(
       { id: { $in: input.ids } },
-      { take: Math.max(input.ids.length, 1), withDeleted: true }
+      { take: Math.max(input.ids.length, 1), withDeleted: true },
     )
     const found = new Set(definitions.map((definition) => definition.id))
     const missing = input.ids.filter((id) => !found.has(id))
@@ -139,14 +139,14 @@ export const deleteProductAttributeDefinitionsStep = createStep(
     if (missing.length) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Product Attribute definition ids were not found: ${missing.join(", ")}`
+        `Product Attribute definition ids were not found: ${missing.join(", ")}`,
       )
     }
 
     const { active_ids: activeIds } =
       partitionProductAttributeRecordIds(definitions)
     const usageCounts = toUsageCountMap(
-      await service.getActiveDefinitionUsageCounts(input.ids)
+      await service.getActiveDefinitionUsageCounts(input.ids),
     )
 
     if (activeIds.length) {
@@ -159,16 +159,16 @@ export const deleteProductAttributeDefinitionsStep = createStep(
         deleted_at: definition.deleted_at ?? new Date(),
         usage_count: usageCounts.get(definition.id) ?? 0,
       })),
-      activeIds
+      activeIds,
     )
   },
   async (deletedIds, { container }) => {
     if (deletedIds?.length) {
       await getProductAttributeService(
-        container
+        container,
       ).restoreProductAttributeDefinitions(deletedIds)
     }
-  }
+  },
 )
 
 export const restoreProductAttributeDefinitionsStep = createStep(
@@ -177,7 +177,7 @@ export const restoreProductAttributeDefinitionsStep = createStep(
     const service = getProductAttributeService(container)
     const definitions = await service.listProductAttributeDefinitions(
       { id: { $in: input.ids } },
-      { take: Math.max(input.ids.length, 1), withDeleted: true }
+      { take: Math.max(input.ids.length, 1), withDeleted: true },
     )
     const found = new Set(definitions.map((definition) => definition.id))
     const missing = input.ids.filter((id) => !found.has(id))
@@ -185,7 +185,7 @@ export const restoreProductAttributeDefinitionsStep = createStep(
     if (missing.length) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Product Attribute definition ids were not found: ${missing.join(", ")}`
+        `Product Attribute definition ids were not found: ${missing.join(", ")}`,
       )
     }
 
@@ -201,14 +201,14 @@ export const restoreProductAttributeDefinitionsStep = createStep(
         ...definition,
         deleted_at: null,
       })),
-      deletedIds
+      deletedIds,
     )
   },
   async (restoredIds, { container }) => {
     if (restoredIds?.length) {
       await getProductAttributeService(
-        container
+        container,
       ).softDeleteProductAttributeDefinitions(restoredIds)
     }
-  }
+  },
 )

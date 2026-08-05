@@ -93,7 +93,7 @@ const createSdkMock = (overrides: SdkMockOverrides = {}) => {
       payment_collection: createStorePaymentCollection({
         payment_sessions: [createStorePaymentSession(input.provider_id)],
       }),
-    })
+    }),
   )
 
   const sdk = new Medusa({ baseUrl: "https://storefront.test" })
@@ -127,7 +127,7 @@ const createSdkMock = (overrides: SdkMockOverrides = {}) => {
 }
 
 const createCheckoutCart = (
-  overrides: Partial<HttpTypes.StoreCart> = {}
+  overrides: Partial<HttpTypes.StoreCart> = {},
 ): HttpTypes.StoreCart => {
   const cart = createStoreCart("cart_1", {
     region_id: "reg_1",
@@ -187,17 +187,17 @@ describe("Medusa flow helpers", () => {
     await waitFor(() => {
       expect(spies.clientFetch).toHaveBeenCalledWith(
         "/store/carts/cart_1",
-        expect.objectContaining({})
+        expect.objectContaining({}),
       )
     })
 
     expect(
-      queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_1"))
+      queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_1")),
     ).toStrictEqual(
       expect.objectContaining({
         id: "cart_1",
         items: [expect.objectContaining({ id: "item_1", quantity: 1 })],
-      })
+      }),
     )
 
     expect(
@@ -205,13 +205,13 @@ describe("Medusa flow helpers", () => {
         storefront.queryKeys.cart.active({
           cartId: "cart_1",
           regionId: "reg_1",
-        })
-      )
+        }),
+      ),
     ).toStrictEqual(
       expect.objectContaining({
         id: "cart_1",
         items: [expect.objectContaining({ id: "item_1", quantity: 1 })],
-      })
+      }),
     )
     expect(returnedCart).toMatchObject({
       id: "cart_1",
@@ -243,7 +243,7 @@ describe("Medusa flow helpers", () => {
         },
         {
           onSuccess,
-        }
+        },
       )
     })
 
@@ -252,7 +252,7 @@ describe("Medusa flow helpers", () => {
         expect.objectContaining({
           id: "cart_1",
           items: [expect.objectContaining({ id: "item_1", quantity: 1 })],
-        })
+        }),
       )
     })
   })
@@ -285,7 +285,7 @@ describe("Medusa flow helpers", () => {
         },
         {
           onError,
-        }
+        },
       )
     })
 
@@ -301,7 +301,7 @@ describe("Medusa flow helpers", () => {
         cartId: "cart_1",
         quantity: 1,
         variantId: "variant_1",
-      })
+      }),
     ).rejects.toMatchObject({
       code: "out_of_stock",
       message: "Out of stock",
@@ -342,7 +342,7 @@ describe("Medusa flow helpers", () => {
           enabled: true,
           region_id: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -387,11 +387,11 @@ describe("Medusa flow helpers", () => {
       {
         id: "cart_1",
         region_id: "reg_1",
-      }
+      },
     )
     queryClient.setQueryData(
       storefront.queryKeys.checkout.shippingOptions("cart_1"),
-      []
+      [],
     )
     const wrapper = createWrapper(queryClient)
 
@@ -407,29 +407,29 @@ describe("Medusa flow helpers", () => {
 
     expect(clearCartId).toHaveBeenCalledOnce()
     expect(
-      queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_1"))
+      queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_1")),
     ).toBeUndefined()
     expect(
       queryClient.getQueryData(
         storefront.queryKeys.cart.active({
           cartId: "cart_1",
           regionId: "reg_1",
-        })
-      )
+        }),
+      ),
     ).toBeUndefined()
     expect(
       queryClient.getQueryData(
-        storefront.queryKeys.checkout.shippingOptions("cart_1")
-      )
+        storefront.queryKeys.checkout.shippingOptions("cart_1"),
+      ),
     ).toBeUndefined()
     expect(
       queryClient.getQueryData(
-        storefront.queryKeys.orders.detail({ id: "order_1" })
-      )
+        storefront.queryKeys.orders.detail({ id: "order_1" }),
+      ),
     ).toStrictEqual(
       expect.objectContaining({
         id: "order_1",
-      })
+      }),
     )
   })
 
@@ -478,7 +478,7 @@ describe("Medusa flow helpers", () => {
       {
         id: "cart_1",
         region_id: "reg_1",
-      }
+      },
     )
     queryClient.setQueryData(customCartQueryKeys.detail("cart_1"), {
       id: "cart_1",
@@ -486,7 +486,7 @@ describe("Medusa flow helpers", () => {
     })
     queryClient.setQueryData(
       storefront.queryKeys.checkout.shippingOptions("cart_1"),
-      []
+      [],
     )
     const wrapper = createWrapper(queryClient)
 
@@ -504,8 +504,8 @@ describe("Medusa flow helpers", () => {
       queryClient.getQueryData(
         customCartQueryKeys.active({
           cartId: "cart_1",
-        })
-      )
+        }),
+      ),
     ).toBeUndefined()
   })
 
@@ -553,7 +553,7 @@ describe("Medusa flow helpers", () => {
     const wrapper = createWrapper(queryClient)
     const { result } = renderHook(
       () => checkoutFlow.useCheckoutPayment("cart_1"),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -615,14 +615,14 @@ describe("Medusa flow helpers", () => {
     })
     queryClient.setQueryData(
       storefront.queryKeys.checkout.shippingOptions("cart_1"),
-      []
+      [],
     )
     queryClient.setQueryData(
       storefront.queryKeys.cart.active({
         cartId: "cart_1",
         regionId: "reg_1",
       }),
-      { id: "cart_1", region_id: "reg_1" }
+      { id: "cart_1", region_id: "reg_1" },
     )
 
     const wrapper = createWrapper(queryClient)
@@ -655,10 +655,10 @@ describe("Medusa flow helpers", () => {
     expect(clearCartId).not.toHaveBeenCalled()
     expect(storedCartId).toBe("cart_2")
     expect(
-      queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_1"))
+      queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_1")),
     ).toBeUndefined()
     expect(
-      queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_2"))
+      queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_2")),
     ).toStrictEqual({
       id: "cart_2",
     })
@@ -691,7 +691,7 @@ describe("Medusa flow helpers", () => {
       () => checkoutFlow.useCheckoutShipping("cart_1", cart),
       {
         wrapper,
-      }
+      },
     )
 
     await waitFor(() => {
@@ -724,7 +724,7 @@ describe("Medusa flow helpers", () => {
     const wrapper = createWrapper(queryClient)
     const { result } = renderHook(
       () => checkoutFlow.useCheckoutShipping("cart_1"),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -788,7 +788,7 @@ describe("Medusa flow helpers", () => {
 
     const { result } = renderHook(
       () => checkoutFlow.useCheckoutShipping("cart_1"),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -837,7 +837,7 @@ describe("Medusa flow helpers", () => {
           cartId: "cart_1",
           regionId: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     let checkoutResult:
@@ -857,12 +857,12 @@ describe("Medusa flow helpers", () => {
     })
     expect(spies.initiatePaymentSession).toHaveBeenCalledWith(
       expect.objectContaining({ id: "cart_1" }),
-      { provider_id: "pp_system_default" }
+      { provider_id: "pp_system_default" },
     )
     expect(
-      spies.initiatePaymentSession.mock.invocationCallOrder[0]
+      spies.initiatePaymentSession.mock.invocationCallOrder[0],
     ).toBeLessThan(
-      spies.complete.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
+      spies.complete.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
     )
   })
 
@@ -893,7 +893,7 @@ describe("Medusa flow helpers", () => {
           cartId: "cart_1",
           regionId: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     let checkoutResult:
@@ -954,14 +954,14 @@ describe("Medusa flow helpers", () => {
         checkoutFlow.useCompleteCheckout({
           cartId: "cart_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
       expect(
         queryClient.getQueryData(
-          storefront.queryKeys.checkout.paymentProviders("reg_1")
-        )
+          storefront.queryKeys.checkout.paymentProviders("reg_1"),
+        ),
       ).toStrictEqual([{ id: "pp_system_default" }])
     })
 
@@ -1014,7 +1014,7 @@ describe("Medusa flow helpers", () => {
           cartId: "cart_1",
           regionId: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await act(async () => {
@@ -1025,7 +1025,7 @@ describe("Medusa flow helpers", () => {
 
     expect(spies.initiatePaymentSession).toHaveBeenCalledWith(
       expect.objectContaining({ id: "cart_1" }),
-      { provider_id: "pp_system_default" }
+      { provider_id: "pp_system_default" },
     )
     expect(spies.complete).toHaveBeenCalledWith("cart_1")
   })
@@ -1058,7 +1058,7 @@ describe("Medusa flow helpers", () => {
           cartId: "cart_1",
           regionId: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     let checkoutResult:
@@ -1100,7 +1100,7 @@ describe("Medusa flow helpers", () => {
         }
 
         return {}
-      }
+      },
     )
     const { sdk } = createSdkMock({ clientFetch })
 
@@ -1123,7 +1123,7 @@ describe("Medusa flow helpers", () => {
           cartId: "cart_1",
           regionId: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await expect(result.current.mutateAsync()).rejects.toMatchObject({
@@ -1158,9 +1158,9 @@ describe("Medusa flow helpers", () => {
             resolvePaymentProviderId: () => {
               throw new Error("Resolver crashed")
             },
-          }
+          },
         ),
-      { wrapper }
+      { wrapper },
     )
 
     await expect(result.current.mutateAsync()).rejects.toMatchObject({
@@ -1185,7 +1185,7 @@ describe("Medusa flow helpers", () => {
         }
 
         return {}
-      }
+      },
     )
     const { sdk } = createSdkMock({ clientFetch })
 
@@ -1208,7 +1208,7 @@ describe("Medusa flow helpers", () => {
           cartId: "cart_1",
           regionId: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await expect(result.current.mutateAsync()).rejects.toMatchObject({
@@ -1241,9 +1241,9 @@ describe("Medusa flow helpers", () => {
           },
           {
             resolvePaymentProviderId: () => null,
-          }
+          },
         ),
-      { wrapper }
+      { wrapper },
     )
 
     await expect(result.current.mutateAsync()).rejects.toMatchObject({
@@ -1290,7 +1290,7 @@ describe("Medusa flow helpers", () => {
           cartId: "cart_1",
           regionId: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await expect(result.current.mutateAsync()).rejects.toMatchObject({

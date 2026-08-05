@@ -312,7 +312,7 @@ export function Carousel<T extends ElementType = typeof Image>({
 }: CarouselRootProps<T>) {
   const fallbackId = useId()
   const machineProps = Object.fromEntries(
-    Object.entries(props).filter(([, option]) => option !== undefined)
+    Object.entries(props).filter(([, option]) => option !== undefined),
   )
   const service = useMachine(carousel.machine, {
     allowMouseDrag,

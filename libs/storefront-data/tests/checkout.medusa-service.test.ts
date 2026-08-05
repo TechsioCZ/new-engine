@@ -39,7 +39,7 @@ function createSdkMock(overrides?: {
             (async () =>
               Promise.resolve({
                 cart: { id: "cart_1" } as HttpTypes.StoreCart,
-              }))
+              })),
         ),
       },
       fulfillment: {
@@ -56,7 +56,7 @@ function createSdkMock(overrides?: {
                 payment_collection: {
                   id: "pay_col_1",
                 } as HttpTypes.StorePaymentCollection,
-              }))
+              })),
         ),
         listPaymentProviders: vi
           .fn()
@@ -82,7 +82,7 @@ describe(createMedusaCheckoutService, () => {
       cart,
       {
         provider_id: "pp_stripe",
-      }
+      },
     )
   })
 
@@ -95,7 +95,7 @@ describe(createMedusaCheckoutService, () => {
     expect(sdk.store.cart.retrieve).toHaveBeenCalledWith("cart_fallback")
     expect(sdk.store.payment.initiatePaymentSession).toHaveBeenCalledWith(
       { id: "cart_1" },
-      { provider_id: "pp_default" }
+      { provider_id: "pp_default" },
     )
   })
 
@@ -121,7 +121,7 @@ describe(createMedusaCheckoutService, () => {
           source: "async-builder",
         },
         provider_id: "pp_stripe",
-      }
+      },
     )
   })
 
@@ -142,7 +142,7 @@ describe(createMedusaCheckoutService, () => {
         data: { pickup_id: "box_1" },
         option_id: "so_1",
       },
-      query
+      query,
     )
     expect(sdk.store.cart.retrieve).toHaveBeenCalledWith("cart_1", query)
   })
@@ -154,7 +154,7 @@ describe(createMedusaCheckoutService, () => {
     const service = createMedusaCheckoutService(sdk as never)
 
     await expect(
-      service.initiatePaymentSession("cart_missing", "pp_default")
+      service.initiatePaymentSession("cart_missing", "pp_default"),
     ).rejects.toThrow("Failed to load cart for payment")
   })
 
@@ -165,7 +165,7 @@ describe(createMedusaCheckoutService, () => {
     const service = createMedusaCheckoutService(sdk as never)
 
     await expect(
-      service.initiatePaymentSession("cart_1", "pp_default")
+      service.initiatePaymentSession("cart_1", "pp_default"),
     ).rejects.toThrow("Failed to initiate payment session")
   })
 })

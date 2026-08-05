@@ -1,7 +1,7 @@
 import type { ZaneServiceDetails, ZaneServiceUrl } from "./zane-contract"
 
 function coercePendingUrl(
-  value: Record<string, unknown> | null | undefined
+  value: Record<string, unknown> | null | undefined,
 ): ZaneServiceUrl | null {
   if (!value || typeof value.domain !== "string") {
     return null
@@ -24,7 +24,7 @@ function coercePendingUrl(
 }
 
 export function computeEffectiveUrls(
-  serviceDetails: Pick<ZaneServiceDetails, "urls" | "unapplied_changes">
+  serviceDetails: Pick<ZaneServiceDetails, "urls" | "unapplied_changes">,
 ): ZaneServiceUrl[] {
   const urls = [...(serviceDetails.urls ?? [])]
 
@@ -72,7 +72,7 @@ export function computeEffectiveUrls(
 }
 
 export function buildServicePublicUrls(
-  serviceDetails: Pick<ZaneServiceDetails, "urls" | "unapplied_changes">
+  serviceDetails: Pick<ZaneServiceDetails, "urls" | "unapplied_changes">,
 ): string[] {
   return computeEffectiveUrls(serviceDetails)
     .map((url) => {
@@ -82,7 +82,7 @@ export function buildServicePublicUrls(
           : "/"
       return new URL(
         basePath.startsWith("/") ? basePath : `/${basePath}`,
-        `https://${url.domain}`
+        `https://${url.domain}`,
       ).toString()
     })
     .filter((value, index, array) => array.indexOf(value) === index)

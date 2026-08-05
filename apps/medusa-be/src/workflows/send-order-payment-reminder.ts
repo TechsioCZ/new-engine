@@ -99,7 +99,7 @@ const buildOrderPaymentReminderNotificationStep = createStep(
   "build-order-payment-reminder-notification",
   async (
     input: WorkflowInput,
-    { container }
+    { container },
   ): Promise<StepResponse<CreateNotificationDTO[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
@@ -140,7 +140,7 @@ const buildOrderPaymentReminderNotificationStep = createStep(
       logger.warn(
         `Payment reminder receipt PDF generation failed for order ${order.id}; sending reminder without attachment. ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       )
     }
 
@@ -165,7 +165,7 @@ const buildOrderPaymentReminderNotificationStep = createStep(
         trigger_type: "order.payment_reminder",
       },
     ])
-  }
+  },
 )
 
 export const sendOrderPaymentReminderWorkflow = createWorkflow(
@@ -177,5 +177,5 @@ export const sendOrderPaymentReminderWorkflow = createWorkflow(
     return new WorkflowResponse({
       notification,
     })
-  }
+  },
 )

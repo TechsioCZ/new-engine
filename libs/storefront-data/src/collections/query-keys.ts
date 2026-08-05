@@ -3,7 +3,7 @@ import { createDomainQueryKeys } from "../shared/query-keys"
 import type { CollectionQueryKeys } from "./types"
 
 export function createCollectionQueryKeys<TListParams, TDetailParams>(
-  namespace: QueryNamespace
+  namespace: QueryNamespace,
 ): CollectionQueryKeys<TListParams, TDetailParams> {
   return createDomainQueryKeys(namespace, "collections")
 }

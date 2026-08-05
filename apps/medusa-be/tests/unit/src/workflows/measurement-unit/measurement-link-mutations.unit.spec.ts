@@ -21,7 +21,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -34,40 +34,40 @@ vi.mock(
   () => ({
     productMeasurementLink: (
       productId: string,
-      productMeasurementId: string
+      productMeasurementId: string,
     ) => ({
       measurement_unit: { product_measurement_id: productMeasurementId },
       product: { product_id: productId },
     }),
     productVariantMeasurementLink: (
       productVariantId: string,
-      productVariantMeasurementId: string
+      productVariantMeasurementId: string,
     ) => ({
       measurement_unit: {
         product_variant_measurement_id: productVariantMeasurementId,
       },
       product: { product_variant_id: productVariantId },
     }),
-  })
+  }),
 )
 
 interface MockStep {
   (
     input: unknown,
-    context: { container: { resolve: ReturnType<typeof vi.fn> } }
+    context: { container: { resolve: ReturnType<typeof vi.fn> } },
   ): Promise<{
     compensateInput: unknown
   }>
   compensate: (
     input: unknown,
-    context: { container: { resolve: ReturnType<typeof vi.fn> } }
+    context: { container: { resolve: ReturnType<typeof vi.fn> } },
   ) => Promise<void>
 }
 
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 

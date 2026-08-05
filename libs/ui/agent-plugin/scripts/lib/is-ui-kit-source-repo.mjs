@@ -31,7 +31,7 @@ export function isUiKitSourceRepo(cwd) {
   }
   try {
     const pkg = JSON.parse(
-      readFileSync(join(topLevel, "libs", "ui", "package.json"), "utf-8")
+      readFileSync(join(topLevel, "libs", "ui", "package.json"), "utf-8"),
     )
     return pkg?.name === UI_KIT_PACKAGE
   } catch {

@@ -112,7 +112,7 @@ const fetchCatalogCandidates = async ({
         cache: "no-store",
         headers,
         signal: abortController.signal,
-      }
+      },
     )
 
     if (!response.ok) {
@@ -124,7 +124,7 @@ const fetchCatalogCandidates = async ({
     if (abortController.signal.aborted) {
       throw new Error(
         `Catalog autocomplete timed out after ${CATALOG_FETCH_TIMEOUT_MS}ms.`,
-        { cause: error }
+        { cause: error },
       )
     }
 
@@ -169,7 +169,7 @@ export const fetchSearchAutocomplete = async ({
     products: createProductSuggestions(
       productHits,
       safeCurrencyCode,
-      PRODUCT_LIMIT
+      PRODUCT_LIMIT,
     ),
     query: normalizedQuery,
   }

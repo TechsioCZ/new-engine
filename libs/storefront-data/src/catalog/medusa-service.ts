@@ -50,14 +50,14 @@ type MedusaCatalogProductTransforms<
       transformProduct: (product: HttpTypes.StoreProduct) => TProduct
       transformListProduct?: (
         product: HttpTypes.StoreProduct,
-        context: MedusaCatalogTransformContext<TListParams, TFacets>
+        context: MedusaCatalogTransformContext<TListParams, TFacets>,
       ) => TProduct
     }
   | {
       transformProduct?: never
       transformListProduct: (
         product: HttpTypes.StoreProduct,
-        context: MedusaCatalogTransformContext<TListParams, TFacets>
+        context: MedusaCatalogTransformContext<TListParams, TFacets>,
       ) => TProduct
     }
 
@@ -89,7 +89,7 @@ const EMPTY_FACETS: CatalogFacets = {
 
 const resolveNonNegativeInteger = (
   value: number | undefined,
-  fallbackValue: number
+  fallbackValue: number,
 ): number => {
   if (
     typeof value !== "number" ||
@@ -108,7 +108,7 @@ const resolveNonNegativeInteger = (
 }
 
 const normalizeNonNegativeNumber = (
-  value: number | undefined
+  value: number | undefined,
 ): number | undefined => {
   if (
     typeof value !== "number" ||
@@ -126,7 +126,7 @@ const normalizeNonNegativeNumber = (
 }
 
 const normalizeStringArray = (
-  values: string[] | undefined
+  values: string[] | undefined,
 ): string[] | undefined => {
   if (!Array.isArray(values)) {
     return
@@ -223,7 +223,7 @@ const toCsv = (values: string[] | undefined): string | undefined => {
 }
 
 const stripNullishValues = (
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {}
 
@@ -242,12 +242,12 @@ const buildDefaultListQuery = (
   defaults: {
     defaultLimit: number
     defaultSort: string
-  }
+  },
 ): MedusaCatalogListQuery => {
   const normalizedPage = resolvePositiveInteger(params.page, 1)
   const normalizedLimit = resolvePositiveInteger(
     params.limit,
-    defaults.defaultLimit
+    defaults.defaultLimit,
   )
   const normalizedPriceMin = normalizeNonNegativeNumber(params.price_min)
   const normalizedPriceMax = normalizeNonNegativeNumber(params.price_max)
@@ -319,7 +319,7 @@ export function createMedusaCatalogService<
   config?: MedusaCatalogServiceConfigBase<TListParams> &
     Partial<MedusaCatalogProductTransforms<unknown, TListParams, unknown>> & {
       transformFacets?: (facets: CatalogFacets) => unknown
-    }
+    },
 ): CatalogService<unknown, TListParams, unknown> {
   const {
     listPath = "/store/catalog/products",
@@ -349,7 +349,7 @@ export function createMedusaCatalogService<
   return {
     async getCatalogProducts(
       params: TListParams,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<CatalogListResponse<unknown, unknown>> {
       const query = buildListQuery(params)
       const rawResponse = await sdk.client.fetch<MedusaCatalogListResponse>(
@@ -357,7 +357,7 @@ export function createMedusaCatalogService<
         {
           query,
           signal: signal ?? null,
-        }
+        },
       )
 
       const normalizedResponse: CatalogListResponse<
@@ -368,11 +368,11 @@ export function createMedusaCatalogService<
         facets: mapFacets(normalizeFacets(rawResponse.facets)),
         limit: resolvePositiveInteger(
           rawResponse.limit,
-          resolvePositiveInteger(params.limit, defaultLimit)
+          resolvePositiveInteger(params.limit, defaultLimit),
         ),
         page: resolvePositiveInteger(
           rawResponse.page,
-          resolvePositiveInteger(params.page, 1)
+          resolvePositiveInteger(params.page, 1),
         ),
         products: rawResponse.products ?? [],
         totalPages: resolveNonNegativeInteger(rawResponse.totalPages, 0),
@@ -385,7 +385,7 @@ export function createMedusaCatalogService<
       }
 
       const products = normalizedResponse.products.map((product) =>
-        mapListProduct(product, context)
+        mapListProduct(product, context),
       )
 
       return {

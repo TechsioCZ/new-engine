@@ -5,7 +5,7 @@ import { executeWithLockTimeout } from "../../../../src/utils/locking"
 
 type ExecuteImplementation = (
   key: string | string[],
-  job: () => Promise<unknown>
+  job: () => Promise<unknown>,
 ) => Promise<unknown>
 
 /**
@@ -17,7 +17,7 @@ type ExecuteImplementation = (
  * site.
  */
 const createLockingModule = (
-  execute: ExecuteImplementation
+  execute: ExecuteImplementation,
 ): Pick<ILockingModule, "execute"> => ({
   execute: execute as ILockingModule["execute"],
 })
@@ -25,18 +25,18 @@ const createLockingModule = (
 describe(executeWithLockTimeout, () => {
   it("returns the job result after acquiring the lock", async () => {
     const lockingModule = createLockingModule(
-      vi.fn(async (_key, job) => await job())
+      vi.fn(async (_key, job) => await job()),
     )
 
     await expect(
-      executeWithLockTimeout(lockingModule, "job-key", 1, async () => "done")
+      executeWithLockTimeout(lockingModule, "job-key", 1, async () => "done"),
     ).resolves.toStrictEqual({ status: "executed", value: "done" })
   })
 
   it("returns a typed timeout result before the callback starts", async () => {
     vi.useFakeTimers()
     const lockingModule = createLockingModule(
-      vi.fn(async () => await new Promise<never>(() => {}))
+      vi.fn(async () => await new Promise<never>(() => {})),
     )
 
     try {
@@ -44,7 +44,7 @@ describe(executeWithLockTimeout, () => {
         lockingModule,
         "job-key",
         1,
-        async () => "done"
+        async () => "done",
       )
       await vi.advanceTimersByTimeAsync(1000)
 
@@ -61,7 +61,7 @@ describe(executeWithLockTimeout, () => {
       vi.fn(async (_key, job) => {
         runProviderCallback = job
         return await new Promise<string>(() => {})
-      })
+      }),
     )
     const job = vi.fn(async () => "done")
 
@@ -82,24 +82,24 @@ describe(executeWithLockTimeout, () => {
     const lockingModule = createLockingModule(
       vi.fn(async () => {
         throw providerError
-      })
+      }),
     )
 
     await expect(
-      executeWithLockTimeout(lockingModule, "job-key", 1, async () => "done")
+      executeWithLockTimeout(lockingModule, "job-key", 1, async () => "done"),
     ).rejects.toBe(providerError)
   })
 
   it("rethrows errors raised by the locked job", async () => {
     const jobError = new Error("job failed")
     const lockingModule = createLockingModule(
-      vi.fn(async (_key, job) => await job())
+      vi.fn(async (_key, job) => await job()),
     )
 
     await expect(
       executeWithLockTimeout(lockingModule, "job-key", 1, async () => {
         throw jobError
-      })
+      }),
     ).rejects.toBe(jobError)
   })
 })

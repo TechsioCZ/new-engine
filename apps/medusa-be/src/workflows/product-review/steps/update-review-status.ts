@@ -8,14 +8,14 @@ export const updateReviewStatusStep = createStep(
   "update-review-status",
   async (input: UpdateReviewStatusWorkflowInput, { container }) => {
     const service = container.resolve<ProductReviewModuleService>(
-      PRODUCT_REVIEW_MODULE
+      PRODUCT_REVIEW_MODULE,
     )
     const previousReviews = await service.listReviews({ id: input.ids })
     const reviews = await service.updateReviews(
       input.ids.map((id) => ({
         id,
         status: input.status,
-      }))
+      })),
     )
 
     return new StepResponse(reviews, previousReviews)
@@ -28,5 +28,5 @@ export const updateReviewStatusStep = createStep(
     await container
       .resolve<ProductReviewModuleService>(PRODUCT_REVIEW_MODULE)
       .updateReviews(previousReviews)
-  }
+  },
 )

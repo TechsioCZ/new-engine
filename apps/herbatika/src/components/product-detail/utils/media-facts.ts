@@ -61,7 +61,7 @@ const resolveCapsuleCount = (texts: string[]): number | null => {
 }
 
 const resolveDailyCapsuleMatchDose = (
-  match: RegExpExecArray
+  match: RegExpExecArray,
 ): number | null => {
   if (match[2]) {
     const timesPerDay = parsePositiveInt(match[1])
@@ -102,7 +102,7 @@ const collectParameterTexts = (product: Product | null): string[] => {
   return parameters
     .map((parameter) => asRecord(parameter))
     .filter((parameter): parameter is Record<string, unknown> =>
-      Boolean(parameter)
+      Boolean(parameter),
     )
     .flatMap((parameter) => [
       asString(parameter.name),
@@ -113,7 +113,7 @@ const collectParameterTexts = (product: Product | null): string[] => {
 
 const collectTexts = (
   product: Product | null,
-  sections: ProductDetailContentSection[]
+  sections: ProductDetailContentSection[],
 ): string[] => {
   if (!product) {
     return []
@@ -141,7 +141,7 @@ export const resolveProductMediaFacts = (
   labels: {
     doses: (count: number) => string
     dailyCapsules: (count: number) => string
-  }
+  },
 ): ProductMediaFact[] => {
   const texts = collectTexts(product, sections)
   if (texts.length === 0) {

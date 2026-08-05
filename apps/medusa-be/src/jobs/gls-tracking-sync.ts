@@ -8,8 +8,18 @@ import type {
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
-import { GLS_CLIENT_MODULE, GLS_DELIVERED_STATES, GLS_FAILED_STATES, GLS_PROVIDER_ID } from '../modules/gls-client';
-import type { GLSClientModuleService, GLSFulfillmentData, GLSPacketStatusRecord, GLSShipmentState } from '../modules/gls-client';
+import {
+  GLS_CLIENT_MODULE,
+  GLS_DELIVERED_STATES,
+  GLS_FAILED_STATES,
+  GLS_PROVIDER_ID,
+} from "../modules/gls-client"
+import type {
+  GLSClientModuleService,
+  GLSFulfillmentData,
+  GLSPacketStatusRecord,
+  GLSShipmentState,
+} from "../modules/gls-client"
 
 interface FulfillmentRecord {
   id: string
@@ -261,7 +271,7 @@ async function handleDelivered(
   newStatus: GLSShipmentState,
 ): Promise<void> {
   const { logger, fulfillmentService } = ctx
-  const {data} = fulfillment
+  const { data } = fulfillment
   const deliveredAt = new Date(latest.dateTime)
 
   logger.info(
@@ -302,7 +312,7 @@ async function handleFailed(
   newStatus: GLSShipmentState,
 ): Promise<void> {
   const { logger, fulfillmentService } = ctx
-  const {data} = fulfillment
+  const { data } = fulfillment
 
   logger.warn(`GLS: Packet ${data.packet_id} failed (${newStatus})`)
 
@@ -424,7 +434,7 @@ async function handleInTransit(
   newStatus: GLSShipmentState,
 ): Promise<void> {
   const { logger, fulfillmentService } = ctx
-  const {data} = fulfillment
+  const { data } = fulfillment
 
   logger.debug(`GLS: Packet ${data.packet_id} status: ${newStatus}`)
 

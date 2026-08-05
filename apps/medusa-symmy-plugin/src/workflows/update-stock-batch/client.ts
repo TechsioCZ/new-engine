@@ -61,7 +61,7 @@ export class StockBatchClient {
   }
 
   async loadExistingLevels(
-    resolved: ResolvedUpdate[]
+    resolved: ResolvedUpdate[],
   ): Promise<Map<string, ExistingLevel>> {
     const { inventoryItemIds, locationIds } =
       this.mapper.collectLevelLookupKeys(resolved)
@@ -77,7 +77,7 @@ export class StockBatchClient {
       },
     })
     return this.mapper.buildExistingLevelIndex(
-      (levels ?? []) as ExistingLevel[]
+      (levels ?? []) as ExistingLevel[],
     )
   }
 
@@ -86,7 +86,7 @@ export class StockBatchClient {
       return { created: [], updated: [] }
     }
     const { result } = await batchInventoryItemLevelsWorkflow(
-      this.container
+      this.container,
     ).run({
       input: {
         create: payload.create as never,
@@ -101,7 +101,7 @@ export class StockBatchClient {
 
   private async queryVariantsToInventoryItems(
     field: "sku" | "ean" | "id",
-    values: Set<string>
+    values: Set<string>,
   ): Promise<Map<string, string>> {
     if (!values.size) {
       return new Map()
@@ -113,12 +113,12 @@ export class StockBatchClient {
     })
     return this.mapper.buildVariantInventoryItemMap(
       field,
-      (variants ?? []) as VariantInventoryItemRow[]
+      (variants ?? []) as VariantInventoryItemRow[],
     )
   }
 
   private async queryValidInventoryItemIds(
-    ids: Set<string>
+    ids: Set<string>,
   ): Promise<Set<string>> {
     if (!ids.size) {
       return new Set()
@@ -129,7 +129,7 @@ export class StockBatchClient {
       filters: { id: [...ids] },
     })
     return this.mapper.buildValidInventoryItemIdSet(
-      (items ?? []) as { id: string }[]
+      (items ?? []) as { id: string }[],
     )
   }
 

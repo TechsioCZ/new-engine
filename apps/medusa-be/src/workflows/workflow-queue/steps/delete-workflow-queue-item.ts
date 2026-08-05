@@ -15,11 +15,11 @@ export const deleteWorkflowQueueItemStep = createStep(
     }
 
     const workflowQueueService = container.resolve<WorkflowQueueModuleService>(
-      WORKFLOW_QUEUE_MODULE
+      WORKFLOW_QUEUE_MODULE,
     )
 
     await workflowQueueService.deleteWorkflowQueueItems([input.queue_item_id])
 
     return new StepResponse({ deleted: true })
-  }
+  },
 )

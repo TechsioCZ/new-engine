@@ -70,13 +70,13 @@ test("rejects malformed service reconciliation sync flags", () => {
           service_slug: "api",
         },
       ],
-    })
+    }),
   ).toThrow(BadRequestError)
 })
 
 test("defaults missing service reconciliation specs to an empty list", () => {
   expect(
-    parseResolveEnvironmentInput(resolveEnvironmentPayload).serviceSpecs
+    parseResolveEnvironmentInput(resolveEnvironmentPayload).serviceSpecs,
   ).toStrictEqual([])
 })
 
@@ -90,6 +90,6 @@ test("rejects invalid service reconciliation specs", () => {
           service_slug: "",
         },
       ],
-    })
+    }),
   ).toThrow(BadRequestError)
 })

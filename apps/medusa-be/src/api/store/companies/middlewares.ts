@@ -33,7 +33,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       validateAndTransformQuery(
         StoreGetCompanyParams,
-        storeCompanyQueryConfig.list
+        storeCompanyQueryConfig.list,
       ),
     ],
   },
@@ -44,7 +44,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(StoreCreateCompany),
       validateAndTransformQuery(
         StoreGetCompanyParams,
-        storeCompanyQueryConfig.retrieve
+        storeCompanyQueryConfig.retrieve,
       ),
     ],
   },
@@ -55,7 +55,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
       ensureCompanyMember,
       validateAndTransformQuery(
         StoreGetCompanyParams,
-        storeCompanyQueryConfig.retrieve
+        storeCompanyQueryConfig.retrieve,
       ),
     ],
   },
@@ -67,7 +67,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(StoreUpdateCompany),
       validateAndTransformQuery(
         StoreGetCompanyParams,
-        storeCompanyQueryConfig.retrieve
+        storeCompanyQueryConfig.retrieve,
       ),
     ],
   },
@@ -85,7 +85,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
       ensureCompanyMember,
       validateAndTransformQuery(
         StoreGetEmployeeParams,
-        storeEmployeeQueryConfig.list
+        storeEmployeeQueryConfig.list,
       ),
     ],
   },
@@ -97,7 +97,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(StoreCreateEmployee),
       validateAndTransformQuery(
         StoreGetEmployeeParams,
-        storeEmployeeQueryConfig.list
+        storeEmployeeQueryConfig.list,
       ),
     ],
   },
@@ -108,7 +108,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
       ensureCompanyMember,
       validateAndTransformQuery(
         StoreGetEmployeeParams,
-        storeEmployeeQueryConfig.retrieve
+        storeEmployeeQueryConfig.retrieve,
       ),
     ],
   },
@@ -120,7 +120,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(StoreUpdateEmployee),
       validateAndTransformQuery(
         StoreGetEmployeeParams,
-        storeEmployeeQueryConfig.retrieve
+        storeEmployeeQueryConfig.retrieve,
       ),
     ],
   },

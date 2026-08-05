@@ -1,7 +1,7 @@
 import { delimiter, join } from "node:path"
 
 export function withWorkspaceBinPath(
-  env: NodeJS.ProcessEnv
+  env: NodeJS.ProcessEnv,
 ): NodeJS.ProcessEnv {
   const pathKey =
     Object.keys(env).find((key) => key === "PATH") ??

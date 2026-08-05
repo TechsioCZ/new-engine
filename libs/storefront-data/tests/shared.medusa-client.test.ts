@@ -6,7 +6,7 @@ const patchBlockedLocalStorage = () => {
   const originalGetItem = Storage.prototype.getItem.bind(Storage.prototype)
   const originalSetItem = Storage.prototype.setItem.bind(Storage.prototype)
   const originalRemoveItem = Storage.prototype.removeItem.bind(
-    Storage.prototype
+    Storage.prototype,
   )
 
   Storage.prototype.getItem = function getItem(key: string) {
@@ -45,7 +45,7 @@ describe("createMedusaSdk degraded localStorage", () => {
       expect(() =>
         createMedusaSdk({
           baseUrl: "https://example.com",
-        })
+        }),
       ).not.toThrow()
     } finally {
       restore()

@@ -44,7 +44,7 @@ export function useHomepageController(): UseHomepageControllerResult {
   }
 
   const bestsellersCategoryId = categoryByHandle.get(
-    HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE
+    HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE,
   )?.id
 
   const bestsellersProductsQuery = useCatalogProducts({

@@ -29,7 +29,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.list
+        adminCompanyQueryConfig.list,
       ),
     ],
   },
@@ -40,7 +40,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(AdminCreateCompany),
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.retrieve
+        adminCompanyQueryConfig.retrieve,
       ),
     ],
   },
@@ -50,7 +50,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.retrieve
+        adminCompanyQueryConfig.retrieve,
       ),
     ],
   },
@@ -61,7 +61,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(AdminUpdateCompany),
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.retrieve
+        adminCompanyQueryConfig.retrieve,
       ),
     ],
   },
@@ -72,7 +72,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(AdminAddCompanyToCustomerGroup),
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.retrieve
+        adminCompanyQueryConfig.retrieve,
       ),
     ],
   },
@@ -82,7 +82,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.retrieve
+        adminCompanyQueryConfig.retrieve,
       ),
     ],
   },
@@ -94,7 +94,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       validateAndTransformQuery(
         AdminGetEmployeeParams,
-        adminEmployeeQueryConfig.list
+        adminEmployeeQueryConfig.list,
       ),
     ],
   },
@@ -105,7 +105,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(AdminCreateEmployee),
       validateAndTransformQuery(
         AdminGetEmployeeParams,
-        adminEmployeeQueryConfig.retrieve
+        adminEmployeeQueryConfig.retrieve,
       ),
     ],
   },
@@ -115,7 +115,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       validateAndTransformQuery(
         AdminGetEmployeeParams,
-        adminEmployeeQueryConfig.retrieve
+        adminEmployeeQueryConfig.retrieve,
       ),
     ],
   },
@@ -126,7 +126,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(AdminUpdateEmployee),
       validateAndTransformQuery(
         AdminGetEmployeeParams,
-        adminEmployeeQueryConfig.retrieve
+        adminEmployeeQueryConfig.retrieve,
       ),
     ],
   },
@@ -137,7 +137,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       validateAndTransformQuery(
         AdminGetApprovalSettingsParams,
-        adminApprovalSettingsQueryConfig.list
+        adminApprovalSettingsQueryConfig.list,
       ),
     ],
   },
@@ -148,7 +148,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(AdminUpdateApprovalSettings),
       validateAndTransformQuery(
         AdminGetApprovalSettingsParams,
-        adminApprovalSettingsQueryConfig.retrieve
+        adminApprovalSettingsQueryConfig.retrieve,
       ),
     ],
   },

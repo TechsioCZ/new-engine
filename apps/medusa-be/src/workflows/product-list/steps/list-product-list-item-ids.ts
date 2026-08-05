@@ -20,7 +20,7 @@ export const listProductListItemIdsStep = createStep(
           select: ["id"],
           skip,
           take: PRODUCT_LIST_ITEM_IDS_LOOKUP_CHUNK_SIZE,
-        }
+        },
       )
 
       itemIds.push(...items.map((item) => item.id))
@@ -31,5 +31,5 @@ export const listProductListItemIdsStep = createStep(
 
       skip += PRODUCT_LIST_ITEM_IDS_LOOKUP_CHUNK_SIZE
     }
-  }
+  },
 )

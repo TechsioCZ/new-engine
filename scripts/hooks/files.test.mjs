@@ -14,7 +14,7 @@ void describe("hook file helpers", () => {
   void it("parses valid push lines and ignores malformed input", () => {
     assert.deepEqual(
       parsePushLines(
-        `refs/heads/main ${SHA} refs/heads/main ${ZERO}\nmalformed\n`
+        `refs/heads/main ${SHA} refs/heads/main ${ZERO}\nmalformed\n`,
       ),
       [
         {
@@ -23,7 +23,7 @@ void describe("hook file helpers", () => {
           remoteRef: "refs/heads/main",
           remoteSha: ZERO,
         },
-      ]
+      ],
     )
   })
 
@@ -31,11 +31,11 @@ void describe("hook file helpers", () => {
     assert.equal(hasUploadedCommits(""), false)
     assert.equal(
       hasUploadedCommits(`(delete) ${ZERO} refs/heads/old ${SHA}\n`),
-      false
+      false,
     )
     assert.equal(
       hasUploadedCommits(`refs/heads/main ${SHA} refs/heads/main ${ZERO}\n`),
-      true
+      true,
     )
   })
 

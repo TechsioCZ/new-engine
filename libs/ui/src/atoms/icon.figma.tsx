@@ -31,5 +31,5 @@ figma.connect(
         "2xl": "2xl",
       }),
     },
-  }
+  },
 )

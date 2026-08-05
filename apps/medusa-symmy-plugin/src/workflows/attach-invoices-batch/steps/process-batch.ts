@@ -46,7 +46,7 @@ const processInvoiceForBatch = async ({
       order,
       invoice,
       uploaded,
-      userId
+      userId,
     )
     return {
       invoice_number: invoice.invoice_number,
@@ -58,7 +58,7 @@ const processInvoiceForBatch = async ({
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to attach invoice (${invoice.identifier_type}:${orderIdentifier}): ${message}`
+      `[symmy-plugin] Failed to attach invoice (${invoice.identifier_type}:${orderIdentifier}): ${message}`,
     )
     return {
       error: message,
@@ -85,7 +85,7 @@ export const symmyProcessInvoicesBatchStep = createStep(
           logger,
           orderIndex,
           userId: input.user_id,
-        })
+        }),
       )
     }
 
@@ -99,5 +99,5 @@ export const symmyProcessInvoicesBatchStep = createStep(
       success: failed === 0,
     }
     return new StepResponse(output)
-  }
+  },
 )

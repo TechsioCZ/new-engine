@@ -71,7 +71,7 @@ describe(buildBrandRegistry, () => {
       title: "Hérbatika Labs",
     })
     expect(registry.get("herbatika-labs")?.attributes.get("supplier")).toBe(
-      "Supplier A"
+      "Supplier A",
     )
   })
 
@@ -108,7 +108,7 @@ describe(buildBrandRegistry, () => {
           },
           handle: "product-2",
         },
-      ])
+      ]),
     ).toThrow(GPSR_EMAIL_CONFLICT_ERROR)
   })
 
@@ -129,7 +129,7 @@ describe(buildBrandRegistry, () => {
           },
           handle: "product-2",
         },
-      ])
+      ]),
     ).toThrow(OUTSIDE_EU_CONFLICT_ERROR)
   })
 
@@ -150,7 +150,7 @@ describe(buildBrandRegistry, () => {
           },
           handle: "product-2",
         },
-      ])
+      ]),
     ).toThrow(ATTRIBUTE_CONFLICT_ERROR)
   })
 
@@ -244,8 +244,8 @@ describe(buildBrandRegistry, () => {
             ? {}
             : { attributes: reconciledAttributes }),
         },
-        incoming
-      )
+        incoming,
+      ),
     ).toStrictEqual({})
   })
 })

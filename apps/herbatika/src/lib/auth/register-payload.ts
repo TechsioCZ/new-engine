@@ -11,7 +11,7 @@ const trimValue = (value: string) => value.trim()
 
 export const buildAuthRegisterInput = (
   values: RegisterFormValues,
-  { currencyCode }: BuildAuthRegisterInputOptions
+  { currencyCode }: BuildAuthRegisterInputOptions,
 ): AuthRegisterInput => ({
   email: values.email,
   first_name: values.first_name,

@@ -104,7 +104,7 @@ export interface MedusaProductListServiceConfig<
 export const normalizeProductListsResponse = <TProductList>(
   response: ProductListListResponse<TProductList>,
   fallbackLimit: number,
-  fallbackOffset: number
+  fallbackOffset: number,
 ): ProductListListResult<TProductList> => {
   const productLists =
     response.product_lists ?? response.productLists ?? response.lists ?? []
@@ -118,7 +118,7 @@ export const normalizeProductListsResponse = <TProductList>(
 }
 
 export const resolveProductListFromResponse = <TProductList>(
-  response: ProductListResponse<TProductList>
+  response: ProductListResponse<TProductList>,
 ): TProductList | null =>
   response.product_list ?? response.productList ?? response.list ?? null
 
@@ -126,7 +126,7 @@ export const resolveProductListItemFromResponse = <
   TProductList,
   TProductListItem,
 >(
-  response: ProductListItemResponse<TProductList, TProductListItem>
+  response: ProductListItemResponse<TProductList, TProductListItem>,
 ): TProductListItem | null =>
   response.product_list_item ??
   response.productListItem ??
@@ -136,7 +136,7 @@ export const resolveProductListItemFromResponse = <
 export const resolveProductListCartFromResponse = <
   TCart extends ProductListCartLike,
 >(
-  response: ProductListCartResponse<TCart>
+  response: ProductListCartResponse<TCart>,
 ): TCart | null => response.cart ?? null
 
 export function createMedusaProductListService<
@@ -151,7 +151,7 @@ export function createMedusaProductListService<
     TProductListItem,
     TCart,
     TListInput
-  >
+  >,
 ): ProductListService<
   TProductList,
   TProductListItem,
@@ -193,7 +193,7 @@ export function createMedusaProductListService<
   }
 
   const resolveItemFromResponse = (
-    response: ProductListItemResponse<TProductList, ProductListItemBase>
+    response: ProductListItemResponse<TProductList, ProductListItemBase>,
   ): TProductListItem | null => {
     const item = resolveProductListItemFromResponse(response)
     return item ? mapItem(item) : null
@@ -201,7 +201,7 @@ export function createMedusaProductListService<
 
   return {
     async addFavoriteProductListItem(
-      input: AddFavoriteProductListItemInput
+      input: AddFavoriteProductListItemInput,
     ): Promise<TProductListItem | null> {
       const response = await sdk.client.fetch<
         ProductListItemResponse<TProductList, ProductListItemBase>
@@ -221,7 +221,7 @@ export function createMedusaProductListService<
     },
 
     async addProductListItem(
-      input: AddProductListItemInput
+      input: AddProductListItemInput,
     ): Promise<TProductListItem | null> {
       const response = await sdk.client.fetch<
         ProductListItemResponse<TProductList, ProductListItemBase>
@@ -241,7 +241,7 @@ export function createMedusaProductListService<
     },
 
     async changeProductListItemQuantity(
-      input: ChangeProductListItemQuantityInput
+      input: ChangeProductListItemQuantityInput,
     ): Promise<TProductListItem | null> {
       const response = await sdk.client.fetch<
         ProductListItemResponse<TProductList, ProductListItemBase>
@@ -256,7 +256,7 @@ export function createMedusaProductListService<
     },
 
     async createCustomProductList(
-      input: CreateCustomProductListInput
+      input: CreateCustomProductListInput,
     ): Promise<TProductList | null> {
       const response = await sdk.client.fetch<
         ProductListResponse<ProductListBase<TProductListItem>>
@@ -272,7 +272,7 @@ export function createMedusaProductListService<
     },
 
     async createFavoriteProductList(
-      input: CreateFavoriteProductListInput = {}
+      input: CreateFavoriteProductListInput = {},
     ): Promise<TProductList | null> {
       const response = await sdk.client.fetch<
         ProductListResponse<ProductListBase<TProductListItem>>
@@ -285,7 +285,7 @@ export function createMedusaProductListService<
     },
 
     async createProductListCart(
-      input: CreateProductListCartInput
+      input: CreateProductListCartInput,
     ): Promise<TCart> {
       const response = await sdk.client.fetch<
         ProductListCartResponse<HttpTypes.StoreCart>
@@ -312,7 +312,7 @@ export function createMedusaProductListService<
         `${basePath}/${input.listId}`,
         {
           method: "DELETE",
-        }
+        },
       )
     },
 
@@ -328,7 +328,7 @@ export function createMedusaProductListService<
 
     async getProductList(
       params: MedusaProductListDetailInput,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<TProductList | null> {
       if (!params.id) {
         return null
@@ -343,7 +343,7 @@ export function createMedusaProductListService<
     },
 
     async incrementProductListItem(
-      input: IncrementProductListItemInput
+      input: IncrementProductListItemInput,
     ): Promise<TProductListItem | null> {
       const response = await sdk.client.fetch<
         ProductListItemResponse<TProductList, ProductListItemBase>
@@ -359,7 +359,7 @@ export function createMedusaProductListService<
 
     async listProductLists(
       params: TListInput,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<ProductListListResult<TProductList>> {
       const query = resolveListQuery(params)
       const response = await sdk.client.fetch<
@@ -371,7 +371,7 @@ export function createMedusaProductListService<
       const normalized = normalizeProductListsResponse(
         response,
         Number(query.limit ?? defaultLimit),
-        Number(query.offset ?? defaultOffset)
+        Number(query.offset ?? defaultOffset),
       )
 
       return {
@@ -381,7 +381,7 @@ export function createMedusaProductListService<
     },
 
     async updateProductList(
-      input: UpdateProductListInput
+      input: UpdateProductListInput,
     ): Promise<TProductList | null> {
       const response = await sdk.client.fetch<
         ProductListResponse<ProductListBase<TProductListItem>>
@@ -400,7 +400,7 @@ export function createMedusaProductListService<
     },
 
     async updateProductListItem(
-      input: UpdateProductListItemInput
+      input: UpdateProductListItemInput,
     ): Promise<TProductListItem | null> {
       const response = await sdk.client.fetch<
         ProductListItemResponse<TProductList, ProductListItemBase>

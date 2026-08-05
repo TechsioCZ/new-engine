@@ -25,7 +25,7 @@ class MeasurementUnitModuleService extends MedusaService({
   @InjectManager()
   async runInTransaction<T>(
     task: (context: Context<SqlEntityManager>) => Promise<T>,
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ) {
     return await this.runInTransaction_(task, sharedContext)
   }
@@ -33,7 +33,7 @@ class MeasurementUnitModuleService extends MedusaService({
   @InjectTransactionManager()
   protected async runInTransaction_<T>(
     task: (context: Context<SqlEntityManager>) => Promise<T>,
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ) {
     return await task(sharedContext)
   }
@@ -41,7 +41,7 @@ class MeasurementUnitModuleService extends MedusaService({
   @InjectManager()
   async getActiveProductCounts(
     unitIds: string[],
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ): Promise<ActiveProductCountRow[]> {
     const ids = [...new Set(unitIds)].filter(Boolean)
 
@@ -54,7 +54,7 @@ class MeasurementUnitModuleService extends MedusaService({
     if (!manager) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "Measurement Unit Module manager is unavailable while counting product assignments."
+        "Measurement Unit Module manager is unavailable while counting product assignments.",
       )
     }
 
@@ -66,7 +66,7 @@ class MeasurementUnitModuleService extends MedusaService({
        where "deleted_at" is null
          and "measurement_unit_id" in (${placeholders})
        group by "measurement_unit_id"`,
-      ids
+      ids,
     )
   }
 }

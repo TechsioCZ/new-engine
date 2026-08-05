@@ -35,7 +35,7 @@ function existingFiles(files, root = ".") {
 
 export function formattableFiles(files, root) {
   return existingFiles(files, root).filter((file) =>
-    FORMATTABLE_FILE.test(file)
+    FORMATTABLE_FILE.test(file),
   )
 }
 
@@ -49,7 +49,7 @@ export function touchesDangerPolicy(files) {
       file === "dangerfile.ts" ||
       file === "lefthook.yml" ||
       file.startsWith("scripts/danger/") ||
-      file.startsWith("scripts/hooks/")
+      file.startsWith("scripts/hooks/"),
   )
 }
 

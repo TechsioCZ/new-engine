@@ -37,17 +37,17 @@ export function createScopeCommand(): Command {
     .option(
       "--nx-isolate-plugins <true|false>",
       "",
-      process.env.NX_RESOLVE_AFFECTED_ISOLATE_PLUGINS ?? "true"
+      process.env.NX_RESOLVE_AFFECTED_ISOLATE_PLUGINS ?? "true",
     )
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
     .action(async (options) => {
       const input = scopeCommandInputSchema.parse({
@@ -57,7 +57,7 @@ export function createScopeCommand(): Command {
         nxIsolatePlugins: parseBooleanOption(options.nxIsolatePlugins),
         outputJson: options.outputJson,
         previewBaselineComplete: parseBooleanOption(
-          options.previewBaselineComplete
+          options.previewBaselineComplete,
         ),
         servicesCsv: options.servicesCsv,
         stackInputsPath: options.stackInputsPath,
@@ -69,24 +69,24 @@ export function createScopeCommand(): Command {
       await appendGitHubOutput("nx_status", result.nx_status)
       await appendGitHubOutput(
         "changed_files_count",
-        String(result.changed_files_count)
+        String(result.changed_files_count),
       )
       await appendGitHubOutput("should_prepare", String(result.should_prepare))
       await appendGitHubOutput(
         "requires_preview_db",
-        String(result.requires_preview_db)
+        String(result.requires_preview_db),
       )
       await appendGitHubOutput(
         "preview_db_service_ids",
-        result.preview_db_service_ids
+        result.preview_db_service_ids,
       )
       await appendGitHubOutput(
         "requires_downtime_approval",
-        String(result.requires_downtime_approval)
+        String(result.requires_downtime_approval),
       )
       await appendGitHubOutput(
         "downtime_service_ids",
-        result.downtime_service_ids
+        result.downtime_service_ids,
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
     })

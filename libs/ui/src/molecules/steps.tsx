@@ -250,7 +250,7 @@ export type StepsStoreProps = Omit<StepsMachineProps, "id"> & {
 export function useSteps({ id, ...props }: StepsStoreProps) {
   const generatedId = useId()
   const machineProps = Object.fromEntries(
-    Object.entries(props).filter(([, option]) => option !== undefined)
+    Object.entries(props).filter(([, option]) => option !== undefined),
   )
 
   const service = useMachine(stepsMachine, {
@@ -736,7 +736,7 @@ Steps.CompletedContent = function StepsCompletedContent({
   const { api, styles } = useStepsContext()
   const contentProps = mergeProps(
     api.getContentProps({ index: api.count }),
-    props
+    props,
   )
 
   return (

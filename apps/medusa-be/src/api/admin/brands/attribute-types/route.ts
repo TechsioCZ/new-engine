@@ -37,7 +37,7 @@ export async function GET(
     unknown,
     AdminGetBrandAttributeTypesSchemaType
   >,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const service = getBrandService(req.scope)
   const { include_deleted, limit, name, offset, q } = req.validatedQuery
@@ -56,24 +56,24 @@ export async function GET(
     filters,
     {
       order: parseOrder(
-        req.validatedQuery.order_by ?? req.validatedQuery.order
+        req.validatedQuery.order_by ?? req.validatedQuery.order,
       ),
       skip: offset,
       take: limit,
       withDeleted: include_deleted,
-    }
+    },
   )
   const usageCounts = await getBrandAttributeTypeUsageCounts(
     req.scope,
-    attributeTypes.map((attributeType) => attributeType.id)
+    attributeTypes.map((attributeType) => attributeType.id),
   )
 
   res.json({
     attribute_types: attributeTypes.map((attributeType) =>
       toBrandAttributeTypeResponse(
         attributeType,
-        usageCounts.get(attributeType.id) ?? 0
-      )
+        usageCounts.get(attributeType.id) ?? 0,
+      ),
     ),
     count,
     limit,
@@ -83,7 +83,7 @@ export async function GET(
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminCreateBrandAttributeTypeSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { name } = req.validatedBody
   const { result } = await createBrandAttributeTypesWorkflow(req.scope).run({
@@ -96,7 +96,7 @@ export async function POST(
   if (!ensured) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Brand attribute type "${name}" was not returned by its workflow`
+      `Brand attribute type "${name}" was not returned by its workflow`,
     )
   }
 
@@ -108,7 +108,7 @@ export async function POST(
     action: ensured.action,
     attribute_type: toBrandAttributeTypeResponse(
       ensured.attribute_type,
-      usageCounts.get(ensured.attribute_type.id) ?? 0
+      usageCounts.get(ensured.attribute_type.id) ?? 0,
     ),
   })
 }

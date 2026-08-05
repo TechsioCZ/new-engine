@@ -15,7 +15,7 @@ export default async function productReviewRequestOnPaymentHandler({
 
   if (!orderId) {
     logger.warn(
-      `Skipping product review request queueing: could not resolve order from ${event.name} event ${JSON.stringify(event.data)}`
+      `Skipping product review request queueing: could not resolve order from ${event.name} event ${JSON.stringify(event.data)}`,
     )
     return
   }

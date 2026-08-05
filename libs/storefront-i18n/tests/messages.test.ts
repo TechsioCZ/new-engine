@@ -8,7 +8,7 @@ describe(nestStorefrontMessages, () => {
       nestStorefrontMessages({
         "cart.add_to_cart": "Add to cart",
         "checkout.steps.summary": "Summary",
-      })
+      }),
     ).toStrictEqual({
       cart: {
         add_to_cart: "Add to cart",
@@ -26,7 +26,7 @@ describe(nestStorefrontMessages, () => {
       nestStorefrontMessages({
         cart: "Cart",
         "cart.title": "Your cart",
-      })
+      }),
     ).toThrow("Conflicting storefront message key: cart.title")
   })
 
@@ -34,7 +34,7 @@ describe(nestStorefrontMessages, () => {
     expect(
       nestStorefrontMessages({
         "toString.title": "Title",
-      })
+      }),
     ).toStrictEqual({
       toString: {
         title: "Title",
@@ -46,8 +46,8 @@ describe(nestStorefrontMessages, () => {
     "rejects invalid key %s",
     (key) => {
       expect(() => nestStorefrontMessages({ [key]: "value" })).toThrow(
-        `Invalid storefront message key: ${key}`
+        `Invalid storefront message key: ${key}`,
       )
-    }
+    },
   )
 })

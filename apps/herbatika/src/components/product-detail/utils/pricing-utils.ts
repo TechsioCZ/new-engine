@@ -18,7 +18,7 @@ export const resolvePriceState = (
   product: Product,
   selectedVariantId: string | null,
   expectedCurrencyCode: string | null | undefined,
-  priceUnavailableLabel: string
+  priceUnavailableLabel: string,
 ): ProductPriceState => {
   const variants = product.variants ?? []
   const selectedVariant =
@@ -70,7 +70,7 @@ export const resolvePriceState = (
 }
 
 export const resolveDisplayOriginalAmount = (
-  priceState: ProductPriceState | null
+  priceState: ProductPriceState | null,
 ): number | null => {
   if (!priceState?.currentAmount) {
     return null
@@ -84,7 +84,7 @@ export const resolveDisplayOriginalAmount = (
 
 export const resolveDiscountPercent = (
   currentAmount: number | null,
-  originalAmount: number | null
+  originalAmount: number | null,
 ): number | null => {
   if (
     typeof currentAmount !== "number" ||
@@ -101,7 +101,7 @@ export const resolveDiscountPercent = (
 export const resolveVipCreditLabel = (
   currentAmount: number | null,
   currencyCode: string,
-  isEligible: boolean
+  isEligible: boolean,
 ): string | null => {
   if (!isEligible || typeof currentAmount !== "number") {
     return null
@@ -117,7 +117,7 @@ export const resolveVolumeDiscountOptions = (
   labels: {
     title: (quantity: number) => string
     perUnit: (price: string) => string
-  }
+  },
 ): VolumeDiscountOption[] => {
   if (!isEligible || typeof currentAmount !== "number") {
     return []
@@ -140,13 +140,13 @@ export const resolveVolumeDiscountOptions = (
           ? formatCurrencyAmount(originalTotalAmount, currencyCode)
           : null,
       perUnitLabel: labels.perUnit(
-        formatCurrencyAmount(discountedUnitAmount, currencyCode)
+        formatCurrencyAmount(discountedUnitAmount, currencyCode),
       ),
       quantity: option.quantity,
       title: labels.title(option.quantity),
       totalAmountLabel: formatCurrencyAmount(
         discountedTotalAmount,
-        currencyCode
+        currencyCode,
       ),
     }
   })

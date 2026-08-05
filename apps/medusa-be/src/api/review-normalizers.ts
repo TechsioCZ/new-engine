@@ -34,7 +34,7 @@ type PublicReviewRecord = Pick<
 >
 
 const isReviewEntity = (
-  value: unknown
+  value: unknown,
 ): value is Record<string, unknown> & object =>
   typeof value === "object" && value !== null
 
@@ -107,7 +107,7 @@ export const getUniqueReviewProductIds = (reviews: ReviewRecord[]) => [
 
 export const normalizeAdminReview = (
   review: ReviewRecord,
-  productsById: Map<string, ProductRecord>
+  productsById: Map<string, ProductRecord>,
 ) => ({
   ...review,
   product: productsById.get(review.product_id) ?? null,

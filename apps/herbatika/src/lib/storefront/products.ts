@@ -23,12 +23,12 @@ export type ProductListInput = BaseStorefrontProductListInput & {
 
 const productHooks = storefront.hooks.products
 const toProductListParams = (
-  input: ProductListInput
+  input: ProductListInput,
 ): HttpTypes.StoreProductListParams => input
 
 export const useProducts = (
   input: ProductListInput,
-  options?: UseProductsOptions
+  options?: UseProductsOptions,
 ) => productHooks.useProducts(toProductListParams(input), options)
 
 export const { useProduct } = productHooks

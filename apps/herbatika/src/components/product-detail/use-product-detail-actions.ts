@@ -38,7 +38,7 @@ export function useProductDetailActions({
   const addProductToCart = async (
     productToAdd: Product,
     quantityToAdd: number,
-    variantIdOverride?: string | null
+    variantIdOverride?: string | null,
   ) => {
     await addToCart.addProductToCart({
       product: productToAdd,
@@ -56,7 +56,7 @@ export function useProductDetailActions({
       }
 
       runDetachedPromise(
-        addProductToCart(product, quantity, selectedVariant.id)
+        addProductToCart(product, quantity, selectedVariant.id),
       )
     },
     handleAddRelatedProductToCart: (productToAdd: Product) => {
@@ -71,21 +71,21 @@ export function useProductDetailActions({
         addProductToCart(
           product,
           selectedVolumeDiscountOption.quantity,
-          selectedVariant.id
-        )
+          selectedVariant.id,
+        ),
       )
     },
     handleRelatedProductHoverEnd: (
       sectionId: string,
-      hoveredProduct: Product
+      hoveredProduct: Product,
     ) => {
       prefetchProduct.cancelPrefetch(
-        `${sectionId}-product-${hoveredProduct.id}`
+        `${sectionId}-product-${hoveredProduct.id}`,
       )
     },
     handleRelatedProductHoverStart: (
       sectionId: string,
-      hoveredProduct: Product
+      hoveredProduct: Product,
     ) => {
       if (!hoveredProduct.handle) {
         return
@@ -97,7 +97,7 @@ export function useProductDetailActions({
           handle: hoveredProduct.handle,
         },
         220,
-        `${sectionId}-product-${hoveredProduct.id}`
+        `${sectionId}-product-${hoveredProduct.id}`,
       )
     },
     isMainProductAdding:

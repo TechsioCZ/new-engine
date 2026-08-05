@@ -77,7 +77,7 @@ describe("customer validation regression", () => {
 
     const service = createService()
     const toUpdateParams = vi.fn((input: UpdateInput) =>
-      input.city ? { city: input.city } : {}
+      input.city ? { city: input.city } : {},
     )
     const { useUpdateCustomerAddress } = createCustomerHooks<
       Customer,
@@ -115,7 +115,7 @@ describe("customer validation regression", () => {
         result.current.mutateAsync({
           addressId: "addr_1",
           city: "Prague",
-        })
+        }),
       ).resolves.toMatchObject({ city: "Prague", id: "addr_1" })
     })
 
@@ -124,7 +124,7 @@ describe("customer validation regression", () => {
         addressId: "addr_1",
         city: "Prague",
       }),
-      { mode: "update" }
+      { mode: "update" },
     )
     expect(service.updateAddress).toHaveBeenCalledWith("addr_1", {
       city: "Prague",
@@ -185,7 +185,7 @@ describe("customer validation regression", () => {
 
     await act(async () => {
       await expect(
-        result.current.mutateAsync({ address_1: "Main street" })
+        result.current.mutateAsync({ address_1: "Main street" }),
       ).rejects.toBeInstanceOf(StorefrontAddressValidationError)
     })
 
@@ -265,7 +265,7 @@ describe("customer validation regression", () => {
         id,
         ...(params.address_1 ? { address_1: params.address_1 } : {}),
         ...(params.city ? { city: params.city } : {}),
-      })
+      }),
     )
     const { useUpdateCustomerAddress } = createCustomerHooks<
       Customer,
@@ -309,7 +309,7 @@ describe("customer validation regression", () => {
         result.current.mutateAsync({
           addressId: "addr_1",
           phone: " +420123456789 ",
-        })
+        }),
       ).resolves.toMatchObject({ id: "addr_1" })
     })
 
@@ -317,7 +317,7 @@ describe("customer validation regression", () => {
       "addr_1",
       expect.objectContaining({
         phone: "+420123456789",
-      })
+      }),
     )
   })
 })

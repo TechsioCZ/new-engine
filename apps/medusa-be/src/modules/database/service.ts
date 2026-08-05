@@ -23,7 +23,7 @@ class DatabaseModuleService {
       if (!connectionString) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          "LEGACY_DATABASE_URL environment variable is required for legacy database connection"
+          "LEGACY_DATABASE_URL environment variable is required for legacy database connection",
         )
       }
       const connection = await mysql.createConnection(connectionString)
@@ -38,7 +38,7 @@ class DatabaseModuleService {
    * Execute a raw SQL query and return the results
    */
   async sqlRaw<T extends Record<string, unknown> = Record<string, unknown>>(
-    sql: SQL<T>
+    sql: SQL<T>,
   ): Promise<T[]>
   async sqlRaw(sql: SQL): Promise<unknown[]> {
     const db = await this.initDatabase()

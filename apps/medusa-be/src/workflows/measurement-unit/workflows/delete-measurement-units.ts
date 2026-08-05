@@ -28,5 +28,5 @@ export const deleteMeasurementUnitsWorkflow = createWorkflow(
     releaseLockStep(releaseInput)
 
     return new WorkflowResponse(deleted)
-  }
+  },
 )

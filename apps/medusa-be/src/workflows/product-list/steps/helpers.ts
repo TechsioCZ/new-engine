@@ -39,7 +39,7 @@ const isProductRecord = (value: unknown): value is ProductRecord =>
   (value["status"] === undefined || typeof value["status"] === "string")
 
 const isProductVariantRecord = (
-  value: unknown
+  value: unknown,
 ): value is ProductVariantRecord =>
   isObjectRecord(value) &&
   typeof value["id"] === "string" &&
@@ -55,13 +55,13 @@ export const getProductListType = (type: string): ProductListType => {
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `Unsupported product list type: ${type}`
+    `Unsupported product list type: ${type}`,
   )
 }
 
 export const findCustomerFavoriteProductList = async (
   container: MedusaContainer,
-  customerId: string
+  customerId: string,
 ) => {
   const productListIds = await listCustomerProductListIds(container, customerId)
 
@@ -78,7 +78,7 @@ export const findCustomerFavoriteProductList = async (
     },
     {
       take: 1,
-    }
+    },
   )
 
   return favorite ?? null
@@ -87,7 +87,7 @@ export const findCustomerFavoriteProductList = async (
 export const findCustomerCustomProductListByHandle = async (
   container: MedusaContainer,
   customerId: string,
-  handle: string
+  handle: string,
 ) => {
   const productListIds = await listCustomerProductListIds(container, customerId)
 
@@ -105,7 +105,7 @@ export const findCustomerCustomProductListByHandle = async (
     },
     {
       take: 1,
-    }
+    },
   )
 
   return customList ?? null
@@ -114,7 +114,7 @@ export const findCustomerCustomProductListByHandle = async (
 export const assertProductSelectionExists = async (
   container: MedusaContainer,
   productId: string,
-  variantId?: string
+  variantId?: string,
 ) => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data: productData } = await query.graph({
@@ -135,7 +135,7 @@ export const assertProductSelectionExists = async (
   if (!product) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product ${productId} was not found`
+      `Product ${productId} was not found`,
     )
   }
 
@@ -160,7 +160,7 @@ export const assertProductSelectionExists = async (
   if (!variant || variant.product?.id !== productId) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product variant ${variantId} was not found`
+      `Product variant ${variantId} was not found`,
     )
   }
 }
@@ -169,7 +169,7 @@ export const findProductListItemForSelection = async (
   container: MedusaContainer,
   listId: string,
   productId: string,
-  variantId?: string
+  variantId?: string,
 ) => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const service =
@@ -185,7 +185,7 @@ export const findProductListItemForSelection = async (
         select: ["id"],
         skip,
         take: PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE,
-      }
+      },
     )
     const listItemIds = listItems.map((item) => item.id)
 
@@ -205,7 +205,7 @@ export const findProductListItemForSelection = async (
       },
     })
     let itemIds = toProductListItemProductLinks(productLinks).flatMap((link) =>
-      link.product_list_item_id ? [link.product_list_item_id] : []
+      link.product_list_item_id ? [link.product_list_item_id] : [],
     )
 
     if (itemIds.length) {
@@ -222,12 +222,12 @@ export const findProductListItemForSelection = async (
       })
       const variantItemIds = new Set(
         toProductListItemVariantLinks(variantLinks).flatMap((link) =>
-          link.product_list_item_id ? [link.product_list_item_id] : []
-        )
+          link.product_list_item_id ? [link.product_list_item_id] : [],
+        ),
       )
 
       itemIds = itemIds.filter((itemId) =>
-        variantId ? variantItemIds.has(itemId) : !variantItemIds.has(itemId)
+        variantId ? variantItemIds.has(itemId) : !variantItemIds.has(itemId),
       )
     }
 
@@ -239,7 +239,7 @@ export const findProductListItemForSelection = async (
         },
         {
           take: 1,
-        }
+        },
       )
 
       return item ?? null

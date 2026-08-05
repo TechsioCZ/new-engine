@@ -19,5 +19,5 @@ export const setProductAttributesWorkflow = createWorkflow(
     const result = setProductAttributesStep(input)
     releaseLockStep({ key: lockKey })
     return new WorkflowResponse(result)
-  }
+  },
 )

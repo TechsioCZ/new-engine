@@ -14,15 +14,15 @@ interface ProductRecord {
 
 interface ProductService {
   listProductCategories: (
-    filters: Record<string, unknown>
+    filters: Record<string, unknown>,
   ) => Promise<ProductCategoryRecord[]>
   listProducts: (
     filters: Record<string, unknown>,
-    config?: { relations?: string[] }
+    config?: { relations?: string[] },
   ) => Promise<ProductRecord[]>
   updateProducts: (
     id: string,
-    data: { category_ids: string[] }
+    data: { category_ids: string[] },
   ) => Promise<unknown>
 }
 
@@ -84,7 +84,7 @@ const productCategoryMapping: Record<string, string[]> = {
 async function logCategoryProductCounts(
   productService: ProductService,
   categories: ProductCategoryRecord[],
-  logger: Logger
+  logger: Logger,
 ) {
   for (const category of categories) {
     const productsInCategory = await productService.listProducts({
@@ -120,7 +120,7 @@ export default async function linkProductsToCategories({
     {},
     {
       relations: ["categories"],
-    }
+    },
   )
 
   logger.info(`Found ${products.length} products`)
@@ -142,7 +142,7 @@ export default async function linkProductsToCategories({
 
     if (categoryIds.length === 0) {
       logger.warn(
-        `No category IDs found for handles: ${categoryHandles.join(", ")}`
+        `No category IDs found for handles: ${categoryHandles.join(", ")}`,
       )
       continue
     }
@@ -150,7 +150,7 @@ export default async function linkProductsToCategories({
     // Check if product already has categories
     const existingCategoryIds = product.categories?.map((c) => c.id) || []
     const newCategoryIds = categoryIds.filter(
-      (id) => !existingCategoryIds.includes(id)
+      (id) => !existingCategoryIds.includes(id),
     )
 
     if (newCategoryIds.length === 0) {
@@ -166,12 +166,12 @@ export default async function linkProductsToCategories({
 
       linkedCount += 1
       logger.info(
-        `Linked product ${product.handle} to ${newCategoryIds.length} new categories`
+        `Linked product ${product.handle} to ${newCategoryIds.length} new categories`,
       )
     } catch (error) {
       logger.error(
         `Failed to link product ${product.handle}:`,
-        error instanceof Error ? error : new Error(String(error))
+        error instanceof Error ? error : new Error(String(error)),
       )
     }
   }

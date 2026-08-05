@@ -65,22 +65,22 @@ describe("read query options factories", () => {
         enabled: true,
         limit: 4,
         page: 2,
-      })
+      }),
     )
     await queryClient.prefetchQuery(
       getDetailQueryOptions({
         enabled: true,
         id: "col_1",
-      })
+      }),
     )
 
     expect(service.getCollections).toHaveBeenCalledWith(
       { limit: 4, page: 2 },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
     expect(service.getCollection).toHaveBeenCalledWith(
       { id: "col_1" },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
   })
 
@@ -155,11 +155,11 @@ describe("read query options factories", () => {
 
     expect(service.getOrders).toHaveBeenCalledWith(
       { limit: 5, page: 3 },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
     expect(service.getOrder).toHaveBeenCalledWith(
       { id: "ord_1" },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
   })
 })

@@ -48,7 +48,7 @@ export function CartPrefetch() {
       queryKey: queryKeys.cart(
         typeof window !== "undefined"
           ? localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined
-          : undefined
+          : undefined,
       ),
       staleTime: 5 * 60 * 1000, // 5 minutes
     })

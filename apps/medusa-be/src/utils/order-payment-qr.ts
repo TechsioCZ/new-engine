@@ -97,7 +97,7 @@ export class OrderPaymentQr {
       top,
       x,
       y,
-    }: PaymentQrPdfCommandOptions
+    }: PaymentQrPdfCommandOptions,
   ): PaymentQrPdfCommand[] {
     if (!spayd) {
       return []
@@ -141,7 +141,7 @@ export class OrderPaymentQr {
               renderedY +
               (matrixSize - row - 1 + PAYMENT_QR_QUIET_ZONE_MODULES) *
                 moduleSize,
-          })
+          }),
         )
       }
     }
@@ -235,6 +235,6 @@ function pdfFillRect({
   y: number
 }) {
   return `q ${color} rg ${x.toFixed(2)} ${y.toFixed(2)} ${width.toFixed(
-    2
+    2,
   )} ${height.toFixed(2)} re f Q`
 }

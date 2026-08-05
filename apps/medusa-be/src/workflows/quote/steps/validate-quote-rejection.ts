@@ -9,8 +9,8 @@ export const validateQuoteRejectionStep = createStep(
     if (["accepted"].includes(quote.status)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Quote is already accepted by customer"
+        "Quote is already accepted by customer",
       )
     }
-  }
+  },
 )

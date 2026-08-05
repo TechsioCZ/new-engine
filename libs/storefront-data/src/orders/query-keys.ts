@@ -3,7 +3,7 @@ import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { OrderQueryKeys } from "./types"
 
 export function createOrderQueryKeys<TListParams, TDetailParams>(
-  namespace: QueryNamespace
+  namespace: QueryNamespace,
 ): OrderQueryKeys<TListParams, TDetailParams> {
   return {
     all: () => createQueryKey(namespace, "orders"),
@@ -12,14 +12,14 @@ export function createOrderQueryKeys<TListParams, TDetailParams>(
         namespace,
         "orders",
         "detail",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
     list: (params) =>
       createQueryKey(
         namespace,
         "orders",
         "list",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
   }
 }

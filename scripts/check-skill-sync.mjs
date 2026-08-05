@@ -23,7 +23,7 @@ const SKILLS_DIR = "libs/ui/skills"
 const PLUGIN_SKILLS_DIR = "libs/ui/agent-plugin/skills"
 const SYNC_CMD = "node libs/ui/agent-plugin/scripts/sync-skills.mjs"
 const COMPONENT_DIRS = ["atoms", "molecules", "organisms", "templates"].map(
-  (d) => `libs/ui/src/${d}`
+  (d) => `libs/ui/src/${d}`,
 )
 const CHANGELOG = "libs/ui/stories/changelog/changelog.stories.tsx"
 const COMPONENT_RE =
@@ -154,7 +154,7 @@ for (const file of toCheck) {
   const label = file.replace(/^libs\/ui\/src\//, "")
   if (!(vMatch && sMatch)) {
     errors.push(
-      `${label}: has one of @componentVersion/@skill but not both — add both to opt in.`
+      `${label}: has one of @componentVersion/@skill but not both — add both to opt in.`,
     )
     continue
   }
@@ -171,11 +171,11 @@ for (const file of toCheck) {
   const skillVMatch = SKILL_VERSION_RE.exec(readStaged(skillPath))
   if (!skillVMatch) {
     errors.push(
-      `${skillPath}: missing \`component_version:\` (must equal ${label} @componentVersion v${version}).`
+      `${skillPath}: missing \`component_version:\` (must equal ${label} @componentVersion v${version}).`,
     )
   } else if (skillVMatch[1] !== version) {
     errors.push(
-      `${label}: component v${version} ≠ ${skillName} component_version v${skillVMatch[1]} — must match 1:1.`
+      `${label}: component v${version} ≠ ${skillName} component_version v${skillVMatch[1]} — must match 1:1.`,
     )
   }
 
@@ -186,11 +186,11 @@ for (const file of toCheck) {
   const bundledPath = join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md")
   if (!existsSync(bundledPath)) {
     errors.push(
-      `${bundledPath} missing — run \`${SYNC_CMD}\` to bundle ${skillName}.`
+      `${bundledPath} missing — run \`${SYNC_CMD}\` to bundle ${skillName}.`,
     )
   } else if (readStaged(bundledPath) !== readStaged(skillPath)) {
     errors.push(
-      `${bundledPath}: out of sync with ${skillPath} (content differs) — run \`${SYNC_CMD}\`.`
+      `${bundledPath}: out of sync with ${skillPath} (content differs) — run \`${SYNC_CMD}\`.`,
     )
   }
 
@@ -198,15 +198,15 @@ for (const file of toCheck) {
   const changelog = readStaged(CHANGELOG)
   const entryRe = new RegExp(
     `^###\\s+${componentName}\\s+v${version.replaceAll(/\./g, "\\.")}\\s*$`,
-    "im"
+    "im",
   )
   if (!changelog) {
     errors.push(
-      `${CHANGELOG} not found — add a \`### ${componentName} v${version}\` entry.`
+      `${CHANGELOG} not found — add a \`### ${componentName} v${version}\` entry.`,
     )
   } else if (!entryRe.test(changelog)) {
     errors.push(
-      `${CHANGELOG}: missing \`### ${componentName} v${version}\` — document this version's change.`
+      `${CHANGELOG}: missing \`### ${componentName} v${version}\` — document this version's change.`,
     )
   }
 
@@ -221,7 +221,7 @@ for (const file of toCheck) {
       stripMeta(baseSrc) !== stripMeta(src)
     ) {
       errors.push(
-        `${label}: code changed but @componentVersion is still v${version} — bump it (and its skill + changelog).`
+        `${label}: code changed but @componentVersion is still v${version} — bump it (and its skill + changelog).`,
       )
     }
   }
@@ -233,7 +233,7 @@ if (errors.length) {
     process.stderr.write(`  • ${e}\n`)
   }
   process.stderr.write(
-    "\nUpdate the component, its libs/ui/skills/<name>/SKILL.md, and the changelog story together, then re-stage.\n\n"
+    "\nUpdate the component, its libs/ui/skills/<name>/SKILL.md, and the changelog story together, then re-stage.\n\n",
   )
   process.exit(1)
 }

@@ -27,8 +27,8 @@ describe("Brand attribute replacement", () => {
     expect(
       shouldDeleteBrandAttribute(
         attribute({ typeDeletedAt: "2026-07-20" }),
-        new Set()
-      )
+        new Set(),
+      ),
     ).toBeFalsy()
   })
 
@@ -38,13 +38,13 @@ describe("Brand attribute replacement", () => {
 
   it("keeps requested and already-soft-deleted values", () => {
     expect(
-      shouldDeleteBrandAttribute(attribute(), new Set(["Country"]))
+      shouldDeleteBrandAttribute(attribute(), new Set(["Country"])),
     ).toBeFalsy()
     expect(
       shouldDeleteBrandAttribute(
         attribute({ attributeDeletedAt: "2026-07-20" }),
-        new Set()
-      )
+        new Set(),
+      ),
     ).toBeFalsy()
   })
 })

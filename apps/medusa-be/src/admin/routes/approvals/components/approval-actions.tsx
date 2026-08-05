@@ -27,11 +27,11 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
   const awaitingSalesManagerApproval = cart.approval_requests.find(
     (approval) =>
       approval.type === ApprovalType.SALES_MANAGER &&
-      approval.status === ApprovalStatusType.PENDING
+      approval.status === ApprovalStatusType.PENDING,
   )
 
   const { mutateAsync: updateApproval } = useUpdateApproval(
-    awaitingSalesManagerApproval?.id ?? ""
+    awaitingSalesManagerApproval?.id ?? "",
   )
 
   const approveCart = async () => {

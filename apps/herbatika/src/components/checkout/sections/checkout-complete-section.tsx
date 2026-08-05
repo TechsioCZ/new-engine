@@ -72,7 +72,7 @@ interface AddressRowLabels {
 const resolveAddressRows = (
   form: AddressFormState,
   locale: string,
-  labels: AddressRowLabels
+  labels: AddressRowLabels,
 ) => {
   const hasCompanyDetails = [
     form.company,
@@ -164,7 +164,7 @@ export function CheckoutCompleteSection({
       postalCode: tForm("postal_code"),
       taxId: tForm("tax_id"),
       vatId: tForm("vat_id"),
-    }
+    },
   )
   const shippingSummaryLabel = hasShipping
     ? (shippingLabel ?? tCheckout("selected_shipping"))

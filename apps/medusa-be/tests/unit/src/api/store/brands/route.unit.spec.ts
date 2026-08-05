@@ -23,7 +23,7 @@ vi.mock(import("../../../../../../src/links/product-brand"), () => ({
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
@@ -72,7 +72,7 @@ const createRequest = ({
     },
     scope: {
       resolve: vi.fn((key: string) =>
-        key === ContainerRegistrationKeys.QUERY ? { graph } : remoteQuery
+        key === ContainerRegistrationKeys.QUERY ? { graph } : remoteQuery,
       ),
     },
   }
@@ -107,7 +107,7 @@ describe("Store Brand visibility", () => {
         limit: "12",
         offset: "4",
         sales_channel_id: ["sc_1", "sc_2"],
-      })
+      }),
     ).toStrictEqual({
       fields: "id,title",
       limit: 12,
@@ -118,7 +118,7 @@ describe("Store Brand visibility", () => {
 
   it("keeps the standard Store product visibility middleware chain", () => {
     const productsRoute = storeBrandsRoutesMiddlewares.find(
-      (route) => route.matcher === "/store/brands/:id/products"
+      (route) => route.matcher === "/store/brands/:id/products",
     )
 
     expect(productsRoute?.middlewares).toHaveLength(4)
@@ -131,7 +131,7 @@ describe("Store Brand visibility", () => {
     const response = createMockResponse()
 
     await expect(GET(req, response)).rejects.toThrow(
-      'Brand with id "brand_deleted" was not found'
+      'Brand with id "brand_deleted" was not found',
     )
     expect(graph).toHaveBeenCalledOnce()
     expect(response.json).not.toHaveBeenCalled()

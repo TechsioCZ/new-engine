@@ -46,5 +46,5 @@ export const customerAcceptQuoteWorkflow = createWorkflow(
         status: OrderStatus.PENDING,
       },
     })
-  }
+  },
 )

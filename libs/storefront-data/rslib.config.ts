@@ -10,7 +10,7 @@ const sourceEntries = Object.fromEntries(
   }).map((filePath) => [
     filePath.slice("src/".length).replace(/\.(?:ts|tsx)$/u, ""),
     `./${filePath}`,
-  ])
+  ]),
 )
 
 export default defineConfig({
@@ -32,8 +32,8 @@ export default defineConfig({
       source: {
         entry: Object.fromEntries(
           Object.entries(sourceEntries).filter(
-            ([entryName]) => !entryName.startsWith("server/")
-          )
+            ([entryName]) => !entryName.startsWith("server/"),
+          ),
         ),
       },
     },

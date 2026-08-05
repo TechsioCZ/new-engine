@@ -157,7 +157,7 @@ function resolveTargetWorktree({ dir, gitDir }) {
         cwd: dir,
         encoding: "utf-8",
         stdio: ["ignore", "pipe", "ignore"],
-      }
+      },
     ).trim()
     // Standard layout only (`<worktree>/.git`). A bare repo or linked worktree has no worktree we
     // can derive cheaply — return null so the caller fails closed rather than mis-scope the push.
@@ -385,7 +385,7 @@ process.stdin.on("end", () => {
             ? `\`${sub}\` is not a git built-in — it may be an alias expanding to \`push --no-verify\` in that repo.`
             : "`--no-verify` is not permitted on a push.",
           "Use a literal path (not a shell variable) so the target can be verified, then push normally.",
-        ].join("\n")
+        ].join("\n"),
       )
       process.exit(2)
     }
@@ -414,7 +414,7 @@ process.stdin.on("end", () => {
         "`--no-verify` is not permitted. Run the `ui-validate` skill and push normally.",
       ]
         .filter(Boolean)
-        .join("\n")
+        .join("\n"),
     )
     process.exit(2)
   }

@@ -39,7 +39,7 @@ interface QueryService {
 interface PgConnection {
   raw: (
     sql: string,
-    bindings?: unknown[]
+    bindings?: unknown[],
   ) => Promise<{ rows?: Record<string, unknown>[] }>
 }
 
@@ -57,7 +57,7 @@ const toRows = (result: { rows?: Record<string, unknown>[] }) =>
 
 const getFirstNumber = (
   row: Record<string, unknown> | undefined,
-  key: string
+  key: string,
 ): number => {
   const value = row?.[key]
   if (typeof value === "number") {
@@ -104,7 +104,7 @@ async function resolvePublishableKey(query: QueryService) {
       typeof candidate.token === "string" &&
       (!revokedAt || revokedAt > now) &&
       (candidate.sales_channels_link ?? []).some(
-        (link) => typeof link.sales_channel_id === "string"
+        (link) => typeof link.sales_channel_id === "string",
       )
     )
   })
@@ -137,7 +137,7 @@ async function getExactCounts(pg: PgConnection, salesChannelIds: string[]) {
         and p.deleted_at is null
         and psc.sales_channel_id = any(?::text[])
     `,
-    [salesChannelIds]
+    [salesChannelIds],
   )
 
   const row = toRows(result)[0]
@@ -145,7 +145,7 @@ async function getExactCounts(pg: PgConnection, salesChannelIds: string[]) {
   return {
     productSalesChannelProducts: getFirstNumber(
       row,
-      "product_sales_channel_products"
+      "product_sales_channel_products",
     ),
     productSalesChannelRows: getFirstNumber(row, "product_sales_channel_rows"),
     publishedProducts: getFirstNumber(row, "published_products"),
@@ -155,7 +155,7 @@ async function getExactCounts(pg: PgConnection, salesChannelIds: string[]) {
 async function getIndexCounts(
   query: QueryService,
   salesChannelIds: string[],
-  take: number
+  take: number,
 ) {
   const result = await query.index({
     entity: "product",
@@ -175,7 +175,7 @@ async function getIndexCounts(
   const productIds = new Set(
     (result.data ?? [])
       .map((product) => product.id)
-      .filter((id): id is string => typeof id === "string")
+      .filter((id): id is string => typeof id === "string"),
   )
 
   return {
@@ -188,7 +188,7 @@ async function getIndexCounts(
 async function getGraphCounts(
   query: QueryService,
   salesChannelIds: string[],
-  take: number
+  take: number,
 ) {
   const linkResult = await query.graph({
     entity: "product_sales_channel",
@@ -217,7 +217,7 @@ async function getGraphCounts(
   const productIds = new Set(
     (result.data ?? [])
       .map((product) => product.id)
-      .filter((id): id is string => typeof id === "string")
+      .filter((id): id is string => typeof id === "string"),
   )
 
   return {
@@ -243,23 +243,23 @@ async function logSnapshot({
 
   logger.info(`[Product count debug] ${label}`)
   logger.info(
-    `[Product count debug] exact published products: ${exactCounts.publishedProducts}`
+    `[Product count debug] exact published products: ${exactCounts.publishedProducts}`,
   )
   logger.info(
-    `[Product count debug] product_sales_channel rows/products: ${exactCounts.productSalesChannelRows}/${exactCounts.productSalesChannelProducts}`
+    `[Product count debug] product_sales_channel rows/products: ${exactCounts.productSalesChannelRows}/${exactCounts.productSalesChannelProducts}`,
   )
   logger.info(
-    `[Product count debug] query.index returned/unique/estimate: ${indexCounts.returnedProducts}/${indexCounts.uniqueReturnedProducts}/${indexCounts.estimateCount}`
+    `[Product count debug] query.index returned/unique/estimate: ${indexCounts.returnedProducts}/${indexCounts.uniqueReturnedProducts}/${indexCounts.estimateCount}`,
   )
   logger.info(
-    `[Product count debug] query.graph returned/unique/count: ${graphCounts.returnedProducts}/${graphCounts.uniqueReturnedProducts}/${graphCounts.count}`
+    `[Product count debug] query.graph returned/unique/count: ${graphCounts.returnedProducts}/${graphCounts.uniqueReturnedProducts}/${graphCounts.count}`,
   )
 }
 
 export default async function debugProductCount({ container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const pg = container.resolve<PgConnection>(
-    ContainerRegistrationKeys.PG_CONNECTION
+    ContainerRegistrationKeys.PG_CONNECTION,
   )
   const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
   const runAnalyze = process.env["RUN_ANALYZE"] === "1"
@@ -268,7 +268,7 @@ export default async function debugProductCount({ container }: ExecArgs) {
   const { token, salesChannelIds } = await resolvePublishableKey(query)
   logger.info(`[Product count debug] publishable key: ${token}`)
   logger.info(
-    `[Product count debug] sales channels: ${salesChannelIds.join(", ")}`
+    `[Product count debug] sales channels: ${salesChannelIds.join(", ")}`,
   )
 
   await logSnapshot({
@@ -282,7 +282,7 @@ export default async function debugProductCount({ container }: ExecArgs) {
 
   if (!runAnalyze) {
     logger.info(
-      "[Product count debug] RUN_ANALYZE is not set; skipping ANALYZE"
+      "[Product count debug] RUN_ANALYZE is not set; skipping ANALYZE",
     )
     return
   }

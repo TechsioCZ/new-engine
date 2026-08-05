@@ -63,7 +63,7 @@ const REQUIRED_ADDRESS_FIELDS = [
 function validateAddressField(
   field: AddressFieldKey,
   value: string,
-  _countryCode?: string
+  _countryCode?: string,
 ): string | undefined {
   switch (field) {
     case "first_name": {

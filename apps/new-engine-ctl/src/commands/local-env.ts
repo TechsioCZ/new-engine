@@ -6,7 +6,7 @@ import { defaultStackInputsPath } from "../paths.js"
 
 export function createLocalEnvCommand(): Command {
   const command = new Command("local-env").description(
-    "Resolve local-only env aliases from repo config"
+    "Resolve local-only env aliases from repo config",
   )
 
   command
@@ -19,7 +19,7 @@ export function createLocalEnvCommand(): Command {
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
     .action(async (options) => {
       const input =
@@ -35,7 +35,7 @@ export function createLocalEnvCommand(): Command {
 
       if (input.format === "local-env-vars") {
         process.stdout.write(
-          `${result.targets.map((target) => target.local_env_var).join("\n")}\n`
+          `${result.targets.map((target) => target.local_env_var).join("\n")}\n`,
         )
         return
       }

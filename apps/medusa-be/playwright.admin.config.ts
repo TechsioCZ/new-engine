@@ -39,13 +39,13 @@ const findBundledChromeForTesting = (root: string, prefix: string) => {
       join(
         root,
         browserDirectory,
-        "Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+        "Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
       ),
       join(root, browserDirectory, "Chromium.app/Contents/MacOS/Chromium"),
       join(
         root,
         browserDirectory,
-        "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+        "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
       ),
       join(root, browserDirectory, "chrome-linux/chrome"),
       join(root, browserDirectory, "chrome-win/chrome.exe"),
@@ -64,19 +64,19 @@ const chromiumExecutablePath =
   (homeDirectory
     ? findBundledChromeForTesting(
         join(homeDirectory, ".agent-browser/browsers"),
-        "chrome-"
+        "chrome-",
       )
     : undefined) ??
   (homeDirectory
     ? findBundledChromeForTesting(
         join(homeDirectory, "Library/Caches/ms-playwright"),
-        "chromium-"
+        "chromium-",
       )
     : undefined) ??
   (homeDirectory
     ? findBundledChromeForTesting(
         join(homeDirectory, ".cache/ms-playwright"),
-        "chromium-"
+        "chromium-",
       )
     : undefined) ??
   undefined

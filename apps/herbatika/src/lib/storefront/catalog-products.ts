@@ -27,7 +27,7 @@ type UseCatalogProductsOptions = Parameters<
 >[1]
 
 const variantNeedsInventorySnapshot = (
-  variant: HttpTypes.StoreProductVariant
+  variant: HttpTypes.StoreProductVariant,
 ) =>
   Boolean(variant.id) &&
   variant.manage_inventory !== false &&
@@ -38,7 +38,7 @@ const productNeedsInventorySnapshot = (product: HttpTypes.StoreProduct) =>
   (product.variants ?? []).some(variantNeedsInventorySnapshot)
 
 const resolveInventorySnapshotHandles = (
-  products: HttpTypes.StoreProduct[]
+  products: HttpTypes.StoreProduct[],
 ) => {
   const handles = new Set<string>()
 
@@ -53,14 +53,14 @@ const resolveInventorySnapshotHandles = (
 
 const mergeProductInventorySnapshot = (
   product: HttpTypes.StoreProduct,
-  inventoryProduct?: HttpTypes.StoreProduct
+  inventoryProduct?: HttpTypes.StoreProduct,
 ): HttpTypes.StoreProduct => {
   if (!inventoryProduct?.variants?.length) {
     return product
   }
 
   const inventoryVariantById = new Map(
-    inventoryProduct.variants.map((variant) => [variant.id, variant])
+    inventoryProduct.variants.map((variant) => [variant.id, variant]),
   )
 
   return {
@@ -86,11 +86,11 @@ const mergeProductInventorySnapshot = (
 
 export const useCatalogProducts = (
   input: CatalogProductsInput,
-  options?: UseCatalogProductsOptions
+  options?: UseCatalogProductsOptions,
 ): UseCatalogProductsResult<HttpTypes.StoreProduct> => {
   const catalogQuery = catalogHooks.useCatalogProducts(input, options)
   const inventorySnapshotHandles = resolveInventorySnapshotHandles(
-    catalogQuery.products
+    catalogQuery.products,
   )
   const shouldLoadInventorySnapshots = inventorySnapshotHandles.length > 0
   const inventorySnapshotsQuery = useProducts({
@@ -102,7 +102,7 @@ export const useCatalogProducts = (
   const inventoryProductByHandle = new Map(
     inventorySnapshotsQuery.products
       .filter((product) => product.handle)
-      .map((product) => [product.handle, product])
+      .map((product) => [product.handle, product]),
   )
   const products =
     shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading
@@ -112,8 +112,8 @@ export const useCatalogProducts = (
             product,
             product.handle
               ? inventoryProductByHandle.get(product.handle)
-              : undefined
-          )
+              : undefined,
+          ),
         )
 
   return {

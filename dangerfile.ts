@@ -17,6 +17,6 @@ if (input) {
   }
 } else {
   warn(
-    "GitHub pull request metadata is unavailable; skipped GitHub-specific PR policy checks."
+    "GitHub pull request metadata is unavailable; skipped GitHub-specific PR policy checks.",
   )
 }

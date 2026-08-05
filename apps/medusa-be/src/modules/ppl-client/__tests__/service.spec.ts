@@ -59,7 +59,7 @@ moduleIntegrationTestRunner<PplClientModuleService>({
             client_secret: null,
             environment: "testing",
             is_enabled: false,
-          })
+          }),
         )
       })
 

@@ -94,7 +94,7 @@ function CheckoutContent() {
     if (pendingOptionId && accessPoint) {
       shipping.setShipping(
         pendingOptionId,
-        accessPointToShippingData(accessPoint)
+        accessPointToShippingData(accessPoint),
       )
     }
     closePickupDialog()

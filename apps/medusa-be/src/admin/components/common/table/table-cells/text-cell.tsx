@@ -30,7 +30,7 @@ export const TextCell = ({
           "justify-center text-center": align === "center",
           "justify-end text-end": align === "right",
           "justify-start text-start": align === "left",
-        }
+        },
       )}
       style={{
         maxWidth,

@@ -363,7 +363,7 @@ const EAN_ISSUE_LOG_LIMIT = 50
 const DEFAULT_OPTION_VALUE = "Default"
 const DEFAULT_PRICELIST_LABEL = HERBATICA_DEFAULT_PRICELIST_LABEL
 const DEFAULT_SHOPTET_PRICELIST_TITLES: ReadonlySet<string> = new Set(
-  HERBATICA_DEFAULT_SHOPTET_PRICELIST_TITLES
+  HERBATICA_DEFAULT_SHOPTET_PRICELIST_TITLES,
 )
 const PRODUCT_CONTENT_SECTION_ORDER: ProductContentSectionKey[] = [
   "description",
@@ -708,7 +708,7 @@ function normalizeProductContentLabel(value?: string): string | undefined {
 }
 
 function classifyProductContentLabel(
-  label?: string
+  label?: string,
 ): ProductContentSectionKey | undefined {
   const normalizedLabel = normalizeProductContentLabel(label)
   if (!normalizedLabel) {
@@ -739,7 +739,7 @@ function toHtmlFragment(value?: string): string | undefined {
 
 function buildLabeledHtmlFragment(
   label: string,
-  value?: string
+  value?: string,
 ): string | undefined {
   const normalized = normalizeText(value)
   if (!normalized) {
@@ -768,7 +768,7 @@ function buildPlainTextHtmlFragment(value?: string): string | undefined {
 
 function buildLabeledPlainTextHtmlFragment(
   label: string,
-  value?: string
+  value?: string,
 ): string | undefined {
   const normalizedLabel = normalizeInlineText(label.replaceAll(/:\s*$/g, ""))
   const normalizedValue = normalizeInlineText(value)
@@ -782,7 +782,7 @@ function buildLabeledPlainTextHtmlFragment(
 }
 
 function findProductContentTextAnchors(
-  text: string
+  text: string,
 ): ProductContentTextAnchor[] {
   const anchors: ProductContentTextAnchor[] = []
 
@@ -878,7 +878,7 @@ function createProductContentGroups(): ProductContentGroups {
 function appendSplitProductContentBlock(
   grouped: ProductContentGroups,
   currentSection: ProductContentSectionKey,
-  blockHtml: string
+  blockHtml: string,
 ): boolean {
   const splitBlock = splitLabeledTextBlock(blockHtml)
   if (splitBlock.sections.length === 0) {
@@ -897,7 +897,7 @@ function appendSplitProductContentBlock(
 
 function resolveHeadingContentSection(
   grouped: ProductContentGroups,
-  blockHtml: string
+  blockHtml: string,
 ): ProductContentSectionKey {
   const sectionKey = classifyProductContentLabel(stripHtmlTags(blockHtml))
   if (sectionKey) {
@@ -910,7 +910,7 @@ function resolveHeadingContentSection(
 
 function appendDescriptionFallbackContent(
   grouped: ProductContentGroups,
-  descriptionHtml: string
+  descriptionHtml: string,
 ) {
   if (appendSplitProductContentBlock(grouped, "description", descriptionHtml)) {
     return
@@ -920,7 +920,7 @@ function appendDescriptionFallbackContent(
 }
 
 function buildProductDescriptionContentGroups(
-  descriptionHtml: string
+  descriptionHtml: string,
 ): ProductContentGroups {
   const grouped = createProductContentGroups()
   let currentSection: ProductContentSectionKey = "description"
@@ -932,7 +932,7 @@ function buildProductDescriptionContentGroups(
     const blockStart = match.index ?? 0
     const blockEnd = blockStart + match[0].length
     const beforeHtml = trimHtmlFragment(
-      descriptionHtml.slice(cursor, blockStart)
+      descriptionHtml.slice(cursor, blockStart),
     )
     if (beforeHtml) {
       grouped[currentSection].push(beforeHtml)
@@ -972,7 +972,7 @@ function buildProductDescriptionContentGroups(
 }
 
 function buildProductContentSections(
-  item: ParsedShopItem
+  item: ParsedShopItem,
 ): ProductContentSection[] {
   const grouped: Record<ProductContentSectionKey, string[]> = {
     composition: [],
@@ -1010,7 +1010,7 @@ function buildProductContentSections(
     grouped.other.push(
       unmatchedTextProperties
         .map((property) => buildTextPropertyHtml(property))
-        .join("\n")
+        .join("\n"),
     )
   }
 
@@ -1046,7 +1046,7 @@ function countHtmlListItems(value?: string): number {
 
 function buildProductCardCopyConfig(
   contentSectionsMap: Record<ProductContentSectionKey, string>,
-  shortDescription?: string
+  shortDescription?: string,
 ): ProductCardCopyConfig {
   const candidates: {
     source: ProductCardCopySource
@@ -1154,7 +1154,7 @@ function addUtcDays(date: Date, days: number): Date {
 }
 
 function resolveSeedBuildOptions(
-  options?: SeedBuildOptions
+  options?: SeedBuildOptions,
 ): ResolvedSeedBuildOptions {
   const referenceDate = options?.referenceDate
     ? new Date(options.referenceDate)
@@ -1194,8 +1194,8 @@ function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
         hours,
         minutes,
         seconds,
-        milliseconds
-      )
+        milliseconds,
+      ),
     )
 
     if (Number.isNaN(parsed.getTime())) {
@@ -1217,7 +1217,7 @@ function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
 function isDateRangeActive(
   validFrom?: string,
   validUntil?: string,
-  referenceDate = new Date()
+  referenceDate = new Date(),
 ): boolean {
   const from = parseIsoDate(validFrom, false)
   const until = parseIsoDate(validUntil, true)
@@ -1235,23 +1235,23 @@ function isDateRangeActive(
 
 function resolveOfferBasePrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData
+  fallbackOffer?: ParsedOfferData,
 ): number | undefined {
   return normalizePriceAmount(
     offer.standardPrice ??
       offer.priceVat ??
       fallbackOffer?.standardPrice ??
-      fallbackOffer?.priceVat
+      fallbackOffer?.priceVat,
   )
 }
 
 function resolveOfferActionPrice(
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
-  referenceDate = new Date()
+  referenceDate = new Date(),
 ): number | undefined {
   const actionPrice = normalizePriceAmount(
-    offer.actionPrice ?? fallbackOffer?.actionPrice
+    offer.actionPrice ?? fallbackOffer?.actionPrice,
   )
   if (actionPrice === undefined) {
     return
@@ -1271,13 +1271,13 @@ function resolveOfferActionPrice(
 function resolveOfferHasActiveDiscount(
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
-  referenceDate = new Date()
+  referenceDate = new Date(),
 ): boolean {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const actionPrice = resolveOfferActionPrice(
     offer,
     fallbackOffer,
-    referenceDate
+    referenceDate,
   )
   if (actionPrice === undefined) {
     return false
@@ -1292,11 +1292,11 @@ function resolveOfferHasActiveDiscount(
 
 function hasDiscountedActionPrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData
+  fallbackOffer?: ParsedOfferData,
 ): boolean {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const actionPrice = normalizePriceAmount(
-    offer.actionPrice ?? fallbackOffer?.actionPrice
+    offer.actionPrice ?? fallbackOffer?.actionPrice,
   )
 
   return (
@@ -1309,13 +1309,13 @@ function hasDiscountedActionPrice(
 function resolveOfferCurrentPrice(
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
-  referenceDate = new Date()
+  referenceDate = new Date(),
 ): number {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const actionPrice = resolveOfferActionPrice(
     offer,
     fallbackOffer,
-    referenceDate
+    referenceDate,
   )
 
   if (
@@ -1339,7 +1339,7 @@ function resolveOfferCurrentPrice(
 
 function resolveOfferDefaultPrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData
+  fallbackOffer?: ParsedOfferData,
 ): number {
   return resolveOfferBasePrice(offer, fallbackOffer) ?? 0
 }
@@ -1360,7 +1360,7 @@ function isDefaultPricelistTitle(title?: string): boolean {
 function shouldImportActionPrice(
   actionPrice?: number,
   validUntil?: string,
-  referenceDate = new Date()
+  referenceDate = new Date(),
 ): actionPrice is number {
   if (actionPrice === undefined || actionPrice <= 0) {
     return false
@@ -1372,7 +1372,7 @@ function shouldImportActionPrice(
 
 function serializePriceListDate(
   value?: string,
-  endOfDay = false
+  endOfDay = false,
 ): string | undefined {
   return parseIsoDate(value, endOfDay)?.toISOString()
 }
@@ -1380,20 +1380,20 @@ function serializePriceListDate(
 function buildSalePriceListTitle(
   sourceTitle: string,
   startsAt?: string,
-  endsAt?: string
+  endsAt?: string,
 ): string {
   const windowLabel =
     startsAt || endsAt ? `${startsAt ?? "open"}_${endsAt ?? "open"}` : "undated"
   return HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE.replace(
     "{sourceTitle}",
-    sourceTitle
+    sourceTitle,
   ).replace("{windowLabel}", windowLabel)
 }
 
 function rebaseOfferPromotion(
   offer: ParsedOfferData,
   buildOptions: ResolvedSeedBuildOptions,
-  fallbackOffer?: ParsedOfferData
+  fallbackOffer?: ParsedOfferData,
 ): ParsedOfferData {
   if (!buildOptions.promoRebaseDays) {
     return offer
@@ -1404,7 +1404,7 @@ function rebaseOfferPromotion(
     resolveOfferHasActiveDiscount(
       offer,
       fallbackOffer,
-      buildOptions.referenceDate
+      buildOptions.referenceDate,
     )
   ) {
     return offer
@@ -1414,7 +1414,7 @@ function rebaseOfferPromotion(
     ...offer,
     actionPriceFrom: formatIsoDate(buildOptions.referenceDate),
     actionPriceUntil: formatIsoDate(
-      addUtcDays(buildOptions.referenceDate, buildOptions.promoRebaseDays)
+      addUtcDays(buildOptions.referenceDate, buildOptions.promoRebaseDays),
     ),
   }
 }
@@ -1422,7 +1422,7 @@ function rebaseOfferPromotion(
 function resolveFlagActive(
   rawFlag: ParsedFlag,
   hasActiveDiscount: boolean,
-  referenceDate: Date
+  referenceDate: Date,
 ): boolean {
   if (rawFlag.code?.toLowerCase() === "action" && hasActiveDiscount) {
     return true
@@ -1436,7 +1436,7 @@ function resolveFlagActive(
     return isDateRangeActive(
       rawFlag.validFrom,
       rawFlag.validUntil,
-      referenceDate
+      referenceDate,
     )
   }
 
@@ -1446,13 +1446,13 @@ function resolveFlagActive(
 function normalizeFlags(
   flags: ParsedFlag[],
   topOffer: ParsedOfferData,
-  referenceDate = new Date()
+  referenceDate = new Date(),
 ): ParsedFlag[] {
   const flagsByCode = new Map<string, ParsedFlag>()
   const hasActiveDiscount = resolveOfferHasActiveDiscount(
     topOffer,
     undefined,
-    referenceDate
+    referenceDate,
   )
 
   for (const rawFlag of flags) {
@@ -1536,7 +1536,7 @@ function splitCategoryPath(path: string): string[] {
       part
         .replace(CATEGORY_PATH_LEADING_SEPARATOR_REGEX, "")
         .replace(CATEGORY_PATH_TRAILING_SEPARATOR_REGEX, "")
-        .trim()
+        .trim(),
     )
     .filter((part) => part !== "")
 }
@@ -1559,7 +1559,7 @@ function slugifyHerbaticaHandle(value: string): string {
 
 function truncateWithHash(
   value: string,
-  maxLength = MAX_HANDLE_LENGTH
+  maxLength = MAX_HANDLE_LENGTH,
 ): string {
   if (value.length <= maxLength) {
     return value
@@ -1573,7 +1573,7 @@ function truncateWithHash(
 function ensureUnique(
   base: string,
   used: Set<string>,
-  fallbackPrefix: string
+  fallbackPrefix: string,
 ): string {
   const seed = truncateWithHash(base || fallbackPrefix)
   if (!used.has(seed)) {
@@ -1657,7 +1657,7 @@ function buildWarehouseStockLocationAddress(location?: string): {
 }
 
 function buildOfferInventoryQuantities(
-  offer: ParsedOfferData
+  offer: ParsedOfferData,
 ): NonNullable<VariantSeedInput["quantities"]> {
   if (offer.stockWarehouses.length === 0) {
     const quantity = normalizeInventoryQuantity(offer.stockAmountRaw)
@@ -1682,7 +1682,7 @@ function buildOfferInventoryQuantities(
 
 function parseParameters(
   source: string,
-  containerTag: string
+  containerTag: string,
 ): ParsedParameter[] {
   const container = extractFirstElementContent(source, containerTag)
   if (!container) {
@@ -1693,7 +1693,7 @@ function parseParameters(
     (parameter) => ({
       name: extractFirstText(parameter.inner, "NAME") ?? "",
       value: extractFirstText(parameter.inner, "VALUE") ?? "",
-    })
+    }),
   )
 
   return dedupeParameters(parameters)
@@ -1711,10 +1711,10 @@ function parsePricelists(source: string): ParsedPricelist[] {
     actionPriceUntil: extractFirstText(pricelist.inner, "ACTION_PRICE_UNTIL"),
     priceVat: parseNumber(extractFirstText(pricelist.inner, "PRICE_VAT")),
     purchasePrice: parseNumber(
-      extractFirstText(pricelist.inner, "PURCHASE_PRICE")
+      extractFirstText(pricelist.inner, "PURCHASE_PRICE"),
     ),
     standardPrice: parseNumber(
-      extractFirstText(pricelist.inner, "STANDARD_PRICE")
+      extractFirstText(pricelist.inner, "STANDARD_PRICE"),
     ),
     title: extractFirstText(pricelist.inner, "TITLE"),
     vat: parseNumber(extractFirstText(pricelist.inner, "VAT")),
@@ -1724,7 +1724,7 @@ function parsePricelists(source: string): ParsedPricelist[] {
 function stripNestedPricelists(source: string): string {
   return source.replaceAll(
     /<PRICELISTS(?:\s[^>]*)?>[\s\S]*?<\/PRICELISTS>/g,
-    ""
+    "",
   )
 }
 
@@ -1755,23 +1755,23 @@ function parseStockWarehouses(stockRaw?: string): ParsedStockWarehouse[] {
 
 function parseOfferData(
   source: string,
-  attributes?: Record<string, string>
+  attributes?: Record<string, string>,
 ): ParsedOfferData {
   const scalarSource = stripNestedPricelists(source)
   const stockRaw = extractFirstElementContent(scalarSource, "STOCK")
   const stockAmount = parseInteger(extractFirstText(stockRaw ?? "", "AMOUNT"))
   const stockWarehouses = parseStockWarehouses(stockRaw)
   const stockMinSupply = parseInteger(
-    extractFirstText(scalarSource, "STOCK_MIN_SUPPLY")
+    extractFirstText(scalarSource, "STOCK_MIN_SUPPLY"),
   )
   const logisticRaw = extractFirstElementContent(scalarSource, "LOGISTIC")
   const atypicalRaw = extractFirstElementContent(
     scalarSource,
-    "ATYPICAL_PRODUCT"
+    "ATYPICAL_PRODUCT",
   )
   const unitOfMeasureRaw = extractFirstElementContent(
     scalarSource,
-    "UNIT_OF_MEASURE"
+    "UNIT_OF_MEASURE",
   )
 
   return {
@@ -1780,33 +1780,33 @@ function parseOfferData(
     actionPriceUntil: extractFirstText(scalarSource, "ACTION_PRICE_UNTIL"),
     applyDiscountCoupon: parseBoolean(
       extractFirstText(scalarSource, "APPLY_DISCOUNT_COUPON"),
-      true
+      true,
     ),
     applyLoyaltyDiscount: parseBoolean(
       extractFirstText(scalarSource, "APPLY_LOYALTY_DISCOUNT"),
-      true
+      true,
     ),
     applyQuantityDiscount: parseBoolean(
       extractFirstText(scalarSource, "APPLY_QUANTITY_DISCOUNT"),
-      true
+      true,
     ),
     applyVolumeDiscount: parseBoolean(
       extractFirstText(scalarSource, "APPLY_VOLUME_DISCOUNT"),
-      true
+      true,
     ),
     atypicalBilling: parseBoolean(
-      extractFirstText(atypicalRaw ?? "", "ATYPICAL_BILLING")
+      extractFirstText(atypicalRaw ?? "", "ATYPICAL_BILLING"),
     ),
     atypicalShipping: parseBoolean(
-      extractFirstText(atypicalRaw ?? "", "ATYPICAL_SHIPPING")
+      extractFirstText(atypicalRaw ?? "", "ATYPICAL_SHIPPING"),
     ),
     availabilityInStock: extractFirstText(
       scalarSource,
-      "AVAILABILITY_IN_STOCK"
+      "AVAILABILITY_IN_STOCK",
     ),
     availabilityOutOfStock: extractFirstText(
       scalarSource,
-      "AVAILABILITY_OUT_OF_STOCK"
+      "AVAILABILITY_OUT_OF_STOCK",
     ),
     code: extractFirstText(scalarSource, "CODE"),
     currency: extractFirstText(scalarSource, "CURRENCY"),
@@ -1816,25 +1816,25 @@ function parseOfferData(
     freeShipping: parseBoolean(extractFirstText(scalarSource, "FREE_SHIPPING")),
     imageRef: extractFirstText(scalarSource, "IMAGE_REF"),
     measureAmount: parseNumber(
-      extractFirstText(unitOfMeasureRaw ?? "", "MEASURE_AMOUNT")
+      extractFirstText(unitOfMeasureRaw ?? "", "MEASURE_AMOUNT"),
     ),
     measureAmountUnit: extractFirstText(
       unitOfMeasureRaw ?? "",
-      "MEASURE_AMOUNT_UNIT"
+      "MEASURE_AMOUNT_UNIT",
     ),
     minPriceRatio: parseNumber(
-      extractFirstText(scalarSource, "MIN_PRICE_RATIO")
+      extractFirstText(scalarSource, "MIN_PRICE_RATIO"),
     ),
     negativeAmount: parseBoolean(
-      extractFirstText(scalarSource, "NEGATIVE_AMOUNT")
+      extractFirstText(scalarSource, "NEGATIVE_AMOUNT"),
     ),
     ossTaxRates: parseOssTaxRates(source),
     packageAmount: parseNumber(
-      extractFirstText(unitOfMeasureRaw ?? "", "PACKAGE_AMOUNT")
+      extractFirstText(unitOfMeasureRaw ?? "", "PACKAGE_AMOUNT"),
     ),
     packageAmountUnit: extractFirstText(
       unitOfMeasureRaw ?? "",
-      "PACKAGE_AMOUNT_UNIT"
+      "PACKAGE_AMOUNT_UNIT",
     ),
     parameters: parseParameters(source, "PARAMETERS"),
     partNumber: extractFirstText(scalarSource, "PART_NUMBER"),
@@ -1844,24 +1844,24 @@ function parseOfferData(
     pricelists: parsePricelists(source),
     productNumber: extractFirstText(scalarSource, "PRODUCT_NUMBER"),
     purchasePrice: parseNumber(
-      extractFirstText(scalarSource, "PURCHASE_PRICE")
+      extractFirstText(scalarSource, "PURCHASE_PRICE"),
     ),
     purchasePriceInclVat: parseBoolean(
-      extractFirstText(scalarSource, "PURCHASE_PRICE_INCL_VAT")
+      extractFirstText(scalarSource, "PURCHASE_PRICE_INCL_VAT"),
     ),
     purchaseVat: parseNumber(extractFirstText(scalarSource, "PURCHASE_VAT")),
     standardPrice: parseNumber(
-      extractFirstText(scalarSource, "STANDARD_PRICE")
+      extractFirstText(scalarSource, "STANDARD_PRICE"),
     ),
     stockAmount,
     stockAmountRaw: stockAmount,
     stockLocation: extractFirstText(stockRaw ?? "", "LOCATION"),
     stockMaximalAmount: parseInteger(
-      extractFirstText(stockRaw ?? "", "MAXIMAL_AMOUNT")
+      extractFirstText(stockRaw ?? "", "MAXIMAL_AMOUNT"),
     ),
     stockMinSupply,
     stockMinimalAmount: parseInteger(
-      extractFirstText(stockRaw ?? "", "MINIMAL_AMOUNT")
+      extractFirstText(stockRaw ?? "", "MINIMAL_AMOUNT"),
     ),
     stockWarehouses,
     unit: extractFirstText(scalarSource, "UNIT"),
@@ -1879,8 +1879,8 @@ function parseCodeList(source: string, containerTag: string): string[] {
   }
   return dedupeStrings(
     extractElements(container, "CODE").map((entry) =>
-      normalizeInlineText(entry.inner)
-    )
+      normalizeInlineText(entry.inner),
+    ),
   )
 }
 
@@ -1939,7 +1939,7 @@ function parseSetItems(source: string): ParsedSetItem[] {
 function parseTextProperties(source: string): ParsedParameter[] {
   const textPropertiesRaw = extractFirstElementContent(
     source,
-    "TEXT_PROPERTIES"
+    "TEXT_PROPERTIES",
   )
   if (!textPropertiesRaw) {
     return []
@@ -1947,7 +1947,7 @@ function parseTextProperties(source: string): ParsedParameter[] {
 
   const textProperties = extractElements(
     textPropertiesRaw,
-    "TEXT_PROPERTY"
+    "TEXT_PROPERTY",
   ).map((property) => ({
     name: extractFirstText(property.inner, "NAME") ?? "",
     value: extractFirstText(property.inner, "VALUE") ?? "",
@@ -1963,8 +1963,8 @@ function parseImageUrls(source: string): string[] {
 
   return dedupeStrings(
     extractElements(imagesRaw, "IMAGE").map((image) =>
-      normalizeText(image.inner)
-    )
+      normalizeText(image.inner),
+    ),
   )
 }
 
@@ -2025,7 +2025,7 @@ function parseShopItems(xml: string): ParsedShopItem[] {
     const variantsRaw = extractFirstElementContent(shopItem.inner, "VARIANTS")
     const variants = variantsRaw
       ? extractElements(variantsRaw, "VARIANT").map((variant) =>
-          parseOfferData(variant.inner, variant.attributes)
+          parseOfferData(variant.inner, variant.attributes),
         )
       : []
 
@@ -2039,18 +2039,18 @@ function parseShopItems(xml: string): ParsedShopItem[] {
     return {
       adult: parseBoolean(extractFirstText(shopItem.inner, "ADULT")),
       allowsIplatba: parseBoolean(
-        extractFirstText(shopItem.inner, "ALLOWS_IPLATBA")
+        extractFirstText(shopItem.inner, "ALLOWS_IPLATBA"),
       ),
       allowsPayOnline: parseBoolean(
-        extractFirstText(shopItem.inner, "ALLOWS_PAY_ONLINE")
+        extractFirstText(shopItem.inner, "ALLOWS_PAY_ONLINE"),
       ),
       alternativeProducts: parseCodeList(
         shopItem.inner,
-        "ALTERNATIVE_PRODUCTS"
+        "ALTERNATIVE_PRODUCTS",
       ),
       appendix: extractFirstText(shopItem.inner, "APPENDIX"),
       categoryPaths: dedupeStrings(
-        categoryRefs.map((category) => category.path)
+        categoryRefs.map((category) => category.path),
       ),
       categoryRefs,
       description: extractFirstText(shopItem.inner, "DESCRIPTION"),
@@ -2060,7 +2060,7 @@ function parseShopItems(xml: string): ParsedShopItem[] {
       guid: extractFirstText(shopItem.inner, "GUID"),
       heurekaCategoryId: extractFirstText(
         shopItem.inner,
-        "HEUREKA_CATEGORY_ID"
+        "HEUREKA_CATEGORY_ID",
       ),
       id: shopItem.attributes["id"] ?? "",
       images,
@@ -2090,7 +2090,7 @@ function parseShopItems(xml: string): ParsedShopItem[] {
 
 function addCategoryPathNodes(
   nodes: Map<string, CategoryNode>,
-  rawPath: string
+  rawPath: string,
 ) {
   const segments = splitCategoryPath(rawPath)
   for (let index = 0; index < segments.length; index += 1) {
@@ -2131,7 +2131,7 @@ function collectCategoryNodes(items: ParsedShopItem[]): CategoryNode[] {
 }
 
 function buildCategoryHandleMaps(
-  sortedNodes: CategoryNode[]
+  sortedNodes: CategoryNode[],
 ): CategoryHandleMaps {
   const usedHandles = new Set<string>()
   const keyToHandle = new Map<string, string>()
@@ -2140,7 +2140,7 @@ function buildCategoryHandleMaps(
   for (const node of sortedNodes) {
     const baseHandle = truncateWithHash(
       slugifyHerbaticaHandle(node.key) ||
-        `category-${createHash("sha1").update(node.key).digest("hex").slice(0, 10)}`
+        `category-${createHash("sha1").update(node.key).digest("hex").slice(0, 10)}`,
     )
     const handle = ensureUnique(baseHandle, usedHandles, "category")
     keyToHandle.set(node.key, handle)
@@ -2155,7 +2155,7 @@ function buildCategoryHandleMaps(
 
 function buildCategorySeedInputs(
   sortedNodes: CategoryNode[],
-  keyToHandle: Map<string, string>
+  keyToHandle: Map<string, string>,
 ): CategorySeedInput[] {
   return sortedNodes.map((node) => {
     const handle = keyToHandle.get(node.key)
@@ -2174,7 +2174,7 @@ function buildCategorySeedInputs(
 }
 
 function buildCategoriesFromProductPaths(
-  items: ParsedShopItem[]
+  items: ParsedShopItem[],
 ): CategoryBuildResult {
   const sortedNodes = collectCategoryNodes(items)
   const { keyToHandle, pathToHandle } = buildCategoryHandleMaps(sortedNodes)
@@ -2187,10 +2187,10 @@ function buildCategoriesFromProductPaths(
 }
 
 function buildCategoryExportPathIndex(
-  categories: HerbaticaCategoryExport[]
+  categories: HerbaticaCategoryExport[],
 ): Map<string, string> {
   const categoryById = new Map(
-    categories.map((category) => [category.id, category])
+    categories.map((category) => [category.id, category]),
   )
   const pathById = new Map<string, string>()
   const visiting = new Set<string>()
@@ -2230,7 +2230,7 @@ function buildCategoryExportPathIndex(
 
 function buildCategoryMetadata(
   category: HerbaticaCategoryExport,
-  path: string
+  path: string,
 ): Record<string, unknown> {
   return {
     access: category.access,
@@ -2255,7 +2255,7 @@ function buildCategoryMetadata(
 }
 
 function buildCategoriesFromExport(
-  categoryExports: HerbaticaCategoryExport[]
+  categoryExports: HerbaticaCategoryExport[],
 ): CategoryBuildResult {
   const pathById = buildCategoryExportPathIndex(categoryExports)
   const sortedCategories = [...categoryExports]
@@ -2286,7 +2286,7 @@ function buildCategoriesFromExport(
   for (const node of sortedCategories) {
     const baseHandle = truncateWithHash(
       slugifyHerbaticaHandle(node.path) ||
-        `category-${createHash("sha1").update(node.path).digest("hex").slice(0, 10)}`
+        `category-${createHash("sha1").update(node.path).digest("hex").slice(0, 10)}`,
     )
     const handle = ensureUnique(baseHandle, usedHandles, "category")
     pathToHandle.set(node.path, handle)
@@ -2325,7 +2325,7 @@ function buildCategoriesFromExport(
 
 function buildBrand(
   item: ParsedShopItem,
-  manufacturersLookup: ManufacturerCsvLookup
+  manufacturersLookup: ManufacturerCsvLookup,
 ): BrandSeedInput | undefined {
   const title = normalizeHerbaticaManufacturerTitle(item.manufacturer)
   if (!title) {
@@ -2352,7 +2352,7 @@ function buildBrand(
 }
 
 export function normalizeHerbaticaManufacturerTitle(
-  value?: string | null
+  value?: string | null,
 ): string | undefined {
   if (!value) {
     return
@@ -2363,7 +2363,7 @@ export function normalizeHerbaticaManufacturerTitle(
 
 function applyPromoOverrides(
   items: ParsedShopItem[],
-  buildOptions: ResolvedSeedBuildOptions
+  buildOptions: ResolvedSeedBuildOptions,
 ): ParsedShopItem[] {
   if (!buildOptions.promoRebaseDays) {
     return items
@@ -2372,7 +2372,7 @@ function applyPromoOverrides(
   return items.map((item) => {
     const topOffer = rebaseOfferPromotion(item.topOffer, buildOptions)
     const variants = item.variants.map((variant) =>
-      rebaseOfferPromotion(variant, buildOptions, topOffer)
+      rebaseOfferPromotion(variant, buildOptions, topOffer),
     )
 
     return {
@@ -2423,14 +2423,14 @@ export function resolveHerbaticaProductVisibility(item: {
     }
     default: {
       throw new Error(
-        `Unsupported Herbatica product visibility "${item.visibility}"`
+        `Unsupported Herbatica product visibility "${item.visibility}"`,
       )
     }
   }
 }
 
 function buildHerbaticaProductAttributes(
-  item: ParsedShopItem
+  item: ParsedShopItem,
 ): NonNullable<ProductSeedInput["productAttributes"]> {
   return [
     {
@@ -2453,7 +2453,7 @@ function buildHerbaticaProductAttributes(
 function resolveProductReference(
   code: string,
   productHandleBySourceId: Map<string, string>,
-  publishedSourceIds: Set<string>
+  publishedSourceIds: Set<string>,
 ): ResolvedProductReference | undefined {
   const sourceShopitemId = normalizeInlineText(code)
   if (!(sourceShopitemId && publishedSourceIds.has(sourceShopitemId))) {
@@ -2475,7 +2475,7 @@ function resolveProductReferences(
   codes: string[],
   productHandleBySourceId: Map<string, string>,
   publishedSourceIds: Set<string>,
-  excludedSourceId?: string
+  excludedSourceId?: string,
 ): ResolvedProductReference[] {
   const refs: ResolvedProductReference[] = []
   const seen = new Set<string>()
@@ -2484,7 +2484,7 @@ function resolveProductReferences(
     const ref = resolveProductReference(
       code,
       productHandleBySourceId,
-      publishedSourceIds
+      publishedSourceIds,
     )
     if (
       !ref ||
@@ -2504,19 +2504,19 @@ function resolveProductReferences(
 function buildResolvedProductReferences(
   item: ParsedShopItem,
   productHandleBySourceId: Map<string, string>,
-  publishedSourceIds: Set<string>
+  publishedSourceIds: Set<string>,
 ): ResolvedProductReferences {
   const relatedProductRefs = resolveProductReferences(
     item.relatedProducts,
     productHandleBySourceId,
     publishedSourceIds,
-    item.id
+    item.id,
   )
   const alternativeProductRefs = resolveProductReferences(
     item.alternativeProducts,
     productHandleBySourceId,
     publishedSourceIds,
-    item.id
+    item.id,
   )
 
   return {
@@ -2530,18 +2530,18 @@ function buildResolvedProductReferences(
 function buildVariantMetadata(
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
-  referenceDate = new Date()
+  referenceDate = new Date(),
 ): Record<string, unknown> {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const hasActiveDiscount = resolveOfferHasActiveDiscount(
     offer,
     fallbackOffer,
-    referenceDate
+    referenceDate,
   )
   const currentPrice = resolveOfferCurrentPrice(
     offer,
     fallbackOffer,
-    referenceDate
+    referenceDate,
   )
   const compareAtPrice = hasActiveDiscount ? basePrice : undefined
 
@@ -2616,10 +2616,10 @@ function buildProductMetadata({
 }: BuildProductMetadataOptions): Record<string, unknown> {
   const normalizedFlags = normalizeFlags(item.flags, topOffer, referenceDate)
   const sourceCategoryIds = dedupeStrings(
-    categoryRefs.map((categoryRef) => categoryRef.id)
+    categoryRefs.map((categoryRef) => categoryRef.id),
   )
   const defaultCategoryRef = categoryRefs.find(
-    (categoryRef) => categoryRef.isDefault
+    (categoryRef) => categoryRef.isDefault,
   )
 
   const contentSections = buildProductContentSections(item)
@@ -2635,11 +2635,11 @@ function buildProductMetadata({
       html: contentSectionsMap[sectionKey],
       key: sectionKey,
       title: PRODUCT_CONTENT_SECTION_TITLES[sectionKey],
-    })
+    }),
   )
   const cardCopy = buildProductCardCopyConfig(
     contentSectionsMap,
-    item.shortDescription
+    item.shortDescription,
   )
 
   return {
@@ -2697,14 +2697,14 @@ function normalizeMeasurementSourceUnit(value?: string) {
 }
 
 function getMeasurementConfigurationKey(
-  measurement: NonNullable<ProductSeedInput["measurement"]>
+  measurement: NonNullable<ProductSeedInput["measurement"]>,
 ) {
   return `${measurement.unit.symbol.toLowerCase()}:${measurement.unit.base_quantity}`
 }
 
 export function resolveHerbaticaOfferMeasurement(
   offer: HerbaticaOfferMeasurementSource,
-  sourceLabel: string
+  sourceLabel: string,
 ): {
   product: NonNullable<ProductSeedInput["measurement"]>
   variant: NonNullable<VariantSeedInput["measurement"]>
@@ -2718,7 +2718,7 @@ export function resolveHerbaticaOfferMeasurement(
     measureUnit,
   ]
   const populatedCount = values.filter(
-    (value) => value !== undefined && value !== null
+    (value) => value !== undefined && value !== null,
   ).length
 
   if (populatedCount === 0) {
@@ -2726,7 +2726,7 @@ export function resolveHerbaticaOfferMeasurement(
   }
   if (populatedCount !== values.length) {
     throw new Error(
-      `Incomplete UNIT_OF_MEASURE configuration for ${sourceLabel}`
+      `Incomplete UNIT_OF_MEASURE configuration for ${sourceLabel}`,
     )
   }
 
@@ -2741,12 +2741,12 @@ export function resolveHerbaticaOfferMeasurement(
     )
   ) {
     throw new Error(
-      `UNIT_OF_MEASURE amounts must be positive for ${sourceLabel}`
+      `UNIT_OF_MEASURE amounts must be positive for ${sourceLabel}`,
     )
   }
   if (packageUnit?.toLowerCase() !== measureUnit?.toLowerCase()) {
     throw new Error(
-      `UNIT_OF_MEASURE package unit "${packageUnit}" does not match comparison unit "${measureUnit}" for ${sourceLabel}`
+      `UNIT_OF_MEASURE package unit "${packageUnit}" does not match comparison unit "${measureUnit}" for ${sourceLabel}`,
     )
   }
 
@@ -2774,7 +2774,7 @@ function resolveHerbaticaProductMeasurement(item: ParsedShopItem) {
       : `Product "${item.id}"`
     const offerMeasurement = resolveHerbaticaOfferMeasurement(
       offer,
-      sourceLabel
+      sourceLabel,
     )
     return offerMeasurement ? [offerMeasurement.product] : []
   })
@@ -2785,11 +2785,11 @@ function resolveHerbaticaProductMeasurement(item: ParsedShopItem) {
 
   const expectedKey = getMeasurementConfigurationKey(measurement)
   const conflicting = configured.find(
-    (current) => getMeasurementConfigurationKey(current) !== expectedKey
+    (current) => getMeasurementConfigurationKey(current) !== expectedKey,
   )
   if (conflicting) {
     throw new Error(
-      `Product "${item.id}" contains conflicting UNIT_OF_MEASURE comparison configurations`
+      `Product "${item.id}" contains conflicting UNIT_OF_MEASURE comparison configurations`,
     )
   }
 
@@ -2810,7 +2810,7 @@ function buildDefaultVariantForProduct({
   const { topOffer } = item
   const skuSeed = buildSkuSeed(
     ["SHOPITEM", item.id, topOffer.variantId ?? "DEFAULT"],
-    `${handle}-DEFAULT`
+    `${handle}-DEFAULT`,
   )
   const sku = ensureUnique(skuSeed, usedSkus, `${handle}-DEFAULT`)
   const ean = normalizeInlineText(topOffer.ean)
@@ -2820,7 +2820,7 @@ function buildDefaultVariantForProduct({
   const thumbnail = topOffer.imageRef
   const measurement = resolveHerbaticaOfferMeasurement(
     topOffer,
-    `Product "${item.id}"`
+    `Product "${item.id}"`,
   )
 
   return {
@@ -2855,7 +2855,7 @@ function buildDefaultVariantForProduct({
 
 function completeVariantOptions(
   optionsForVariant: Map<string, string>,
-  optionNames: string[]
+  optionNames: string[],
 ): Record<string, string> {
   for (const optionName of optionNames) {
     if (!optionsForVariant.has(optionName)) {
@@ -2883,7 +2883,7 @@ function buildVariantSeed({
     `${DEFAULT_OPTION_VALUE} ${index + 1}`
   const skuSeed = buildSkuSeed(
     ["SHOPITEM", item.id, "VARIANT", variant.variantId ?? `${index + 1}`],
-    `${handle}-${index + 1}`
+    `${handle}-${index + 1}`,
   )
   const sku = ensureUnique(skuSeed, usedSkus, `${handle}-${index + 1}`)
   const currencyCode = (
@@ -2897,7 +2897,7 @@ function buildVariantSeed({
   const ean = normalizeInlineText(variant.ean)
   const measurement = resolveHerbaticaOfferMeasurement(
     variant,
-    `Product "${item.id}" Variant "${variant.variantId ?? index + 1}"`
+    `Product "${item.id}" Variant "${variant.variantId ?? index + 1}"`,
   )
 
   return {
@@ -2994,7 +2994,7 @@ function buildVariantsForProduct({
       referenceDate,
       usedSkus,
       variant,
-    })
+    }),
   )
 
   return {
@@ -3024,7 +3024,7 @@ function buildProducts(params: {
       ? `shopitem-${item.id}`
       : `${item.name}-${index + 1}`
     const handleSeed = truncateWithHash(
-      slugifyHerbaticaHandle(stableHandleSource) || `product-${index + 1}`
+      slugifyHerbaticaHandle(stableHandleSource) || `product-${index + 1}`,
     )
     const handle = ensureUnique(handleSeed, usedHandles, `product-${index + 1}`)
 
@@ -3059,7 +3059,7 @@ function buildProducts(params: {
         }
 
         return pathToHandle.get(categoryRef.path)
-      })
+      }),
     )
     const categories = categoryHandles.map((categoryHandle) => ({
       handle: categoryHandle,
@@ -3076,7 +3076,7 @@ function buildProducts(params: {
     const resolvedProductReferences = buildResolvedProductReferences(
       item,
       productHandleBySourceId,
-      publishedSourceIds
+      publishedSourceIds,
     )
 
     const { options, variants } = buildVariantsForProduct({
@@ -3117,7 +3117,7 @@ function buildProducts(params: {
 }
 
 function getVariantBasePrice(
-  variant: VariantSeedInput
+  variant: VariantSeedInput,
 ): PriceListPriceSeedInput | undefined {
   const price = variant.prices?.[0]
   if (!(price && variant.sku)) {
@@ -3134,13 +3134,13 @@ function getVariantBasePrice(
 
 function addPriceListPrice(
   prices: PriceListPriceSeedInput[],
-  price: PriceListPriceSeedInput
+  price: PriceListPriceSeedInput,
 ) {
   const existingIndex = prices.findIndex(
     (existing) =>
       existing.productHandle === price.productHandle &&
       existing.variantSku === price.variantSku &&
-      existing.currencyCode.toLowerCase() === price.currencyCode.toLowerCase()
+      existing.currencyCode.toLowerCase() === price.currencyCode.toLowerCase(),
   )
 
   if (existingIndex === -1) {
@@ -3165,7 +3165,7 @@ function addSalePriceListPrice(
     startsAtRaw?: string | undefined
     endsAtRaw?: string | undefined
     price: PriceListPriceSeedInput
-  }
+  },
 ) {
   const key = [
     sourceTitle,
@@ -3191,7 +3191,7 @@ function addSalePriceListPrice(
 }
 
 function getVariantMetadata(
-  variant: VariantSeedInput
+  variant: VariantSeedInput,
 ): Record<string, unknown> | undefined {
   const { metadata } = variant
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
@@ -3203,20 +3203,20 @@ function getVariantMetadata(
 
 function getMetadataString(
   metadata: Record<string, unknown> | undefined,
-  key: string
+  key: string,
 ): string | undefined {
   return typeof metadata?.[key] === "string" ? metadata[key] : undefined
 }
 
 function getMetadataNumber(
   metadata: Record<string, unknown> | undefined,
-  key: string
+  key: string,
 ): number | undefined {
   return typeof metadata?.[key] === "number" ? metadata[key] : undefined
 }
 
 function getMetadataPricelists(
-  metadata: Record<string, unknown> | undefined
+  metadata: Record<string, unknown> | undefined,
 ): ParsedPricelist[] {
   return Array.isArray(metadata?.["pricelists"])
     ? (metadata["pricelists"] as ParsedPricelist[])
@@ -3235,7 +3235,7 @@ function addDefaultSalePriceFromMetadata({
   salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
 }) {
   const actionPrice = normalizePriceAmount(
-    getMetadataNumber(metadata, "action_price")
+    getMetadataNumber(metadata, "action_price"),
   )
   const actionPriceFrom = getMetadataString(metadata, "action_price_from")
   const actionPriceUntil = getMetadataString(metadata, "action_price_until")
@@ -3263,7 +3263,7 @@ function ensureOverridePriceList(
     string,
     PriceListsSeedInput["overrides"][number]
   >,
-  title: string
+  title: string,
 ): PriceListsSeedInput["overrides"][number] {
   const existing = overridePriceListsByTitle.get(title)
   if (existing) {
@@ -3282,7 +3282,7 @@ function ensureOverridePriceList(
 function addRegularPricelistPrice(
   overridePriceList: PriceListsSeedInput["overrides"][number],
   basePrice: PriceListPriceSeedInput,
-  regularPrice?: number
+  regularPrice?: number,
 ) {
   if (
     regularPrice === undefined ||
@@ -3319,7 +3319,7 @@ function addPricelistSalePrice({
     !shouldImportActionPrice(
       actionPrice,
       pricelist.actionPriceUntil,
-      referenceDate
+      referenceDate,
     ) ||
     priceAmountsEqual(actionPrice, comparisonPrice)
   ) {
@@ -3369,10 +3369,10 @@ function addVariantPriceListEntries({
 
     const overridePriceList = ensureOverridePriceList(
       overridePriceListsByTitle,
-      title
+      title,
     )
     const regularPrice = normalizePriceAmount(
-      pricelist.priceVat ?? pricelist.standardPrice
+      pricelist.priceVat ?? pricelist.standardPrice,
     )
 
     addRegularPricelistPrice(overridePriceList, basePrice, regularPrice)
@@ -3389,7 +3389,7 @@ function addVariantPriceListEntries({
 
 function buildPriceListsFromProducts(
   products: ProductSeedInput[],
-  referenceDate = new Date()
+  referenceDate = new Date(),
 ): PriceListsSeedInput {
   const overridePriceListsByTitle = new Map<
     string,
@@ -3435,7 +3435,7 @@ function addWarehouseStockLocation(
     string,
     SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
   >,
-  warehouse: ParsedStockWarehouse
+  warehouse: ParsedStockWarehouse,
 ): boolean {
   const { name, usedFallback } = resolveWarehouseStockLocationName(warehouse)
   const address = buildWarehouseStockLocationAddress(warehouse.location)
@@ -3464,7 +3464,7 @@ function addDefaultStockLocation(
   locationsByName: Map<
     string,
     SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
-  >
+  >,
 ) {
   locationsByName.set(DEFAULT_STOCK_LOCATION_NAME, {
     ...HERBATICA_DEFAULT_STOCK_LOCATION,
@@ -3485,7 +3485,7 @@ function buildStockLocationsFromItems(items: ParsedShopItem[]): {
   const warnings: string[] = []
   const offers = items.flatMap(getItemOffers)
   const hasSimpleStock = offers.some(
-    (offer) => offer.stockWarehouses.length === 0
+    (offer) => offer.stockWarehouses.length === 0,
   )
   let missingWarehouseNames = 0
 
@@ -3501,7 +3501,7 @@ function buildStockLocationsFromItems(items: ParsedShopItem[]): {
 
   if (missingWarehouseNames > 0) {
     warnings.push(
-      `${missingWarehouseNames} Shoptet warehouse stock entries had no warehouse name and were mapped to "${FALLBACK_SHOPTET_WAREHOUSE_NAME}".`
+      `${missingWarehouseNames} Shoptet warehouse stock entries had no warehouse name and were mapped to "${FALLBACK_SHOPTET_WAREHOUSE_NAME}".`,
     )
   }
 
@@ -3543,7 +3543,7 @@ export function buildSeedInputFromXml(
   xml: string,
   categoryExports?: HerbaticaCategoryExport[],
   options?: SeedBuildOptions,
-  manufacturersLookup?: ManufacturerCsvLookup
+  manufacturersLookup?: ManufacturerCsvLookup,
 ): BuildResult {
   const buildOptions = resolveSeedBuildOptions(options)
   const items = applyPromoOverrides(parseShopItems(xml), buildOptions)
@@ -3560,25 +3560,25 @@ export function buildSeedInputFromXml(
   enforceUniqueVariantSkus(products)
   const priceLists = buildPriceListsFromProducts(
     products,
-    buildOptions.referenceDate
+    buildOptions.referenceDate,
   )
   const { locations: stockLocations, warnings } =
     buildStockLocationsFromItems(items)
   const hiddenProducts = products.filter(
-    (product) => product.status === ProductStatus.DRAFT
+    (product) => product.status === ProductStatus.DRAFT,
   ).length
   const variants = products.reduce(
     (acc, product) => acc + (product.variants?.length ?? 0),
-    0
+    0,
   )
   const priceListPrices =
     priceLists.overrides.reduce(
       (acc, priceList) => acc + priceList.prices.length,
-      0
+      0,
     ) +
     priceLists.sales.reduce(
       (acc, priceList) => acc + priceList.prices.length,
-      0
+      0,
     )
 
   return {
@@ -3609,7 +3609,7 @@ export function buildHerbaticaSeedWorkflowInput(
     fulfillmentSetName,
     fulfillmentSetType,
     serviceZoneName,
-  }: HerbaticaWorkflowInputOptions
+  }: HerbaticaWorkflowInputOptions,
 ): SeedDatabaseWorkflowInput {
   return {
     currencies: HERBATICA_CURRENCIES,
@@ -3661,11 +3661,11 @@ function resolveProductsXmlPath(args?: string[]): string {
   }
 
   const detectedPath = HERBATICA_PRODUCTS_XML_PATHS.find((path) =>
-    existsSync(path)
+    existsSync(path),
   )
   if (!detectedPath) {
     throw new Error(
-      `Could not find productsComplete.xml. Checked: ${HERBATICA_PRODUCTS_XML_PATHS.join(", ")}`
+      `Could not find productsComplete.xml. Checked: ${HERBATICA_PRODUCTS_XML_PATHS.join(", ")}`,
     )
   }
 
@@ -3707,14 +3707,14 @@ function resolveManufacturersCsvSource(args?: string[]): string {
   }
 
   const envPath = normalizeInlineText(
-    process.env[HERBATICA_MANUFACTURERS_CSV_ENV]
+    process.env[HERBATICA_MANUFACTURERS_CSV_ENV],
   )
   if (envPath) {
     return envPath
   }
 
   throw new Error(
-    `Manufacturers CSV source is required. Pass it as the fourth seed argument or set ${HERBATICA_MANUFACTURERS_CSV_ENV} to an explicit local path or pinned/versioned URL. No mutable remote fallback is used.`
+    `Manufacturers CSV source is required. Pass it as the fourth seed argument or set ${HERBATICA_MANUFACTURERS_CSV_ENV} to an explicit local path or pinned/versioned URL. No mutable remote fallback is used.`,
   )
 }
 
@@ -3737,7 +3737,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     logger.info(`Using categories XML feed: ${feedPaths.categoriesXmlPath}`)
   } else {
     logger.warn(
-      "Categories XML feed not found, falling back to categories derived from product paths."
+      "Categories XML feed not found, falling back to categories derived from product paths.",
     )
   }
   const xml = await readXmlSource(feedPaths.productsXmlPath)
@@ -3747,13 +3747,13 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   let manufacturersLookup: ReturnType<typeof buildManufacturersLookup>
   try {
     const manufacturersCsv = parseManufacturersCsv(
-      await readCsvSource(manufacturersCsvSource)
+      await readCsvSource(manufacturersCsvSource),
     )
     manufacturersLookup = buildManufacturersLookup(manufacturersCsv)
   } catch (error) {
     logger.error(
       `Failed to load manufacturers CSV from ${manufacturersCsvSource}`,
-      error instanceof Error ? error : new Error(String(error))
+      error instanceof Error ? error : new Error(String(error)),
     )
     throw error
   }
@@ -3766,7 +3766,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
 
   if (buildOptions.promoRebaseDays !== undefined) {
     logger.info(
-      `Rebasing expired Herbatica promo windows to ${formatIsoDate(buildOptions.referenceDate)} + ${buildOptions.promoRebaseDays} days`
+      `Rebasing expired Herbatica promo windows to ${formatIsoDate(buildOptions.referenceDate)} + ${buildOptions.promoRebaseDays} days`,
     )
   }
 
@@ -3774,20 +3774,20 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     xml,
     categoryExports,
     buildOptions,
-    manufacturersLookup
+    manufacturersLookup,
   )
 
   logger.info(
-    `Parsed feed: ${parsed.stats.shopItems} SHOPITEMs, ${parsed.stats.categories} categories, ${parsed.stats.products} products, ${parsed.stats.variants} variants`
+    `Parsed feed: ${parsed.stats.shopItems} SHOPITEMs, ${parsed.stats.categories} categories, ${parsed.stats.products} products, ${parsed.stats.variants} variants`,
   )
   logger.info(
-    `Products set to draft due to visibility rules: ${parsed.stats.hiddenProducts}`
+    `Products set to draft due to visibility rules: ${parsed.stats.hiddenProducts}`,
   )
   logger.info(
-    `Parsed ${parsed.stats.stockLocations} stock locations from stock data`
+    `Parsed ${parsed.stats.stockLocations} stock locations from stock data`,
   )
   logger.info(
-    `Parsed ${parsed.stats.overridePriceLists} override price lists, ${parsed.stats.salePriceLists} sale price lists, ${parsed.stats.priceListPrices} price-list prices`
+    `Parsed ${parsed.stats.overridePriceLists} override price lists, ${parsed.stats.salePriceLists} sale price lists, ${parsed.stats.priceListPrices} price-list prices`,
   )
   for (const warning of parsed.warnings) {
     logger.warn(warning)
@@ -3809,19 +3809,19 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
 
   if (existingRegions.length > 0) {
     logger.info(
-      `Using existing regions (${regionsInput.map((region) => region.name).join(", ")}) to avoid country assignment conflicts`
+      `Using existing regions (${regionsInput.map((region) => region.name).join(", ")}) to avoid country assignment conflicts`,
     )
   }
 
   const fulfillmentService = container.resolve<IFulfillmentModuleService>(
-    Modules.FULFILLMENT
+    Modules.FULFILLMENT,
   )
   const existingFulfillmentSets = await fulfillmentService.listFulfillmentSets(
     {},
-    { relations: ["service_zones"] }
+    { relations: ["service_zones"] },
   )
   const existingFulfillmentSetWithEurope = existingFulfillmentSets.find((set) =>
-    (set.service_zones ?? []).some((zone) => zone.name === "Europe")
+    (set.service_zones ?? []).some((zone) => zone.name === "Europe"),
   )
   const selectedFulfillmentSet =
     existingFulfillmentSetWithEurope ?? existingFulfillmentSets[0]
@@ -3837,7 +3837,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
 
   if (selectedFulfillmentSet) {
     logger.info(
-      `Using existing fulfillment set "${fulfillmentSetName}" and service zone "${serviceZoneName}" to avoid duplicate service zone conflicts`
+      `Using existing fulfillment set "${fulfillmentSetName}" and service zone "${serviceZoneName}" to avoid duplicate service zone conflicts`,
     )
   }
 
@@ -3852,7 +3852,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const { result: seedResult } = await seedShoptetImportWorkflow(container).run(
     {
       input,
-    }
+    },
   )
 
   if (feedPaths.reviewsXmlPath) {
@@ -3867,7 +3867,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const eanReconciliation = seedResult.reconcileProductVariantEansResult
   const eanWarnings = eanReconciliation.issues.length
   logger.info(
-    `Summary: products=${parsed.stats.products}, variants=${parsed.stats.variants}, categories=${parsed.stats.categories}, draft_products=${parsed.stats.hiddenProducts}, stock_locations=${parsed.stats.stockLocations}, price_lists=${parsed.stats.overridePriceLists + parsed.stats.salePriceLists}, price_list_prices=${parsed.stats.priceListPrices}, warnings=${parsed.stats.warnings + eanWarnings}, ean_accepted=${eanReconciliation.summary.accepted}, ean_retained=${eanReconciliation.summary.retained}, ean_transferred=${eanReconciliation.summary.transferred}, ean_suppressed=${eanReconciliation.summary.suppressed}, ean_collisions=${eanReconciliation.summary.collisions}`
+    `Summary: products=${parsed.stats.products}, variants=${parsed.stats.variants}, categories=${parsed.stats.categories}, draft_products=${parsed.stats.hiddenProducts}, stock_locations=${parsed.stats.stockLocations}, price_lists=${parsed.stats.overridePriceLists + parsed.stats.salePriceLists}, price_list_prices=${parsed.stats.priceListPrices}, warnings=${parsed.stats.warnings + eanWarnings}, ean_accepted=${eanReconciliation.summary.accepted}, ean_retained=${eanReconciliation.summary.retained}, ean_transferred=${eanReconciliation.summary.transferred}, ean_suppressed=${eanReconciliation.summary.suppressed}, ean_collisions=${eanReconciliation.summary.collisions}`,
   )
 
   for (const issue of eanReconciliation.issues.slice(0, EAN_ISSUE_LOG_LIMIT)) {
@@ -3879,12 +3879,12 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
       .map((claimant) => `${claimant.product_handle}/${claimant.sku}`)
       .join(",")
     logger.warn(
-      `EAN ${issue.ean}: resolution=${issue.resolution} owner=${owner}${previousOwner} suppressed=${suppressed || "none"}`
+      `EAN ${issue.ean}: resolution=${issue.resolution} owner=${owner}${previousOwner} suppressed=${suppressed || "none"}`,
     )
   }
   if (eanReconciliation.issues.length > EAN_ISSUE_LOG_LIMIT) {
     logger.warn(
-      `${eanReconciliation.issues.length - EAN_ISSUE_LOG_LIMIT} additional EAN collision issue(s) omitted from console output`
+      `${eanReconciliation.issues.length - EAN_ISSUE_LOG_LIMIT} additional EAN collision issue(s) omitted from console output`,
     )
   }
 }

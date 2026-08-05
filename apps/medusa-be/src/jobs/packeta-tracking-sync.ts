@@ -54,13 +54,13 @@ const LOCK_TIMEOUT_SECONDS = 120
  * the pending-fulfillment volume grows.
  */
 export default async function packetaTrackingSyncJob(
-  container: MedusaContainer
+  container: MedusaContainer,
 ) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
   if (process.env["FEATURE_PACKETA_ENABLED"] !== "1") {
     logger.debug(
-      "Packeta Tracking Sync: module disabled (FEATURE_PACKETA_ENABLED != 1), skipping"
+      "Packeta Tracking Sync: module disabled (FEATURE_PACKETA_ENABLED != 1), skipping",
     )
     return
   }
@@ -73,12 +73,12 @@ export default async function packetaTrackingSyncJob(
     LOCK_TIMEOUT_SECONDS,
     async () => {
       await run(container, logger)
-    }
+    },
   )
 
   if (result.status === "timed_out") {
     logger.debug(
-      "Packeta Tracking Sync: lock held by another instance, skipping"
+      "Packeta Tracking Sync: lock held by another instance, skipping",
     )
   }
 }
@@ -90,7 +90,7 @@ export const config = {
 
 async function run(container: MedusaContainer, logger: Logger) {
   const packetaClient = container.resolve<PacketaClientModuleService>(
-    PACKETA_CLIENT_MODULE
+    PACKETA_CLIENT_MODULE,
   )
 
   const runtimeConfig = await packetaClient.getConfig()
@@ -101,7 +101,7 @@ async function run(container: MedusaContainer, logger: Logger) {
 
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const fulfillmentService = container.resolve<IFulfillmentModuleService>(
-    Modules.FULFILLMENT
+    Modules.FULFILLMENT,
   )
   const eventBus = container.resolve<IEventBusModuleService>(Modules.EVENT_BUS)
 
@@ -116,7 +116,7 @@ async function run(container: MedusaContainer, logger: Logger) {
     }
 
     logger.info(
-      `Packeta Tracking Sync: Found ${pending.length} pending fulfillments`
+      `Packeta Tracking Sync: Found ${pending.length} pending fulfillments`,
     )
 
     const ctx: TrackingContext = { eventBus, fulfillmentService, logger }
@@ -128,13 +128,13 @@ async function run(container: MedusaContainer, logger: Logger) {
   } catch (error) {
     logger.error(
       "Packeta Tracking Sync failed",
-      error instanceof Error ? error : new Error(String(error))
+      error instanceof Error ? error : new Error(String(error)),
     )
   }
 }
 
 async function fetchPendingFulfillments(
-  query: Query
+  query: Query,
 ): Promise<PendingFulfillment[]> {
   const { data: fulfillments } = await query.graph({
     entity: "fulfillment",
@@ -147,14 +147,14 @@ async function fetchPendingFulfillments(
   })
 
   return (fulfillments as FulfillmentRecord[]).filter(
-    (f): f is PendingFulfillment => typeof f.data?.packet_id === "number"
+    (f): f is PendingFulfillment => typeof f.data?.packet_id === "number",
   )
 }
 
 async function processFulfillment(
   ctx: TrackingContext,
   packetaClient: PacketaClientModuleService,
-  fulfillment: PendingFulfillment
+  fulfillment: PendingFulfillment,
 ): Promise<void> {
   const { logger } = ctx
   const { packet_id: packetId } = fulfillment.data
@@ -164,7 +164,7 @@ async function processFulfillment(
     history = await packetaClient.getPacketStatus(packetId)
   } catch (error) {
     logger.warn(
-      `Packeta Tracking Sync: Failed to fetch status for packet ${packetId}: ${error instanceof Error ? error.message : String(error)}`
+      `Packeta Tracking Sync: Failed to fetch status for packet ${packetId}: ${error instanceof Error ? error.message : String(error)}`,
     )
     return
   }
@@ -182,7 +182,7 @@ async function processFulfillment(
   }
 
   logger.info(
-    `Packeta: Packet ${packetId} (barcode ${fulfillment.data.barcode}) status changed: ${currentStatus || "unknown"} -> ${newStatus}`
+    `Packeta: Packet ${packetId} (barcode ${fulfillment.data.barcode}) status changed: ${currentStatus || "unknown"} -> ${newStatus}`,
   )
 
   if (PACKETA_DELIVERED_STATES.includes(newStatus)) {
@@ -198,14 +198,14 @@ async function handleDelivered(
   ctx: TrackingContext,
   fulfillment: PendingFulfillment,
   latest: PacketaPacketStatusRecord,
-  newStatus: PacketaShipmentState
+  newStatus: PacketaShipmentState,
 ): Promise<void> {
   const { logger, fulfillmentService, eventBus } = ctx
   const { data } = fulfillment
   const deliveredAt = new Date(latest.dateTime)
 
   logger.info(
-    `Packeta: Packet ${data.packet_id} delivered (${newStatus}) at ${deliveredAt.toISOString()}`
+    `Packeta: Packet ${data.packet_id} delivered (${newStatus}) at ${deliveredAt.toISOString()}`,
   )
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {
@@ -233,7 +233,7 @@ async function handleFailed(
   ctx: TrackingContext,
   fulfillment: PendingFulfillment,
   latest: PacketaPacketStatusRecord,
-  newStatus: PacketaShipmentState
+  newStatus: PacketaShipmentState,
 ): Promise<void> {
   const { logger, fulfillmentService, eventBus } = ctx
   const { data } = fulfillment
@@ -265,7 +265,7 @@ async function handleInTransit(
   ctx: TrackingContext,
   fulfillment: PendingFulfillment,
   latest: PacketaPacketStatusRecord,
-  newStatus: PacketaShipmentState
+  newStatus: PacketaShipmentState,
 ): Promise<void> {
   const { logger, fulfillmentService } = ctx
   const { data } = fulfillment

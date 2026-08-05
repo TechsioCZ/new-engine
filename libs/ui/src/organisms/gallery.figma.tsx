@@ -23,5 +23,5 @@ figma.connect(
         horizontal: "horizontal",
       }),
     },
-  }
+  },
 )

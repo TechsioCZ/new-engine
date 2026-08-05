@@ -17,7 +17,7 @@ export type StorefrontAddressValidationResult =
   | undefined
 
 const formatValidationIssue = (
-  issue: StorefrontAddressValidationIssue
+  issue: StorefrontAddressValidationIssue,
 ): string => {
   if (issue.message) {
     return issue.message
@@ -28,13 +28,13 @@ const formatValidationIssue = (
 }
 
 export const hasStorefrontAddressValidationIssues = (
-  result: StorefrontAddressValidationResult
+  result: StorefrontAddressValidationResult,
 ): result is readonly StorefrontAddressValidationIssue[] =>
   Array.isArray(result) && result.length > 0
 
 export const getStorefrontAddressValidationMessage = (
   result: StorefrontAddressValidationResult,
-  fallbackMessage = "Address validation failed"
+  fallbackMessage = "Address validation failed",
 ): string => {
   if (!hasStorefrontAddressValidationIssues(result)) {
     return fallbackMessage
@@ -48,14 +48,14 @@ export class StorefrontAddressValidationError extends Error {
 
   constructor(
     issues: readonly StorefrontAddressValidationIssue[],
-    message?: string
+    message?: string,
   ) {
     super(
       message ??
         getStorefrontAddressValidationMessage(
           issues,
-          "Address validation failed"
-        )
+          "Address validation failed",
+        ),
     )
     this.name = "StorefrontAddressValidationError"
     this.issues = [...issues]
@@ -64,7 +64,7 @@ export class StorefrontAddressValidationError extends Error {
 
 export const toStorefrontAddressValidationError = (
   result: StorefrontAddressValidationResult,
-  fallbackMessage?: string
+  fallbackMessage?: string,
 ): StorefrontAddressValidationError | null => {
   if (!hasStorefrontAddressValidationIssues(result)) {
     return null
@@ -73,13 +73,16 @@ export const toStorefrontAddressValidationError = (
   return new StorefrontAddressValidationError(
     result,
     fallbackMessage ??
-      getStorefrontAddressValidationMessage(result, "Address validation failed")
+      getStorefrontAddressValidationMessage(
+        result,
+        "Address validation failed",
+      ),
   )
 }
 
 export const assertStorefrontAddressValidation = (
   result: StorefrontAddressValidationResult,
-  fallbackMessage?: string
+  fallbackMessage?: string,
 ): void => {
   const error = toStorefrontAddressValidationError(result, fallbackMessage)
   if (error) {
@@ -99,12 +102,12 @@ export interface StorefrontCartAddressAdapter<
   normalize?: (input: TInput, context: StorefrontCartAddressContext) => TInput
   validate?: (
     input: TInput,
-    context: StorefrontCartAddressContext
+    context: StorefrontCartAddressContext,
   ) => StorefrontAddressValidationResult
   toPayload?: (input: TInput, context: StorefrontCartAddressContext) => TPayload
   fromAddress?: (
     input?: TStoredAddress | null,
-    context?: StorefrontCartAddressContext
+    context?: StorefrontCartAddressContext,
   ) => TInput
 }
 
@@ -124,26 +127,26 @@ export interface StorefrontCustomerAddressAdapter<
 > {
   normalizeCreate?: (
     input: TCreateInput,
-    context: StorefrontCustomerCreateAddressContext
+    context: StorefrontCustomerCreateAddressContext,
   ) => TCreateInput
   validateCreate?: (
     input: TCreateInput,
-    context: StorefrontCustomerCreateAddressContext
+    context: StorefrontCustomerCreateAddressContext,
   ) => StorefrontAddressValidationResult
   toCreateParams?: (
     input: TCreateInput,
-    context: StorefrontCustomerCreateAddressContext
+    context: StorefrontCustomerCreateAddressContext,
   ) => TCreateParams
   normalizeUpdate?: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext
+    context: StorefrontCustomerUpdateAddressContext,
   ) => TUpdateInput
   validateUpdate?: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext
+    context: StorefrontCustomerUpdateAddressContext,
   ) => StorefrontAddressValidationResult
   toUpdateParams?: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext
+    context: StorefrontCustomerUpdateAddressContext,
   ) => TUpdateParams
 }

@@ -3,19 +3,19 @@ import { z } from "@medusajs/framework/zod"
 const optionalTrimmedString = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().trim().min(1).optional()
+  z.string().trim().min(1).optional(),
 )
 
 const nullableTrimmedString = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? null : value,
-  z.string().trim().min(1).nullable().optional()
+  z.string().trim().min(1).nullable().optional(),
 )
 
 const optionalEmailString = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().trim().email().optional()
+  z.string().trim().email().optional(),
 )
 
 const metadataSchema = z.record(z.string(), z.unknown()).nullable().optional()

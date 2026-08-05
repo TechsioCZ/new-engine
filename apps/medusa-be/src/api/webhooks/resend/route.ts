@@ -30,14 +30,14 @@ type EmailLogService = EmailLogModuleService & {
       processed_at: Date | null
       received_at: Date
       type: string
-    }[]
+    }[],
   ) => Promise<unknown[]>
   listEmailLogs: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<EmailLogDTO[]>
   updateEmailLogs: (
-    data: { id: string; checked_at: Date }[]
+    data: { id: string; checked_at: Date }[],
   ) => Promise<EmailLogDTO[]>
 }
 
@@ -64,7 +64,7 @@ function getPayload(req: MedusaRequest) {
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    "Resend webhook requires the raw request body for signature verification"
+    "Resend webhook requires the raw request body for signature verification",
   )
 }
 
@@ -131,7 +131,7 @@ function parsePayload(payload: string, body: unknown) {
 }
 
 function hasRequiredResendWebhookFields(
-  event: ResendWebhookEvent
+  event: ResendWebhookEvent,
 ): event is ResendWebhookEvent & {
   data: { email_id: string; [key: string]: unknown }
   type: string
@@ -148,7 +148,7 @@ async function markEmailLogChecked({
 }) {
   const emailLogs = await emailLogService.listEmailLogs(
     { email_id: emailId },
-    { select: ["id", "email_id", "checked_at"] }
+    { select: ["id", "email_id", "checked_at"] },
   )
 
   const uncheckedLogs = emailLogs.filter((emailLog) => !emailLog.checked_at)
@@ -163,7 +163,7 @@ async function markEmailLogChecked({
     uncheckedLogs.map((emailLog) => ({
       checked_at: new Date(),
       id: emailLog.id,
-    }))
+    })),
   )
 
   return {
@@ -208,7 +208,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     if (!isValidSignature) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Invalid Resend webhook signature"
+        "Invalid Resend webhook signature",
       )
     }
   }
@@ -218,7 +218,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   if (!hasRequiredResendWebhookFields(event)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Invalid Resend webhook payload"
+      "Invalid Resend webhook payload",
     )
   }
 

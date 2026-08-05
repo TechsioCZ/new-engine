@@ -56,7 +56,7 @@ export interface ProductReviewErrorMessages {
 type CatalogTranslator = ReturnType<typeof useTranslations<"catalog">>
 
 export const translateProductReviewErrorMessages = (
-  translate: CatalogTranslator
+  translate: CatalogTranslator,
 ): ProductReviewErrorMessages => ({
   authRequired: translate("reviews.errors.auth_required"),
   contentRequired: translate("reviews.errors.content_required"),
@@ -74,7 +74,7 @@ export const translateProductReviewErrorMessages = (
 })
 
 const hasErrorShape = (
-  error: unknown
+  error: unknown,
 ): error is { message?: unknown; status?: unknown; statusText?: unknown } =>
   Boolean(error && typeof error === "object")
 
@@ -93,7 +93,7 @@ const extractErrorMessage = (error: unknown): string => {
 
 const resolveTokenMessage = (
   normalizedMessage: string,
-  messages: ProductReviewErrorMessages
+  messages: ProductReviewErrorMessages,
 ): string | null => {
   if (normalizedMessage.includes("token has already been used")) {
     return messages.tokenUsed
@@ -127,17 +127,17 @@ const isPurchaseRequiredReviewMessage = (normalizedMessage: string) => {
 
 const isSpecificDuplicateReviewMessage = (normalizedMessage: string) =>
   DUPLICATE_REVIEW_MESSAGE_RULES.some((patterns) =>
-    patterns.every((pattern) => normalizedMessage.includes(pattern))
+    patterns.every((pattern) => normalizedMessage.includes(pattern)),
   )
 
 const isBroadDuplicateReviewMessage = (normalizedMessage: string) =>
   BROAD_DUPLICATE_REVIEW_MESSAGE_PATTERNS.some((pattern) =>
-    normalizedMessage.includes(pattern)
+    normalizedMessage.includes(pattern),
   )
 
 const isDuplicateReviewError = (
   status: number | undefined,
-  normalizedMessage: string
+  normalizedMessage: string,
 ) => {
   if (status === 409 || isSpecificDuplicateReviewMessage(normalizedMessage)) {
     return true
@@ -153,10 +153,10 @@ const isDuplicateReviewError = (
 // Multi-pattern validation rules intentionally use AND semantics.
 const resolveReviewValidationMessage = (
   normalizedMessage: string,
-  messages: ProductReviewErrorMessages
+  messages: ProductReviewErrorMessages,
 ) => {
   const messageKey = REVIEW_VALIDATION_MESSAGE_RULES.find(({ patterns }) =>
-    patterns.every((pattern) => normalizedMessage.includes(pattern))
+    patterns.every((pattern) => normalizedMessage.includes(pattern)),
   )?.messageKey
 
   return messageKey ? messages[messageKey] : messages.validation
@@ -209,7 +209,7 @@ const resolveKnownReviewErrorMessage = ({
 
 export const resolveProductReviewSubmitErrorMessage = (
   error: unknown,
-  messages: ProductReviewErrorMessages
+  messages: ProductReviewErrorMessages,
 ) => {
   const message = extractErrorMessage(error)
   const status =

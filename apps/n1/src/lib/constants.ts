@@ -20,7 +20,7 @@ const CATEGORIES_LEAFS_IDS = ROOT_CATEGORIES.map((cat) => {
 })
 
 export const CATEGORY_MAP_BY_ID = Object.fromEntries(
-  allCategories.map((cat) => [cat.id, cat])
+  allCategories.map((cat) => [cat.id, cat]),
 )
 
 // Alternative: All category handles from allCategories
@@ -54,7 +54,7 @@ export const CATEGORY_MAP: Record<string, string[]> = {
 const findAllLeafIds = (categoryId: string): string[] => {
   // Find all direct children of this category (from ALL categories)
   const directChildren = allCategories.filter(
-    (cat) => cat.parent_category_id === categoryId
+    (cat) => cat.parent_category_id === categoryId,
   )
 
   if (directChildren.length === 0) {
@@ -69,7 +69,7 @@ const findAllLeafIds = (categoryId: string): string[] => {
 
 // Alternative implementation using allCategories (includes ALL categories)
 export const ALL_CATEGORIES_MAP: Record<string, string[]> = Object.fromEntries(
-  allCategories.map((cat) => [cat.handle, findAllLeafIds(cat.id)])
+  allCategories.map((cat) => [cat.handle, findAllLeafIds(cat.id)]),
 )
 
 export const PRODUCT_DETAILED_FIELDS =

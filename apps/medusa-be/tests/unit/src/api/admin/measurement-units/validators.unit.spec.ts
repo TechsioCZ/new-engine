@@ -14,12 +14,12 @@ describe("measurement unit request validation", () => {
         code: "kg",
         name: "Kilogram",
         symbol: "kg",
-      }).success
+      }).success,
     ).toBeTruthy()
     expect(
       AdminSetProductVariantMeasurementSchema.safeParse({
         product_unit_quantity: 2.5,
-      }).success
+      }).success,
     ).toBeTruthy()
   })
 
@@ -32,21 +32,21 @@ describe("measurement unit request validation", () => {
           code: "kg",
           name: "Kilogram",
           symbol: "kg",
-        }).success
+        }).success,
       ).toBeFalsy()
-    }
+    },
   )
 
   it("rejects coerced quantities on update and variant assignment", () => {
     expect(
       AdminUpdateMeasurementUnitSchema.safeParse({
         base_quantity: "3",
-      }).success
+      }).success,
     ).toBeFalsy()
     expect(
       AdminSetProductVariantMeasurementSchema.safeParse({
         product_unit_quantity: true,
-      }).success
+      }).success,
     ).toBeFalsy()
   })
 
@@ -61,17 +61,17 @@ describe("measurement unit request validation", () => {
         code: "kg",
         name: "Kilogram",
         symbol: "kg",
-      }).success
+      }).success,
     ).toBeFalsy()
     expect(
       AdminUpdateMeasurementUnitSchema.safeParse({
         base_quantity: quantity,
-      }).success
+      }).success,
     ).toBeFalsy()
     expect(
       AdminSetProductVariantMeasurementSchema.safeParse({
         product_unit_quantity: quantity,
-      }).success
+      }).success,
     ).toBeFalsy()
   })
 

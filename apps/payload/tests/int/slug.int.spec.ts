@@ -23,13 +23,13 @@ describe("slug utilities", () => {
 
     it("returns fallback for null title", () => {
       expect(generateSlugFromTitle(null, { fallback: "default" })).toBe(
-        "default"
+        "default",
       )
     })
 
     it("returns fallback for undefined title", () => {
       expect(generateSlugFromTitle(undefined, { fallback: "default" })).toBe(
-        "default"
+        "default",
       )
     })
 
@@ -41,14 +41,14 @@ describe("slug utilities", () => {
     it("extracts localized title from object with matching locale", () => {
       const title = { cs: "Český Titulek", en: "English Title" }
       expect(generateSlugFromTitle(title, { locale: "cs" })).toBe(
-        "cesky-titulek"
+        "cesky-titulek",
       )
     })
 
     it("falls back to first available title when locale not found", () => {
       const title = { cs: "Český Titulek", en: "English Title" }
       expect(generateSlugFromTitle(title, { locale: "de" })).toBe(
-        "english-title"
+        "english-title",
       )
     })
 
@@ -60,49 +60,49 @@ describe("slug utilities", () => {
     it("uses first available title when locale is null", () => {
       const title = { cs: "Český Titulek", en: "English Title" }
       expect(generateSlugFromTitle(title, { locale: null })).toBe(
-        "english-title"
+        "english-title",
       )
     })
 
     it("returns fallback when localized value is empty string", () => {
       const title = { cs: "Český Titulek", en: "" }
       expect(
-        generateSlugFromTitle(title, { fallback: "default", locale: "en" })
+        generateSlugFromTitle(title, { fallback: "default", locale: "en" }),
       ).toBe("cesky-titulek")
     })
 
     it("returns fallback when localized value is whitespace only", () => {
       const title = { cs: "Český Titulek", en: "   " }
       expect(
-        generateSlugFromTitle(title, { fallback: "default", locale: "en" })
+        generateSlugFromTitle(title, { fallback: "default", locale: "en" }),
       ).toBe("cesky-titulek")
     })
 
     it("returns fallback when all values are empty", () => {
       const title = { cs: "", en: "" }
       expect(generateSlugFromTitle(title, { fallback: "default" })).toBe(
-        "default"
+        "default",
       )
     })
 
     it("returns fallback when all values are whitespace", () => {
       const title = { cs: "   ", en: "   " }
       expect(generateSlugFromTitle(title, { fallback: "default" })).toBe(
-        "default"
+        "default",
       )
     })
 
     it("ignores non-string values in title object", () => {
       const title = { cs: "Český Titulek", en: 123 } as unknown
       expect(generateSlugFromTitle(title, { locale: "en" })).toBe(
-        "cesky-titulek"
+        "cesky-titulek",
       )
     })
 
     it("returns fallback when object contains only non-string values", () => {
       const title = { cs: null, en: 123 } as unknown
       expect(generateSlugFromTitle(title, { fallback: "default" })).toBe(
-        "default"
+        "default",
       )
     })
 
@@ -112,7 +112,7 @@ describe("slug utilities", () => {
 
     it("handles title with only whitespace", () => {
       expect(generateSlugFromTitle("   ", { fallback: "default" })).toBe(
-        "default"
+        "default",
       )
     })
   })

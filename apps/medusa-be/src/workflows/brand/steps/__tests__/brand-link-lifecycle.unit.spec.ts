@@ -17,11 +17,11 @@ describe("deleted brand link lifecycle", () => {
     const replaceableCurrentIds = getProductBrandIdsToReplace(
       currentIds,
       new Set<string>(),
-      nextIds
+      nextIds,
     )
 
     expect(
-      hasActiveBrandConflict(currentIds, new Set<string>(), nextIds)
+      hasActiveBrandConflict(currentIds, new Set<string>(), nextIds),
     ).toBeFalsy()
     expect(diffIds(replaceableCurrentIds, nextIds)).toStrictEqual({
       add: ["brand_active"],
@@ -33,7 +33,7 @@ describe("deleted brand link lifecycle", () => {
     const replaceableCurrentIds = getProductBrandIdsToReplace(
       ["brand_deleted"],
       new Set<string>(),
-      []
+      [],
     )
 
     expect(diffIds(replaceableCurrentIds, [])).toStrictEqual({
@@ -46,7 +46,7 @@ describe("deleted brand link lifecycle", () => {
     const replaceableCurrentIds = getProductBrandIdsToReplace(
       ["brand_active"],
       new Set(["brand_active"]),
-      []
+      [],
     )
 
     expect(diffIds(replaceableCurrentIds, [])).toStrictEqual({
@@ -61,8 +61,8 @@ describe("deleted brand link lifecycle", () => {
         ["brand_deleted"],
         new Set<string>(),
         [],
-        true
-      )
+        true,
+      ),
     ).toStrictEqual(["brand_deleted"])
   })
 
@@ -70,7 +70,7 @@ describe("deleted brand link lifecycle", () => {
     expect(
       hasActiveBrandConflict(["brand_current"], new Set(["brand_current"]), [
         "brand_next",
-      ])
+      ]),
     ).toBeTruthy()
   })
 
@@ -80,7 +80,7 @@ describe("deleted brand link lifecycle", () => {
         brandIdsByHandle: new Map([["brand", "brand_active"]]),
         desiredBrandHandleByProduct: new Map([["product", "brand"]]),
         products: [{ handle: "product", id: "prod_1" }] as never,
-      })
+      }),
     ).toStrictEqual([{ brandIds: ["brand_active"], productId: "prod_1" }])
   })
 
@@ -90,7 +90,7 @@ describe("deleted brand link lifecycle", () => {
         brandIdsByHandle: new Map(),
         desiredBrandHandleByProduct: new Map(),
         products: [{ handle: "product", id: "prod_1" }] as never,
-      })
+      }),
     ).toStrictEqual([{ brandIds: [], productId: "prod_1" }])
   })
 })
@@ -101,7 +101,7 @@ describe("Brand product deltas", () => {
       resolveBrandProductDelta(["prod_current", "prod_remove"], {
         add: ["prod_current", "prod_new", "prod_new"],
         remove: ["prod_remove", "prod_missing", "prod_missing"],
-      })
+      }),
     ).toStrictEqual({
       add: ["prod_new"],
       remove: ["prod_remove"],
@@ -113,7 +113,7 @@ describe("Brand product deltas", () => {
       normalizeBrandProductDelta({
         add: ["prod_1"],
         remove: ["prod_1"],
-      })
+      }),
     ).toThrow("Product ids cannot be added and removed in the same request")
   })
 
@@ -126,8 +126,8 @@ describe("Brand product deltas", () => {
           { brand_id: "brand_deleted", product_id: "prod_reassign" },
         ],
         new Set(["brand_target", "brand_active"]),
-        "brand_target"
-      )
+        "brand_target",
+      ),
     ).toStrictEqual({
       active: [{ brand_id: "brand_active", product_id: "prod_conflict" }],
       inactive: [{ brand_id: "brand_deleted", product_id: "prod_reassign" }],

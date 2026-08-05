@@ -24,7 +24,7 @@ export interface PasswordValidationResult {
 }
 
 export const validatePassword = (
-  password: string
+  password: string,
 ): PasswordValidationResult => {
   const requirements: PasswordRequirements = {
     length: password.length >= 8,

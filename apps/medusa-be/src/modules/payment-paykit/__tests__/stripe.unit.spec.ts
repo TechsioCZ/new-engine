@@ -21,7 +21,7 @@ describe(PaykitStripePaymentProvider, () => {
     expect(() => {
       PaykitStripePaymentProvider.validateOptions({})
     }).toThrow(
-      "PayKit Stripe missing required option(s): apiKey, webhookSecret"
+      "PayKit Stripe missing required option(s): apiKey, webhookSecret",
     )
 
     expect(() => {
@@ -57,7 +57,7 @@ describe(PaykitStripePaymentProvider, () => {
       expect.objectContaining({
         amount: 1050,
         currency: "czk",
-      })
+      }),
     )
   })
 
@@ -98,7 +98,7 @@ describe(PaykitStripePaymentProvider, () => {
     expect(client.payments.create).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: 1050,
-      })
+      }),
     )
     expect(result).toStrictEqual({
       data: {
@@ -137,7 +137,7 @@ describe(PaykitStripePaymentProvider, () => {
     expect(client.payments.create).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: 10_130,
-      })
+      }),
     )
   })
 
@@ -182,7 +182,7 @@ describe(PaykitStripePaymentProvider, () => {
         data: {
           id: "cs_test_123",
         },
-      })
+      }),
     ).resolves.toStrictEqual({
       data: expect.objectContaining({
         id: "cs_test_123",
@@ -204,7 +204,7 @@ describe(PaykitStripePaymentProvider, () => {
     expect(client.payments.retrieve).not.toHaveBeenCalled()
     expect(client.stripeCheckoutSessions?.retrieve).toHaveBeenCalledWith(
       "cs_test_123",
-      { expand: ["payment_intent"] }
+      { expand: ["payment_intent"] },
     )
   })
 
@@ -234,7 +234,7 @@ describe(PaykitStripePaymentProvider, () => {
         data: {
           id: "pi_test_123",
         },
-      })
+      }),
     ).resolves.toStrictEqual({
       data: expect.objectContaining({
         id: "pi_test_123",
@@ -281,7 +281,7 @@ describe(PaykitStripePaymentProvider, () => {
         data: {
           id: "cs_test_manual",
         },
-      })
+      }),
     ).resolves.toStrictEqual({
       data: expect.objectContaining({
         id: "cs_test_manual",
@@ -318,7 +318,7 @@ describe(PaykitStripePaymentProvider, () => {
         data: {
           id: "cs_test_payment_method",
         },
-      })
+      }),
     ).resolves.toStrictEqual({
       data: expect.objectContaining({
         id: "cs_test_payment_method",
@@ -354,7 +354,7 @@ describe(PaykitStripePaymentProvider, () => {
         data: {
           id: "cs_test_null",
         },
-      })
+      }),
     ).rejects.toThrow("PayKit payment cs_test_null could not be retrieved")
     expect(client.payments.retrieve).not.toHaveBeenCalled()
   })
@@ -380,7 +380,7 @@ describe(PaykitStripePaymentProvider, () => {
         data: {
           id: "cs_test_missing",
         },
-      })
+      }),
     ).rejects.toThrow("PayKit payment cs_test_missing could not be retrieved")
     expect(client.payments.retrieve).not.toHaveBeenCalled()
   })
@@ -403,7 +403,7 @@ describe(PaykitStripePaymentProvider, () => {
         data: {
           id: "cs_test_unavailable",
         },
-      })
+      }),
     ).rejects.toBe(stripeError)
   })
 
@@ -439,7 +439,7 @@ describe(PaykitStripePaymentProvider, () => {
           currency: "czk",
           id: "stripe-payment-1",
         },
-      })
+      }),
     ).rejects.toMatchObject({
       message: "PayKit stored payment amount must be numeric",
       type: MedusaError.Types.INVALID_DATA,
@@ -462,7 +462,7 @@ describe(PaykitStripePaymentProvider, () => {
     }
 
     await expect(
-      provider.capturePayment(input as CapturePaymentInput)
+      provider.capturePayment(input as CapturePaymentInput),
     ).rejects.toMatchObject({
       message: "PayKit capture amount must be numeric",
       type: MedusaError.Types.INVALID_DATA,
@@ -501,7 +501,7 @@ describe(PaykitStripePaymentProvider, () => {
         id: "cs_test_manual",
         payment_intent_id: "pi_manual",
         status: "succeeded",
-      })
+      }),
     )
   })
 
@@ -538,7 +538,7 @@ describe(PaykitStripePaymentProvider, () => {
 
     expect(client.stripeCheckoutSessions?.retrieve).toHaveBeenCalledWith(
       "cs_test_manual",
-      { expand: ["payment_intent"] }
+      { expand: ["payment_intent"] },
     )
     expect(client.payments.capture).toHaveBeenCalledWith("pi_manual", {
       amount: 1050,
@@ -547,7 +547,7 @@ describe(PaykitStripePaymentProvider, () => {
       expect.objectContaining({
         id: "cs_test_manual",
         payment_intent_id: "pi_manual",
-      })
+      }),
     )
   })
 
@@ -577,7 +577,7 @@ describe(PaykitStripePaymentProvider, () => {
         id: "cs_test_123",
         payment_intent_id: "pi_123",
         refund_id: "refund-1",
-      })
+      }),
     )
   })
 
@@ -608,17 +608,17 @@ describe(PaykitStripePaymentProvider, () => {
 
     expect(client.stripeCheckoutSessions?.retrieve).toHaveBeenCalledWith(
       "cs_test_open",
-      { expand: ["payment_intent"] }
+      { expand: ["payment_intent"] },
     )
     expect(client.stripeCheckoutSessions?.expire).toHaveBeenCalledWith(
-      "cs_test_open"
+      "cs_test_open",
     )
     expect(client.payments.cancel).not.toHaveBeenCalled()
     expect(result.data).toStrictEqual(
       expect.objectContaining({
         id: "cs_test_open",
         status: "canceled",
-      })
+      }),
     )
   })
 
@@ -658,7 +658,7 @@ describe(PaykitStripePaymentProvider, () => {
         id: "cs_test_paid",
         payment_intent_id: "pi_paid",
         status: "succeeded",
-      })
+      }),
     )
   })
 
@@ -689,7 +689,7 @@ describe(PaykitStripePaymentProvider, () => {
       expect.objectContaining({
         id: "cs_test_expired",
         status: "canceled",
-      })
+      }),
     )
   })
 
@@ -735,7 +735,7 @@ describe(PaykitStripePaymentProvider, () => {
         id: "cs_test_manual",
         payment_intent_id: "pi_manual",
         status: "canceled",
-      })
+      }),
     )
   })
 
@@ -766,7 +766,7 @@ describe(PaykitStripePaymentProvider, () => {
           "stripe-signature": "sig_123",
         },
         rawData: "",
-      })
+      }),
     ).resolves.toStrictEqual({
       action: PaymentActions.AUTHORIZED,
       data: {
@@ -803,7 +803,7 @@ describe(PaykitStripePaymentProvider, () => {
           "stripe-signature": "sig_123",
         },
         rawData: "",
-      })
+      }),
     ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {
@@ -847,7 +847,7 @@ describe(PaykitStripePaymentProvider, () => {
           "stripe-signature": "sig_123",
         },
         rawData: "",
-      })
+      }),
     ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {
@@ -883,7 +883,7 @@ describe(PaykitStripePaymentProvider, () => {
           "stripe-signature": "sig_123",
         },
         rawData: "",
-      })
+      }),
     ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {

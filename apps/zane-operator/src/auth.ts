@@ -15,7 +15,7 @@ function safeTokenCompare(expected: string, actual: string): boolean {
 
 export function enforceBearerToken(
   request: Request,
-  expectedToken: string
+  expectedToken: string,
 ): Response | null {
   const authorization = request.headers.get("authorization")
 
@@ -23,7 +23,7 @@ export function enforceBearerToken(
     return jsonError(
       401,
       "missing_authorization",
-      "Authorization header is required"
+      "Authorization header is required",
     )
   }
 
@@ -32,7 +32,7 @@ export function enforceBearerToken(
     return jsonError(
       401,
       "invalid_authorization",
-      "Authorization header must use Bearer token"
+      "Authorization header must use Bearer token",
     )
   }
 
@@ -41,7 +41,7 @@ export function enforceBearerToken(
     return jsonError(
       401,
       "invalid_authorization",
-      "Bearer token cannot be empty"
+      "Bearer token cannot be empty",
     )
   }
 

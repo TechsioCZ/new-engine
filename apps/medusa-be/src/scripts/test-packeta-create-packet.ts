@@ -33,18 +33,18 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   const addressId = Number.parseInt(addressIdRaw, 10)
   if (!Number.isFinite(addressId)) {
     throw new TypeError(
-      `PACKETA_ADDRESS_ID must be a number, got: ${addressIdRaw}`
+      `PACKETA_ADDRESS_ID must be a number, got: ${addressIdRaw}`,
     )
   }
 
   const packetaService = container.resolve<PacketaClientModuleService>(
-    PACKETA_CLIENT_MODULE
+    PACKETA_CLIENT_MODULE,
   )
 
   const config = await packetaService.getConfig()
   if (!config) {
     throw new Error(
-      "No Packeta config in DB. Configure it first in Admin → Settings → Packeta."
+      "No Packeta config in DB. Configure it first in Admin → Settings → Packeta.",
     )
   }
   if (!config.is_enabled) {
@@ -59,7 +59,7 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   const weight = Number.parseFloat(process.env["PACKETA_TEST_WEIGHT"] ?? "0.5")
 
   process.stdout.write(
-    `Creating Packeta test packet '${orderRef}' (env: ${JSON.stringify(packetaService.getEnvironment())})...\n`
+    `Creating Packeta test packet '${orderRef}' (env: ${JSON.stringify(packetaService.getEnvironment())})...\n`,
   )
 
   try {
@@ -80,13 +80,13 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
     process.stdout.write(`  barcode     : ${result.barcode}\n`)
     process.stdout.write(`  barcodeText : ${result.barcodeText}\n`)
     process.stdout.write(
-      "\nThe packet exists in Packeta but will not be charged unless physically handed over.\n"
+      "\nThe packet exists in Packeta but will not be charged unless physically handed over.\n",
     )
     process.stdout.write(`To cancel it, call cancelPacket(${result.id}).\n`)
   } catch (error) {
     process.stderr.write("\nFAILED:\n")
     process.stderr.write(
-      `${error instanceof Error ? error.message : String(error)}\n`
+      `${error instanceof Error ? error.message : String(error)}\n`,
     )
     throw error
   }

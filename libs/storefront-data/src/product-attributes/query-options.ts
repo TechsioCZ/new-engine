@@ -33,7 +33,7 @@ export interface ProductAttributeQueryOptionsFactory<
     options?: {
       queryOptions?: ReadQueryOptions<TAttribute[]>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TAttribute[]>
 }
 
@@ -61,7 +61,7 @@ export function createProductAttributeQueryOptionsFactory<
   return {
     getDetailQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<TAttribute[]> => {
       const detailParams = buildDetail(input)
       const cacheStrategy = options?.cacheStrategy ?? "realtime"

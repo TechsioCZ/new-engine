@@ -29,7 +29,7 @@ export async function resolveOrderExpeditionCustomerSignals(
   query: Query,
   orders: OrderSignalSource[],
   notesByOrderId?: Map<string, string>,
-  customerCountersOverride?: Map<string, CustomerOrderCounters>
+  customerCountersOverride?: Map<string, CustomerOrderCounters>,
 ): Promise<{
   counts: OrderExpeditionCustomerSignalCounts
   signalsByOrderId: Map<string, SharedOrderExpeditionCustomerSignals>
@@ -55,7 +55,7 @@ export async function resolveOrderExpeditionCustomerSignals(
     const signals = buildOrderExpeditionCustomerSignals(
       order,
       customerCounters,
-      notesByOrderId
+      notesByOrderId,
     )
 
     signalsByOrderId.set(order.id, signals)
@@ -71,7 +71,7 @@ export async function resolveOrderExpeditionCustomerSignals(
 function buildOrderExpeditionCustomerSignals(
   order: OrderSignalSource,
   customerCounters: Map<string, CustomerOrderCounters>,
-  notesByOrderId?: Map<string, string>
+  notesByOrderId?: Map<string, string>,
 ): SharedOrderExpeditionCustomerSignals {
   const note = resolveOrderExpeditionCustomerNote(order, notesByOrderId)
   const customerCounter =
@@ -91,7 +91,7 @@ function buildOrderExpeditionCustomerSignals(
 
 function accumulateOrderExpeditionCustomerSignalCounts(
   counts: OrderExpeditionCustomerSignalCounts,
-  signals: SharedOrderExpeditionCustomerSignals
+  signals: SharedOrderExpeditionCustomerSignals,
 ) {
   counts.note += signals.note ? 1 : 0
   counts.returning_customer += signals.returning_customer ? 1 : 0
@@ -100,7 +100,7 @@ function accumulateOrderExpeditionCustomerSignalCounts(
 
 function resolveOrderExpeditionCustomerNote(
   order: OrderSignalSource,
-  notesByOrderId?: Map<string, string>
+  notesByOrderId?: Map<string, string>,
 ) {
   const hasOrderNote = notesByOrderId?.has(order.id) ?? false
 
@@ -111,7 +111,7 @@ function resolveOrderExpeditionCustomerNote(
 
 async function fetchCustomerOrderCounters(
   query: Query,
-  customerIds: string[]
+  customerIds: string[],
 ): Promise<Map<string, CustomerOrderCounters>> {
   if (!customerIds.length) {
     return new Map()
@@ -124,7 +124,7 @@ async function fetchCustomerOrderCountersPage(
   query: Query,
   customerIds: string[],
   counters: Map<string, CustomerOrderCounters>,
-  skip: number
+  skip: number,
 ): Promise<Map<string, CustomerOrderCounters>> {
   const { data } = await query.graph({
     entity: "order",
@@ -164,13 +164,13 @@ async function fetchCustomerOrderCountersPage(
     query,
     customerIds,
     counters,
-    skip + CUSTOMER_ORDER_COUNTER_LOOKUP_CHUNK_SIZE
+    skip + CUSTOMER_ORDER_COUNTER_LOOKUP_CHUNK_SIZE,
   )
 }
 
 export async function fetchOrderExpeditionOrderNotesByOrderIds(
   orderNoteService: Pick<OrderNoteModuleService, "listOrderNotes">,
-  orderIds: string[]
+  orderIds: string[],
 ): Promise<Map<string, string>> {
   if (!orderIds.length) {
     return new Map()
@@ -178,7 +178,7 @@ export async function fetchOrderExpeditionOrderNotesByOrderIds(
 
   const orderNotes = await orderNoteService.listOrderNotes(
     { order_id: orderIds },
-    { take: orderIds.length }
+    { take: orderIds.length },
   )
   const notesByOrderId = new Map<string, string>()
 

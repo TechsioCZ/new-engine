@@ -35,5 +35,5 @@ export const updateCompaniesStep = createStep(
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
     await companyModule.updateCompanies(previousData)
-  }
+  },
 )

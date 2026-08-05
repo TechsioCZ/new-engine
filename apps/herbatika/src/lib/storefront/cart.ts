@@ -34,7 +34,7 @@ const createEmptyCartResetSuccessHandler =
   }
 
 export function useUpdateLineItem(
-  options?: Parameters<typeof useBaseUpdateLineItem>[0]
+  options?: Parameters<typeof useBaseUpdateLineItem>[0],
 ) {
   const queryClient = useQueryClient()
 
@@ -42,13 +42,13 @@ export function useUpdateLineItem(
     ...options,
     onSuccess: createEmptyCartResetSuccessHandler(
       queryClient,
-      options?.onSuccess
+      options?.onSuccess,
     ),
   })
 }
 
 export function useRemoveLineItem(
-  options?: Parameters<typeof useBaseRemoveLineItem>[0]
+  options?: Parameters<typeof useBaseRemoveLineItem>[0],
 ) {
   const queryClient = useQueryClient()
 
@@ -56,7 +56,7 @@ export function useRemoveLineItem(
     ...options,
     onSuccess: createEmptyCartResetSuccessHandler(
       queryClient,
-      options?.onSuccess
+      options?.onSuccess,
     ),
   })
 }

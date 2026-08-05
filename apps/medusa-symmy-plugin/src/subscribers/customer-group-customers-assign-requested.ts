@@ -27,7 +27,7 @@ export default async function customerGroupCustomersAssignRequestedHandler({
     lockKey: `symmy-customer-group-customers-assign:${data.job_id}`,
     run: async (input) => {
       const { result } = await assignCustomersToGroupBatchWorkflow(
-        container
+        container,
       ).run({
         input,
       })

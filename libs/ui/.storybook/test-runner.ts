@@ -70,12 +70,12 @@ function readMode(): StorybookMode {
 const waitForResultsMs = readNumberEnv("A11Y_REPORT_WAIT_MS", 30_000)
 const testTimeoutMs = readNumberEnv(
   "A11Y_TEST_TIMEOUT",
-  Math.max(60_000, waitForResultsMs + 15_000)
+  Math.max(60_000, waitForResultsMs + 15_000),
 )
 const mode = readMode()
 const outputDir = path.resolve(
   process.cwd(),
-  process.env.A11Y_REPORT_OUTPUT_DIR ?? "a11y-report"
+  process.env.A11Y_REPORT_OUTPUT_DIR ?? "a11y-report",
 )
 const failOnViolations = readBoolEnv("A11Y_REPORT_FAIL_ON_VIOLATIONS", true)
 
@@ -107,13 +107,13 @@ const testRunnerConfig: TestRunnerConfigWithJest = {
           (window as StorybookRuntime).__TECHSIO_A11Y_RESULTS__?.storyId ===
           storyId,
         context.id,
-        { timeout: waitForResultsMs }
+        { timeout: waitForResultsMs },
       )
     }
 
     const pageResults = shouldWaitForResults
       ? await page.evaluate(
-          () => (window as StorybookRuntime).__TECHSIO_A11Y_RESULTS__ ?? null
+          () => (window as StorybookRuntime).__TECHSIO_A11Y_RESULTS__ ?? null,
         )
       : null
     const entry = {
@@ -137,7 +137,7 @@ const testRunnerConfig: TestRunnerConfigWithJest = {
       : 0
     if (failOnViolations && violationCount > 0) {
       throw new Error(
-        `A11y violations detected in ${context.title} / ${context.name}`
+        `A11y violations detected in ${context.title} / ${context.name}`,
       )
     }
   },
@@ -183,7 +183,7 @@ const testRunnerConfig: TestRunnerConfigWithJest = {
         url.searchParams.set("globals", `brand:base;mode:${expectedMode}`)
         window.history.replaceState(null, "", url)
       },
-      { expectedMode: mode, storyId: context.id }
+      { expectedMode: mode, storyId: context.id },
     )
   },
 }

@@ -41,7 +41,7 @@ export function buildProductReviewRequestUrl({
 
 function getReviewRequestDelayMs() {
   const configuredMinutes = Number(
-    process.env["PRODUCT_REVIEW_REQUEST_DELAY_MINUTES"]
+    process.env["PRODUCT_REVIEW_REQUEST_DELAY_MINUTES"],
   )
 
   if (Number.isFinite(configuredMinutes) && configuredMinutes >= 0) {
@@ -113,7 +113,7 @@ export function isPaidOrder(order: ReviewRequestOrder) {
   }
 
   return (order.payment_collections ?? []).some((collection) =>
-    PAID_PAYMENT_STATUSES.has(collection.status ?? "")
+    PAID_PAYMENT_STATUSES.has(collection.status ?? ""),
   )
 }
 

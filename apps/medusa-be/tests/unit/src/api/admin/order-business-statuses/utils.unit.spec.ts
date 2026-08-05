@@ -11,7 +11,7 @@ import { ORDER_BUSINESS_STATUS_METADATA_KEY } from "../../../../../../src/utils/
 describe("order business status API utilities", () => {
   it("merges manual business status into existing metadata", () => {
     expect(
-      buildOrderBusinessStatusMetadata({ existing: true }, "canceled")
+      buildOrderBusinessStatusMetadata({ existing: true }, "canceled"),
     ).toStrictEqual({
       existing: true,
       [ORDER_BUSINESS_STATUS_METADATA_KEY]: "canceled",
@@ -25,8 +25,8 @@ describe("order business status API utilities", () => {
           existing: true,
           [ORDER_BUSINESS_STATUS_METADATA_KEY]: "processing",
         },
-        null
-      )
+        null,
+      ),
     ).toStrictEqual({
       existing: true,
       [ORDER_BUSINESS_STATUS_METADATA_KEY]: null,
@@ -37,18 +37,18 @@ describe("order business status API utilities", () => {
     expect(
       parseOrderBusinessStatusOrders([
         { id: "order_1", payment_status: "captured" },
-      ])
+      ]),
     ).toStrictEqual([{ id: "order_1", payment_status: "captured" }])
   })
 
   it("fails closed for invalid query result shapes", () => {
     expect(() => parseOrderBusinessStatusOrders({ id: "order_1" })).toThrow(
-      "Expected order business status query to return an array"
+      "Expected order business status query to return an array",
     )
     expect(() =>
-      parseOrderBusinessStatusOrders([{ id: "order_1" }, { id: 123 }])
+      parseOrderBusinessStatusOrders([{ id: "order_1" }, { id: 123 }]),
     ).toThrow(
-      "Expected order business status query result at index 1 to include a string id"
+      "Expected order business status query result at index 1 to include a string id",
     )
   })
 

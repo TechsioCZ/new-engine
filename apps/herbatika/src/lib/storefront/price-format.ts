@@ -32,7 +32,7 @@ interface FormatCurrencyAmountOptions {
 export const formatCurrencyAmount = (
   amount: number,
   currencyCode?: string | null,
-  options: FormatCurrencyAmountOptions = {}
+  options: FormatCurrencyAmountOptions = {},
 ): string => {
   const safeAmount = Number.isFinite(amount) ? amount : 0
   const safeCurrencyCode = normalizeFormatCurrencyCode(currencyCode)
@@ -63,7 +63,7 @@ export const formatCurrencyAmount = (
 
 export const formatWholeCurrencyAmount = (
   amount: number,
-  currencyCode?: string | null
+  currencyCode?: string | null,
 ): string =>
   formatCurrencyAmount(amount, currencyCode, {
     fallbackPrecision: 0,

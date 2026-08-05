@@ -15,7 +15,7 @@ export const restoreMeasurementUnitsStep = createStep(
           {
             select: ["id", "code", "deleted_at"],
             withDeleted: true,
-          }
+          },
         )
       : []
     const foundIds = new Set(units.map((unit) => unit.id))
@@ -24,7 +24,7 @@ export const restoreMeasurementUnitsStep = createStep(
     if (missingIds.length) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Measurement units were not found: ${missingIds.join(", ")}`
+        `Measurement units were not found: ${missingIds.join(", ")}`,
       )
     }
 
@@ -32,7 +32,7 @@ export const restoreMeasurementUnitsStep = createStep(
     const idsToRestore = unitsToRestore.map((unit) => unit.id)
     const codesToRestore = unitsToRestore.map((unit) => unit.code)
     const duplicateCodes = codesToRestore.filter(
-      (code, index) => codesToRestore.indexOf(code) !== index
+      (code, index) => codesToRestore.indexOf(code) !== index,
     )
 
     if (duplicateCodes.length) {
@@ -40,7 +40,7 @@ export const restoreMeasurementUnitsStep = createStep(
         MedusaError.Types.DUPLICATE_ERROR,
         `Only one measurement unit can be restored for each code: ${[
           ...new Set(duplicateCodes),
-        ].join(", ")}`
+        ].join(", ")}`,
       )
     }
 
@@ -55,7 +55,7 @@ export const restoreMeasurementUnitsStep = createStep(
         MedusaError.Types.DUPLICATE_ERROR,
         `Active measurement unit codes already exist: ${[
           ...new Set(conflictingUnits.map((unit) => unit.code)),
-        ].join(", ")}`
+        ].join(", ")}`,
       )
     }
 
@@ -68,8 +68,8 @@ export const restoreMeasurementUnitsStep = createStep(
   async (restoredIds, { container }) => {
     if (restoredIds?.length) {
       await getMeasurementUnitService(container).softDeleteMeasurementUnits(
-        restoredIds
+        restoredIds,
       )
     }
-  }
+  },
 )

@@ -118,7 +118,7 @@ function ManageItem({
 
   const onRemoveUndo = async () => {
     const updateItemAction = item.actions?.find(
-      (a) => a.action === "ITEM_UPDATE"
+      (a) => a.action === "ITEM_UPDATE",
     )
 
     try {

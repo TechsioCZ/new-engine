@@ -34,7 +34,7 @@ export const manifestServiceSlugsResponseSchema = z.object({
     z.object({
       service_id: z.string().min(1),
       service_slug: z.string().min(1),
-    })
+    }),
   ),
 })
 

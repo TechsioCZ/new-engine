@@ -14,7 +14,7 @@ const PRODUCT_VARIANT_INVENTORY_FIELDS = [
   "+variants.manage_inventory",
   "+variants.allow_backorder",
   ...VARIANT_DEFAULT_STOCK_INVENTORY_FIELD_SUFFIXES.map(
-    (field) => `variants.${field}`
+    (field) => `variants.${field}`,
   ),
 ].join(",")
 
@@ -30,7 +30,7 @@ export type StorefrontProductListInput = HttpTypes.StoreProductListParams & {
 }
 
 export const buildProductListParams = (
-  input: StorefrontProductListInput
+  input: StorefrontProductListInput,
 ): HttpTypes.StoreProductListParams => {
   const { page, limit, offset, ...rest } = input
 

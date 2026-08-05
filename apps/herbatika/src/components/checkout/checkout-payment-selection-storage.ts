@@ -58,7 +58,7 @@ export function useStoredPaymentProviderSelection(cartId?: string | null) {
   return useSyncExternalStore(
     subscribeStoredPaymentProviderSelection,
     () => readStoredPaymentProviderSelection(cartId),
-    () => null
+    () => null,
   )
 }
 

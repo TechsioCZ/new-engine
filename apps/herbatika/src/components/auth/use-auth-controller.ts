@@ -69,7 +69,7 @@ export const useAuthController = ({
     },
     {
       queryOptions: cartReadQueryOptions,
-    }
+    },
   )
 
   const safeRedirectHref = resolveSafeRedirectHref(afterAuthHref)
@@ -123,7 +123,7 @@ export const useAuthController = ({
   }, [authQuery.isAuthenticated, authQuery.isLoading, router, safeRedirectHref])
 
   const handleLoginSubmit = async (
-    values: LoginFormValues
+    values: LoginFormValues,
   ): Promise<string | null> => {
     clearFeedback()
 
@@ -148,7 +148,7 @@ export const useAuthController = ({
   }
 
   const handleRegisterSubmit = async (
-    values: RegisterFormValues
+    values: RegisterFormValues,
   ): Promise<string | null> => {
     clearFeedback()
 
@@ -156,7 +156,7 @@ export const useAuthController = ({
       await registerMutation.mutateAsync(
         buildAuthRegisterInput(values, {
           currencyCode: resolveRegionCurrency(region),
-        })
+        }),
       )
       const transferNotice = await runPostAuthCartTransfer()
 
@@ -171,7 +171,7 @@ export const useAuthController = ({
           isWholesale: isWholesaleRegistration(values),
           transferNotice,
           wholesaleNotice: tAuth("register.wholesale_success"),
-        })
+        }),
       )
       return null
     } catch (error) {
@@ -195,11 +195,11 @@ export const useAuthController = ({
       : tAuth("login.description")
   const loginHref = buildAuthRouteHref(
     "/auth/login",
-    safeRedirectHref ?? undefined
+    safeRedirectHref ?? undefined,
   )
   const registerHref = buildAuthRouteHref(
     "/auth/register",
-    safeRedirectHref ?? undefined
+    safeRedirectHref ?? undefined,
   )
   const forgotPasswordHref = "/auth/forgot-password"
 

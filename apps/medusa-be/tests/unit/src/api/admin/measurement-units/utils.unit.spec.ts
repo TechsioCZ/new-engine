@@ -82,7 +82,7 @@ describe("measurement unit assigned-product queries", () => {
         skip: 0,
         take: 500,
         withDeleted: true,
-      }
+      },
     )
     expect(productService.listAndCountProducts).toHaveBeenCalledWith(
       {
@@ -98,7 +98,7 @@ describe("measurement unit assigned-product queries", () => {
         skip: 20,
         take: 10,
         withDeleted: true,
-      }
+      },
     )
     expect(result).toStrictEqual({
       count: 2,
@@ -143,8 +143,8 @@ describe("measurement unit assigned-product queries", () => {
 
     expect(
       getCanonicalAssignmentByProductId([active, deleted] as never).get(
-        "prod_1"
-      )
+        "prod_1",
+      ),
     ).toBe(active)
   })
 })

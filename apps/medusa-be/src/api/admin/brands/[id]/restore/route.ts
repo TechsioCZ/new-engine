@@ -12,7 +12,7 @@ import {
 
 export async function POST(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const id = req.params["id"] ?? ""
 

@@ -33,24 +33,24 @@ export async function reconcileMainMeiliApiCredentials(input: {
   const backendPolicy = getRuntimeProviderOutputPolicy(
     input.stackInputs,
     input.providerId,
-    "backend_key"
+    "backend_key",
   )
   const frontendPolicy = getRuntimeProviderOutputPolicy(
     input.stackInputs,
     input.providerId,
-    "frontend_key"
+    "frontend_key",
   )
   const backendEnvVar = getRuntimeProviderTargetEnvVar(
     input.stackInputs,
     input.providerId,
     "backend_key",
-    "medusa-be"
+    "medusa-be",
   )
   const frontendEnvVar = getRuntimeProviderTargetEnvVar(
     input.stackInputs,
     input.providerId,
     "frontend_key",
-    "n1"
+    "n1",
   )
 
   const provisioned = input.dryRun

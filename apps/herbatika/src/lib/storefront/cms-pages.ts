@@ -7,7 +7,7 @@ interface CmsPageResponse {
 
 export const fetchCmsPageBySlug = async (slug: string) => {
   const response = await fetchCmsJson<CmsPageResponse>(
-    `pages/${encodeURIComponent(slug)}`
+    `pages/${encodeURIComponent(slug)}`,
   )
   const page = response?.page
 

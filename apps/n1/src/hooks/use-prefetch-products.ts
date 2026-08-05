@@ -16,7 +16,7 @@ export function usePrefetchProducts() {
 
   const prefetchCategoryProducts = async (
     categoryId: string[],
-    prefetchedBy?: string
+    prefetchedBy?: string,
   ) => {
     if (!regionId) {
       return

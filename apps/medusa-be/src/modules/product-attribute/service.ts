@@ -27,7 +27,7 @@ class ProductAttributeModuleService extends MedusaService({
   @InjectManager()
   async runInTransaction<T>(
     task: (context: Context<SqlEntityManager>) => Promise<T>,
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ) {
     return await this.runInTransaction_(task, sharedContext)
   }
@@ -35,7 +35,7 @@ class ProductAttributeModuleService extends MedusaService({
   @InjectTransactionManager()
   protected async runInTransaction_<T>(
     task: (context: Context<SqlEntityManager>) => Promise<T>,
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ) {
     return await task(sharedContext)
   }
@@ -43,24 +43,24 @@ class ProductAttributeModuleService extends MedusaService({
   @InjectManager()
   async getActiveDefinitionUsageCounts(
     definitionIds: string[],
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ): Promise<ProductAttributeUsageCount[]> {
     return await this.getActiveUsageCounts(
       "definition_id",
       definitionIds,
-      sharedContext
+      sharedContext,
     )
   }
 
   @InjectManager()
   async getActiveOptionUsageCounts(
     optionIds: string[],
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ): Promise<ProductAttributeUsageCount[]> {
     return await this.getActiveUsageCounts(
       "option_id",
       optionIds,
-      sharedContext
+      sharedContext,
     )
   }
 
@@ -68,7 +68,7 @@ class ProductAttributeModuleService extends MedusaService({
   private async getActiveUsageCounts(
     column: "definition_id" | "option_id",
     ids: string[],
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ): Promise<ProductAttributeUsageCount[]> {
     const uniqueIds = [...new Set(ids)].filter(Boolean)
 
@@ -80,7 +80,7 @@ class ProductAttributeModuleService extends MedusaService({
     if (!manager) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "Product Attribute Module manager is unavailable while counting assignments."
+        "Product Attribute Module manager is unavailable while counting assignments.",
       )
     }
 
@@ -101,13 +101,13 @@ class ProductAttributeModuleService extends MedusaService({
            where "deleted_at" is null
              and "${column}" in (${placeholders})
            group by "${column}"`,
-          chunk
+          chunk,
         )
 
       for (const row of rows) {
         countsById.set(
           row.id,
-          (countsById.get(row.id) ?? 0) + Number(row.count)
+          (countsById.get(row.id) ?? 0) + Number(row.count),
         )
       }
     }

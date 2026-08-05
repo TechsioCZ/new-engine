@@ -265,7 +265,7 @@ const EmailDetailContent = ({
 const EmailsPage = () => {
   const [pageIndex, setPageIndex] = useState(0)
   const [selectedEmailLogId, setSelectedEmailLogId] = useState<string | null>(
-    null
+    null,
   )
 
   const offset = pageIndex * PAGE_SIZE
@@ -273,7 +273,7 @@ const EmailsPage = () => {
   const { data, isLoading, error } = useQuery({
     queryFn: async () =>
       sdk.client.fetch<EmailLogsResponse>(
-        `/admin/email-logs?limit=${PAGE_SIZE}&offset=${offset}`
+        `/admin/email-logs?limit=${PAGE_SIZE}&offset=${offset}`,
       ),
     queryKey: ["email-logs", PAGE_SIZE, offset],
   })
@@ -282,7 +282,7 @@ const EmailsPage = () => {
     enabled: !!selectedEmailLogId,
     queryFn: async () =>
       sdk.client.fetch<EmailLogDetailResponse>(
-        `/admin/email-logs/${selectedEmailLogId}`
+        `/admin/email-logs/${selectedEmailLogId}`,
       ),
     queryKey: ["email-log", selectedEmailLogId],
   })

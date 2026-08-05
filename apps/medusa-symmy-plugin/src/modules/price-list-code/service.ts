@@ -49,7 +49,7 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
         order: { erp_code: "ASC" },
         skip: offset,
         take: limit,
-      }
+      },
     )
 
     return {
@@ -79,7 +79,7 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
     const existingByPriceList = (
       await this.listSymmyPriceListCodes(
         { price_list_id: priceListId },
-        { take: 1 }
+        { take: 1 },
       )
     )[0] as SymmyPriceListCodeDTO | undefined
 

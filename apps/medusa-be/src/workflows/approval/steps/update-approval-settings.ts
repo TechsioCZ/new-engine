@@ -21,7 +21,7 @@ export const updateApprovalSettingsStep = createStep(
   },
   async (
     previousData: ModuleUpdateApprovalSettings | undefined,
-    { container }
+    { container },
   ) => {
     if (!previousData) {
       return
@@ -31,5 +31,5 @@ export const updateApprovalSettingsStep = createStep(
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModule.updateApprovalSettings(previousData)
-  }
+  },
 )

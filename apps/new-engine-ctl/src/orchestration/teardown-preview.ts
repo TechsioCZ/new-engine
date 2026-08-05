@@ -14,7 +14,7 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
 }
 
 export async function executeTeardownPreview(
-  input: TeardownPreviewCommandInput
+  input: TeardownPreviewCommandInput,
 ): Promise<TeardownPreviewResponse> {
   const environmentName = `${input.previewEnvPrefix}${input.prNumber}`
 

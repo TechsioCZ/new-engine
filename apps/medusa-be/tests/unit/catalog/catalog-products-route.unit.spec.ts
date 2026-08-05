@@ -135,7 +135,7 @@ const productMatchesSearchFilters = (
   product: TestProduct,
   statusFilters: string[],
   salesChannelFilters: string[],
-  priceRange: MeiliPriceRange
+  priceRange: MeiliPriceRange,
 ) => {
   const matchesStatus =
     statusFilters.length === 0 || statusFilters.includes(product.status)
@@ -182,15 +182,15 @@ const createCatalogHarness = ({
           attributesToRetrieve?: string[]
         }
         filter?: string | string[]
-      }
+      },
     ) => {
       const statusFilters = getMeiliFilterValues(
         options.filter,
-        "facet_product_status"
+        "facet_product_status",
       )
       const salesChannelFilters = getMeiliFilterValues(
         options.filter,
-        "facet_sales_channel_ids"
+        "facet_sales_channel_ids",
       )
       const priceRange = getMeiliPriceRange(options.filter)
       const filteredProducts = products.filter((product) =>
@@ -198,14 +198,14 @@ const createCatalogHarness = ({
           product,
           statusFilters,
           salesChannelFilters,
-          priceRange
-        )
+          priceRange,
+        ),
       )
 
       const hits = filteredProducts
         .slice(
           options.paginationOptions.offset,
-          options.paginationOptions.offset + options.paginationOptions.limit
+          options.paginationOptions.offset + options.paginationOptions.limit,
         )
         .map((product) => ({ id: product.id }))
 
@@ -214,13 +214,13 @@ const createCatalogHarness = ({
         .filter((price): price is number => typeof price === "number")
 
       const hiddenBrandCount = filteredProducts.filter((product) =>
-        product.brandFacets?.includes("brand-hidden")
+        product.brandFacets?.includes("brand-hidden"),
       ).length
       const visibleBrandCount = filteredProducts.filter((product) =>
-        product.brandFacets?.includes("brand-visible")
+        product.brandFacets?.includes("brand-visible"),
       ).length
       const visibleIngredientCount = filteredProducts.filter((product) =>
-        product.ingredientFacets?.includes("ingredient-visible")
+        product.ingredientFacets?.includes("ingredient-visible"),
       ).length
 
       return {
@@ -241,10 +241,10 @@ const createCatalogHarness = ({
               : {},
           facet_status: {
             action: filteredProducts.filter((product) =>
-              product.statusFacets?.includes("action")
+              product.statusFacets?.includes("action"),
             ).length,
             "in-stock": filteredProducts.filter((product) =>
-              product.statusFacets?.includes("in-stock")
+              product.statusFacets?.includes("in-stock"),
             ).length,
           },
         },
@@ -256,7 +256,7 @@ const createCatalogHarness = ({
         },
         hits,
       }
-    }
+    },
   )
 
   const queryGraph = vi.fn(async (config: GraphConfig) => {
@@ -274,7 +274,7 @@ const createCatalogHarness = ({
           }
 
           const isLinked = product.salesChannelIds.some((id) =>
-            salesChannelIds.includes(id)
+            salesChannelIds.includes(id),
           )
 
           return isLinked ? [{ product_id: product.id }] : []
@@ -445,7 +445,7 @@ describe("GET /store/catalog/products", () => {
     expect(getJsonPayload(res).count).toBe(1)
     expect(wrapProductsWithTaxPrices).toHaveBeenCalledWith(
       req,
-      getJsonPayload(res).products
+      getJsonPayload(res).products,
     )
   })
 
@@ -518,7 +518,7 @@ describe("GET /store/catalog/products", () => {
 
     const payload = getJsonPayload(res)
     expect(
-      payload.products.map((product: { id: string }) => product.id)
+      payload.products.map((product: { id: string }) => product.id),
     ).toStrictEqual(["prod_visible_2"])
     expect(payload.count).toBe(3)
     expect(payload.page).toBe(2)
@@ -545,10 +545,10 @@ describe("GET /store/catalog/products", () => {
     expect(meiliSearch).toHaveBeenCalledOnce()
     const searchOptions = meiliSearch.mock.calls[0]?.[2]
     expect(searchOptions?.filter).toContain(
-      'facet_product_status = "published"'
+      'facet_product_status = "published"',
     )
     expect(searchOptions?.filter).toContain(
-      'facet_sales_channel_ids = "sc_visible"'
+      'facet_sales_channel_ids = "sc_visible"',
     )
     expect(getJsonPayload(res).products).toHaveLength(12)
     expect(getJsonPayload(res).count).toBe(250)
@@ -598,12 +598,12 @@ describe("GET /store/catalog/products", () => {
     const payload = getJsonPayload(res)
     expect(
       payload.facets.status.find((item: { id: string }) => item.id === "action")
-        .count
+        .count,
     ).toBe(0)
     expect(
       payload.facets.status.find(
-        (item: { id: string }) => item.id === "in-stock"
-      ).count
+        (item: { id: string }) => item.id === "in-stock",
+      ).count,
     ).toBe(1)
     expect(payload.facets.brand).toStrictEqual([
       {

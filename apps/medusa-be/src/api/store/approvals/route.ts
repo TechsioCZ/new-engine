@@ -19,7 +19,7 @@ interface ApprovalStatusFilters {
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<StoreGetApprovalsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { customer_id } = req.auth_context.app_metadata as {
@@ -84,8 +84,8 @@ export const GET = async (
   const approvalIds = approvalStatuses
     .flatMap((approvalStatus) =>
       (approvalStatus.cart as CartWithApprovals | undefined)?.approvals?.map(
-        (approval) => approval?.id
-      )
+        (approval) => approval?.id,
+      ),
     )
     .filter(Boolean) as string[]
 
@@ -101,7 +101,7 @@ export const GET = async (
   const cartsWithAdminApprovals = carts
     .map((cart) => {
       const cartApprovals = approvals.filter(
-        (approval) => approval.cart_id === cart?.id
+        (approval) => approval.cart_id === cart?.id,
       )
       if (cartApprovals.length > 0) {
         cart.approvals = cartApprovals

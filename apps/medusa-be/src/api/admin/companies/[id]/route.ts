@@ -17,7 +17,7 @@ import type {
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<AdminGetCompanyParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const id = requirePathParam(req.params["id"], "Company id")
@@ -33,7 +33,7 @@ export const GET = async (
         ? {}
         : { withDeleted: req.queryConfig.withDeleted }),
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ company })
@@ -41,7 +41,7 @@ export const GET = async (
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<AdminUpdateCompanyType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const id = requirePathParam(req.params["id"], "Company id")
@@ -62,7 +62,7 @@ export const POST = async (
       fields: req.queryConfig.fields,
       filters: { id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ company })
@@ -70,7 +70,7 @@ export const POST = async (
 
 export const DELETE = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
 

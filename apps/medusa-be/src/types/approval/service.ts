@@ -34,28 +34,28 @@ export interface IApprovalModuleService extends IModuleService {
   /* Entity: Approval */
   createApproval(
     data: ModuleCreateApproval,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApproval>
 
   createApprovals(
     data: ModuleCreateApproval[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApproval[]>
 
   updateApproval(
     data: ModuleUpdateApproval,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApproval>
 
   updateApprovals(
     data: ModuleUpdateApproval[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApproval[]>
 
   listApprovals(
     filters?: ModuleApprovalFilters,
     config?: FindConfig<ModuleApproval>,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApproval[]>
 
   retrieveApproval(id: string, sharedContext?: Context): Promise<ModuleApproval>
@@ -71,38 +71,38 @@ export interface IApprovalModuleService extends IModuleService {
   /* Entity: Approval Settings */
   retrieveApprovalSettings(
     id: string,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApprovalSettings>
 
   createApprovalSettings(
     data: ModuleCreateApprovalSettings,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApprovalSettings>
 
   createApprovalSettings(
     data: ModuleCreateApprovalSettings[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApprovalSettings[]>
 
   updateApprovalSettings(
     data: ModuleUpdateApprovalSettings,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApprovalSettings>
 
   updateApprovalSettings(
     data: ModuleUpdateApprovalSettings[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApprovalSettings[]>
 
   listApprovalSettings(
     filters?: ModuleApprovalSettingsFilters,
     config?: FindConfig<ModuleApprovalSettings>,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApprovalSettings[]>
 
   softDeleteApprovalSettings(
     ids: string[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<void>
 
   deleteApprovalSettings(ids: string[], sharedContext?: Context): Promise<void>
@@ -112,22 +112,22 @@ export interface IApprovalModuleService extends IModuleService {
   /* Entity: Approval Status */
   createApprovalStatus(
     data: ModuleCreateApprovalStatus,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApprovalStatus>
 
   createApprovalStatuses(
     data: ModuleCreateApprovalStatus[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApprovalStatus[]>
 
   updateApprovalStatus(
     data: ModuleUpdateApprovalStatus,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApprovalStatus>
 
   updateApprovalStatuses(
     data: ModuleUpdateApprovalStatus[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleApprovalStatus[]>
 
   deleteApprovalStatuses(ids: string[], sharedContext?: Context): Promise<void>

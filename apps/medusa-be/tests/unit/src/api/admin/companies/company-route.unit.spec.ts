@@ -186,7 +186,7 @@ describe("POST /admin/companies/:id", () => {
     await POST(req, res)
 
     expect(workflowMocks.updateCompaniesWorkflow).toHaveBeenCalledWith(
-      req.scope
+      req.scope,
     )
     expect(workflowMocks.updateCompaniesRun).toHaveBeenCalledWith({
       input: {
@@ -201,7 +201,7 @@ describe("POST /admin/companies/:id", () => {
         input: expect.objectContaining({
           update: expect.objectContaining({ name: "stale body name" }),
         }),
-      })
+      }),
     )
     expect(res.json).toHaveBeenCalledWith({
       company: { id: "comp_1", name: "updated company name" },

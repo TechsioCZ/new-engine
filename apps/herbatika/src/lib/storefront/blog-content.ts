@@ -513,7 +513,7 @@ const normalizeBlogTopic = (topic: BlogTopicKey | undefined): BlogTopicKey => {
 }
 
 const resolveBlogTopicFilters = (
-  posts = HERBATIKA_BLOG_POSTS
+  posts = HERBATIKA_BLOG_POSTS,
 ): BlogTopicFilter[] => {
   const topicCounts = BLOG_TOPIC_ONLY_FILTERS.map((topicFilter) => ({
     ...topicFilter,
@@ -656,7 +656,7 @@ const BLOG_RECOMMENDED_PRODUCTS_BY_SLUG: Record<
 
 export const resolveBlogPostBySlug = (
   slug: string,
-  posts = HERBATIKA_BLOG_POSTS
+  posts = HERBATIKA_BLOG_POSTS,
 ) => posts.find((post) => post.slug === slug) ?? null
 
 export const resolveBlogRecommendedProductsConfig = (slug: string) =>
@@ -665,5 +665,5 @@ export const resolveBlogRecommendedProductsConfig = (slug: string) =>
 export const resolveRelatedBlogPosts = (
   slug: string,
   limit = 4,
-  posts = HERBATIKA_BLOG_POSTS
+  posts = HERBATIKA_BLOG_POSTS,
 ) => posts.filter((post) => post.slug !== slug).slice(0, limit)

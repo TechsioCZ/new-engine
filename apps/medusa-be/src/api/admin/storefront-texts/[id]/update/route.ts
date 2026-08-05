@@ -17,20 +17,20 @@ const toWorkflowUpdate = (body: AdminUpdateStorefrontTextSchemaType) => ({
 
 export async function POST(
   req: MedusaRequest<AdminUpdateStorefrontTextSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const id = getStorefrontTextId(req)
 
   if (!id) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Storefront text id is required"
+      "Storefront text id is required",
     )
   }
 
   try {
     const { result: storefrontText } = await updateStorefrontTextWorkflow(
-      req.scope
+      req.scope,
     ).run({
       input: {
         id,

@@ -20,13 +20,13 @@ export async function GET(
     limit: number
     offset: number
     product_attributes: StoreProductAttributeResponse[]
-  }>
+  }>,
 ) {
   const productId = req.params["id"]
   if (!productId) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "A Product id is required."
+      "A Product id is required.",
     )
   }
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -37,7 +37,7 @@ export async function GET(
     {
       ...req.filterableFields,
       id: productId,
-    }
+    },
   )
   const { data: products } = await query.graph({
     entity: "product",
@@ -49,7 +49,7 @@ export async function GET(
   if (!products[0]) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product with id "${productId}" was not found`
+      `Product with id "${productId}" was not found`,
     )
   }
 

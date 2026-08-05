@@ -32,7 +32,7 @@ interface ProductInfoLink {
 
 const resolveProductInfoLink = (
   product: Product,
-  primaryCategory: HttpTypes.StoreProductCategory | undefined
+  primaryCategory: HttpTypes.StoreProductCategory | undefined,
 ): ProductInfoLink | null => {
   const brand = asRecord((product as Product & { brand?: unknown }).brand)
   const brandTitle = asString(brand?.title)

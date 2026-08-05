@@ -5,12 +5,12 @@ import { createOrderExpeditionPdfResponse } from "./pdf-service"
 
 export async function POST(
   req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ): Promise<void> {
   const { order_ids: orderIds } = req.validatedBody
   const { buffer, filename } = await createOrderExpeditionPdfResponse(
     req,
-    orderIds
+    orderIds,
   )
 
   res.set({

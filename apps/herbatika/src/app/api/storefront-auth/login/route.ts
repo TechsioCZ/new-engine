@@ -47,7 +47,7 @@ export async function POST(request: Request) {
           "content-type": "application/json",
         },
         method: "POST",
-      }
+      },
     )
 
     if (!medusaResponse.ok) {
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
     if (!token) {
       return serverError(
-        "Prihlásenie prebehlo úspešne, ale autentifikačný token nebol vrátený."
+        "Prihlásenie prebehlo úspešne, ale autentifikačný token nebol vrátený.",
       )
     }
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       {
         token,
       },
-      { status: 200 }
+      { status: 200 },
     )
 
     setSessionTokenCookie(response, token)
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       "Nepodarilo sa spojiť s autentifikačnou službou Medusa.",
       {
         error: error instanceof Error ? error.message : String(error),
-      }
+      },
     )
   }
 }

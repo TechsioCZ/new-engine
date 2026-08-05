@@ -62,7 +62,7 @@ export default async function orderPlacedHandler({
       logger.error(
         `Failed to sync order note for order ${data.id}: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       )
     }
   }
@@ -77,7 +77,7 @@ export default async function orderPlacedHandler({
     logger.error(
       `Failed to process account setup for order ${data.id}: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     )
   }
 }

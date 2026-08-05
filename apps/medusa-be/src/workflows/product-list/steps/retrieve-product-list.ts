@@ -12,5 +12,5 @@ export const retrieveProductListStep = createStep(
       .retrieveProductList(listId)
 
     return new StepResponse<ProductListRecord>(list)
-  }
+  },
 )

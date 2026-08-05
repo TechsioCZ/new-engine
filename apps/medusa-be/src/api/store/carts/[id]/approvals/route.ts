@@ -8,7 +8,7 @@ import { createApprovalsWorkflow } from "../../../../../workflows/approval/workf
 
 export const POST = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const cartId = requirePathParam(req.params["id"], "Cart id")
   const { customer_id } = req.auth_context.app_metadata as {
@@ -16,7 +16,7 @@ export const POST = async (
   }
 
   const { result: approvals, errors } = await createApprovalsWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
       cart_id: cartId,

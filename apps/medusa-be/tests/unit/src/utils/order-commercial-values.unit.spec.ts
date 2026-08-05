@@ -22,7 +22,7 @@ function getRequired<T>(values: readonly T[], index: number): T {
 }
 
 function createItem(
-  overrides: Partial<CommercialValuesItemInput> = {}
+  overrides: Partial<CommercialValuesItemInput> = {},
 ): CommercialValuesItemInput {
   return {
     item_id: "item_1",
@@ -34,7 +34,7 @@ function createItem(
 }
 
 function createBaseInput(
-  overrides: Partial<CommercialValuesCalculationInput> = {}
+  overrides: Partial<CommercialValuesCalculationInput> = {},
 ): CommercialValuesCalculationInput {
   const baseInput: CommercialValuesCalculationInput = {
     currency_code: "czk",
@@ -66,7 +66,7 @@ describe("order commercial values", () => {
         ],
         order_discount: { type: "percentage", value_bps: 1000 },
         original_total: 3000,
-      })
+      }),
     )
 
     expect(preview.item_subtotal_after_item_discounts).toBe(2700)
@@ -93,11 +93,11 @@ describe("order commercial values", () => {
         ],
         order_discount: { amount: 1, type: "amount" },
         original_total: 300,
-      })
+      }),
     )
 
     expect(
-      preview.items.map((item) => item.manual_order_discount_amount)
+      preview.items.map((item) => item.manual_order_discount_amount),
     ).toStrictEqual([1, 0, 0])
     expect(preview.new_total).toBe(299)
   })
@@ -115,7 +115,7 @@ describe("order commercial values", () => {
           }),
         ],
         original_total: 19.49,
-      })
+      }),
     )
 
     expect(getRequired(preview.items, 0).preserved_adjustment_amount).toBe(0.5)
@@ -134,7 +134,7 @@ describe("order commercial values", () => {
           }),
         ],
         original_total: 150,
-      })
+      }),
     )
 
     expect(getRequired(preview.items, 0).line_base).toBe(180)
@@ -163,7 +163,7 @@ describe("order commercial values", () => {
           }),
         ],
         original_total: 900,
-      })
+      }),
     )
 
     expect(preview.new_total).toBe(1000)
@@ -182,7 +182,7 @@ describe("order commercial values", () => {
           }),
         ],
         original_total: 120,
-      })
+      }),
     )
 
     expect(getRequired(preview.items, 0).final_line_total).toBe(200)
@@ -206,7 +206,7 @@ describe("order commercial values", () => {
         ],
         order_discount: { amount: 300, type: "amount" },
         original_total: 3000,
-      })
+      }),
     )
 
     expect(preview.item_subtotal_after_item_discounts).toBe(2700)
@@ -227,7 +227,7 @@ describe("order commercial values", () => {
         ],
         order_discount: { amount: 200, type: "amount" },
         original_total: 3000,
-      })
+      }),
     )
 
     expect(getRequired(preview.items, 0).manual_order_discount_amount).toBe(0)
@@ -278,7 +278,7 @@ describe("order commercial values", () => {
     ],
   ])("rejects %s", (_label, input) => {
     expect(() => calculateCommercialValuesPreview(input)).toThrow(
-      CommercialValuesValidationError
+      CommercialValuesValidationError,
     )
   })
 
@@ -287,13 +287,13 @@ describe("order commercial values", () => {
       calculateCommercialValuesPreview(
         createBaseInput({
           items: [createItem({ unit_price: -1 })],
-        })
+        }),
       )
     } catch (error) {
       expect(error).toBeInstanceOf(CommercialValuesValidationError)
       expect(error).toBeInstanceOf(MedusaError)
       expect((error as CommercialValuesValidationError).code).toBe(
-        "unit_price_invalid"
+        "unit_price_invalid",
       )
       expect((error as MedusaError).type).toBe(MedusaError.Types.INVALID_DATA)
 

@@ -18,13 +18,13 @@ import type {
 } from "../validators"
 
 const requireMarketConfiguration = (
-  market: AdminGetStorefrontTextCatalogSchemaType["market"]
+  market: AdminGetStorefrontTextCatalogSchemaType["market"],
 ) => {
   const configuration = getStorefrontTextMarketConfiguration(market)
   if (!configuration) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text market "${market}"`
+      `Unsupported storefront text market "${market}"`,
     )
   }
 
@@ -33,12 +33,12 @@ const requireMarketConfiguration = (
 
 export async function GET(
   req: MedusaRequest<unknown, AdminGetStorefrontTextCatalogSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { market } = req.validatedQuery
   const configuration = requireMarketConfiguration(market)
   const service = req.scope.resolve<StorefrontTextModuleService>(
-    STOREFRONT_TEXT_MODULE
+    STOREFRONT_TEXT_MODULE,
   )
   const records = await service.listStorefrontTexts({
     locale: configuration.locale,
@@ -48,7 +48,7 @@ export async function GET(
   const messages = getPublishedStorefrontTextMessages(
     defaultMessages,
     records,
-    configuration.locale
+    configuration.locale,
   )
 
   res.json({
@@ -61,7 +61,7 @@ export async function GET(
 
 export async function POST(
   req: MedusaRequest<AdminImportStorefrontTextCatalogSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { catalog, market } = req.validatedBody
   const configuration = requireMarketConfiguration(market)
@@ -73,7 +73,7 @@ export async function POST(
           catalog,
           market,
         },
-      }
+      },
     )
 
     res.json({

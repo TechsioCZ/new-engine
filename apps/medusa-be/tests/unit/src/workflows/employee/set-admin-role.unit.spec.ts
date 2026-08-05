@@ -23,7 +23,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -32,7 +32,7 @@ type MockContainer = ReturnType<typeof makeContainer>
 interface MockStep {
   (
     input: { employeeId: string; customerId: string },
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ): Promise<{
     compensateInput?: {
       customerId: string
@@ -51,14 +51,14 @@ interface MockStep {
           providerIdentityId: string
         }
       | undefined,
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ) => Promise<void>
 }
 
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -67,7 +67,7 @@ const asMockStep = (candidate: unknown): MockStep => {
     typeof candidate.compensate !== "function"
   ) {
     throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function"
+      "Expected the mocked workflow step to expose a compensate function",
     )
   }
 
@@ -114,7 +114,7 @@ describe("setAdminRoleStep", () => {
 
     const result = await asMockStep(setAdminRoleStep)(
       { customerId: "cus_1", employeeId: "employee_1" },
-      { container }
+      { container },
     )
 
     expect(updateProviderIdentities).not.toHaveBeenCalled()
@@ -136,7 +136,7 @@ describe("setAdminRoleStep", () => {
 
     const result = await asMockStep(setAdminRoleStep)(
       { customerId: "cus_1", employeeId: "employee_1" },
-      { container }
+      { container },
     )
 
     expect(updateProviderIdentities).toHaveBeenCalledWith([
@@ -185,7 +185,7 @@ describe("setAdminRoleStep", () => {
         employeeId: "employee_1",
         providerIdentityId: "authpi_1",
       },
-      { container }
+      { container },
     )
 
     expect(updateProviderIdentities).toHaveBeenCalledWith([
@@ -237,7 +237,7 @@ describe("setAdminRoleStep", () => {
         employeeId: "employee_1",
         providerIdentityId: "authpi_1",
       },
-      { container }
+      { container },
     )
 
     expect(updateProviderIdentities).not.toHaveBeenCalled()

@@ -7,7 +7,7 @@ import type { FlatStorefrontMessages } from "../core/messages"
 interface StorefrontRequestConfigOptions<TMarket extends StorefrontMarket> {
   getMarket: () => Promise<TMarket> | TMarket
   getMessages: (
-    market: TMarket
+    market: TMarket,
   ) => Promise<FlatStorefrontMessages> | FlatStorefrontMessages
 }
 

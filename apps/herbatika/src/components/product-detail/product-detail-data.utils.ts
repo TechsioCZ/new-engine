@@ -15,7 +15,7 @@ import {
 
 export const resolveSelectedVariant = (
   variants: HttpTypes.StoreProductVariant[],
-  selectedVariantId: string | null
+  selectedVariantId: string | null,
 ) =>
   variants.find((variant) => variant.id === selectedVariantId) ??
   variants[0] ??
@@ -42,12 +42,12 @@ export const resolveOptionTitlesById = (product: Product | null) => {
 
 export const resolveVariantItems = (
   variants: HttpTypes.StoreProductVariant[],
-  optionTitlesById: Map<string, string>
+  optionTitlesById: Map<string, string>,
 ): SelectItem[] =>
   variants
     .filter(
       (variant): variant is HttpTypes.StoreProductVariant & { id: string } =>
-        Boolean(variant.id)
+        Boolean(variant.id),
     )
     .map((variant) => ({
       label: resolveVariantLabel(variant, optionTitlesById),
@@ -61,7 +61,7 @@ export const resolveShortDescriptionHtml = (product: Product | null) => {
 
 export const resolveProductSummaryText = (
   product: Product | null,
-  shortDescriptionHtml: string
+  shortDescriptionHtml: string,
 ) => {
   const shortText = stripHtml(shortDescriptionHtml)
   if (shortText) {
@@ -76,7 +76,7 @@ export const resolveProductBreadcrumbItems = (
   productCategories: HttpTypes.StoreProductCategory[],
   product: Product | null,
   handle: string,
-  homeLabel: string
+  homeLabel: string,
 ): HerbatikaBreadcrumbItem[] => {
   const primaryCategory = productCategories[0]
   const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")

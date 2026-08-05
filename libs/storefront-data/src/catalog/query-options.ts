@@ -40,7 +40,7 @@ export interface CatalogQueryOptionsFactory<
       queryOptions?: ReadQueryOptions<CatalogListResponse<TProduct, TFacets>>
       region?: RegionInfo | null
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<CatalogListResponse<TProduct, TFacets>>
 }
 
@@ -71,14 +71,14 @@ export function createCatalogQueryOptionsFactory<
   return {
     getListQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<CatalogListResponse<TProduct, TFacets>> => {
       const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
         enabled?: boolean
       }
       const resolvedInput = applyRegion(
         listInput as TListInput,
-        options?.region ?? undefined
+        options?.region ?? undefined,
       )
       const listParams = buildList(resolvedInput)
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"

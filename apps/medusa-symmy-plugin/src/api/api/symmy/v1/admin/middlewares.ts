@@ -45,7 +45,7 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
         AdminGetOrdersParams,
-        ordersListTransformQueryConfig
+        ordersListTransformQueryConfig,
       ),
     ],
     policies: [
@@ -62,7 +62,7 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
         AdminCustomersParams,
-        customersListTransformQueryConfig
+        customersListTransformQueryConfig,
       ),
     ],
     policies: [
@@ -109,7 +109,7 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
         AdminGetRegionsParams,
-        regionsListTransformQueryConfig
+        regionsListTransformQueryConfig,
       ),
     ],
     policies: [
@@ -126,7 +126,7 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
         AdminGetUserParams,
-        usersRetrieveTransformQueryConfig
+        usersRetrieveTransformQueryConfig,
       ),
     ],
     policies: [

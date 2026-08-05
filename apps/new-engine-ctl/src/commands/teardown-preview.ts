@@ -25,32 +25,32 @@ function buildTeardownPreviewInput(options: Record<string, unknown>) {
 }
 
 async function writeTeardownOutputs(
-  result: Awaited<ReturnType<typeof executeTeardownPreview>>
+  result: Awaited<ReturnType<typeof executeTeardownPreview>>,
 ): Promise<void> {
   await appendGitHubOutput(
     "environment_http_code",
-    `${result.environment.http_code || ""}`
+    `${result.environment.http_code || ""}`,
   )
   await appendGitHubOutput(
     "environment_name",
-    result.environment.environment_name
+    result.environment.environment_name,
   )
   await appendGitHubOutput("environment_noop", String(result.environment.noop))
   await appendGitHubOutput("environment_status", result.environment.status)
   await appendGitHubOutput(
     "environment_outcome",
-    result.environment.ok ? "success" : "failure"
+    result.environment.ok ? "success" : "failure",
   )
   await appendGitHubOutput(
     "preview_db_http_code",
-    `${result.preview_db.http_code || ""}`
+    `${result.preview_db.http_code || ""}`,
   )
   await appendGitHubOutput("preview_db_status", result.preview_db.status)
   await appendGitHubOutput("preview_db_name", result.preview_db.db_name)
   await appendGitHubOutput("preview_db_noop", String(result.preview_db.noop))
   await appendGitHubOutput(
     "preview_db_outcome",
-    result.preview_db.ok ? "success" : "failure"
+    result.preview_db.ok ? "success" : "failure",
   )
 }
 

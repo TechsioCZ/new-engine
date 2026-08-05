@@ -5,5 +5,5 @@ import CompanyModule from "../modules/company"
 
 export default defineLink(
   CompanyModule.linkable.company,
-  ApprovalModule.linkable.approvalSettings
+  ApprovalModule.linkable.approvalSettings,
 )

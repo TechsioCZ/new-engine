@@ -149,7 +149,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
     container.innerHTML = renderToString(
       <Wrapper>
         <CartProbe />
-      </Wrapper>
+      </Wrapper>,
     )
     document.body.append(container)
 
@@ -160,14 +160,14 @@ describe("createCartHooks reactive storage and cache sync", () => {
         container,
         <Wrapper>
           <CartProbe />
-        </Wrapper>
+        </Wrapper>,
       )
     })
 
     await waitFor(() => {
       expect(retrieveCart).toHaveBeenCalledWith(
         "cart_existing",
-        expect.any(AbortSignal)
+        expect.any(AbortSignal),
       )
     })
 
@@ -356,7 +356,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
       .mockImplementation(async () =>
         cancelQueries.mock.calls.length <= 2
           ? firstCancellation
-          : Promise.resolve()
+          : Promise.resolve(),
       )
     const wrapper = createWrapper(queryClient)
     const { result } = renderHook(() => useUpdateLineItem(), { wrapper })
@@ -436,9 +436,9 @@ describe("createCartHooks reactive storage and cache sync", () => {
             queryOptions: {
               select: () => staleCart,
             },
-          }
+          },
         ),
-      { wrapper }
+      { wrapper },
     )
 
     expect(result.current.cart).toStrictEqual(staleCart)
@@ -464,7 +464,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
       async () =>
         new Promise<Cart>((resolve) => {
           resolveCartRead = resolve
-        })
+        }),
     )
 
     const { useCart, useUpdateLineItem } = createCartHooks<
@@ -496,7 +496,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
         }),
         updateLineItem: useUpdateLineItem(),
       }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -537,7 +537,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
       async () =>
         new Promise<Cart>((resolve) => {
           resolveCartRead = resolve
-        })
+        }),
     )
 
     const { useCart, useUpdateLineItem } = createCartHooks<
@@ -571,7 +571,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
         }),
         updateLineItem: useUpdateLineItem(),
       }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -584,7 +584,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
           cartId: "cart_1",
           lineItemId: "item_1",
           quantity: 2,
-        })
+        }),
       ).rejects.toThrow("update failed")
     })
 

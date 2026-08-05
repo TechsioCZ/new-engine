@@ -17,7 +17,7 @@ import type { PostAdminOrderCommercialValuesConfirmSchemaType } from "../validat
 
 export async function POST(
   req: AuthenticatedMedusaRequest<PostAdminOrderCommercialValuesConfirmSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const id = requireCommercialValuesOrderId(req.params["id"])
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -25,14 +25,14 @@ export async function POST(
     req.scope,
     query,
     id,
-    req.validatedBody.expected_order_version
+    req.validatedBody.expected_order_version,
   )
 
   const result = await applyOrderCommercialValues({
     actor_id: req.auth_context?.actor_id,
     calculation_input: toCommercialValuesCalculationInput(
       order,
-      req.validatedBody
+      req.validatedBody,
     ),
     container: req.scope,
     order: toApplyCommercialValuesOrder(order),

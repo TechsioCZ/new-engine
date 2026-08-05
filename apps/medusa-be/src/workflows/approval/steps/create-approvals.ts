@@ -29,7 +29,7 @@ export const createApprovalStep = createStep(
     input:
       | Omit<ModuleCreateApproval, "type">
       | Omit<ModuleCreateApproval, "type">[],
-    { container }
+    { container },
   ) => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
@@ -39,7 +39,7 @@ export const createApprovalStep = createStep(
     if (!firstApproval) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "No approval data provided"
+        "No approval data provided",
       )
     }
 
@@ -61,13 +61,13 @@ export const createApprovalStep = createStep(
       },
       {
         throwIfKeyNotFound: true,
-      }
+      },
     )
 
     if (!cart) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Cart ${firstApproval.cart_id} was not found`
+        `Cart ${firstApproval.cart_id} was not found`,
       )
     }
 
@@ -78,21 +78,21 @@ export const createApprovalStep = createStep(
     ) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        `Cart ${cart.id} has an invalid approval status`
+        `Cart ${cart.id} has an invalid approval status`,
       )
     }
 
     if (cartApprovalStatus === ApprovalStatusType.PENDING) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "Cart already has a pending approval"
+        "Cart already has a pending approval",
       )
     }
 
     if (cartApprovalStatus === ApprovalStatusType.APPROVED) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "Cart is already approved"
+        "Cart is already approved",
       )
     }
 
@@ -106,7 +106,7 @@ export const createApprovalStep = createStep(
         ...approvalData.map((data) => ({
           ...data,
           type: ApprovalType.ADMIN,
-        }))
+        })),
       )
     }
 
@@ -115,14 +115,14 @@ export const createApprovalStep = createStep(
         ...approvalData.map((data) => ({
           ...data,
           type: ApprovalType.SALES_MANAGER,
-        }))
+        })),
       )
     }
 
     if (approvalsToCreate.length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "No enabled approval types found"
+        "No enabled approval types found",
       )
     }
 
@@ -134,7 +134,7 @@ export const createApprovalStep = createStep(
 
     return new StepResponse(
       approvals,
-      approvals.map((approval) => approval.id)
+      approvals.map((approval) => approval.id),
     )
   },
   async (approvalIds: string[] | undefined, { container }) => {
@@ -146,5 +146,5 @@ export const createApprovalStep = createStep(
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModuleService.deleteApprovals(approvalIds)
-  }
+  },
 )

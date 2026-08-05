@@ -1,7 +1,7 @@
 import type { Cart, CartLineItem } from "@/services/cart-service"
 
 export function getOptimisticFlag(
-  entity: Cart | CartLineItem | undefined | null
+  entity: Cart | CartLineItem | undefined | null,
 ): boolean {
   if (!entity) {
     return false

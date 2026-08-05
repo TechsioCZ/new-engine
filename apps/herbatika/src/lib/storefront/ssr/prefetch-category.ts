@@ -18,7 +18,7 @@ import { getRegionServerContext } from "./context"
 
 export const prefetchCategoryPageStorefrontData = async (
   slug: string,
-  queryState: PlpQueryState
+  queryState: PlpQueryState,
 ) => {
   const { queryClient, region } = await getRegionServerContext()
 
@@ -30,7 +30,7 @@ export const prefetchCategoryPageStorefrontData = async (
 
   const categoryResponse = await fetchServerCategories(
     queryClient,
-    categoryListParams
+    categoryListParams,
   )
 
   const activeCategory =
@@ -42,7 +42,7 @@ export const prefetchCategoryPageStorefrontData = async (
       activeCategory.id,
       ...collectDescendantCategoryIds(
         categoryResponse.categories,
-        activeCategory.id
+        activeCategory.id,
       ),
     ]
     const catalogListParams = buildCatalogProductsParams({

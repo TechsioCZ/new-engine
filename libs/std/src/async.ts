@@ -1,7 +1,7 @@
 export const sleep = async (milliseconds: number): Promise<void> => {
   if (!(Number.isFinite(milliseconds) && milliseconds >= 0)) {
     return Promise.reject(
-      new RangeError("Sleep duration must be a finite, non-negative number")
+      new RangeError("Sleep duration must be a finite, non-negative number"),
     )
   }
 

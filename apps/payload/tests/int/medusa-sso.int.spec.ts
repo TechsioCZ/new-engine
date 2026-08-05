@@ -190,7 +190,7 @@ describe("medusa SSO endpoint", () => {
     process.env.PAYLOAD_SSO_USER_EMAIL = "user@example.com"
 
     importSPKIMock.mockResolvedValue(
-      {} as Awaited<ReturnType<typeof importSPKI>>
+      {} as Awaited<ReturnType<typeof importSPKI>>,
     )
     jwtVerifyMock.mockResolvedValue({
       payload: { email: "user@example.com" },
@@ -199,7 +199,7 @@ describe("medusa SSO endpoint", () => {
 
     const req = createRequest()
     req.formData.mockResolvedValue(
-      createFormData({ returnTo: "//example.com", token: "token-value" })
+      createFormData({ returnTo: "//example.com", token: "token-value" }),
     )
     req.payload.find.mockResolvedValue({
       docs: [{ id: "user_1", sessions: [] }],
@@ -221,10 +221,10 @@ describe("medusa SSO endpoint", () => {
         }),
         id: "user_1",
         req,
-      })
+      }),
     )
     expect(req.payload.db.updateOne.mock.calls[0]?.[0].data).not.toHaveProperty(
-      "id"
+      "id",
     )
 
     expect(jwtSignMock).toHaveBeenCalledWith(
@@ -234,26 +234,26 @@ describe("medusa SSO endpoint", () => {
           id: "user_1",
           sid: expect.any(String),
         }),
-      })
+      }),
     )
 
     expect(generatePayloadCookieMock).toHaveBeenCalledWith(
       expect.objectContaining({
         token: "payload-token",
-      })
+      }),
     )
 
     expect(response.status).toBe(302)
     expect(response.headers.get("Location")).toBe("/")
     expect(response.headers.get("Set-Cookie")).toBe("payload-cookie")
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
-      "https://allowed.com"
+      "https://allowed.com",
     )
     expect(response.headers.get("Access-Control-Allow-Credentials")).toBe(
-      "true"
+      "true",
     )
     expect(response.headers.get("Access-Control-Expose-Headers")).toContain(
-      "Location"
+      "Location",
     )
   })
 
@@ -276,7 +276,7 @@ describe("medusa SSO endpoint", () => {
     process.env.PAYLOAD_SSO_USER_EMAIL = "shared-admin@example.com"
 
     importSPKIMock.mockResolvedValue(
-      {} as Awaited<ReturnType<typeof importSPKI>>
+      {} as Awaited<ReturnType<typeof importSPKI>>,
     )
     jwtVerifyMock.mockResolvedValue({
       payload: { email: "other-admin@example.com" },

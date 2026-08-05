@@ -8,7 +8,7 @@ import { evaluatePullRequestPolicy, REVIEWERS } from "./policy.ts"
 import type { PullRequestPolicyInput } from "./policy.ts"
 
 function input(
-  overrides: Partial<PullRequestPolicyInput> = {}
+  overrides: Partial<PullRequestPolicyInput> = {},
 ): PullRequestPolicyInput {
   return {
     additions: 10,
@@ -42,7 +42,7 @@ void describe("evaluatePullRequestPolicy", () => {
 
   void it("requires conventional titles and meaningful descriptions", () => {
     const result = evaluatePullRequestPolicy(
-      input({ body: "Fix", title: "Fix checkout" })
+      input({ body: "Fix", title: "Fix checkout" }),
     )
 
     assert.equal(result.failures.length, 2)
@@ -50,7 +50,7 @@ void describe("evaluatePullRequestPolicy", () => {
 
   void it("downgrades blocking metadata findings for drafts", () => {
     const result = evaluatePullRequestPolicy(
-      input({ body: "", draft: true, title: "work in progress" })
+      input({ body: "", draft: true, title: "work in progress" }),
     )
 
     assert.deepEqual(result.failures, [])
@@ -63,7 +63,7 @@ void describe("evaluatePullRequestPolicy", () => {
       input({
         files: ["pnpm-lock.yaml", "libs/ui/src/atoms/button.tsx"],
         modifiedFiles: ["pnpm-lock.yaml", "libs/ui/src/atoms/button.tsx"],
-      })
+      }),
     )
 
     assert.deepEqual(result.requiredReviewers, [
@@ -84,7 +84,7 @@ void describe("evaluatePullRequestPolicy", () => {
           files: [file],
           modifiedFiles: [file],
           reviewerLogins: [REVIEWERS.frontend],
-        })
+        }),
       )
 
       assert.deepEqual(result.requiredReviewers, [REVIEWERS.frontend])
@@ -101,7 +101,7 @@ void describe("evaluatePullRequestPolicy", () => {
           "apps/herbatika/src/app/page.tsx",
         ],
         reviewerLogins: ["REDEYECZ", "kaiuwecze"],
-      })
+      }),
     )
 
     assert.deepEqual(result.failures, [])
@@ -112,14 +112,14 @@ void describe("evaluatePullRequestPolicy", () => {
       input({
         files: ["apps/medusa-be/src/migrations/20260101.ts"],
         modifiedFiles: ["apps/medusa-be/src/migrations/20260101.ts"],
-      })
+      }),
     )
     const created = evaluatePullRequestPolicy(
       input({
         createdFiles: ["apps/medusa-be/src/migrations/20260718.ts"],
         files: ["apps/medusa-be/src/migrations/20260718.ts"],
         modifiedFiles: [],
-      })
+      }),
     )
 
     assert.equal(edited.failures.length, 1)
@@ -156,7 +156,7 @@ void describe("evaluatePullRequestPolicy", () => {
         modifiedFiles: ["changed.ts"],
         reviewerLogins: [],
         title: "fix(policy): normalize context",
-      }
+      },
     )
     assert.equal(createPullRequestPolicyInput({ git: {} }), undefined)
   })
@@ -174,7 +174,7 @@ void describe("evaluatePullRequestPolicy", () => {
           "apps/medusa-be/src/api/route.ts",
           "apps/medusa-be/package.json",
         ],
-      })
+      }),
     )
 
     assert.equal(result.warnings.length, 3)

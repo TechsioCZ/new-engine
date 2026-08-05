@@ -19,7 +19,7 @@ const DEFAULT_CMS_LOCALE = "cs"
 
 export async function getCmsPage(
   slug: string,
-  locale = DEFAULT_CMS_LOCALE
+  locale = DEFAULT_CMS_LOCALE,
 ): Promise<CmsPage | null> {
   const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
@@ -35,7 +35,7 @@ export async function getCmsPage(
       headers: {
         "x-publishable-api-key": publishableKey,
       },
-    }
+    },
   )
 
   if (response.status === 404) {

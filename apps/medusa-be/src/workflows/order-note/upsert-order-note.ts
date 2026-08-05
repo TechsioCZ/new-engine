@@ -49,12 +49,12 @@ const upsertOrderNoteStep = createStep(
     if (!trimmedNote) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Order note cannot be empty"
+        "Order note cannot be empty",
       )
     }
 
     const existingNoteRecord = await orderNoteService.getOrderNoteByOrderId(
-      input.order_id
+      input.order_id,
     )
 
     await orderNoteService.upsertOrderNote({
@@ -77,7 +77,7 @@ const upsertOrderNoteStep = createStep(
       {
         order_id: input.order_id,
       },
-      compensation
+      compensation,
     )
   },
   async (input, { container }) => {
@@ -97,7 +97,7 @@ const upsertOrderNoteStep = createStep(
     }
 
     await orderNoteService.deleteOrderNotes({ order_id: input.order_id })
-  }
+  },
 )
 
 const clearOrderNoteMetadataStep = createStep(
@@ -118,7 +118,7 @@ const clearOrderNoteMetadataStep = createStep(
     if (!order) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Order ${input.order_id} not found`
+        `Order ${input.order_id} not found`,
       )
     }
 
@@ -140,7 +140,7 @@ const clearOrderNoteMetadataStep = createStep(
       {
         order_id: input.order_id,
         previousMetadata,
-      }
+      },
     )
   },
   async (input, { container }) => {
@@ -153,7 +153,7 @@ const clearOrderNoteMetadataStep = createStep(
     await orderService.updateOrders(input.order_id, {
       metadata: input.previousMetadata,
     })
-  }
+  },
 )
 
 export const syncOrderNoteWorkflow = createWorkflow(
@@ -163,5 +163,5 @@ export const syncOrderNoteWorkflow = createWorkflow(
     const result = clearOrderNoteMetadataStep(note)
 
     return new WorkflowResponse(result)
-  }
+  },
 )

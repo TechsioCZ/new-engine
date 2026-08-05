@@ -69,7 +69,7 @@ import type { UpsertPriceListsBatchSchemaType } from "./validators"
  */
 export const POST = async (
   req: MedusaRequest<UpsertPriceListsBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   await enqueueImportJob(req, res, {
     payload: { price_lists: req.validatedBody.price_lists },

@@ -144,7 +144,7 @@ export default async function seedOrderBusinessStatusDemo({
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
   const pgConnection = container.resolve<DatabaseConnection>(
-    ContainerRegistrationKeys.PG_CONNECTION
+    ContainerRegistrationKeys.PG_CONNECTION,
   )
 
   logger.info("Starting order business status demo seed...")
@@ -165,7 +165,7 @@ export default async function seedOrderBusinessStatusDemo({
 
   if (!salesChannel) {
     throw new Error(
-      "Default Sales Channel is required for business status demo seed"
+      "Default Sales Channel is required for business status demo seed",
     )
   }
 
@@ -199,7 +199,7 @@ export default async function seedOrderBusinessStatusDemo({
 
   for (const [index, demo] of BUSINESS_STATUS_DEMOS.entries()) {
     const order = existingOrders.find(
-      (candidate) => getDemoKey(candidate) === demo.key
+      (candidate) => getDemoKey(candidate) === demo.key,
     )
 
     if (!order) {
@@ -217,7 +217,7 @@ export default async function seedOrderBusinessStatusDemo({
   }
 
   logger.info(
-    `Order business status demo seed ready with ${BUSINESS_STATUS_DEMOS.length} orders.`
+    `Order business status demo seed ready with ${BUSINESS_STATUS_DEMOS.length} orders.`,
   )
 }
 
@@ -316,7 +316,7 @@ async function normalizeDemoOrder({
       JSON.stringify(metadata),
       createdAt,
       order.id,
-    ]
+    ],
   )
 
   if (demo.paid) {
@@ -393,7 +393,7 @@ async function upsertCompletedPaymentCollection({
       amount,
       JSON.stringify(rawAmount),
       JSON.stringify(metadata),
-    ]
+    ],
   )
 
   await pgConnection.raw(
@@ -408,19 +408,19 @@ async function upsertCompletedPaymentCollection({
       on conflict ("order_id", "payment_collection_id") do update
       set "deleted_at" = null,
           "updated_at" = now()`,
-    [order.id, paymentCollectionId, `ordpaycol_${demo.key}`]
+    [order.id, paymentCollectionId, `ordpaycol_${demo.key}`],
   )
 }
 
 async function removeDemoPaymentCollection(
   pgConnection: DatabaseConnection,
-  demo: BusinessStatusDemo
+  demo: BusinessStatusDemo,
 ) {
   const paymentCollectionId = getPaymentCollectionId(demo)
 
   await pgConnection.raw(
     `delete from "order_payment_collection" where "payment_collection_id" = ?`,
-    [paymentCollectionId]
+    [paymentCollectionId],
   )
   await pgConnection.raw(`delete from "payment_collection" where "id" = ?`, [
     paymentCollectionId,
@@ -476,7 +476,7 @@ async function upsertDemoFulfillment({
         seed: "order-business-status-demo",
       }),
       JSON.stringify(metadata),
-    ]
+    ],
   )
 
   await pgConnection.raw(
@@ -491,19 +491,19 @@ async function upsertDemoFulfillment({
       on conflict ("order_id", "fulfillment_id") do update
       set "deleted_at" = null,
           "updated_at" = now()`,
-    [order.id, fulfillmentId, `ordful_${demo.key}`]
+    [order.id, fulfillmentId, `ordful_${demo.key}`],
   )
 }
 
 async function removeDemoFulfillment(
   pgConnection: DatabaseConnection,
-  demo: BusinessStatusDemo
+  demo: BusinessStatusDemo,
 ) {
   const fulfillmentId = getFulfillmentId(demo)
 
   await pgConnection.raw(
     `delete from "order_fulfillment" where "fulfillment_id" = ?`,
-    [fulfillmentId]
+    [fulfillmentId],
   )
   await pgConnection.raw(`delete from "fulfillment" where "id" = ?`, [
     fulfillmentId,
@@ -511,16 +511,16 @@ async function removeDemoFulfillment(
 }
 
 async function fetchBusinessStatusDemoStockLocationId(
-  pgConnection: DatabaseConnection
+  pgConnection: DatabaseConnection,
 ) {
   const result = await pgConnection.raw<RawRows<{ id: string }>>(
-    `select "id" from "stock_location" where "deleted_at" is null order by "created_at" asc limit 1`
+    `select "id" from "stock_location" where "deleted_at" is null order by "created_at" asc limit 1`,
   )
   const stockLocationId = getRows(result)[0]?.id
 
   if (!stockLocationId) {
     throw new Error(
-      "At least one stock location is required for business status demo seed"
+      "At least one stock location is required for business status demo seed",
     )
   }
 
@@ -566,7 +566,7 @@ async function fetchDemoVariants(query: QueryService) {
 
   return Array.isArray(data)
     ? (data as DemoVariant[]).filter((variant) =>
-        variant.product?.handle?.startsWith(DEMO_PRODUCT_HANDLE_PREFIX)
+        variant.product?.handle?.startsWith(DEMO_PRODUCT_HANDLE_PREFIX),
       )
     : []
 }
@@ -579,14 +579,14 @@ async function fetchBusinessStatusDemoOrders(query: QueryService) {
 
   return Array.isArray(data)
     ? (data as DemoOrder[]).filter(
-        (order) => order.metadata?.["order_business_status_demo"] === true
+        (order) => order.metadata?.["order_business_status_demo"] === true,
       )
     : []
 }
 
 function buildDemoMetadata(
   metadata: Record<string, unknown> | null | undefined,
-  demo: BusinessStatusDemo
+  demo: BusinessStatusDemo,
 ) {
   const nextMetadata: Record<string, unknown> = {
     ...metadata,

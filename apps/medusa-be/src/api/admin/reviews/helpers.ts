@@ -6,7 +6,7 @@ import type { ProductRecord } from "../../review-normalizers"
 
 export const getProductsById = async (
   req: MedusaRequest,
-  productIds: string[]
+  productIds: string[],
 ) => {
   if (!productIds.length) {
     return new Map<string, ProductRecord>()
@@ -22,6 +22,6 @@ export const getProductsById = async (
   })
 
   return new Map(
-    filterProductRecords(data).map((product) => [product.id, product])
+    filterProductRecords(data).map((product) => [product.id, product]),
   )
 }

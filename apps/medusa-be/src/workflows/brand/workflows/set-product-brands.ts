@@ -26,7 +26,7 @@ export const setProductBrandsWorkflow = createWorkflow(
   },
   (input: SetProductBrandsWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
-      getProductBrandLockKeys([workflowInput.product_id])
+      getProductBrandLockKeys([workflowInput.product_id]),
     )
 
     acquireLockStep({
@@ -49,7 +49,7 @@ export const setProductBrandsWorkflow = createWorkflow(
     const eventData = transform({ input }, ({ input: workflowInput }) =>
       buildBrandSearchProjectionEventData({
         productIds: [workflowInput.product_id],
-      })
+      }),
     )
 
     emitEventStep({
@@ -59,5 +59,5 @@ export const setProductBrandsWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(prepared.result)
-  }
+  },
 )

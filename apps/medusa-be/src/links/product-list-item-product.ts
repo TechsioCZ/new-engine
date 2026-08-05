@@ -11,5 +11,5 @@ export const ProductListItemProductLink = defineLink(
   {
     filterable: ["id", "title", "handle"],
     linkable: ProductModule.linkable["product"],
-  }
+  },
 )

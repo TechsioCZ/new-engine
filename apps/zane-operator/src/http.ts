@@ -13,7 +13,7 @@ export function jsonResponse(status: number, payload: unknown): Response {
 export function jsonError(
   status: number,
   error: string,
-  message: string
+  message: string,
 ): Response {
   const body: ErrorBody = { error, message }
   return jsonResponse(status, body)
@@ -29,7 +29,7 @@ export function mapHandlerError(error: unknown, context: string): Response {
         event: "handler.upstream_error",
         message: error.message,
         status: error.status,
-      })
+      }),
     )
     return jsonError(error.status, error.errorCode, error.message)
   }
@@ -40,7 +40,7 @@ export function mapHandlerError(error: unknown, context: string): Response {
         context,
         event: "handler.bad_request",
         message: error.message,
-      })
+      }),
     )
     return jsonError(400, "bad_request", error.message)
   }
@@ -51,7 +51,7 @@ export function mapHandlerError(error: unknown, context: string): Response {
       context,
       event: "handler.error",
       message,
-    })
+    }),
   )
 
   return jsonError(500, "internal_error", "Internal server error")

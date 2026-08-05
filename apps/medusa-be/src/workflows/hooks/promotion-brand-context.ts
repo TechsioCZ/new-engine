@@ -18,9 +18,9 @@ updateCartPromotionsWorkflow.hooks.setPromotionContext(
       await buildBrandPromotionContext(
         cart,
         container,
-        ProductBrandLink.entryPoint
-      )
-    )
+        ProductBrandLink.entryPoint,
+      ),
+    ),
 )
 
 computeDraftOrderAdjustmentsWorkflow.hooks.setPromotionContext(
@@ -29,9 +29,9 @@ computeDraftOrderAdjustmentsWorkflow.hooks.setPromotionContext(
       await buildBrandPromotionContext(
         order,
         container,
-        ProductBrandLink.entryPoint
-      )
-    )
+        ProductBrandLink.entryPoint,
+      ),
+    ),
 )
 
 computeAdjustmentsForPreviewWorkflow.hooks.setPromotionContext(
@@ -40,7 +40,7 @@ computeAdjustmentsForPreviewWorkflow.hooks.setPromotionContext(
       await buildBrandPromotionContext(
         previewedOrder ?? order,
         container,
-        ProductBrandLink.entryPoint
-      )
-    )
+        ProductBrandLink.entryPoint,
+      ),
+    ),
 )

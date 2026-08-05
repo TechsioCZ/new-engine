@@ -43,19 +43,19 @@ interface ProvisionMedusaPublishableKeyDeps {
   getEnvironment(
     session: ZaneSession,
     projectSlug: string,
-    environmentName: string
+    environmentName: string,
   ): Promise<ProvisionEnvironmentLookup | null>
   getServiceDetails(
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
-    serviceSlug: string
+    serviceSlug: string,
   ): Promise<MedusaProvisionServiceDetails>
 }
 
 function resolveTemplateEnvValue(
   serviceDetails: MedusaProvisionServiceDetails,
-  value: string
+  value: string,
 ): string {
   const match = /^\{\{\s*env\.([A-Z0-9_]+)\s*\}\}$/.exec(value.trim())
   if (!match) {
@@ -63,19 +63,19 @@ function resolveTemplateEnvValue(
   }
 
   const environmentVariables = Array.isArray(
-    serviceDetails.environment?.variables
+    serviceDetails.environment?.variables,
   )
     ? serviceDetails.environment.variables
     : []
   const resolved = environmentVariables.find(
-    (envVar) => envVar.key === match[1]
+    (envVar) => envVar.key === match[1],
   )?.value
   return typeof resolved === "string" && resolved.trim() ? resolved : value
 }
 
 function getServiceEnvValue(
   serviceDetails: MedusaProvisionServiceDetails,
-  keys: string[]
+  keys: string[],
 ): string | null {
   const envVariables = [
     ...(Array.isArray(serviceDetails.env_variables)
@@ -89,7 +89,7 @@ function getServiceEnvValue(
     envVariables.map((envVar) => [
       envVar.key,
       resolveTemplateEnvValue(serviceDetails, envVar.value),
-    ])
+    ]),
   )
 
   for (const key of keys) {
@@ -112,7 +112,7 @@ function parsePort(value: string | null): number | null {
 }
 
 function resolveServicePort(
-  serviceDetails: MedusaProvisionServiceDetails
+  serviceDetails: MedusaProvisionServiceDetails,
 ): number {
   const envPort = parsePort(getServiceEnvValue(serviceDetails, ["PORT"]))
   if (envPort !== null) {
@@ -120,7 +120,7 @@ function resolveServicePort(
   }
 
   const urlPort = serviceDetails.urls.find(
-    (url) => typeof url.associated_port === "number"
+    (url) => typeof url.associated_port === "number",
   )?.associated_port
   if (typeof urlPort === "number" && urlPort > 0) {
     return urlPort
@@ -130,7 +130,7 @@ function resolveServicePort(
 }
 
 function buildServicePrivateUrl(
-  serviceDetails: MedusaProvisionServiceDetails
+  serviceDetails: MedusaProvisionServiceDetails,
 ): string | null {
   const privateDomain =
     getServiceEnvValue(serviceDetails, ["ZANE_GLOBAL_PRIVATE_DOMAIN"]) ??
@@ -149,7 +149,7 @@ function buildServicePrivateUrl(
 
   return new URL(
     "/",
-    `http://${privateDomain}:${resolveServicePort(serviceDetails)}`
+    `http://${privateDomain}:${resolveServicePort(serviceDetails)}`,
   ).toString()
 }
 
@@ -185,7 +185,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
   }
 
   async provisionPublishableKey(
-    input: ProvisionMedusaPublishableKeyInput
+    input: ProvisionMedusaPublishableKeyInput,
   ): Promise<{
     project_slug: string
     environment_name: string
@@ -198,19 +198,19 @@ export class ZaneMedusaPublishableKeyProvisioner {
   }> {
     const frontendEnvVar = this.requireOutputEnvVar(
       input.frontendOutput,
-      "frontend_output"
+      "frontend_output",
     )
     const session = await this.#deps.authenticate()
     const environment = await this.#deps.getEnvironment(
       session,
       input.projectSlug,
-      input.environmentName
+      input.environmentName,
     )
     if (!environment) {
       throw new UpstreamHttpError(
         404,
         "zane_environment_not_found",
-        `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`
+        `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`,
       )
     }
 
@@ -218,7 +218,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
       session,
       input.projectSlug,
       input.environmentName,
-      input.serviceSlug
+      input.serviceSlug,
     )
     const serviceUrls = buildServicePublicUrls(serviceDetails)
     const publicMedusaUrl = serviceUrls[0]
@@ -227,7 +227,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
       throw new UpstreamHttpError(
         409,
         "zane_medusa_url_missing",
-        `Service ${input.serviceSlug} does not expose an operator-reachable URL in ${input.projectSlug}/${input.environmentName}`
+        `Service ${input.serviceSlug} does not expose an operator-reachable URL in ${input.projectSlug}/${input.environmentName}`,
       )
     }
 
@@ -239,7 +239,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
       throw new UpstreamHttpError(
         409,
         "zane_medusa_admin_credentials_missing",
-        `Service ${input.serviceSlug} does not expose SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD in ${input.projectSlug}/${input.environmentName}`
+        `Service ${input.serviceSlug} does not expose SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD in ${input.projectSlug}/${input.environmentName}`,
       )
     }
 
@@ -247,13 +247,13 @@ export class ZaneMedusaPublishableKeyProvisioner {
     const auth = await this.authenticateMedusaAdmin(
       medusaUrl,
       adminEmail,
-      adminPassword
+      adminPassword,
     )
     const title = input.frontendOutput.policy.title?.trim() || undefined
     const result = await this.requestPublishableKey(
       medusaUrl,
       auth.token,
-      title
+      title,
     )
 
     return {
@@ -270,7 +270,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
 
   private requireOutputEnvVar(
     output: ProvisionMedusaPublishableKeyOutputInput,
-    label: string
+    label: string,
   ): string {
     if (!output.envVar.trim()) {
       throw new BadRequestError(`${label}.envVar must be provided`)
@@ -281,7 +281,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
 
   private async waitForServiceHealth(
     medusaUrl: string,
-    healthPath: string
+    healthPath: string,
   ): Promise<void> {
     const healthUrl = resolveMedusaUrl(medusaUrl, healthPath)
     for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -302,14 +302,14 @@ export class ZaneMedusaPublishableKeyProvisioner {
     throw new UpstreamHttpError(
       504,
       "zane_medusa_unhealthy",
-      `Timed out waiting for Medusa health at ${healthUrl}`
+      `Timed out waiting for Medusa health at ${healthUrl}`,
     )
   }
 
   private async authenticateMedusaAdmin(
     medusaUrl: string,
     email: string,
-    password: string
+    password: string,
   ): Promise<AuthResponse> {
     const response = await fetch(
       resolveMedusaUrl(medusaUrl, "/auth/user/emailpass"),
@@ -320,7 +320,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
           "Content-Type": "application/json",
         },
         method: "POST",
-      }
+      },
     )
 
     if (!response.ok) {
@@ -333,14 +333,14 @@ export class ZaneMedusaPublishableKeyProvisioner {
       throw new UpstreamHttpError(
         response.status,
         "zane_medusa_admin_auth_failed",
-        errorMessage
+        errorMessage,
       )
     }
 
     const payload = await response.json()
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       throw new BadRequestError(
-        "medusa admin auth response must be a JSON object"
+        "medusa admin auth response must be a JSON object",
       )
     }
 
@@ -356,7 +356,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
   private async requestPublishableKey(
     medusaUrl: string,
     token: string,
-    title: string | undefined
+    title: string | undefined,
   ): Promise<PublishableKeyResponse> {
     const response = await fetch(
       resolveMedusaUrl(medusaUrl, "/admin/provisioning/publishable-key"),
@@ -368,7 +368,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
           "Content-Type": "application/json",
         },
         method: "POST",
-      }
+      },
     )
 
     if (!response.ok) {
@@ -381,14 +381,14 @@ export class ZaneMedusaPublishableKeyProvisioner {
       throw new UpstreamHttpError(
         response.status,
         "zane_medusa_publishable_key_failed",
-        errorMessage
+        errorMessage,
       )
     }
 
     const payload = await response.json()
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       throw new BadRequestError(
-        "medusa publishable key response must be a JSON object"
+        "medusa publishable key response must be a JSON object",
       )
     }
 
@@ -396,7 +396,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
     const apiKey = payloadObject.api_key
     if (!apiKey || typeof apiKey !== "object" || Array.isArray(apiKey)) {
       throw new BadRequestError(
-        "medusa publishable key response missing api_key object"
+        "medusa publishable key response missing api_key object",
       )
     }
 
@@ -404,7 +404,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
     const tokenValue = apiKeyObject.token
     if (typeof tokenValue !== "string" || !tokenValue.trim()) {
       throw new BadRequestError(
-        "medusa publishable key response missing api_key.token"
+        "medusa publishable key response missing api_key.token",
       )
     }
 

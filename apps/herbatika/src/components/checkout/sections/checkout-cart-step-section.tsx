@@ -29,16 +29,16 @@ export function CheckoutCartStepSection({
 }: CheckoutCartStepSectionProps) {
   const tCheckout = useTranslations("checkout")
   const lineItemActions = useCartLineItemActions(
-    cartId === undefined ? {} : { cartId }
+    cartId === undefined ? {} : { cartId },
   )
   const { productsByHandle: cartProductsByHandle } = useCartProductsByHandle(
     cartItems,
-    PRODUCT_DETAIL_FIELDS
+    PRODUCT_DETAIL_FIELDS,
   )
 
   const supportedCurrencyCode = resolveSupportedCurrencyCode(currencyCode)
   const freeShippingThresholdAmount = resolveFreeShippingThresholdAmount(
-    supportedCurrencyCode
+    supportedCurrencyCode,
   )
   const missingAmount =
     freeShippingThresholdAmount === null
@@ -49,7 +49,7 @@ export function CheckoutCartStepSection({
       ? 0
       : Math.min(
           (cartItemsTotalAmount / freeShippingThresholdAmount) * 100,
-          100
+          100,
         )
   const missingAmountLabel =
     freeShippingThresholdAmount === null
@@ -61,7 +61,7 @@ export function CheckoutCartStepSection({
       : formatCurrencyAmount(
           freeShippingThresholdAmount,
           supportedCurrencyCode,
-          { maximumFractionDigits: 0, minimumFractionDigits: 0 }
+          { maximumFractionDigits: 0, minimumFractionDigits: 0 },
         )
 
   return (
@@ -113,7 +113,7 @@ export function CheckoutCartStepSection({
       <div className="overflow-hidden rounded-sm border border-border-primary bg-surface p-400 md:px-550 md:pt-550 md:pb-500">
         {cartItems.map((item, index) => {
           const itemProduct = cartProductsByHandle.get(
-            resolveLineItemProductHandle(item) ?? ""
+            resolveLineItemProductHandle(item) ?? "",
           )
 
           return (

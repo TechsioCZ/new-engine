@@ -31,7 +31,7 @@ describe("Admin publishable key endpoint", () => {
           password: adminPassword,
         },
         method: "POST",
-      }
+      },
     )
 
     expect(authResponse.status).toBe(200)
@@ -47,7 +47,7 @@ describe("Admin publishable key endpoint", () => {
         body: { title },
         method: "POST",
         token,
-      }
+      },
     )
 
     expect(createResponse.status).toBe(200)
@@ -67,7 +67,7 @@ describe("Admin publishable key endpoint", () => {
         body: { title },
         method: "POST",
         token,
-      }
+      },
     )
 
     expect(secondCreateResponse.status).toBe(200)
@@ -84,7 +84,7 @@ describe("Admin publishable key endpoint", () => {
     const getResponse = await requestJson<PublishableKeyResponse>(
       backendUrl,
       `/admin/provisioning/publishable-key?title=${encodeURIComponent(title)}`,
-      { token }
+      { token },
     )
 
     expect(getResponse.status).toBe(200)

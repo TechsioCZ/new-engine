@@ -17,7 +17,7 @@ import type { StoreUpdateApprovalSettingsType } from "../../validators"
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<StoreUpdateApprovalSettingsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -45,7 +45,7 @@ export const POST = async (
     if (!approvalSettingsId) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Approval settings for company ${id} were not found`
+        `Approval settings for company ${id} were not found`,
       )
     }
   }
@@ -53,7 +53,7 @@ export const POST = async (
   if (!approvalSettingsId) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Approval settings for company ${id} were not found`
+      `Approval settings for company ${id} were not found`,
     )
   }
 

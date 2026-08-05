@@ -45,11 +45,11 @@ export const NumberFilter = ({
 
   const currentValue = selectedParams.get()
   const [previousValue, setPreviousValue] = useState<string[] | undefined>(
-    currentValue
+    currentValue,
   )
 
   const [operator, setOperator] = useState<Comparison | undefined>(
-    getOperator(currentValue)
+    getOperator(currentValue),
   )
 
   const debouncedOnChange = useMemo(
@@ -76,7 +76,7 @@ export const NumberFilter = ({
           }
 
           selectedParams.add(
-            JSON.stringify({ ...curr, [valueOperator]: value })
+            JSON.stringify({ ...curr, [valueOperator]: value }),
           )
         }
 
@@ -99,14 +99,14 @@ export const NumberFilter = ({
           }
         }
       }, 500),
-    [selectedParams, currentValue]
+    [selectedParams, currentValue],
   )
 
   useEffect(
     () => () => {
       debouncedOnChange.cancel()
     },
-    [debouncedOnChange]
+    [debouncedOnChange],
   )
 
   let timeoutId: ReturnType<typeof setTimeout> | null = null
@@ -164,7 +164,7 @@ export const NumberFilter = ({
           <PopoverContent
             align="start"
             className={clx(
-              "max-h-[var(--radix-popper-available-height)] w-[300px] divide-y overflow-y-auto rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none"
+              "max-h-[var(--radix-popper-available-height)] w-[300px] divide-y overflow-y-auto rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none",
             )}
             collisionPadding={24}
             data-name="number_filter_content"
@@ -271,7 +271,7 @@ export const NumberFilter = ({
 
 const parseDisplayValue = (
   value: string[] | null | undefined,
-  t: TFunction
+  t: TFunction,
 ) => {
   const parsed = JSON.parse(value?.join(",") || "{}")
   let displayValue = ""
@@ -286,7 +286,7 @@ const parseDisplayValue = (
       parts.push(
         t("filters.compare.lessThanLabel", {
           value: parsed.lt,
-        })
+        }),
       )
     }
 
@@ -315,7 +315,7 @@ const parseValue = (value: string[] | null | undefined) => {
 
 const getValue = (
   value: string[] | null | undefined,
-  key: Operator
+  key: Operator,
 ): number | undefined => {
   const parsed = parseValue(value)
 

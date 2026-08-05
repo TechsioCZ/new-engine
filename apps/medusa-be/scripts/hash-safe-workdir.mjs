@@ -29,7 +29,7 @@ function ensureHashSafeRepoAlias() {
 
   if (process.platform !== "linux") {
     throw new Error(
-      "Hash-safe Medusa runner requires Linux with CAP_SYS_ADMIN/root privileges when repo paths contain '#'. It relies on mount --bind and umount -l."
+      "Hash-safe Medusa runner requires Linux with CAP_SYS_ADMIN/root privileges when repo paths contain '#'. It relies on mount --bind and umount -l.",
     )
   }
 
@@ -40,7 +40,7 @@ function ensureHashSafeRepoAlias() {
     .slice(0, 10)
   const aliasRoot = path.join(
     os.tmpdir(),
-    `new-engine-hash-safe-${digest}-${process.pid}`
+    `new-engine-hash-safe-${digest}-${process.pid}`,
   )
 
   try {
@@ -72,7 +72,7 @@ function ensureHashSafeRepoAlias() {
   if (mountResult.status !== 0) {
     removeAliasRoot(aliasRoot)
     throw new Error(
-      `Unable to bind mount hash-safe path ${aliasRoot} for ${repoRoot}`
+      `Unable to bind mount hash-safe path ${aliasRoot} for ${repoRoot}`,
     )
   }
 
@@ -155,7 +155,7 @@ export function runUnderHashSafeContext(bin, args) {
       cwd: runContext.runCwd,
       env: runContext.env,
       stdio: "inherit",
-    }
+    },
   )
 
   child.on("error", (error) => {

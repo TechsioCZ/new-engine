@@ -12,13 +12,13 @@ describe("sales-channel seed reconciliation", () => {
       validateSalesChannelSeedInput([
         { default: true, name: "Default" },
         { default: false, name: "Default" },
-      ])
+      ]),
     ).toThrow(UNIQUE_NAME_PATTERN)
     expect(() =>
       validateSalesChannelSeedInput([
         { default: true, name: "Default" },
         { default: true, name: "POS" },
-      ])
+      ]),
     ).toThrow(EXACTLY_ONE_DEFAULT_PATTERN)
   })
 
@@ -27,7 +27,7 @@ describe("sales-channel seed reconciliation", () => {
       validateSalesChannelSeedInput([
         { default: true, name: " Default " },
         { default: false, name: " POS " },
-      ])
+      ]),
     ).toStrictEqual(["Default", "POS"])
   })
 
@@ -36,7 +36,7 @@ describe("sales-channel seed reconciliation", () => {
       planSalesChannelApiKeyLinks({
         desiredIds: ["default"],
         existingIds: ["default", "pos"],
-      })
+      }),
     ).toStrictEqual({ add: [], remove: ["pos"] })
   })
 })

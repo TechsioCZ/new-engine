@@ -54,7 +54,9 @@ export function CheckoutGlsPickupSelector({
         helpText="ID ParcelShopu z GLS systému alebo mapy."
         id="checkout-gls-access-point-id"
         label="GLS výdajné miesto"
-        onChange={(event) =>{  setAccessPointId(event.target.value); }}
+        onChange={(event) => {
+          setAccessPointId(event.target.value)
+        }}
         placeholder="napr. SK12345"
         size="sm"
         value={accessPointId}
@@ -65,7 +67,9 @@ export function CheckoutGlsPickupSelector({
         helpText="Voliteľné pomenovanie výdajného miesta pre adresu doručenia."
         id="checkout-gls-access-point-name"
         label="Názov výdajného miesta"
-        onChange={(event) =>{  setAccessPointName(event.target.value); }}
+        onChange={(event) => {
+          setAccessPointName(event.target.value)
+        }}
         placeholder="GLS ParcelShop"
         size="sm"
         value={accessPointName}

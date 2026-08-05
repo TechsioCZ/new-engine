@@ -88,48 +88,48 @@ type PaykitSdkCustomers = PaykitSdkClient["customers"]
 export interface PaykitPaymentClient {
   payments: {
     create: (
-      input: Parameters<PaykitSdkPayments["create"]>[0]
+      input: Parameters<PaykitSdkPayments["create"]>[0],
     ) => Promise<PaykitPayment>
     retrieve: (
-      id: Parameters<PaykitSdkPayments["retrieve"]>[0]
+      id: Parameters<PaykitSdkPayments["retrieve"]>[0],
     ) => Promise<PaykitPayment | null>
     update?: (
       id: Parameters<PaykitSdkPayments["update"]>[0],
-      input: Parameters<PaykitSdkPayments["update"]>[1]
+      input: Parameters<PaykitSdkPayments["update"]>[1],
     ) => Promise<PaykitPayment>
     cancel?: (
-      id: Parameters<PaykitSdkPayments["cancel"]>[0]
+      id: Parameters<PaykitSdkPayments["cancel"]>[0],
     ) => Promise<PaykitPayment>
     capture?: (
       id: Parameters<PaykitSdkPayments["capture"]>[0],
-      input: Parameters<PaykitSdkPayments["capture"]>[1]
+      input: Parameters<PaykitSdkPayments["capture"]>[1],
     ) => Promise<PaykitPayment>
   }
   refunds?: {
     create: (
-      input: Parameters<PaykitSdkRefunds["create"]>[0]
+      input: Parameters<PaykitSdkRefunds["create"]>[0],
     ) => Promise<PaykitRefund>
   }
   customers?: {
     create: (
-      input: Parameters<PaykitSdkCustomers["create"]>[0]
+      input: Parameters<PaykitSdkCustomers["create"]>[0],
     ) => Promise<PaykitCustomer>
     update: (
       id: Parameters<PaykitSdkCustomers["update"]>[0],
-      input: Parameters<PaykitSdkCustomers["update"]>[1]
+      input: Parameters<PaykitSdkCustomers["update"]>[1],
     ) => Promise<PaykitCustomer>
     retrieve: (
-      id: Parameters<PaykitSdkCustomers["retrieve"]>[0]
+      id: Parameters<PaykitSdkCustomers["retrieve"]>[0],
     ) => Promise<PaykitCustomer | null>
     delete: (id: Parameters<PaykitSdkCustomers["delete"]>[0]) => Promise<null>
   }
   handleWebhook?: (
-    payload: ProviderWebhookPayload["payload"]
+    payload: ProviderWebhookPayload["payload"],
   ) => Promise<PaykitWebhookEvent | PaykitWebhookEvent[] | undefined>
   stripeCheckoutSessions?: {
     retrieve: (
       id: string,
-      options?: Record<string, unknown>
+      options?: Record<string, unknown>,
     ) => Promise<PaykitStripeCheckoutSession | null>
     expire?: (id: string) => Promise<PaykitStripeCheckoutSession | null>
   }

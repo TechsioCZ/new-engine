@@ -13,7 +13,7 @@ export function useRegions() {
   const queryClient = useQueryClient()
   const selectedRegionId = useStore(
     regionStore,
-    (state) => state.selectedRegionId
+    (state) => state.selectedRegionId,
   )
 
   const {

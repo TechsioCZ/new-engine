@@ -32,7 +32,7 @@ async function retrieveCart(scope: MedusaContainer, id: string) {
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreSetCartCustomerNoteType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const cartId = typeof req.params["id"] === "string" ? req.params["id"] : ""
 
@@ -55,7 +55,7 @@ export async function POST(
   if (!cart) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Cart ${cartId} not found`
+      `Cart ${cartId} not found`,
     )
   }
 

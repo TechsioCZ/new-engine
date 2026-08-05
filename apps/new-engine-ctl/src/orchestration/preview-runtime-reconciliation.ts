@@ -66,7 +66,7 @@ function buildPreviewGitSourceSpec(input: {
 
 function resolveSourceEnvironmentName(
   source: PreviewRuntimeSourceDefinition,
-  context: PreviewRuntimeContext
+  context: PreviewRuntimeContext,
 ): string | undefined {
   return source.environment_scope === "source"
     ? context.sourceEnvironmentName
@@ -76,7 +76,7 @@ function resolveSourceEnvironmentName(
 function requireServiceSlug(
   manifest: StackManifest,
   serviceId: string,
-  label: string
+  label: string,
 ): string {
   try {
     return getDeployableService(manifest, serviceId).serviceSlug
@@ -120,7 +120,7 @@ function buildResolvedSource(input: {
         service_slug: requireServiceSlug(
           manifest,
           source.service_id ?? "",
-          `preview runtime source ${source.kind}`
+          `preview runtime source ${source.kind}`,
         ),
         source_environment_name: resolveSourceEnvironmentName(source, context),
       }
@@ -131,7 +131,7 @@ function buildResolvedSource(input: {
         service_slug: requireServiceSlug(
           manifest,
           source.service_id ?? "",
-          `preview runtime source ${source.kind}`
+          `preview runtime source ${source.kind}`,
         ),
         source_environment_name: resolveSourceEnvironmentName(source, context),
         port: source.port,
@@ -144,7 +144,7 @@ function buildResolvedSource(input: {
         service_slug: requireServiceSlug(
           manifest,
           source.service_id ?? "",
-          `preview runtime source ${source.kind}`
+          `preview runtime source ${source.kind}`,
         ),
         source_environment_name: resolveSourceEnvironmentName(source, context),
         port: source.port,
@@ -170,7 +170,7 @@ function requireNonEmptyLiteralSource(input: {
 
 function resolveLaneBuildStageTarget(
   definition: ServiceReconciliationDefinition,
-  lane: ServiceReconciliationLane
+  lane: ServiceReconciliationLane,
 ): string | null | undefined {
   const buildStageTargets = definition.builder.build_stage_target_by_lane
   return lane === "preview" ? buildStageTargets.preview : buildStageTargets.main
@@ -185,8 +185,8 @@ export function buildPreviewSharedEnvSyncVariables(input: {
   return getPreviewSharedEnvDefinitions(input.stackInputs)
     .filter((definition) =>
       definition.consumed_by_service_ids.some((serviceId) =>
-        input.deployServiceIds.includes(serviceId)
-      )
+        input.deployServiceIds.includes(serviceId),
+      ),
     )
     .map((definition) => {
       const source = buildResolvedSource({
@@ -214,7 +214,7 @@ export function buildPreviewRequiredSharedEnvKeys(input: {
 
   for (const definition of getPreviewSharedEnvDefinitions(input.stackInputs)) {
     const isConsumed = definition.consumed_by_service_ids.some((serviceId) =>
-      input.deployServiceIds.includes(serviceId)
+      input.deployServiceIds.includes(serviceId),
     )
     if (!isConsumed || seen.has(definition.key)) {
       continue
@@ -243,7 +243,7 @@ export function buildPreviewServiceEnvSyncServices(input: {
     const targetSlug = requireServiceSlug(
       input.manifest,
       definition.service_id,
-      `preview service env ${definition.service_id}.${definition.env_var}`
+      `preview service env ${definition.service_id}.${definition.env_var}`,
     )
     const existing = grouped.get(definition.service_id) ?? {
       env: [],
@@ -301,7 +301,7 @@ export function buildPreviewRequiredServiceEnvKeys(input: {
       service_slug: requireServiceSlug(
         input.manifest,
         definition.service_id,
-        `preview service env ${definition.service_id}.${definition.env_var}`
+        `preview service env ${definition.service_id}.${definition.env_var}`,
       ),
     }
 
@@ -327,7 +327,7 @@ export function buildServiceReconciliationSpecs(input: {
     getServiceReconciliationDefinitions(input.stackInputs).map((definition) => [
       definition.service_id,
       definition,
-    ])
+    ]),
   )
 
   return [...new Set(input.serviceIds)].map((serviceId) => {
@@ -352,7 +352,7 @@ export function buildServiceReconciliationSpecs(input: {
       service_slug: requireServiceSlug(
         input.manifest,
         serviceId,
-        `service reconciliation ${serviceId}`
+        `service reconciliation ${serviceId}`,
       ),
     }
 
@@ -363,7 +363,7 @@ export function buildServiceReconciliationSpecs(input: {
     if (definition.builder.sync_from_source) {
       const buildStageTarget = resolveLaneBuildStageTarget(
         definition,
-        input.lane
+        input.lane,
       )
       serviceSpec.builder =
         buildStageTarget !== undefined

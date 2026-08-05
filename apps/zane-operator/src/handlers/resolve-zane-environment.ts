@@ -10,7 +10,7 @@ interface ResolveZaneEnvironmentDeps {
 
 export async function handleResolveZaneEnvironment(
   request: Request,
-  deps: ResolveZaneEnvironmentDeps
+  deps: ResolveZaneEnvironmentDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

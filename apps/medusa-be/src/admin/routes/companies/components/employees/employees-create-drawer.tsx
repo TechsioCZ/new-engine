@@ -30,7 +30,7 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
       first_name?: string | null
       last_name?: string | null
       phone?: string | null
-    }
+    },
   ) => {
     const existingCustomer = await findCustomerByEmail(email)
 
@@ -97,7 +97,7 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
         reusedExistingCustomer = resolvedCustomer.reusedExistingCustomer
       } catch (error) {
         toast.error(
-          `${t("errors.createCustomerFailed")}: ${getErrorMessage(error)}`
+          `${t("errors.createCustomerFailed")}: ${getErrorMessage(error)}`,
         )
         return
       }
@@ -116,7 +116,7 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
       }
     } catch (error) {
       toast.error(
-        `${t("errors.createEmployeeFailed")}: ${getErrorMessage(error)}`
+        `${t("errors.createEmployeeFailed")}: ${getErrorMessage(error)}`,
       )
       return
     }
@@ -129,8 +129,8 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
           : "toasts.employeeCreated",
         {
           name: [first_name, last_name].filter(Boolean).join(" ") || email,
-        }
-      )
+        },
+      ),
     )
   }
 

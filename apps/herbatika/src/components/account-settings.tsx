@@ -36,7 +36,7 @@ export function AccountSettings() {
         phoneInvalid: tForm("validation.phone_invalid"),
         phoneMinDigits: tForm("validation.phone_min_digits"),
       }),
-    [tForm]
+    [tForm],
   )
 
   const form = useHerbatikaForm({
@@ -65,7 +65,7 @@ export function AccountSettings() {
         setSubmitSuccess(tAuth("account.settings.saved"))
       } catch (error) {
         setSubmitError(
-          resolveErrorMessage(error, tAuth("account.settings.update_failed"))
+          resolveErrorMessage(error, tAuth("account.settings.update_failed")),
         )
       }
     },

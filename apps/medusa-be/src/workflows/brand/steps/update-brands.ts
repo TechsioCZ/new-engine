@@ -26,7 +26,7 @@ export const updateBrandsStep = createStep(
     if (!(effectiveState.title && effectiveState.handle)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Brand title and handle must not be empty"
+        "Brand title and handle must not be empty",
       )
     }
 
@@ -40,10 +40,10 @@ export const updateBrandsStep = createStep(
         {
           take: 2,
           withDeleted: true,
-        }
+        },
       )
       const collision = collisions.find(
-        (brand) => brand.id !== input.selector.id
+        (brand) => brand.id !== input.selector.id,
       )
 
       if (collision) {
@@ -51,7 +51,7 @@ export const updateBrandsStep = createStep(
 
         throw new MedusaError(
           MedusaError.Types.DUPLICATE_ERROR,
-          `Brand with handle "${effectiveState.handle}" already exists${suffix}.`
+          `Brand with handle "${effectiveState.handle}" already exists${suffix}.`,
         )
       }
     }
@@ -63,8 +63,8 @@ export const updateBrandsStep = createStep(
             id: input.selector.id,
             ...buildBrandWriteInput(normalizedUpdate),
           },
-          context
-        )
+          context,
+        ),
       )
 
       if (input.update.attributes !== undefined) {
@@ -72,7 +72,7 @@ export const updateBrandsStep = createStep(
           service,
           input.selector.id,
           input.update.attributes,
-          context
+          context,
         )
       }
 
@@ -94,14 +94,14 @@ export const updateBrandsStep = createStep(
           ...buildBrandWriteInput(previous),
           id: previous.id,
         },
-        context
+        context,
       )
       await setBrandAttributes(
         service,
         previous.id,
         previous.attributes,
-        context
+        context,
       )
     })
-  }
+  },
 )

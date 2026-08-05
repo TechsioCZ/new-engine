@@ -11,8 +11,8 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import { useEffect, useState } from "react"
+import type { FormEvent } from "react"
 
 import type {
   GLSCountryCode,
@@ -190,7 +190,9 @@ const FormField = ({
       <Input
         disabled={isCleared}
         id={inputId}
-        onChange={(e) =>{  onChange(e.target.value); }}
+        onChange={(e) => {
+          onChange(e.target.value)
+        }}
         placeholder={getPlaceholder(isCleared, fieldConfig)}
         type={fieldConfig.type ?? "text"}
         value={isCleared ? "" : value}
@@ -238,13 +240,13 @@ const GLSSettingsPage = () => {
   const [seededConfigId, setSeededConfigId] = useState<string | null>(null)
 
   const { data, isLoading, error } = useQuery({
-    queryFn:  async () =>
+    queryFn: async () =>
       sdk.client.fetch<{ config: GLSConfigResponse }>("/admin/gls-config"),
     queryKey: ["gls-config"],
   })
 
   const { mutate, isPending } = useMutation({
-    mutationFn:  async (payload: GLSConfigInput) =>
+    mutationFn: async (payload: GLSConfigInput) =>
       sdk.client.fetch("/admin/gls-config", {
         method: "POST",
         body: payload,
@@ -419,16 +421,18 @@ const GLSSettingsPage = () => {
                 aria-labelledby="gls-is-enabled-label"
                 checked={formData.is_enabled ?? false}
                 id="gls-is-enabled"
-                onCheckedChange={(checked) =>{ 
-                  updateField("is_enabled", checked); }
-                }
+                onCheckedChange={(checked) => {
+                  updateField("is_enabled", checked)
+                }}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="gls-country-code">Country Domain</Label>
                 <Select
-                  onValueChange={(value) =>{  updateField("country_code", value); }}
+                  onValueChange={(value) => {
+                    updateField("country_code", value)
+                  }}
                   value={formData.country_code ?? "SK"}
                 >
                   <Select.Trigger id="gls-country-code">
@@ -448,14 +452,14 @@ const GLSSettingsPage = () => {
                 <Input
                   id="gls-client-number"
                   min={1}
-                  onChange={(e) =>{ 
+                  onChange={(e) => {
                     updateField(
                       "client_number",
                       e.target.value
                         ? Number.parseInt(e.target.value, 10)
                         : null,
-                    ); }
-                  }
+                    )
+                  }}
                   placeholder="GLS client number"
                   type="number"
                   value={formData.client_number ?? ""}
@@ -475,8 +479,12 @@ const GLSSettingsPage = () => {
                 fieldConfig={field}
                 isCleared={isFieldCleared(field.field)}
                 key={field.field}
-                onChange={(value) =>{  updateField(field.field, value); }}
-                onClear={() =>{  clearField(field.field); }}
+                onChange={(value) => {
+                  updateField(field.field, value)
+                }}
+                onClear={() => {
+                  clearField(field.field)
+                }}
                 value={getStringField(formData, field.field)}
               />
             ))}
@@ -491,7 +499,9 @@ const GLSSettingsPage = () => {
             <div className="flex flex-col gap-2">
               <Label htmlFor="gls-printer-type">Type of Printer</Label>
               <Select
-                onValueChange={(value) =>{  updateField("type_of_printer", value); }}
+                onValueChange={(value) => {
+                  updateField("type_of_printer", value)
+                }}
                 value={formData.type_of_printer ?? "A4_2x2"}
               >
                 <Select.Trigger id="gls-printer-type">
@@ -512,12 +522,12 @@ const GLSSettingsPage = () => {
                 id="gls-print-position"
                 max={4}
                 min={1}
-                onChange={(e) =>{ 
+                onChange={(e) => {
                   updateField(
                     "print_position",
                     Number.parseInt(e.target.value, 10) || 1,
-                  ); }
-                }
+                  )
+                }}
                 type="number"
                 value={formData.print_position ?? 1}
               />
@@ -534,9 +544,9 @@ const GLSSettingsPage = () => {
               <Switch
                 checked={formData.hide_phone_number_on_labels ?? false}
                 id="gls-hide-phone"
-                onCheckedChange={(checked) =>{ 
-                  updateField("hide_phone_number_on_labels", checked); }
-                }
+                onCheckedChange={(checked) => {
+                  updateField("hide_phone_number_on_labels", checked)
+                }}
               />
             </div>
             <FormField
@@ -546,7 +556,9 @@ const GLSSettingsPage = () => {
                 label: "Webshop Engine",
                 placeholder: "new-engine-medusa",
               }}
-              onChange={(value) =>{  updateField("webshop_engine", value); }}
+              onChange={(value) => {
+                updateField("webshop_engine", value)
+              }}
               value={getStringField(formData, "webshop_engine")}
             />
           </div>
@@ -564,7 +576,9 @@ const GLSSettingsPage = () => {
               <FormField
                 fieldConfig={field}
                 key={field.field}
-                onChange={(value) =>{  updateField(field.field, value); }}
+                onChange={(value) => {
+                  updateField(field.field, value)
+                }}
                 value={getStringField(formData, field.field)}
               />
             ))}

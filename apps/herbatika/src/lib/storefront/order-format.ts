@@ -4,7 +4,7 @@ type OrderStatusBadgeVariant = "danger" | "info" | "success" | "warning"
 type OrderStatusGroup = "fulfillment" | "lifecycle" | "payment"
 export type OrderStatusTranslator = (
   group: OrderStatusGroup,
-  status: string
+  status: string,
 ) => string
 
 export interface StorefrontOrderStatusInput {
@@ -15,7 +15,7 @@ export interface StorefrontOrderStatusInput {
 
 export const resolveOrderPaymentStatusLabel = (
   order: StorefrontOrderStatusInput,
-  translateStatus: OrderStatusTranslator
+  translateStatus: OrderStatusTranslator,
 ) => {
   if (!order.payment_status) {
     return null
@@ -26,7 +26,7 @@ export const resolveOrderPaymentStatusLabel = (
 
 export const resolveOrderFulfillmentStatusLabel = (
   order: StorefrontOrderStatusInput,
-  translateStatus: OrderStatusTranslator
+  translateStatus: OrderStatusTranslator,
 ) => {
   if (!order.fulfillment_status) {
     return null
@@ -37,7 +37,7 @@ export const resolveOrderFulfillmentStatusLabel = (
 
 export const resolveOrderProgressState = (
   order: StorefrontOrderStatusInput,
-  translateStatus: OrderStatusTranslator
+  translateStatus: OrderStatusTranslator,
 ): { label: string; variant: OrderStatusBadgeVariant } => {
   if (order.status === "canceled") {
     return {
@@ -148,7 +148,7 @@ export const resolveOrderDisplayId = (order: {
 
 export const formatOrderDate = (
   value: Date | string | null | undefined,
-  locale: string
+  locale: string,
 ) => {
   if (!value) {
     return "-"
@@ -167,7 +167,7 @@ export const formatOrderDate = (
 
 export const formatOrderAmount = (
   amount: number,
-  currencyCode?: string | null
+  currencyCode?: string | null,
 ) => formatCurrencyAmount(amount, currencyCode)
 
 export const resolveOrderTotalAmount = (order: {
@@ -211,7 +211,7 @@ export const resolveOrderItemQuantity = (item: {
 }
 
 export const resolveOrderItemCount = (
-  items?: { quantity?: number | null }[] | null
+  items?: { quantity?: number | null }[] | null,
 ) => {
   if (!items?.length) {
     return 0
@@ -225,7 +225,7 @@ export const resolveOrderItemCount = (
 
 const resolveRecordValue = (
   source: Record<string, unknown>,
-  key: string
+  key: string,
 ): string | null => {
   const value = source[key]
   if (typeof value !== "string") {
@@ -237,7 +237,7 @@ const resolveRecordValue = (
 }
 
 export const resolveOrderInvoiceUrl = (
-  order: { metadata?: unknown } | null | undefined
+  order: { metadata?: unknown } | null | undefined,
 ) => {
   if (!(order?.metadata && typeof order.metadata === "object")) {
     return null

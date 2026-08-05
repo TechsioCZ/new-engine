@@ -30,7 +30,7 @@ vi.mock(
   import("../../../../../../../src/workflows/order-expedition/bulk-cancel-orders"),
   () => ({
     bulkCancelOrdersWorkflow: vi.fn(() => ({ run: mockBulkCancelRun })),
-  })
+  }),
 )
 
 vi.mock(
@@ -38,9 +38,9 @@ vi.mock(
   () => ({
     bulkUpdateOrderStatusesWorkflow: vi.fn(() => ({ run: mockBulkUpdateRun })),
     isOrderExpeditionDirectUpdateStatus: vi.fn((status: string) =>
-      ["pending", "draft", "requires_action"].includes(status)
+      ["pending", "draft", "requires_action"].includes(status),
     ),
-  })
+  }),
 )
 
 /**
@@ -52,7 +52,7 @@ vi.mock(
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
@@ -81,7 +81,7 @@ const createMockResponse = (): MockStatusResponse => {
 
 const createMockRequest = (
   validatedBody: Record<string, unknown>,
-  graph: ReturnType<typeof vi.fn>
+  graph: ReturnType<typeof vi.fn>,
 ): MedusaRequest<PostAdminOrderExpeditionStatusSchemaType> => {
   const candidate: unknown = {
     scope: {
@@ -91,7 +91,7 @@ const createMockRequest = (
   }
   assertMockShape<MedusaRequest<PostAdminOrderExpeditionStatusSchemaType>>(
     candidate,
-    ["scope", "validatedBody"]
+    ["scope", "validatedBody"],
   )
   return candidate
 }
@@ -112,7 +112,7 @@ describe("POST /admin/order-expedition/status", () => {
         order_ids: ["order_1", "order_missing"],
         target_status: "completed",
       },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -129,7 +129,7 @@ describe("POST /admin/order-expedition/status", () => {
           },
         ],
         code: "order_expedition_status_blocked",
-      })
+      }),
     )
     expect(mockCompleteRun).not.toHaveBeenCalled()
     expect(mockArchiveRun).not.toHaveBeenCalled()
@@ -159,7 +159,7 @@ describe("POST /admin/order-expedition/status", () => {
         order_ids: ["order_1", "order_2"],
         target_status: "completed",
       },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -172,7 +172,7 @@ describe("POST /admin/order-expedition/status", () => {
       expect.objectContaining({
         count: 2,
         target_status: "completed",
-      })
+      }),
     )
   })
 
@@ -198,7 +198,7 @@ describe("POST /admin/order-expedition/status", () => {
         order_ids: ["order_1", "order_2"],
         target_status: "requires_action",
       },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -217,7 +217,7 @@ describe("POST /admin/order-expedition/status", () => {
       expect.objectContaining({
         count: 2,
         target_status: "requires_action",
-      })
+      }),
     )
   })
 
@@ -239,7 +239,7 @@ describe("POST /admin/order-expedition/status", () => {
         order_ids: ["order_1"],
         target_status: "canceled",
       },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -255,7 +255,7 @@ describe("POST /admin/order-expedition/status", () => {
             reason: "Orders with active fulfillments cannot be canceled",
           },
         ],
-      })
+      }),
     )
     expect(mockBulkCancelRun).not.toHaveBeenCalled()
   })
@@ -277,7 +277,7 @@ describe("POST /admin/order-expedition/status", () => {
         order_ids: ["order_1"],
         target_status: "pending",
       },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -293,7 +293,7 @@ describe("POST /admin/order-expedition/status", () => {
             reason: "Archived orders cannot be changed",
           },
         ],
-      })
+      }),
     )
     expect(mockBulkUpdateRun).not.toHaveBeenCalled()
   })
@@ -315,7 +315,7 @@ describe("POST /admin/order-expedition/status", () => {
         order_ids: ["order_1"],
         target_status: "archived",
       },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -331,7 +331,7 @@ describe("POST /admin/order-expedition/status", () => {
             reason: "Pending orders cannot be changed to archived",
           },
         ],
-      })
+      }),
     )
     expect(mockArchiveRun).not.toHaveBeenCalled()
   })
@@ -364,7 +364,7 @@ describe("POST /admin/order-expedition/status", () => {
         order_ids: ["order_1"],
         target_status: "archived",
       },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -377,7 +377,7 @@ describe("POST /admin/order-expedition/status", () => {
       expect.objectContaining({
         count: 1,
         target_status: "archived",
-      })
+      }),
     )
   })
 
@@ -410,7 +410,7 @@ describe("POST /admin/order-expedition/status", () => {
         order_ids: ["order_1"],
         target_status: "canceled",
       },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -423,7 +423,7 @@ describe("POST /admin/order-expedition/status", () => {
       expect.objectContaining({
         count: 1,
         target_status: "canceled",
-      })
+      }),
     )
   })
 })

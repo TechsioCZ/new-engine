@@ -9,9 +9,9 @@ describe("product review request URL", () => {
         productId: "prod_123",
         storefrontUrl: "https://store.example.test/",
         token: "review_token",
-      })
+      }),
     ).toBe(
-      "https://store.example.test/reviews/product/review_token?product_id=prod_123"
+      "https://store.example.test/reviews/product/review_token?product_id=prod_123",
     )
   })
 
@@ -21,9 +21,9 @@ describe("product review request URL", () => {
         productId: "prod id",
         storefrontUrl: "https://store.example.test///",
         token: "token/segment",
-      })
+      }),
     ).toBe(
-      "https://store.example.test/reviews/product/token%2Fsegment?product_id=prod+id"
+      "https://store.example.test/reviews/product/token%2Fsegment?product_id=prod+id",
     )
   })
 })

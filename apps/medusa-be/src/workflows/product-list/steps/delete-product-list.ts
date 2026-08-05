@@ -14,7 +14,7 @@ export const deleteProductListStep = createStep(
     if (productListType !== "custom") {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Only custom product lists can be deleted"
+        "Only custom product lists can be deleted",
       )
     }
 
@@ -40,5 +40,5 @@ export const deleteProductListStep = createStep(
         title: list.title,
         type: list.type,
       })
-  }
+  },
 )

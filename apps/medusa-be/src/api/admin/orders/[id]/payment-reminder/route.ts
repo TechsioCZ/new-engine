@@ -32,7 +32,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   if (!order.email) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order has no customer email"
+      "Order has no customer email",
     )
   }
 

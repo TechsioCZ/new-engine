@@ -10,7 +10,7 @@ describe(canNavigateToCheckoutStep, () => {
         isCheckoutComplete: false,
         stepCount: 4,
         targetStepIndex: 2,
-      })
+      }),
     ).toBeTruthy()
   })
 
@@ -21,7 +21,7 @@ describe(canNavigateToCheckoutStep, () => {
         isCheckoutComplete: false,
         stepCount: 4,
         targetStepIndex: 2,
-      })
+      }),
     ).toBeFalsy()
   })
 
@@ -32,7 +32,7 @@ describe(canNavigateToCheckoutStep, () => {
         isCheckoutComplete: false,
         stepCount: 4,
         targetStepIndex,
-      })
+      }),
     ).toBeFalsy()
   })
 
@@ -43,7 +43,7 @@ describe(canNavigateToCheckoutStep, () => {
         isCheckoutComplete: true,
         stepCount: 4,
         targetStepIndex: 0,
-      })
+      }),
     ).toBeFalsy()
   })
 })

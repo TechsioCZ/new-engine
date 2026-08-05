@@ -17,7 +17,7 @@ export async function executeWithLockTimeout<T>(
   lockingModule: Pick<ILockingModule, "execute">,
   key: string,
   timeoutSeconds: number,
-  job: () => Promise<T>
+  job: () => Promise<T>,
 ): Promise<LockExecutionResult<T>> {
   const timeoutError = new LockAcquisitionTimeoutError()
   let callbackStarted = false
@@ -44,7 +44,7 @@ export async function executeWithLockTimeout<T>(
       callbackStarted = true
       return await job()
     },
-    { timeout: timeoutSeconds + PROVIDER_TIMEOUT_BUFFER_SECONDS }
+    { timeout: timeoutSeconds + PROVIDER_TIMEOUT_BUFFER_SECONDS },
   )
 
   try {

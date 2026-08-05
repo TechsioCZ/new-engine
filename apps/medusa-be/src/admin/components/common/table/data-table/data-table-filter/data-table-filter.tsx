@@ -59,11 +59,11 @@ export const DataTableFilter = ({
   const [open, setOpen] = useState(false)
 
   const [activeFilters, setActiveFilters] = useState(
-    getInitialFilters({ filters, searchParams, ...(prefix ? { prefix } : {}) })
+    getInitialFilters({ filters, searchParams, ...(prefix ? { prefix } : {}) }),
   )
 
   const availableFilters = filters.filter(
-    (f) => !activeFilters.find((af) => af.key === f.key)
+    (f) => !activeFilters.find((af) => af.key === f.key),
   )
 
   /**
@@ -169,13 +169,13 @@ export const DataTableFilter = ({
               <PopoverContent
                 align="start"
                 className={clx(
-                  "z-[1] h-full max-h-[200px] w-[300px] overflow-auto rounded-lg bg-ui-bg-base p-1 text-ui-fg-base shadow-elevation-flyout outline-none"
+                  "z-[1] h-full max-h-[200px] w-[300px] overflow-auto rounded-lg bg-ui-bg-base p-1 text-ui-fg-base shadow-elevation-flyout outline-none",
                 )}
                 collisionPadding={8}
                 data-name="filters_menu_content"
                 onCloseAutoFocus={(e) => {
                   const hasOpenFilter = activeFilters.find(
-                    (filter) => filter.openOnMount
+                    (filter) => filter.openOnMount,
                   )
 
                   if (hasOpenFilter) {
@@ -237,7 +237,7 @@ const ClearAllFilters = ({ filters, prefix }: ClearAllFiltersProps) => {
       className={clx(
         "txt-compact-small-plus rounded-md px-2 py-1 text-ui-fg-muted transition-fg",
         "hover:text-ui-fg-subtle",
-        "focus-visible:shadow-borders-focus"
+        "focus-visible:shadow-borders-focus",
       )}
       onClick={handleRemoveAll}
       type="button"

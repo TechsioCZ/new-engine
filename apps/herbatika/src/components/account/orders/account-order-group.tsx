@@ -37,7 +37,7 @@ export function AccountOrderGroup({
   const orderItems = order.items ?? []
   const orderItemCount = orderItems.reduce(
     (count, item) => count + resolveOrderItemQuantity(item),
-    0
+    0,
   )
   const desktopGridColumns =
     "lg:grid-cols-[minmax(0,1fr)_max-content_max-content]"

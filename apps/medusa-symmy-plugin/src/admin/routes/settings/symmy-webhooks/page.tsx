@@ -33,7 +33,7 @@ interface SymmyWebhookConfigInput {
 
 const fetchJson = async <T,>(
   path: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> => {
   const response = await fetch(path, {
     ...options,
@@ -69,7 +69,7 @@ const SymmyWebhooksSettingsPage = () => {
     const loadConfig = async () => {
       try {
         const data = await fetchJson<{ config: SymmyWebhookConfigResponse }>(
-          "/admin/symmy-webhooks"
+          "/admin/symmy-webhooks",
         )
 
         setFormData({
@@ -93,12 +93,12 @@ const SymmyWebhooksSettingsPage = () => {
 
   const updateEndpoint = (
     index: number,
-    patch: Partial<SymmyWebhookEndpoint>
+    patch: Partial<SymmyWebhookEndpoint>,
   ) => {
     setFormData((current) => ({
       ...current,
       endpoints: current.endpoints.map((endpoint, endpointIndex) =>
-        endpointIndex === index ? { ...endpoint, ...patch } : endpoint
+        endpointIndex === index ? { ...endpoint, ...patch } : endpoint,
       ),
     }))
   }
@@ -114,7 +114,7 @@ const SymmyWebhooksSettingsPage = () => {
     setFormData((current) => ({
       ...current,
       endpoints: current.endpoints.filter(
-        (_, endpointIndex) => endpointIndex !== index
+        (_, endpointIndex) => endpointIndex !== index,
       ),
     }))
   }
@@ -137,7 +137,7 @@ const SymmyWebhooksSettingsPage = () => {
         {
           body: JSON.stringify(payload),
           method: "POST",
-        }
+        },
       )
 
       setFormData({

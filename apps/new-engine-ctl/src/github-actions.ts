@@ -2,7 +2,7 @@ import { appendFile } from "node:fs/promises"
 
 export async function appendGitHubOutput(
   key: string,
-  value: string
+  value: string,
 ): Promise<void> {
   if (!process.env.GITHUB_OUTPUT) {
     return

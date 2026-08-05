@@ -29,7 +29,7 @@ export function useCartLineItemActions({
         onError: () => {
           toast.error({ title: t("update_failed") })
         },
-      }
+      },
     )
   }
 
@@ -44,7 +44,7 @@ export function useCartLineItemActions({
         onError: () => {
           toast.error({ title: t("remove_failed") })
         },
-      }
+      },
     )
   }
 

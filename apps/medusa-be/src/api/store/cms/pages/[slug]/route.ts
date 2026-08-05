@@ -16,7 +16,7 @@ export type StoreCmsPageSchemaType = z.infer<typeof StoreCmsPageSchema>
 /** Store API handler for returning a published CMS page by slug. */
 export async function GET(
   req: MedusaRequest<unknown, StoreCmsPageSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { slug } = req.params
   if (!slug) {

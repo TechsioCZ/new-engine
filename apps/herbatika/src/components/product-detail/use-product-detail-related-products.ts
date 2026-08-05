@@ -54,7 +54,7 @@ export function useProductDetailRelatedProducts({
   })
   const referencedProducts = orderProductsByReferenceCodes(
     referencedProductsQuery.products,
-    relatedReferenceCodes
+    relatedReferenceCodes,
   )
   const products = [...referencedProducts, ...fallbackProductsQuery.products]
   const usedProductIds = new Set<string>()
@@ -76,7 +76,7 @@ export function useProductDetailRelatedProducts({
   const relatedProducts = filtered.slice(0, RELATED_PRODUCTS_LIMIT)
 
   const sectionTitles = RELATED_PRODUCT_SECTION_MESSAGE_KEYS.map((key) =>
-    tCatalog(key)
+    tCatalog(key),
   )
 
   return resolveRelatedSections(relatedProducts, sectionTitles)

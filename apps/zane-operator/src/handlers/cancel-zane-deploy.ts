@@ -10,7 +10,7 @@ interface CancelZaneDeployDeps {
 
 export async function handleCancelZaneDeploy(
   request: Request,
-  deps: CancelZaneDeployDeps
+  deps: CancelZaneDeployDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

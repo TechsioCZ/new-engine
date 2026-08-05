@@ -44,7 +44,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
         fields: "id,name,deleted_at",
         with_deleted: "true",
       },
-    }
+    },
   )
 }
 
@@ -97,7 +97,7 @@ const CompanyDetails = () => {
       fields: adminCompanyDisplayFieldsQuery,
       with_deleted: "true",
     },
-    { enabled: Boolean(companyId) }
+    { enabled: Boolean(companyId) },
   )
 
   const company = data?.company
@@ -282,7 +282,7 @@ const CompanyDetails = () => {
                   <Table.Cell>
                     {formatAmount(
                       employee.spending_limit,
-                      company?.currency_code || "USD"
+                      company?.currency_code || "USD",
                     )}
                   </Table.Cell>
                   <EmployeeActionCell

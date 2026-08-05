@@ -83,37 +83,37 @@ export class ProductBatchClient {
       this.helper.cacheProductsByErpId(erpProducts)
     const skuToProductId = this.helper.buildProductIdByVariantField(
       skuVariants,
-      "sku"
+      "sku",
     )
     const eanToProductId = this.helper.buildProductIdByVariantField(
       eanVariants,
-      "ean"
+      "ean",
     )
     const missingProductIds = this.helper.collectMissingProductIds(
       existingProductsById,
-      [skuToProductId, eanToProductId]
+      [skuToProductId, eanToProductId],
     )
     await this.hydrateMissingProducts(
       existingProductsById,
       missingProductIds,
-      fields
+      fields,
     )
 
     return {
       byEan: this.helper.buildExistingProductsByIdentifier(
         existingProductsById,
-        eanToProductId
+        eanToProductId,
       ),
       byErpId,
       bySku: this.helper.buildExistingProductsByIdentifier(
         existingProductsById,
-        skuToProductId
+        skuToProductId,
       ),
     }
   }
 
   async resolveCategoriesForBatch(
-    products: ProductInput[]
+    products: ProductInput[],
   ): Promise<ResolvedCategoryMap> {
     const { handles, names } = this.helper.collectCategoryRefs(products)
     const [byHandle, byName] = await Promise.all([
@@ -143,7 +143,7 @@ export class ProductBatchClient {
   }
 
   async applyBatch(
-    payload: ProductBatchPayload
+    payload: ProductBatchPayload,
   ): Promise<ProductBatchApplyResult> {
     if (!(payload.create.length || payload.update.length)) {
       return { created: [], updated: [] }
@@ -160,7 +160,7 @@ export class ProductBatchClient {
 
   private async queryProductsByExternalIds(
     erpIds: Set<string>,
-    fields: string[]
+    fields: string[],
   ) {
     if (erpIds.size === 0) {
       return [] as Record<string, unknown>[]
@@ -176,7 +176,7 @@ export class ProductBatchClient {
 
   private async queryVariantProductRefs(
     field: "sku" | "ean",
-    values: Set<string>
+    values: Set<string>,
   ) {
     if (values.size === 0) {
       return [] as Record<string, unknown>[]
@@ -193,7 +193,7 @@ export class ProductBatchClient {
   private async hydrateMissingProducts(
     existingProductsById: Map<string, ExistingProduct>,
     missingProductIds: Set<string>,
-    fields: string[]
+    fields: string[],
   ) {
     if (missingProductIds.size === 0) {
       return
@@ -206,7 +206,7 @@ export class ProductBatchClient {
     })
     for (const raw of data) {
       const existingProduct = this.helper.toExistingProduct(
-        raw as Record<string, unknown>
+        raw as Record<string, unknown>,
       )
       existingProductsById.set(existingProduct.id, existingProduct)
     }
@@ -214,7 +214,7 @@ export class ProductBatchClient {
 
   private async resolveCategoriesByField(
     field: "handle" | "name",
-    values: Set<string>
+    values: Set<string>,
   ): Promise<Map<string, string>> {
     const map = new Map<string, string>()
     if (values.size === 0) {

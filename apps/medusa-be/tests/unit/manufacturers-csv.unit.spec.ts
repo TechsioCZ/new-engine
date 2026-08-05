@@ -90,8 +90,8 @@ describe(parseManufacturersCsv, () => {
   it("ignores blank LF rows", () => {
     expect(
       parseManufacturersCsv(
-        `${HEADERS}\n\n${csvRow()}\n; ; ; ; ; ; ; ; ; ; ; \n`
-      )
+        `${HEADERS}\n\n${csvRow()}\n; ; ; ; ; ; ; ; ; ; ; \n`,
+      ),
     ).toHaveLength(1)
   })
 
@@ -99,28 +99,28 @@ describe(parseManufacturersCsv, () => {
     "accepts true boolean spelling %s",
     (value) => {
       const row = parseManufacturersCsv(
-        `${HEADERS}\n${csvRow({ inList: value })}`
+        `${HEADERS}\n${csvRow({ inList: value })}`,
       )[0]
       if (!row) {
         throw new Error("expected row")
       }
 
       expect(row.inList).toBeTruthy()
-    }
+    },
   )
 
   it.each(["", "0", "false", "FALSE", "no", "off"])(
     "accepts false boolean spelling %s",
     (value) => {
       const row = parseManufacturersCsv(
-        `${HEADERS}\n${csvRow({ inList: value })}`
+        `${HEADERS}\n${csvRow({ inList: value })}`,
       )[0]
       if (!row) {
         throw new Error("expected row")
       }
 
       expect(row.inList).toBeFalsy()
-    }
+    },
   )
 
   it("derives outside-EU only from a complete representative", () => {
@@ -129,7 +129,7 @@ describe(parseManufacturersCsv, () => {
         europeanResellerContactEmail: "representative@example.com",
         europeanResellerManufacturingCompanyName: "EU Representative",
         europeanResellerPostalAddress: "Prague",
-      })}`
+      })}`,
     )[0]
     if (!row) {
       throw new Error("expected row")
@@ -149,8 +149,8 @@ describe(parseManufacturersCsv, () => {
           europeanResellerContactEmail: email,
           europeanResellerManufacturingCompanyName: company,
           europeanResellerPostalAddress: address,
-        })}`
-      )
+        })}`,
+      ),
     ).toThrow(PARTIAL_RESPONSIBLE_PERSON_ERROR)
   })
 
@@ -166,13 +166,13 @@ describe(parseManufacturersCsv, () => {
     ],
   ])("reports invalid %s with manufacturer identity", (_field, overrides) => {
     expect(() =>
-      parseManufacturersCsv(`${HEADERS}\n${csvRow(overrides)}`)
+      parseManufacturersCsv(`${HEADERS}\n${csvRow(overrides)}`),
     ).toThrow(INVALID_EMAIL_ERROR)
   })
 
   it("rejects invalid booleans with manufacturer identity", () => {
     expect(() =>
-      parseManufacturersCsv(`${HEADERS}\n${csvRow({ inList: "sometimes" })}`)
+      parseManufacturersCsv(`${HEADERS}\n${csvRow({ inList: "sometimes" })}`),
     ).toThrow(INVALID_BOOLEAN_ERROR)
   })
 
@@ -193,7 +193,7 @@ describe(parseManufacturersCsv, () => {
 describe(buildManufacturersLookup, () => {
   it("resolves normalized name and indexName aliases", () => {
     const rows = parseManufacturersCsv(
-      `${HEADERS}\n${csvRow({ indexName: "Herbátika Labs" })}`
+      `${HEADERS}\n${csvRow({ indexName: "Herbátika Labs" })}`,
     )
     const lookup = buildManufacturersLookup(rows)
 
@@ -206,11 +206,11 @@ describe(buildManufacturersLookup, () => {
       `${HEADERS}\n${csvRow()}\n${csvRow({
         id: "manufacturer-2",
         name: "Hérbatika",
-      })}`
+      })}`,
     )
 
     expect(() => buildManufacturersLookup(rows)).toThrow(
-      NORMALIZED_ALIAS_COLLISION_ERROR
+      NORMALIZED_ALIAS_COLLISION_ERROR,
     )
   })
 
@@ -220,7 +220,7 @@ describe(buildManufacturersLookup, () => {
         id: "manufacturer-2",
         indexName: "Herbatika",
         name: "Other",
-      })}`
+      })}`,
     )
 
     expect(() => buildManufacturersLookup(rows)).toThrow(ALIAS_COLLISION_ERROR)

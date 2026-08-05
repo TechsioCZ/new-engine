@@ -35,7 +35,7 @@ const resolveSafeHeroHref = (value: string | null | undefined) => {
 }
 
 const mapCmsHeroCarouselToHeroBanner = (
-  item: CmsHeroCarousel
+  item: CmsHeroCarousel,
 ): HeroBannerItem | null => {
   const imageSrc = resolveCmsMediaUrl(item.image)
   const href = resolveSafeHeroHref(item.buttonHref)
@@ -47,7 +47,7 @@ const mapCmsHeroCarouselToHeroBanner = (
 
   const ctaLabel = cleanString(item.button)
   const imageAlt = cleanString(
-    typeof item.image === "object" && item.image ? item.image.alt : null
+    typeof item.image === "object" && item.image ? item.image.alt : null,
   )
   const subtitle = cleanString(item.subheading)
 
@@ -68,7 +68,7 @@ export const fetchCmsHeroBanners = async () => {
     {
       limit: CMS_HERO_CAROUSEL_LIMIT,
       sort: "-createdAt",
-    }
+    },
   )
 
   return (response?.heroCarousels ?? [])

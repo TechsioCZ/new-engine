@@ -44,7 +44,7 @@ const parseImportStatus = (value?: string): ImportStatus | undefined => {
   if (!STATUS_VALUES.includes(normalized as ImportStatus)) {
     throw new APIError(
       `Invalid status ${value}. Supported values: ${STATUS_VALUES.join(", ")}`,
-      400
+      400,
     )
   }
 
@@ -90,7 +90,7 @@ const writeUploadToTempFile = async (file: File) => {
 
   const safeName = (file.name || "upload.xlsx").replaceAll(
     /[^a-zA-Z0-9._-]/g,
-    "_"
+    "_",
   )
   const dir = await mkdtemp(path.join(tmpdir(), "payload-import-"))
   const filePath = path.join(dir, `${randomUUID()}-${safeName}`)
@@ -108,7 +108,7 @@ const writeUploadToTempFile = async (file: File) => {
 
 const resolveLocale = (
   supportedLocales: string[] | undefined,
-  value?: string
+  value?: string,
 ) => {
   const normalized = value?.trim().toLowerCase()
   if (!normalized) {
@@ -161,7 +161,7 @@ const resolveImportLocale = (req: ArticleImportRequest, value?: string) => {
   if (value && !locale) {
     throw new APIError(
       `Invalid locale ${value}. Supported values: ${supportedLocales?.join(", ")}`,
-      400
+      400,
     )
   }
 

@@ -15,7 +15,7 @@ const args = new Map(
       : allArgs[index + 1]
 
     return [[key, value ?? "1"]]
-  })
+  }),
 )
 
 const host = args.get("host") ?? "127.0.0.1"
@@ -68,7 +68,7 @@ const resolveRequestPath = async (requestUrl) => {
 
 if (!existsSync(indexPath)) {
   console.error(
-    `Built admin not found at ${indexPath}. Run "pnpm build" in apps/medusa-be first.`
+    `Built admin not found at ${indexPath}. Run "pnpm build" in apps/medusa-be first.`,
   )
   process.exit(1)
 }
@@ -98,6 +98,6 @@ const server = createServer(async (request, response) => {
 
 server.listen(port, host, () => {
   console.log(
-    `Serving built Medusa admin from ${root} at http://${host}:${port}`
+    `Serving built Medusa admin from ${root} at http://${host}:${port}`,
   )
 })

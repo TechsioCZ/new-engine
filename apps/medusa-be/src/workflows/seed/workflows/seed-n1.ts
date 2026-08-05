@@ -87,7 +87,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
     (data) => ({
       currencies: data.input.currencies,
       defaultSalesChannelId: data.salesChannelsResult.defaultSalesChannel.id,
-    })
+    }),
   )
   updateStoreCurrenciesStep(updateStoreCurrenciesStepInput)
 
@@ -99,7 +99,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
 
   // create stock locations
   const createStockLocationResult = createStockLocationSeedStep(
-    input.stockLocations
+    input.stockLocations,
   )
 
   // link stock locations to fulfillment providers (derived from shipping options)
@@ -115,26 +115,26 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
             data.input.shippingOptions.map(
               (opt) =>
                 opt.providerId ??
-                data.input.workflowDefaults.fulfillmentProviderId
-            )
+                data.input.workflowDefaults.fulfillmentProviderId,
+            ),
           ),
         ],
         stockLocations: data.createStockLocationResult.result,
-      })
+      }),
     )
 
   linkStockLocationFulfillmentProviderSeedStep(
-    linkStockLocationsFulfillmentProviderInput
+    linkStockLocationsFulfillmentProviderInput,
   )
 
   // create a shipping profile
   const createDefaultShippingProfileResult = createDefaultShippingProfileStep(
-    input.defaultShippingProfile
+    input.defaultShippingProfile,
   )
 
   // create fulfillment sets
   const createFulfillmentSetsResult = createFulfillmentSetStep(
-    input.fulfillmentSets
+    input.fulfillmentSets,
   )
 
   // link stock locations to fulfillment set
@@ -148,7 +148,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
       (data) => ({
         fulfillmentSet: data.createFulfillmentSetsResult.fulfillmentSet,
         stockLocations: data.createStockLocationResult.result,
-      })
+      }),
     )
 
   linkStockLocationFulfillmentSetStep(linkStockLocationsFulfillmentSetInput)
@@ -176,7 +176,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
               option.prices.find(
                 (p) =>
                   p.currencyCode?.toLowerCase() ===
-                  region.currency_code?.toLowerCase()
+                  region.currency_code?.toLowerCase(),
               )?.amount ??
               data.input.workflowDefaults.shippingOptionPriceAmount,
           })),
@@ -190,7 +190,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
           shippingOption.data = option.data
         }
         return shippingOption
-      })
+      }),
   )
 
   createShippingOptionsStep(createShippingOptionsInput)
@@ -206,7 +206,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
       (data) => ({
         salesChannels: data.salesChannelsResult.result,
         stockLocations: data.createStockLocationResult.result,
-      })
+      }),
     )
 
   linkSalesChannelsStockLocationStep(linkSalesChannelsToStockLocationInput)
@@ -214,7 +214,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
   // create publishable key
 
   const createPublishableKeyResult = createPublishableKeyStep(
-    input.publishableKey
+    input.publishableKey,
   )
 
   // link publishable key to salesChannels
@@ -227,7 +227,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
       (data) => ({
         publishableApiKey: data.createPublishableKeyResult.publishableApiKey,
         salesChannels: data.salesChannelsResult.result,
-      })
+      }),
     )
 
   linkSalesChannelsApiKeyStep(linkSalesChannelsApiKeyStepInput)
@@ -242,7 +242,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
     {
       input,
     },
-    (data) => toCreateProductsStepInput(data.input.products)
+    (data) => toCreateProductsStepInput(data.input.products),
   )
 
   const createProductsStepResult = createProductsStep(createProductsStepInput)
@@ -256,7 +256,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
     (data) => ({
       inventoryItems: buildInventoryItemsInput(data.createProductsStepInput),
       stockLocations: data.createStockLocationResult.result,
-    })
+    }),
   )
 
   createInventoryLevelsStep(createInventoryLevelsInput)

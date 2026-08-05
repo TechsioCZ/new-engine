@@ -9,7 +9,7 @@ import type { StoreBrandsDetailSchemaType } from "../validators"
 
 export async function GET(
   req: MedusaRequest<unknown, StoreBrandsDetailSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data: brands } = await query.graph({
@@ -24,7 +24,7 @@ export async function GET(
   if (!brand) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Brand with id "${req.params["id"]}" was not found`
+      `Brand with id "${req.params["id"]}" was not found`,
     )
   }
 

@@ -80,7 +80,7 @@ export interface PacketaWidgetGlobal {
       apiKey: string,
       callback: (point: PacketaPickupPoint | null) => void,
       options?: PacketaWidgetOptions,
-      inElement?: HTMLElement
+      inElement?: HTMLElement,
     ) => void
   }
 }

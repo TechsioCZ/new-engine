@@ -62,7 +62,7 @@ export async function getCart(): Promise<Cart | null> {
     if (!cart) {
       throw new CartServiceError(
         "Košík byl načten, ale je prázdný",
-        "CART_NOT_FOUND"
+        "CART_NOT_FOUND",
       )
     }
 
@@ -90,13 +90,13 @@ export async function createCart(
   options?: {
     email?: string
     salesChannelId?: string
-  }
+  },
 ): Promise<Cart> {
   try {
     if (!regionId) {
       throw new CartServiceError(
         "Region ID je povinné pole",
-        "CART_CREATION_FAILED"
+        "CART_CREATION_FAILED",
       )
     }
 
@@ -111,7 +111,7 @@ export async function createCart(
     if (!response.cart) {
       throw new CartServiceError(
         "Nepodařilo se vytvořit košík",
-        "CART_CREATION_FAILED"
+        "CART_CREATION_FAILED",
       )
     }
 
@@ -134,20 +134,20 @@ export async function addToCart(
   cartId: string,
   variantId: string,
   quantity = 1,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ): Promise<Cart> {
   try {
     if (!(cartId && variantId)) {
       throw new CartServiceError(
         "Cart ID a Variant ID jsou povinné",
-        "ITEM_ADD_FAILED"
+        "ITEM_ADD_FAILED",
       )
     }
 
     if (quantity < 1) {
       throw new CartServiceError(
         "Množství musí být alespoň 1",
-        "ITEM_ADD_FAILED"
+        "ITEM_ADD_FAILED",
       )
     }
 
@@ -160,7 +160,7 @@ export async function addToCart(
     if (!response.cart) {
       throw new CartServiceError(
         "Nepodařilo se přidat položku do košíku",
-        "ITEM_ADD_FAILED"
+        "ITEM_ADD_FAILED",
       )
     }
 
@@ -184,20 +184,20 @@ export async function addToCart(
 export async function updateLineItem(
   cartId: string,
   lineItemId: string,
-  quantity: number
+  quantity: number,
 ): Promise<Cart> {
   try {
     if (!(cartId && lineItemId)) {
       throw new CartServiceError(
         "Cart ID a Line Item ID jsou povinné",
-        "ITEM_UPDATE_FAILED"
+        "ITEM_UPDATE_FAILED",
       )
     }
 
     if (quantity < 1) {
       throw new CartServiceError(
         "Množství musí být alespoň 1",
-        "ITEM_UPDATE_FAILED"
+        "ITEM_UPDATE_FAILED",
       )
     }
 
@@ -208,7 +208,7 @@ export async function updateLineItem(
     if (!response.cart) {
       throw new CartServiceError(
         "Nepodařilo se aktualizovat položku",
-        "ITEM_UPDATE_FAILED"
+        "ITEM_UPDATE_FAILED",
       )
     }
 
@@ -223,13 +223,13 @@ export async function updateLineItem(
 
 export async function removeLineItem(
   cartId: string,
-  lineItemId: string
+  lineItemId: string,
 ): Promise<Cart> {
   try {
     if (!(cartId && lineItemId)) {
       throw new CartServiceError(
         "Cart ID a Line Item ID jsou povinné",
-        "ITEM_REMOVE_FAILED"
+        "ITEM_REMOVE_FAILED",
       )
     }
 
@@ -238,7 +238,7 @@ export async function removeLineItem(
     if (!response.parent) {
       throw new CartServiceError(
         "Nepodařilo se načíst aktualizovaný košík",
-        "ITEM_REMOVE_FAILED"
+        "ITEM_REMOVE_FAILED",
       )
     }
 
@@ -252,7 +252,7 @@ export async function removeLineItem(
 }
 
 export async function getShippingOptions(
-  cartId: string
+  cartId: string,
 ): Promise<HttpTypes.StoreCartShippingOption[]> {
   try {
     if (!cartId) {
@@ -290,7 +290,7 @@ export async function getPaymentProviders(regionId: string) {
     if (process.env.NODE_ENV === "development") {
       console.log(
         "[CartService] Payment providers:",
-        response.payment_providers
+        response.payment_providers,
       )
     }
 
@@ -317,13 +317,13 @@ export interface ShippingMethodData {
 export async function setShippingMethod(
   cartId: string,
   optionId: string,
-  data?: ShippingMethodData
+  data?: ShippingMethodData,
 ): Promise<Cart> {
   try {
     if (!(cartId && optionId)) {
       throw new CartServiceError(
         "Cart ID a Option ID jsou povinné",
-        "SHIPPING_SET_FAILED"
+        "SHIPPING_SET_FAILED",
       )
     }
 
@@ -334,8 +334,8 @@ export async function setShippingMethod(
         ? Object.fromEntries(
             Object.entries(data).filter(
               ([, value]) =>
-                value !== null && value !== undefined && value !== ""
-            )
+                value !== null && value !== undefined && value !== "",
+            ),
           )
         : {}
 
@@ -347,7 +347,7 @@ export async function setShippingMethod(
     if (!response.cart) {
       throw new CartServiceError(
         "Nepodařilo se nastavit způsob dopravy",
-        "SHIPPING_SET_FAILED"
+        "SHIPPING_SET_FAILED",
       )
     }
 
@@ -366,7 +366,7 @@ export async function setShippingMethod(
 
 export async function createPaymentCollection(
   cartId: string,
-  providerId: string
+  providerId: string,
 ) {
   try {
     if (!cartId) {
@@ -376,7 +376,7 @@ export async function createPaymentCollection(
     if (!providerId) {
       throw new CartServiceError(
         "Provider ID je povinné",
-        "PAYMENT_INIT_FAILED"
+        "PAYMENT_INIT_FAILED",
       )
     }
 
@@ -411,7 +411,7 @@ export async function createPaymentCollection(
     if (!response.payment_collection) {
       throw new CartServiceError(
         "Nepodařilo se inicializovat platební session",
-        "PAYMENT_INIT_FAILED"
+        "PAYMENT_INIT_FAILED",
       )
     }
 
@@ -441,7 +441,7 @@ export async function createPaymentCollection(
 }
 
 export async function completeCart(
-  cartId: string
+  cartId: string,
 ): Promise<CompleteCartResult> {
   try {
     if (!cartId) {
@@ -460,7 +460,7 @@ export async function completeCart(
             id: s.id,
             status: s.status,
             provider_id: s.provider_id,
-          })
+          }),
         ),
         paymentSessionsCount:
           currentCart.payment_collection?.payment_sessions?.length || 0,
@@ -478,7 +478,7 @@ export async function completeCart(
       if (process.env.NODE_ENV === "development") {
         console.log(
           "[CartService] Cart completed, order created:",
-          response.order.id
+          response.order.id,
         )
       }
 

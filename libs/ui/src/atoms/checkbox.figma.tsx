@@ -36,5 +36,5 @@ figma.connect(
         error: true,
       }),
     },
-  }
+  },
 )

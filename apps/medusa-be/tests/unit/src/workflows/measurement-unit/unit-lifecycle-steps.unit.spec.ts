@@ -28,7 +28,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -47,27 +47,27 @@ vi.mock(
       ...actual,
       ensureUnitCodeAvailable: helpers.ensureUnitCodeAvailable,
     }
-  }
+  },
 )
 
 interface MockStep {
   (
     input: unknown,
-    stepContext: { container: Record<string, never> }
+    stepContext: { container: Record<string, never> },
   ): Promise<{
     compensateInput: unknown
     payload: unknown
   }>
   compensate: (
     input: unknown,
-    stepContext: { container: Record<string, never> }
+    stepContext: { container: Record<string, never> },
   ) => Promise<void>
 }
 
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -112,7 +112,7 @@ describe("measurement unit lifecycle steps", () => {
           },
         ],
       },
-      context
+      context,
     )
 
     expect(service.listMeasurementUnits).toHaveBeenCalledOnce()
@@ -121,7 +121,7 @@ describe("measurement unit lifecycle steps", () => {
       {
         select: ["code"],
         withDeleted: true,
-      }
+      },
     )
     expect(service.createMeasurementUnits).toHaveBeenCalledWith([
       {
@@ -154,7 +154,7 @@ describe("measurement unit lifecycle steps", () => {
       await import("../../../../../src/workflows/measurement-unit/steps/delete-measurement-units")
     const result = await asMockStep(deleteMeasurementUnitsStep)(
       { ids: ["unit_1"] },
-      context
+      context,
     )
 
     expect(service.softDeleteMeasurementUnits).toHaveBeenCalledWith(["unit_1"])
@@ -223,8 +223,8 @@ describe("measurement unit lifecycle steps", () => {
     await expect(
       asMockStep(restoreMeasurementUnitsStep)(
         { ids: ["unit_deleted"] },
-        context
-      )
+        context,
+      ),
     ).rejects.toMatchObject({
       type: MedusaError.Types.DUPLICATE_ERROR,
     })
@@ -251,8 +251,8 @@ describe("measurement unit lifecycle steps", () => {
           id: "unit_1",
           update: { name: "Updated" },
         },
-        context
-      )
+        context,
+      ),
     ).rejects.toMatchObject({
       type: MedusaError.Types.NOT_ALLOWED,
     })
@@ -282,14 +282,14 @@ describe("measurement unit lifecycle steps", () => {
         id: "unit_1",
         update: { description: "   " },
       },
-      context
+      context,
     )
 
     expect(service.updateMeasurementUnits).toHaveBeenCalledWith(
       expect.objectContaining({
         description: null,
         id: "unit_1",
-      })
+      }),
     )
   })
 })

@@ -66,7 +66,7 @@ async function getReviewSummary(req: MedusaRequest, productId: string) {
 
 export async function GET(
   req: MedusaRequest<unknown, StoreGetProductReviewsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { limit, offset } = req.validatedQuery
   const productId =
@@ -75,11 +75,11 @@ export async function GET(
   if (!productId) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Product id is required"
+      "Product id is required",
     )
   }
   const service = req.scope.resolve<ProductReviewModuleService>(
-    PRODUCT_REVIEW_MODULE
+    PRODUCT_REVIEW_MODULE,
   )
   const filters = {
     product_id: productId,

@@ -87,15 +87,15 @@ export interface ProductInfiniteData<TProduct> {
 export interface ProductService<TProduct, TListParams, TDetailParams> {
   getProducts: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<ProductListResponse<TProduct>>
   getProductsGlobal?: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<ProductListResponse<TProduct>>
   getProductByHandle: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TProduct | null>
 }
 

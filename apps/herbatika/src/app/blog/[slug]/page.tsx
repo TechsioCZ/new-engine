@@ -37,7 +37,7 @@ function BlogDetailPageFallback() {
 }
 
 async function resolveRecommendedProductsForBlogPost(
-  slug: string
+  slug: string,
 ): Promise<HttpTypes.StoreProduct[]> {
   const recommendationConfig = resolveBlogRecommendedProductsConfig(slug)
   if (!recommendationConfig) {
@@ -51,18 +51,18 @@ async function resolveRecommendedProductsForBlogPost(
       fields: CATEGORY_TREE_FIELDS,
       limit: CATEGORY_TREE_LIMIT,
       page: 1,
-    })
+    }),
   )
 
   const recommendedCategoryIds = recommendationConfig.categoryHandles
     .map(
       (handle) =>
         categoryResponse.categories.find(
-          (category) => category.handle === handle
-        )?.id
+          (category) => category.handle === handle,
+        )?.id,
     )
     .filter(
-      (categoryId): categoryId is string => typeof categoryId === "string"
+      (categoryId): categoryId is string => typeof categoryId === "string",
     )
 
   if (recommendedCategoryIds.length === 0) {
@@ -71,11 +71,11 @@ async function resolveRecommendedProductsForBlogPost(
 
   const recommendedProductsLimit = Math.min(
     Math.max(recommendationConfig.limit ?? 8, 1),
-    10
+    10,
   )
   const recommendedProductsCandidateLimit = Math.min(
     Math.max(recommendedProductsLimit * 4, 24),
-    40
+    40,
   )
   const productResponse = await fetchServerProducts(
     queryClient,
@@ -91,12 +91,12 @@ async function resolveRecommendedProductsForBlogPost(
       ...(region?.country_code === undefined
         ? {}
         : { country_code: region?.country_code }),
-    })
+    }),
   )
 
   return selectRecommendedProductRepresentatives(
     productResponse.products,
-    recommendedProductsLimit
+    recommendedProductsLimit,
   )
 }
 
@@ -114,10 +114,10 @@ async function BlogDetailPageContent({ params }: BlogDetailRouteProps) {
   const relatedPosts = resolveRelatedBlogPosts(
     post.slug,
     4,
-    cmsRelatedPosts.length > 1 ? cmsRelatedPosts : undefined
+    cmsRelatedPosts.length > 1 ? cmsRelatedPosts : undefined,
   )
   const recommendedProducts = await resolveRecommendedProductsForBlogPost(
-    post.slug
+    post.slug,
   )
   const sidebarFeaturedProduct = recommendedProducts[0] ?? null
   const inlineRecommendedProducts = recommendedProducts.slice(1)

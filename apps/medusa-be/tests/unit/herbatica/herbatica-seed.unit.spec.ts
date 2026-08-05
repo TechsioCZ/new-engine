@@ -57,7 +57,7 @@ function getContentSections(product: unknown) {
 describe("Herbatica manufacturer normalization", () => {
   it("decodes the source's verified nested XML entity without changing ordinary names", () => {
     expect(
-      normalizeHerbaticaManufacturerTitle("SHIR Beauty &amp; Science")
+      normalizeHerbaticaManufacturerTitle("SHIR Beauty &amp; Science"),
     ).toBe("SHIR Beauty & Science")
     expect(normalizeHerbaticaManufacturerTitle("ViolaHerb")).toBe("ViolaHerb")
   })
@@ -135,7 +135,7 @@ describe("Herbatica measurement-unit mapping", () => {
       symbol: "g",
     })
     expect(
-      result.products[0]?.variants?.map((variant) => variant.measurement)
+      result.products[0]?.variants?.map((variant) => variant.measurement),
     ).toStrictEqual([{ product_unit_quantity: 500 }, null])
   })
 })
@@ -196,7 +196,7 @@ describe("Herbatica seed category mapping", () => {
       "trapi-ma-srdce-a-cievy-krcove-zily",
     ])
     expect(
-      result.categories.some((category) => category.handle?.endsWith("-2"))
+      result.categories.some((category) => category.handle?.endsWith("-2")),
     ).toBeFalsy()
     expect(result.products[0]?.categories).toStrictEqual([
       {
@@ -642,7 +642,7 @@ describe("Herbatica seed stock parsing", () => {
     const variant = result.products[0]?.variants?.[0]
 
     expect(
-      result.stockLocations.map((location) => location.name)
+      result.stockLocations.map((location) => location.name),
     ).toStrictEqual(["Shoptet Warehouse"])
     expect(result.warnings).toStrictEqual([
       '1 Shoptet warehouse stock entries had no warehouse name and were mapped to "Shoptet Warehouse".',
@@ -804,11 +804,11 @@ describe("Herbatica seed product content sections", () => {
     expect(contentSections["description"]).not.toContain("Neprekračujte")
     expect(contentSections["description"]).not.toContain("Skladovanie")
     expect(contentSections["usage"]).toContain(
-      "Dospelí užívajú 4 kapsuly denne"
+      "Dospelí užívajú 4 kapsuly denne",
     )
     expect(contentSections["warning"]).toContain("Neprekračujte")
     expect(contentSections["composition"]).toContain(
-      "Olej zo semien ostropestreca"
+      "Olej zo semien ostropestreca",
     )
     expect(contentSections["other"]).toContain("Výživové údaje")
     expect(contentSections["other"]).toContain("Skladovanie")
@@ -850,7 +850,7 @@ describe("Herbatica seed product content sections", () => {
 
     expect(contentSections["description"]).toContain("regenerácia pečene")
     expect(contentSections["description"]).toContain(
-      "Jednoduché použitie v praxi"
+      "Jednoduché použitie v praxi",
     )
     expect(contentSections["description"]).toContain("marketingový odsek")
     expect(contentSections["usage"]).toContain("Užívajte jednu kapsulu denne")
@@ -951,11 +951,11 @@ describe("Herbatica Shoptet workflow input", () => {
 describe("Herbatica committed feed fixtures", () => {
   const productsXmlPath = resolve(
     process.cwd(),
-    "src/scripts/seed-files/productsComplete.xml"
+    "src/scripts/seed-files/productsComplete.xml",
   )
   const categoriesXmlPath = resolve(
     process.cwd(),
-    "src/scripts/seed-files/categories.xml"
+    "src/scripts/seed-files/categories.xml",
   )
 
   it("keeps committed feed fixtures small and free of assistant markup", () => {
@@ -992,14 +992,14 @@ describe("Herbatica committed feed fixtures", () => {
         "trapi-ma",
         "trapi-ma-srdce-a-cievy",
         "trapi-ma-srdce-a-cievy-krcove-zily",
-      ])
+      ]),
     )
 
     const mainProduct = result.products.find(
-      (product) => product.handle === "shopitem-fixture-main"
+      (product) => product.handle === "shopitem-fixture-main",
     )
     const hiddenProduct = result.products.find(
-      (product) => product.handle === "shopitem-fixture-hidden"
+      (product) => product.handle === "shopitem-fixture-hidden",
     )
 
     expect(mainProduct?.categories).toStrictEqual([

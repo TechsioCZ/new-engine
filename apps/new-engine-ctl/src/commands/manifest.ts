@@ -12,7 +12,7 @@ import { defaultStackManifestPath } from "../paths.js"
 
 export function createManifestCommand(): Command {
   const command = new Command("manifest").description(
-    "Manifest-derived local and CI utility commands"
+    "Manifest-derived local and CI utility commands",
   )
 
   command
@@ -23,7 +23,7 @@ export function createManifestCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .action(async (options) => {
       const input = manifestComposeServicesCommandInputSchema.parse({
@@ -42,7 +42,7 @@ export function createManifestCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .action(async (options) => {
       const input = manifestServiceSlugsCommandInputSchema.parse({

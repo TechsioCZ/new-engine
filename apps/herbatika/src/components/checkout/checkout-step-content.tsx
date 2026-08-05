@@ -44,7 +44,7 @@ export function CheckoutStepContent({
     selectedPaymentProviderId.length > 0
   ) {
     const displayTextKeys = resolvePaymentDisplayTextKeys(
-      selectedPaymentProviderId
+      selectedPaymentProviderId,
     )
     selectedPaymentLabel =
       displayTextKeys.providerName ??

@@ -178,7 +178,7 @@ const dataFields = fields.filter(
   (field) =>
     fieldAffectsData(field) &&
     !fieldIsPresentationalOnly(field) &&
-    !fieldIsHiddenOrDisabled(field)
+    !fieldIsHiddenOrDisabled(field),
 )
 ```
 

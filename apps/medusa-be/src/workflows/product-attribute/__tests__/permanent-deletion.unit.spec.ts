@@ -24,7 +24,7 @@ const createTransactionalService = () => {
     listProductAttributes: vi.fn(),
     runInTransaction: vi.fn(
       async (task: (context: typeof transactionContext) => Promise<unknown>) =>
-        await task(transactionContext)
+        await task(transactionContext),
     ),
   }
 }
@@ -44,8 +44,8 @@ describe("Product Attribute permanent definition removal", () => {
     await expect(
       permanentlyDeleteProductAttributeDefinitions(
         { ids: ["patdef_deleted"] },
-        createScope(service)
-      )
+        createScope(service),
+      ),
     ).resolves.toStrictEqual({
       assignment_count: 1,
       ids: ["patdef_deleted"],
@@ -54,25 +54,26 @@ describe("Product Attribute permanent definition removal", () => {
 
     expect(service.deleteProductAttributes).toHaveBeenCalledWith(
       ["pat_1"],
-      service.context
+      service.context,
     )
     expect(service.deleteProductAttributeOptions).toHaveBeenCalledWith(
       ["patopt_1"],
-      service.context
+      service.context,
     )
     expect(service.deleteProductAttributeDefinitions).toHaveBeenCalledWith(
       ["patdef_deleted"],
-      service.context
+      service.context,
     )
     expect(
-      service.deleteProductAttributes.mock.invocationCallOrder[0]
+      service.deleteProductAttributes.mock.invocationCallOrder[0],
     ).toBeLessThan(
-      service.deleteProductAttributeOptions.mock.invocationCallOrder[0] ?? 0
+      service.deleteProductAttributeOptions.mock.invocationCallOrder[0] ?? 0,
     )
     expect(
-      service.deleteProductAttributeOptions.mock.invocationCallOrder[0]
+      service.deleteProductAttributeOptions.mock.invocationCallOrder[0],
     ).toBeLessThan(
-      service.deleteProductAttributeDefinitions.mock.invocationCallOrder[0] ?? 0
+      service.deleteProductAttributeDefinitions.mock.invocationCallOrder[0] ??
+        0,
     )
   })
 
@@ -85,8 +86,8 @@ describe("Product Attribute permanent definition removal", () => {
     await expect(
       permanentlyDeleteProductAttributeDefinitions(
         { ids: ["patdef_active"] },
-        createScope(service)
-      )
+        createScope(service),
+      ),
     ).rejects.toThrow(ACTIVE_RECORD_ERROR)
     expect(service.deleteProductAttributeDefinitions).not.toHaveBeenCalled()
   })
@@ -106,21 +107,21 @@ describe("Product Attribute permanent option removal", () => {
     await expect(
       permanentlyDeleteProductAttributeOptions(
         { ids: ["patopt_deleted"] },
-        createScope(service)
-      )
+        createScope(service),
+      ),
     ).resolves.toStrictEqual({
       assignment_count: 1,
       ids: ["patopt_deleted"],
     })
 
     expect(
-      service.deleteProductAttributes.mock.invocationCallOrder[0]
+      service.deleteProductAttributes.mock.invocationCallOrder[0],
     ).toBeLessThan(
-      service.deleteProductAttributeOptions.mock.invocationCallOrder[0] ?? 0
+      service.deleteProductAttributeOptions.mock.invocationCallOrder[0] ?? 0,
     )
     expect(service.deleteProductAttributeOptions).toHaveBeenCalledWith(
       ["patopt_deleted"],
-      service.context
+      service.context,
     )
   })
 })

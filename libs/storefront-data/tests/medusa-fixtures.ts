@@ -57,7 +57,7 @@ const cartTotals = {
 
 export const createStoreCart = (
   id: string,
-  overrides: Partial<HttpTypes.StoreCart> = {}
+  overrides: Partial<HttpTypes.StoreCart> = {},
 ): HttpTypes.StoreCart => ({
   currency_code: "czk",
   id,
@@ -68,7 +68,7 @@ export const createStoreCart = (
 
 export const createStoreCartLineItem = (
   cart: HttpTypes.StoreCart,
-  overrides: Partial<HttpTypes.StoreCartLineItem> = {}
+  overrides: Partial<HttpTypes.StoreCartLineItem> = {},
 ): HttpTypes.StoreCartLineItem => ({
   cart,
   cart_id: cart.id,
@@ -84,7 +84,7 @@ export const createStoreCartLineItem = (
 
 export const createStoreCartShippingMethod = (
   cartId: string,
-  overrides: Partial<HttpTypes.StoreCartShippingMethod> = {}
+  overrides: Partial<HttpTypes.StoreCartShippingMethod> = {},
 ): HttpTypes.StoreCartShippingMethod => ({
   amount: 0,
   cart_id: cartId,
@@ -106,7 +106,7 @@ export const createStoreCartShippingMethod = (
 
 export const createStorePaymentSession = (
   providerId: string,
-  overrides: Partial<HttpTypes.StorePaymentSession> = {}
+  overrides: Partial<HttpTypes.StorePaymentSession> = {},
 ): HttpTypes.StorePaymentSession => ({
   amount: 0,
   currency_code: "czk",
@@ -119,7 +119,7 @@ export const createStorePaymentSession = (
 
 export const createSelectedStorePaymentSession = (
   providerId: string,
-  isSelected: boolean
+  isSelected: boolean,
 ): HttpTypes.StorePaymentSession => {
   const session = createStorePaymentSession(providerId)
   Object.defineProperty(session, "is_selected", {
@@ -131,7 +131,7 @@ export const createSelectedStorePaymentSession = (
 }
 
 export const createStorePaymentCollection = (
-  overrides: Partial<HttpTypes.StorePaymentCollection> = {}
+  overrides: Partial<HttpTypes.StorePaymentCollection> = {},
 ): HttpTypes.StorePaymentCollection => ({
   amount: 0,
   currency_code: "czk",
@@ -171,7 +171,7 @@ const orderTotals = {
 
 export const createStoreCustomer = (
   id: string,
-  overrides: Partial<HttpTypes.StoreCustomer> = {}
+  overrides: Partial<HttpTypes.StoreCustomer> = {},
 ): HttpTypes.StoreCustomer => ({
   addresses: [],
   company_name: null,
@@ -186,7 +186,7 @@ export const createStoreCustomer = (
 
 export const createStoreCustomerAddress = (
   id: string,
-  overrides: Partial<HttpTypes.StoreCustomerAddress> = {}
+  overrides: Partial<HttpTypes.StoreCustomerAddress> = {},
 ): HttpTypes.StoreCustomerAddress => ({
   address_1: null,
   address_2: null,
@@ -210,7 +210,7 @@ export const createStoreCustomerAddress = (
 })
 
 export const createStoreShippingOptionWithServiceZone = (
-  id: string
+  id: string,
 ): HttpTypes.StoreCartShippingOptionWithServiceZone => ({
   ...createStoreShippingOption(id),
   service_zone: {
@@ -243,7 +243,7 @@ export const createStoreShippingOptionWithServiceZone = (
 
 export const createStoreShippingOption = (
   id: string,
-  overrides: Partial<HttpTypes.StoreCartShippingOption> = {}
+  overrides: Partial<HttpTypes.StoreCartShippingOption> = {},
 ): HttpTypes.StoreCartShippingOption => ({
   amount: 0,
   calculated_price: {
@@ -289,7 +289,7 @@ export const createStoreShippingOption = (
 
 export const createStoreOrder = (
   id: string,
-  overrides: Partial<HttpTypes.StoreOrder> = {}
+  overrides: Partial<HttpTypes.StoreOrder> = {},
 ): HttpTypes.StoreOrder => ({
   created_at: "2026-01-01T00:00:00.000Z",
   currency_code: "czk",

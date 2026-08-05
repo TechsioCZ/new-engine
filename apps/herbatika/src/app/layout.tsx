@@ -124,7 +124,7 @@ async function ResolvedLayoutShell({
         fields: CATEGORY_TREE_FIELDS,
         limit: CATEGORY_TREE_LIMIT,
         page: 1,
-      })
+      }),
     )
   } catch (error) {
     console.error("Failed to prefetch storefront categories", error)

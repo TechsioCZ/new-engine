@@ -119,7 +119,7 @@ async function downloadLabels(orderIds: string[]) {
       payload !== null &&
       "message" in payload
     ) {
-      const {message} = (payload)
+      const { message } = payload
       if (typeof message === "string") {
         throw new TypeError(message)
       }
@@ -137,7 +137,9 @@ async function downloadLabels(orderIds: string[]) {
   document.body.append(anchor)
   anchor.click()
   anchor.remove()
-  window.setTimeout(() =>{  URL.revokeObjectURL(url); }, 0)
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url)
+  }, 0)
 }
 
 const GLSLabelsPage = () => {
@@ -148,7 +150,7 @@ const GLSLabelsPage = () => {
   const [isPrinting, setIsPrinting] = useState(false)
 
   const { data, isLoading, error } = useQuery({
-    queryFn:  async () => {
+    queryFn: async () => {
       const search = new URLSearchParams({
         fields: ORDER_FIELDS,
         limit: String(PAGE_SIZE),
@@ -221,7 +223,9 @@ const GLSLabelsPage = () => {
       await downloadLabels(selectedPrintableOrderIds)
       toast.success("GLS labels generated")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to print labels")
+      toast.error(
+        error instanceof Error ? error.message : "Failed to print labels",
+      )
     } finally {
       setIsPrinting(false)
     }
@@ -279,7 +283,9 @@ const GLSLabelsPage = () => {
                   <Checkbox
                     checked={selectedOrderIds.has(order.id)}
                     disabled={!canPrint}
-                    onCheckedChange={() =>{  toggleOrder(order.id); }}
+                    onCheckedChange={() => {
+                      toggleOrder(order.id)
+                    }}
                   />
                 </Table.Cell>
                 <Table.Cell className="text-ui-fg-base">
@@ -313,11 +319,15 @@ const GLSLabelsPage = () => {
         canNextPage={offset + PAGE_SIZE < (data?.count ?? 0)}
         canPreviousPage={offset > 0}
         count={data?.count ?? 0}
-        nextPage={() =>{  goToOffset(offset + PAGE_SIZE); }}
+        nextPage={() => {
+          goToOffset(offset + PAGE_SIZE)
+        }}
         pageCount={pageCount}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
-        previousPage={() =>{  goToOffset(Math.max(0, offset - PAGE_SIZE)); }}
+        previousPage={() => {
+          goToOffset(Math.max(0, offset - PAGE_SIZE))
+        }}
       />
 
       {isLoading && (

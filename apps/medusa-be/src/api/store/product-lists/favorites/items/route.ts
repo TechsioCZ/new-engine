@@ -16,7 +16,7 @@ import type { StoreCreateFavoriteProductListItemSchemaType } from "../../validat
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreCreateFavoriteProductListItemSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result } = await addFavoriteProductListItemWorkflow(req.scope).run({
     input: definedProperties({
@@ -34,7 +34,7 @@ export async function POST(
   res.status(200).json({
     item: toProductListItemResponse(itemWithSelection ?? result.item),
     product_list: toProductListResponse(
-      productListWithItems ?? result.product_list
+      productListWithItems ?? result.product_list,
     ),
   })
 }

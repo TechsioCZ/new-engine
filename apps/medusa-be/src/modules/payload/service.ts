@@ -103,7 +103,7 @@ export default class PayloadModuleService extends MedusaService({}) {
     this.logger_ = container.logger
     this.cacheService_ = safeResolve<CachingDependency>(
       container,
-      Modules.CACHING
+      Modules.CACHING,
     )
 
     this.contentCacheTtl_ = options.contentCacheTtl ?? DEFAULT_TTLS.CONTENT
@@ -119,13 +119,13 @@ export default class PayloadModuleService extends MedusaService({}) {
     if (!this.options_.serverUrl) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Payload serverUrl is required"
+        "Payload serverUrl is required",
       )
     }
     if (!this.options_.apiKey) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Payload apiKey is required"
+        "Payload apiKey is required",
       )
     }
   }
@@ -140,7 +140,7 @@ export default class PayloadModuleService extends MedusaService({}) {
     options?: {
       schema?: z.ZodType
       headers?: Record<string, string>
-    }
+    },
   ): Promise<T> {
     const url = `${this.baseUrl_}${endpoint}`
     const controller = new AbortController()
@@ -164,7 +164,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       if (error instanceof Error && error.name === "AbortError") {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          `Payload request timed out after ${this.requestTimeoutMs_}ms: ${url}`
+          `Payload request timed out after ${this.requestTimeoutMs_}ms: ${url}`,
         )
       }
       throw error
@@ -177,7 +177,7 @@ export default class PayloadModuleService extends MedusaService({}) {
     if (!response.ok) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        this.getPayloadErrorMessage(result, response.status)
+        this.getPayloadErrorMessage(result, response.status),
       )
     }
 
@@ -188,7 +188,7 @@ export default class PayloadModuleService extends MedusaService({}) {
         if (error instanceof MedusaError) {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `Payload response validation failed for ${method} ${endpoint}: ${error.message}`
+            `Payload response validation failed for ${method} ${endpoint}: ${error.message}`,
           )
         }
         throw error
@@ -216,7 +216,7 @@ export default class PayloadModuleService extends MedusaService({}) {
     }
 
     const shouldRedactEmail = Object.keys(value).some((key) =>
-      PRIVATE_PAYLOAD_FIELD_NAMES.has(key)
+      PRIVATE_PAYLOAD_FIELD_NAMES.has(key),
     )
 
     return Object.fromEntries(
@@ -226,12 +226,12 @@ export default class PayloadModuleService extends MedusaService({}) {
             !(
               PRIVATE_PAYLOAD_FIELD_NAMES.has(key) ||
               (shouldRedactEmail && key === "email")
-            )
+            ),
         )
         .map(([key, entryValue]) => [
           key,
           this.redactPrivatePayloadFields(entryValue),
-        ])
+        ]),
     ) as T
   }
 
@@ -273,7 +273,7 @@ export default class PayloadModuleService extends MedusaService({}) {
     key: string,
     fetcher: () => Promise<T>,
     ttl: number,
-    tags: string[]
+    tags: string[],
   ): Promise<T> {
     if (this.cacheService_) {
       const cached = (await this.cacheService_.get({ key })) as T | null
@@ -324,7 +324,7 @@ export default class PayloadModuleService extends MedusaService({}) {
    */
   private buildCategoryListCacheKey(
     prefix: string,
-    options?: CmsCategoryListOptions
+    options?: CmsCategoryListOptions,
   ): string {
     const locale = options?.locale ?? DEFAULT_LOCALE
     const slug = options?.categorySlug ?? "all"
@@ -353,7 +353,7 @@ export default class PayloadModuleService extends MedusaService({}) {
    */
   async getPublishedPage(
     slug: string,
-    locale?: string
+    locale?: string,
   ): Promise<CmsPageDTO | null> {
     const cacheKey = `${CMS}:${PAGES}:${slug}:${locale ?? DEFAULT_LOCALE}`
     return await this.getCached(
@@ -376,7 +376,7 @@ export default class PayloadModuleService extends MedusaService({}) {
               [RETURN_HTML_HEADER]: "true",
             },
             schema: CmsPagesBulkResultSchema,
-          }
+          },
         )
 
         const page = result.docs[0] || null
@@ -387,7 +387,7 @@ export default class PayloadModuleService extends MedusaService({}) {
         return page
       },
       this.contentCacheTtl_,
-      [CACHE_TAGS.ALL, CACHE_TAGS.PAGES]
+      [CACHE_TAGS.ALL, CACHE_TAGS.PAGES],
     )
   }
 
@@ -395,15 +395,15 @@ export default class PayloadModuleService extends MedusaService({}) {
    * List page categories and their pages, optionally filtered by locale/slug.
    */
   async listPageCategoriesWithPages(
-    options?: CmsCategoryListOptions
+    options?: CmsCategoryListOptions,
   ): Promise<CmsPageCategoryDTO[]> {
     const cacheKey = this.buildCategoryListCacheKey(
       CACHE_TAGS.PAGE_CATEGORIES,
-      options
+      options,
     )
     const localeTag = this.buildLocaleTag(
       CACHE_TAGS.PAGE_CATEGORIES,
-      options?.locale
+      options?.locale,
     )
     return await this.getCached(
       cacheKey,
@@ -420,7 +420,7 @@ export default class PayloadModuleService extends MedusaService({}) {
         return result.categories ?? []
       },
       this.listCacheTtl_,
-      [CACHE_TAGS.ALL, CACHE_TAGS.PAGE_CATEGORIES, localeTag]
+      [CACHE_TAGS.ALL, CACHE_TAGS.PAGE_CATEGORIES, localeTag],
     )
   }
 
@@ -429,7 +429,7 @@ export default class PayloadModuleService extends MedusaService({}) {
    */
   async getPublishedArticle(
     slug: string,
-    locale?: string
+    locale?: string,
   ): Promise<CmsArticleDTO | null> {
     const cacheKey = `${CMS}:${ARTICLES}:${slug}:${locale ?? DEFAULT_LOCALE}`
     return await this.getCached(
@@ -452,7 +452,7 @@ export default class PayloadModuleService extends MedusaService({}) {
               [RETURN_HTML_HEADER]: "true",
             },
             schema: CmsArticlesBulkResultSchema,
-          }
+          },
         )
 
         const post = result.docs[0] || null
@@ -462,7 +462,7 @@ export default class PayloadModuleService extends MedusaService({}) {
         return post
       },
       this.contentCacheTtl_,
-      [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLES]
+      [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLES],
     )
   }
 
@@ -470,15 +470,15 @@ export default class PayloadModuleService extends MedusaService({}) {
    * List article categories and their articles, optionally filtered by locale/slug.
    */
   async listArticleCategoriesWithArticles(
-    options?: CmsCategoryListOptions
+    options?: CmsCategoryListOptions,
   ): Promise<CmsArticleCategoryDTO[]> {
     const cacheKey = this.buildCategoryListCacheKey(
       CACHE_TAGS.ARTICLE_CATEGORIES,
-      options
+      options,
     )
     const localeTag = this.buildLocaleTag(
       CACHE_TAGS.ARTICLE_CATEGORIES,
-      options?.locale
+      options?.locale,
     )
 
     return await this.getCached(
@@ -496,7 +496,7 @@ export default class PayloadModuleService extends MedusaService({}) {
         return result.categories ?? []
       },
       this.listCacheTtl_,
-      [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLE_CATEGORIES, localeTag]
+      [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLE_CATEGORIES, localeTag],
     )
   }
 
@@ -504,12 +504,12 @@ export default class PayloadModuleService extends MedusaService({}) {
    * List hero carousels with pagination/sort options and caching.
    */
   async listHeroCarousels(
-    options?: CmsListOptions
+    options?: CmsListOptions,
   ): Promise<CmsHeroCarouselDTO[]> {
     const cacheKey = this.buildListCacheKey(CACHE_TAGS.HERO_CAROUSELS, options)
     const localeTag = this.buildLocaleTag(
       CACHE_TAGS.HERO_CAROUSELS,
-      options?.locale
+      options?.locale,
     )
     return await this.getCached(
       cacheKey,
@@ -528,7 +528,7 @@ export default class PayloadModuleService extends MedusaService({}) {
         return result.docs
       },
       this.listCacheTtl_,
-      [CACHE_TAGS.ALL, CACHE_TAGS.HERO_CAROUSELS, localeTag]
+      [CACHE_TAGS.ALL, CACHE_TAGS.HERO_CAROUSELS, localeTag],
     )
   }
 
@@ -538,7 +538,7 @@ export default class PayloadModuleService extends MedusaService({}) {
   async invalidateCache(
     collection: string,
     slug?: string,
-    locale?: string
+    locale?: string,
   ): Promise<void> {
     if (!this.cacheService_) {
       return
@@ -565,14 +565,14 @@ export default class PayloadModuleService extends MedusaService({}) {
       case PAGES: {
         addTags(
           [CACHE_TAGS.PAGES, CACHE_TAGS.PAGE_CATEGORIES],
-          CACHE_TAGS.PAGE_CATEGORIES
+          CACHE_TAGS.PAGE_CATEGORIES,
         )
         break
       }
       case ARTICLES: {
         addTags(
           [CACHE_TAGS.ARTICLES, CACHE_TAGS.ARTICLE_CATEGORIES],
-          CACHE_TAGS.ARTICLE_CATEGORIES
+          CACHE_TAGS.ARTICLE_CATEGORIES,
         )
         break
       }

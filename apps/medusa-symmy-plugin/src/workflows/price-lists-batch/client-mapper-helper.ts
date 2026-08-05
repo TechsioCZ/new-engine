@@ -89,7 +89,7 @@ export class PriceListsClientMapperHelper {
     return new Set(
       priceLists
         .map((priceList) => priceList.customer_group_code)
-        .filter((code): code is string => Boolean(code))
+        .filter((code): code is string => Boolean(code)),
     )
   }
 
@@ -101,7 +101,7 @@ export class PriceListsClientMapperHelper {
       erp_code?: string | null
       metadata: Record<string, unknown> | null
     }[],
-    codes: Set<string>
+    codes: Set<string>,
   ): PriceListCustomerGroupIndex {
     const byCode = new Map<string, { id: string }>()
     for (const group of groups) {
@@ -124,10 +124,10 @@ export class PriceListsClientMapperHelper {
       code: string | null
       erp_code: string | null
       customer_group_id: string
-    }[]
+    }[],
   ) {
     const mappingsByGroupId = new Map(
-      mappings.map((mapping) => [mapping.customer_group_id, mapping])
+      mappings.map((mapping) => [mapping.customer_group_id, mapping]),
     )
 
     return groups.map((group) => {
@@ -140,7 +140,7 @@ export class PriceListsClientMapperHelper {
 
   buildPriceListPayload(
     input: PriceListInput,
-    groupIndex: PriceListCustomerGroupIndex
+    groupIndex: PriceListCustomerGroupIndex,
   ) {
     const rules = this.buildRules(input, groupIndex)
     return {
@@ -174,7 +174,7 @@ export class PriceListsClientMapperHelper {
 
   buildVariantMap(
     field: "sku" | "ean" | "id",
-    variants: Record<string, unknown>[]
+    variants: Record<string, unknown>[],
   ): Map<string, string> {
     const map = new Map<string, string>()
     for (const variant of variants) {
@@ -196,7 +196,7 @@ export class PriceListsClientMapperHelper {
       }
       byKey.set(
         this.priceKey(variantId, price.currency_code, price.min_quantity),
-        price
+        price,
       )
     }
     return byKey
@@ -204,10 +204,10 @@ export class PriceListsClientMapperHelper {
 
   applyCodeMappings(
     priceLists: ExistingPriceList[],
-    mappings: PriceListCodeMapping[]
+    mappings: PriceListCodeMapping[],
   ): ExistingPriceList[] {
     const codeByPriceListId = new Map(
-      mappings.map((mapping) => [mapping.price_list_id, mapping.erp_code])
+      mappings.map((mapping) => [mapping.price_list_id, mapping.erp_code]),
     )
     return priceLists.map((priceList) => {
       const erpCode = codeByPriceListId.get(priceList.id)
@@ -221,7 +221,7 @@ export class PriceListsClientMapperHelper {
   buildPriceBatchPayload(
     prices: PriceInput[],
     variantMaps: VariantLookupMaps,
-    existingPrices: Map<string, ExistingPrice>
+    existingPrices: Map<string, ExistingPrice>,
   ) {
     const create: Record<string, unknown>[] = []
     const update: Record<string, unknown>[] = []
@@ -245,7 +245,7 @@ export class PriceListsClientMapperHelper {
         variant_id: variantId,
       }
       const existing = existingPrices.get(
-        this.priceKey(variantId, payload.currency_code, payload.min_quantity)
+        this.priceKey(variantId, payload.currency_code, payload.min_quantity),
       )
       if (existing) {
         update.push({ ...payload, id: existing.id })
@@ -260,7 +260,7 @@ export class PriceListsClientMapperHelper {
 
   markPriceBatchSuccess(
     owners: { index: number; input: PriceInput }[],
-    results: PriceListPriceResult[]
+    results: PriceListPriceResult[],
   ): void {
     for (const owner of owners) {
       results[owner.index] = {
@@ -272,7 +272,7 @@ export class PriceListsClientMapperHelper {
 
   private buildRules(
     input: PriceListInput,
-    groupIndex: PriceListCustomerGroupIndex
+    groupIndex: PriceListCustomerGroupIndex,
   ) {
     if (!input.customer_group_code) {
       return
@@ -281,7 +281,7 @@ export class PriceListsClientMapperHelper {
     if (!group) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Customer group code '${input.customer_group_code}' was not found`
+        `Customer group code '${input.customer_group_code}' was not found`,
       )
     }
     return { customer_group_id: [group.id] }
@@ -314,7 +314,7 @@ export class PriceListsClientMapperHelper {
   private priceKey(
     variantId: string,
     currencyCode: string,
-    minQuantity: number | null | undefined
+    minQuantity: number | null | undefined,
   ) {
     return `${variantId}:${currencyCode.toLowerCase()}:${minQuantity ?? 1}`
   }

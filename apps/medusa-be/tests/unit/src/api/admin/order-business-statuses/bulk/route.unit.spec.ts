@@ -23,7 +23,7 @@ vi.mock(import("@medusajs/framework/utils"), () => ({
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
@@ -45,11 +45,11 @@ const createMockResponse = (): MockJsonResponse => {
 }
 
 const asMockRequest = (
-  candidate: unknown
+  candidate: unknown,
 ): MedusaRequest<PostAdminOrderBusinessStatusesBulkSchemaType> => {
   assertMockShape<MedusaRequest<PostAdminOrderBusinessStatusesBulkSchemaType>>(
     candidate,
-    ["scope", "validatedBody"]
+    ["scope", "validatedBody"],
   )
   return candidate
 }
@@ -145,7 +145,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
           },
         ],
         skipped_count: 2,
-      })
+      }),
     )
   })
 
@@ -157,7 +157,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
     const updateOrders = vi.fn(async (id: string) =>
       id === "order_2"
         ? Promise.reject(new Error("database conflict"))
-        : Promise.resolve()
+        : Promise.resolve(),
     )
     const graph = vi
       .fn()
@@ -231,7 +231,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
           },
         ],
         skipped_count: 1,
-      })
+      }),
     )
   })
 })

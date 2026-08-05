@@ -67,5 +67,5 @@ figma.connect(
         readonly: "default",
       }),
     },
-  }
+  },
 )

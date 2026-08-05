@@ -11,7 +11,7 @@ const ACTIVE_BRAND_QUERY_CHUNK_SIZE = 500
 
 export const getActiveBrandIds = async (
   container: MedusaContainer,
-  brandIds: string[]
+  brandIds: string[],
 ) => {
   const ids = [...new Set(brandIds)]
 
@@ -36,7 +36,7 @@ export const getActiveBrandIds = async (
       {
         select: ["id"],
         withDeleted: false,
-      }
+      },
     )
     brands.push(...(chunkBrands as BrandIdRecord[]))
   }

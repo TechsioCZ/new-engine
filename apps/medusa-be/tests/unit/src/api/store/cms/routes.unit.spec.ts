@@ -65,7 +65,7 @@ describe("Store CMS routes", () => {
 
     expect(mockCmsService.getPublishedPage).toHaveBeenCalledWith(
       "about-us",
-      "cs"
+      "cs",
     )
     expect(res.json).toHaveBeenCalledWith({ page })
   })
@@ -87,7 +87,7 @@ describe("Store CMS routes", () => {
 
     expect(mockCmsService.getPublishedArticle).toHaveBeenCalledWith(
       "news",
-      "sk"
+      "sk",
     )
     expect(res.json).toHaveBeenCalledWith({ article })
   })
@@ -124,13 +124,13 @@ describe("Store CMS routes", () => {
     const articleCategories = [{ id: "article-category_1", slug: "journal" }]
 
     mockCmsService.listArticleCategoriesWithArticles.mockResolvedValue(
-      articleCategories
+      articleCategories,
     )
 
     await GET(req, res)
 
     expect(
-      mockCmsService.listArticleCategoriesWithArticles
+      mockCmsService.listArticleCategoriesWithArticles,
     ).toHaveBeenCalledWith({
       categorySlug: "journal",
       locale: "en",

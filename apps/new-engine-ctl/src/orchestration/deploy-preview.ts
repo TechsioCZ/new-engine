@@ -64,7 +64,7 @@ function supportsPrettyLogs(): boolean {
     process.stderr.isTTY &&
     !process.env.GITHUB_ACTIONS &&
     !process.env.NO_COLOR &&
-    process.env.TERM !== "dumb"
+    process.env.TERM !== "dumb",
   )
 }
 
@@ -98,7 +98,7 @@ function logDeployProgress(message: string): void {
 
 function previewDbContextIsComplete(context: PreviewDbContext): boolean {
   return Boolean(
-    context.previewDbName && context.previewDbUser && context.previewDbPassword
+    context.previewDbName && context.previewDbUser && context.previewDbPassword,
   )
 }
 
@@ -108,7 +108,7 @@ function listPreviewDbRequiredServiceIds(input: {
 }): string[] {
   const selected = new Set(input.deployServiceIds)
   return listPrepareServiceIds(input.contracts.manifest, "preview_db").filter(
-    (serviceId) => selected.has(serviceId)
+    (serviceId) => selected.has(serviceId),
   )
 }
 
@@ -149,12 +149,12 @@ async function resolvePreviewDbContext(input: {
 
   if (!input.zaneOperatorClient) {
     throw new Error(
-      `Preview DB credentials are required for services: ${requiredServiceIds.join(",")}.`
+      `Preview DB credentials are required for services: ${requiredServiceIds.join(",")}.`,
     )
   }
 
   logDeployProgress(
-    `Preview DB credentials are missing for services ${requiredServiceIds.join(",")}; ensuring preview DB now.`
+    `Preview DB credentials are missing for services ${requiredServiceIds.join(",")}; ensuring preview DB now.`,
   )
   const previewDb = (
     await input.zaneOperatorClient.ensurePreviewDb(input.prNumber)
@@ -192,17 +192,17 @@ async function resolvePreviewRandomOnceSecrets(input: {
   }
 
   const resolveSecrets = (
-    syncedSecrets: { secret_id: string; value: string }[]
+    syncedSecrets: { secret_id: string; value: string }[],
   ): PreviewRandomOnceSecretInput[] => {
     const resolvedValueBySecretId = new Map(
-      syncedSecrets.map((secret) => [secret.secret_id, secret.value])
+      syncedSecrets.map((secret) => [secret.secret_id, secret.value]),
     )
 
     return definitions.map((definition) => {
       const value = resolvedValueBySecretId.get(definition.secret_id)
       if (!value) {
         throw new Error(
-          `Preview random-once secret ${definition.secret_id} was not returned for ${input.environmentName}.`
+          `Preview random-once secret ${definition.secret_id} was not returned for ${input.environmentName}.`,
         )
       }
 
@@ -216,7 +216,7 @@ async function resolvePreviewRandomOnceSecrets(input: {
   if (input.environmentCreated) {
     const generatedSecrets = generatePreviewRandomOnceSecrets(input.stackInputs)
     const generatedValuesBySecretId = new Map(
-      generatedSecrets.map((secret) => [secret.secret_id, secret.value])
+      generatedSecrets.map((secret) => [secret.secret_id, secret.value]),
     )
     const materialized =
       await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
@@ -236,7 +236,7 @@ async function resolvePreviewRandomOnceSecrets(input: {
 
     if (materialized.missing_secret_ids.length > 0) {
       throw new Error(
-        `Preview random-once secrets are missing in ${input.environmentName}: ${materialized.missing_secret_ids.join(", ")}`
+        `Preview random-once secrets are missing in ${input.environmentName}: ${materialized.missing_secret_ids.join(", ")}`,
       )
     }
 
@@ -263,7 +263,7 @@ async function resolvePreviewRandomOnceSecrets(input: {
 
   if (!input.allowGenerateMissing) {
     throw new Error(
-      `Preview random-once secrets are missing in ${input.environmentName}: ${synced.missing_secret_ids.join(", ")}`
+      `Preview random-once secrets are missing in ${input.environmentName}: ${synced.missing_secret_ids.join(", ")}`,
     )
   }
 
@@ -272,7 +272,7 @@ async function resolvePreviewRandomOnceSecrets(input: {
   const missingSecretIds = new Set(synced.missing_secret_ids)
   const generatedSecrets = generatePreviewRandomOnceSecrets(input.stackInputs)
   const generatedValuesBySecretId = new Map(
-    generatedSecrets.map((secret) => [secret.secret_id, secret.value])
+    generatedSecrets.map((secret) => [secret.secret_id, secret.value]),
   )
   const materialized =
     await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
@@ -294,7 +294,7 @@ async function resolvePreviewRandomOnceSecrets(input: {
 
   if (materialized.missing_secret_ids.length > 0) {
     throw new Error(
-      `Preview random-once secrets are missing in ${input.environmentName}: ${materialized.missing_secret_ids.join(", ")}`
+      `Preview random-once secrets are missing in ${input.environmentName}: ${materialized.missing_secret_ids.join(", ")}`,
     )
   }
 
@@ -379,11 +379,11 @@ async function syncPreviewServiceEnv(input: {
 
 // preview deploy keeps provider provisioning and staged deploy ordering in one flow
 export async function executeDeployPreview(
-  input: DeployPreviewCommandInput
+  input: DeployPreviewCommandInput,
 ): Promise<DeployPreviewExecutionResult> {
   const contracts = await loadDeployContracts(
     input.stackManifestPath,
-    input.stackInputsPath
+    input.stackInputsPath,
   )
   const plan = await executePlan({
     lane: "preview",
@@ -415,7 +415,7 @@ export async function executeDeployPreview(
   })
   const baselineDeploy = environment.created || !environment.baseline_complete
   logDeployProgress(
-    `Resolved preview environment ${environment.environment_name} (${environment.environment_id}); baseline mode: ${baselineDeploy ? "replay" : "redeploy-only"}.`
+    `Resolved preview environment ${environment.environment_name} (${environment.environment_id}); baseline mode: ${baselineDeploy ? "replay" : "redeploy-only"}.`,
   )
   const runtimePlan = baselineDeploy
     ? {
@@ -439,7 +439,7 @@ export async function executeDeployPreview(
   const effectiveRuntimePlan = prerequisitePlan.plan
   if (prerequisitePlan.transientServiceIds.length > 0) {
     logDeployProgress(
-      `Adding transient provider prerequisite services to the preview deploy plan: ${prerequisitePlan.transientServiceIds.join(",")}.`
+      `Adding transient provider prerequisite services to the preview deploy plan: ${prerequisitePlan.transientServiceIds.join(",")}.`,
     )
   }
   const zaneOperatorClient =
@@ -447,7 +447,7 @@ export async function executeDeployPreview(
       ? null
       : new ZaneOperatorClient(input.baseUrl, input.apiToken)
   const effectiveDeployServiceIds = effectiveRuntimePlan.deploy_services.map(
-    (service) => service.id
+    (service) => service.id,
   )
   const previewDbContext = await resolvePreviewDbContext({
     contracts,
@@ -508,7 +508,7 @@ export async function executeDeployPreview(
 
   if (baselineDeploy && effectiveRuntimePlan.deploy_services_csv) {
     logDeployProgress(
-      "Applying baseline preview-owned env materialization before staged deploys."
+      "Applying baseline preview-owned env materialization before staged deploys.",
     )
     const baselineEnvOverrides = await executeRenderEnvOverrides({
       lane: "preview",
@@ -525,18 +525,18 @@ export async function executeDeployPreview(
 
     if (baselineEnvOverrides.services.length > 0) {
       const baselineEnvOverrideServiceIds = new Set(
-        baselineEnvOverrides.services.map((service) => service.service_id)
+        baselineEnvOverrides.services.map((service) => service.service_id),
       )
       const baselineTargetServices =
         effectiveRuntimePlan.deploy_services.filter((service) =>
-          baselineEnvOverrideServiceIds.has(service.id)
+          baselineEnvOverrideServiceIds.has(service.id),
         )
 
       if (baselineTargetServices.length > 0) {
         logDeployProgress(
           `Persisting preview-owned env values for baseline services: ${baselineTargetServices
             .map((service) => service.service_slug)
-            .join(", ")}.`
+            .join(", ")}.`,
         )
         const baselineTargets = await executeResolveTargetsPayload({
           apiToken: input.apiToken,
@@ -569,7 +569,7 @@ export async function executeDeployPreview(
           envOverrideServiceIdsCsv,
           baselineEnvOverrides.services
             .map((service) => service.service_id)
-            .join(",")
+            .join(","),
         )
       }
     }
@@ -577,7 +577,7 @@ export async function executeDeployPreview(
 
   if (zaneOperatorClient && input.targetCommitSha) {
     logDeployProgress(
-      `Persisting preview target commit metadata before deploy stages: ${input.targetCommitSha}.`
+      `Persisting preview target commit metadata before deploy stages: ${input.targetCommitSha}.`,
     )
     const previewCommitState = await zaneOperatorClient.writePreviewCommitState(
       {
@@ -585,7 +585,7 @@ export async function executeDeployPreview(
         project_slug: input.projectSlug,
         target_commit_sha: input.targetCommitSha,
         ...(baselineDeploy ? { baseline_complete: false } : {}),
-      }
+      },
     )
     targetCommitSha = previewCommitState.target_commit_sha
   } else if (input.targetCommitSha) {
@@ -620,7 +620,7 @@ export async function executeDeployPreview(
     }
 
     logDeployProgress(
-      `Starting preview deploy stage ${stage} for services: ${stageServicesCsv}.`
+      `Starting preview deploy stage ${stage} for services: ${stageServicesCsv}.`,
     )
     await ensureStageRuntimeProviderOutputs({
       apiToken: input.apiToken,
@@ -647,7 +647,7 @@ export async function executeDeployPreview(
     })
 
     logDeployProgress(
-      `Rendering env overrides for preview stage ${stage}: ${stageServicesCsv}.`
+      `Rendering env overrides for preview stage ${stage}: ${stageServicesCsv}.`,
     )
     const envOverrides = await executeRenderEnvOverrides({
       lane: "preview",
@@ -662,7 +662,7 @@ export async function executeDeployPreview(
       stackInputsPath: input.stackInputsPath,
     })
     logDeployProgress(
-      `Resolving deploy targets for preview stage ${stage}: ${stageServicesCsv}.`
+      `Resolving deploy targets for preview stage ${stage}: ${stageServicesCsv}.`,
     )
     const resolveTargetsPayload: ResolveTargetsPayload = {
       environment_name: environment.environment_name,
@@ -684,7 +684,7 @@ export async function executeDeployPreview(
       ? filterTargetsForGitCommit(
           targets.services,
           envOverrides.services,
-          desiredCommitSha
+          desiredCommitSha,
         )
       : {
           adoptedDeployments: [] as DeploymentLike[],
@@ -695,14 +695,14 @@ export async function executeDeployPreview(
 
     allDeployments = mergeDeployments(
       allDeployments,
-      filtered.adoptedDeployments
+      filtered.adoptedDeployments,
     )
 
     if (filtered.skippedServices.length > 0) {
       logDeployProgress(
         `Skipping current preview services for stage ${stage}: ${filtered.skippedServices
           .map((service) => `${service.service_slug} (${service.reason})`)
-          .join(", ")}.`
+          .join(", ")}.`,
       )
     }
 
@@ -711,9 +711,9 @@ export async function executeDeployPreview(
         `Reusing active deployments for preview stage ${stage}: ${filtered.adoptedDeployments
           .map(
             (deployment) =>
-              `${deployment.service_slug}#${deployment.deployment_hash}`
+              `${deployment.service_slug}#${deployment.deployment_hash}`,
           )
-          .join(", ")}.`
+          .join(", ")}.`,
       )
     }
 
@@ -722,7 +722,7 @@ export async function executeDeployPreview(
       filtered.adoptedDeployments.length === 0
     ) {
       logDeployProgress(
-        `No trigger required for preview stage ${stage}; all services were skipped by current-state checks.`
+        `No trigger required for preview stage ${stage}; all services were skipped by current-state checks.`,
       )
       continue
     }
@@ -734,7 +734,7 @@ export async function executeDeployPreview(
       logDeployProgress(
         `Applying env overrides for preview stage ${stage}: ${filtered.services
           .map((service) => service.service_slug)
-          .join(", ")}.`
+          .join(", ")}.`,
       )
       await executeApplyEnvOverridesPayload({
         apiToken: input.apiToken,
@@ -750,7 +750,7 @@ export async function executeDeployPreview(
       logDeployProgress(
         `Triggering deploys for preview stage ${stage}: ${filtered.services
           .map((service) => service.service_slug)
-          .join(", ")}.`
+          .join(", ")}.`,
       )
       const trigger = await executeTriggerPayload({
         apiToken: input.apiToken,
@@ -767,20 +767,20 @@ export async function executeDeployPreview(
       stageTriggeredServicesCsv = trigger.triggered_service_ids.join(",")
       triggeredServicesCsv = mergeCsvValues(
         triggeredServicesCsv,
-        stageTriggeredServicesCsv
+        stageTriggeredServicesCsv,
       )
       logDeployProgress(
         `Triggered preview stage ${stage} deployments: ${trigger.services
           .map(
             (deployment) =>
-              `${deployment.service_slug}#${deployment.deployment_hash}`
+              `${deployment.service_slug}#${deployment.deployment_hash}`,
           )
-          .join(", ")}.`
+          .join(", ")}.`,
       )
     }
 
     logDeployProgress(
-      `Waiting for preview stage ${stage} deployments to become healthy.`
+      `Waiting for preview stage ${stage} deployments to become healthy.`,
     )
     await waitForDeployments({
       lane: "preview",
@@ -815,13 +815,13 @@ export async function executeDeployPreview(
       envOverrideServiceIdsCsv,
       filtered.filteredEnvOverrides
         .map((service) => service.service_id)
-        .join(",")
+        .join(","),
     )
   }
 
   if (zaneOperatorClient && input.targetCommitSha) {
     logDeployProgress(
-      `Persisting preview last-deployed commit metadata after successful deploy: ${input.targetCommitSha}.`
+      `Persisting preview last-deployed commit metadata after successful deploy: ${input.targetCommitSha}.`,
     )
     const previewCommitState = await zaneOperatorClient.writePreviewCommitState(
       {
@@ -829,7 +829,7 @@ export async function executeDeployPreview(
         last_deployed_commit_sha: input.targetCommitSha,
         project_slug: input.projectSlug,
         ...(baselineDeploy ? { baseline_complete: true } : {}),
-      }
+      },
     )
     targetCommitSha = previewCommitState.target_commit_sha
     lastDeployedCommitSha = previewCommitState.last_deployed_commit_sha

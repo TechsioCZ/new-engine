@@ -127,14 +127,14 @@ interface AccordionItemContextValue {
 }
 
 const AccordionItemContext = createContext<AccordionItemContextValue | null>(
-  null
+  null,
 )
 
 function useAccordionItemContext() {
   const context = useContext(AccordionItemContext)
   if (!context) {
     throw new Error(
-      "Accordion item components must be used within Accordion.Item"
+      "Accordion item components must be used within Accordion.Item",
     )
   }
   return context

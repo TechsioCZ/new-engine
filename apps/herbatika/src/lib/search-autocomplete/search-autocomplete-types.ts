@@ -61,7 +61,7 @@ export const SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH = 120
 export const SEARCH_AUTOCOMPLETE_DEBOUNCE_MS = 220
 
 export const createEmptySearchAutocompleteResponse = (
-  query: string
+  query: string,
 ): SearchAutocompleteResponse => ({
   brands: [],
   categories: [],

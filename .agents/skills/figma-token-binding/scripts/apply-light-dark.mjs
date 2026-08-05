@@ -26,11 +26,11 @@ const __dirname = import.meta.dirname
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
 const LIGHT_INPUT = join(
   REPO_ROOT,
-  "libs/ui/src/tokens/figma/light/variables.css"
+  "libs/ui/src/tokens/figma/light/variables.css",
 )
 const DARK_INPUT = join(
   REPO_ROOT,
-  "libs/ui/src/tokens/figma/dark/variables.css"
+  "libs/ui/src/tokens/figma/dark/variables.css",
 )
 const COMP_DIR_ATOMS = join(REPO_ROOT, "libs/ui/src/tokens/components/atoms")
 
@@ -269,7 +269,7 @@ function transformThemeBlock(css, valueLookup) {
           return full
         }
         return `${indent}${name}: ${v};`
-      }
+      },
     )
     out = out.slice(0, openBrace + 1) + replaced + out.slice(close)
   }
@@ -373,7 +373,7 @@ function processComponent(component, lightDecls, darkDecls) {
   css = stripLeftoverComments(css)
   css = transformThemeBlock(
     css,
-    buildValueLookup(component, lightDecls, darkDecls)
+    buildValueLookup(component, lightDecls, darkDecls),
   )
   css = css.replace(BLANK_LINES_RE, "\n\n").replace(TRAILING_WS_RE, "\n")
   if (!css.endsWith("\n")) {

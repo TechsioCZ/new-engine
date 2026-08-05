@@ -90,7 +90,7 @@ const PayloadImportPage = () => {
 
       const data = (await response.json()) as ImportResult
       setMessage(
-        `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`
+        `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`,
       )
     } catch (error_) {
       setError(getImportFailureMessage(error_))

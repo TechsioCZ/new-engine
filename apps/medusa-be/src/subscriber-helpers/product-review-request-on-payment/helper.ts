@@ -48,7 +48,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isOrderPaymentCollectionQueryResult(
-  value: unknown
+  value: unknown,
 ): value is OrderPaymentCollectionQueryResult {
   if (!isRecord(value)) {
     return false
@@ -90,7 +90,7 @@ function getOrderIdFromEventData(data: PaymentPaidEvent): string | undefined {
 }
 
 function getPaymentCollectionIdFromEventData(
-  data: PaymentPaidEvent
+  data: PaymentPaidEvent,
 ): string | undefined {
   if (data.payment_collection_id) {
     return data.payment_collection_id
@@ -135,7 +135,7 @@ function getPaymentIdFromEventData(data: PaymentPaidEvent): string | undefined {
 
 async function getOrderIdFromPaymentCollection(
   query: Query,
-  paymentCollectionId: string
+  paymentCollectionId: string,
 ) {
   const { data } = await query.graph({
     entity: "order_payment_collection",
@@ -172,7 +172,7 @@ async function getOrderIdFromPayment(query: Query, paymentId: string) {
 
 export async function resolveOrderIdFromPaymentEvent(
   container: SubscriberArgs["container"],
-  data: PaymentPaidEvent
+  data: PaymentPaidEvent,
 ): Promise<string | undefined> {
   const directOrderId = getOrderIdFromEventData(data)
 
@@ -186,7 +186,7 @@ export async function resolveOrderIdFromPaymentEvent(
   if (paymentCollectionId) {
     const orderId = await getOrderIdFromPaymentCollection(
       query,
-      paymentCollectionId
+      paymentCollectionId,
     )
 
     if (orderId) {

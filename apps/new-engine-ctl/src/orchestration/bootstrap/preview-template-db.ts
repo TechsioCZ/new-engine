@@ -10,7 +10,7 @@ import { readJsonFile, resolveOptionalPath } from "./shared.js"
 
 function serviceEnvValue(
   serviceDetails: BootstrapInspectServiceDetails | null,
-  key: string
+  key: string,
 ): string | undefined {
   return serviceDetails?.env_variables.find((envVar) => envVar.key === key)
     ?.value
@@ -30,7 +30,7 @@ function firstNonEmpty(
 
 function buildStagingDbName(
   explicitValue: string | undefined,
-  templateDbName: string | undefined
+  templateDbName: string | undefined,
 ): string | undefined {
   if (explicitValue?.trim()) {
     return explicitValue.trim()
@@ -70,12 +70,12 @@ function buildBlockingReasons(input: {
   }
   if (!input.dbServiceExists) {
     reasons.push(
-      "Database service is missing from the target Zane environment."
+      "Database service is missing from the target Zane environment.",
     )
   }
   if (!input.operatorServiceExists) {
     reasons.push(
-      "zane-operator service is missing from the target Zane environment."
+      "zane-operator service is missing from the target Zane environment.",
     )
   }
   if (!input.dbHost) {
@@ -104,10 +104,10 @@ function buildBlockingReasons(input: {
 }
 
 export async function executeBootstrapPreviewTemplateDbPlan(
-  input: BootstrapPreviewTemplateDbPlanCommandInput
+  input: BootstrapPreviewTemplateDbPlanCommandInput,
 ) {
   const inspectResponse = bootstrapPreviewTemplateDbInspectResponseSchema.parse(
-    await readJsonFile(input.inspectJsonPath)
+    await readJsonFile(input.inspectJsonPath),
   )
 
   const dbDetails = inspectResponse.db_service.details
@@ -115,36 +115,36 @@ export async function executeBootstrapPreviewTemplateDbPlan(
   const dbHost = firstNonEmpty(
     input.dbHost,
     dbDetails?.global_network_alias,
-    dbDetails?.network_alias
+    dbDetails?.network_alias,
   )
   const dbPort = firstNonEmpty(
     input.dbPort,
     serviceEnvValue(operatorDetails, "PGPORT"),
-    "5432"
+    "5432",
   )
   const dbUser = firstNonEmpty(
     input.dbUser,
-    serviceEnvValue(dbDetails, "POSTGRES_USER")
+    serviceEnvValue(dbDetails, "POSTGRES_USER"),
   )
   const dbPassword = firstNonEmpty(
     input.dbPassword,
-    serviceEnvValue(dbDetails, "POSTGRES_PASSWORD")
+    serviceEnvValue(dbDetails, "POSTGRES_PASSWORD"),
   )
   const dbAdminName = firstNonEmpty(input.dbAdminName, "postgres")
   const dbSslmode = firstNonEmpty(
     input.dbSslmode,
     serviceEnvValue(operatorDetails, "PGSSLMODE"),
-    "disable"
+    "disable",
   )
   const templateDbName = firstNonEmpty(
     input.templateDbName,
     serviceEnvValue(dbDetails, "MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME"),
-    serviceEnvValue(operatorDetails, "DB_TEMPLATE_NAME")
+    serviceEnvValue(operatorDetails, "DB_TEMPLATE_NAME"),
   )
   const templateOwner = firstNonEmpty(
     input.templateOwner,
     serviceEnvValue(dbDetails, "MEDUSA_DB_ZANE_OPERATOR_USER"),
-    serviceEnvValue(operatorDetails, "PGUSER")
+    serviceEnvValue(operatorDetails, "PGUSER"),
   )
   const stagingDbName = buildStagingDbName(input.stagingDbName, templateDbName)
   const blockingReasons = buildBlockingReasons({

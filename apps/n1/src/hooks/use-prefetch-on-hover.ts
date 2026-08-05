@@ -30,7 +30,7 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
         console.log(
           "[usePrefetchOnHover] Prefetch:",
           categoryHandle,
-          categoryIds
+          categoryIds,
         )
       }
 
@@ -55,7 +55,7 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
         clearTimeout(timeoutRef.current)
       }
     },
-    []
+    [],
   )
 
   return { cancelHover, handleHover }

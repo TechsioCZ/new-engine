@@ -243,12 +243,12 @@ const ProductMeasurementDrawer = ({
   const [q, setQ] = useState("")
   const debouncedQ = useDebouncedValue(q)
   const [selectedId, setSelectedId] = useState<string | undefined>(
-    () => currentMeasurement?.unit.id
+    () => currentMeasurement?.unit.id,
   )
   const [createdUnit, setCreatedUnit] = useState<MeasurementUnit | undefined>()
   const [createMissingOpen, setCreateMissingOpen] = useState(false)
   const [missingUnitForm, setMissingUnitForm] = useState<MissingUnitForm>(() =>
-    createEmptyMissingUnitForm()
+    createEmptyMissingUnitForm(),
   )
   const currentMeasurementUnitId = currentMeasurement?.unit.id
 
@@ -270,7 +270,7 @@ const ProductMeasurementDrawer = ({
       order_by: "name",
       q: debouncedQ,
     }),
-    [debouncedQ, pageIndex]
+    [debouncedQ, pageIndex],
   )
 
   const { data, isLoading } = useQuery({
@@ -313,7 +313,7 @@ const ProductMeasurementDrawer = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       )
     },
     onSuccess: async () => {
@@ -345,7 +345,7 @@ const ProductMeasurementDrawer = ({
       }),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.createFailed")
+        error instanceof Error ? error.message : t("errors.createFailed"),
       )
     },
     onSuccess: async (response) => {
@@ -373,10 +373,10 @@ const ProductMeasurementDrawer = ({
       status: "all",
     })
     const activeUnit = existing.measurement_units.find(
-      (unit) => unit.code === normalizedCode && !unit.deleted_at
+      (unit) => unit.code === normalizedCode && !unit.deleted_at,
     )
     const deletedUnit = existing.measurement_units.find(
-      (unit) => unit.code === normalizedCode && unit.deleted_at
+      (unit) => unit.code === normalizedCode && unit.deleted_at,
     )
 
     if (activeUnit) {

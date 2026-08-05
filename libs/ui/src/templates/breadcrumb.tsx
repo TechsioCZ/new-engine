@@ -27,7 +27,7 @@ export type BreadcrumbTemplateLinkProps<T extends ElementType> = Omit<
 type BreadcrumbTemplateRenderLinkProps = BreadcrumbLinkProps<ElementType>
 
 const BreadcrumbTemplateLink = Breadcrumb.Link as (
-  props: BreadcrumbTemplateRenderLinkProps
+  props: BreadcrumbTemplateRenderLinkProps,
 ) => ReactElement
 
 export interface BreadcrumbTemplateItem {
@@ -61,7 +61,7 @@ type BreadcrumbDisplayItem = BreadcrumbTemplateItem | "ellipsis"
 
 function getDisplayItems(
   items: BreadcrumbTemplateItem[],
-  maxItems: number
+  maxItems: number,
 ): BreadcrumbDisplayItem[] {
   if (maxItems <= 0 || items.length <= maxItems) {
     return items
@@ -101,7 +101,7 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
 }: BreadcrumbTemplateProps<T>) {
   const displayItems = getDisplayItems(items, maxItems)
   const hasExplicitCurrent = displayItems.some(
-    (item) => item !== "ellipsis" && item.isCurrent
+    (item) => item !== "ellipsis" && item.isCurrent,
   )
 
   return (

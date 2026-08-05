@@ -17,7 +17,7 @@ vi.mock(
   import("../../../../../../src/workflows/measurement-unit/workflows/create-measurement-units"),
   () => ({
     createMeasurementUnitsWorkflow: createWorkflow,
-  })
+  }),
 )
 
 describe("POST /admin/measurement-units", () => {
@@ -52,7 +52,7 @@ describe("POST /admin/measurement-units", () => {
           symbol: "kg",
         },
       } as never,
-      response as never
+      response as never,
     )
 
     expect(response.status).toHaveBeenCalledWith(201)

@@ -35,7 +35,7 @@ describe("storefront-data cache/query consistency", () => {
     }
 
     const buildListParams = (
-      input: ProductListInputBase
+      input: ProductListInputBase,
     ): ProductListParams => {
       const limit = input.limit ?? 1
       const page = input.page ?? 1
@@ -102,7 +102,7 @@ describe("storefront-data cache/query consistency", () => {
       () => useProducts({ limit: 1, page: 1 }),
       {
         wrapper,
-      }
+      },
     )
 
     await waitFor(() => {
@@ -117,10 +117,10 @@ describe("storefront-data cache/query consistency", () => {
     })
 
     const regionCzKey = queryKeys.list(
-      buildListParams({ limit: 1, page: 1, region_id: "reg_cz" })
+      buildListParams({ limit: 1, page: 1, region_id: "reg_cz" }),
     )
     const regionUsKey = queryKeys.list(
-      buildListParams({ limit: 1, page: 1, region_id: "reg_us" })
+      buildListParams({ limit: 1, page: 1, region_id: "reg_us" }),
     )
 
     expect(queryClient.getQueryData(regionCzKey)).toBeTruthy()
@@ -184,12 +184,12 @@ describe("storefront-data cache/query consistency", () => {
     const profileQueryKey = createQueryKey(
       queryKeyNamespace,
       "customer",
-      "profile"
+      "profile",
     )
     const authCustomerQueryKey = createQueryKey(
       queryKeyNamespace,
       "auth",
-      "customer"
+      "customer",
     )
 
     const queryClient = new QueryClient({
@@ -224,10 +224,10 @@ describe("storefront-data cache/query consistency", () => {
     })
 
     expect(
-      queryClient.getQueryState(profileQueryKey)?.isInvalidated
+      queryClient.getQueryState(profileQueryKey)?.isInvalidated,
     ).toBeTruthy()
     expect(
-      queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated
+      queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated,
     ).toBeTruthy()
   })
 
@@ -289,7 +289,7 @@ describe("storefront-data cache/query consistency", () => {
     const authCustomerQueryKey = createQueryKey(
       queryKeyNamespace,
       "auth",
-      "customer"
+      "customer",
     )
 
     const queryClient = new QueryClient({
@@ -338,13 +338,13 @@ describe("storefront-data cache/query consistency", () => {
         typeof arg === "object" &&
         "queryKey" in (arg as Record<string, unknown>) &&
         JSON.stringify((arg as { queryKey?: unknown }).queryKey) ===
-          JSON.stringify(authCustomerQueryKey)
-      )
+          JSON.stringify(authCustomerQueryKey),
+      ),
     )
 
     expect(authInvalidationCalls).toHaveLength(3)
     expect(
-      queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated
+      queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated,
     ).toBeTruthy()
   })
 
@@ -365,7 +365,7 @@ describe("storefront-data cache/query consistency", () => {
     }
 
     const queryKeys = createOrderQueryKeys<ListParams, DetailParams>(
-      "cache-consistency-orders"
+      "cache-consistency-orders",
     )
 
     const pendingWithEnabled = queryKeys.list({
@@ -402,7 +402,7 @@ describe("storefront-data cache/query consistency", () => {
 
   it("keeps primitive order detail params as distinct query keys", () => {
     const queryKeys = createOrderQueryKeys<{ limit: number }, string>(
-      "cache-consistency-order-detail-primitive"
+      "cache-consistency-order-detail-primitive",
     )
 
     const first = queryKeys.detail("order_1")

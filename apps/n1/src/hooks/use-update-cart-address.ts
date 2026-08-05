@@ -19,7 +19,7 @@ interface MutationContext {
 
 /** Helper to clean address data for Medusa API */
 function cleanAddress(
-  address: AddressFormData
+  address: AddressFormData,
 ): HttpTypes.StoreUpdateCart["shipping_address"] {
   const cleaned: HttpTypes.StoreUpdateCart["shipping_address"] = {
     address_1: address.address_1,
@@ -64,7 +64,7 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
       if (!cartId) {
         throw new CartAddressUpdateError(
           "Cart ID is required",
-          "ADDRESS_UPDATE_REJECTED"
+          "ADDRESS_UPDATE_REJECTED",
         )
       }
 
@@ -75,7 +75,7 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
         const errorMessages = Object.values(validationErrors).join(", ")
         throw new CartAddressUpdateError(
           `Validation failed: ${errorMessages}`,
-          "BILLING_ADDRESS_INVALID"
+          "BILLING_ADDRESS_INVALID",
         )
       }
 
@@ -98,14 +98,14 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
           throw new CartAddressUpdateError(
             resolveErrorMessage(error),
             "ADDRESS_UPDATE_REJECTED",
-            error
+            error,
           )
         })
 
       if (!response.cart) {
         throw new CartAddressUpdateError(
           "Failed to update addresses",
-          "ADDRESS_UPDATE_REJECTED"
+          "ADDRESS_UPDATE_REJECTED",
         )
       }
 
@@ -125,7 +125,7 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
 
       // Snapshot the previous cart
       const previousCart = queryClient.getQueryData<Cart>(
-        queryKeys.cart.active()
+        queryKeys.cart.active(),
       )
 
       // Return context with previous cart for rollback

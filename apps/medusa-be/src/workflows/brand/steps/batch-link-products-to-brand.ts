@@ -21,19 +21,19 @@ export const prepareBatchLinkProductsToBrandStep = createStep(
     if (!targetBrandIds.has(input.brand_id)) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Active brand "${input.brand_id}" was not found`
+        `Active brand "${input.brand_id}" was not found`,
       )
     }
 
     const existingProductIds = await getExistingProductIds(container, delta.add)
     const missingProductIds = delta.add.filter(
-      (productId) => !existingProductIds.has(productId)
+      (productId) => !existingProductIds.has(productId),
     )
 
     if (missingProductIds.length) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Product ids were not found: ${missingProductIds.join(", ")}`
+        `Product ids were not found: ${missingProductIds.join(", ")}`,
       )
     }
 
@@ -49,16 +49,16 @@ export const prepareBatchLinkProductsToBrandStep = createStep(
     const { remove } = resolvedDelta
     const addProductIdSet = new Set(add)
     const conflictingLinks = affectedLinks.filter((link) =>
-      addProductIdSet.has(link.product_id)
+      addProductIdSet.has(link.product_id),
     )
     const activeBrandIds = await getActiveBrandIds(
       container,
-      conflictingLinks.map((link) => link.brand_id)
+      conflictingLinks.map((link) => link.brand_id),
     )
     const conflicts = partitionProductBrandConflicts(
       conflictingLinks,
       activeBrandIds,
-      input.brand_id
+      input.brand_id,
     )
 
     if (conflicts.active.length) {
@@ -66,20 +66,20 @@ export const prepareBatchLinkProductsToBrandStep = createStep(
         MedusaError.Types.INVALID_DATA,
         `Products are already linked to another brand: ${conflicts.active
           .map((link) => link.product_id)
-          .join(", ")}`
+          .join(", ")}`,
       )
     }
 
     return new StepResponse({
       links_to_create: add.map((productId) =>
-        brandProductLink(productId, input.brand_id)
+        brandProductLink(productId, input.brand_id),
       ),
       links_to_dismiss: [
         ...remove.map((productId) =>
-          brandProductLink(productId, input.brand_id)
+          brandProductLink(productId, input.brand_id),
         ),
         ...conflicts.inactive.map((link) =>
-          brandProductLink(link.product_id, link.brand_id)
+          brandProductLink(link.product_id, link.brand_id),
         ),
       ],
       result: {
@@ -87,5 +87,5 @@ export const prepareBatchLinkProductsToBrandStep = createStep(
         removed: remove,
       },
     })
-  }
+  },
 )

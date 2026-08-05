@@ -130,7 +130,7 @@ describe(applyOrderCommercialValues, () => {
     query.graph.mockReset()
     lockingModule.execute.mockReset()
     lockingModule.execute.mockImplementation(
-      async (_key: string, fn: () => Promise<unknown>) => fn()
+      async (_key: string, fn: () => Promise<unknown>) => fn(),
     )
     mockBeginRun.mockResolvedValue({ result: { id: "oc_1", version: 1 } })
     mockCancelRun.mockResolvedValue({ result: null })
@@ -188,7 +188,7 @@ describe(applyOrderCommercialValues, () => {
     expect(lockingModule.execute).toHaveBeenCalledWith(
       "order-commercial-values:apply:order_1",
       expect.any(Function),
-      { timeout: 5 }
+      { timeout: 5 },
     )
     expect(mockBeginRun).toHaveBeenCalledWith({
       input: {
@@ -213,7 +213,7 @@ describe(applyOrderCommercialValues, () => {
     expect(mockCreateActionsRun).toHaveBeenCalledWith()
     const actionInput = getRequired(
       getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
-      0
+      0,
     )
     expect(actionInput.details.adjustments).toStrictEqual([
       {
@@ -305,7 +305,7 @@ describe(applyOrderCommercialValues, () => {
     expect(mockCreateActionsRun).toHaveBeenCalledWith()
     const actionInput = getRequired(
       getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
-      0
+      0,
     )
     expect(actionInput).toMatchObject({
       action: "SHIPPING_ADJUSTMENTS_REPLACE",
@@ -382,11 +382,11 @@ describe(applyOrderCommercialValues, () => {
 
     const actionInput = getRequired(
       getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
-      0
+      0,
     )
 
     expect(actionInput.details.manual_discounts.shipping_discount_amount).toBe(
-      9
+      9,
     )
     const adjustment = getRequired(actionInput.details.adjustments, 0)
     expect(adjustment).toMatchObject({
@@ -533,7 +533,7 @@ describe(applyOrderCommercialValues, () => {
             },
           ],
         },
-      })
+      }),
     ).rejects.toThrow("Order already has active order change oc_busy")
 
     expect(mockBeginRun).not.toHaveBeenCalled()
@@ -586,8 +586,8 @@ describe(applyOrderCommercialValues, () => {
     expect(
       getRequired(
         getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
-        0
-      )
+        0,
+      ),
     ).toMatchObject({
       order_change_id: "oc_existing",
       version: 3,
@@ -628,7 +628,7 @@ describe(applyOrderCommercialValues, () => {
             },
           ],
         },
-      })
+      }),
     ).rejects.toThrow("action failed")
 
     expect(mockCancelRun).toHaveBeenCalledWith({

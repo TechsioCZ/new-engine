@@ -82,7 +82,7 @@ function buildExistingPreferenceMap(
     value: unknown
     id?: unknown
     is_tax_inclusive: boolean
-  }[]
+  }[],
 ): Map<string, ExistingPreference> {
   const existingByKey = new Map<string, ExistingPreference>()
 
@@ -172,7 +172,7 @@ export const ensurePricePreferencesStep = createStep(
   async (input: EnsurePricePreferencesStepInput, { container }) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const pricingService = container.resolve<IPricingModuleService>(
-      Modules.PRICING
+      Modules.PRICING,
     )
 
     const isTaxInclusive = input.isTaxInclusive ?? true
@@ -224,12 +224,12 @@ export const ensurePricePreferencesStep = createStep(
     if (uniqueUpdateIds.length > 0) {
       await pricingService.updatePricePreferences(
         { id: uniqueUpdateIds },
-        { is_tax_inclusive: isTaxInclusive }
+        { is_tax_inclusive: isTaxInclusive },
       )
     }
 
     logger.info(
-      `Ensured price preferences: created ${createPayloads.length}, updated ${uniqueUpdateIds.length}`
+      `Ensured price preferences: created ${createPayloads.length}, updated ${uniqueUpdateIds.length}`,
     )
 
     const output: EnsurePricePreferencesStepOutput = {
@@ -239,5 +239,5 @@ export const ensurePricePreferencesStep = createStep(
     }
 
     return new StepResponse({ result: output })
-  }
+  },
 )

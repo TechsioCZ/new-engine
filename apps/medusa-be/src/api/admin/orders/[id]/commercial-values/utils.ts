@@ -200,7 +200,7 @@ function toFiniteAmount(value: AmountValue, fieldName: string) {
   if (typeof numberValue !== "number" || !Number.isFinite(numberValue)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `${fieldName} must be a finite numeric value`
+      `${fieldName} must be a finite numeric value`,
     )
   }
 
@@ -208,7 +208,7 @@ function toFiniteAmount(value: AmountValue, fieldName: string) {
 }
 
 function normalizeAmountValue(
-  value: AmountValue
+  value: AmountValue,
 ): number | string | null | undefined {
   if (typeof value !== "object" || value === null) {
     return value
@@ -241,7 +241,7 @@ function toPositiveFiniteAmount(value: AmountValue, fieldName: string) {
   if (numberValue <= 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `${fieldName} must be greater than zero`
+      `${fieldName} must be greater than zero`,
     )
   }
 
@@ -254,7 +254,7 @@ function toSafeInteger(value: AmountValue, fieldName: string) {
   if (!Number.isSafeInteger(numberValue)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `${fieldName} must be an integer value`
+      `${fieldName} must be an integer value`,
     )
   }
 
@@ -270,7 +270,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isCommercialValuesOrderItem(
-  value: unknown
+  value: unknown,
 ): value is CommercialValuesOrderItem {
   if (!isRecord(value) || typeof value["id"] !== "string") {
     return false
@@ -284,7 +284,7 @@ function isCommercialValuesOrderItem(
 }
 
 function isCommercialValuesOrderShippingMethod(
-  value: unknown
+  value: unknown,
 ): value is CommercialValuesOrderShippingMethod {
   if (!isRecord(value) || typeof value["id"] !== "string") {
     return false
@@ -298,7 +298,7 @@ function isCommercialValuesOrderShippingMethod(
 }
 
 function isCommercialValuesOrder(
-  value: unknown
+  value: unknown,
 ): value is CommercialValuesOrder {
   if (!isRecord(value) || typeof value["id"] !== "string") {
     return false
@@ -319,7 +319,7 @@ function isCommercialValuesOrder(
 }
 
 function isActiveOrderChangeRecord(
-  value: unknown
+  value: unknown,
 ): value is ActiveOrderChangeRecord {
   return (
     isRecord(value) &&
@@ -333,7 +333,7 @@ function toQueryRows(data: unknown, entityName: string) {
   if (!Array.isArray(data)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `${entityName} query returned invalid data`
+      `${entityName} query returned invalid data`,
     )
   }
 
@@ -344,7 +344,7 @@ function requireCurrencyCode(order: CommercialValuesOrder) {
   if (!order.currency_code) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order currency_code is missing"
+      "Order currency_code is missing",
     )
   }
 
@@ -352,7 +352,7 @@ function requireCurrencyCode(order: CommercialValuesOrder) {
 }
 
 export function isReusableCommercialValuesOrderEdit(
-  activeOrderChange?: ActiveOrderChange
+  activeOrderChange?: ActiveOrderChange,
 ) {
   return (
     activeOrderChange?.change_type === "edit" &&
@@ -361,7 +361,7 @@ export function isReusableCommercialValuesOrderEdit(
 }
 
 function mapAdjustment(
-  adjustment: CommercialAdjustmentInput
+  adjustment: CommercialAdjustmentInput,
 ): CommercialAdjustmentInput {
   return {
     amount: toFiniteAmount(adjustment.amount, "adjustment amount"),
@@ -383,7 +383,7 @@ function mapAdjustment(
 function toDisplayShippingAdjustmentAmount(
   amount: number,
   adjustment: CommercialAdjustmentInput,
-  shippingMethod: CommercialValuesOrderShippingMethod
+  shippingMethod: CommercialValuesOrderShippingMethod,
 ) {
   const adjustmentTotal = isRecord(adjustment)
     ? ((adjustment as Record<string, unknown>)["total"] as AmountValue)
@@ -413,7 +413,7 @@ function toDisplayShippingAdjustmentAmount(
 
 function mapShippingAdjustment(
   adjustment: CommercialAdjustmentInput,
-  shippingMethod: CommercialValuesOrderShippingMethod
+  shippingMethod: CommercialValuesOrderShippingMethod,
 ): CommercialAdjustmentInput {
   const mapped = mapAdjustment(adjustment)
 
@@ -422,7 +422,7 @@ function mapShippingAdjustment(
     amount: toDisplayShippingAdjustmentAmount(
       mapped.amount,
       adjustment,
-      shippingMethod
+      shippingMethod,
     ),
   }
 }
@@ -433,7 +433,7 @@ function getItemQuantity(item: CommercialValuesOrderItem) {
       item.detail?.quantity ??
       item.raw_quantity ??
       item.detail?.raw_quantity,
-    "item quantity"
+    "item quantity",
   )
 }
 
@@ -469,12 +469,12 @@ function mapItem(item: CommercialValuesOrderItem): CommercialValuesItemInput {
   const quantity = getItemQuantity(item)
   const unitPrice = getItemUnitPrice(item, quantity)
   const manualAdjustmentTotal = getManualAdjustmentTotal(
-    (item.adjustments ?? []).map(mapAdjustment)
+    (item.adjustments ?? []).map(mapAdjustment),
   )
   const nonManualDiscountTotal = Math.max(
     toFiniteAmount(item.discount_total ?? 0, "item discount total") -
       manualAdjustmentTotal,
-    0
+    0,
   )
   const currentSubtotal =
     item.subtotal === null || item.subtotal === undefined
@@ -482,7 +482,7 @@ function mapItem(item: CommercialValuesOrderItem): CommercialValuesItemInput {
       : Math.max(
           toFiniteAmount(item.subtotal, "item subtotal") -
             nonManualDiscountTotal,
-          0
+          0,
         )
   const reportedTaxTotal =
     item.tax_total === null || item.tax_total === undefined
@@ -509,7 +509,7 @@ function mapItem(item: CommercialValuesOrderItem): CommercialValuesItemInput {
 }
 
 function getShippingMethodSubtotal(
-  shippingMethod: CommercialValuesOrderShippingMethod
+  shippingMethod: CommercialValuesOrderShippingMethod,
 ) {
   const subtotal =
     shippingMethod.subtotal ??
@@ -533,18 +533,18 @@ function getShippingMethodSubtotal(
     return Math.max(
       toFiniteAmount(total, "shipping total") -
         toFiniteAmount(taxTotal ?? 0, "shipping tax total"),
-      0
+      0,
     )
   }
 
   return toFiniteAmount(
     shippingMethod.amount ?? shippingMethod.raw_amount,
-    "shipping amount"
+    "shipping amount",
   )
 }
 
 function mapShippingMethod(
-  shippingMethod: CommercialValuesOrderShippingMethod
+  shippingMethod: CommercialValuesOrderShippingMethod,
 ): CommercialValuesShippingMethodInput {
   const subtotal = getShippingMethodSubtotal(shippingMethod)
   const amount = shippingMethod.amount ?? shippingMethod.raw_amount
@@ -567,7 +567,7 @@ function mapShippingMethod(
         ? undefined
         : toFiniteAmount(taxTotal, "shipping tax total"),
     existing_adjustments: (shippingMethod.adjustments ?? []).map((adjustment) =>
-      mapShippingAdjustment(adjustment, shippingMethod)
+      mapShippingAdjustment(adjustment, shippingMethod),
     ),
     name: shippingMethod.name ?? undefined,
     shipping_method_id: shippingMethod.id,
@@ -575,14 +575,14 @@ function mapShippingMethod(
 }
 
 function getManualAdjustmentTotal(
-  adjustments: CommercialAdjustmentInput[] | null | undefined
+  adjustments: CommercialAdjustmentInput[] | null | undefined,
 ) {
   return (adjustments ?? []).reduce(
     (total, adjustment) =>
       isManualDiscountAdjustment(adjustment)
         ? total + adjustment.amount
         : total,
-    0
+    0,
   )
 }
 
@@ -592,7 +592,7 @@ function getManualDiscountBaselineTotal(order: CommercialValuesOrder) {
     (total, item) =>
       total +
       getManualAdjustmentTotal((item.adjustments ?? []).map(mapAdjustment)),
-    0
+    0,
   )
   const manualShippingDiscountTotal = (order.shipping_methods ?? []).reduce(
     (total, shippingMethod) => {
@@ -600,7 +600,7 @@ function getManualDiscountBaselineTotal(order: CommercialValuesOrder) {
 
       return total + getManualAdjustmentTotal(mapped.existing_adjustments)
     },
-    0
+    0,
   )
 
   return currentTotal + manualItemDiscountTotal + manualShippingDiscountTotal
@@ -609,7 +609,7 @@ function getManualDiscountBaselineTotal(order: CommercialValuesOrder) {
 function hasRequestedItemDiscount(
   requestedItem:
     | PostAdminOrderCommercialValuesPreviewSchemaType["items"][number]
-    | undefined
+    | undefined,
 ) {
   return requestedItem ? "discount" in requestedItem : false
 }
@@ -619,7 +619,7 @@ function hasRequestedShippingDiscount(
     | NonNullable<
         PostAdminOrderCommercialValuesPreviewSchemaType["shipping_methods"]
       >[number]
-    | undefined
+    | undefined,
 ) {
   return requestedShippingMethod ? "discount" in requestedShippingMethod : false
 }
@@ -630,7 +630,7 @@ function toCalculationAdjustment(
     itemDiscountRequested: boolean
     orderDiscountRequested: boolean
     shippingDiscountRequested: boolean
-  }
+  },
 ): CommercialAdjustmentInput {
   if (
     adjustment.code === MANUAL_ITEM_DISCOUNT_CODE &&
@@ -684,13 +684,13 @@ function toCalculationAdjustments({
       itemDiscountRequested,
       orderDiscountRequested,
       shippingDiscountRequested,
-    })
+    }),
   )
 }
 
 export async function fetchCommercialValuesOrder(
   query: Query,
-  orderId: string
+  orderId: string,
 ) {
   const result = await query.graph({
     entity: "order",
@@ -707,7 +707,7 @@ export async function fetchCommercialValuesOrder(
   if (!isCommercialValuesOrder(order)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order query returned invalid order data"
+      "Order query returned invalid order data",
     )
   }
 
@@ -734,7 +734,7 @@ export async function fetchActiveOrderChange(query: Query, orderId: string) {
   if (!isActiveOrderChangeRecord(activeOrderChange)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order change query returned invalid order change data"
+      "Order change query returned invalid order change data",
     )
   }
 
@@ -743,14 +743,14 @@ export async function fetchActiveOrderChange(query: Query, orderId: string) {
     change_type: activeOrderChange.change_type ?? null,
     version: toSafeInteger(
       activeOrderChange.version ?? 0,
-      "order change version"
+      "order change version",
     ),
   }
 }
 
 export function getCommercialValuesEditBlockers(
   order: CommercialValuesOrder,
-  activeOrderChange?: ActiveOrderChange
+  activeOrderChange?: ActiveOrderChange,
 ) {
   const blockers: CommercialValuesEditBlocker[] = []
 
@@ -776,24 +776,24 @@ export function getCommercialValuesEditBlockers(
 
 export function assertCommercialValuesOrderFound(
   order: CommercialValuesOrder | undefined,
-  orderId: string
+  orderId: string,
 ): asserts order is CommercialValuesOrder {
   if (!order) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Order ${orderId} was not found`
+      `Order ${orderId} was not found`,
     )
   }
 }
 
 export function assertCommercialValuesEditable(
   order: CommercialValuesOrder,
-  activeOrderChange?: ActiveOrderChange
+  activeOrderChange?: ActiveOrderChange,
 ) {
   if (order.status && NON_EDITABLE_STATUSES.has(order.status)) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      `Order status ${order.status} is not editable`
+      `Order status ${order.status} is not editable`,
     )
   }
 
@@ -803,21 +803,21 @@ export function assertCommercialValuesEditable(
   ) {
     throw new MedusaError(
       MedusaError.Types.CONFLICT,
-      `Order already has active order change ${activeOrderChange.id}`
+      `Order already has active order change ${activeOrderChange.id}`,
     )
   }
 }
 
 export function assertExpectedOrderVersion(
   order: CommercialValuesOrder,
-  expectedOrderVersion: number
+  expectedOrderVersion: number,
 ) {
   const orderVersion = toOrderVersion(order.version)
 
   if (orderVersion !== expectedOrderVersion) {
     throw new MedusaError(
       MedusaError.Types.CONFLICT,
-      `Expected order version ${expectedOrderVersion}, got ${orderVersion}`
+      `Expected order version ${expectedOrderVersion}, got ${orderVersion}`,
     )
   }
 }
@@ -832,14 +832,14 @@ export function requireCommercialValuesOrderId(orderId: string | undefined) {
 
 function mergeOrderChangePreview(
   order: CommercialValuesOrder,
-  preview: CommercialValuesOrder
+  preview: CommercialValuesOrder,
 ): CommercialValuesOrder {
   const itemsById = new Map((order.items ?? []).map((item) => [item.id, item]))
   const shippingMethodsById = new Map(
     (order.shipping_methods ?? []).map((shippingMethod) => [
       shippingMethod.id,
       shippingMethod,
-    ])
+    ]),
   )
 
   return {
@@ -911,7 +911,7 @@ function mergeOrderChangePreview(
     shipping_methods:
       preview.shipping_methods?.map((shippingMethod) => {
         const originalShippingMethod = shippingMethodsById.get(
-          shippingMethod.id
+          shippingMethod.id,
         )
 
         if (!originalShippingMethod) {
@@ -942,7 +942,7 @@ function mergeOrderChangePreview(
 async function fetchOrderChangePreview(
   container: MedusaContainer,
   orderId: string,
-  order: CommercialValuesOrder
+  order: CommercialValuesOrder,
 ) {
   const orderModuleService = container.resolve(Modules.ORDER) as {
     previewOrderChange: (orderId: string) => Promise<unknown>
@@ -952,7 +952,7 @@ async function fetchOrderChangePreview(
   if (!isCommercialValuesOrder(preview)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order preview returned invalid order data"
+      "Order preview returned invalid order data",
     )
   }
 
@@ -963,7 +963,7 @@ export async function fetchEditableCommercialValuesOrder(
   container: MedusaContainer,
   query: Query,
   orderId: string,
-  expectedOrderVersion: number
+  expectedOrderVersion: number,
 ) {
   const order = await fetchCommercialValuesOrder(query, orderId)
 
@@ -982,7 +982,7 @@ export async function fetchEditableCommercialValuesOrder(
 export async function fetchCommercialValuesSnapshotOrder(
   container: MedusaContainer,
   query: Query,
-  orderId: string
+  orderId: string,
 ) {
   const order = await fetchCommercialValuesOrder(query, orderId)
 
@@ -1001,7 +1001,7 @@ export async function fetchCommercialValuesSnapshotOrder(
 
 export function toCommercialValuesSnapshot(
   order: CommercialValuesOrder,
-  activeOrderChange?: ActiveOrderChange
+  activeOrderChange?: ActiveOrderChange,
 ): CommercialValuesSnapshot {
   const blockers = getCommercialValuesEditBlockers(order, activeOrderChange)
   const currencyCode = requireCurrencyCode(order)
@@ -1051,7 +1051,7 @@ export function toCommercialValuesSnapshot(
 
 export function toCommercialValuesCalculationInput(
   order: CommercialValuesOrder,
-  body: PostAdminOrderCommercialValuesPreviewSchemaType
+  body: PostAdminOrderCommercialValuesPreviewSchemaType,
 ): CommercialValuesCalculationInput {
   const currencyCode = requireCurrencyCode(order)
   const itemsById = new Map((order.items ?? []).map((item) => [item.id, item]))
@@ -1059,30 +1059,30 @@ export function toCommercialValuesCalculationInput(
     (order.shipping_methods ?? []).map((shippingMethod) => [
       shippingMethod.id,
       shippingMethod,
-    ])
+    ]),
   )
   const requestedItemsById = new Map(
-    body.items.map((item) => [item.item_id, item])
+    body.items.map((item) => [item.item_id, item]),
   )
   const requestedShippingMethods = body.shipping_methods ?? []
   const requestedShippingMethodsById = new Map(
     requestedShippingMethods.map((shippingMethod) => [
       shippingMethod.shipping_method_id,
       shippingMethod,
-    ])
+    ]),
   )
 
   if (requestedItemsById.size !== body.items.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Request contains duplicate item ids"
+      "Request contains duplicate item ids",
     )
   }
 
   if (requestedShippingMethodsById.size !== requestedShippingMethods.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Request contains duplicate shipping method ids"
+      "Request contains duplicate shipping method ids",
     )
   }
 
@@ -1090,7 +1090,7 @@ export function toCommercialValuesCalculationInput(
     if (!itemsById.has(requestedItem.item_id)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Order item ${requestedItem.item_id} was not found`
+        `Order item ${requestedItem.item_id} was not found`,
       )
     }
   }
@@ -1099,7 +1099,7 @@ export function toCommercialValuesCalculationInput(
     if (!shippingMethodsById.has(requestedShippingMethod.shipping_method_id)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Shipping method ${requestedShippingMethod.shipping_method_id} was not found`
+        `Shipping method ${requestedShippingMethod.shipping_method_id} was not found`,
       )
     }
   }
@@ -1138,7 +1138,7 @@ export function toCommercialValuesCalculationInput(
           shippingDiscountRequested,
         }),
       }
-    }
+    },
   )
 
   return {
@@ -1154,7 +1154,7 @@ export function toCommercialValuesCalculationInput(
 }
 
 export function toApplyCommercialValuesOrder(
-  order: CommercialValuesOrder
+  order: CommercialValuesOrder,
 ): ApplyCommercialValuesOrder {
   return {
     id: order.id,

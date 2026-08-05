@@ -16,7 +16,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -38,21 +38,21 @@ type MockContainer = ReturnType<typeof makeContainer>
 interface MockStep<TInput> {
   (
     input: TInput,
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ): Promise<{
     compensateInput?: unknown
     payload: unknown
   }>
   compensate: (
     input: unknown,
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ) => Promise<void>
 }
 
 const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -61,7 +61,7 @@ const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
     typeof candidate.compensate !== "function"
   ) {
     throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function"
+      "Expected the mocked workflow step to expose a compensate function",
     )
   }
 
@@ -69,7 +69,7 @@ const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
 }
 
 const makeApprovalService = (
-  overrides: Partial<ApprovalService> = {}
+  overrides: Partial<ApprovalService> = {},
 ): ApprovalService => ({
   createApprovalSettings: vi.fn(),
   deleteApprovalSettings: vi.fn(),
@@ -80,7 +80,7 @@ const makeApprovalService = (
 })
 
 const makeLinkService = (
-  overrides: Partial<LinkService> = {}
+  overrides: Partial<LinkService> = {},
 ): LinkService => ({
   create: vi.fn(),
   dismiss: vi.fn(),
@@ -134,7 +134,7 @@ describe("approval settings steps", () => {
     const container = makeContainer({ approvalService })
 
     const result = await asMockStep<{ companyIds: string[] }>(
-      deleteApprovalSettingsStep
+      deleteApprovalSettingsStep,
     )({ companyIds: ["comp_1"] }, { container })
 
     expect(approvalService.softDeleteApprovalSettings).toHaveBeenCalledWith([
@@ -143,7 +143,7 @@ describe("approval settings steps", () => {
     expect(approvalService.deleteApprovalSettings).not.toHaveBeenCalled()
 
     await asMockStep<{ companyIds: string[] }>(
-      deleteApprovalSettingsStep
+      deleteApprovalSettingsStep,
     ).compensate(result.compensateInput, {
       container,
     })
@@ -187,7 +187,7 @@ describe("approval settings steps", () => {
 
     const result = await asMockStep<string[]>(ensureApprovalSettingsStep)(
       ["comp_1", "comp_2", "comp_3"],
-      { container }
+      { container },
     )
 
     expect(approvalService.listApprovalSettings).toHaveBeenCalledWith(
@@ -196,7 +196,7 @@ describe("approval settings steps", () => {
       },
       {
         withDeleted: true,
-      }
+      },
     )
     expect(approvalService.restoreApprovalSettings).toHaveBeenCalledWith([
       "apprset_deleted",
@@ -221,7 +221,7 @@ describe("approval settings steps", () => {
       result.compensateInput,
       {
         container,
-      }
+      },
     )
 
     expect(approvalService.deleteApprovalSettings).toHaveBeenCalledWith([
@@ -252,7 +252,7 @@ describe("approval settings steps", () => {
     const container = makeContainer({ approvalService, graph, linkService })
 
     const result = await asMockStep<string[]>(
-      dismissCompanyApprovalSettingsLinksStep
+      dismissCompanyApprovalSettingsLinksStep,
     )(["comp_1"], { container })
 
     expect(graph).toHaveBeenCalledWith({
@@ -265,7 +265,7 @@ describe("approval settings steps", () => {
     expect(linkService.dismiss).toHaveBeenCalledWith([staleLink])
 
     await asMockStep<string[]>(
-      dismissCompanyApprovalSettingsLinksStep
+      dismissCompanyApprovalSettingsLinksStep,
     ).compensate(result.compensateInput, { container })
 
     expect(linkService.create).toHaveBeenCalledWith([staleLink])

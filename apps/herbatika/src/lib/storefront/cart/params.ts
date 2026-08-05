@@ -27,7 +27,7 @@ const normalizeCountryCode = (value: unknown): string | undefined => {
 }
 
 const normalizeAddressPayload = (
-  value: unknown
+  value: unknown,
 ): Record<string, unknown> | undefined => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return
@@ -111,22 +111,22 @@ const normalizeCartPayload = (input: CartPayloadInput) => {
 }
 
 export const buildCreateCartParams = (
-  input: CartCreateInputBase
+  input: CartCreateInputBase,
 ): MedusaCartCreateParams => normalizeCartPayload(input)
 
 export const buildUpdateCartParams = (
-  input: UpdateCartInputBase
+  input: UpdateCartInputBase,
 ): MedusaCartUpdateParams => normalizeCartPayload(input)
 
 export const buildCreateCartInputFromAddLineItemInput = (
-  input: AddLineItemInputBase
+  input: AddLineItemInputBase,
 ): CartCreateInputBase => {
   const { metadata: _lineItemMetadata, ...rest } = input
   return rest
 }
 
 export const buildAddLineItemParams = (
-  input: AddLineItemInputBase
+  input: AddLineItemInputBase,
 ): MedusaCartAddItemParams => {
   const {
     cartId: _cartId,

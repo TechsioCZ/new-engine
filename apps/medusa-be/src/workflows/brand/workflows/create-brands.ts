@@ -23,9 +23,9 @@ export const createBrandsWorkflow = createWorkflow(
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
       getBrandAttributeTypeLockKeys(
         workflowInput.brands.flatMap((brand) =>
-          (brand.attributes ?? []).map(({ name }) => name.trim())
-        )
-      )
+          (brand.attributes ?? []).map(({ name }) => name.trim()),
+        ),
+      ),
     )
 
     acquireLockStep({
@@ -39,7 +39,7 @@ export const createBrandsWorkflow = createWorkflow(
     const eventData = transform({ result }, ({ result: createdBrands }) =>
       buildBrandSearchProjectionEventData({
         brandIds: createdBrands.map((brand) => brand.id),
-      })
+      }),
     )
 
     releaseLockStep({
@@ -54,5 +54,5 @@ export const createBrandsWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

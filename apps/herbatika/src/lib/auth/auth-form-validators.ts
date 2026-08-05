@@ -80,7 +80,7 @@ interface RegisterSubmitErrorMessages {
 
 const createWholesaleFieldValidators = <TFormValues>(
   validator: (value: string) => string | undefined,
-  isWholesale: (values: TFormValues) => boolean
+  isWholesale: (values: TFormValues) => boolean,
 ) => createChangeBlurSubmitScopedFieldValidators(validator, isWholesale)
 
 const createPasswordValidator =
@@ -111,7 +111,7 @@ const createPasswordConfirmationValidator =
   }
 
 const createEmailValidator = (
-  messages: Pick<AddressValidationMessages, "emailInvalid" | "emailRequired">
+  messages: Pick<AddressValidationMessages, "emailInvalid" | "emailRequired">,
 ) =>
   createEmailAddressValidator({
     invalid: messages.emailInvalid,
@@ -122,11 +122,11 @@ export const createLoginValidators = (
   messages: Pick<
     AuthValidationMessages,
     "emailInvalid" | "emailRequired" | "passwordRequired"
-  >
+  >,
 ) => ({
   email: createChangeBlurFieldValidators(createEmailValidator(messages)),
   password: createChangeBlurFieldValidators((value: string) =>
-    value ? undefined : messages.passwordRequired
+    value ? undefined : messages.passwordRequired,
   ),
 })
 
@@ -147,22 +147,22 @@ export const createRegisterValidators = (messages: AuthValidationMessages) => {
   const validatePasswordConfirmation =
     createPasswordConfirmationValidator(messages)
   const createWholesaleValidator = (
-    validator: (value: string) => string | undefined
+    validator: (value: string) => string | undefined,
   ) => createWholesaleFieldValidators(validator, isWholesaleRegistration)
 
   return {
     accept_terms: createChangeBlurFieldValidators((value: boolean) =>
-      validateRequiredAgreement(value, messages.termsRequired)
+      validateRequiredAgreement(value, messages.termsRequired),
     ),
     account_type: createChangeBlurFieldValidators((value: string) =>
       value === "retail" || value === "wholesale"
         ? undefined
-        : messages.accountTypeRequired
+        : messages.accountTypeRequired,
     ),
     billing_address_1: createWholesaleValidator(addressValidators.address1),
     billing_city: createWholesaleValidator(addressValidators.city),
     billing_country_code: createWholesaleValidator(
-      addressValidators.countryCode
+      addressValidators.countryCode,
     ),
     billing_postal_code: createWholesaleValidator(addressValidators.postalCode),
     company_identifier: createWholesaleValidator(addressValidators.companyId),
@@ -182,7 +182,7 @@ export const createRegisterValidators = (messages: AuthValidationMessages) => {
             ""
 
           return validatePasswordConfirmation(password, value)
-        }
+        },
       ),
     },
     email: createChangeBlurFieldValidators(addressValidators.email),
@@ -201,13 +201,13 @@ interface ResetPasswordConfirmFieldApi {
 }
 
 export const createForgotPasswordValidators = (
-  messages: Pick<AuthValidationMessages, "emailInvalid" | "emailRequired">
+  messages: Pick<AuthValidationMessages, "emailInvalid" | "emailRequired">,
 ) => ({
   email: createChangeBlurFieldValidators(createEmailValidator(messages)),
 })
 
 export const createResetPasswordValidators = (
-  messages: PasswordValidationMessages
+  messages: PasswordValidationMessages,
 ) => {
   const validatePassword = createPasswordValidator(messages)
   const validatePasswordConfirmation =
@@ -229,7 +229,7 @@ export const createResetPasswordValidators = (
             ""
 
           return validatePasswordConfirmation(password, value)
-        }
+        },
       ),
     },
     password: createChangeBlurFieldValidators(validatePassword),
@@ -238,7 +238,7 @@ export const createResetPasswordValidators = (
 
 export const resolveLoginSubmitError = (
   error: unknown,
-  messages: LoginSubmitErrorMessages
+  messages: LoginSubmitErrorMessages,
 ) => {
   const message = resolveErrorMessage(error, "")
   const normalizedMessage = message.toLowerCase()
@@ -257,7 +257,7 @@ export const resolveLoginSubmitError = (
 
 export const resolveRegisterSubmitError = (
   error: unknown,
-  messages: RegisterSubmitErrorMessages
+  messages: RegisterSubmitErrorMessages,
 ) => {
   const message = resolveErrorMessage(error, "")
   const normalizedMessage = message.toLowerCase()

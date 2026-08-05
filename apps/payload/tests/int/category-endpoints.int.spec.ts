@@ -66,7 +66,7 @@ describe("category endpoints", () => {
           status: { equals: "published" },
           "category.slug": { equals: "news" },
         }),
-      })
+      }),
     )
 
     expect(body.categories).toStrictEqual([
@@ -141,7 +141,7 @@ describe("category endpoints", () => {
         where: expect.objectContaining({
           status: { equals: "published" },
         }),
-      })
+      }),
     )
 
     expect(body.categories).toStrictEqual([

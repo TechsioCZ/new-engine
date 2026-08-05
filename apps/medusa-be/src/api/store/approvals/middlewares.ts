@@ -19,7 +19,7 @@ import { StoreGetApprovals, StoreUpdateApproval } from "./validators"
 const ensureApprovalType = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-  next: MedusaNextFunction
+  next: MedusaNextFunction,
 ) => {
   const { id } = req.params
   const { customer_id: customerId } = req.auth_context.app_metadata as {
@@ -88,7 +88,7 @@ export const storeApprovalsMiddlewares: MiddlewareRoute[] = [
       ensureRole("company_admin"),
       validateAndTransformQuery(
         StoreGetApprovals,
-        approvalTransformQueryConfig
+        approvalTransformQueryConfig,
       ),
     ],
   },

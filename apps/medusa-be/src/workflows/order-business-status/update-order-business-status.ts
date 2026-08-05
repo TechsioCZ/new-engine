@@ -21,11 +21,11 @@ const updateOrderBusinessStatusStep = createStep(
     })
 
     return new StepResponse(order)
-  }
+  },
 )
 
 export const updateOrderBusinessStatusWorkflow = createWorkflow(
   "update-order-business-status",
   (input: UpdateOrderBusinessStatusInput) =>
-    new WorkflowResponse(updateOrderBusinessStatusStep(input))
+    new WorkflowResponse(updateOrderBusinessStatusStep(input)),
 )

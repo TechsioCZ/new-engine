@@ -46,7 +46,7 @@ const getAcceptedLanguages = (acceptLanguage?: string | null) => {
     })
     .filter((item) => item.language && item.quality > 0 && item.quality <= 1)
     .sort(
-      (left, right) => right.quality - left.quality || left.index - right.index
+      (left, right) => right.quality - left.quality || left.index - right.index,
     )
     .map((item) => item.language)
 }

@@ -9,11 +9,11 @@ import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 // command setup is a flat list of CLI options mirroring env inputs
 export function createBootstrapCommand(): Command {
   const command = new Command("bootstrap").description(
-    "Bootstrap planning surfaces for local Zane helper flows"
+    "Bootstrap planning surfaces for local Zane helper flows",
   )
 
   const zaneProject = new Command("zane-project").description(
-    "Plan canonical Zane project bootstrap/sync"
+    "Plan canonical Zane project bootstrap/sync",
   )
   zaneProject
     .command("plan")
@@ -25,7 +25,7 @@ export function createBootstrapCommand(): Command {
       "",
       process.env.ZANE_ENVIRONMENT_NAME ??
         process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
-        "production"
+        "production",
     )
     .requiredOption("--inspect-json <path>")
     .option("--phase <services|env|all>", "", "all")
@@ -35,17 +35,17 @@ export function createBootstrapCommand(): Command {
     .option(
       "--public-domain <domain>",
       "",
-      process.env.ZANE_PUBLIC_DOMAIN ?? ""
+      process.env.ZANE_PUBLIC_DOMAIN ?? "",
     )
     .option(
       "--public-url-affix <suffix>",
       "",
-      process.env.ZANE_PUBLIC_URL_AFFIX ?? "-zane"
+      process.env.ZANE_PUBLIC_URL_AFFIX ?? "-zane",
     )
     .option(
       "--minio-file-url <url>",
       "",
-      process.env.ZANE_PUBLIC_MINIO_FILE_URL ?? ""
+      process.env.ZANE_PUBLIC_MINIO_FILE_URL ?? "",
     )
     .option("--store-cors <value>", "", process.env.ZANE_STORE_CORS ?? "")
     .option("--admin-cors <value>", "", process.env.ZANE_ADMIN_CORS ?? "")
@@ -53,37 +53,37 @@ export function createBootstrapCommand(): Command {
     .option(
       "--operator-upstream-zane-base-url <url>",
       "",
-      process.env.ZANE_OPERATOR_UPSTREAM_ZANE_BASE_URL ?? ""
+      process.env.ZANE_OPERATOR_UPSTREAM_ZANE_BASE_URL ?? "",
     )
     .option(
       "--operator-upstream-zane-connect-base-url <url>",
       "",
-      process.env.ZANE_OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL ?? ""
+      process.env.ZANE_OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL ?? "",
     )
     .option(
       "--operator-upstream-zane-connect-host-header <value>",
       "",
-      process.env.ZANE_OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER ?? ""
+      process.env.ZANE_OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER ?? "",
     )
     .option(
       "--operator-upstream-zane-username <user>",
       "",
-      process.env.ZANE_OPERATOR_UPSTREAM_ZANE_USERNAME ?? ""
+      process.env.ZANE_OPERATOR_UPSTREAM_ZANE_USERNAME ?? "",
     )
     .option(
       "--operator-upstream-zane-password <password>",
       "",
-      process.env.ZANE_OPERATOR_UPSTREAM_ZANE_PASSWORD ?? ""
+      process.env.ZANE_OPERATOR_UPSTREAM_ZANE_PASSWORD ?? "",
     )
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
     .action(async (options) => {
       const projectSlug =
@@ -119,14 +119,14 @@ export function createBootstrapCommand(): Command {
           stackInputsPath: options.stackInputsPath,
           stackManifestPath: options.stackManifestPath,
           storeCorsOverride: options.storeCors || undefined,
-        })
+        }),
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
     })
   command.addCommand(zaneProject)
 
   const previewTemplateDb = new Command("preview-template-db").description(
-    "Plan preview template DB refresh/bootstrap"
+    "Plan preview template DB refresh/bootstrap",
   )
   previewTemplateDb
     .command("plan")
@@ -137,7 +137,7 @@ export function createBootstrapCommand(): Command {
       "",
       process.env.ZANE_ENVIRONMENT_NAME ??
         process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
-        "production"
+        "production",
     )
     .requiredOption("--inspect-json <path>")
     .option("--db-service-slug <slug>")
@@ -147,7 +147,7 @@ export function createBootstrapCommand(): Command {
       "",
       process.env.MEDUSA_APP_DB_NAME ??
         process.env.DC_MEDUSA_APP_DB_NAME ??
-        "medusa"
+        "medusa",
     )
     .option("--template-db-name <name>")
     .option("--staging-db-name <name>")
@@ -161,12 +161,12 @@ export function createBootstrapCommand(): Command {
     .option(
       "--docker-network <name>",
       "",
-      process.env.ZANE_DOCKER_NETWORK ?? "zane"
+      process.env.ZANE_DOCKER_NETWORK ?? "zane",
     )
     .option(
       "--postgres-client-image <image>",
       "",
-      process.env.ZANE_POSTGRES_CLIENT_IMAGE ?? "postgres:18.1-alpine"
+      process.env.ZANE_POSTGRES_CLIENT_IMAGE ?? "postgres:18.1-alpine",
     )
     .option("--dump-file <path>")
     .option("--include-secrets", "", false)
@@ -194,7 +194,7 @@ export function createBootstrapCommand(): Command {
           stagingDbName: options.stagingDbName || undefined,
           templateDbName: options.templateDbName || undefined,
           templateOwner: options.templateOwner || undefined,
-        })
+        }),
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
     })

@@ -13,9 +13,9 @@ export const assertCustomerOwnsProductListStep = createStep(
     await assertCustomerOwnsProductList(
       container,
       input.customer_id,
-      input.list_id
+      input.list_id,
     )
 
     return new StepResponse({ list_id: input.list_id })
-  }
+  },
 )

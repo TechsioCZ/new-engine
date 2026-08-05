@@ -48,7 +48,7 @@ const listAllBrandAttributeTypes = async (service: BrandModuleService) => {
         skip: records.length,
         take: LEGACY_ATTRIBUTE_BATCH_SIZE,
         withDeleted: true,
-      }
+      },
     )
     records.push(...page)
     count = total
@@ -64,7 +64,7 @@ const listAllBrandAttributeTypes = async (service: BrandModuleService) => {
 const listScopedBrandAttributes = async (
   service: BrandModuleService,
   brandIds: string[],
-  attributeTypeIds: string[]
+  attributeTypeIds: string[],
 ) => {
   const records: BrandAttributeRecord[] = []
   let count = Number.POSITIVE_INFINITY
@@ -80,7 +80,7 @@ const listScopedBrandAttributes = async (
         relations: ["attributeType"],
         skip: records.length,
         take: LEGACY_ATTRIBUTE_BATCH_SIZE,
-      }
+      },
     )
     records.push(...page)
     count = total
@@ -107,7 +107,7 @@ export function selectScopedLegacyBrandAttributeIds({
       (attribute) =>
         !attribute.deleted_at &&
         brandIds.has(attribute.brand_id) &&
-        attributeTypeIds.has(attribute.attributeType?.id ?? "")
+        attributeTypeIds.has(attribute.attributeType?.id ?? ""),
     )
     .map(({ id }) => id)
 }
@@ -133,8 +133,8 @@ export function selectExclusivelyScopedBrandIds({
       linkedProductIds.size &&
       [...linkedProductIds].every((productId) => productIds.has(productId))
         ? [brandId]
-        : []
-    )
+        : [],
+    ),
   )
 }
 
@@ -142,12 +142,12 @@ export const cleanupProductBrandAttributesStep = createStep(
   "cleanup-product-brand-attributes",
   async (input: CleanupProductBrandAttributesStepInput, { container }) => {
     const names = new Set(
-      (input.attributeNames ?? []).map(normalizeLegacyName).filter(Boolean)
+      (input.attributeNames ?? []).map(normalizeLegacyName).filter(Boolean),
     )
     if (!(names.size && input.productIds.length)) {
       return new StepResponse(
         { assignments: 0, attributeTypes: 0 },
-        { attributeIds: [], attributeTypeIds: [] }
+        { attributeIds: [], attributeTypeIds: [] },
       )
     }
 
@@ -158,7 +158,7 @@ export const cleanupProductBrandAttributesStep = createStep(
     if (candidateBrandIds.size === 0) {
       return new StepResponse(
         { assignments: 0, attributeTypes: 0 },
-        { attributeIds: [], attributeTypeIds: [] }
+        { attributeIds: [], attributeTypeIds: [] },
       )
     }
     const linksByBrand = await getCurrentBrandProductLinks(container, [
@@ -171,11 +171,11 @@ export const cleanupProductBrandAttributesStep = createStep(
     const sharedBrandCount = candidateBrandIds.size - brandIds.size
     if (brandIds.size === 0) {
       logger.info(
-        `Skipped legacy Brand attribute cleanup for ${sharedBrandCount} Brand(s) shared with Products outside the Herbatica seed`
+        `Skipped legacy Brand attribute cleanup for ${sharedBrandCount} Brand(s) shared with Products outside the Herbatica seed`,
       )
       return new StepResponse(
         { assignments: 0, attributeTypes: 0 },
-        { attributeIds: [], attributeTypeIds: [] }
+        { attributeIds: [], attributeTypeIds: [] },
       )
     }
 
@@ -183,20 +183,20 @@ export const cleanupProductBrandAttributesStep = createStep(
     const matchingTypes = attributeTypes.filter(
       (attributeType) =>
         !attributeType.deleted_at &&
-        names.has(normalizeLegacyName(attributeType.name))
+        names.has(normalizeLegacyName(attributeType.name)),
     )
     const attributeTypeIds = new Set(matchingTypes.map(({ id }) => id))
     if (attributeTypeIds.size === 0) {
       return new StepResponse(
         { assignments: 0, attributeTypes: 0 },
-        { attributeIds: [], attributeTypeIds: [] }
+        { attributeIds: [], attributeTypeIds: [] },
       )
     }
 
     const scopedAttributes = await listScopedBrandAttributes(
       service,
       [...brandIds],
-      [...attributeTypeIds]
+      [...attributeTypeIds],
     )
     const attributeIds = selectScopedLegacyBrandAttributeIds({
       attributeTypeIds,
@@ -214,13 +214,13 @@ export const cleanupProductBrandAttributesStep = createStep(
         const remaining = await service.listBrandAttributes(
           { attribute_type_id: attributeType.id },
           { select: ["id"], take: 1 },
-          context
+          context,
         )
         if (remaining.length === 0) {
           await service.softDeleteBrandAttributeTypes(
             [attributeType.id],
             {},
-            context
+            context,
           )
           deletedTypeIds.push(attributeType.id)
         }
@@ -228,19 +228,19 @@ export const cleanupProductBrandAttributesStep = createStep(
     })
 
     logger.info(
-      `Removed ${attributeIds.length} legacy Brand attributes from ${brandIds.size} exclusively Herbatica Brands; skipped ${sharedBrandCount} shared Brands; removed ${deletedTypeIds.length} unused global types`
+      `Removed ${attributeIds.length} legacy Brand attributes from ${brandIds.size} exclusively Herbatica Brands; skipped ${sharedBrandCount} shared Brands; removed ${deletedTypeIds.length} unused global types`,
     )
     return new StepResponse(
       {
         assignments: attributeIds.length,
         attributeTypes: deletedTypeIds.length,
       },
-      { attributeIds, attributeTypeIds: deletedTypeIds }
+      { attributeIds, attributeTypeIds: deletedTypeIds },
     )
   },
   async (
     compensation: CleanupProductBrandAttributesCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (!compensation) {
       return
@@ -251,16 +251,16 @@ export const cleanupProductBrandAttributesStep = createStep(
         await service.restoreBrandAttributeTypes(
           compensation.attributeTypeIds,
           {},
-          context
+          context,
         )
       }
       if (compensation.attributeIds.length) {
         await service.restoreBrandAttributes(
           compensation.attributeIds,
           {},
-          context
+          context,
         )
       }
     })
-  }
+  },
 )

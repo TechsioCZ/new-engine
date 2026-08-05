@@ -37,7 +37,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
         onError: (error) => {
           toast.cartError(error.message)
         },
-      }
+      },
     )
   }
 
@@ -58,7 +58,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
         onSuccess: () => {
           toast.removedFromCart(itemTitle)
         },
-      }
+      },
     )
   }
 

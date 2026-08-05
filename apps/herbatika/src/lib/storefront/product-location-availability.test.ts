@@ -43,7 +43,7 @@ describe(formatLocationAvailability, () => {
 
   it("formats unmanaged inventory as generally in stock", () => {
     expect(formatLocationAvailability(0, { isInventoryManaged: false })).toBe(
-      "Skladom"
+      "Skladom",
     )
   })
 })
@@ -51,28 +51,28 @@ describe(formatLocationAvailability, () => {
 describe(resolveSelectedVariantLocationAvailability, () => {
   it("returns the selected variant locations", () => {
     expect(
-      resolveSelectedVariantLocationAvailability(availability, "variant_1")
+      resolveSelectedVariantLocationAvailability(availability, "variant_1"),
     ).toStrictEqual(variantOneLocations)
   })
 
   it("returns an empty array when the selected variant has no locations", () => {
     expect(
-      resolveSelectedVariantLocationAvailability(availability, "variant_empty")
+      resolveSelectedVariantLocationAvailability(availability, "variant_empty"),
     ).toStrictEqual([])
   })
 
   it("returns null without availability or selected variant", () => {
     expect(
-      resolveSelectedVariantLocationAvailability(null, "variant_1")
+      resolveSelectedVariantLocationAvailability(null, "variant_1"),
     ).toBeNull()
     expect(
-      resolveSelectedVariantLocationAvailability(availability, null)
+      resolveSelectedVariantLocationAvailability(availability, null),
     ).toBeNull()
   })
 
   it("returns null when the selected variant is missing", () => {
     expect(
-      resolveSelectedVariantLocationAvailability(availability, "variant_2")
+      resolveSelectedVariantLocationAvailability(availability, "variant_2"),
     ).toBeNull()
   })
 })
@@ -86,8 +86,8 @@ describe(resolveProductLocationAvailabilityState, () => {
           isLoading: false,
           productLocationAvailability: availability,
         },
-        "variant_1"
-      )
+        "variant_1",
+      ),
     ).toStrictEqual({
       error: null,
       isInventoryManaged: true,
@@ -105,8 +105,8 @@ describe(resolveProductLocationAvailabilityState, () => {
           productLocationAvailability: availability,
         },
         "variant_1",
-        { isInventoryManaged: false }
-      )
+        { isInventoryManaged: false },
+      ),
     ).toMatchObject({
       isInventoryManaged: false,
     })

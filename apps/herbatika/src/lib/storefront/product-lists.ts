@@ -24,7 +24,7 @@ export type StoreProductList = ProductListBase
 export type ProductListListInput = MedusaProductListListHookInput
 
 export const getProductListItems = (
-  list?: StoreProductList | null
+  list?: StoreProductList | null,
 ): StoreProductListItem[] => getSharedProductListItems(list)
 
 export const getProductListItemCount = (list?: StoreProductList | null) =>
@@ -36,13 +36,13 @@ export const isFavoriteProductList = (list?: StoreProductList | null) =>
 export const isProductInProductList = (
   list: StoreProductList | null | undefined,
   productId: string,
-  variantId?: string | null
+  variantId?: string | null,
 ) => isSharedProductInProductList(list, productId, variantId)
 
 export const findProductListItem = (
   list: StoreProductList | null | undefined,
   productId: string,
-  variantId?: string | null
+  variantId?: string | null,
 ): StoreProductListItem | undefined =>
   findSharedProductListItem(list, productId, variantId)
 
@@ -53,7 +53,7 @@ export interface ProductListTitleLabels {
 
 export const getProductListTitle = (
   list: StoreProductList | null | undefined,
-  labels: ProductListTitleLabels
+  labels: ProductListTitleLabels,
 ) => {
   if (isFavoriteProductList(list)) {
     return labels.favorite
@@ -69,7 +69,7 @@ interface ProductListDetailOptions {
 
 export function useProductLists(
   input: ProductListListInput = {},
-  options?: Parameters<typeof productListHooks.useProductLists>[1]
+  options?: Parameters<typeof productListHooks.useProductLists>[1],
 ) {
   const tAuth = useTranslations("auth")
   const result = productListHooks.useProductLists(input, options)
@@ -79,7 +79,7 @@ export function useProductLists(
     error: result.query.error
       ? resolveErrorMessage(
           result.query.error,
-          tAuth("product_lists.errors.lists_load_failed")
+          tAuth("product_lists.errors.lists_load_failed"),
         )
       : null,
   }
@@ -87,7 +87,7 @@ export function useProductLists(
 
 export function useProductList(
   id?: string | null,
-  options?: ProductListDetailOptions
+  options?: ProductListDetailOptions,
 ) {
   const tAuth = useTranslations("auth")
   const result = productListHooks.useProductList({
@@ -103,7 +103,7 @@ export function useProductList(
     error: result.query.error
       ? resolveErrorMessage(
           result.query.error,
-          tAuth("product_lists.errors.list_load_failed")
+          tAuth("product_lists.errors.list_load_failed"),
         )
       : null,
   }
@@ -111,7 +111,7 @@ export function useProductList(
 
 export function useProductListDetails(
   ids: string[],
-  options?: ProductListDetailOptions
+  options?: ProductListDetailOptions,
 ) {
   return productListHooks.useProductListDetails(
     ids.map((id) => ({
@@ -120,7 +120,7 @@ export function useProductListDetails(
         : { customerId: options.customerId }),
       id,
     })),
-    options?.enabled === undefined ? {} : { enabled: options.enabled }
+    options?.enabled === undefined ? {} : { enabled: options.enabled },
   )
 }
 

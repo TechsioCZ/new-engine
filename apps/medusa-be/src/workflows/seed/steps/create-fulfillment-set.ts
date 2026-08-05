@@ -35,7 +35,7 @@ export const createFulfillmentSetStep = createStep(
         },
         {
           relations: ["service_zones", "service_zones.geo_zones"],
-        }
+        },
       )
 
     const result: FulfillmentSetDTO[] = []
@@ -62,7 +62,8 @@ export const createFulfillmentSetStep = createStep(
 
       for (const existingFulfillmentSet of existingFulfillmentSets) {
         const existingZonesByName = new Map(
-          existingFulfillmentSet.service_zones?.map((sz) => [sz.name, sz]) ?? []
+          existingFulfillmentSet.service_zones?.map((sz) => [sz.name, sz]) ??
+            [],
         )
 
         const serviceZonesUpdate: UpdateFulfillmentSetDTO["service_zones"] =
@@ -77,13 +78,13 @@ export const createFulfillmentSetStep = createStep(
                   .map((gz) => [
                     (gz as { country_code: string }).country_code,
                     gz,
-                  ])
+                  ]),
               )
 
               return {
                 geo_zones: inputZone.geoZones.map((inputGz) => {
                   const existingGz = existingGeoZonesByCountryCode.get(
-                    inputGz.countryCode
+                    inputGz.countryCode,
                   )
                   if (existingGz) {
                     return { id: existingGz.id }
@@ -137,5 +138,5 @@ export const createFulfillmentSetStep = createStep(
       result,
       serviceZone,
     })
-  }
+  },
 )

@@ -15,7 +15,7 @@ export const StoreBrandsDetailProductsSchema = createFindParams()
   .merge(
     z.object({
       sales_channel_id: z.union([z.string(), z.array(z.string())]).optional(),
-    })
+    }),
   )
   .strict()
 

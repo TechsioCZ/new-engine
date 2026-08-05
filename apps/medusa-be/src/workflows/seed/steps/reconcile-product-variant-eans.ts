@@ -83,7 +83,7 @@ function chunkArray<T>(values: T[], size = EAN_QUERY_CHUNK_SIZE): T[][] {
 
 function metadataString(
   metadata: Record<string, unknown> | null | undefined,
-  key: string
+  key: string,
 ): string | undefined {
   const value = metadata?.[key]
   return typeof value === "string" && value.trim() ? value.trim() : undefined
@@ -120,7 +120,7 @@ function collectIncomingVariants(products: ProductInput[]): IncomingVariant[] {
       productIndex,
       sku: variant.sku,
       variantIndex,
-    }))
+    })),
   )
 }
 
@@ -136,7 +136,7 @@ function toClaimant(variant: IncomingVariant): ProductVariantEanClaimant {
 }
 
 function persistedOwnerClaimant(
-  owner: PersistedEanOwner
+  owner: PersistedEanOwner,
 ): ProductVariantEanClaimant {
   const sourceVariantId = getSourceVariantId(owner)
   return {
@@ -154,7 +154,7 @@ function persistedOwnerClaimant(
 
 function findIncomingPersistedOwner(
   owner: PersistedEanOwner,
-  incomingVariants: IncomingVariant[]
+  incomingVariants: IncomingVariant[],
 ): IncomingVariant | undefined {
   const productHandle = owner.product?.handle
   if (!productHandle) {
@@ -162,13 +162,13 @@ function findIncomingPersistedOwner(
   }
 
   const productVariants = incomingVariants.filter(
-    (variant) => variant.productHandle === productHandle
+    (variant) => variant.productHandle === productHandle,
   )
   const sourceVariantId = getSourceVariantId(owner)
 
   if (sourceVariantId) {
     const sourceMatch = productVariants.find(
-      (variant) => variant.sourceVariantId === sourceVariantId
+      (variant) => variant.sourceVariantId === sourceVariantId,
     )
     if (sourceMatch) {
       return sourceMatch
@@ -180,7 +180,7 @@ function findIncomingPersistedOwner(
 
 function compareIncomingVariants(
   left: IncomingVariant,
-  right: IncomingVariant
+  right: IncomingVariant,
 ): number {
   return left.stableIdentity.localeCompare(right.stableIdentity, "en", {
     numeric: true,
@@ -188,7 +188,7 @@ function compareIncomingVariants(
 }
 
 function cloneProductsWithNormalizedEans(
-  products: ProductInput[]
+  products: ProductInput[],
 ): ProductInput[] {
   return products.map((product) => ({
     ...product,
@@ -202,13 +202,13 @@ function cloneProductsWithNormalizedEans(
 function setReconciledEan(
   products: ProductInput[],
   variant: IncomingVariant,
-  ean: string | null
+  ean: string | null,
 ): void {
   const target =
     products[variant.productIndex]?.variants?.[variant.variantIndex]
   if (!target) {
     throw new Error(
-      `Unable to reconcile EAN for ${variant.productHandle}/${variant.sku}`
+      `Unable to reconcile EAN for ${variant.productHandle}/${variant.sku}`,
     )
   }
   target.ean = ean
@@ -232,7 +232,7 @@ function emptySummary(): ProductVariantEanReconciliationSummary {
 
 function addSummary(
   target: ProductVariantEanReconciliationSummary,
-  addition: ProductVariantEanReconciliationSummary
+  addition: ProductVariantEanReconciliationSummary,
 ): void {
   target.accepted += addition.accepted
   target.collisions += addition.collisions
@@ -287,7 +287,7 @@ function resolveClaimedGroup(params: {
   }
 
   const transfersOwnership = Boolean(
-    persistedOwner && incomingOwner && !ownerStillClaims
+    persistedOwner && incomingOwner && !ownerStillClaims,
   )
   const summary = emptySummary()
   if (transfersOwnership) {
@@ -415,7 +415,7 @@ export function resolveProductVariantEanClaims(params: {
 
 async function listPersistedEanOwners(
   productService: IProductModuleService,
-  eans: string[]
+  eans: string[],
 ): Promise<PersistedEanOwner[]> {
   const owners: PersistedEanOwner[] = []
   for (const eanChunk of chunkArray(eans)) {
@@ -433,7 +433,7 @@ async function listPersistedEanOwners(
           "product.handle",
         ],
         take: eanChunk.length,
-      }
+      },
     )
     owners.push(...variants)
   }
@@ -447,8 +447,8 @@ function collectDistinctIncomingEans(products: ProductInput[]): string[] {
         (product.variants ?? []).flatMap((variant) => {
           const ean = normalizedEan(variant.ean)
           return ean ? [ean] : []
-        })
-      )
+        }),
+      ),
     ),
   ].sort()
 }
@@ -457,7 +457,7 @@ export const reconcileProductVariantEansStep = createStep(
   RECONCILE_PRODUCT_VARIANT_EANS_STEP_ID,
   async (products: ProductInput[], { container }) => {
     const productService = container.resolve<IProductModuleService>(
-      Modules.PRODUCT
+      Modules.PRODUCT,
     )
     const eans = collectDistinctIncomingEans(products)
     const persistedOwners = await listPersistedEanOwners(productService, eans)
@@ -468,7 +468,7 @@ export const reconcileProductVariantEansStep = createStep(
 
     if (transfers.length) {
       await productService.upsertProductVariants(
-        transfers.map(({ id }) => ({ ean: null, id }))
+        transfers.map(({ id }) => ({ ean: null, id })),
       )
     }
 
@@ -479,8 +479,8 @@ export const reconcileProductVariantEansStep = createStep(
       return
     }
     const productService = container.resolve<IProductModuleService>(
-      Modules.PRODUCT
+      Modules.PRODUCT,
     )
     await productService.upsertProductVariants(transfers)
-  }
+  },
 )

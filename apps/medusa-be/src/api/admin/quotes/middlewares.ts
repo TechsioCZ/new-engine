@@ -22,7 +22,7 @@ export const adminQuotesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       validateAndTransformQuery(
         AdminGetQuoteParams,
-        listQuotesTransformQueryConfig
+        listQuotesTransformQueryConfig,
       ),
     ],
   },
@@ -32,7 +32,7 @@ export const adminQuotesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       validateAndTransformQuery(
         AdminGetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
@@ -43,7 +43,7 @@ export const adminQuotesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(AdminSendQuote),
       validateAndTransformQuery(
         AdminGetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
@@ -54,7 +54,7 @@ export const adminQuotesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(AdminRejectQuote),
       validateAndTransformQuery(
         AdminGetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
@@ -65,7 +65,7 @@ export const adminQuotesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(AdminCreateQuoteMessage),
       validateAndTransformQuery(
         AdminGetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },

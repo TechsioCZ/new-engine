@@ -33,7 +33,7 @@ export interface ProductLocationAvailabilityQueryOptionsFactory<
     options?: {
       queryOptions?: ReadQueryOptions<TResponse> | undefined
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TResponse>
 }
 

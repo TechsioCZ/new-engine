@@ -309,14 +309,14 @@ interface RadioCardItemContextValue {
 }
 
 const RadioCardItemContext = createContext<RadioCardItemContextValue | null>(
-  null
+  null,
 )
 
 function useRadioCardItemContext() {
   const context = useContext(RadioCardItemContext)
   if (!context) {
     throw new Error(
-      "RadioCard item components must be used within RadioCard.Item"
+      "RadioCard item components must be used within RadioCard.Item",
     )
   }
   return context
@@ -384,7 +384,7 @@ export function RadioCard({
     {
       "aria-describedby": ariaDescribedByProp,
     },
-    api.getRootProps()
+    api.getRootProps(),
   )
 
   return (
@@ -496,7 +496,7 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
   const styles = radioCardVariants({ size, variant })
   const hiddenInputProps = mergeProps(
     api.getItemHiddenInputProps(itemProps),
-    props
+    props,
   )
 
   return (

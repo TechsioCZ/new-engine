@@ -63,7 +63,7 @@ const ORDER_EXPEDITION_SCAN_BATCH_SIZE = 100
 const ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS = 1000
 
 function isOrderExpeditionQueryOrder<T>(
-  order: T
+  order: T,
 ): order is T & OrderExpeditionRawOrder {
   return isOrderExpeditionRawOrder(order)
 }
@@ -92,18 +92,18 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
             ...(carrier ? { carrier } : {}),
           },
           normalizedLimit,
-          normalizedOffset
+          normalizedOffset,
         )
       : await fetchOrders(query, normalizedLimit, normalizedOffset)
 
   const notesByOrderId = await fetchOrderExpeditionOrderNotesByOrderIds(
     orderNoteService,
-    result.orders.map((order) => order.id)
+    result.orders.map((order) => order.id),
   )
   const { signalsByOrderId } = await resolveOrderExpeditionCustomerSignals(
     query,
     result.orders,
-    notesByOrderId
+    notesByOrderId,
   )
 
   res.json({
@@ -120,8 +120,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       toOrderExpeditionDto(
         order,
         signalsByOrderId.get(order.id),
-        notesByOrderId.get(order.id)
-      )
+        notesByOrderId.get(order.id),
+      ),
     ),
     scanned_count: result.scannedCount,
   })
@@ -130,7 +130,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 async function fetchOrders(
   query: Query,
   limit: number,
-  offset: number
+  offset: number,
 ): Promise<OrderExpeditionOrdersPage> {
   const batch = await fetchOrderBatch(query, offset, limit)
   const count = batch.metadataCount ?? batch.orders.length
@@ -149,7 +149,7 @@ async function fetchFilteredOrders(
   query: Query,
   filters: OrderExpeditionOrderFilters,
   limit: number,
-  offset: number
+  offset: number,
 ): Promise<OrderExpeditionOrdersPage> {
   const accumulator: CarrierFilterAccumulator = {
     matchingCount: 0,
@@ -171,7 +171,7 @@ async function fetchFilteredOrders(
     const batch = await fetchOrderBatch(
       query,
       scanOffset,
-      Math.min(ORDER_EXPEDITION_SCAN_BATCH_SIZE, remainingScanRows)
+      Math.min(ORDER_EXPEDITION_SCAN_BATCH_SIZE, remainingScanRows),
     )
 
     if (!batch.scannedCount) {
@@ -241,7 +241,7 @@ function collectMatchingOrders({
 
 function orderMatchesFilters(
   order: OrderExpeditionRawOrder,
-  filters: OrderExpeditionOrderFilters
+  filters: OrderExpeditionOrderFilters,
 ) {
   if (
     filters.carrier &&
@@ -271,7 +271,7 @@ function orderMatchesFilters(
 async function fetchOrderBatch(
   query: Query,
   offset: number,
-  limit: number
+  limit: number,
 ): Promise<OrderExpeditionOrderBatch> {
   const { data: orders, metadata } = await query.graph({
     entity: "order",

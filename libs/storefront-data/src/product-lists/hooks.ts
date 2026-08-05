@@ -107,11 +107,11 @@ export interface CreateProductListHooksConfig<
   buildDetailParams?: (input: TDetailInput) => TDetailParams
   buildListKeyParams?: (
     input: TListInput,
-    params: TListParams
+    params: TListParams,
   ) => TListKeyParams
   buildDetailKeyParams?: (
     input: TDetailInput,
-    params: TDetailParams
+    params: TDetailParams,
   ) => TDetailKeyParams
   queryKeys?: ProductListQueryKeys<TListKeyParams, TDetailKeyParams>
   queryKeyNamespace?: QueryNamespace
@@ -133,66 +133,66 @@ export interface ProductListHooks<
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
-    }
+    },
   ) => QueryFactoryOptions<ProductListListResult<TProductList>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
+    },
   ) => QueryFactoryOptions<TProductList | null>
   useProductLists: (
     input?: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
-    }
+    },
   ) => UseProductListsResult<TProductList>
   useSuspenseProductLists: (
     input?: SuspenseListInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductListListResult<TProductList>>
-    }
+    },
   ) => UseSuspenseProductListsResult<TProductList>
   useProductList: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
+    },
   ) => UseProductListResult<TProductList>
   useSuspenseProductList: (
     input: SuspenseDetailInput<TDetailInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<TProductList | null>
-    }
+    },
   ) => UseSuspenseProductListResult<TProductList>
   useProductListDetails: (
     inputs: TDetailInput[],
     options?: {
       enabled?: boolean
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
+    },
   ) => QueryResult<TProductList | null>[]
   usePrefetchProductLists: (options?: ProductListPrefetchHookOptions) => {
     prefetchProductLists: (
       input?: TListInput,
-      prefetchOptions?: ProductListPrefetchOptions
+      prefetchOptions?: ProductListPrefetchOptions,
     ) => Promise<void>
     delayedPrefetch: (
       input?: TListInput,
       delay?: number,
-      prefetchId?: string
+      prefetchId?: string,
     ) => string
     cancelPrefetch: (prefetchId: string) => void
   }
   usePrefetchProductList: (options?: ProductListPrefetchHookOptions) => {
     prefetchProductList: (
       input: TDetailInput,
-      prefetchOptions?: ProductListPrefetchOptions
+      prefetchOptions?: ProductListPrefetchOptions,
     ) => Promise<void>
     delayedPrefetch: (
       input: TDetailInput,
       delay?: number,
-      prefetchId?: string
+      prefetchId?: string,
     ) => string
     cancelPrefetch: (prefetchId: string) => void
   }
@@ -201,7 +201,7 @@ export interface ProductListHooks<
       TProductList | null,
       CreateFavoriteProductListInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductList | null,
     unknown,
@@ -213,7 +213,7 @@ export interface ProductListHooks<
       TProductList | null,
       CreateCustomProductListInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductList | null,
     unknown,
@@ -225,7 +225,7 @@ export interface ProductListHooks<
       TProductList | null,
       UpdateProductListInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductList | null,
     unknown,
@@ -237,7 +237,7 @@ export interface ProductListHooks<
       ProductListDeleteResponse,
       DeleteProductListInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     ProductListDeleteResponse,
     unknown,
@@ -249,7 +249,7 @@ export interface ProductListHooks<
       TProductListItem | null,
       AddProductListItemInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductListItem | null,
     unknown,
@@ -261,7 +261,7 @@ export interface ProductListHooks<
       TProductListItem | null,
       AddFavoriteProductListItemInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductListItem | null,
     unknown,
@@ -273,14 +273,14 @@ export interface ProductListHooks<
       TCart,
       CreateProductListCartInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<TCart, unknown, CreateProductListCartInput, TContext>
   useUpdateProductListItem: <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductListItem | null,
       UpdateProductListItemInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductListItem | null,
     unknown,
@@ -292,7 +292,7 @@ export interface ProductListHooks<
       TProductListItem | null,
       ChangeProductListItemQuantityInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductListItem | null,
     unknown,
@@ -304,7 +304,7 @@ export interface ProductListHooks<
       TProductListItem | null,
       IncrementProductListItemInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductListItem | null,
     unknown,
@@ -316,7 +316,7 @@ export interface ProductListHooks<
       ProductListDeleteResponse,
       DeleteProductListItemInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     ProductListDeleteResponse,
     unknown,
@@ -369,7 +369,7 @@ export function createProductListHooks<
   const resolvedQueryKeys =
     queryKeys ??
     createProductListQueryKeys<TListKeyParams, TDetailKeyParams>(
-      queryKeyNamespace
+      queryKeyNamespace,
     )
   const buildList =
     buildListParams ??
@@ -391,7 +391,7 @@ export function createProductListHooks<
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
-    }
+    },
   ): QueryFactoryOptions<ProductListListResult<TProductList>> => {
     const listParams = buildList(input)
 
@@ -408,7 +408,7 @@ export function createProductListHooks<
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
+    },
   ): QueryFactoryOptions<TProductList | null> => {
     const detailParams = buildDetail(input)
 
@@ -431,12 +431,12 @@ export function createProductListHooks<
     options?: {
       cacheStrategy?: CacheStrategy
       prefetchedBy?: string
-    }
+    },
   ) => {
     const listParams = buildList(input)
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
-      options?.cacheStrategy ?? "userData"
+      options?.cacheStrategy ?? "userData",
     )
 
     return omitUndefined({
@@ -455,12 +455,12 @@ export function createProductListHooks<
     options?: {
       cacheStrategy?: CacheStrategy
       prefetchedBy?: string
-    }
+    },
   ) => {
     const detailParams = buildDetail(input)
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
-      options?.cacheStrategy ?? "userData"
+      options?.cacheStrategy ?? "userData",
     )
 
     return omitUndefined({
@@ -475,7 +475,7 @@ export function createProductListHooks<
   }
 
   const invalidateProductLists = async (
-    queryClient: ReturnType<typeof useQueryClient>
+    queryClient: ReturnType<typeof useQueryClient>,
   ) =>
     queryClient.invalidateQueries({
       queryKey: resolvedQueryKeys.all(),
@@ -485,7 +485,7 @@ export function createProductListHooks<
     input = {} as TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
-    }
+    },
   ): UseProductListsResult<TProductList> {
     const enabled = input.enabled ?? true
     const query = useQuery({
@@ -511,7 +511,7 @@ export function createProductListHooks<
     input = {} as SuspenseListInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductListListResult<TProductList>>
-    }
+    },
   ): UseSuspenseProductListsResult<TProductList> {
     const query = useSuspenseQuery({
       ...getListQueryOptions(input as TListInput, {
@@ -539,7 +539,7 @@ export function createProductListHooks<
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
+    },
   ): UseProductListResult<TProductList> {
     const enabled = Boolean(input.id) && (input.enabled ?? true)
     const query = useQuery({
@@ -562,7 +562,7 @@ export function createProductListHooks<
     input: SuspenseDetailInput<TDetailInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<TProductList | null>
-    }
+    },
   ): UseSuspenseProductListResult<TProductList> {
     if (!input.id) {
       throw new Error("Product list id is required")
@@ -591,7 +591,7 @@ export function createProductListHooks<
     options?: {
       enabled?: boolean
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
+    },
   ): QueryResult<TProductList | null>[] {
     const enabled = options?.enabled ?? true
 
@@ -599,7 +599,7 @@ export function createProductListHooks<
       queries: inputs.map((input) => ({
         ...getDetailQueryOptions(
           input,
-          omitUndefined({ queryOptions: options?.queryOptions })
+          omitUndefined({ queryOptions: options?.queryOptions }),
         ),
         enabled: enabled && Boolean(input.id),
       })),
@@ -616,7 +616,7 @@ export function createProductListHooks<
 
     const prefetchProductLists = async (
       input = {} as TListInput,
-      prefetchOptions?: ProductListPrefetchOptions
+      prefetchOptions?: ProductListPrefetchOptions,
     ) => {
       const cacheStrategyResolved =
         prefetchOptions?.cacheStrategy ?? cacheStrategy
@@ -627,11 +627,11 @@ export function createProductListHooks<
         omitUndefined({
           cacheStrategy: cacheStrategyResolved,
           prefetchedBy: prefetchOptions?.prefetchedBy,
-        })
+        }),
       )
       const prefetchCacheOptions = getPrefetchCacheOptions(
         resolvedCacheConfig,
-        cacheStrategyResolved
+        cacheStrategyResolved,
       )
 
       if (
@@ -652,18 +652,18 @@ export function createProductListHooks<
     const delayedPrefetch = (
       input = {} as TListInput,
       delay = defaultDelay,
-      prefetchId?: string
+      prefetchId?: string,
     ) => {
       const queryOptions = createProductListsPrefetchQueryOptions(
         input,
-        omitUndefined({ cacheStrategy })
+        omitUndefined({ cacheStrategy }),
       )
       const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
 
       return schedulePrefetch(
         async () => prefetchProductLists(input),
         id,
-        delay
+        delay,
       )
     }
 
@@ -684,7 +684,7 @@ export function createProductListHooks<
 
     const prefetchProductList = async (
       input: TDetailInput,
-      prefetchOptions?: ProductListPrefetchOptions
+      prefetchOptions?: ProductListPrefetchOptions,
     ) => {
       if (!input.id) {
         return
@@ -699,11 +699,11 @@ export function createProductListHooks<
         omitUndefined({
           cacheStrategy: cacheStrategyResolved,
           prefetchedBy: prefetchOptions?.prefetchedBy,
-        })
+        }),
       )
       const prefetchCacheOptions = getPrefetchCacheOptions(
         resolvedCacheConfig,
-        cacheStrategyResolved
+        cacheStrategyResolved,
       )
 
       if (
@@ -724,19 +724,15 @@ export function createProductListHooks<
     const delayedPrefetch = (
       input: TDetailInput,
       delay = defaultDelay,
-      prefetchId?: string
+      prefetchId?: string,
     ) => {
       const queryOptions = createProductListPrefetchQueryOptions(
         input,
-        omitUndefined({ cacheStrategy })
+        omitUndefined({ cacheStrategy }),
       )
       const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
 
-      return schedulePrefetch(
-        async () => prefetchProductList(input),
-        id,
-        delay
-      )
+      return schedulePrefetch(async () => prefetchProductList(input), id, delay)
     }
 
     return {
@@ -751,7 +747,7 @@ export function createProductListHooks<
       TProductList | null,
       CreateFavoriteProductListInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 
@@ -777,7 +773,7 @@ export function createProductListHooks<
       TProductList | null,
       CreateCustomProductListInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 
@@ -803,7 +799,7 @@ export function createProductListHooks<
       TProductList | null,
       UpdateProductListInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 
@@ -829,7 +825,7 @@ export function createProductListHooks<
       ProductListDeleteResponse,
       DeleteProductListInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 
@@ -855,7 +851,7 @@ export function createProductListHooks<
       TProductListItem | null,
       AddProductListItemInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 
@@ -881,7 +877,7 @@ export function createProductListHooks<
       TProductListItem | null,
       AddFavoriteProductListItemInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 
@@ -907,7 +903,7 @@ export function createProductListHooks<
       TCart,
       CreateProductListCartInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 
@@ -936,7 +932,7 @@ export function createProductListHooks<
       TProductListItem | null,
       UpdateProductListItemInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 
@@ -962,7 +958,7 @@ export function createProductListHooks<
       TProductListItem | null,
       ChangeProductListItemQuantityInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 
@@ -988,7 +984,7 @@ export function createProductListHooks<
       TProductListItem | null,
       IncrementProductListItemInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 
@@ -1014,7 +1010,7 @@ export function createProductListHooks<
       ProductListDeleteResponse,
       DeleteProductListItemInput,
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
 

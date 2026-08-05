@@ -15,7 +15,7 @@ export type UpdateStorefrontTextService = Pick<
 
 export const updateStorefrontTextRecord = async (
   service: UpdateStorefrontTextService,
-  input: UpdateStorefrontTextWorkflowInput
+  input: UpdateStorefrontTextWorkflowInput,
 ) => {
   if (
     input.update.status !== undefined &&
@@ -23,7 +23,7 @@ export const updateStorefrontTextRecord = async (
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text status "${String(input.update.status)}"`
+      `Unsupported storefront text status "${String(input.update.status)}"`,
     )
   }
 
@@ -45,7 +45,7 @@ export const updateStorefrontTextRecord = async (
     if (!currentDefault) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        `Storefront text "${previousRecord.key}" has no current default for market "${previousRecord.market}" and locale "${previousRecord.locale}"`
+        `Storefront text "${previousRecord.key}" has no current default for market "${previousRecord.market}" and locale "${previousRecord.locale}"`,
       )
     }
 
@@ -60,7 +60,7 @@ export const updateStorefrontTextRecord = async (
         validation.code === "invalid_default"
           ? MedusaError.Types.UNEXPECTED_STATE
           : MedusaError.Types.INVALID_DATA,
-        `${previousRecord.key}: ${validation.message}`
+        `${previousRecord.key}: ${validation.message}`,
       )
     }
   }
@@ -77,11 +77,11 @@ export const updateStorefrontTextStep = createStep(
   "update-storefront-text",
   async (input: UpdateStorefrontTextWorkflowInput, { container }) => {
     const service = container.resolve<StorefrontTextModuleService>(
-      STOREFRONT_TEXT_MODULE
+      STOREFRONT_TEXT_MODULE,
     )
     const { previousRecord, updatedRecord } = await updateStorefrontTextRecord(
       service,
-      input
+      input,
     )
 
     return new StepResponse(updatedRecord, previousRecord)
@@ -94,5 +94,5 @@ export const updateStorefrontTextStep = createStep(
     await container
       .resolve<StorefrontTextModuleService>(STOREFRONT_TEXT_MODULE)
       .updateStorefrontTexts(previousRecord)
-  }
+  },
 )

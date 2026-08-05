@@ -115,8 +115,8 @@ export function useSearchAutocompleteController({
       setActiveIndex((currentIndex) =>
         clampSearchAutocompleteIndex(
           event.key === "ArrowDown" ? currentIndex + 1 : currentIndex - 1,
-          flatItems.length
-        )
+          flatItems.length,
+        ),
       )
       return
     }
@@ -131,8 +131,8 @@ export function useSearchAutocompleteController({
   const handleItemMouseEnter = (item: SearchAutocompleteSuggestion) => {
     setActiveIndex(
       flatItems.findIndex(
-        (candidate) => candidate.id === item.id && candidate.type === item.type
-      )
+        (candidate) => candidate.id === item.id && candidate.type === item.type,
+      ),
     )
   }
 

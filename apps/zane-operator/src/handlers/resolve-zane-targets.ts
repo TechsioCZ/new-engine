@@ -10,7 +10,7 @@ interface ResolveZaneTargetsDeps {
 
 export async function handleResolveZaneTargets(
   request: Request,
-  deps: ResolveZaneTargetsDeps
+  deps: ResolveZaneTargetsDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

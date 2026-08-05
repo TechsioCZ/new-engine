@@ -22,7 +22,7 @@ const asArray = (value: unknown): unknown[] =>
 export const normalizeProductSalesChannelFilter = async (
   query: QueryLike,
   remoteQuery: RemoteQueryLike,
-  filterableFields: ProductFilters
+  filterableFields: ProductFilters,
 ): Promise<ProductFilters> => {
   let filters = { ...filterableFields }
 

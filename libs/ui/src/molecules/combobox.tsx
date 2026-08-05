@@ -265,7 +265,7 @@ export function Combobox<T = unknown>({
     },
     onInputValueChange: ({ inputValue: newItemInputValue }) => {
       const filtered = items.filter((item) =>
-        item.label.toLowerCase().includes(newItemInputValue.toLowerCase())
+        item.label.toLowerCase().includes(newItemInputValue.toLowerCase()),
       )
       setOptions(filtered)
       onInputValueChange?.(newItemInputValue)

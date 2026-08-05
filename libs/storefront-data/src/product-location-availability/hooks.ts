@@ -39,7 +39,7 @@ export interface ProductLocationAvailabilityHooks<
     input: TInput,
     options?: {
       queryOptions?: ReadQueryOptions<TResponse>
-    }
+    },
   ) => UseProductLocationAvailabilityResult<TResponse>
 }
 
@@ -74,7 +74,7 @@ export function createProductLocationAvailabilityHooks<
     input: TInput,
     options?: {
       queryOptions?: ReadQueryOptions<TResponse>
-    }
+    },
   ): UseProductLocationAvailabilityResult<TResponse> {
     const enabled = input.enabled ?? Boolean(input.productId)
     const query = useQuery({

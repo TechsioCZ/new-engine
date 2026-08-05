@@ -6,7 +6,7 @@ import type { LeafParent } from "@/lib/static-data/categories"
  */
 export function findNodeById(
   nodes: CategoryTreeNode[],
-  targetId: string
+  targetId: string,
 ): CategoryTreeNode | null {
   for (const node of nodes) {
     if (node.id === targetId) {
@@ -25,14 +25,14 @@ export function findNodeById(
 export const isSelectableCategory = (
   id: string,
   leafIds: Set<string>,
-  parentIds: Set<string>
+  parentIds: Set<string>,
 ) => leafIds.has(id) || parentIds.has(id)
 
 export const getLeafIdsForCategory = (
   categoryId: string,
   leafIds: Set<string>,
   parentIds: Set<string>,
-  leafParents: LeafParent[]
+  leafParents: LeafParent[],
 ): string[] => {
   if (leafIds.has(categoryId)) {
     return [categoryId]
@@ -49,7 +49,7 @@ export const getLeafIdsForCategory = (
  */
 export function isTopLevelNode(
   nodeId: string,
-  categories: CategoryTreeNode[]
+  categories: CategoryTreeNode[],
 ): boolean {
   const isTopLevel = categories.some((topNode) => topNode.id === nodeId)
   return isTopLevel
@@ -61,7 +61,7 @@ export function isTopLevelNode(
 export function isChildOf(
   nodeId: string,
   parentNodeId: string,
-  categories: CategoryTreeNode[]
+  categories: CategoryTreeNode[],
 ): boolean {
   const parentNode = findNodeById(categories, parentNodeId)
   if (!parentNode) {

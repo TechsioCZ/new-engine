@@ -48,7 +48,7 @@ vi.mock(
       ...actual,
       ...helpers,
     }
-  }
+  },
 )
 
 vi.mock(import("../../../../../src/utils/measurement-units"), () => ({
@@ -62,7 +62,7 @@ type MockStep = (
     container: {
       resolve: ReturnType<typeof vi.fn>
     }
-  }
+  },
 ) => Promise<{ payload: any }>
 
 const container = {
@@ -72,7 +72,7 @@ const container = {
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -121,7 +121,7 @@ describe("measurement transition preparation", () => {
         measurement_unit_id: "unit_new",
         product_id: "prod_1",
       },
-      { container }
+      { container },
     )
 
     expect(result.payload.previous.id).toBe("pm_current")
@@ -163,7 +163,7 @@ describe("measurement transition preparation", () => {
         source_target_same: false,
         target_product_measurement_id: "pm_target",
       },
-      { container }
+      { container },
     )
 
     expect(service.listProductVariantMeasurements).toHaveBeenCalledOnce()
@@ -205,8 +205,8 @@ describe("measurement transition preparation", () => {
           source_target_same: false,
           target_product_measurement_id: "pm_target",
         },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toMatchObject({
       type: MedusaError.Types.UNEXPECTED_STATE,
     })
@@ -223,8 +223,8 @@ describe("measurement transition preparation", () => {
           product_unit_quantity: Number.NaN,
           product_variant_id: "variant_1",
         },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toMatchObject({
       type: MedusaError.Types.INVALID_DATA,
     })
@@ -243,8 +243,8 @@ describe("measurement transition preparation", () => {
           product_unit_quantity: 2,
           product_variant_id: "variant_1",
         },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toMatchObject({
       type: MedusaError.Types.INVALID_DATA,
     })
@@ -269,7 +269,7 @@ describe("measurement transition preparation", () => {
         product_id: "prod_1",
         product_measurement_id: "pm_target",
       },
-      { container }
+      { container },
     )
 
     expect(result.payload.links_to_create).toStrictEqual([
@@ -306,7 +306,7 @@ describe("measurement transition preparation", () => {
         product_id: "prod_1",
         product_measurement_id: "pm_target",
       },
-      { container }
+      { container },
     )
 
     expect(result.payload.links_to_create).toStrictEqual([])
@@ -334,8 +334,8 @@ describe("measurement transition preparation", () => {
           product_id: "prod_1",
           product_measurement_id: "pm_1",
         },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toMatchObject({
       type: MedusaError.Types.UNEXPECTED_STATE,
     })

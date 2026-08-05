@@ -27,7 +27,7 @@ const targetsEnvelopeSchema = z.object({
 export type TriggerResponse = z.infer<typeof triggerResponseSchema>
 
 export async function resolveTriggerTargets(
-  targetsJsonPath: string
+  targetsJsonPath: string,
 ): Promise<z.infer<typeof targetsEnvelopeSchema>["services"]> {
   const raw = await readFile(targetsJsonPath, "utf-8")
 

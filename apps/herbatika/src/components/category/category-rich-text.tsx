@@ -19,7 +19,7 @@ export const CATEGORY_RICH_TEXT_CLASS = `max-w-none font-verdana text-sm leading
   `
 
 export const sanitizeCategoryRichTextHtml = (
-  html: string | null | undefined
+  html: string | null | undefined,
 ) => (html ? sanitizeHtml(html) : "")
 
 export function CategoryRichText({ className, html }: CategoryRichTextProps) {

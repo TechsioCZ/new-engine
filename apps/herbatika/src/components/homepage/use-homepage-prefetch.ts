@@ -16,7 +16,7 @@ interface UseHomepagePrefetchResult {
 }
 
 export function useHomepagePrefetch(
-  region: RegionLike
+  region: RegionLike,
 ): UseHomepagePrefetchResult {
   const { delayedPrefetch, cancelPrefetch } = usePrefetchProduct({
     cacheStrategy: "semiStatic",
@@ -34,7 +34,7 @@ export function useHomepagePrefetch(
         handle: product.handle,
       },
       120,
-      `home-product-${product.id}`
+      `home-product-${product.id}`,
     )
   }
 

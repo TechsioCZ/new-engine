@@ -21,7 +21,7 @@ export const updateQuotesStep = createStep(
 
     const dataBeforeUpdate = await quoteModule.listQuotes(
       { id: data.map((d) => d.id) },
-      { relations, select: selects }
+      { relations, select: selects },
     )
 
     const updatedQuotes = await quoteModule.updateQuotes(data)
@@ -42,8 +42,8 @@ export const updateQuotesStep = createStep(
 
     await quoteModule.updateQuotes(
       dataBeforeUpdate.map((data) =>
-        convertItemResponseToUpdateRequest(data, selects, relations)
-      )
+        convertItemResponseToUpdateRequest(data, selects, relations),
+      ),
     )
-  }
+  },
 )

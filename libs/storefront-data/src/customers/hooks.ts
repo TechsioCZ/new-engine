@@ -63,7 +63,7 @@ export interface CreateCustomerHooksConfig<
     TUpdateParams
   >
   buildUpdateCustomerParams?: (
-    input: TUpdateCustomerInput
+    input: TUpdateCustomerInput,
   ) => TUpdateCustomerParams
   queryKeys?: CustomerQueryKeys<TListParams>
   authQueryKeys?: Pick<AuthQueryKeys, "customer">
@@ -126,13 +126,13 @@ export function createCustomerHooks<
     ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
   const buildCreate: (
     input: TCreateInput,
-    context: StorefrontCustomerCreateAddressContext
+    context: StorefrontCustomerCreateAddressContext,
   ) => TCreateParams =
     addressAdapter?.toCreateParams ??
     ((input: TCreateInput) => ({ ...input }) as TCreateInput & TCreateParams)
   const buildUpdate: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext
+    context: StorefrontCustomerUpdateAddressContext,
   ) => TUpdateParams =
     addressAdapter?.toUpdateParams ??
     ((input: TUpdateInput) => {
@@ -151,7 +151,7 @@ export function createCustomerHooks<
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<CustomerAddressListResponse<TAddress>>
-    }
+    },
   ): UseCustomerAddressesResult<TAddress> {
     const { enabled: inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
@@ -183,7 +183,7 @@ export function createCustomerHooks<
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<CustomerAddressListResponse<TAddress>>
-    }
+    },
   ): UseSuspenseCustomerAddressesResult<TAddress> {
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
@@ -208,7 +208,7 @@ export function createCustomerHooks<
   }
 
   function useCreateCustomerAddress<TContext = unknown>(
-    options?: CustomerMutationOptions<TAddress, TCreateInput, TContext>
+    options?: CustomerMutationOptions<TAddress, TCreateInput, TContext>,
   ) {
     const queryClient = useQueryClient()
     return useMutation<TAddress, unknown, TCreateInput, TContext>({
@@ -217,10 +217,10 @@ export function createCustomerHooks<
           ? addressAdapter.normalizeCreate(input, { mode: "create" })
           : input
         assertStorefrontAddressValidation(
-          addressAdapter?.validateCreate?.(normalized, { mode: "create" })
+          addressAdapter?.validateCreate?.(normalized, { mode: "create" }),
         )
         return service.createAddress(
-          buildCreate(normalized, { mode: "create" })
+          buildCreate(normalized, { mode: "create" }),
         )
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
@@ -243,7 +243,7 @@ export function createCustomerHooks<
   }
 
   function useUpdateCustomerAddress<TContext = unknown>(
-    options?: CustomerMutationOptions<TAddress, TUpdateInput, TContext>
+    options?: CustomerMutationOptions<TAddress, TUpdateInput, TContext>,
   ) {
     const queryClient = useQueryClient()
     return useMutation<TAddress, unknown, TUpdateInput, TContext>({
@@ -260,13 +260,13 @@ export function createCustomerHooks<
         assertStorefrontAddressValidation(
           addressAdapter?.validateUpdate?.(normalized, {
             mode: "update",
-          })
+          }),
         )
         return service.updateAddress(
           addressId,
           buildUpdate(normalized, {
             mode: "update",
-          })
+          }),
         )
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
@@ -289,7 +289,7 @@ export function createCustomerHooks<
   }
 
   function useDeleteCustomerAddress<TContext = unknown>(
-    options?: CustomerMutationOptions<void, { addressId: string }, TContext>
+    options?: CustomerMutationOptions<void, { addressId: string }, TContext>,
   ) {
     const queryClient = useQueryClient()
     return useMutation<void, unknown, { addressId: string }, TContext>({
@@ -319,7 +319,11 @@ export function createCustomerHooks<
   }
 
   function useUpdateCustomer<TContext = unknown>(
-    options?: CustomerMutationOptions<TCustomer, TUpdateCustomerInput, TContext>
+    options?: CustomerMutationOptions<
+      TCustomer,
+      TUpdateCustomerInput,
+      TContext
+    >,
   ) {
     const queryClient = useQueryClient()
     return useMutation<TCustomer, unknown, TUpdateCustomerInput, TContext>({

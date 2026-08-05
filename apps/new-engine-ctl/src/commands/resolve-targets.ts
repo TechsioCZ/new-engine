@@ -8,7 +8,7 @@ import { executeResolveTargets } from "../orchestration/resolve-targets.js"
 const redactableResolveTargetKeyPattern = /password|token|secret|key|url|env/i
 
 function redactResolveTargetsResponse(
-  response: ResolveTargetsResponse
+  response: ResolveTargetsResponse,
 ): ResolveTargetsResponse {
   return JSON.parse(
     JSON.stringify(response, (key: string, value: unknown) => {
@@ -21,7 +21,7 @@ function redactResolveTargetsResponse(
       }
 
       return value
-    })
+    }),
   ) as ResolveTargetsResponse
 }
 
@@ -56,7 +56,7 @@ export function createResolveTargetsCommand(): Command {
       await appendGitHubOutput("resolved_service_ids_csv", serviceIdsCsv)
       await appendGitHubOutput("target_service_ids_csv", serviceIdsCsv)
       process.stdout.write(
-        `${JSON.stringify(redactResolveTargetsResponse(result))}\n`
+        `${JSON.stringify(redactResolveTargetsResponse(result))}\n`,
       )
     })
 

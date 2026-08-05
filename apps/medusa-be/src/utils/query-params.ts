@@ -25,11 +25,11 @@ const toOptionalNumber = (value: unknown): unknown => {
 /** Zod schema for optional string query parameters. */
 export const optionalStringParam = z.preprocess(
   trimOrUndefined,
-  z.string().optional()
+  z.string().optional(),
 )
 
 /** Zod schema for optional positive integer query parameters. */
 export const optionalPositiveIntParam = z.preprocess(
   toOptionalNumber,
-  z.number().int().positive().optional()
+  z.number().int().positive().optional(),
 )

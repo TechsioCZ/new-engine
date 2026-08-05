@@ -42,7 +42,7 @@ export function CategoryListing({ slug }: CategoryListingProps) {
     PRIMARY_NAV_ITEMS.find((item) => item.href === `/c/${slug}`)?.label ??
     humanizeCategorySlug(slug)
   const categoryTitle = normalizeCategoryName(
-    controller.activeCategory?.name ?? fallbackNavTitle
+    controller.activeCategory?.name ?? fallbackNavTitle,
   )
 
   return (

@@ -55,31 +55,31 @@ export interface OrderHooks<
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
-    }
+    },
   ) => QueryFactoryOptions<OrderListResponse<TOrder>>
   getDetailQueryOptions: (
     input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
+    options?: { queryOptions?: ReadQueryOptions<TOrder | null> },
   ) => QueryFactoryOptions<TOrder | null>
   useOrders: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
-    }
+    },
   ) => UseOrdersResult<TOrder>
   useSuspenseOrders: (
     input: SuspenseListInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<OrderListResponse<TOrder>>
-    }
+    },
   ) => UseSuspenseOrdersResult<TOrder>
   useOrder: (
     input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
+    options?: { queryOptions?: ReadQueryOptions<TOrder | null> },
   ) => UseOrderResult<TOrder>
   useSuspenseOrder: (
     input: SuspenseDetailInput<TDetailInput>,
-    options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> }
+    options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> },
   ) => UseSuspenseOrderResult<TOrder>
 }
 
@@ -141,7 +141,7 @@ export function createOrderHooks<
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
-    }
+    },
   ): UseOrdersResult<TOrder> {
     const { items, ...result } = simpleHooks.useList(input, options)
     return {
@@ -154,11 +154,11 @@ export function createOrderHooks<
     input: SuspenseListInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<OrderListResponse<TOrder>>
-    }
+    },
   ): UseSuspenseOrdersResult<TOrder> {
     const { items, ...result } = simpleHooks.useSuspenseList(
       input as TListInput,
-      options
+      options,
     )
     return {
       ...result,
@@ -168,7 +168,7 @@ export function createOrderHooks<
 
   function useOrder(
     input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
+    options?: { queryOptions?: ReadQueryOptions<TOrder | null> },
   ): UseOrderResult<TOrder> {
     const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
@@ -179,11 +179,11 @@ export function createOrderHooks<
 
   function useSuspenseOrder(
     input: SuspenseDetailInput<TDetailInput>,
-    options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> }
+    options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> },
   ): UseSuspenseOrderResult<TOrder> {
     const { item, ...result } = simpleHooks.useSuspenseDetail(
       input as TDetailInput,
-      options
+      options,
     )
     return {
       ...result,

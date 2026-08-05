@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           "content-type": "application/json",
         },
         method: "POST",
-      }
+      },
     )
 
     if (!medusaResponse.ok) {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json<ForgotPasswordResponse>(
       { success: true },
-      { status: 200 }
+      { status: 200 },
     )
   } catch (error) {
     return serverError("Nepodarilo sa odoslať odkaz na obnovu hesla.", {

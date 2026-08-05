@@ -2,7 +2,7 @@ export interface TQueryKey<TKey, TListQuery = unknown, TDetailQuery = string> {
   all: readonly [TKey]
   lists: () => readonly [...TQueryKey<TKey>["all"], "list"]
   list: (
-    query?: TListQuery
+    query?: TListQuery,
   ) => readonly [
     ...ReturnType<TQueryKey<TKey>["lists"]>,
     { query: TListQuery | undefined },
@@ -10,7 +10,7 @@ export interface TQueryKey<TKey, TListQuery = unknown, TDetailQuery = string> {
   details: () => readonly [...TQueryKey<TKey>["all"], "detail"]
   detail: (
     id: TDetailQuery,
-    query?: TListQuery
+    query?: TListQuery,
   ) => readonly [
     ...ReturnType<TQueryKey<TKey>["details"]>,
     TDetailQuery,
@@ -23,7 +23,7 @@ export const queryKeysFactory = <
   TListQueryType = unknown,
   TDetailQueryType = string,
 >(
-  globalKey: T
+  globalKey: T,
 ) => {
   const queryKeyFactory: TQueryKey<T, TListQueryType, TDetailQueryType> = {
     all: [globalKey],

@@ -14,7 +14,7 @@ type CancelOrderWorkflowContainer = Parameters<typeof cancelOrderWorkflow>[0]
 
 export async function cancelOrdersWithCancelOrderWorkflow(
   input: BulkCancelOrdersWorkflowInput,
-  container: CancelOrderWorkflowContainer
+  container: CancelOrderWorkflowContainer,
 ) {
   for (const orderId of input.order_ids) {
     await cancelOrderWorkflow(container).run({
@@ -33,8 +33,8 @@ const cancelOrdersWithCancelOrderWorkflowStep = createStep(
   "cancel-orders-with-cancel-order-workflow",
   async (input: BulkCancelOrdersWorkflowInput, { container }) =>
     new StepResponse(
-      await cancelOrdersWithCancelOrderWorkflow(input, container)
-    )
+      await cancelOrdersWithCancelOrderWorkflow(input, container),
+    ),
 )
 
 export const bulkCancelOrdersWorkflow = createWorkflow(
@@ -45,5 +45,5 @@ export const bulkCancelOrdersWorkflow = createWorkflow(
     return new WorkflowResponse({
       orders: canceledOrders,
     })
-  }
+  },
 )

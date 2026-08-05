@@ -43,7 +43,7 @@ export class SymmyImportJobModuleService extends MedusaService({
 }) {
   private async findByIdempotencyKey(
     type: string,
-    idempotencyKey: string | null | undefined
+    idempotencyKey: string | null | undefined,
   ): Promise<SymmyImportJobDTO | null> {
     if (!idempotencyKey) {
       return null
@@ -54,7 +54,7 @@ export class SymmyImportJobModuleService extends MedusaService({
         idempotency_key: idempotencyKey,
         type,
       },
-      { take: 1 }
+      { take: 1 },
     )
 
     return (existing[0] as SymmyImportJobDTO | undefined) ?? null
@@ -118,7 +118,7 @@ export class SymmyImportJobModuleService extends MedusaService({
 
   async markCompleted(
     id: string,
-    { result, processed, failed }: CompleteImportJobInput
+    { result, processed, failed }: CompleteImportJobInput,
   ): Promise<SymmyImportJobDTO> {
     const updated = await this.updateSymmyImportJobs({
       error: null,
@@ -136,7 +136,7 @@ export class SymmyImportJobModuleService extends MedusaService({
   async markFailed(
     id: string,
     error: string,
-    result?: Record<string, unknown>
+    result?: Record<string, unknown>,
   ): Promise<SymmyImportJobDTO> {
     const updated = await this.updateSymmyImportJobs({
       error,

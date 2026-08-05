@@ -35,7 +35,7 @@ export function useSearchAutocomplete({
     .trim()
     .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
   const [data, setData] = useState<SearchAutocompleteResponse>(
-    createEmptySearchAutocompleteResponse("")
+    createEmptySearchAutocompleteResponse(""),
   )
   const [status, setStatus] = useState<SearchAutocompleteStatus>("idle")
 

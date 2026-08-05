@@ -28,7 +28,7 @@ const clampNumber = (value: number, min: number, max: number) => {
 }
 
 const toSafeBounds = (
-  bounds: AsideFilterPriceBounds | null
+  bounds: AsideFilterPriceBounds | null,
 ): AsideFilterPriceBounds | null => {
   if (!bounds) {
     return null
@@ -46,7 +46,7 @@ const toSafeBounds = (
 
 const resolveRangeFromSelection = (
   selectedRange: AsideFilterPriceRange,
-  bounds: AsideFilterPriceBounds
+  bounds: AsideFilterPriceBounds,
 ): [number, number] => {
   const selectedMin =
     typeof selectedRange.min === "number"
@@ -66,20 +66,20 @@ const resolveRangeFromSelection = (
 
 const resolveRangeWithinBounds = (
   range: [number, number],
-  bounds: AsideFilterPriceBounds
+  bounds: AsideFilterPriceBounds,
 ): [number, number] =>
   resolveRangeFromSelection(
     {
       max: range[1],
       min: range[0],
     },
-    bounds
+    bounds,
   )
 
 const resolveBoundsForRender = (
   currentBounds: AsideFilterPriceBounds,
   incomingBounds: AsideFilterPriceBounds | null,
-  hasActivePriceFilter: boolean
+  hasActivePriceFilter: boolean,
 ): AsideFilterPriceBounds => {
   if (!incomingBounds) {
     return currentBounds
@@ -97,7 +97,7 @@ const resolveBoundsForRender = (
 
 const areBoundsEqual = (
   left: AsideFilterPriceBounds,
-  right: AsideFilterPriceBounds
+  right: AsideFilterPriceBounds,
 ) => left.min === right.min && left.max === right.max
 
 const areRangesEqual = (left: [number, number], right: [number, number]) =>
@@ -105,7 +105,7 @@ const areRangesEqual = (left: [number, number], right: [number, number]) =>
 
 const normalizeCommittedRange = (
   nextRange: [number, number],
-  bounds: AsideFilterPriceBounds
+  bounds: AsideFilterPriceBounds,
 ): AsideFilterPriceRange => {
   const rangeMin = clampNumber(nextRange[0], bounds.min, bounds.max)
   const rangeMax = clampNumber(nextRange[1], bounds.min, bounds.max)
@@ -165,7 +165,7 @@ export function AsideFilter({
       incomingPriceBounds ?? {
         max: 1,
         min: 0,
-      }
+      },
     )
 
   useEffect(() => {
@@ -173,7 +173,7 @@ export function AsideFilter({
       const nextBounds = resolveBoundsForRender(
         currentBounds,
         incomingPriceBounds,
-        hasActivePriceFilter
+        hasActivePriceFilter,
       )
 
       return areBoundsEqual(currentBounds, nextBounds)
@@ -183,11 +183,11 @@ export function AsideFilter({
   }, [hasActivePriceFilter, incomingPriceBounds])
 
   const [sliderRange, setSliderRange] = useState<[number, number]>(() =>
-    resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender)
+    resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender),
   )
   const sliderRangeForRender = resolveRangeWithinBounds(
     sliderRange,
-    priceBoundsForRender
+    priceBoundsForRender,
   )
   const selectedPriceRangeMin = selectedPriceRange.min
   const selectedPriceRangeMax = selectedPriceRange.max
@@ -207,13 +207,13 @@ export function AsideFilter({
       {
         max: priceBoundsForRenderMax,
         min: priceBoundsForRenderMin,
-      }
+      },
     )
 
     setSliderRange((currentRange) =>
       areRangesEqual(currentRange, nextSelectedRange)
         ? currentRange
-        : nextSelectedRange
+        : nextSelectedRange,
     )
   }, [
     selectedPriceRangeMin,
@@ -250,8 +250,8 @@ export function AsideFilter({
               setSliderRange(
                 resolveRangeWithinBounds(
                   [Math.round(values[0]), Math.round(values[1])],
-                  priceBoundsForRender
-                )
+                  priceBoundsForRender,
+                ),
               )
             }}
             onChangeEnd={(values) => {
@@ -261,10 +261,10 @@ export function AsideFilter({
 
               const nextRange = resolveRangeWithinBounds(
                 [Math.round(values[0]), Math.round(values[1])],
-                priceBoundsForRender
+                priceBoundsForRender,
               )
               onPriceRangeCommit(
-                normalizeCommittedRange(nextRange, priceBoundsForRender)
+                normalizeCommittedRange(nextRange, priceBoundsForRender),
               )
             }}
             size="sm"

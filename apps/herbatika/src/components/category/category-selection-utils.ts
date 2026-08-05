@@ -19,13 +19,13 @@ export const toggleSelection = (currentItems: string[], itemId: string) => {
 export const buildFacetChipItems = (
   currentFacetItems: CatalogFacetItem[],
   seedFacetItems: CatalogFacetItem[],
-  selectedIds: string[]
+  selectedIds: string[],
 ): CategoryFacetChipItem[] => {
   const currentCountById = new Map(
-    currentFacetItems.map((item) => [item.id, item.count])
+    currentFacetItems.map((item) => [item.id, item.count]),
   )
   const seedCountById = new Map(
-    seedFacetItems.map((item) => [item.id, item.count])
+    seedFacetItems.map((item) => [item.id, item.count]),
   )
   const labelById = new Map<string, string>()
   const orderedIds: string[] = []

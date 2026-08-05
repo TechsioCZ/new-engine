@@ -31,5 +31,5 @@ export const updateMeasurementUnitWorkflow = createWorkflow(
     releaseLockStep(releaseInput)
 
     return new WorkflowResponse(updated)
-  }
+  },
 )

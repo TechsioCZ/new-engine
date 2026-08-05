@@ -50,7 +50,7 @@ interface DisabledConfigCacheEntry {
 type CachedConfigEntry = PacketaOptions | DisabledConfigCacheEntry
 
 const isDisabledConfigCacheEntry = (
-  value: unknown
+  value: unknown,
 ): value is DisabledConfigCacheEntry =>
   isRecord(value) && value["disabled"] === true
 
@@ -95,7 +95,7 @@ const toPacketaConfigDTO = (value: unknown): PacketaConfigDTO => {
   ) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Packeta: Stored configuration has an invalid shape"
+      "Packeta: Stored configuration has an invalid shape",
     )
   }
 
@@ -150,17 +150,17 @@ export class PacketaClientModuleService extends MedusaService({
 
     this.cacheService_ = safeResolve<ICachingModuleService>(
       container,
-      Modules.CACHING
+      Modules.CACHING,
     )
 
     if (!this.cacheService_) {
       this.logger_.warn(
-        "Packeta: Cache service not available. Using local-only mode (not suitable for multi-container)."
+        "Packeta: Cache service not available. Using local-only mode (not suitable for multi-container).",
       )
     }
 
     this.logger_.info(
-      `Packeta: Module service initialized (${this.environment_} environment)`
+      `Packeta: Module service initialized (${this.environment_} environment)`,
     )
   }
 
@@ -175,7 +175,7 @@ export class PacketaClientModuleService extends MedusaService({
   async getConfig(): Promise<PacketaConfigDTO | null> {
     const configs = await this.listPacketaConfigs(
       { environment: this.environment_ },
-      { take: 1 }
+      { take: 1 },
     )
     const config = configs[0]
     if (!config) {
@@ -192,7 +192,7 @@ export class PacketaClientModuleService extends MedusaService({
    * null on a sensitive field = clear it.
    */
   async updateConfig(
-    data: UpdatePacketaConfigInput
+    data: UpdatePacketaConfigInput,
   ): Promise<PacketaConfigDTO> {
     const existing = await this.getConfig()
 
@@ -265,7 +265,7 @@ export class PacketaClientModuleService extends MedusaService({
 
   private toEffectiveOptions(
     config: PacketaConfigDTO,
-    apiPassword: string
+    apiPassword: string,
   ): PacketaOptions {
     const options: PacketaOptions = {
       api_password: apiPassword,
@@ -357,7 +357,7 @@ export class PacketaClientModuleService extends MedusaService({
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "Packeta is disabled or not configured. Enable it in Settings → Packeta."
+        "Packeta is disabled or not configured. Enable it in Settings → Packeta.",
       )
     }
 
@@ -370,7 +370,7 @@ export class PacketaClientModuleService extends MedusaService({
   // ============================================
 
   async createPacket(
-    attributes: PacketaPacketAttributes
+    attributes: PacketaPacketAttributes,
   ): Promise<PacketaCreatePacketResult> {
     const client = await this.getClient()
     return await client.createPacket(attributes)
@@ -388,7 +388,7 @@ export class PacketaClientModuleService extends MedusaService({
   }
 
   async getPacketStatus(
-    packetId: number
+    packetId: number,
   ): Promise<PacketaPacketStatusRecord[]> {
     const client = await this.getClient()
     return await client.packetStatus(packetId)
@@ -397,7 +397,7 @@ export class PacketaClientModuleService extends MedusaService({
   async downloadLabelPdf(
     packetId: number,
     format?: PacketaLabelFormat,
-    offset?: number
+    offset?: number,
   ): Promise<Buffer> {
     const client = await this.getClient()
     return await client.downloadLabelPdf(packetId, format, offset)

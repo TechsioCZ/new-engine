@@ -17,7 +17,7 @@ function toApprovalStatusSnapshot(value: unknown): ModuleApprovalStatus {
   if (value === null || typeof value !== "object") {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Approval status snapshot is invalid"
+      "Approval status snapshot is invalid",
     )
   }
 
@@ -35,7 +35,7 @@ function toApprovalStatusSnapshot(value: unknown): ModuleApprovalStatus {
   ) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Approval status snapshot is missing required fields"
+      "Approval status snapshot is missing required fields",
     )
   }
 
@@ -46,7 +46,7 @@ export const updateApprovalStatusStep = createStep(
   "update-approval-status",
   async (
     input: ModuleApproval,
-    { container }
+    { container },
   ): Promise<StepResponse<undefined, ModuleApprovalStatus>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const approvalModule =
@@ -69,14 +69,14 @@ export const updateApprovalStatusStep = createStep(
     if (!approvalStatus) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Approval status for cart ${input.cart_id} was not found`
+        `Approval status for cart ${input.cart_id} was not found`,
       )
     }
 
     const previousData = toApprovalStatusSnapshot(approvalStatus)
 
     const hasPendingApprovals = await approvalModule.hasPendingApprovals(
-      input.cart_id
+      input.cart_id,
     )
 
     if (input.status === ApprovalStatusType.APPROVED && !hasPendingApprovals) {
@@ -113,5 +113,5 @@ export const updateApprovalStatusStep = createStep(
         status: previousData.status,
       },
     ])
-  }
+  },
 )

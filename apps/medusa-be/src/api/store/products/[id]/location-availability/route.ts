@@ -38,7 +38,7 @@ interface StockLocationLinkRecord {
 
 const chunkValues = <TValue>(
   values: TValue[],
-  size = QUERY_FILTER_CHUNK_SIZE
+  size = QUERY_FILTER_CHUNK_SIZE,
 ) => {
   const chunks: TValue[][] = []
   for (let index = 0; index < values.length; index += size) {
@@ -48,7 +48,7 @@ const chunkValues = <TValue>(
 }
 
 function asStringArray(
-  value: StoreProductLocationAvailabilityQuery["sales_channel_id"]
+  value: StoreProductLocationAvailabilityQuery["sales_channel_id"],
 ): string[] {
   if (!value) {
     return []
@@ -59,7 +59,7 @@ function asStringArray(
 
 async function queryStockLocationsForSalesChannels(
   query: Query,
-  salesChannelIds: string[]
+  salesChannelIds: string[],
 ): Promise<StockLocationRecord[]> {
   const stockLocationIds: string[] = []
 
@@ -95,7 +95,7 @@ async function queryStockLocationsForSalesChannels(
   }
 
   const stockLocationById = new Map(
-    stockLocations.map((stockLocation) => [stockLocation.id, stockLocation])
+    stockLocations.map((stockLocation) => [stockLocation.id, stockLocation]),
   )
 
   return uniqueStockLocationIds.flatMap((stockLocationId) => {
@@ -107,7 +107,7 @@ async function queryStockLocationsForSalesChannels(
 
 export async function GET(
   req: MedusaStoreRequest<unknown, StoreProductLocationAvailabilityQuery>,
-  res: MedusaResponse<ProductLocationAvailability>
+  res: MedusaResponse<ProductLocationAvailability>,
 ) {
   const { id: productId } = req.params
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -119,7 +119,7 @@ export async function GET(
     {
       ...req.filterableFields,
       id: productId,
-    }
+    },
   )
   const { data: products }: QueryResult<ProductRecord> = await query.graph({
     entity: "product",
@@ -132,7 +132,7 @@ export async function GET(
   if (!product) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product with id "${productId}" was not found`
+      `Product with id "${productId}" was not found`,
     )
   }
 
@@ -140,7 +140,7 @@ export async function GET(
 
   const stockLocations = await queryStockLocationsForSalesChannels(
     query,
-    salesChannelIds
+    salesChannelIds,
   )
 
   if (variantIds.length === 0) {
@@ -175,7 +175,7 @@ export async function GET(
         productId: product.id,
         stockLocations,
         variantIds,
-      })
+      }),
     )
     return
   }
@@ -188,14 +188,14 @@ export async function GET(
         productId: product.id,
         stockLocations,
         variantIds,
-      })
+      }),
     )
     return
   }
 
   const inventoryLevels: InventoryLevel[] = []
   const stockLocationIds = stockLocations.map(
-    (stockLocation) => stockLocation.id
+    (stockLocation) => stockLocation.id,
   )
 
   for (const inventoryItemIdChunk of chunkValues(inventoryItemIds)) {
@@ -223,6 +223,6 @@ export async function GET(
       productId: product.id,
       stockLocations,
       variantIds,
-    })
+    }),
   )
 }

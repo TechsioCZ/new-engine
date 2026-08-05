@@ -16,7 +16,7 @@ const createRequiredTextValidator =
   (
     requiredMessage: string,
     minLengthMessage: string,
-    minLength = 2
+    minLength = 2,
   ): AddressFieldValidator =>
   (value) => {
     const normalized = value.trim()
@@ -32,7 +32,7 @@ const createRequiredPhoneNumberValidator = (
   messages: Pick<
     AddressValidationMessageSet,
     "phoneInvalid" | "phoneMinDigits" | "phoneRequired"
-  >
+  >,
 ): AddressFieldValidator => {
   const validateOptionalPhoneNumber = createOptionalPhoneNumberValidator({
     invalid: messages.phoneInvalid,
@@ -48,7 +48,7 @@ const createPostalCodeValidator =
     messages: Pick<
       AddressValidationMessageSet,
       "postalCodeInvalid" | "postalCodeMinDigits" | "postalCodeRequired"
-    >
+    >,
   ): AddressFieldValidator =>
   (value) => {
     const normalized = value.trim()
@@ -71,7 +71,7 @@ const createCountryCodeValidator =
     messages: Pick<
       AddressValidationMessageSet,
       "countryInvalid" | "countryRequired"
-    >
+    >,
   ): AddressFieldValidator =>
   (value) => {
     if (!value.trim()) {
@@ -82,24 +82,24 @@ const createCountryCodeValidator =
   }
 
 export const createAddressFieldValidators = (
-  messages: AddressValidationMessageSet
+  messages: AddressValidationMessageSet,
 ) => ({
   address1: createRequiredTextValidator(
     messages.addressRequired,
-    messages.addressMinLength
+    messages.addressMinLength,
   ),
   city: createRequiredTextValidator(
     messages.cityRequired,
-    messages.cityMinLength
+    messages.cityMinLength,
   ),
   company: createRequiredTextValidator(
     messages.companyNameRequired,
-    messages.companyNameMinLength
+    messages.companyNameMinLength,
   ),
   companyId: createRequiredTextValidator(
     messages.companyIdRequired,
     messages.companyIdMinLength,
-    4
+    4,
   ),
   countryCode: createCountryCodeValidator(messages),
   email: createEmailAddressValidator({
@@ -113,6 +113,6 @@ export const createAddressFieldValidators = (
   taxId: createRequiredTextValidator(
     messages.taxIdRequired,
     messages.taxIdMinLength,
-    4
+    4,
   ),
 })

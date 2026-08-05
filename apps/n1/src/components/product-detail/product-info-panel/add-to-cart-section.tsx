@@ -51,7 +51,7 @@ export const AddToCartSection = ({
     if (!validation.valid) {
       toast.stockWarningWithDetails(
         validation.availableQuantity,
-        validation.requestedTotal
+        validation.requestedTotal,
       )
       return
     }
@@ -111,7 +111,7 @@ export const AddToCartSection = ({
           const event = new CustomEvent("open-cart")
           window.dispatchEvent(event)
         },
-      }
+      },
     )
   }
 

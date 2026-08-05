@@ -165,7 +165,7 @@ const handleToImageKey = (handle: string): string => {
   return cleanHandle
     .split("-")
     .map((word, i) =>
-      i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)
+      i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1),
     )
     .join("")
 }
@@ -173,7 +173,7 @@ const handleToImageKey = (handle: string): string => {
 // Helper: Get image for category based on handle path
 const getImageForCategory = (
   parentHandle: string,
-  childHandle: string
+  childHandle: string,
 ): StaticImageData | undefined => {
   const parentKey = handleToImageKey(parentHandle) as keyof typeof headerImgs
 
@@ -182,7 +182,7 @@ const getImageForCategory = (
   if (!parentImages || typeof parentImages !== "object") {
     if (process.env.NODE_ENV === "development") {
       console.warn(
-        `[Header] No images found for parent category: ${parentHandle} (key: ${parentKey})`
+        `[Header] No images found for parent category: ${parentHandle} (key: ${parentKey})`,
       )
     }
     return
@@ -194,7 +194,7 @@ const getImageForCategory = (
   const image = parentImages[childKey] as StaticImageData | undefined
   if (!image && process.env.NODE_ENV === "development") {
     console.warn(
-      `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${String(childKey)})`
+      `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${String(childKey)})`,
     )
   }
   return image
@@ -220,7 +220,7 @@ export const links = [
 export const submenuItems: SubmenuCategory[] = rootCategories.map((rootCat) => {
   // Find all direct children of this root category
   const directChildren = allCategories.filter(
-    (cat) => cat.parent_category_id === rootCat.id
+    (cat) => cat.parent_category_id === rootCat.id,
   )
 
   return {

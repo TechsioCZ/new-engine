@@ -16,7 +16,7 @@ export const NoResults = ({ title, message, className }: NoResultsProps) => {
     <div
       className={clx(
         "flex h-[400px] w-full items-center justify-center",
-        className
+        className,
       )}
     >
       <div className="flex flex-col items-center gap-y-2">
@@ -77,7 +77,7 @@ export const NoRecords = ({
     <div
       className={clx(
         "flex h-[400px] w-full flex-col items-center justify-center gap-y-4",
-        className
+        className,
       )}
     >
       <div className="flex flex-col items-center gap-y-3">

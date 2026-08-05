@@ -40,7 +40,7 @@ export const getBrandHandleCollisionMessage = (brand: {
 }
 
 export const normalizeBrandWriteInput = (
-  brand: BrandScalarWriteInput
+  brand: BrandScalarWriteInput,
 ): BrandScalarWriteInput => {
   const normalized: BrandScalarWriteInput = {
     ...(brand.handle === undefined ? {} : { handle: brand.handle.trim() }),
@@ -67,7 +67,7 @@ export const normalizeBrandWriteInput = (
 
 export const validateBrandGpsrState = (
   brand: BrandScalarWriteInput,
-  identity = brand.handle ?? brand.title ?? "brand"
+  identity = brand.handle ?? brand.title ?? "brand",
 ) => {
   const normalized = normalizeBrandWriteInput(brand)
 
@@ -80,13 +80,13 @@ export const validateBrandGpsrState = (
     if (value && !emailSchema.safeParse(value).success) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Brand "${identity}" has an invalid ${field}`
+        `Brand "${identity}" has an invalid ${field}`,
       )
     }
   }
 
   const presentRepresentativeFields = REQUIRED_OUTSIDE_EU_FIELDS.filter(
-    (field) => !!normalized[field]
+    (field) => !!normalized[field],
   )
 
   if (
@@ -94,12 +94,12 @@ export const validateBrandGpsrState = (
     presentRepresentativeFields.length !== REQUIRED_OUTSIDE_EU_FIELDS.length
   ) {
     const missingFields = REQUIRED_OUTSIDE_EU_FIELDS.filter(
-      (field) => !normalized[field]
+      (field) => !normalized[field],
     )
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Brand "${identity}" must provide all EU representative fields or none; missing: ${missingFields.join(", ")}`
+      `Brand "${identity}" must provide all EU representative fields or none; missing: ${missingFields.join(", ")}`,
     )
   }
 
@@ -112,7 +112,7 @@ export const validateBrandGpsrState = (
   if (isManufacturedOutsideEu !== hasEuropeanRepresentative) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Brand "${identity}" must set gpsr_manufactured_outside_eu to ${hasEuropeanRepresentative} when EU representative fields are ${hasEuropeanRepresentative ? "present" : "absent"}`
+      `Brand "${identity}" must set gpsr_manufactured_outside_eu to ${hasEuropeanRepresentative} when EU representative fields are ${hasEuropeanRepresentative ? "present" : "absent"}`,
     )
   }
 

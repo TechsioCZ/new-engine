@@ -70,13 +70,13 @@ export async function listOrderDashboardOrders({
         limit,
         offset,
       },
-    }
+    },
   )
 }
 
 export async function getOrderDashboardSummary() {
   return sdk.client.fetch<OrderDashboardSummaryResponse>(
-    "/admin/order-expedition/summary"
+    "/admin/order-expedition/summary",
   )
 }
 
@@ -92,7 +92,7 @@ export async function updateOrderDashboardStatuses(input: {
         target_status: input.targetStatus,
       },
       method: "POST",
-    }
+    },
   )
 }
 
@@ -108,7 +108,7 @@ export async function updateOrderDashboardManualStatus(input: {
         status: input.status,
       },
       method: "POST",
-    }
+    },
   )
 }
 
@@ -118,7 +118,7 @@ export async function downloadOrderDashboardExpeditionPdf(orderIds: string[]) {
     {
       order_ids: orderIds,
     },
-    `expedition-orders-${new Date().toISOString().slice(0, 10)}.pdf`
+    `expedition-orders-${new Date().toISOString().slice(0, 10)}.pdf`,
   )
 }
 
@@ -134,7 +134,7 @@ export async function downloadOrderDashboardPacketaLabels(input: {
       label_offset: input.labelOffset,
       order_ids: input.orderIds,
     },
-    `packeta-labels-${new Date().toISOString().slice(0, 10)}.pdf`
+    `packeta-labels-${new Date().toISOString().slice(0, 10)}.pdf`,
   )
 }
 
@@ -191,7 +191,7 @@ export async function listOrderDashboardStockLocations() {
 }
 
 export async function listOrderDashboardShippingOptions(
-  stockLocationId: string
+  stockLocationId: string,
 ) {
   if (!stockLocationId) {
     return []
@@ -240,7 +240,7 @@ export async function createOrderDashboardFulfillment(input: {
 async function downloadPdf(
   path: string,
   body: Record<string, unknown>,
-  fallbackFilename: string
+  fallbackFilename: string,
 ) {
   const response = await sdk.client.fetch<Response>(path, {
     body,

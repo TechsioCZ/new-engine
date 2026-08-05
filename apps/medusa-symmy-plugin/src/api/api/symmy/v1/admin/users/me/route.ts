@@ -10,7 +10,7 @@ import {
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const id = req.auth_context.actor_id
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
@@ -30,7 +30,7 @@ export const GET = async (
   if (!user) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `User with id: ${id} was not found`
+      `User with id: ${id} was not found`,
     )
   }
 

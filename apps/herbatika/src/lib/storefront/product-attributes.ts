@@ -14,12 +14,12 @@ const escapeHtml = (value: string) =>
     .replaceAll("'", "&#039;")
 
 export const resolveProductWarranty = (
-  productAttributes: ProductAttribute[]
+  productAttributes: ProductAttribute[],
 ): string | null => {
   const warranty = productAttributes.find(
     (attribute) =>
       attribute.definition.key === WARRANTY_DEFINITION_KEY &&
-      attribute.definition.input_type === "select"
+      attribute.definition.input_type === "select",
   )
   const value = warranty?.option?.label.trim()
 
@@ -29,7 +29,7 @@ export const resolveProductWarranty = (
 export const mergeWarrantyIntoProductContentSections = (
   sections: ProductDetailContentSection[],
   warranty: string | null,
-  otherSectionTitle: string
+  otherSectionTitle: string,
 ): ProductDetailContentSection[] => {
   if (!warranty) {
     return sections
@@ -37,7 +37,7 @@ export const mergeWarrantyIntoProductContentSections = (
 
   const warrantyHtml = `<p><strong>Záruka:</strong> ${escapeHtml(warranty)}</p>`
   const otherSectionIndex = sections.findIndex(
-    (section) => section.key === OTHER_SECTION_KEY
+    (section) => section.key === OTHER_SECTION_KEY,
   )
 
   if (otherSectionIndex === -1) {
@@ -57,6 +57,6 @@ export const mergeWarrantyIntoProductContentSections = (
           ...section,
           html: `${section.html}\n${warrantyHtml}`,
         }
-      : section
+      : section,
   )
 }

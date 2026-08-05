@@ -32,7 +32,7 @@ const UNPAID_PAYMENT_STATUS_VALUES: PaymentStatus[] = [
 ]
 
 const UNPAID_PAYMENT_STATUSES = new Set<PaymentStatus>(
-  UNPAID_PAYMENT_STATUS_VALUES
+  UNPAID_PAYMENT_STATUS_VALUES,
 )
 
 const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
@@ -112,7 +112,7 @@ function isUnpaidOrder(order: PaymentReminderOrder) {
 
 export function isPaymentReminderReadyOrder(
   order: PaymentReminderOrder,
-  now = new Date()
+  now = new Date(),
 ) {
   if (!isUnpaidOrder(order)) {
     return false
@@ -134,7 +134,7 @@ export function isPaymentReminderReadyOrder(
 
 export async function fetchOrderById(
   query: Query,
-  id: string
+  id: string,
 ): Promise<PaymentReminderOrder | undefined> {
   const { data } = await query.graph({
     entity: "order",
@@ -147,7 +147,7 @@ export async function fetchOrderById(
 
 export async function fetchUnpaidOrders(
   query: Query,
-  maxOrders = DEFAULT_MAX_ORDERS
+  maxOrders = DEFAULT_MAX_ORDERS,
 ) {
   const unpaidOrders: PaymentReminderOrder[] = []
   let offset = 0

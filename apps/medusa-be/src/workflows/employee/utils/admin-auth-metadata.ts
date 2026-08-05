@@ -65,7 +65,7 @@ export const getProviderIdentityIdsWithoutActiveAdminRole = async ({
     ...new Set(
       existingLinks
         .map((existingLink) => existingLink.employee_id)
-        .filter((employeeId): employeeId is string => Boolean(employeeId))
+        .filter((employeeId): employeeId is string => Boolean(employeeId)),
     ),
   ]
   const excludedEmployeeIdSet = new Set(excludedEmployeeIds)
@@ -95,17 +95,17 @@ export const getProviderIdentityIdsWithoutActiveAdminRole = async ({
           !employee.deleted_at &&
           !employee.company?.deleted_at &&
           !excludedEmployeeIdSet.has(employee.id) &&
-          !excludedCompanyIdSet.has(employee.company?.id ?? "")
+          !excludedCompanyIdSet.has(employee.company?.id ?? ""),
       )
       .map((employee) => employee.customer?.id)
-      .filter((customerId): customerId is string => Boolean(customerId))
+      .filter((customerId): customerId is string => Boolean(customerId)),
   )
   const emailsToClear = [
     ...new Set(
       [...candidatesByCustomerId.entries()]
         .filter(([customerId]) => !activeAdminCustomerIds.has(customerId))
         .map(([, candidate]) => candidate.email)
-        .filter((email): email is string => Boolean(email))
+        .filter((email): email is string => Boolean(email)),
     ),
   ]
 
@@ -125,6 +125,6 @@ export const getProviderIdentityIdsWithoutActiveAdminRole = async ({
   return providerIdentities
     .map((providerIdentity) => providerIdentity.id)
     .filter((providerIdentityId): providerIdentityId is string =>
-      Boolean(providerIdentityId)
+      Boolean(providerIdentityId),
     )
 }

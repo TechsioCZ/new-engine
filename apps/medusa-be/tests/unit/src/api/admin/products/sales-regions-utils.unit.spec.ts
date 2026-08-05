@@ -54,8 +54,8 @@ describe("product sales regions route utils", () => {
           { id: "txrate_product", rate: 30 },
         ],
         rulesByRateId,
-        "prod_1"
-      )
+        "prod_1",
+      ),
     ).toMatchObject({ rate: 30, taxRate: { id: "txrate_product" } })
   })
 
@@ -80,8 +80,8 @@ describe("product sales regions route utils", () => {
           { id: "txrate_default", is_default: true, rate: "20" },
         ],
         rulesByRateId,
-        "prod_1"
-      )
+        "prod_1",
+      ),
     ).toMatchObject({ rate: 20, taxRate: { id: "txrate_default" } })
   })
 
@@ -106,8 +106,8 @@ describe("product sales regions route utils", () => {
           { id: "txrate_fallback", rate: 10 },
         ],
         rulesByRateId,
-        "prod_1"
-      )
+        "prod_1",
+      ),
     ).toMatchObject({ rate: 10, taxRate: { id: "txrate_fallback" } })
   })
 
@@ -116,8 +116,8 @@ describe("product sales regions route utils", () => {
       resolveEffectiveRate(
         [{ id: "txrate_invalid", rate: "invalid" }],
         new Map(),
-        "prod_1"
-      )
+        "prod_1",
+      ),
     ).toBeUndefined()
   })
 
@@ -137,10 +137,10 @@ describe("product sales regions route utils", () => {
         reference: "product",
         reference_id: "prod_1",
         tax_rate_id: "txrate_1",
-      })
+      }),
     ).toBeTruthy()
     expect(
-      isTaxRateRule({ reference: "product", reference_id: "prod_1" })
+      isTaxRateRule({ reference: "product", reference_id: "prod_1" }),
     ).toBeFalsy()
     expect(isRegionCountry({ iso_2: " CZ " })).toBeTruthy()
     expect(isRegionCountry({ iso_2: "CZE" })).toBeFalsy()
@@ -150,7 +150,7 @@ describe("product sales regions route utils", () => {
     expect(
       toRegionWithCountries({
         countries: [{ iso_2: "CZ" }, { iso_2: "CZE" }, null],
-      })
+      }),
     ).toStrictEqual({ countries: [{ iso_2: "CZ" }] })
   })
 
@@ -159,7 +159,7 @@ describe("product sales regions route utils", () => {
       toSalesRegionProduct({
         id: "prod_1",
         sales_channels: [{ id: "sc_1", name: "Web" }, { name: "Missing ID" }],
-      })
+      }),
     ).toStrictEqual({
       id: "prod_1",
       sales_channels: [{ id: "sc_1", name: "Web" }],
@@ -172,7 +172,7 @@ describe("product sales regions route utils", () => {
       getRegionCountryCodes([
         { countries: [{ iso_2: "CZ" }, { iso_2: "sk" }] },
         { countries: [{ iso_2: " cz " }, { iso_2: "CZE" }] },
-      ])
+      ]),
     ).toStrictEqual(["cz", "sk"])
   })
 })

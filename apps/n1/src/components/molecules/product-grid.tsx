@@ -35,7 +35,7 @@ export const ProductGrid = ({
   const totalPages = Math.ceil((totalCount || products.length) / pageSize)
   const skeletonKeys = Array.from(
     { length: skeletonCount },
-    (_, index) => `product-skeleton-${index}`
+    (_, index) => `product-skeleton-${index}`,
   )
 
   // Loading state

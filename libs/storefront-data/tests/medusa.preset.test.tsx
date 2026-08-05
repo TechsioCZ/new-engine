@@ -91,7 +91,7 @@ const createSdkMock = () => {
       }
 
       return {}
-    }
+    },
   )
 
   const addShippingMethod = vi.fn(
@@ -101,7 +101,7 @@ const createSdkMock = () => {
         region_id: "reg_1",
         shipping_methods: [{ shipping_option_id: "ship_1" }],
       },
-    })
+    }),
   )
 
   const sdk = createTestMedusaSdk()
@@ -229,14 +229,14 @@ describe(createMedusaStorefrontPreset, () => {
     expect(
       preset.queryKeys.products.list({
         limit: 12,
-      })
+      }),
     ).toStrictEqual(["tenant", "n1", "products", "list", { limit: 12 }])
 
     expect(
       preset.queryKeys.productLists.detail({
         customerId: "cus_1",
         id: "list_1",
-      })
+      }),
     ).toStrictEqual([
       "tenant",
       "n1",
@@ -311,7 +311,7 @@ describe(createMedusaStorefrontPreset, () => {
         preset.hooks.products.useProducts({
           limit: 1,
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -324,7 +324,7 @@ describe(createMedusaStorefrontPreset, () => {
         query: expect.objectContaining({
           limit: 1,
         }),
-      })
+      }),
     )
   })
 
@@ -361,7 +361,7 @@ describe(createMedusaStorefrontPreset, () => {
           }),
           cartId: "cart_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -377,12 +377,12 @@ describe(createMedusaStorefrontPreset, () => {
         customCartQueryKeys.active({
           cartId: "cart_1",
           regionId: "reg_1",
-        })
-      )
+        }),
+      ),
     ).toStrictEqual(
       expect.objectContaining({
         id: "cart_1",
-      })
+      }),
     )
   })
 
@@ -469,7 +469,7 @@ describe(createMedusaStorefrontPreset, () => {
       customProductListQueryKeys.list({
         customerId: "cus_old",
       }),
-      [{ id: "list_old" }]
+      [{ id: "list_old" }],
     )
     const wrapper = createWrapper(queryClient)
 
@@ -486,21 +486,21 @@ describe(createMedusaStorefrontPreset, () => {
 
     expect(
       queryClient.getQueryState(customCustomerQueryKeys.profile())
-        ?.isInvalidated
+        ?.isInvalidated,
     ).toBeTruthy()
     expect(
       queryClient.getQueryState(customCustomerQueryKeys.addresses({}))
-        ?.isInvalidated
+        ?.isInvalidated,
     ).toBeTruthy()
     expect(
-      queryClient.getQueryState(customOrderQueryKeys.list({}))?.isInvalidated
+      queryClient.getQueryState(customOrderQueryKeys.list({}))?.isInvalidated,
     ).toBeTruthy()
     expect(
       queryClient.getQueryState(
         customProductListQueryKeys.list({
           customerId: "cus_old",
-        })
-      )?.isInvalidated
+        }),
+      )?.isInvalidated,
     ).toBeTruthy()
   })
 
@@ -536,7 +536,7 @@ describe(createMedusaStorefrontPreset, () => {
       () => preset.hooks.productLists.useCreateProductListCart(),
       {
         wrapper,
-      }
+      },
     )
 
     await act(async () => {
@@ -553,29 +553,29 @@ describe(createMedusaStorefrontPreset, () => {
           region_id: "reg_1",
         },
         method: "POST",
-      }
+      },
     )
     expect(storedCartId).toBe("cart_from_list")
     expect(
-      queryClient.getQueryData(preset.queryKeys.cart.detail("cart_from_list"))
+      queryClient.getQueryData(preset.queryKeys.cart.detail("cart_from_list")),
     ).toStrictEqual(
       expect.objectContaining({
         id: "cart_from_list",
         region_id: "reg_1",
-      })
+      }),
     )
     expect(
       queryClient.getQueryData(
         preset.queryKeys.cart.active({
           cartId: "cart_from_list",
           regionId: "reg_1",
-        })
-      )
+        }),
+      ),
     ).toStrictEqual(
       expect.objectContaining({
         id: "cart_from_list",
         region_id: "reg_1",
-      })
+      }),
     )
   })
 
@@ -598,7 +598,7 @@ describe(createMedusaStorefrontPreset, () => {
         }> => ({
           orders: [],
           count: 0,
-        })
+        }),
       ),
     }
 
@@ -610,7 +610,7 @@ describe(createMedusaStorefrontPreset, () => {
           addresses: HttpTypes.StoreCustomerAddress[]
         }> => ({
           addresses: [],
-        })
+        }),
       ),
       updateAddress: vi.fn(async () => createStoreCustomerAddress("addr_1")),
       updateCustomer: vi.fn(async () => createStoreCustomer("cus_1")),
@@ -650,11 +650,11 @@ describe(createMedusaStorefrontPreset, () => {
       expect(customAuthService.getCustomer).toHaveBeenCalledWith()
       expect(customOrderService.getOrders).toHaveBeenCalledWith(
         { limit: 5, offset: 0 },
-        expect.any(Object)
+        expect.any(Object),
       )
       expect(customCustomerService.getAddresses).toHaveBeenCalledWith(
         {},
-        expect.any(Object)
+        expect.any(Object),
       )
     })
   })

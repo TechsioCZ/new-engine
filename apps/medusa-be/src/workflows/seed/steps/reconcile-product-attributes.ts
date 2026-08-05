@@ -46,7 +46,7 @@ function assertCanonicalDefinitionCompatible(
   existing: CanonicalDefinition | undefined,
   source: SeedProductAttributeInput,
   key: string,
-  label: string
+  label: string,
 ) {
   if (
     existing &&
@@ -55,7 +55,7 @@ function assertCanonicalDefinitionCompatible(
       existing.label !== label)
   ) {
     throw new Error(
-      `Conflicting canonical Product Attribute definition "${key}" in seed input`
+      `Conflicting canonical Product Attribute definition "${key}" in seed input`,
     )
   }
 }
@@ -63,7 +63,7 @@ function assertCanonicalDefinitionCompatible(
 function getCanonicalDefinition(
   definitions: Map<string, CanonicalDefinition>,
   source: SeedProductAttributeInput,
-  key: string
+  key: string,
 ) {
   const label = normalizeSeedLabel(source.label)
   const existing = definitions.get(key)
@@ -86,19 +86,19 @@ function getCanonicalDefinition(
 function collectCanonicalOption(
   definition: CanonicalDefinition,
   source: SeedProductAttributeInput,
-  definitionKey: string
+  definitionKey: string,
 ) {
   if (source.input_type === "text") {
     if (source.option) {
       throw new Error(
-        `Text Product Attribute "${definitionKey}" cannot contain an option`
+        `Text Product Attribute "${definitionKey}" cannot contain an option`,
       )
     }
     return
   }
   if (source.text_value) {
     throw new Error(
-      `Select Product Attribute "${definitionKey}" cannot contain text_value`
+      `Select Product Attribute "${definitionKey}" cannot contain text_value`,
     )
   }
   if (!source.option) {
@@ -108,19 +108,19 @@ function collectCanonicalOption(
   const optionLabel = normalizeSeedLabel(source.option.label)
   const optionKey = normalizeRequiredProductAttributeKey(
     source.option.key ?? optionLabel,
-    `option key for "${definitionKey}"`
+    `option key for "${definitionKey}"`,
   )
   const existingLabel = definition.options.get(optionKey)
   if (existingLabel && existingLabel !== optionLabel) {
     throw new Error(
-      `Product Attribute option key collision for "${definitionKey}:${optionKey}" from source labels "${existingLabel}" and "${optionLabel}"`
+      `Product Attribute option key collision for "${definitionKey}:${optionKey}" from source labels "${existingLabel}" and "${optionLabel}"`,
     )
   }
   definition.options.set(optionKey, optionLabel)
 }
 
 export function collectCanonicalProductAttributeDefinitions(
-  input: CreateProductsStepInput
+  input: CreateProductsStepInput,
 ) {
   const definitions = new Map<string, CanonicalDefinition>()
 
@@ -129,18 +129,18 @@ export function collectCanonicalProductAttributeDefinitions(
     for (const attribute of product.productAttributes ?? []) {
       const key = normalizeRequiredProductAttributeKey(
         attribute.key,
-        "definition key"
+        "definition key",
       )
       if (productDefinitionKeys.has(key)) {
         throw new Error(
-          `Product "${product.handle}" contains duplicate Product Attribute definition "${key}"`
+          `Product "${product.handle}" contains duplicate Product Attribute definition "${key}"`,
         )
       }
       productDefinitionKeys.add(key)
       collectCanonicalOption(
         getCanonicalDefinition(definitions, attribute, key),
         attribute,
-        key
+        key,
       )
     }
   }
@@ -150,16 +150,16 @@ export function collectCanonicalProductAttributeDefinitions(
 
 async function ensureDefinitionsAndOptions(
   input: CreateProductsStepInput,
-  service: ReturnType<typeof getProductAttributeService>
+  service: ReturnType<typeof getProductAttributeService>,
 ) {
   const canonical = collectCanonicalProductAttributeDefinitions(input)
   const keys = [...canonical.keys()]
   const existingDefinitions = await service.listProductAttributeDefinitions(
     { key: { $in: keys } },
-    { take: Math.max(keys.length, 1), withDeleted: true }
+    { take: Math.max(keys.length, 1), withDeleted: true },
   )
   const definitionByKey = new Map(
-    existingDefinitions.map((definition) => [definition.key, definition])
+    existingDefinitions.map((definition) => [definition.key, definition]),
   )
 
   for (const [key, source] of canonical) {
@@ -167,7 +167,7 @@ async function ensureDefinitionsAndOptions(
       key,
       source,
       definitionByKey,
-      service
+      service,
     )
     await ensureOptions(definition, source.options, service)
   }
@@ -179,12 +179,12 @@ async function ensureDefinition(
   key: string,
   source: CanonicalDefinition,
   definitionByKey: Map<string, ProductAttributeDefinitionRecord>,
-  service: ReturnType<typeof getProductAttributeService>
+  service: ReturnType<typeof getProductAttributeService>,
 ) {
   let definition = definitionByKey.get(key)
   if (definition && definition.input_type !== source.input_type) {
     throw new Error(
-      `Reserved Product Attribute "${key}" must use input type "${source.input_type}", but persisted type is "${definition.input_type}"`
+      `Reserved Product Attribute "${key}" must use input type "${source.input_type}", but persisted type is "${definition.input_type}"`,
     )
   }
   if (!definition) {
@@ -214,7 +214,7 @@ async function ensureDefinition(
 async function ensureOptions(
   definition: ProductAttributeDefinitionRecord,
   sourceOptions: Map<string, string>,
-  service: ReturnType<typeof getProductAttributeService>
+  service: ReturnType<typeof getProductAttributeService>,
 ) {
   if (sourceOptions.size === 0) {
     return
@@ -225,10 +225,10 @@ async function ensureOptions(
       definition_id: definition.id,
       key: { $in: optionKeys },
     },
-    { take: optionKeys.length, withDeleted: true }
+    { take: optionKeys.length, withDeleted: true },
   )
   const optionByKey = new Map(
-    existingOptions.map((option) => [option.key, option])
+    existingOptions.map((option) => [option.key, option]),
   )
 
   for (const [optionKey, optionLabel] of sourceOptions) {
@@ -254,7 +254,7 @@ async function ensureOptions(
 async function resolveOptions(
   canonical: Map<string, CanonicalDefinition>,
   definitionByKey: Map<string, ProductAttributeDefinitionRecord>,
-  service: ReturnType<typeof getProductAttributeService>
+  service: ReturnType<typeof getProductAttributeService>,
 ) {
   const optionByDefinitionAndKey = new Map<
     string,
@@ -271,7 +271,7 @@ async function resolveOptions(
         definition_id: definition.id,
         key: { $in: [...source.options.keys()] },
       },
-      { take: source.options.size }
+      { take: source.options.size },
     )
     for (const option of options) {
       optionByDefinitionAndKey.set(`${definition.id}:${option.key}`, option)
@@ -284,7 +284,7 @@ async function resolveOptions(
 function resolveSeedAttribute(
   attribute: SeedProductAttributeInput,
   definitionByKey: Map<string, ProductAttributeDefinitionRecord>,
-  optionByDefinitionAndKey: Map<string, ProductAttributeOptionRecord>
+  optionByDefinitionAndKey: Map<string, ProductAttributeOptionRecord>,
 ): ResolvedSeedAttribute {
   const key = normalizeRequiredProductAttributeKey(attribute.key)
   const definition = definitionByKey.get(key)
@@ -293,7 +293,7 @@ function resolveSeedAttribute(
   }
   const optionKey = attribute.option
     ? normalizeRequiredProductAttributeKey(
-        attribute.option.key ?? attribute.option.label
+        attribute.option.key ?? attribute.option.label,
       )
     : undefined
   const option = optionKey
@@ -301,7 +301,7 @@ function resolveSeedAttribute(
     : undefined
   if (optionKey && !option) {
     throw new Error(
-      `Product Attribute option "${key}:${optionKey}" was not reconciled`
+      `Product Attribute option "${key}:${optionKey}" was not reconciled`,
     )
   }
   return {
@@ -349,7 +349,7 @@ async function reconcileProductBatch({
 
 function resolveBatchProductIds(
   batch: CreateProductsStepInput,
-  productByHandle: Map<string, ProductDTO>
+  productByHandle: Map<string, ProductDTO>,
 ) {
   return batch.map(({ handle }) => {
     const productId = productByHandle.get(handle)?.id
@@ -384,14 +384,14 @@ async function loadBatchAssignments({
       take: Math.max(batch.length * definitionIds.length, 1),
       withDeleted: true,
     },
-    context
+    context,
   )
 
   return new Map(
     existing.map((assignment) => [
       `${assignment.product_id}:${assignment.definition_id}`,
       assignment,
-    ])
+    ]),
   )
 }
 
@@ -424,7 +424,7 @@ async function reconcileAssignment({
       await service.softDeleteProductAttributes(
         [existingAssignment.id],
         {},
-        context
+        context,
       )
     }
     return
@@ -436,7 +436,7 @@ async function reconcileAssignment({
         product_id: productId,
         ...values,
       },
-      context
+      context,
     )
     return
   }
@@ -445,7 +445,7 @@ async function reconcileAssignment({
   }
   await service.updateProductAttributes(
     { id: existingAssignment.id, ...values },
-    context
+    context,
   )
 }
 
@@ -474,10 +474,10 @@ async function reconcileProductAssignments({
     const attribute = resolveSeedAttribute(
       sourceAttribute,
       definitionByKey,
-      optionByDefinitionAndKey
+      optionByDefinitionAndKey,
     )
     const existingAssignment = existingByProductAndDefinition.get(
-      `${product.id}:${attribute.definition_id}`
+      `${product.id}:${attribute.definition_id}`,
     )
     await reconcileAssignment({
       attribute,
@@ -495,7 +495,7 @@ export const reconcileProductAttributesStep = createStep(
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const attributeCount = input.reduce(
       (total, product) => total + (product.productAttributes?.length ?? 0),
-      0
+      0,
     )
     if (attributeCount === 0) {
       return new StepResponse({ definitions: 0, products: 0 })
@@ -503,31 +503,31 @@ export const reconcileProductAttributesStep = createStep(
 
     const service = getProductAttributeService(container)
     const productService = container.resolve<IProductModuleService>(
-      Modules.PRODUCT
+      Modules.PRODUCT,
     )
     const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
     const { canonical, definitionByKey } = await ensureDefinitionsAndOptions(
       input,
-      service
+      service,
     )
     const optionByDefinitionAndKey = await resolveOptions(
       canonical,
       definitionByKey,
-      service
+      service,
     )
     const products = await productService.listProducts(
       { handle: { $in: input.map(({ handle }) => handle) } },
-      { select: ["id", "handle"], take: input.length }
+      { select: ["id", "handle"], take: input.length },
     )
     const productByHandle = new Map(
-      products.map((product) => [product.handle, product])
+      products.map((product) => [product.handle, product]),
     )
     const missingHandles = input
       .map(({ handle }) => handle)
       .filter((handle) => !productByHandle.has(handle))
     if (missingHandles.length > 0) {
       throw new Error(
-        `Products were not found during Product Attribute reconciliation: ${missingHandles.join(", ")}`
+        `Products were not found during Product Attribute reconciliation: ${missingHandles.join(", ")}`,
       )
     }
 
@@ -545,16 +545,16 @@ export const reconcileProductAttributesStep = createStep(
             productByHandle,
             service,
           }),
-        { timeout: 30 }
+        { timeout: 30 },
       )
     }
 
     logger.info(
-      `Reconciled ${canonical.size} Product Attribute definitions for ${input.length} products`
+      `Reconciled ${canonical.size} Product Attribute definitions for ${input.length} products`,
     )
     return new StepResponse({
       definitions: canonical.size,
       products: input.length,
     })
-  }
+  },
 )

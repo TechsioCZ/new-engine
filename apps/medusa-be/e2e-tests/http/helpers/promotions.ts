@@ -117,10 +117,10 @@ export async function createTestContext(baseUrl: string): Promise<TestContext> {
 
 async function deleteAutomaticPromotions(admin: ApiClient) {
   const { promotions } = await admin.get<{ promotions: Promotion[] }>(
-    "/admin/promotions?limit=100&fields=id,is_automatic"
+    "/admin/promotions?limit=100&fields=id,is_automatic",
   )
   const automaticPromotions = promotions.filter(
-    (promotion) => promotion.is_automatic
+    (promotion) => promotion.is_automatic,
   )
 
   await Promise.all(
@@ -128,9 +128,9 @@ async function deleteAutomaticPromotions(admin: ApiClient) {
       assertOk(
         await admin.request(`/admin/promotions/${promotion.id}`, {
           method: "DELETE",
-        })
+        }),
       )
-    })
+    }),
   )
 }
 
@@ -149,19 +149,19 @@ async function getOrCreateE2eRegion(admin: ApiClient) {
   }
 
   const { regions } = await admin.get<{ regions: Region[] }>(
-    "/admin/regions?limit=100&fields=id,name,currency_code,*countries"
+    "/admin/regions?limit=100&fields=id,name,currency_code,*countries",
   )
   const existing = regions.find(
     (region) =>
       region.currency_code === "usd" &&
-      region.countries?.some((country) => country.iso_2 === "us")
+      region.countries?.some((country) => country.iso_2 === "us"),
   )
 
   if (!existing) {
     throw new Error(
       `Unable to create or locate USD/US region: ${JSON.stringify(
-        created.data
-      )}`
+        created.data,
+      )}`,
     )
   }
 
@@ -170,7 +170,7 @@ async function getOrCreateE2eRegion(admin: ApiClient) {
 
 export async function createBrand(
   admin: ApiClient,
-  title = `Brand ${suffix()}`
+  title = `Brand ${suffix()}`,
 ) {
   const handle = title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")
   const { brand } = await admin.post<{ brand: Brand }>("/admin/brands", {
@@ -188,7 +188,7 @@ export async function createProduct(
     amount?: number
     brandId?: string
     title?: string
-  } = {}
+  } = {},
 ) {
   const id = suffix()
   const title = options.title ?? `Promo Product ${id}`
@@ -209,7 +209,7 @@ export async function createProduct(
           title: "One Size",
         },
       ],
-    }
+    },
   )
 
   if (options.brandId) {
@@ -228,7 +228,7 @@ export async function createPromotion(
     rules?: PromotionRule[]
     targetRules?: PromotionRule[]
     value?: number
-  }
+  },
 ) {
   const code = options.code ?? `PROMO-${suffix()}`
   const { promotion } = await admin.post<{ promotion: Promotion }>(
@@ -248,7 +248,7 @@ export async function createPromotion(
       rules: options.rules ?? [],
       status: "active",
       type: "standard",
-    }
+    },
   )
 
   const { promotion: manualPromotion } = await admin.post<{
@@ -267,7 +267,7 @@ export async function createBuyGetPromotion(
     code?: string
     targetRules: PromotionRule[]
     value?: number
-  }
+  },
 ) {
   const code = options.code ?? `BUYGET-${suffix()}`
   const { promotion } = await admin.post<{ promotion: Promotion }>(
@@ -289,7 +289,7 @@ export async function createBuyGetPromotion(
       is_automatic: false,
       status: "active",
       type: "buyget",
-    }
+    },
   )
 
   const { promotion: manualPromotion } = await admin.post<{
@@ -303,7 +303,7 @@ export async function createBuyGetPromotion(
 
 export async function createCart(
   context: TestContext,
-  items: { quantity: number; variantId: string }[]
+  items: { quantity: number; variantId: string }[],
 ) {
   const { cart } = await context.store.post<{ cart: Cart }>(
     `/store/carts?fields=${cartFields}`,
@@ -316,7 +316,7 @@ export async function createCart(
       region_id: context.regionId,
       sales_channel_id: context.salesChannelId,
       shipping_address: shippingAddress,
-    }
+    },
   )
 
   return cart
@@ -325,11 +325,11 @@ export async function createCart(
 export async function applyPromotion(
   context: TestContext,
   cartId: string,
-  code: string
+  code: string,
 ) {
   const { cart } = await context.store.post<{ cart: Cart }>(
     `/store/carts/${cartId}/promotions?fields=${cartFields}`,
-    { promo_codes: [code] }
+    { promo_codes: [code] },
   )
 
   return cart
@@ -338,7 +338,7 @@ export async function applyPromotion(
 export async function createCartAndApplyPromotion(
   context: TestContext,
   items: { quantity: number; variantId: string }[],
-  promotionCode: string
+  promotionCode: string,
 ) {
   const cart = await createCart(context, items)
 
@@ -347,7 +347,7 @@ export async function createCartAndApplyPromotion(
 
 export function getItem(cart: Cart | DraftOrderPreview, variantId: string) {
   const item = cart.items.find(
-    (candidate) => candidate.variant_id === variantId
+    (candidate) => candidate.variant_id === variantId,
   )
 
   if (!item) {
@@ -361,7 +361,7 @@ export function expectAdjusted(item: CartItem, promotion: Promotion) {
   const hasPromotionAdjustment = (item.adjustments ?? []).some(
     (adjustment) =>
       adjustment.code === promotion.code &&
-      adjustment.promotion_id === promotion.id
+      adjustment.promotion_id === promotion.id,
   )
   const discountTotal = item.discount_total ?? 0
 
@@ -387,7 +387,7 @@ export function expectUnadjusted(item: CartItem) {
 
 export async function createDraftOrderWithItem(
   context: TestContext,
-  variantId: string
+  variantId: string,
 ) {
   const { draft_order } = await context.admin.post<{
     draft_order: { id: string }
@@ -404,7 +404,7 @@ export async function createDraftOrderWithItem(
   })
   await context.admin.post(
     `/admin/draft-orders/${draft_order.id}/edit/confirm`,
-    {}
+    {},
   )
 
   return draft_order

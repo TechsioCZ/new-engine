@@ -31,7 +31,8 @@ export function CheckoutEmptyCartSection() {
   })
 
   const recommendationCategory = categoriesQuery.categories.find(
-    (category) => category.handle === EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE
+    (category) =>
+      category.handle === EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE,
   )
 
   const recommendationCategoryIds = recommendationCategory
@@ -39,7 +40,7 @@ export function CheckoutEmptyCartSection() {
         recommendationCategory.id,
         ...collectDescendantCategoryIds(
           categoriesQuery.categories,
-          recommendationCategory.id
+          recommendationCategory.id,
         ),
       ]
     : []
@@ -56,7 +57,7 @@ export function CheckoutEmptyCartSection() {
   })
   const recommendedProducts = selectRecommendedProductRepresentatives(
     recommendationsQuery.products,
-    EMPTY_CART_RECOMMENDATIONS_LIMIT
+    EMPTY_CART_RECOMMENDATIONS_LIMIT,
   )
 
   return (

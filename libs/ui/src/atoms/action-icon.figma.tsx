@@ -28,5 +28,5 @@ figma.connect(
         tone={tone}
       />
     ),
-  }
+  },
 )

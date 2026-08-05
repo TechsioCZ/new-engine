@@ -101,10 +101,10 @@ export default function CheckoutPage() {
   }
 
   const selectedShippingMethod = shippingMethods?.find(
-    (m) => m.id === selectedShipping
+    (m) => m.id === selectedShipping,
   )
   const selectedPaymentMethod = PAYMENT_METHODS.find(
-    (m) => m.id === selectedPayment
+    (m) => m.id === selectedPayment,
   )
   const shippingPrice =
     selectedShippingMethod?.calculated_price.calculated_amount || 0
@@ -117,7 +117,7 @@ export default function CheckoutPage() {
       const order = await processOrder()
       if (order) {
         setOrderNumber(
-          String(order.display_id) || `CZ${Date.now().toString().slice(-8)}`
+          String(order.display_id) || `CZ${Date.now().toString().slice(-8)}`,
         )
         setIsOrderComplete(true)
         setCurrentStep(3)

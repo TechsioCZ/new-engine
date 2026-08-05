@@ -9,7 +9,7 @@ import { COMPANY_MODULE } from "../../modules/company"
 createCartWorkflow.hooks.cartCreated(
   async (
     { cart },
-    { container }
+    { container },
   ): Promise<
     | StepResponse<undefined, null>
     | StepResponse<undefined, { cart_id: string; company_id: string }>
@@ -38,7 +38,7 @@ createCartWorkflow.hooks.cartCreated(
   },
   async (
     input: { cart_id: string; company_id: string } | null | undefined,
-    { container }
+    { container },
   ) => {
     if (!input) {
       return
@@ -54,5 +54,5 @@ createCartWorkflow.hooks.cartCreated(
         cart_id: input.cart_id,
       },
     })
-  }
+  },
 )

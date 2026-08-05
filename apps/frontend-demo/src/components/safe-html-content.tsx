@@ -34,7 +34,7 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   }
 
   const relTokens = new Set(
-    (node.getAttribute("rel") ?? "").split(REL_TOKEN_PATTERN).filter(Boolean)
+    (node.getAttribute("rel") ?? "").split(REL_TOKEN_PATTERN).filter(Boolean),
   )
 
   for (const token of BLANK_TARGET_REL_TOKENS) {
@@ -46,7 +46,7 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 
 function processSafeHtmlContent(
   content: string | null | undefined,
-  config?: SanitizerConfig
+  config?: SanitizerConfig,
 ) {
   if (!content) {
     return { content: "", isHtml: false }

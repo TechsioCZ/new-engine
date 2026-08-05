@@ -35,12 +35,12 @@ export const resolveCheckoutAddressFieldName = <
   K extends keyof CheckoutAddressValues,
 >(
   scope: TScope,
-  field: K
+  field: K,
 ): CheckoutAddressFieldPath<TScope, K> => `${scope}.${field}`
 
 const createCheckoutAddressFieldPaths = <TScope extends CheckoutAddressScope>(
   scope: TScope,
-  fields: readonly (keyof CheckoutAddressValues)[]
+  fields: readonly (keyof CheckoutAddressValues)[],
 ) => fields.map((field) => resolveCheckoutAddressFieldName(scope, field))
 
 const CHECKOUT_COMPANY_FIELD_NAMES = [
@@ -55,7 +55,7 @@ const CHECKOUT_BILLING_ACTIVE_FIELDS = CHECKOUT_ADDRESS_FIELDS.filter(
     field !== "address2" &&
     field !== "customerNote" &&
     field !== "email" &&
-    field !== "phone"
+    field !== "phone",
 )
 
 export const CHECKOUT_BILLING_ACTIVE_FIELD_NAMES =
@@ -68,7 +68,7 @@ export const CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES =
   createCheckoutAddressFieldPaths("shipping", CHECKOUT_COMPANY_FIELD_NAMES)
 
 const hasRequiredAddressFields = (
-  address: HttpTypes.StoreCartAddress | null | undefined
+  address: HttpTypes.StoreCartAddress | null | undefined,
 ) =>
   Boolean(
     address?.first_name &&
@@ -76,12 +76,12 @@ const hasRequiredAddressFields = (
     address?.address_1 &&
     address?.city &&
     address?.postal_code &&
-    address?.country_code
+    address?.country_code,
   )
 
 export const resolveAddressFormsMatch = (
   left: Partial<CheckoutAddressValues> | null | undefined,
-  right: Partial<CheckoutAddressValues> | null | undefined
+  right: Partial<CheckoutAddressValues> | null | undefined,
 ) =>
   ADDRESS_COMPARISON_FIELDS.every((field) => {
     const leftValue = left?.[field]
@@ -94,7 +94,7 @@ export const resolveAddressFormsMatch = (
   })
 
 export const resolveHasStoredAddress = (
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ) => {
   if (!cart?.email) {
     return false

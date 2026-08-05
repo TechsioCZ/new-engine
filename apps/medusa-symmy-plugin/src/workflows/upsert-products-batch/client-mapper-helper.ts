@@ -42,7 +42,7 @@ interface CategoryRefSets {
 
 export class ProductBatchClientMapperHelper {
   toExistingProduct(
-    raw: RawExistingProduct | Record<string, unknown>
+    raw: RawExistingProduct | Record<string, unknown>,
   ): ExistingProduct {
     const product = raw as RawExistingProduct
     return {
@@ -59,7 +59,7 @@ export class ProductBatchClientMapperHelper {
 
   findExistingProduct(
     product: ProductInput,
-    index: ExistingProductIndex
+    index: ExistingProductIndex,
   ): ExistingProduct | null {
     if (product.identifier_type === "erp_id" && product.erp_id) {
       return index.byErpId.get(product.erp_id) ?? null
@@ -74,7 +74,7 @@ export class ProductBatchClientMapperHelper {
   }
 
   private buildOptionsDefinition(
-    variants: VariantInput[] | undefined
+    variants: VariantInput[] | undefined,
   ): { title: string; values: string[] }[] | undefined {
     if (!variants?.length) {
       return
@@ -102,7 +102,7 @@ export class ProductBatchClientMapperHelper {
 
   private normalizeVariantOptions(
     variant: VariantInput,
-    productOptions: { title: string }[] | undefined
+    productOptions: { title: string }[] | undefined,
   ): Record<string, string> {
     if (!productOptions?.length) {
       return { Default: "Default" }
@@ -136,7 +136,7 @@ export class ProductBatchClientMapperHelper {
   }
 
   private buildExistingVariantIndex(
-    existing: ExistingProduct
+    existing: ExistingProduct,
   ): ExistingVariantIndex {
     const byId = new Map<string, string>()
     const bySku = new Map<string, string>()
@@ -157,7 +157,7 @@ export class ProductBatchClientMapperHelper {
 
   private findExistingVariantId(
     variant: VariantInput,
-    index: ExistingVariantIndex
+    index: ExistingVariantIndex,
   ): string | null {
     if (variant.identifier_type === "variant_id") {
       return variant.variant_id
@@ -175,7 +175,7 @@ export class ProductBatchClientMapperHelper {
 
   resolveCategoryIds(
     refs: CategoryRefInput[] | undefined,
-    resolved: ResolvedCategoryMap
+    resolved: ResolvedCategoryMap,
   ): string[] {
     if (!refs?.length) {
       return []
@@ -215,7 +215,7 @@ export class ProductBatchClientMapperHelper {
   buildCreatePayload(
     product: ProductInput,
     resolvedCategories: ResolvedCategoryMap,
-    defaultSalesChannelId: string | null
+    defaultSalesChannelId: string | null,
   ): CreateProductsWorkflowInput["products"][number] {
     const variants = product.variants ?? []
     const productOptions = this.buildOptionsDefinition(variants)
@@ -245,7 +245,7 @@ export class ProductBatchClientMapperHelper {
 
     const categoryIds = this.resolveCategoryIds(
       product.categories,
-      resolvedCategories
+      resolvedCategories,
     )
 
     const images = this.buildImagesPayload(product.images)
@@ -284,7 +284,7 @@ export class ProductBatchClientMapperHelper {
     productId: string,
     product: ProductInput,
     existing: ExistingProduct,
-    resolvedCategories: ResolvedCategoryMap
+    resolvedCategories: ResolvedCategoryMap,
   ): UpdateProductsWorkflowInputProducts["products"][number] {
     const variants = product.variants ?? []
     const productOptions = this.buildOptionsDefinition(variants) ?? [
@@ -294,7 +294,7 @@ export class ProductBatchClientMapperHelper {
     const existingVariantIndex = this.buildExistingVariantIndex(existing)
     const categoryIds = this.resolveCategoryIds(
       product.categories,
-      resolvedCategories
+      resolvedCategories,
     )
     const images = this.buildImagesPayload(product.images)
     let categoryIdsForUpdate: string[] | undefined
@@ -333,7 +333,7 @@ export class ProductBatchClientMapperHelper {
             variants: variants.map((variant) => {
               const variantId = this.findExistingVariantId(
                 variant,
-                existingVariantIndex
+                existingVariantIndex,
               )
               const prices =
                 this.normalizePrices(variant.prices) ?? fallbackPrices
@@ -350,7 +350,7 @@ export class ProductBatchClientMapperHelper {
                   : {
                       options: this.normalizeVariantOptions(
                         variant,
-                        productOptions
+                        productOptions,
                       ),
                     }),
                 ...(metadata === undefined ? {} : { metadata }),
@@ -402,7 +402,7 @@ export class ProductBatchClientMapperHelper {
 
   buildProductIdByVariantField(
     variants: Record<string, unknown>[],
-    field: "sku" | "ean"
+    field: "sku" | "ean",
   ): Map<string, string> {
     const result = new Map<string, string>()
 
@@ -419,7 +419,7 @@ export class ProductBatchClientMapperHelper {
 
   collectMissingProductIds(
     existingProductsById: Map<string, ExistingProduct>,
-    productIdMaps: Map<string, string>[]
+    productIdMaps: Map<string, string>[],
   ): Set<string> {
     const missingProductIds = new Set<string>()
 
@@ -436,7 +436,7 @@ export class ProductBatchClientMapperHelper {
 
   buildExistingProductsByIdentifier(
     existingProductsById: Map<string, ExistingProduct>,
-    identifierToProductId: Map<string, string>
+    identifierToProductId: Map<string, string>,
   ): Map<string, ExistingProduct> {
     const result = new Map<string, ExistingProduct>()
 

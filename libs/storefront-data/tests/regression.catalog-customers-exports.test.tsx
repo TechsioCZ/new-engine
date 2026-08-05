@@ -133,7 +133,7 @@ describe("phase 1 regressions", () => {
     }
 
     await expect(
-      Reflect.apply(service.getCatalogProducts, service, [malformedInput])
+      Reflect.apply(service.getCatalogProducts, service, [malformedInput]),
     ).resolves.toBeTruthy()
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/catalog/products", {
@@ -277,7 +277,7 @@ describe("phase 1 regressions", () => {
 
   it("defines explicit package exports and blocks root get-query-client alias", () => {
     const packageJson = JSON.parse(
-      readFileSync(join(process.cwd(), "package.json"), "utf-8")
+      readFileSync(join(process.cwd(), "package.json"), "utf-8"),
     ) as {
       exports?: Record<string, unknown>
     }
@@ -293,7 +293,7 @@ describe("phase 1 regressions", () => {
       types: "./dist/src/server/get-query-client.d.ts",
     })
     expect(
-      packageJson.exports?.["./product-lists/query-options"]
+      packageJson.exports?.["./product-lists/query-options"],
     ).toStrictEqual({
       import: "./dist/product-lists/query-options.js",
       types: "./dist/src/product-lists/query-options.d.ts",

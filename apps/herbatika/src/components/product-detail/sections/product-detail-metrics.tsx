@@ -55,7 +55,7 @@ export function ProductDetailMetrics({
             month: "numeric",
             year: "numeric",
           }),
-      })
+      }),
     )
 
   if (!productId) {

@@ -41,7 +41,7 @@ type PacketaClientDependency = Pick<
 interface FileServiceDependency {
   createFiles(
     data: CreateFileDTO[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<FileDTO[]>
 }
 
@@ -86,7 +86,7 @@ interface FulfillmentItemWithQuantity {
 }
 
 const isPacketaShippingOptionData = (
-  value: Record<string, unknown>
+  value: Record<string, unknown>,
 ): value is Record<string, unknown> & PacketaShippingOptionData =>
   (value["code"] === "z_point" || value["code"] === "z_point_cod") &&
   value["requires_access_point"] === true &&
@@ -96,7 +96,7 @@ const isPacketaShippingOptionData = (
       Number.isFinite(value["access_point_id"])))
 
 const getPacketaFulfillmentData = (
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
 ): Partial<PacketaFulfillmentData> => ({
   ...(typeof data["packet_id"] === "number"
     ? { packet_id: data["packet_id"] }
@@ -128,7 +128,7 @@ const medusaWeightGramsToKg = (weight: number): number => weight / GRAMS_PER_KG
 
 const getOrderItemRawWeight = (
   orderItem: OrderLineItemWithWeight,
-  productWeights: Map<string, unknown>
+  productWeights: Map<string, unknown>,
 ): number | undefined =>
   toFiniteNumber(orderItem.variant?.weight) ??
   toFiniteNumber(orderItem.variant?.product?.weight) ??
@@ -168,7 +168,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     if (!this.packetaClient_) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "Packeta: packeta_client module not available. Check medusa-config dependencies."
+        "Packeta: packeta_client module not available. Check medusa-config dependencies.",
       )
     }
     return this.packetaClient_
@@ -186,7 +186,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       }
     } catch (error) {
       this.logger_.warn(
-        `Packeta: Could not check config status, returning no options: ${error instanceof Error ? error.message : String(error)}`
+        `Packeta: Could not check config status, returning no options: ${error instanceof Error ? error.message : String(error)}`,
       )
       return []
     }
@@ -210,7 +210,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   }
 
   override async validateOption(
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Promise<boolean> {
     return data["code"] === "z_point" || data["code"] === "z_point_cod"
   }
@@ -222,13 +222,13 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   override async validateFulfillmentData(
     optionData: Record<string, unknown>,
     data: Record<string, unknown>,
-    _context: ValidateFulfillmentDataContext
+    _context: ValidateFulfillmentDataContext,
   ): Promise<Record<string, unknown>> {
     const config = await this.getClient().getEffectiveConfig()
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "Packeta shipping is currently unavailable. Please select a different shipping method."
+        "Packeta shipping is currently unavailable. Please select a different shipping method.",
       )
     }
 
@@ -236,7 +236,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     if (accessPointId === undefined || accessPointId === null) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: Pickup point (Z-Point) selection is required for this shipping method"
+        "Packeta: Pickup point (Z-Point) selection is required for this shipping method",
       )
     }
 
@@ -247,14 +247,14 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     if (!Number.isFinite(parsedAccessPointId) || parsedAccessPointId <= 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Packeta: Invalid pickup point ID: ${accessPointId}`
+        `Packeta: Invalid pickup point ID: ${accessPointId}`,
       )
     }
     const optionCode = optionData["code"]
     if (optionCode !== "z_point" && optionCode !== "z_point_cod") {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: Invalid shipping option code"
+        "Packeta: Invalid shipping option code",
       )
     }
 
@@ -285,12 +285,14 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     data: Record<string, unknown>,
     _items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
     order: Partial<FulfillmentOrderDTO> | undefined,
-    fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>
+    fulfillment: Partial<
+      Omit<FulfillmentDTO, "provider_id" | "data" | "items">
+    >,
   ): Promise<CreateFulfillmentResult> {
     if (!isPacketaShippingOptionData(data)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: Invalid shipping data"
+        "Packeta: Invalid shipping data",
       )
     }
     const shippingData = data
@@ -298,19 +300,19 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     if (!order) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: Order is required for fulfillment"
+        "Packeta: Order is required for fulfillment",
       )
     }
     if (!order.shipping_address) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: Shipping address is required"
+        "Packeta: Shipping address is required",
       )
     }
     if (!shippingData.access_point_id) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: access_point_id is required"
+        "Packeta: access_point_id is required",
       )
     }
 
@@ -318,7 +320,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "Packeta: Service is disabled or not configured. Enable it in Settings → Packeta."
+        "Packeta: Service is disabled or not configured. Enable it in Settings → Packeta.",
       )
     }
 
@@ -333,7 +335,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     const fulfillmentId = fulfillment.id || `temp-${Date.now()}`
     this.logger_.info(
-      `Packeta: Creating packet for ${fulfillmentId}, access point ${shippingData.access_point_id}`
+      `Packeta: Creating packet for ${fulfillmentId}, access point ${shippingData.access_point_id}`,
     )
 
     const result = await this.getClient().createPacket(attributes)
@@ -352,7 +354,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       labelUrl = uploaded[0]?.url
     } catch (error) {
       this.logger_.warn(
-        `Packeta: Packet ${result.id} created (barcode ${result.barcode}) but label download/upload failed: ${error instanceof Error ? error.message : String(error)}. The label can be retrieved later from Packeta directly.`
+        `Packeta: Packet ${result.id} created (barcode ${result.barcode}) but label download/upload failed: ${error instanceof Error ? error.message : String(error)}. The label can be retrieved later from Packeta directly.`,
       )
     }
 
@@ -381,14 +383,14 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   }
 
   override async cancelFulfillment(
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     const fulfillmentData = getPacketaFulfillmentData(data)
     const packetId = fulfillmentData.packet_id
 
     if (!packetId) {
       this.logger_.warn(
-        "Packeta: Cannot cancel - no packet_id in fulfillment data"
+        "Packeta: Cannot cancel - no packet_id in fulfillment data",
       )
       return { cancelled: false, note: "No packet_id on fulfillment" }
     }
@@ -405,16 +407,16 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   }
 
   override async createReturnFulfillment(
-    _fulfillment: Record<string, unknown>
+    _fulfillment: Record<string, unknown>,
   ): Promise<CreateFulfillmentResult> {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "Packeta: Return fulfillment not yet implemented."
+      "Packeta: Return fulfillment not yet implemented.",
     )
   }
 
   override async canCalculate(
-    _data: CreateShippingOptionDTO
+    _data: CreateShippingOptionDTO,
   ): Promise<boolean> {
     return false
   }
@@ -422,7 +424,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   override async calculatePrice(
     _optionData: CalculateShippingOptionPriceDTO["optionData"],
     _data: CalculateShippingOptionPriceDTO["data"],
-    _context: CalculateShippingOptionPriceDTO["context"]
+    _context: CalculateShippingOptionPriceDTO["context"],
   ): Promise<CalculatedShippingOptionPrice> {
     return {
       calculated_amount: 0,
@@ -432,7 +434,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
   // @ts-expect-error Base class returns never[] but we return actual documents
   override async getFulfillmentDocuments(
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Promise<{ type: string; url: string; format?: string }[]> {
     const fulfillmentData = getPacketaFulfillmentData(data)
     const documents: { type: string; url: string; format?: string }[] = []
@@ -457,7 +459,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   // @ts-expect-error Base class returns void but we return document or null
   override async retrieveDocuments(
     fulfillmentData: Record<string, unknown>,
-    documentType: string
+    documentType: string,
   ): Promise<{ type: string; url: string; format?: string } | null> {
     const data = getPacketaFulfillmentData(fulfillmentData)
 
@@ -479,13 +481,13 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   }
 
   override async getReturnDocuments(
-    _data: Record<string, unknown>
+    _data: Record<string, unknown>,
   ): Promise<never[]> {
     return []
   }
 
   override async getShipmentDocuments(
-    _data: Record<string, unknown>
+    _data: Record<string, unknown>,
   ): Promise<never[]> {
     return []
   }
@@ -518,7 +520,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     if (packetWeight === DEFAULT_PACKET_WEIGHT_KG) {
       this.logger_.warn(
-        `Packeta: Falling back to default packet weight ${DEFAULT_PACKET_WEIGHT_KG}kg for order ${orderNumber}. Fill product or variant weight in Medusa to send an exact parcel weight.`
+        `Packeta: Falling back to default packet weight ${DEFAULT_PACKET_WEIGHT_KG}kg for order ${orderNumber}. Fill product or variant weight in Medusa to send an exact parcel weight.`,
       )
     }
 
@@ -542,7 +544,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   }
 
   private getRequiredRecipientName(
-    shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
+    shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>,
   ): { firstName: string; lastName: string } {
     const firstName = shippingAddress.first_name ?? ""
     const lastName = shippingAddress.last_name ?? ""
@@ -553,7 +555,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Packeta: Shipping address first_name or last_name is required"
+      "Packeta: Shipping address first_name or last_name is required",
     )
   }
 
@@ -565,7 +567,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
   private getPacketOrderTotal(
     order: Partial<FulfillmentOrderDTO>,
-    shippingData: PacketaShippingOptionData
+    shippingData: PacketaShippingOptionData,
   ): number {
     const orderTotal =
       toFiniteNumber(order.total) ??
@@ -581,14 +583,14 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Packeta: order total or item_total is required for COD shipments"
+      "Packeta: order total or item_total is required for COD shipments",
     )
   }
 
   private async getPacketWeight(
     order: Partial<FulfillmentOrderDTO>,
     items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
-    shippingData: PacketaShippingOptionData
+    shippingData: PacketaShippingOptionData,
   ): Promise<number> {
     return (
       toFiniteNumber((shippingData as { weight?: unknown }).weight) ??
@@ -599,7 +601,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
   private getPacketCurrency(
     order: Partial<FulfillmentOrderDTO>,
-    shippingData: PacketaShippingOptionData
+    shippingData: PacketaShippingOptionData,
   ): string {
     const currency = order.currency_code?.toUpperCase()
 
@@ -613,7 +615,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Packeta: currency_code is required on the order for COD shipments"
+      "Packeta: currency_code is required on the order for COD shipments",
     )
   }
 
@@ -665,7 +667,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
   private async calculateOrderItemsWeightKg(
     order: Partial<FulfillmentOrderDTO>,
-    fulfillmentItems: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[]
+    fulfillmentItems: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
   ): Promise<number | undefined> {
     const orderItems = (order.items ?? []) as OrderLineItemWithWeight[]
     if (!orderItems.length) {
@@ -676,9 +678,9 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     const orderItemsById = new Map(
       orderItems
         .filter((item): item is OrderLineItemWithWeight & { id: string } =>
-          Boolean(item.id)
+          Boolean(item.id),
         )
-        .map((item) => [item.id, item])
+        .map((item) => [item.id, item]),
     )
 
     const itemsToWeigh =
@@ -715,15 +717,15 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   }
 
   private async getProductWeights(
-    orderItems: OrderLineItemWithWeight[]
+    orderItems: OrderLineItemWithWeight[],
   ): Promise<Map<string, unknown>> {
     const productIds = [
       ...new Set(
         orderItems
           .map(
-            (item) => item.product_id ?? item.variant?.product?.id ?? undefined
+            (item) => item.product_id ?? item.variant?.product?.id ?? undefined,
           )
-          .filter((id): id is string => Boolean(id))
+          .filter((id): id is string => Boolean(id)),
       ),
     ]
 
@@ -743,7 +745,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       (data as ProductWeightRecord[]).map((product) => [
         product.id,
         product.weight,
-      ])
+      ]),
     )
   }
 }

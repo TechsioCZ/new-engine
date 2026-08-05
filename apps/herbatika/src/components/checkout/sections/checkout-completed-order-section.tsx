@@ -146,7 +146,7 @@ function CheckoutPaymentQrPanel({
       value: qrPayment.message,
     },
   ].filter((row): row is { id: string; label: string; value: string } =>
-    Boolean(row.value)
+    Boolean(row.value),
   )
 
   return (

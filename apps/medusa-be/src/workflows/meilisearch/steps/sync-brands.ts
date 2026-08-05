@@ -20,7 +20,7 @@ export const syncMeilisearchBrandsStep = createStep(
     }
 
     const queryService = container.resolve<Query>(
-      ContainerRegistrationKeys.QUERY
+      ContainerRegistrationKeys.QUERY,
     )
     const meilisearchService: MeiliSearchService =
       container.resolve(MEILISEARCH)
@@ -82,7 +82,7 @@ export const syncMeilisearchBrandsStep = createStep(
 
     const currentBrandIds = new Set(allBrands.map((brand) => brand["id"]))
     const brandsToDelete = [...existingBrandIds].filter(
-      (id) => !currentBrandIds.has(id)
+      (id) => !currentBrandIds.has(id),
     )
 
     const transformedBrands = allBrands.map((brand) => {
@@ -97,17 +97,17 @@ export const syncMeilisearchBrandsStep = createStep(
       brandIndexes.map(async (index) =>
         meilisearchService.addDocuments(index, transformedBrands, BRANDS, {
           container,
-        })
-      )
+        }),
+      ),
     )
     await Promise.all(
       brandIndexes.map(async (index) =>
-        meilisearchService.deleteDocuments(index, brandsToDelete)
-      )
+        meilisearchService.deleteDocuments(index, brandsToDelete),
+      ),
     )
 
     return new StepResponse({
       brands: allBrands,
     })
-  }
+  },
 )

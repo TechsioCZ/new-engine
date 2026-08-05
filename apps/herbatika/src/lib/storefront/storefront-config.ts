@@ -66,7 +66,7 @@ const CART_ITEM_VARIANT_INVENTORY_FIELDS = [
   "+items.variant.manage_inventory",
   "+items.variant.allow_backorder",
   ...VARIANT_DEFAULT_STOCK_INVENTORY_FIELD_SUFFIXES.map(
-    (field) => `items.variant.${field}`
+    (field) => `items.variant.${field}`,
   ),
 ]
 
@@ -173,7 +173,7 @@ export const storefrontQueryKeys = {
   auth: createAuthQueryKeys(STOREFRONT_QUERY_KEY_NAMESPACE),
   cart: createCartQueryKeys(STOREFRONT_QUERY_KEY_NAMESPACE),
   catalog: createCatalogQueryKeys<MedusaCatalogListInput>(
-    STOREFRONT_QUERY_KEY_NAMESPACE
+    STOREFRONT_QUERY_KEY_NAMESPACE,
   ),
   categories: createCategoryQueryKeys<
     MedusaCategoryListInput,
@@ -181,14 +181,14 @@ export const storefrontQueryKeys = {
   >(STOREFRONT_QUERY_KEY_NAMESPACE),
   checkout: createCheckoutQueryKeys(STOREFRONT_QUERY_KEY_NAMESPACE),
   customers: createCustomerQueryKeys<MedusaCustomerListInput>(
-    STOREFRONT_QUERY_KEY_NAMESPACE
+    STOREFRONT_QUERY_KEY_NAMESPACE,
   ),
   orders: createOrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>(
-    STOREFRONT_QUERY_KEY_NAMESPACE
+    STOREFRONT_QUERY_KEY_NAMESPACE,
   ),
   productAttributes:
     createProductAttributeQueryKeys<MedusaProductAttributesInput>(
-      STOREFRONT_QUERY_KEY_NAMESPACE
+      STOREFRONT_QUERY_KEY_NAMESPACE,
     ),
   productLists: createProductListQueryKeys<
     MedusaProductListListKeyInput,
@@ -203,7 +203,7 @@ export const storefrontQueryKeys = {
     MedusaRegionDetailInput
   >(STOREFRONT_QUERY_KEY_NAMESPACE),
   reviews: createProductReviewQueryKeys<MedusaProductReviewListInput>(
-    STOREFRONT_QUERY_KEY_NAMESPACE
+    STOREFRONT_QUERY_KEY_NAMESPACE,
   ),
 }
 

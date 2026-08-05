@@ -250,12 +250,12 @@ export const myPlugin =
 
     // Add client component
     config.admin.components.beforeDashboard.push(
-      "my-plugin-name/client#BeforeDashboardClient"
+      "my-plugin-name/client#BeforeDashboardClient",
     )
 
     // Add server component (RSC)
     config.admin.components.beforeDashboard.push(
-      "my-plugin-name/rsc#BeforeDashboardServer"
+      "my-plugin-name/rsc#BeforeDashboardServer",
     )
 
     return config

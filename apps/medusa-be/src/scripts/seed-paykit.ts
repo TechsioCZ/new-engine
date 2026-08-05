@@ -45,7 +45,7 @@ const defaultRegions: SeedPaykitRegionsWorkflowInput["regions"] = [
 ]
 
 const getEnabledPaykitPaymentProviderIds = async (
-  paymentService: IPaymentModuleService
+  paymentService: IPaymentModuleService,
 ) => {
   const paymentProviders = await paymentService.listPaymentProviders({
     id: { $in: [...PAYKIT_REGION_PAYMENT_PROVIDER_IDS] },
@@ -55,13 +55,13 @@ const getEnabledPaykitPaymentProviderIds = async (
   const providerIds = new Set(paymentProviders.map((provider) => provider.id))
 
   return PAYKIT_REGION_PAYMENT_PROVIDER_IDS.filter((providerId) =>
-    providerIds.has(providerId)
+    providerIds.has(providerId),
   )
 }
 
 const getRegionPaymentProviderLinks = async (
   query: Query,
-  regionIds: string[]
+  regionIds: string[],
 ): Promise<RegionPaymentProviderLink[]> => {
   if (!regionIds.length) {
     return []
@@ -88,7 +88,7 @@ const getRegionPaymentProviderLinks = async (
 }
 
 const listAllRegions = async (
-  regionService: IRegionModuleService
+  regionService: IRegionModuleService,
 ): Promise<RegionDTO[]> => {
   const take = 100
   const regions: RegionDTO[] = []
@@ -100,7 +100,7 @@ const listAllRegions = async (
         relations: ["countries"],
         skip,
         take,
-      }
+      },
     )
 
     regions.push(...page)
@@ -112,7 +112,7 @@ const listAllRegions = async (
 }
 
 const toRegionPaymentProviderMap = (
-  paymentProviderLinks: RegionPaymentProviderLink[]
+  paymentProviderLinks: RegionPaymentProviderLink[],
 ) =>
   paymentProviderLinks.reduce((map, link) => {
     const regionPaymentProviders = map.get(link.region_id) ?? []
@@ -125,10 +125,10 @@ const toRegionPaymentProviderMap = (
 
 const toRegionSeedInput = (
   region: RegionDTO,
-  paymentProviderMap: Map<string, string[]>
+  paymentProviderMap: Map<string, string[]>,
 ): SeedPaykitRegionsWorkflowInput["regions"][number] => {
   const defaultRegion = defaultRegions.find(
-    (seedRegion) => seedRegion.name === region.name
+    (seedRegion) => seedRegion.name === region.name,
   )
   const trimmedCurrency = region.currency_code?.trim()
   const currencyCode =
@@ -138,7 +138,7 @@ const toRegionSeedInput = (
 
   if (!currencyCode) {
     throw new Error(
-      `PayKit seed cannot sync region "${region.name}" (${region.id}) because currency_code is missing`
+      `PayKit seed cannot sync region "${region.name}" (${region.id}) because currency_code is missing`,
     )
   }
 
@@ -156,7 +156,7 @@ const toRegionSeedInput = (
 export default async function seedPaykit({ container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const paymentService = container.resolve<IPaymentModuleService>(
-    Modules.PAYMENT
+    Modules.PAYMENT,
   )
   const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -175,13 +175,13 @@ export default async function seedPaykit({ container }: ExecArgs) {
 
   const paymentProviderLinks = await getRegionPaymentProviderLinks(
     query,
-    existingRegions.map((region) => region.id)
+    existingRegions.map((region) => region.id),
   )
   const paymentProviderMap = toRegionPaymentProviderMap(paymentProviderLinks)
 
   const regions = existingRegions.length
     ? existingRegions.map((region) =>
-        toRegionSeedInput(region, paymentProviderMap)
+        toRegionSeedInput(region, paymentProviderMap),
       )
     : defaultRegions
 
@@ -194,7 +194,7 @@ export default async function seedPaykit({ container }: ExecArgs) {
 
   logger.info(
     `PayKit region seed completed with providers: ${paymentProviderIds.join(
-      ", "
-    )}`
+      ", ",
+    )}`,
   )
 }

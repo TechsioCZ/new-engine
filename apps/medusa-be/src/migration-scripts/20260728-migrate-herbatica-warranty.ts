@@ -62,7 +62,7 @@ type ProductAttributeService = ReturnType<typeof getProductAttributeService>
 type ProductAttributeContext = Context<SqlEntityManager>
 
 export const isLegacyHerbaticaWarrantyMetadata = (
-  metadata: unknown
+  metadata: unknown,
 ): metadata is ProductMetadata =>
   isRecord(metadata) &&
   metadata["source"] === HERBATICA_PRODUCT_SOURCE &&
@@ -111,12 +111,12 @@ const parseContentSections = (value: unknown): ContentSection[] | undefined => {
       isRecord(section) &&
       typeof section["key"] === "string" &&
       typeof section["title"] === "string" &&
-      typeof section["html"] === "string"
+      typeof section["html"] === "string",
   )
   if (
     sections.length !== CONTENT_SECTION_KEYS.length ||
     sections.some(
-      (section, index) => section.key !== CONTENT_SECTION_KEYS[index]
+      (section, index) => section.key !== CONTENT_SECTION_KEYS[index],
     )
   ) {
     return
@@ -125,7 +125,7 @@ const parseContentSections = (value: unknown): ContentSection[] | undefined => {
 }
 
 export function prepareLegacyWarrantyMigration(
-  metadata: ProductMetadata
+  metadata: ProductMetadata,
 ): LegacyWarrantyMigrationPreparation {
   const warranty =
     typeof metadata["warranty"] === "string"
@@ -173,7 +173,7 @@ export function prepareLegacyWarrantyMigration(
     metadata: {
       ...metadataWithoutWarranty,
       content_sections: sections.map((section, index) =>
-        index === otherIndex ? { ...section, html: nextOtherHtml } : section
+        index === otherIndex ? { ...section, html: nextOtherHtml } : section,
       ),
       content_sections_map: {
         ...sectionsMap,
@@ -186,7 +186,7 @@ export function prepareLegacyWarrantyMigration(
 }
 
 async function listProductsWithLegacyWarranty(
-  productService: IProductModuleService
+  productService: IProductModuleService,
 ) {
   const products: ProductDTO[] = []
   let offset = 0
@@ -200,12 +200,12 @@ async function listProductsWithLegacyWarranty(
         select: ["id", "metadata"],
         skip: offset,
         take: PRODUCT_PAGE_SIZE,
-      }
+      },
     )
     products.push(
       ...page.filter((product) =>
-        isLegacyHerbaticaWarrantyMetadata(product.metadata)
-      )
+        isLegacyHerbaticaWarrantyMetadata(product.metadata),
+      ),
     )
     count = pageCount
     if (page.length === 0) {
@@ -219,19 +219,19 @@ async function listProductsWithLegacyWarranty(
 
 async function ensureWarrantyDefinition(
   service: ProductAttributeService,
-  context: ProductAttributeContext
+  context: ProductAttributeContext,
 ) {
   const definitions = await service.listProductAttributeDefinitions(
     { key: WARRANTY_DEFINITION_KEY },
     { order: { id: "ASC" }, withDeleted: true },
-    context
+    context,
   )
   const definition =
     definitions.find((candidate) => !candidate.deleted_at) ?? definitions[0]
   if (definition && definition.input_type !== "select") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Reserved Product Attribute "${WARRANTY_DEFINITION_KEY}" must use input type "select", but persisted type is "${definition.input_type}"`
+      `Reserved Product Attribute "${WARRANTY_DEFINITION_KEY}" must use input type "select", but persisted type is "${definition.input_type}"`,
     )
   }
   if (!definition) {
@@ -242,14 +242,14 @@ async function ensureWarrantyDefinition(
         key: WARRANTY_DEFINITION_KEY,
         label: WARRANTY_DEFINITION_LABEL,
       },
-      context
+      context,
     )
   }
   if (definition.deleted_at) {
     await service.restoreProductAttributeDefinitions(
       [definition.id],
       {},
-      context
+      context,
     )
   }
   return await service.updateProductAttributeDefinitions(
@@ -258,7 +258,7 @@ async function ensureWarrantyDefinition(
       is_public: true,
       label: WARRANTY_DEFINITION_LABEL,
     },
-    context
+    context,
   )
 }
 
@@ -267,13 +267,13 @@ function collectWarrantyLabelsByKey(warranties: string[]) {
   for (const label of warranties) {
     const key = normalizeRequiredProductAttributeKey(
       label,
-      "Warranty option key"
+      "Warranty option key",
     )
     const collision = labelsByKey.get(key)
     if (collision && collision !== label) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Warranty option key collision from legacy labels "${collision}" and "${label}"`
+        `Warranty option key collision from legacy labels "${collision}" and "${label}"`,
       )
     }
     labelsByKey.set(key, label)
@@ -285,7 +285,7 @@ async function ensureWarrantyOptions(
   definition: ProductAttributeDefinitionRecord,
   warranties: string[],
   service: ProductAttributeService,
-  context: ProductAttributeContext
+  context: ProductAttributeContext,
 ) {
   const labelsByKey = collectWarrantyLabelsByKey(warranties)
   const keys = [...labelsByKey.keys()]
@@ -295,7 +295,7 @@ async function ensureWarrantyOptions(
       key: { $in: keys },
     },
     { order: { id: "ASC" }, withDeleted: true },
-    context
+    context,
   )
   const optionByKey = new Map<string, ProductAttributeOptionRecord>()
   for (const option of existing) {
@@ -310,7 +310,7 @@ async function ensureWarrantyOptions(
     if (!option) {
       const created = await service.createProductAttributeOptions(
         { definition_id: definition.id, key, label },
-        context
+        context,
       )
       optionByKey.set(key, created)
       continue
@@ -320,7 +320,7 @@ async function ensureWarrantyOptions(
     }
     const updated = await service.updateProductAttributeOptions(
       { id: option.id, label },
-      context
+      context,
     )
     optionByKey.set(key, updated)
   }
@@ -330,7 +330,7 @@ async function ensureWarrantyOptions(
 
 async function ensureWarrantyDefinitionAndOptions(
   warranties: string[],
-  service: ProductAttributeService
+  service: ProductAttributeService,
 ) {
   return await withProductAttributeTransaction(service, async (context) => {
     const definition = await ensureWarrantyDefinition(service, context)
@@ -338,7 +338,7 @@ async function ensureWarrantyDefinitionAndOptions(
       definition,
       warranties,
       service,
-      context
+      context,
     )
     return { definition, optionByKey }
   })
@@ -349,7 +349,7 @@ export default async function migrateHerbaticaWarranty({
 }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const productService = container.resolve<IProductModuleService>(
-    Modules.PRODUCT
+    Modules.PRODUCT,
   )
   const products = await listProductsWithLegacyWarranty(productService)
   const safe: {
@@ -361,7 +361,7 @@ export default async function migrateHerbaticaWarranty({
 
   for (const product of products) {
     const preparation = prepareLegacyWarrantyMigration(
-      product.metadata as ProductMetadata
+      product.metadata as ProductMetadata,
     )
     if (preparation.safe) {
       safe.push({ id: product.id, ...preparation })
@@ -373,12 +373,12 @@ export default async function migrateHerbaticaWarranty({
   if (unsafe.length) {
     for (const product of unsafe) {
       logger.error(
-        `Unsafe legacy Warranty data for Product "${product.id}": ${product.reason}`
+        `Unsafe legacy Warranty data for Product "${product.id}": ${product.reason}`,
       )
     }
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Herbatica Warranty migration found ${unsafe.length} unsafe Product record(s); no Product Attribute or Product metadata was changed`
+      `Herbatica Warranty migration found ${unsafe.length} unsafe Product record(s); no Product Attribute or Product metadata was changed`,
     )
   }
 
@@ -390,7 +390,7 @@ export default async function migrateHerbaticaWarranty({
   const service = getProductAttributeService(container)
   const { definition, optionByKey } = await ensureWarrantyDefinitionAndOptions(
     safe.map(({ warranty }) => warranty),
-    service
+    service,
   )
   let migrated = 0
   for (const product of safe) {
@@ -399,7 +399,7 @@ export default async function migrateHerbaticaWarranty({
     if (!option) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Warranty option "${optionKey}" was not reconciled for Product "${product.id}"`
+        `Warranty option "${optionKey}" was not reconciled for Product "${product.id}"`,
       )
     }
     await setProductAttributesWorkflow(container).run({
@@ -424,6 +424,6 @@ export default async function migrateHerbaticaWarranty({
   }
 
   logger.info(
-    `Migrated ${migrated} legacy Herbatica Warranty Product record(s)`
+    `Migrated ${migrated} legacy Herbatica Warranty Product record(s)`,
   )
 }

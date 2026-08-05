@@ -19,5 +19,5 @@ export const addCompanyToCustomerGroupWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(input)
-  }
+  },
 )

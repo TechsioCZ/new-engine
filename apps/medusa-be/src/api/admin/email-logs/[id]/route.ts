@@ -55,7 +55,7 @@ async function retrieveResendEmail(emailId: string) {
   if (!apiKey) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "RESEND_API_KEY is not configured"
+      "RESEND_API_KEY is not configured",
     )
   }
 
@@ -78,7 +78,7 @@ async function retrieveResendEmail(emailId: string) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        `Resend email retrieval timed out after ${RESEND_EMAILS_API_TIMEOUT_MS}ms: ${emailId}`
+        `Resend email retrieval timed out after ${RESEND_EMAILS_API_TIMEOUT_MS}ms: ${emailId}`,
       )
     }
     throw error
@@ -95,7 +95,7 @@ async function retrieveResendEmail(emailId: string) {
 
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Failed to retrieve Resend email ${emailId}: ${errorMessage}`
+      `Failed to retrieve Resend email ${emailId}: ${errorMessage}`,
     )
   }
 
@@ -109,7 +109,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   if (!id) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Email log id is required"
+      "Email log id is required",
     )
   }
 

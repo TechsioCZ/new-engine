@@ -39,7 +39,7 @@ const createRegisterResponse = (token: string) => {
     {
       token,
     },
-    { status: 200 }
+    { status: 200 },
   )
 
   setSessionTokenCookie(response, token)
@@ -47,7 +47,7 @@ const createRegisterResponse = (token: string) => {
 }
 
 const parseRegisterBody = async (
-  request: Request
+  request: Request,
 ): Promise<ParseRegisterBodyResult> => {
   const body = asRecordOrUndefined(await request.json()) as
     | RegisterBody

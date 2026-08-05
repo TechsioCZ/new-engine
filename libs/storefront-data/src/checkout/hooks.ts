@@ -124,7 +124,7 @@ export function createCheckoutHooks<
 
   async function fetchPaymentProviders(
     queryClient: QueryClient,
-    regionId: string
+    regionId: string,
   ) {
     const queryOptions = getPaymentProvidersQueryOptions(regionId)
     return queryClient.fetchQuery({
@@ -136,7 +136,7 @@ export function createCheckoutHooks<
 
   const buildCalculatedById = (
     calculatedOptions: TShippingOption[],
-    calculatedQueries: { data: TShippingOption | undefined }[]
+    calculatedQueries: { data: TShippingOption | undefined }[],
   ) => {
     const calculatedById = new Map<string, TShippingOption>()
     for (const [index, query] of calculatedQueries.entries()) {
@@ -151,7 +151,7 @@ export function createCheckoutHooks<
 
   const buildShippingPrices = (
     shippingOptions: TShippingOption[],
-    calculatedById: Map<string, TShippingOption>
+    calculatedById: Map<string, TShippingOption>,
   ) => {
     const shippingPrices: Record<string, number> = {}
     for (const option of shippingOptions) {
@@ -171,7 +171,7 @@ export function createCheckoutHooks<
 
   const patchPaymentCollection = (
     cart: TCart,
-    paymentCollection: TPaymentCollection
+    paymentCollection: TPaymentCollection,
   ): TCart => ({
     ...cart,
     payment_collection: paymentCollection,
@@ -182,7 +182,7 @@ export function createCheckoutHooks<
       TCart,
       { optionId: string; data?: Record<string, unknown> },
       TContext
-    >
+    >,
   ) {
     const queryClient = useQueryClient()
     const onMutate = options?.onMutate
@@ -225,7 +225,7 @@ export function createCheckoutHooks<
 
   function usePaymentMutation<TContext = unknown>(
     cartId: string | undefined,
-    options?: CheckoutMutationOptions<TPaymentCollection, string, TContext>
+    options?: CheckoutMutationOptions<TPaymentCollection, string, TContext>,
   ) {
     const queryClient = useQueryClient()
     const onMutate = options?.onMutate
@@ -275,7 +275,7 @@ export function createCheckoutHooks<
 
   function useReactiveCart(
     inputCart: TCart | null | undefined,
-    cartId: string | undefined
+    cartId: string | undefined,
   ): TCart | null {
     const queryClient = useQueryClient()
     const canSubscribeToCart = Boolean(cartId && cartQueryKeys)
@@ -290,7 +290,7 @@ export function createCheckoutHooks<
             queryClient,
             cartQueryKeys,
             cartId,
-            cartCacheOptions
+            cartCacheOptions,
           )
         : null
     const initialCart = readCachedCart() ?? inputCart ?? null
@@ -319,7 +319,7 @@ export function createCheckoutHooks<
       TCart,
       { optionId: string; data?: Record<string, unknown> },
       TContext
-    >
+    >,
   ): UseCheckoutShippingResult<TShippingOption, TCart> {
     const { cartId } = input
     const enabled = input.enabled ?? Boolean(cartId)
@@ -342,13 +342,13 @@ export function createCheckoutHooks<
       },
       queryKey: resolvedQueryKeys.shippingOptions(
         cartId ?? "unknown",
-        cacheKey
+        cacheKey,
       ),
       ...resolvedCacheConfig.realtime,
     })
 
     const calculatedOptions = shippingOptions.filter(
-      (option) => option.price_type === "calculated"
+      (option) => option.price_type === "calculated",
     )
     const { calculateShippingOption } = service
 
@@ -368,14 +368,14 @@ export function createCheckoutHooks<
                 calculateShippingOption(
                   option.id,
                   omitUndefined({ cart_id: cartIdValue, data }),
-                  signal
+                  signal,
                 ),
               queryKey: resolvedQueryKeys.shippingOptionPrice(
                 omitUndefined({
                   cartId: cartIdValue,
                   optionId: option.id,
                   data,
-                })
+                }),
               ),
               ...resolvedCacheConfig.realtime,
             }
@@ -385,7 +385,7 @@ export function createCheckoutHooks<
 
     const calculatedById = buildCalculatedById(
       calculatedOptions,
-      calculatedQueries
+      calculatedQueries,
     )
     const shippingPrices = buildShippingPrices(shippingOptions, calculatedById)
 
@@ -397,14 +397,14 @@ export function createCheckoutHooks<
 
     const setShippingMethod = (
       optionId: string,
-      data?: Record<string, unknown>
+      data?: Record<string, unknown>,
     ) => {
       mutateShippingMethod(omitUndefined({ data, optionId }))
     }
 
     const setShippingMethodAsync = async (
       optionId: string,
-      data?: Record<string, unknown>
+      data?: Record<string, unknown>,
     ) => mutateShippingMethodAsync(omitUndefined({ data, optionId }))
 
     const selectedShippingMethodId =
@@ -412,7 +412,7 @@ export function createCheckoutHooks<
     const selectedShippingMethodData =
       effectiveCart?.shipping_methods?.[0]?.data
     const selectedOption = shippingOptions.find(
-      (option) => option.id === selectedShippingMethodId
+      (option) => option.id === selectedShippingMethodId,
     )
 
     return omitUndefined({
@@ -436,7 +436,7 @@ export function createCheckoutHooks<
       TCart,
       { optionId: string; data?: Record<string, unknown> },
       TContext
-    >
+    >,
   ): UseCheckoutShippingResult<TShippingOption, TCart> {
     const { cartId } = input
     if (!cartId) {
@@ -454,7 +454,7 @@ export function createCheckoutHooks<
     })
 
     const calculatedOptions = shippingOptions.filter(
-      (option) => option.price_type === "calculated"
+      (option) => option.price_type === "calculated",
     )
     const { calculateShippingOption } = service
 
@@ -470,10 +470,10 @@ export function createCheckoutHooks<
                 calculateShippingOption(
                   option.id,
                   omitUndefined({ cart_id: cartId, data }),
-                  signal
+                  signal,
                 ),
               queryKey: resolvedQueryKeys.shippingOptionPrice(
-                omitUndefined({ cartId, optionId: option.id, data })
+                omitUndefined({ cartId, optionId: option.id, data }),
               ),
               ...resolvedCacheConfig.realtime,
             }
@@ -483,7 +483,7 @@ export function createCheckoutHooks<
 
     const calculatedById = buildCalculatedById(
       calculatedOptions,
-      calculatedQueries
+      calculatedQueries,
     )
     const shippingPrices = buildShippingPrices(shippingOptions, calculatedById)
 
@@ -495,14 +495,14 @@ export function createCheckoutHooks<
 
     const setShippingMethod = (
       optionId: string,
-      data?: Record<string, unknown>
+      data?: Record<string, unknown>,
     ) => {
       mutateShippingMethod(omitUndefined({ data, optionId }))
     }
 
     const setShippingMethodAsync = async (
       optionId: string,
-      data?: Record<string, unknown>
+      data?: Record<string, unknown>,
     ) => mutateShippingMethodAsync(omitUndefined({ data, optionId }))
 
     const selectedShippingMethodId =
@@ -510,7 +510,7 @@ export function createCheckoutHooks<
     const selectedShippingMethodData =
       effectiveCart?.shipping_methods?.[0]?.data
     const selectedOption = shippingOptions.find(
-      (option) => option.id === selectedShippingMethodId
+      (option) => option.id === selectedShippingMethodId,
     )
 
     return omitUndefined({
@@ -534,7 +534,7 @@ export function createCheckoutHooks<
       TPaymentCollection,
       string,
       TPaymentContext
-    >
+    >,
   ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
     const { cartId } = input
     const effectiveCart = useReactiveCart(input.cart, cartId)
@@ -566,7 +566,7 @@ export function createCheckoutHooks<
     } = usePaymentMutation(resolvedCartId, options)
     const paymentState = resolvePaymentState(effectiveCart)
     const canInitiatePayment = Boolean(
-      resolvedCartId && paymentState.hasShippingMethod
+      resolvedCartId && paymentState.hasShippingMethod,
     )
 
     return {
@@ -588,7 +588,7 @@ export function createCheckoutHooks<
       TPaymentCollection,
       string,
       TSuspensePaymentContext
-    >
+    >,
   ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
     const { cartId } = input
     const effectiveCart = useReactiveCart(input.cart, cartId)
@@ -603,7 +603,7 @@ export function createCheckoutHooks<
           ...resolvedCacheConfig.semiStatic,
         }
     const { data: paymentProviders, isFetching } = useSuspenseQuery(
-      paymentProvidersQueryOptions
+      paymentProvidersQueryOptions,
     )
 
     const {
@@ -613,7 +613,7 @@ export function createCheckoutHooks<
     } = usePaymentMutation(resolvedCartId, options)
     const paymentState = resolvePaymentState(effectiveCart)
     const canInitiatePayment = Boolean(
-      resolvedCartId && paymentState.hasShippingMethod
+      resolvedCartId && paymentState.hasShippingMethod,
     )
 
     return {

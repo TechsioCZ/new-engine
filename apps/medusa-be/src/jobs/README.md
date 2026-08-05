@@ -15,7 +15,7 @@ import { Modules } from "@medusajs/framework/utils"
 
 export default async function myCustomJob(container: MedusaContainer) {
   const productService: IProductModuleService = container.resolve(
-    Modules.PRODUCT
+    Modules.PRODUCT,
   )
 
   const products = await productService.listAndCountProducts()

@@ -17,5 +17,5 @@ export const updateCompaniesWorkflow = createWorkflow(
     validateCompanyActiveStep(input.id)
 
     return new WorkflowResponse(updateCompaniesStep(input))
-  }
+  },
 )

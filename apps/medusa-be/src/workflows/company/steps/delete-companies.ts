@@ -22,5 +22,5 @@ export const deleteCompaniesStep = createStep(
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
     await companyModule.restoreCompanies(companyIds)
-  }
+  },
 )

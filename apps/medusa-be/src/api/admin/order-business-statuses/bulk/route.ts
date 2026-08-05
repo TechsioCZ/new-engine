@@ -29,7 +29,7 @@ const UPDATE_CHUNK_SIZE = 25
 
 export async function POST(
   req: MedusaRequest<PostAdminOrderBusinessStatusesBulkSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { order_ids: requestedOrderIds, status } = req.validatedBody
   const orderIds = [...new Set(requestedOrderIds)]
@@ -54,7 +54,7 @@ export async function POST(
 
     const blockReason = getOrderBusinessManualStatusUpdateBlockReason(
       order,
-      status
+      status,
     )
 
     if (blockReason) {
@@ -76,7 +76,7 @@ export async function POST(
   const updatedOrderIds = await updateOrdersInChunks(
     orderService,
     updateCandidates,
-    skipped
+    skipped,
   )
 
   const updatedOrders = updatedOrderIds.length
@@ -99,7 +99,7 @@ export async function POST(
 async function updateOrdersInChunks(
   orderService: IOrderModuleService,
   candidates: UpdateCandidate[],
-  skipped: SkippedOrder[]
+  skipped: SkippedOrder[],
 ) {
   const updatedOrderIds: string[] = []
 
@@ -107,8 +107,8 @@ async function updateOrdersInChunks(
     const chunk = candidates.slice(index, index + UPDATE_CHUNK_SIZE)
     const results = await Promise.allSettled(
       chunk.map(async (order) =>
-        orderService.updateOrders(order.id, { metadata: order.metadata })
-      )
+        orderService.updateOrders(order.id, { metadata: order.metadata }),
+      ),
     )
 
     for (const [resultIndex, result] of results.entries()) {
@@ -136,7 +136,7 @@ async function updateOrdersInChunks(
 
 async function fetchOrderBusinessStatusOrdersByIds(
   query: Query,
-  ids: string[]
+  ids: string[],
 ) {
   const { data } = await query.graph({
     entity: "order",

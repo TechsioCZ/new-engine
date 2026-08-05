@@ -27,5 +27,5 @@ export const syncMeilisearchBrandsWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

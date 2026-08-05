@@ -15,7 +15,7 @@ import type { StoreGetProductListsSchemaType } from "./validators"
 
 export async function GET(
   req: AuthenticatedMedusaRequest<unknown, StoreGetProductListsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const customerId = req.auth_context.actor_id
   const productListIds = await listCustomerProductListIds(req.scope, customerId)
@@ -49,7 +49,7 @@ export async function GET(
   const productListsWithItems = await withProductListItems(
     req.scope,
     productLists,
-    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT }
+    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT },
   )
 
   res.json({

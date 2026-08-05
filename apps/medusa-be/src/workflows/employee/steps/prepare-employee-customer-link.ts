@@ -74,7 +74,7 @@ export const prepareEmployeeCustomerLinkStep = createStep(
   "prepare-employee-customer-link",
   async (
     input: PrepareEmployeeCustomerLinkInput,
-    { container }
+    { container },
   ): Promise<StepResponse<undefined, EmployeeCustomerLinkCompensation>> => {
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -93,7 +93,7 @@ export const prepareEmployeeCustomerLinkStep = createStep(
       ...new Set(
         existingLinks
           .map((existingLink) => existingLink.employee_id)
-          .filter((employeeId): employeeId is string => Boolean(employeeId))
+          .filter((employeeId): employeeId is string => Boolean(employeeId)),
       ),
     ]
 
@@ -125,10 +125,10 @@ export const prepareEmployeeCustomerLinkStep = createStep(
     const staleEmployees = typedEmployees.filter(
       (employee) =>
         employee.company?.deleted_at ||
-        (employee.deleted_at && employee.company?.id !== input.company_id)
+        (employee.deleted_at && employee.company?.id !== input.company_id),
     )
     const activeEmployee = typedEmployees.find(
-      (employee) => !(employee.deleted_at || employee.company?.deleted_at)
+      (employee) => !(employee.deleted_at || employee.company?.deleted_at),
     )
 
     if (activeEmployee) {
@@ -161,7 +161,7 @@ export const prepareEmployeeCustomerLinkStep = createStep(
     const staleLinks = existingLinks
       .filter(
         (
-          existingLink
+          existingLink,
         ): existingLink is {
           customer_id: string
           employee_id: string
@@ -170,11 +170,11 @@ export const prepareEmployeeCustomerLinkStep = createStep(
           Boolean(
             existingLink.customer_id &&
             existingLink.employee_id &&
-            existingLink.id
-          )
+            existingLink.id,
+          ),
       )
       .filter((existingLink) =>
-        staleEmployeeIds.includes(existingLink.employee_id)
+        staleEmployeeIds.includes(existingLink.employee_id),
       )
     const staleCustomerGroups = staleEmployees.flatMap((employee) => {
       if (!(employee.customer?.id && employee.company?.customer_group?.id)) {
@@ -208,14 +208,14 @@ export const prepareEmployeeCustomerLinkStep = createStep(
     await Promise.all(
       staleLinks.map(async (staleLink) =>
         link.dismiss(
-          getEmployeeCustomerLink(staleLink.employee_id, staleLink.customer_id)
-        )
-      )
+          getEmployeeCustomerLink(staleLink.employee_id, staleLink.customer_id),
+        ),
+      ),
     )
 
     if (staleCustomerGroups.length) {
       const customerModuleService = container.resolve<ICustomerModuleService>(
-        Modules.CUSTOMER
+        Modules.CUSTOMER,
       )
 
       await customerModuleService.removeCustomerFromGroup(staleCustomerGroups)
@@ -223,7 +223,7 @@ export const prepareEmployeeCustomerLinkStep = createStep(
 
     if (providerIdentityIds.length) {
       const authModuleService = container.resolve<IAuthModuleService>(
-        Modules.AUTH
+        Modules.AUTH,
       )
 
       await authModuleService.updateProviderIdentities(
@@ -232,7 +232,7 @@ export const prepareEmployeeCustomerLinkStep = createStep(
           user_metadata: {
             role: null,
           },
-        }))
+        })),
       )
     }
 
@@ -249,7 +249,7 @@ export const prepareEmployeeCustomerLinkStep = createStep(
   },
   async (
     input: EmployeeCustomerLinkCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (!input) {
       return
@@ -259,18 +259,18 @@ export const prepareEmployeeCustomerLinkStep = createStep(
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
     if (input.deleted_employees.length) {
       await companyModuleService.restoreEmployees(
-        input.deleted_employees.map((employee) => employee.id)
+        input.deleted_employees.map((employee) => employee.id),
       )
     }
 
     if (input.restored_customer_groups.length) {
       await customerModuleService.addCustomerToGroup(
-        input.restored_customer_groups
+        input.restored_customer_groups,
       )
     }
 
@@ -279,15 +279,15 @@ export const prepareEmployeeCustomerLinkStep = createStep(
         link.create(
           getEmployeeCustomerLink(
             existingLink.employee_id,
-            existingLink.customer_id
-          )
-        )
-      )
+            existingLink.customer_id,
+          ),
+        ),
+      ),
     )
 
     if (input.provider_identity_ids.length) {
       const authModuleService = container.resolve<IAuthModuleService>(
-        Modules.AUTH
+        Modules.AUTH,
       )
 
       await authModuleService.updateProviderIdentities(
@@ -296,8 +296,8 @@ export const prepareEmployeeCustomerLinkStep = createStep(
           user_metadata: {
             role: "company_admin",
           },
-        }))
+        })),
       )
     }
-  }
+  },
 )

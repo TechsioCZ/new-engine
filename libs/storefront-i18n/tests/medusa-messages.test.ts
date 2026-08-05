@@ -30,7 +30,7 @@ describe(loadMedusaStorefrontMessages, () => {
       loadMedusaStorefrontMessages(client, {
         locale: "cs-CZ",
         market: "cz",
-      })
+      }),
     ).resolves.toStrictEqual({ "cart.title": "Košík" })
 
     expect(calls).toStrictEqual([
@@ -58,7 +58,7 @@ describe(loadMedusaStorefrontMessages, () => {
       loadMedusaStorefrontMessages(client, {
         locale: "cs-CZ",
         market: "cz",
-      })
+      }),
     ).rejects.toThrow("Invalid storefront messages response.")
   })
 })

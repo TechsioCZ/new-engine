@@ -11,7 +11,7 @@ const SeedShoptetImportWorkflowId = "seed-shoptet-import-workflow"
 export type SeedShoptetImportWorkflowInput = SeedDatabaseWorkflowInput
 
 function seedShoptetImportWorkflowComposer(
-  input: SeedShoptetImportWorkflowInput
+  input: SeedShoptetImportWorkflowInput,
 ) {
   const seedResult = seedDatabaseWorkflow.runAsStep({ input })
 
@@ -20,5 +20,5 @@ function seedShoptetImportWorkflowComposer(
 
 export const seedShoptetImportWorkflow = createWorkflow(
   SeedShoptetImportWorkflowId,
-  seedShoptetImportWorkflowComposer
+  seedShoptetImportWorkflowComposer,
 )

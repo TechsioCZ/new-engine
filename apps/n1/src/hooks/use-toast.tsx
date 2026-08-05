@@ -310,7 +310,7 @@ export function useCartToast() {
     stockWarningWithDetails: (
       available: number,
       requested: number,
-      options = {}
+      options = {},
     ) => {
       const message = cartToasts.stockErrorWithDetails(available, requested)
       return toaster.create({

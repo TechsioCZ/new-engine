@@ -63,7 +63,7 @@ const ItemsPopover = ({
                         {t("item.total")}{" "}
                         {formatAmount(
                           item.quantity * item.unit_price,
-                          currencyCode
+                          currencyCode,
                         )}
                       </Text>
                     </Text>

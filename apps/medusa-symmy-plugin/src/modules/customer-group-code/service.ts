@@ -76,7 +76,7 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
     const byGroupId = (
       await this.listSymmyCustomerGroupCodes(
         { customer_group_id: customerGroupId },
-        { take: 1 }
+        { take: 1 },
       )
     )[0] as SymmyCustomerGroupCodeDTO | undefined
     if (byGroupId) {
@@ -96,7 +96,7 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
       return (
         await this.listSymmyCustomerGroupCodes(
           { erp_code: erpCode },
-          { take: 1 }
+          { take: 1 },
         )
       )[0] as SymmyCustomerGroupCodeDTO | undefined
     }

@@ -47,7 +47,7 @@ const buildHerbatikaAddressMetadata = (
   input: Pick<
     HerbatikaCheckoutAddressInput,
     "companyId" | "customerNote" | "metadata" | "taxId" | "vatId"
-  >
+  >,
 ) => {
   const metadata = {
     ...(isRecord(input.metadata) ? input.metadata : {}),
@@ -68,11 +68,11 @@ const buildHerbatikaAddressMetadata = (
 
 const readMetadataString = (
   metadata: Record<string, unknown> | null | undefined,
-  key: string
+  key: string,
 ) => normalizeOptionalString(metadata?.[key])
 
 export const buildHerbatikaCheckoutAddressInput = (
-  addressForm: CheckoutAddressValues
+  addressForm: CheckoutAddressValues,
 ): HerbatikaCheckoutAddressInput => ({
   city: addressForm.city,
   company: addressForm.company,
@@ -90,7 +90,7 @@ export const buildHerbatikaCheckoutAddressInput = (
 })
 
 export const mapHerbatikaAddressFormStateFromMedusaAddress = (
-  address?: MedusaAddressLike | null
+  address?: MedusaAddressLike | null,
 ): Partial<CheckoutAddressValues> => {
   const baseAddress =
     mapMedusaAddressToCheckoutAddress<HerbatikaCheckoutAddressInput>(address)
@@ -113,7 +113,7 @@ export const mapHerbatikaAddressFormStateFromMedusaAddress = (
   }
 
   return Object.fromEntries(
-    Object.entries(values).filter(([, value]) => value !== undefined)
+    Object.entries(values).filter(([, value]) => value !== undefined),
   )
 }
 

@@ -21,7 +21,7 @@ export const createCartFromProductListWorkflow = createWorkflow(
 
     const listId = transform(
       { input },
-      ({ input: workflowInput }) => workflowInput.list_id
+      ({ input: workflowInput }) => workflowInput.list_id,
     )
     const cartItems = getProductListCartItemsStep(listId)
     const cartInput = transform(
@@ -39,12 +39,12 @@ export const createCartFromProductListWorkflow = createWorkflow(
         ...(workflowInput.sales_channel_id === undefined
           ? {}
           : { sales_channel_id: workflowInput.sales_channel_id }),
-      })
+      }),
     )
     const cart = createCartWorkflow.runAsStep({
       input: cartInput,
     })
 
     return new WorkflowResponse(cart)
-  }
+  },
 )

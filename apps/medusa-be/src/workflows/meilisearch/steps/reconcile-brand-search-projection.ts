@@ -30,12 +30,12 @@ const emptyResult = (): BrandSearchProjectionResult => ({
 
 const asSearchDocuments = (records: Record<string, unknown>[]) =>
   records.filter(
-    (record): record is SearchDocument => typeof record["id"] === "string"
+    (record): record is SearchDocument => typeof record["id"] === "string",
   )
 
 export const reconcileBrandSearchProjection = async (
   input: BrandSearchProjectionTargets,
-  container: MedusaContainer
+  container: MedusaContainer,
 ): Promise<BrandSearchProjectionResult> => {
   if (
     !(
@@ -63,7 +63,7 @@ export const reconcileBrandSearchProjection = async (
     const brands = asSearchDocuments(data)
     const activeIds = new Set(brands.map((brand) => brand.id))
     const deletedIds = input.brand_ids.filter(
-      (brandId) => !activeIds.has(brandId)
+      (brandId) => !activeIds.has(brandId),
     )
     const transformedBrands = brands.map((brand) => ({
       ...brand,
@@ -84,7 +84,7 @@ export const reconcileBrandSearchProjection = async (
         ...(deletedIds.length
           ? [meilisearch.deleteDocuments(index, deletedIds)]
           : []),
-      ])
+      ]),
     )
 
     result.brands_upserted = transformedBrands.length
@@ -104,11 +104,11 @@ export const reconcileBrandSearchProjection = async (
     })
     const products = asSearchDocuments(data)
     const indexableProducts = products.filter(
-      (product) => !product["status"] || product["status"] === "published"
+      (product) => !product["status"] || product["status"] === "published",
     )
     const indexableIds = new Set(indexableProducts.map((product) => product.id))
     const deletedIds = input.product_ids.filter(
-      (productId) => !indexableIds.has(productId)
+      (productId) => !indexableIds.has(productId),
     )
 
     await Promise.all(
@@ -123,7 +123,7 @@ export const reconcileBrandSearchProjection = async (
         ...(deletedIds.length
           ? [meilisearch.deleteDocuments(index, deletedIds)]
           : []),
-      ])
+      ]),
     )
 
     result.products_upserted = indexableProducts.length
@@ -136,5 +136,5 @@ export const reconcileBrandSearchProjection = async (
 export const reconcileBrandSearchProjectionStep = createStep(
   "reconcile-brand-search-projection",
   async (input: BrandSearchProjectionTargets, { container }) =>
-    new StepResponse(await reconcileBrandSearchProjection(input, container))
+    new StepResponse(await reconcileBrandSearchProjection(input, container)),
 )

@@ -18,11 +18,11 @@ const hasExplicitlyNoLineItems = (cart: HttpTypes.StoreCart): boolean =>
   Array.isArray(cart.items) && cart.items.length === 0
 
 export const resolveLineItemQuantity = (
-  item: HttpTypes.StoreCartLineItem
+  item: HttpTypes.StoreCartLineItem,
 ): number => Math.max(1, asFiniteNumber(item.quantity) ?? 1)
 
 export const resolveLineItemTotalAmount = (
-  item: HttpTypes.StoreCartLineItem
+  item: HttpTypes.StoreCartLineItem,
 ): number => {
   const total = asFiniteNumber(item.total)
   if (total !== null) {
@@ -39,11 +39,11 @@ export const resolveLineItemTotalAmount = (
 }
 
 const resolveLineItemSubtotalAmount = (
-  item: HttpTypes.StoreCartLineItem
+  item: HttpTypes.StoreCartLineItem,
 ): number => asFiniteNumber(item.subtotal) ?? resolveLineItemTotalAmount(item)
 
 export const resolveLineItemUnitAmount = (
-  item: HttpTypes.StoreCartLineItem
+  item: HttpTypes.StoreCartLineItem,
 ): number => {
   const unitPrice = asFiniteNumber(item.unit_price)
   if (unitPrice !== null) {
@@ -59,7 +59,7 @@ export const resolveLineItemUnitAmount = (
 }
 
 export const resolveCartTotalAmount = (
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ): number => {
   if (!cart) {
     return 0
@@ -82,13 +82,13 @@ export const resolveCartTotalAmount = (
   return (
     cart.items?.reduce(
       (sum, item) => sum + resolveLineItemTotalAmount(item),
-      0
+      0,
     ) ?? 0
   )
 }
 
 export const resolveCartItemsTotalAmount = (
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ): number => {
   if (!cart) {
     return 0
@@ -107,13 +107,13 @@ export const resolveCartItemsTotalAmount = (
   return (
     cart.items?.reduce(
       (sum, item) => sum + resolveLineItemTotalAmount(item),
-      0
+      0,
     ) ?? 0
   )
 }
 
 export const resolveCartItemsSubtotalAmount = (
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ): number => {
   if (!cart) {
     return 0
@@ -132,18 +132,18 @@ export const resolveCartItemsSubtotalAmount = (
   return (
     cart.items?.reduce(
       (sum, item) => sum + resolveLineItemSubtotalAmount(item),
-      0
+      0,
     ) ?? 0
   )
 }
 
 export const resolveCartShippingTotalAmount = (
   cart: HttpTypes.StoreCart | null | undefined,
-  fallbackAmount = 0
+  fallbackAmount = 0,
 ): number => asFiniteNumber(cart?.shipping_total) ?? fallbackAmount
 
 export const resolveCartTaxAmount = (
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ): number => {
   if (!cart) {
     return 0
@@ -159,7 +159,7 @@ export const resolveCartTaxAmount = (
   }
 
   const originalTaxTotal = asFiniteNumber(
-    isRecord(cart) ? cart.original_tax_total : undefined
+    isRecord(cart) ? cart.original_tax_total : undefined,
   )
   if (originalTaxTotal !== null) {
     return Math.max(originalTaxTotal, 0)
@@ -176,7 +176,7 @@ export const resolveCartTaxAmount = (
 }
 
 export const resolveCartTotalWithoutTaxAmount = (
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ): number => {
   if (!cart) {
     return 0

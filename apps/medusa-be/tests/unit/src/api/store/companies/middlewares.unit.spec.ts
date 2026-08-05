@@ -17,7 +17,7 @@ describe("store company middlewares", () => {
       const route = storeCompaniesMiddlewares.find(
         (middlewareRoute) =>
           middlewareRoute.method?.includes("GET") &&
-          middlewareRoute.matcher === matcher
+          middlewareRoute.matcher === matcher,
       )
 
       expect(route).toBeDefined()
@@ -32,7 +32,7 @@ describe("store company middlewares", () => {
     const deleteEmployeeRoute = storeCompaniesMiddlewares.find(
       (route) =>
         route.method?.includes("DELETE") &&
-        route.matcher === "/store/companies/:id/employees/:employee_id"
+        route.matcher === "/store/companies/:id/employees/:employee_id",
     )
 
     expect(deleteEmployeeRoute).toBeDefined()

@@ -39,6 +39,6 @@ describe("storefront text lock error handling", () => {
       }).toThrow(error)
       expect(response.status).not.toHaveBeenCalled()
       expect(response.json).not.toHaveBeenCalled()
-    }
+    },
   )
 })

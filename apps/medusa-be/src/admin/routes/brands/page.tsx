@@ -100,7 +100,7 @@ const AttributeTypesSection = () => {
       toast.error(
         error instanceof Error
           ? error.message
-          : t("errors.createAttributeFailed")
+          : t("errors.createAttributeFailed"),
       )
     },
     onSuccess: async (response) => {
@@ -127,7 +127,7 @@ const AttributeTypesSection = () => {
       toast.error(
         error instanceof Error
           ? error.message
-          : t("errors.deleteAttributeFailed")
+          : t("errors.deleteAttributeFailed"),
       )
     },
     onSuccess: async () => {
@@ -153,7 +153,7 @@ const AttributeTypesSection = () => {
       toast.error(
         error instanceof Error
           ? error.message
-          : t("errors.restoreAttributeFailed")
+          : t("errors.restoreAttributeFailed"),
       )
     },
     onSuccess: async () => {
@@ -215,7 +215,7 @@ const AttributeTypesSection = () => {
         order_by: "name",
       })
       const existing = existingResponse.attribute_types.find(
-        (attributeType) => attributeType.name === attributeName
+        (attributeType) => attributeType.name === attributeName,
       )
 
       if (existing?.deleted_at) {
@@ -244,7 +244,7 @@ const AttributeTypesSection = () => {
       toast.error(
         error instanceof Error
           ? error.message
-          : t("errors.checkAttributeFailed")
+          : t("errors.checkAttributeFailed"),
       )
     } finally {
       setIsCheckingName(false)
@@ -428,7 +428,7 @@ const BrandsPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : t("errors.deleteBrandFailed")
+          : t("errors.deleteBrandFailed"),
       )
     },
     onSuccess: async () => {
@@ -448,7 +448,7 @@ const BrandsPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : t("errors.restoreBrandFailed")
+          : t("errors.restoreBrandFailed"),
       )
     },
     onSuccess: async () => {

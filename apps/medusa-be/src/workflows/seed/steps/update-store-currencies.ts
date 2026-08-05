@@ -23,7 +23,7 @@ export const updateStoreCurrenciesStep = createStep(
   async (input: UpdateStoreCurrenciesStepInput, { container }) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const storeModuleService = container.resolve<IStoreModuleService>(
-      Modules.STORE
+      Modules.STORE,
     )
 
     logger.info("Updating store currencies data...")
@@ -51,5 +51,5 @@ export const updateStoreCurrenciesStep = createStep(
     return new StepResponse({
       result: result.result,
     })
-  }
+  },
 )

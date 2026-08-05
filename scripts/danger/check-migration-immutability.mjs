@@ -21,7 +21,7 @@ const mutatedMigrations = execFileSync(
     "--find-copies-harder",
     `${base}...HEAD`,
   ],
-  { encoding: "utf-8" }
+  { encoding: "utf-8" },
 )
   .trim()
   .split("\n")
@@ -41,7 +41,7 @@ const mutatedMigrations = execFileSync(
 
 if (mutatedMigrations.length > 0) {
   console.error(
-    `Do not edit existing migrations; add a new migration instead:\n${mutatedMigrations.join("\n")}`
+    `Do not edit existing migrations; add a new migration instead:\n${mutatedMigrations.join("\n")}`,
   )
   process.exit(1)
 }

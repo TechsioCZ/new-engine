@@ -86,7 +86,7 @@ const getAllowedOrigins = () =>
     (process.env.PAYLOAD_SSO_ALLOWED_ORIGINS || "")
       .split(",")
       .map((origin) => normalizeOrigin(origin))
-      .filter((origin): origin is string => Boolean(origin))
+      .filter((origin): origin is string => Boolean(origin)),
   )
 
 /** Resolve request origin from Origin header, with Referer fallback. */
@@ -101,7 +101,7 @@ const getRequestOrigin = (headers: Headers) => {
 /** Add CORS headers for a request origin that has already passed validation. */
 const setAllowedOriginCorsHeaders = (
   headers: Headers,
-  origin: string | null
+  origin: string | null,
 ) => {
   if (!origin) {
     return
@@ -116,7 +116,7 @@ const setAllowedOriginCorsHeaders = (
 /** Type guard for validating configured collection slugs. */
 const hasCollectionSlug = <T extends Record<string, unknown>>(
   collections: T,
-  slug: string
+  slug: string,
 ): slug is Extract<keyof T, string> => Object.hasOwn(collections, slug)
 
 /** Create the Payload endpoint that exchanges Medusa SSO tokens for sessions. */
@@ -178,7 +178,7 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
     } catch (error) {
       req?.payload?.logger?.warn?.(
         { err: error },
-        "SSO token verification failed"
+        "SSO token verification failed",
       )
       throw new APIError("Invalid SSO token.", 401)
     }
@@ -231,7 +231,7 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
       const expiresAt = new Date(now.getTime() + tokenExpiration * 1000)
       const existingSessions = Array.isArray(user.sessions)
         ? removeExpiredSessions(user.sessions).slice(
-            -Math.max(MAX_SESSIONS - 1, 0)
+            -Math.max(MAX_SESSIONS - 1, 0),
           )
         : []
 

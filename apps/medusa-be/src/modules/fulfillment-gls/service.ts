@@ -18,15 +18,15 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 
-import { GLS_CLIENT_MODULE } from '../gls-client';
-import type { GLSClientModuleService } from '../gls-client';
+import { GLS_CLIENT_MODULE } from "../gls-client"
+import type { GLSClientModuleService } from "../gls-client"
 import type {
   GLSFulfillmentData,
   GLSOptions,
   GLSShippingOptionData,
 } from "../gls-client/types"
-import { buildGLSPacketAttributes } from './helpers/packet-attributes';
-import type { QueryService } from './helpers/packet-attributes';
+import { buildGLSPacketAttributes } from "./helpers/packet-attributes"
+import type { QueryService } from "./helpers/packet-attributes"
 
 type InjectedDependencies = {
   logger: Logger

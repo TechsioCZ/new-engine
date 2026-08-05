@@ -16,7 +16,7 @@ export const useRegions = (
   options?: Omit<
     UseQueryOptions<RegionsResponse, FetchError, RegionsResponse>,
     "queryFn" | "queryKey"
-  >
+  >,
 ) => {
   const { data, ...rest } = useQuery({
     queryFn: async () => sdk.admin.region.list(),

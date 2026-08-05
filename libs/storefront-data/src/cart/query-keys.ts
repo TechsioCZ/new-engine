@@ -9,7 +9,7 @@ export function createCartQueryKeys(namespace: QueryNamespace): CartQueryKeys {
         namespace,
         "cart",
         "active",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
     all: () => createQueryKey(namespace, "cart"),
     detail: (cartId) => createQueryKey(namespace, "cart", "detail", cartId),

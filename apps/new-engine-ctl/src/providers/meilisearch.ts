@@ -54,7 +54,7 @@ function normalizeBaseUrl(url: string): string {
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
-  timeoutSeconds: number
+  timeoutSeconds: number,
 ): Promise<Response> {
   const timeoutController = new AbortController()
   const controller = new AbortController()
@@ -95,7 +95,7 @@ async function fetchWithTimeout(
     ) {
       throw new Error(
         `Meilisearch request timed out after ${timeoutSeconds}s: ${url}`,
-        { cause: error }
+        { cause: error },
       )
     }
 
@@ -109,30 +109,30 @@ async function fetchWithTimeout(
 
 function resolveMeiliApiCredentialPolicies(
   stackInputs: StackInputs,
-  providerId: string
+  providerId: string,
 ): MeiliApiCredentialPolicies {
   return {
     backendEnvVar: getRuntimeProviderTargetEnvVar(
       stackInputs,
       providerId,
       "backend_key",
-      "medusa-be"
+      "medusa-be",
     ),
     backendPolicy: getRuntimeProviderMeiliKeyPolicy(
       stackInputs,
       providerId,
-      "backend_key"
+      "backend_key",
     ),
     frontendEnvVar: getRuntimeProviderTargetEnvVar(
       stackInputs,
       providerId,
       "frontend_key",
-      "n1"
+      "n1",
     ),
     frontendPolicy: getRuntimeProviderMeiliKeyPolicy(
       stackInputs,
       providerId,
-      "frontend_key"
+      "frontend_key",
     ),
   }
 }
@@ -176,7 +176,7 @@ async function requestJson<T>(options: RequestJsonOptions<T>): Promise<T> {
       const response = await fetchWithTimeout(
         options.url,
         options.init,
-        options.timeoutSeconds
+        options.timeoutSeconds,
       )
       const text = await response.text()
       const body = parseResponseBody(text, response.status)
@@ -189,8 +189,8 @@ async function requestJson<T>(options: RequestJsonOptions<T>): Promise<T> {
         throw new Error(
           parseErrorMessage(
             body,
-            `Meilisearch request failed (HTTP ${response.status})`
-          )
+            `Meilisearch request failed (HTTP ${response.status})`,
+          ),
         )
       }
 
@@ -215,7 +215,7 @@ async function waitForHealth(input: RequestOptions): Promise<void> {
       const response = await fetchWithTimeout(
         `${baseUrl}/health`,
         { method: "GET" },
-        input.timeoutSeconds
+        input.timeoutSeconds,
       )
       if (response.ok) {
         return
@@ -226,7 +226,7 @@ async function waitForHealth(input: RequestOptions): Promise<void> {
 
     if (Date.now() - startedAt >= input.waitSeconds * 1000) {
       throw new Error(
-        `Timed out waiting for Meilisearch health at ${baseUrl}/health`
+        `Timed out waiting for Meilisearch health at ${baseUrl}/health`,
       )
     }
 
@@ -240,7 +240,7 @@ function readString(value: unknown, fallback: string): string {
 
 function readStringArray(
   object: Record<string, unknown>,
-  key: string
+  key: string,
 ): string[] {
   const value = object[key]
   return Array.isArray(value)
@@ -250,7 +250,7 @@ function readStringArray(
 
 function matchesPermissions(
   keyObject: unknown,
-  policy: PolicyDefinition
+  policy: PolicyDefinition,
 ): boolean {
   if (!keyObject || typeof keyObject !== "object") {
     return false
@@ -283,7 +283,7 @@ function matchesPolicy(keyObject: unknown, policy: PolicyDefinition): boolean {
 
 function matchesDescription(
   keyObject: Record<string, unknown>,
-  policy: PolicyDefinition
+  policy: PolicyDefinition,
 ): boolean {
   return keyObject.description === policy.description
 }
@@ -292,7 +292,7 @@ async function getKeyByUid(
   input: RequestOptions & {
     masterKey: string
     uid: string
-  }
+  },
 ): Promise<Record<string, unknown> | null> {
   const result = await requestJson({
     init: {
@@ -334,7 +334,7 @@ interface ReconcileKeyInput {
 }
 
 async function createKey(
-  input: ReconcileKeyInput
+  input: ReconcileKeyInput,
 ): Promise<Record<string, unknown>> {
   return await requestJson({
     init: {
@@ -366,7 +366,7 @@ async function createKey(
 }
 
 async function updateKeyDescription(
-  input: ReconcileKeyInput
+  input: ReconcileKeyInput,
 ): Promise<Record<string, unknown>> {
   return await requestJson({
     init: {
@@ -542,24 +542,24 @@ export async function verifyMeiliKeys(input: {
 }): Promise<MeiliVerifyResponse> {
   const { backendPolicy, frontendPolicy } = resolveMeiliApiCredentialPolicies(
     input.stackInputs,
-    input.providerId
+    input.providerId,
   )
 
   if (input.backendKey === input.masterKey) {
     throw new Error(
-      "Backend key equals master key. This violates scoped-key policy."
+      "Backend key equals master key. This violates scoped-key policy.",
     )
   }
 
   if (input.frontendKey === input.masterKey) {
     throw new Error(
-      "Frontend key equals master key. This violates scoped-key policy."
+      "Frontend key equals master key. This violates scoped-key policy.",
     )
   }
 
   if (input.frontendKey === input.backendKey) {
     throw new Error(
-      "Frontend key equals backend key. Frontend must use dedicated read-only key."
+      "Frontend key equals backend key. Frontend must use dedicated read-only key.",
     )
   }
 
@@ -592,37 +592,37 @@ export async function verifyMeiliKeys(input: {
 
   if (!backend) {
     throw new Error(
-      `Backend key with expected uid=${backendPolicy.uid} not found in Meilisearch.`
+      `Backend key with expected uid=${backendPolicy.uid} not found in Meilisearch.`,
     )
   }
 
   if (!frontend) {
     throw new Error(
-      `Frontend key with expected uid=${frontendPolicy.uid} not found in Meilisearch.`
+      `Frontend key with expected uid=${frontendPolicy.uid} not found in Meilisearch.`,
     )
   }
 
   if (!matchesPolicy(backend, backendPolicy)) {
     throw new Error(
-      `Backend key uid=${backendPolicy.uid} does not match the contract-owned policy.`
+      `Backend key uid=${backendPolicy.uid} does not match the contract-owned policy.`,
     )
   }
 
   if (!matchesPolicy(frontend, frontendPolicy)) {
     throw new Error(
-      `Frontend key uid=${frontendPolicy.uid} does not match the contract-owned policy.`
+      `Frontend key uid=${frontendPolicy.uid} does not match the contract-owned policy.`,
     )
   }
 
   if (readString(backend.key, "") !== input.backendKey) {
     throw new Error(
-      `Provided backend key does not match key stored under uid=${backendPolicy.uid}.`
+      `Provided backend key does not match key stored under uid=${backendPolicy.uid}.`,
     )
   }
 
   if (readString(frontend.key, "") !== input.frontendKey) {
     throw new Error(
-      `Provided frontend key does not match key stored under uid=${frontendPolicy.uid}.`
+      `Provided frontend key does not match key stored under uid=${frontendPolicy.uid}.`,
     )
   }
 

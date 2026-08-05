@@ -48,7 +48,7 @@ describe("brand GPSR request validation", () => {
     expect(result.success).toBeFalsy()
     if (!result.success) {
       expect(
-        result.error.issues.some((issue) => issue.path[0] === field)
+        result.error.issues.some((issue) => issue.path[0] === field),
       ).toBeTruthy()
     }
   })
@@ -57,7 +57,7 @@ describe("brand GPSR request validation", () => {
     expect(
       AdminUpdateBrandSchema.safeParse({
         title: "Updated title",
-      }).success
+      }).success,
     ).toBeTruthy()
   })
 
@@ -66,7 +66,7 @@ describe("brand GPSR request validation", () => {
       AdminCreateBrandSchema.safeParse({
         ...outsideEuBrand,
         gpsr_manufactured_outside_eu: false,
-      }).success
+      }).success,
     ).toBeFalsy()
   })
 })
@@ -75,13 +75,13 @@ describe("Brand product delta request validation", () => {
   it("accepts more than 500 IDs without a whole-set replacement ceiling", () => {
     const addProductIds = Array.from(
       { length: 750 },
-      (_, index) => `prod_${index}`
+      (_, index) => `prod_${index}`,
     )
 
     expect(
       AdminUpdateBrandProductsSchema.parse({
         add: addProductIds,
-      })
+      }),
     ).toStrictEqual({
       add: addProductIds,
       remove: [],
@@ -101,7 +101,7 @@ describe("Brand product delta request validation", () => {
           expect.objectContaining({
             path: ["remove"],
           }),
-        ])
+        ]),
       )
     }
   })
@@ -110,7 +110,7 @@ describe("Brand product delta request validation", () => {
     expect(
       AdminUpdateBrandProductsSchema.safeParse({
         product_ids: ["prod_1"],
-      }).success
+      }).success,
     ).toBeFalsy()
   })
 })

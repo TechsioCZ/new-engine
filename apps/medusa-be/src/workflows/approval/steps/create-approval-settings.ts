@@ -14,12 +14,12 @@ export const createApprovalSettingsStep = createStep(
         company_id: company.id,
         requires_admin_approval: false,
         requires_sales_manager_approval: false,
-      }))
+      })),
     )
 
     return new StepResponse(
       approvalSettings,
-      approvalSettings.map((setting) => setting.id)
+      approvalSettings.map((setting) => setting.id),
     )
   },
   async (settingIds: string[] | undefined, { container }) => {
@@ -31,5 +31,5 @@ export const createApprovalSettingsStep = createStep(
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModuleService.deleteApprovalSettings(settingIds)
-  }
+  },
 )

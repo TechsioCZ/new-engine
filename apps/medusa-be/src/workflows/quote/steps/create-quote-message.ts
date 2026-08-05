@@ -18,7 +18,7 @@ export const createQuoteMessageStep = createStep(
   "create-quote-message",
   async (
     input: ModuleCreateQuoteMessage,
-    { container }
+    { container },
   ): Promise<StepResponse<ModuleQuoteMessage, string>> => {
     const quoteModule = container.resolve<IQuoteModuleService>(QUOTE_MODULE)
 
@@ -34,5 +34,5 @@ export const createQuoteMessageStep = createStep(
     const quoteModule = container.resolve<IQuoteModuleService>(QUOTE_MODULE)
 
     await quoteModule.deleteMessages([id])
-  }
+  },
 )

@@ -23,11 +23,11 @@ export const createApprovalSettingsWorkflow = createWorkflow(
         [APPROVAL_MODULE]: {
           approval_settings_id: setting.id,
         },
-      }))
+      })),
     )
 
     createRemoteLinkStep(linkData)
 
     return new WorkflowResponse(approvalSettings)
-  }
+  },
 )

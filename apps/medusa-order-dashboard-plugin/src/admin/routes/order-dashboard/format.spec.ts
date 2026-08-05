@@ -41,14 +41,17 @@ describe("order dashboard formatting", () => {
 
   it("formats totals and payment provider identifiers", () => {
     expect(
-      formatOrderTotal({ ...order, currency_code: "czk", total: 1250 }, "cs-CZ")
+      formatOrderTotal(
+        { ...order, currency_code: "czk", total: 1250 },
+        "cs-CZ",
+      ),
     ).toContain("1 250")
     expect(formatOrderTotal({ ...order, total: "invalid" }, "cs-CZ")).toBe(
-      "invalid"
+      "invalid",
     )
     expect(formatPaymentMethodLabel("pp_paykit_gopay_default")).toBe("GoPay")
     expect(formatPaymentMethodLabel("pp_system_manual_default")).toBe(
-      "System Manual Default"
+      "System Manual Default",
     )
   })
 
@@ -57,15 +60,15 @@ describe("order dashboard formatting", () => {
       getOrderDashboardTransitionBlockReason(
         { has_active_fulfillment: true, status: "pending" },
         "canceled",
-        translate
-      )
+        translate,
+      ),
     ).toBe("targetStatusBlocker.activeFulfillmentCannotCanceled")
     expect(
       getOrderDashboardTransitionBlockReason(
         { has_active_fulfillment: false, status: "pending" },
         "completed",
-        translate
-      )
+        translate,
+      ),
     ).toBeUndefined()
   })
 

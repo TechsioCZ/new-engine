@@ -28,5 +28,5 @@ export const deleteProductListItemStep = createStep(
         quantity: item.quantity,
         sort_order: item.sort_order,
       })
-  }
+  },
 )

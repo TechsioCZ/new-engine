@@ -33,7 +33,7 @@ export function usePrefetchRootCategories({
     const timer = setTimeout(() => {
       prefetchLogger.info(
         "Root",
-        `Prefetching other root from /kategorie/${currentHandle}`
+        `Prefetching other root from /kategorie/${currentHandle}`,
       )
 
       for (const [handle, categoryIds] of Object.entries(CATEGORY_MAP)) {

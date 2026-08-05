@@ -14,7 +14,7 @@ const symmyAssignCustomersToGroupBatchWorkflow = createWorkflow(
   (input: AssignCustomersToGroupBatchInput) => {
     const result = symmyProcessCustomerGroupCustomersBatchStep(input)
     return new WorkflowResponse<AssignCustomersToGroupBatchOutput>(result)
-  }
+  },
 )
 
 export { symmyAssignCustomersToGroupBatchWorkflow as assignCustomersToGroupBatchWorkflow }

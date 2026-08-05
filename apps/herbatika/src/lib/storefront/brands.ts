@@ -72,7 +72,7 @@ const createBrandFacetId = (value: string) =>
   `${BRAND_FACET_PREFIX}${createBrandSlug(value)}`
 
 export const normalizeStorefrontBrand = (
-  input: RawStorefrontBrandInput
+  input: RawStorefrontBrandInput,
 ): StorefrontBrand | null => {
   const title = input.title?.trim()
 
@@ -126,7 +126,7 @@ const resolveBrandGroupLetter = (brand: StorefrontBrand) => {
 }
 
 export const groupStorefrontBrands = (
-  brands: StorefrontBrand[]
+  brands: StorefrontBrand[],
 ): StorefrontBrandGroup[] => {
   const groupsByLetter = new Map<string, StorefrontBrand[]>()
 
@@ -145,7 +145,7 @@ export const groupStorefrontBrands = (
     return [
       {
         brands: [...groupBrands].sort((left, right) =>
-          brandCollator.compare(left.title, right.title)
+          brandCollator.compare(left.title, right.title),
         ),
         letter,
       },

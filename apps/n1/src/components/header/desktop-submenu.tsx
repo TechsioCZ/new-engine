@@ -13,7 +13,7 @@ export const DesktopSubmenu = () => {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const [activeCategory, setActiveCategory] = useState<SubmenuCategory | null>(
-    null
+    null,
   )
 
   const handleOpenSubmenu = (categoryName: string) => {

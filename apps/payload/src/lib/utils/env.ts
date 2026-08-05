@@ -45,7 +45,7 @@ const parseEnvList = (envVar: string): string[] => {
 
 export const resolveEnvLocales = (
   envVar = "PAYLOAD_LOCALES",
-  fallbackLocales: string[] = ["en"]
+  fallbackLocales: string[] = ["en"],
 ): { locales: string[]; defaultLocale: string } => {
   const envLocales = parseEnvList(envVar)
   const fallback = fallbackLocales.filter(Boolean)

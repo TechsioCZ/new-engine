@@ -22,5 +22,5 @@ export const restoreCompaniesStep = createStep(
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
     await companyModule.softDeleteCompanies(restoredIds)
-  }
+  },
 )

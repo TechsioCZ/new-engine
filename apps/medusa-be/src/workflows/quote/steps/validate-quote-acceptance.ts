@@ -9,8 +9,8 @@ export const validateQuoteAcceptanceStep = createStep(
     if (!["pending_customer"].includes(quote.status)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Cannot accept quote when quote status is ${quote.status}`
+        `Cannot accept quote when quote status is ${quote.status}`,
       )
     }
-  }
+  },
 )

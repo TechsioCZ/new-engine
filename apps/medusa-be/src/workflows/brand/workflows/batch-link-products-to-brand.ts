@@ -32,7 +32,7 @@ export const batchLinkProductsToBrandWorkflow = createWorkflow(
       getBrandProductsLockKeys(workflowInput.brand_id, [
         ...workflowInput.add,
         ...workflowInput.remove,
-      ])
+      ]),
     )
 
     acquireLockStep({
@@ -55,7 +55,7 @@ export const batchLinkProductsToBrandWorkflow = createWorkflow(
     const eventData = transform({ result: prepared.result }, ({ result }) =>
       buildBrandSearchProjectionEventData({
         productIds: [...result.added, ...result.removed],
-      })
+      }),
     )
 
     emitEventStep({
@@ -65,5 +65,5 @@ export const batchLinkProductsToBrandWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(prepared.result)
-  }
+  },
 )

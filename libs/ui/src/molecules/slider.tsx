@@ -142,7 +142,7 @@ export interface SliderProps extends VariantProps<typeof sliderVariants> {
 
 const resolveFiniteNumber = (
   value: number | undefined,
-  fallbackValue: number
+  fallbackValue: number,
 ) => {
   if (
     typeof value !== "number" ||
@@ -188,7 +188,7 @@ const snapToStep = (value: number, min: number, step: number) => {
 
 const resolveThumbCount = (
   value: number[] | undefined,
-  defaultValue: number[] | undefined
+  defaultValue: number[] | undefined,
 ) => {
   if (Array.isArray(value) && value.length > 0) {
     return value.length
@@ -213,7 +213,7 @@ const resolveSliderConfig = (
   max: number | undefined,
   step: number | undefined,
   minStepsBetweenThumbs: number | undefined,
-  thumbCount: number
+  thumbCount: number,
 ): ResolvedSliderConfig => {
   const resolvedMin = resolveFiniteNumber(min, 0)
   const resolvedStepCandidate = resolveFiniteNumber(step, 1)
@@ -224,17 +224,17 @@ const resolveSliderConfig = (
   const span = resolvedMax - resolvedMin
   const stepsInSpan = Math.max(
     0,
-    Math.floor((span + Number.EPSILON) / resolvedStep)
+    Math.floor((span + Number.EPSILON) / resolvedStep),
   )
   const maxMinStepsBetweenThumbs =
     thumbCount > 1 ? Math.floor(stepsInSpan / (thumbCount - 1)) : 0
   const normalizedMinSteps = Math.trunc(
-    resolveFiniteNumber(minStepsBetweenThumbs, 0)
+    resolveFiniteNumber(minStepsBetweenThumbs, 0),
   )
   const resolvedMinStepsBetweenThumbs = clampNumber(
     normalizedMinSteps,
     0,
-    maxMinStepsBetweenThumbs
+    maxMinStepsBetweenThumbs,
   )
 
   return {
@@ -248,7 +248,7 @@ const resolveSliderConfig = (
 const createFallbackValues = (
   thumbCount: number,
   min: number,
-  max: number
+  max: number,
 ): number[] => {
   if (thumbCount <= 1) {
     return [min]
@@ -269,7 +269,7 @@ const createFallbackValues = (
 const normalizeSliderValues = (
   values: number[] | undefined,
   fallbackValues: number[],
-  config: ResolvedSliderConfig
+  config: ResolvedSliderConfig,
 ): number[] => {
   const sourceValues =
     Array.isArray(values) && values.length > 0 ? values : fallbackValues
@@ -327,7 +327,7 @@ const normalizeSliderValues = (
 const apiValueFallback = (
   value: number[] | undefined,
   defaultValue: number[] | undefined,
-  fallbackValues: number[]
+  fallbackValues: number[],
 ) => {
   if (Array.isArray(value) && value.length > 0) {
     return value
@@ -377,12 +377,12 @@ export function Slider({
     max,
     step,
     minStepsBetweenThumbs,
-    thumbCount
+    thumbCount,
   )
   const fallbackValues = createFallbackValues(
     thumbCount,
     resolvedConfig.min,
-    resolvedConfig.max
+    resolvedConfig.max,
   )
   const isControlled = value !== undefined
   const resolvedValue = isControlled
@@ -394,7 +394,7 @@ export function Slider({
   const valueTextValues = apiValueFallback(
     resolvedValue,
     resolvedDefaultValue,
-    fallbackValues
+    fallbackValues,
   )
 
   const service = useMachine(slider.machine, {

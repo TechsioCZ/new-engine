@@ -19,7 +19,7 @@ const readRecentlyVisitedProductHandles = (): string[] => {
 
   try {
     const rawValue = window.localStorage.getItem(
-      RECENTLY_VISITED_PRODUCTS_STORAGE_KEY
+      RECENTLY_VISITED_PRODUCTS_STORAGE_KEY,
     )
     const parsed = rawValue ? JSON.parse(rawValue) : []
 
@@ -29,7 +29,7 @@ const readRecentlyVisitedProductHandles = (): string[] => {
 
     return parsed.filter(
       (handle): handle is string =>
-        typeof handle === "string" && handle.trim().length > 0
+        typeof handle === "string" && handle.trim().length > 0,
     )
   } catch {
     return []
@@ -44,12 +44,12 @@ const writeRecentlyVisitedProductHandles = (handles: string[]) => {
   try {
     window.localStorage.setItem(
       RECENTLY_VISITED_PRODUCTS_STORAGE_KEY,
-      JSON.stringify(handles)
+      JSON.stringify(handles),
     )
     window.dispatchEvent(
       new CustomEvent(RECENTLY_VISITED_PRODUCTS_EVENT, {
         detail: handles,
-      })
+      }),
     )
   } catch {
     // Browsers can block storage in strict privacy modes; history is optional.
@@ -73,7 +73,7 @@ const addRecentlyVisitedProductHandle = (handle: string) => {
 
 export const orderProductsByHandles = (
   products: HttpTypes.StoreProduct[],
-  handles: string[]
+  handles: string[],
 ) => {
   const productByHandle = new Map<string, HttpTypes.StoreProduct>()
 
@@ -109,14 +109,14 @@ export const useRecentlyVisitedProductHandles = (options?: {
 
     window.addEventListener(
       RECENTLY_VISITED_PRODUCTS_EVENT,
-      handleRecentlyVisitedProductsEvent
+      handleRecentlyVisitedProductsEvent,
     )
     window.addEventListener("storage", handleStorageEvent)
 
     return () => {
       window.removeEventListener(
         RECENTLY_VISITED_PRODUCTS_EVENT,
-        handleRecentlyVisitedProductsEvent
+        handleRecentlyVisitedProductsEvent,
       )
       window.removeEventListener("storage", handleStorageEvent)
     }
@@ -126,7 +126,7 @@ export const useRecentlyVisitedProductHandles = (options?: {
 }
 
 export const useRecordRecentlyVisitedProduct = (
-  product: Pick<HttpTypes.StoreProduct, "handle"> | null
+  product: Pick<HttpTypes.StoreProduct, "handle"> | null,
 ) => {
   useEffect(() => {
     if (!product?.handle) {

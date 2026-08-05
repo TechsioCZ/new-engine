@@ -1,7 +1,7 @@
 export const clamp = (
   value: number,
   minimum: number,
-  maximum: number
+  maximum: number,
 ): number => {
   if (minimum > maximum) {
     throw new RangeError("Minimum cannot exceed maximum")

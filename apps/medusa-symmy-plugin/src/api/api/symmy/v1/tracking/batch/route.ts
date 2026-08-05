@@ -57,7 +57,7 @@ type AuthenticatedRequest = MedusaRequest<AddTrackingBatchSchemaType> & {
  */
 export const POST = async (
   req: MedusaRequest<AddTrackingBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const authReq = req as AuthenticatedRequest
   const { result } = await addTrackingBatchWorkflow(req.scope).run({

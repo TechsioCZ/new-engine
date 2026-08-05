@@ -23,12 +23,12 @@ export const updateProductListItemStep = createStep(
       container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
     const item = await service.updateProductListItemForList(
       input.item_id,
-      input.data
+      input.data,
     )
 
     return new StepResponse<ProductListItemRecord, ProductListItemRecord>(
       item,
-      input.previous_item
+      input.previous_item,
     )
   },
   async (previousItem, { container }) => {
@@ -45,5 +45,5 @@ export const updateProductListItemStep = createStep(
         quantity: previousItem.quantity,
         sort_order: previousItem.sort_order,
       })
-  }
+  },
 )

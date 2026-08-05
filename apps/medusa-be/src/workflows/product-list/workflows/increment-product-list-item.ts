@@ -26,7 +26,7 @@ export const incrementProductListItemWorkflow = createWorkflow(
 
     const itemId = transform(
       { input },
-      ({ input: workflowInput }) => workflowInput.item_id
+      ({ input: workflowInput }) => workflowInput.item_id,
     )
     const currentItem = retrieveProductListItemStep(itemId)
     const ownershipInput = transform(
@@ -34,7 +34,7 @@ export const incrementProductListItemWorkflow = createWorkflow(
       ({ currentItem: productListItem, input: workflowInput }) => ({
         customer_id: workflowInput.customer_id,
         list_id: productListItem.list_id,
-      })
+      }),
     )
 
     assertCustomerOwnsProductListStep(ownershipInput)
@@ -46,7 +46,7 @@ export const incrementProductListItemWorkflow = createWorkflow(
         list_id: productListItem.list_id,
         previous_quantity: productListItem.quantity,
         quantity: workflowInput.quantity,
-      })
+      }),
     )
     const item = incrementProductListItemStep(incrementInput)
 
@@ -56,5 +56,5 @@ export const incrementProductListItemWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(item)
-  }
+  },
 )

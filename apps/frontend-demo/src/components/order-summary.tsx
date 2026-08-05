@@ -49,7 +49,7 @@ export function OrderSummary({
 
   const shippingPrice = formatPrice(
     selectedShipping?.calculated_price.calculated_amount || 0,
-    selectedShipping?.calculated_price.currency_code || "CZK"
+    selectedShipping?.calculated_price.currency_code || "CZK",
   )
 
   // Order complete state
@@ -141,7 +141,7 @@ export function OrderSummary({
               onClick={() => {
                 // Add print date to body for CSS
                 document.body.dataset.printDate = new Date().toLocaleDateString(
-                  "cs-CZ"
+                  "cs-CZ",
                 )
                 window.print()
                 // Clean up after print

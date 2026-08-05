@@ -16,12 +16,12 @@ interface EmitPaykitPaymentWebhookEventInput {
 }
 
 const getPaymentModuleOptions = (
-  paymentModule: unknown
+  paymentModule: unknown,
 ): PaymentModuleOptions => {
   if (!isRecord(paymentModule)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Payment module could not be resolved for PayKit webhook"
+      "Payment module could not be resolved for PayKit webhook",
     )
   }
 
@@ -31,7 +31,7 @@ const getPaymentModuleOptions = (
 const logWebhookEmitError = (
   req: MedusaRequest,
   error: unknown,
-  context: Record<string, unknown>
+  context: Record<string, unknown>,
 ): void => {
   const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const errorObject = error instanceof Error ? error : new Error(String(error))
@@ -41,7 +41,7 @@ const logWebhookEmitError = (
     JSON.stringify({
       ...context,
       error,
-    })
+    }),
   )
 }
 
@@ -73,7 +73,7 @@ export const emitPaykitPaymentWebhookEvent = async ({
       {
         attempts: options.webhook_retries ?? 3,
         delay: options.webhook_delay ?? 5000,
-      }
+      },
     )
   } catch (error) {
     // Provider callback routes acknowledge the callback; emit failures are

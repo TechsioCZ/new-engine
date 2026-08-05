@@ -13,12 +13,12 @@ import type { StoreChangeProductListItemQuantitySchemaType } from "../../../vali
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreChangeProductListItemQuantitySchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id: itemId } = StoreProductListItemParamsSchema.parse(req.params)
 
   const { result: item } = await changeProductListItemQuantityWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
       customer_id: req.auth_context.actor_id,

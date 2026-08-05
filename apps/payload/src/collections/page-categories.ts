@@ -38,7 +38,7 @@ export const PageCategories: CollectionConfig = {
         if (data?.title && !data?.slug) {
           const slug = generateSlugFromTitle(
             data.title,
-            req?.locale ? { locale: req.locale } : {}
+            req?.locale ? { locale: req.locale } : {},
           )
           if (slug) {
             data.slug = slug

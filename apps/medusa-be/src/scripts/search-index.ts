@@ -74,7 +74,7 @@ const EMPTY_SYNC_ENTITY_RESULT: SyncEntityResult = {
 
 async function fetchEntityBatch(
   { config, fields, queryService }: SyncEntityContext,
-  offset: number
+  offset: number,
 ): Promise<unknown[]> {
   const { data } = await queryService.graph({
     entity: config.entity,
@@ -91,14 +91,14 @@ async function fetchEntityBatch(
 
 async function indexEntityBatch(
   { config, container, indexes, meilisearchIndexService }: SyncEntityContext,
-  records: unknown[]
+  records: unknown[],
 ) {
   await Promise.all(
     indexes.map(async (index) =>
       meilisearchIndexService.addDocuments(index, records, config.entityType, {
         container,
-      })
-    )
+      }),
+    ),
   )
 }
 
@@ -112,7 +112,7 @@ function addIndexedRecordIds(indexedIds: Set<string>, records: unknown[]) {
 }
 
 async function indexEntityRecords(
-  context: SyncEntityContext
+  context: SyncEntityContext,
 ): Promise<Set<string>> {
   const indexedIds = new Set<string>()
   let offset = 0
@@ -138,7 +138,7 @@ async function indexEntityRecords(
 async function collectOrphanedIdsForIndex(
   meilisearchIndexService: MeiliSearchService,
   index: string,
-  indexedIds: Set<string>
+  indexedIds: Set<string>,
 ): Promise<Set<string>> {
   const orphanedIds = new Set<string>()
   let searchOffset = 0
@@ -177,14 +177,14 @@ async function collectOrphanedIdsForIndex(
 
 async function collectOrphanedIds(
   { indexes, meilisearchIndexService }: SyncEntityContext,
-  indexedIds: Set<string>
+  indexedIds: Set<string>,
 ): Promise<Set<string>> {
   const orphanedIds = new Set<string>()
   for (const index of indexes) {
     const indexOrphanedIds = await collectOrphanedIdsForIndex(
       meilisearchIndexService,
       index,
-      indexedIds
+      indexedIds,
     )
     for (const id of indexOrphanedIds) {
       orphanedIds.add(id)
@@ -196,15 +196,15 @@ async function collectOrphanedIds(
 
 async function deleteOrphanedIds(
   { indexes, meilisearchIndexService }: SyncEntityContext,
-  orphanedIds: Set<string>
+  orphanedIds: Set<string>,
 ) {
   const idsToDelete = [...orphanedIds]
   for (let cursor = 0; cursor < idsToDelete.length; cursor += BATCH_SIZE) {
     const batch = idsToDelete.slice(cursor, cursor + BATCH_SIZE)
     await Promise.all(
       indexes.map(async (index) =>
-        meilisearchIndexService.deleteDocuments(index, batch)
-      )
+        meilisearchIndexService.deleteDocuments(index, batch),
+      ),
     )
   }
 }
@@ -227,7 +227,7 @@ const syncEntityToMeilisearch = async ({
 
   if (indexes.length === 0) {
     logger.info(
-      `Skipping ${config.entityType} sync because no MeiliSearch indexes are configured for this type`
+      `Skipping ${config.entityType} sync because no MeiliSearch indexes are configured for this type`,
     )
     return EMPTY_SYNC_ENTITY_RESULT
   }
@@ -249,7 +249,7 @@ const syncEntityToMeilisearch = async ({
   }
 
   logger.info(
-    `Synced ${config.entityType}: indexed=${indexedIds.size}, deleted=${orphanedIds.size}`
+    `Synced ${config.entityType}: indexed=${indexedIds.size}, deleted=${orphanedIds.size}`,
   )
 
   return {
@@ -287,6 +287,6 @@ export default async function searchIndexScript({ container }: ExecArgs) {
   }
 
   logger.info(
-    `MeiliSearch sync complete: indexed=${totalIndexed}, deleted=${totalDeleted}`
+    `MeiliSearch sync complete: indexed=${totalIndexed}, deleted=${totalDeleted}`,
   )
 }

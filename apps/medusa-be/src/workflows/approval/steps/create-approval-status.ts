@@ -21,7 +21,7 @@ export const createApprovalStatusStep = createStep(
     if (!firstCartId) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "At least one cart id is required to create an approval status"
+        "At least one cart id is required to create an approval status",
       )
     }
 
@@ -47,7 +47,7 @@ export const createApprovalStatusStep = createStep(
       if (!updatedApprovalStatus) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
-          "Failed to update approval status"
+          "Failed to update approval status",
         )
       }
 
@@ -61,13 +61,13 @@ export const createApprovalStatusStep = createStep(
 
     const [createdApprovalStatus] =
       await approvalModuleService.createApprovalStatuses(
-        approvalStatusesToCreate
+        approvalStatusesToCreate,
       )
 
     if (!createdApprovalStatus) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "Failed to create approval status"
+        "Failed to create approval status",
       )
     }
 
@@ -82,5 +82,5 @@ export const createApprovalStatusStep = createStep(
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModuleService.deleteApprovalStatuses(statusIds)
-  }
+  },
 )

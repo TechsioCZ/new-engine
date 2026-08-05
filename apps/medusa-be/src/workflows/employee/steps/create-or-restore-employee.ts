@@ -67,7 +67,7 @@ export const createOrRestoreEmployeeStep = createStep(
   "create-or-restore-employee",
   async (
     input: ModuleCreateEmployee,
-    { container }
+    { container },
   ): Promise<
     StepResponse<QueryGraphEmployee, CreateOrRestoreEmployeeCompensation>
   > => {
@@ -88,7 +88,7 @@ export const createOrRestoreEmployeeStep = createStep(
       ...new Set(
         existingLinks
           .map((existingLink) => existingLink.employee_id)
-          .filter((employeeId): employeeId is string => Boolean(employeeId))
+          .filter((employeeId): employeeId is string => Boolean(employeeId)),
       ),
     ]
 
@@ -111,18 +111,18 @@ export const createOrRestoreEmployeeStep = createStep(
       (existingEmployee) =>
         !(
           existingEmployee.deleted_at || existingEmployee.company?.deleted_at
-        ) && existingEmployee.company?.id !== input.company_id
+        ) && existingEmployee.company?.id !== input.company_id,
     )
     const restorableEmployee = existingEmployees.find(
       (existingEmployee) =>
         !activeOtherCompanyEmployee &&
         existingEmployee.deleted_at &&
-        existingEmployee.company?.id === input.company_id
+        existingEmployee.company?.id === input.company_id,
     )
 
     if (restorableEmployee) {
       const restoredLinkInput = getEmployeeLinkDeleteInput(
-        restorableEmployee.id
+        restorableEmployee.id,
       )
 
       await companyModuleService.restoreEmployees([restorableEmployee.id])
@@ -132,7 +132,7 @@ export const createOrRestoreEmployeeStep = createStep(
           id: restorableEmployee.id,
           is_admin: input.is_admin,
           spending_limit: input.spending_limit,
-        })
+        }),
       )
 
       const {
@@ -143,13 +143,13 @@ export const createOrRestoreEmployeeStep = createStep(
           fields: ["id", "company.*"],
           filters: { id: updatedEmployee.id },
         },
-        { throwIfKeyNotFound: true }
+        { throwIfKeyNotFound: true },
       )
 
       if (!restoredEmployee) {
         throw new MedusaError(
           MedusaError.Types.NOT_FOUND,
-          `Restored employee "${updatedEmployee.id}" was not found`
+          `Restored employee "${updatedEmployee.id}" was not found`,
         )
       }
 
@@ -165,7 +165,7 @@ export const createOrRestoreEmployeeStep = createStep(
     const createdEmployee = await companyModuleService.createEmployees(input)
 
     await link.create(
-      getEmployeeCustomerLink(createdEmployee.id, input.customer_id)
+      getEmployeeCustomerLink(createdEmployee.id, input.customer_id),
     )
 
     const {
@@ -176,13 +176,13 @@ export const createOrRestoreEmployeeStep = createStep(
         fields: ["id", "company.*"],
         filters: { id: createdEmployee.id },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!createdEmployeeResult) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Created employee "${createdEmployee.id}" was not found`
+        `Created employee "${createdEmployee.id}" was not found`,
       )
     }
 
@@ -194,7 +194,7 @@ export const createOrRestoreEmployeeStep = createStep(
   },
   async (
     input: CreateOrRestoreEmployeeCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (!input) {
       return
@@ -206,7 +206,7 @@ export const createOrRestoreEmployeeStep = createStep(
 
     if (input.action === "created") {
       await link.dismiss(
-        getEmployeeCustomerLink(input.employee_id, input.customer_id)
+        getEmployeeCustomerLink(input.employee_id, input.customer_id),
       )
       await companyModuleService.deleteEmployees([input.employee_id])
       return
@@ -219,5 +219,5 @@ export const createOrRestoreEmployeeStep = createStep(
     })
     await link.delete(input.restored_link_input)
     await companyModuleService.softDeleteEmployees([input.employee_id])
-  }
+  },
 )

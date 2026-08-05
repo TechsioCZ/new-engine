@@ -4,7 +4,7 @@ import { buildInventoryItemsInput } from "../../../../../src/workflows/seed/help
 import type { CreateProductsStepInput } from "../../../../../src/workflows/seed/steps"
 
 function buildProduct(
-  variants: NonNullable<CreateProductsStepInput[number]["variants"]>
+  variants: NonNullable<CreateProductsStepInput[number]["variants"]>,
 ): CreateProductsStepInput[number] {
   return {
     categories: [],
@@ -31,7 +31,7 @@ describe(buildInventoryItemsInput, () => {
             title: "Missing SKU",
           },
         ]),
-      ])
+      ]),
     ).toStrictEqual([])
   })
 
@@ -53,7 +53,7 @@ describe(buildInventoryItemsInput, () => {
             title: "Located",
           },
         ]),
-      ])
+      ]),
     ).toStrictEqual([
       {
         locations: [
@@ -79,7 +79,7 @@ describe(buildInventoryItemsInput, () => {
             title: "Quantity",
           },
         ]),
-      ])
+      ]),
     ).toStrictEqual([
       {
         quantity: 7,

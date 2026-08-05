@@ -377,18 +377,18 @@ export type StorefrontTextKey =
 export type StorefrontTextMessages = Partial<Record<StorefrontTextKey, string>>
 
 const STOREFRONT_TEXT_KEYS = new Set<string>(
-  STOREFRONT_TEXT_DEFINITIONS.map((definition) => definition.key)
+  STOREFRONT_TEXT_DEFINITIONS.map((definition) => definition.key),
 )
 
 const validateCatalogKeys = (
   messages: Record<string, string>,
-  label: string
+  label: string,
 ): Record<StorefrontTextKey, string> => {
   const missingKeys = STOREFRONT_TEXT_DEFINITIONS.filter(
-    (definition) => messages[definition.key] === undefined
+    (definition) => messages[definition.key] === undefined,
   ).map((definition) => definition.key)
   const unknownKeys = Object.keys(messages).filter(
-    (key) => !STOREFRONT_TEXT_KEYS.has(key)
+    (key) => !STOREFRONT_TEXT_KEYS.has(key),
   )
 
   if (missingKeys.length || unknownKeys.length) {
@@ -400,7 +400,7 @@ const validateCatalogKeys = (
         unknownKeys.length ? `Unknown keys: ${unknownKeys.join(", ")}.` : "",
       ]
         .filter(Boolean)
-        .join(" ")
+        .join(" "),
     )
   }
 
@@ -412,13 +412,13 @@ const STOREFRONT_TEXT_DEFAULT_MESSAGES = Object.fromEntries(
     market.market,
     validateCatalogKeys(
       getFlatStorefrontTextCatalog(market.locale),
-      market.locale
+      market.locale,
     ),
-  ])
+  ]),
 ) as Record<StorefrontTextMarket, Record<StorefrontTextKey, string>>
 
 export const parseStorefrontTextCatalog = (
-  catalog: unknown
+  catalog: unknown,
 ): Record<StorefrontTextKey, string> =>
   validateCatalogKeys(flattenStorefrontTextCatalog(catalog), "Imported catalog")
 
@@ -434,7 +434,7 @@ export const parseStorefrontTextCatalogEnvelope = ({
   if (!isRecord(catalog)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Storefront text catalog must be a JSON object"
+      "Storefront text catalog must be a JSON object",
     )
   }
 
@@ -445,48 +445,48 @@ export const parseStorefrontTextCatalogEnvelope = ({
     "schema_version",
   ])
   const unknownEnvelopeKeys = Object.keys(catalog).filter(
-    (key) => !envelopeKeys.has(key)
+    (key) => !envelopeKeys.has(key),
   )
 
   if (unknownEnvelopeKeys.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unknown storefront text catalog fields: ${unknownEnvelopeKeys.join(", ")}`
+      `Unknown storefront text catalog fields: ${unknownEnvelopeKeys.join(", ")}`,
     )
   }
 
   if (catalog["schema_version"] !== STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text catalog schema version "${String(catalog["schema_version"])}"`
+      `Unsupported storefront text catalog schema version "${String(catalog["schema_version"])}"`,
     )
   }
 
   if (!isStorefrontTextMarket(catalog["market"])) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text market "${String(catalog["market"])}"`
+      `Unsupported storefront text market "${String(catalog["market"])}"`,
     )
   }
 
   if (catalog["market"] !== targetMarket) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Catalog market "${catalog["market"]}" does not match target market "${targetMarket}"`
+      `Catalog market "${catalog["market"]}" does not match target market "${targetMarket}"`,
     )
   }
 
   if (!isStorefrontTextLocale(catalog["locale"])) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text locale "${String(catalog["locale"])}"`
+      `Unsupported storefront text locale "${String(catalog["locale"])}"`,
     )
   }
 
   if (!isStorefrontTextMarketLocalePair(catalog["market"], catalog["locale"])) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Locale "${catalog["locale"]}" does not belong to market "${catalog["market"]}"`
+      `Locale "${catalog["locale"]}" does not belong to market "${catalog["market"]}"`,
     )
   }
 
@@ -518,7 +518,7 @@ export const getStorefrontTextSeedRows = ({
 } = {}): StorefrontTextSeedRow[] =>
   STOREFRONT_TEXT_DEFINITIONS.flatMap((definition) =>
     STOREFRONT_TEXT_MARKETS.filter(
-      (configuration) => !market || configuration.market === market
+      (configuration) => !market || configuration.market === market,
     ).map((configuration) => ({
       country: configuration.country,
       default_value:
@@ -531,7 +531,7 @@ export const getStorefrontTextSeedRows = ({
       namespace: definition.namespace,
       override_value: null,
       status: "active",
-    }))
+    })),
   )
 
 export const getStorefrontTextDefaultMessages = ({

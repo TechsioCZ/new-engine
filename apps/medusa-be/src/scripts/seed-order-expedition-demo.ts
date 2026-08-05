@@ -143,7 +143,7 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
   const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
   const orderService = container.resolve<IOrderModuleService>(Modules.ORDER)
   const pgConnection = container.resolve<DatabaseConnection>(
-    ContainerRegistrationKeys.PG_CONNECTION
+    ContainerRegistrationKeys.PG_CONNECTION,
   )
 
   logger.info("Starting order expedition demo seed...")
@@ -159,12 +159,12 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
   await normalizeExistingDemoOrderDates(
     pgConnection,
     existingDemoOrders,
-    logger
+    logger,
   )
 
   if (existingDemoOrders.length >= DEMO_ORDER_COUNT) {
     logger.info(
-      `Order expedition demo already has ${existingDemoOrders.length} orders, skipping order creation.`
+      `Order expedition demo already has ${existingDemoOrders.length} orders, skipping order creation.`,
     )
     return
   }
@@ -172,7 +172,7 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
   const variants = await fetchVariants(query)
   if (variants.length < 6) {
     throw new Error(
-      "Not enough product variants for order expedition demo seed"
+      "Not enough product variants for order expedition demo seed",
     )
   }
 
@@ -254,7 +254,7 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
   logger.info(
     `Created ${ordersToCreate.length} order expedition demo orders. Total demo orders: ${
       existingDemoOrders.length + ordersToCreate.length
-    }.`
+    }.`,
   )
 }
 
@@ -276,7 +276,7 @@ async function ensureRegion(container: ExecArgs["container"]) {
 
 async function ensureSalesChannel(container: ExecArgs["container"]) {
   const salesChannelService = container.resolve<ISalesChannelModuleService>(
-    Modules.SALES_CHANNEL
+    Modules.SALES_CHANNEL,
   )
   const existing = await salesChannelService.listSalesChannels({
     name: "Default Sales Channel",
@@ -294,26 +294,26 @@ async function ensureSalesChannel(container: ExecArgs["container"]) {
 
 async function ensureProducts(
   container: ExecArgs["container"],
-  logger: Logger
+  logger: Logger,
 ) {
   const productService = container.resolve<IProductModuleService>(
-    Modules.PRODUCT
+    Modules.PRODUCT,
   )
   const categories = await ensureCategories(productService)
   const existingProducts = await productService.listProducts(
     {},
     {
       select: ["handle"],
-    }
+    },
   )
   const demoHandles = new Set(buildDemoProductHandles())
   const existingHandles = new Set(
     existingProducts
       .map((product) => product.handle)
-      .filter((handle): handle is string => demoHandles.has(handle ?? ""))
+      .filter((handle): handle is string => demoHandles.has(handle ?? "")),
   )
   const missingProducts = buildDemoProducts(categories).filter(
-    (product) => !existingHandles.has(product.handle)
+    (product) => !existingHandles.has(product.handle),
   )
 
   if (!missingProducts.length) {
@@ -323,7 +323,7 @@ async function ensureProducts(
 
   await productService.createProducts(missingProducts as never)
   logger.info(
-    `Created ${missingProducts.length} order expedition demo products.`
+    `Created ${missingProducts.length} order expedition demo products.`,
   )
 }
 
@@ -332,14 +332,14 @@ async function ensureCategories(productService: IProductModuleService) {
     {},
     {
       select: ["id", "handle", "name"],
-    }
+    },
   )
   const demoHandles = new Set<string>(
-    PRODUCT_GROUPS.map((group) => group.handle)
+    PRODUCT_GROUPS.map((group) => group.handle),
   )
   const existingHandles = new Set(existing.map((category) => category.handle))
   const missing = PRODUCT_GROUPS.filter(
-    (group) => !existingHandles.has(group.handle)
+    (group) => !existingHandles.has(group.handle),
   )
 
   if (missing.length) {
@@ -348,7 +348,7 @@ async function ensureCategories(productService: IProductModuleService) {
         handle: group.handle,
         is_active: true,
         name: group.category,
-      }))
+      })),
     )
   }
 
@@ -356,18 +356,18 @@ async function ensureCategories(productService: IProductModuleService) {
     {},
     {
       select: ["id", "handle", "name"],
-    }
+    },
   )
 
   return new Map(
     categories
       .filter((category) => demoHandles.has(category.handle))
-      .map((category) => [category.handle, category])
+      .map((category) => [category.handle, category]),
   )
 }
 
 function buildDemoProducts(
-  categories: Map<string, ProductCategoryDTO>
+  categories: Map<string, ProductCategoryDTO>,
 ): DemoProductInput[] {
   return Array.from({ length: 24 }, (_, index) => {
     const group = pickCircular(PRODUCT_GROUPS, index)
@@ -413,7 +413,7 @@ function buildDemoProducts(
 function buildDemoProductHandles() {
   return Array.from(
     { length: 24 },
-    (_, index) => `order-expedition-demo-${index + 1}`
+    (_, index) => `order-expedition-demo-${index + 1}`,
   )
 }
 
@@ -506,7 +506,7 @@ async function fetchExistingDemoOrders(query: QueryService) {
           "metadata" in order &&
           (order as { metadata?: Record<string, unknown> }).metadata?.[
             "order_expedition_demo"
-          ] === true
+          ] === true,
       )
     : []
 
@@ -529,7 +529,7 @@ async function fetchVariants(query: QueryService) {
 
   return Array.isArray(data)
     ? (data as DemoVariant[]).filter((variant) =>
-        demoHandles.has(variant.product?.handle ?? "")
+        demoHandles.has(variant.product?.handle ?? ""),
       )
     : []
 }
@@ -537,7 +537,7 @@ async function fetchVariants(query: QueryService) {
 async function normalizeExistingDemoOrderDates(
   pgConnection: DatabaseConnection,
   existingDemoOrders: ExistingDemoOrder[],
-  logger: Logger
+  logger: Logger,
 ) {
   if (!existingDemoOrders.length) {
     return
@@ -549,19 +549,19 @@ async function normalizeExistingDemoOrderDates(
     await updateOrderCreatedAt(
       pgConnection,
       order.id,
-      getDemoOrderCreatedAt(index, now)
+      getDemoOrderCreatedAt(index, now),
     )
   }
 
   logger.info(
-    `Normalized created_at dates for ${existingDemoOrders.length} existing order expedition demo orders.`
+    `Normalized created_at dates for ${existingDemoOrders.length} existing order expedition demo orders.`,
   )
 }
 
 async function updateOrderCreatedAt(
   pgConnection: DatabaseConnection,
   orderId: string,
-  createdAt: Date
+  createdAt: Date,
 ) {
   await pgConnection.raw('update "order" set "created_at" = ? where "id" = ?', [
     createdAt,
@@ -597,7 +597,7 @@ function sortExistingDemoOrders(orders: ExistingDemoOrder[]) {
 
 function getExistingDemoOrderSortIndex(
   order: ExistingDemoOrder,
-  fallbackIndex: number
+  fallbackIndex: number,
 ) {
   const metadataIndex = order.metadata?.["order_expedition_demo_index"]
   if (typeof metadataIndex === "number" && Number.isFinite(metadataIndex)) {

@@ -37,7 +37,7 @@ const createWrapper =
 const trackedClients: QueryClient[] = []
 
 const createTestClient = (
-  config?: ConstructorParameters<typeof QueryClient>[0]
+  config?: ConstructorParameters<typeof QueryClient>[0],
 ) => {
   const client = new QueryClient(config)
   trackedClients.push(client)
@@ -112,7 +112,7 @@ describe("storefront-data hook smoke tests", () => {
               shipping_address: payload.shipping_address,
             },
           })
-        })
+        }),
       )
     })
 
@@ -252,7 +252,7 @@ describe("storefront-data hook smoke tests", () => {
         cartQueryKeys.active({
           cartId: "cart_123",
           regionId: "reg_123",
-        })
+        }),
       )
 
       expect(cachedCart?.id).toBe("cart_123")
@@ -276,7 +276,7 @@ describe("storefront-data hook smoke tests", () => {
     }
 
     const buildListParams = (
-      input: ProductListInputBase
+      input: ProductListInputBase,
     ): ProductListParams => {
       const limit = input.limit ?? 2
       const page = input.page ?? 1
@@ -312,7 +312,7 @@ describe("storefront-data hook smoke tests", () => {
             offset,
             products,
           })
-        })
+        }),
       )
 
       const service: ProductService<
@@ -366,7 +366,7 @@ describe("storefront-data hook smoke tests", () => {
             page: 1,
             region_id: "reg_infinite",
           }),
-        { wrapper }
+        { wrapper },
       )
 
       await waitFor(() => {
@@ -407,7 +407,7 @@ describe("storefront-data hook smoke tests", () => {
             offset,
             products,
           })
-        })
+        }),
       )
 
       const service: ProductService<
@@ -448,7 +448,7 @@ describe("storefront-data hook smoke tests", () => {
             page: 1,
             region_id: "reg_infinite",
           }),
-        { wrapper }
+        { wrapper },
       )
 
       await waitFor(() => {
@@ -489,7 +489,7 @@ describe("storefront-data hook smoke tests", () => {
     }
 
     const buildDetailParams = (
-      input: OrderDetailInputBase
+      input: OrderDetailInputBase,
     ): OrderDetailParams => {
       if (!input.id) {
         throw new Error("Order id is required for order queries")
@@ -511,8 +511,8 @@ describe("storefront-data hook smoke tests", () => {
           })
         }),
         http.get(`${baseUrl}/orders/:id`, ({ params }) =>
-          HttpResponse.json({ order: { id: String(params["id"]) } })
-        )
+          HttpResponse.json({ order: { id: String(params["id"]) } }),
+        ),
       )
 
       const service: OrderService<Order, OrderListParams, OrderDetailParams> = {
@@ -594,7 +594,7 @@ describe("storefront-data hook smoke tests", () => {
         http.get(`${baseUrl}/customers/me/addresses`, () =>
           HttpResponse.json({
             addresses: [{ address_1: "Main", id: "addr_1" }],
-          })
+          }),
         ),
         http.post(`${baseUrl}/customers/me/addresses`, async ({ request }) => {
           lastCreateBody = (await request.json()) as CreateParams
@@ -609,15 +609,15 @@ describe("storefront-data hook smoke tests", () => {
             return HttpResponse.json({
               address: { address_1: "Updated", id: String(params["id"]) },
             })
-          }
+          },
         ),
         http.delete(`${baseUrl}/customers/me/addresses/:id`, () =>
-          HttpResponse.json({})
+          HttpResponse.json({}),
         ),
         http.post(`${baseUrl}/customers/me`, async ({ request }) => {
           lastUpdateBody = (await request.json()) as Record<string, unknown>
           return HttpResponse.json({ customer: { id: "cust_1" } })
-        })
+        }),
       )
     })
 
@@ -655,7 +655,7 @@ describe("storefront-data hook smoke tests", () => {
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify(params),
-            }
+            },
           )
           const data = await response.json()
           return data.address as Address

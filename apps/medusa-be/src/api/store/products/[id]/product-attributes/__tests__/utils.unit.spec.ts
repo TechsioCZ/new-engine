@@ -22,7 +22,7 @@ const createDefinition = (
   overrides: Pick<
     ProductAttributeDefinitionRecord,
     "id" | "input_type" | "is_public" | "key" | "label"
-  >
+  >,
 ): ProductAttributeDefinitionRecord => ({
   ...RECORD_TIMESTAMPS,
   ...overrides,
@@ -33,7 +33,7 @@ const createDefinition = (
 const createOption = (
   overrides: Pick<ProductAttributeOptionRecord, "id" | "key" | "label"> & {
     definition: ProductAttributeDefinitionRecord
-  }
+  },
 ): ProductAttributeOptionRecord => ({
   ...RECORD_TIMESTAMPS,
   ...overrides,
@@ -47,7 +47,7 @@ const createAssignment = (
     option?: ProductAttributeOptionRecord | null
     option_id?: string | null
     text_value?: string | null
-  }
+  },
 ): TranslatedProductAttributeAssignment => {
   const {
     definition,
@@ -103,7 +103,7 @@ describe("Store Product Attributes visibility", () => {
           id: "pat_2",
           product_id: "prod_1",
         }),
-      ])
+      ]),
     ).toStrictEqual([
       {
         definition: {
@@ -139,7 +139,7 @@ describe("Store Product Attributes visibility", () => {
           option_id: "patopt_deleted",
           product_id: "prod_1",
         }),
-      ])
+      ]),
     ).toStrictEqual([])
   })
 
@@ -183,7 +183,7 @@ describe("Store Product Attributes visibility", () => {
           text_value: "first",
         }),
       ],
-      { limit: 1, offset: 1 }
+      { limit: 1, offset: 1 },
     )
 
     expect(result.count).toBe(2)

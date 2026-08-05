@@ -56,7 +56,7 @@ export const createCustomerIdentity = async ({
         "content-type": "application/json",
       },
       method: "POST",
-    }
+    },
   )
 
   const registerConflict = isConflictStatus(registerResponse.status)
@@ -66,7 +66,7 @@ export const createCustomerIdentity = async ({
 
   if (registerConflict && wholesale) {
     return conflict(
-      "Účet s týmto e-mailom už existuje. Prihláste sa a požiadajte o VO účet cez podporu."
+      "Účet s týmto e-mailom už existuje. Prihláste sa a požiadajte o VO účet cez podporu.",
     )
   }
 
@@ -89,7 +89,7 @@ export const loginCustomerIdentity = async ({
         "content-type": "application/json",
       },
       method: "POST",
-    }
+    },
   )
 
   if (!loginResponse.ok) {
@@ -108,7 +108,7 @@ export const loginCustomerIdentity = async ({
   if (!loginToken) {
     return {
       error: serverError(
-        "Prihlásenie zákazníka prebehlo úspešne, ale token nebol vrátený."
+        "Prihlásenie zákazníka prebehlo úspešne, ale token nebol vrátený.",
       ),
       token: null,
     }
@@ -157,7 +157,7 @@ export const createCustomerProfile = async ({
         ...getPublishableHeaders(),
       },
       method: "POST",
-    }
+    },
   )
 
   const customerConflict = isConflictStatus(createCustomerResponse.status)

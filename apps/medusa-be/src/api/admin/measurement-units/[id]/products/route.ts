@@ -8,7 +8,7 @@ import type { AdminGetMeasurementUnitProductsSchemaType } from "../../validators
 
 export async function GET(
   req: MedusaRequest<unknown, AdminGetMeasurementUnitProductsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const unitId = req.params["id"] ?? ""
 

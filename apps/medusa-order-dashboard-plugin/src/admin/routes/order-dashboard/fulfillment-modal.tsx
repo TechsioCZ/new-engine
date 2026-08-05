@@ -106,7 +106,7 @@ export function OrderFulfillmentModal({
             fulfillmentOrdersQuery.data,
             selectedOrders,
             shippingOptions,
-            t
+            t,
           )
         : { fulfillable: [], skipped: [] },
     [
@@ -115,7 +115,7 @@ export function OrderFulfillmentModal({
       selectedOrders,
       shippingOptions,
       t,
-    ]
+    ],
   )
   const isPreviewLoading =
     fulfillmentOrdersQuery.isLoading ||
@@ -128,7 +128,7 @@ export function OrderFulfillmentModal({
 
   const fulfillmentMutation = useMutation({
     mutationFn: async (
-      orders: OrderDashboardFulfillmentPreviewOrder[]
+      orders: OrderDashboardFulfillmentPreviewOrder[],
     ): Promise<OrderDashboardFulfillmentBulkResult> => {
       const fulfilled: OrderDashboardFulfillmentBulkResult["fulfilled"] = []
       const failed: OrderDashboardBlockingOrder[] = []
@@ -169,11 +169,11 @@ export function OrderFulfillmentModal({
               })
             : t("toast.fulfillmentCreated", {
                 count: bulkResult.fulfilled.length,
-              })
+              }),
         )
       } else {
         toast.error(
-          bulkResult.failed[0]?.reason ?? t("toast.fulfillmentSkipped")
+          bulkResult.failed[0]?.reason ?? t("toast.fulfillmentSkipped"),
         )
       }
 
@@ -219,7 +219,7 @@ export function OrderFulfillmentModal({
     }
 
     setSendNotification(
-      fulfillmentOrdersQuery.data.some((order) => !order.no_notification)
+      fulfillmentOrdersQuery.data.some((order) => !order.no_notification),
     )
     setNotificationDefaultApplied(true)
   }, [fulfillmentOrdersQuery.data, notificationDefaultApplied, open])
@@ -478,7 +478,7 @@ function FulfillmentPreviewSection({
           {visibleOrders.map((order) => {
             const itemCount = order.items.reduce(
               (sum, item) => sum + item.quantity,
-              0
+              0,
             )
 
             return (
@@ -627,13 +627,13 @@ function getBulkFulfillmentPreview(
   fulfillmentOrders: OrderDashboardFulfillmentOrder[],
   selectedOrders: OrderDashboardOrder[],
   shippingOptions: OrderDashboardShippingOption[],
-  t: TranslationFunction
+  t: TranslationFunction,
 ) {
   const fulfillmentOrdersById = new Map(
-    fulfillmentOrders.map((order) => [order.id, order])
+    fulfillmentOrders.map((order) => [order.id, order]),
   )
   const shippingOptionsById = new Map(
-    shippingOptions.map((option) => [option.id, option])
+    shippingOptions.map((option) => [option.id, option]),
   )
   const fulfillable: OrderDashboardFulfillmentPreviewOrder[] = []
   const skipped: OrderDashboardBlockingOrder[] = []
@@ -698,7 +698,7 @@ function getBulkFulfillmentPreview(
 function getFulfillmentSkipReason(
   order: OrderDashboardFulfillmentOrder,
   shippingOptionsById: Map<string, OrderDashboardShippingOption>,
-  t: TranslationFunction
+  t: TranslationFunction,
 ) {
   if (order.status === "canceled") {
     return t("fulfillmentBlocker.canceled")
@@ -731,7 +731,7 @@ function getFulfillmentSkipReason(
 
 function getFulfillableShippingItems(
   order: OrderDashboardFulfillmentOrder,
-  shippingOption?: OrderDashboardShippingOption
+  shippingOption?: OrderDashboardShippingOption,
 ) {
   const shippingProfileId = shippingOption?.shipping_profile_id
 
@@ -764,7 +764,7 @@ function getOrderShippingOptionId(order: OrderDashboardFulfillmentOrder) {
 }
 
 function formatFulfillmentOrderDisplayId(
-  order?: OrderDashboardFulfillmentOrder
+  order?: OrderDashboardFulfillmentOrder,
 ) {
   if (!order) {
     return "-"

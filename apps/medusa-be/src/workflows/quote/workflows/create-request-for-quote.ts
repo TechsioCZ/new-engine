@@ -63,14 +63,14 @@ export const createRequestForQuoteWorkflow = createWorkflow(
         is_draft_order: true,
         items: cartData.items,
         promo_codes: cartData.promotions.map(
-          ({ code }: { code: string }) => code
+          ({ code }: { code: string }) => code,
         ),
         region_id: cartData.region_id,
         sales_channel_id: cartData.sales_channel_id,
         shipping_address: cartData.shipping_address,
         shipping_methods: cartData.shipping_methods,
         status: OrderStatus.DRAFT,
-      })
+      }),
     )
 
     const draftOrder = createOrdersWorkflow.runAsStep({
@@ -84,7 +84,7 @@ export const createRequestForQuoteWorkflow = createWorkflow(
         internal_note: "",
         metadata: {},
         order_id: draftOrderData.id,
-      })
+      }),
     )
 
     const changeOrder = beginOrderEditOrderWorkflow.runAsStep({
@@ -103,5 +103,5 @@ export const createRequestForQuoteWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse({ quote: quotes[0] })
-  }
+  },
 )

@@ -11,5 +11,5 @@ export const ProductBrandLink = defineLink(
   {
     filterable: ["id", "title", "handle"],
     linkable: BrandModule.linkable.brand,
-  }
+  },
 )

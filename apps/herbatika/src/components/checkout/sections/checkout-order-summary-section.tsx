@@ -61,7 +61,7 @@ export function CheckoutOrderSummarySection({
             const itemQuantity = item.quantity ?? 0
             const itemPrice = formatCurrencyAmount(
               resolveLineItemTotalAmount(item),
-              currencyCode
+              currencyCode,
             )
             const itemThumbnail =
               typeof item.thumbnail === "string" && item.thumbnail.length > 0

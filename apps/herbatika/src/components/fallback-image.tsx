@@ -13,7 +13,7 @@ type FallbackImageProps = Omit<ImageProps, "src"> & {
 
 const resolveImageSrc = (
   src: FallbackImageProps["src"],
-  fallbackSrc: ImageProps["src"]
+  fallbackSrc: ImageProps["src"],
 ) => src || fallbackSrc
 
 export function FallbackImage({
@@ -23,7 +23,7 @@ export function FallbackImage({
   ...props
 }: FallbackImageProps) {
   const [imageSrc, setImageSrc] = useState<ImageProps["src"]>(
-    resolveImageSrc(src, fallbackSrc)
+    resolveImageSrc(src, fallbackSrc),
   )
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export function FallbackImage({
   const handleError: NonNullable<ImageProps["onError"]> = (event) => {
     onError?.(event)
     setImageSrc((currentImageSrc) =>
-      currentImageSrc === fallbackSrc ? currentImageSrc : fallbackSrc
+      currentImageSrc === fallbackSrc ? currentImageSrc : fallbackSrc,
     )
   }
 

@@ -56,7 +56,7 @@ const addBusinessDays = (start: Date, daysToAdd: number) => {
 
 export const normalizeCategoryName = (
   value?: string | null,
-  fallbackLabel = "Kategória"
+  fallbackLabel = "Kategória",
 ) => {
   if (!value) {
     return fallbackLabel
@@ -87,7 +87,7 @@ export const resolveProductImages = (product: Product | null): string[] => {
 
 export const resolveVariantLabel = (
   variant: HttpTypes.StoreProductVariant,
-  optionTitlesById: Map<string, string>
+  optionTitlesById: Map<string, string>,
 ) => {
   const optionLabels = (variant.options ?? [])
     .map((option) => {
@@ -123,7 +123,7 @@ export const resolveOfferState = (
   fallbackLabels: {
     inStock: string
     outOfStock: string
-  }
+  },
 ): ProductOfferState => {
   const metadata = asRecord(product?.metadata)
   const topOffer = asRecord(metadata?.top_offer)
@@ -172,7 +172,7 @@ export const resolveProductContentSections = (
   sectionTitles: Record<
     (typeof PRODUCT_DETAIL_SECTION_ORDER)[number] | "content",
     string
-  >
+  >,
 ): ProductDetailContentSection[] => {
   const metadata = asRecord(product?.metadata)
   const sectionMap = asRecord(metadata?.content_sections_map)

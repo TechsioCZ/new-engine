@@ -34,10 +34,10 @@ const PAYMENT_RETURN_RETRY_DELAY_MS = 1500
 export function CheckoutPaymentReturnPanel() {
   const tCheckout = useTranslations("checkout")
   const confirmationPendingMessage = tCheckout(
-    "payment_return_confirmation_pending"
+    "payment_return_confirmation_pending",
   )
   const verificationFailedMessage = tCheckout(
-    "payment_return_verification_failed"
+    "payment_return_verification_failed",
   )
   const paymentNotCompletedMessage = tCheckout("payment_return_not_completed")
   const searchParams = useSearchParams()
@@ -127,7 +127,7 @@ export function CheckoutPaymentReturnPanel() {
 
         const errorMessage = resolveErrorMessage(
           error,
-          verificationFailedMessage
+          verificationFailedMessage,
         )
         scheduleRetryOrFail(errorMessage)
       }
@@ -138,8 +138,8 @@ export function CheckoutPaymentReturnPanel() {
         setReturnError(
           resolvePaymentReturnFailureMessage(
             message,
-            paymentNotCompletedMessage
-          )
+            paymentNotCompletedMessage,
+          ),
         )
         return
       }
@@ -291,7 +291,7 @@ function PaymentReturnStatusCard({
 
 function resolvePaymentReturnFailureMessage(
   message: string,
-  authorizationFailureMessage: string
+  authorizationFailureMessage: string,
 ) {
   if (isPaymentProviderAuthorizationFailure(message)) {
     return authorizationFailureMessage

@@ -13,7 +13,7 @@ import type {
 const FIXED_NOW = new Date("2026-01-01T12:00:00.000Z")
 
 const createFulfillment = (
-  overrides: Partial<PendingFulfillment> = {}
+  overrides: Partial<PendingFulfillment> = {},
 ): PendingFulfillment => ({
   created_at: new Date().toISOString(),
   data: {
@@ -27,7 +27,7 @@ const createFulfillment = (
 })
 
 const createAttemptInfo = (
-  overrides: Partial<SyncAttemptInfo> = {}
+  overrides: Partial<SyncAttemptInfo> = {},
 ): SyncAttemptInfo => ({
   firstSyncAttempt: new Date().toISOString(),
   now: new Date().toISOString(),

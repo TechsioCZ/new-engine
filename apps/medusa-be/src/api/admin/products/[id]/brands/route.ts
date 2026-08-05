@@ -15,7 +15,7 @@ import type { AdminSetProductBrandsSchemaType } from "../../../brands/validators
 
 export async function GET(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const productId = req.params["id"] ?? ""
 
@@ -25,20 +25,20 @@ export async function GET(
   const brands = await listBrandsByIds(req.scope, brandIds)
   const activeProductCounts = await getBrandActiveProductCounts(
     req.scope,
-    brandIds
+    brandIds,
   )
 
   res.status(200).json({
     brand_ids: brandIds,
     brands: brands.map((brand) =>
-      toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0)
+      toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0),
     ),
   })
 }
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminSetProductBrandsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const productId = req.params["id"] ?? ""
 
@@ -55,13 +55,13 @@ export async function POST(
   const brands = await listBrandsByIds(req.scope, nextBrandIds)
   const activeProductCounts = await getBrandActiveProductCounts(
     req.scope,
-    nextBrandIds
+    nextBrandIds,
   )
 
   res.status(200).json({
     brand_ids: nextBrandIds,
     brands: brands.map((brand) =>
-      toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0)
+      toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0),
     ),
   })
 }

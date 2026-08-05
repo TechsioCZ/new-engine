@@ -148,7 +148,7 @@ export function Popover({
   const uniqueId = id || generatedId
 
   const machineProps = Object.fromEntries(
-    Object.entries(props).filter(([, option]) => option !== undefined)
+    Object.entries(props).filter(([, option]) => option !== undefined),
   )
   const service = useMachine(machine, {
     ...machineProps,
@@ -327,7 +327,7 @@ Popover.Content = function PopoverContent({
     api.getContentProps() as ComponentPropsWithoutRef<"div">
   const contentProps = mergeProps(
     machineContentProps,
-    props
+    props,
   ) as PopoverContentMergedProps
   const contentPlacement = contentProps["data-placement"]
   // Derive data-side from Zag's computed placement so flipped positions animate from the actual side.

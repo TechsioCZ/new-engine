@@ -54,7 +54,7 @@ export function buildStorefrontResponseHeaders(options) {
             ],
           ]
         : []),
-    ].map(([key, value]) => [key, value])
+    ].map(([key, value]) => [key, value]),
   )
 
   for (const header of extendHeaders) {

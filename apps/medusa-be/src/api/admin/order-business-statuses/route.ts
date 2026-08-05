@@ -11,7 +11,7 @@ import type { GetAdminOrderBusinessStatusesSchemaType } from "./validators"
 
 export async function GET(
   req: MedusaRequest<unknown, GetAdminOrderBusinessStatusesSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { limit, offset } = req.validatedQuery

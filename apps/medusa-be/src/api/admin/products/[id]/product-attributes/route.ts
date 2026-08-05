@@ -14,7 +14,7 @@ import type { AdminSetProductAttributesSchemaType } from "../../../product-attri
 
 const ensureProductExists = async (
   req: AuthenticatedMedusaRequest,
-  productId: string
+  productId: string,
 ) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -26,14 +26,14 @@ const ensureProductExists = async (
   if (!data[0]) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product "${productId}" was not found.`
+      `Product "${productId}" was not found.`,
     )
   }
 }
 
 export async function GET(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const productId = req.params["id"] ?? ""
   await ensureProductExists(req, productId)
@@ -44,7 +44,7 @@ export async function GET(
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminSetProductAttributesSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const productId = req.params["id"] ?? ""
   await setProductAttributesWorkflow(req.scope).run({

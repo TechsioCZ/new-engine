@@ -85,8 +85,8 @@ describe("catalog query options region merge", () => {
         },
         {
           region: { country_code: "sk", region_id: "reg_sk" },
-        }
-      )
+        },
+      ),
     )
 
     expect(service.getCatalogProducts).toHaveBeenCalledWith(
@@ -95,7 +95,7 @@ describe("catalog query options region merge", () => {
         q: "kretin",
         region_id: "reg_sk",
       },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
   })
 
@@ -111,8 +111,8 @@ describe("catalog query options region merge", () => {
         },
         {
           region: { country_code: "sk", region_id: "reg_sk" },
-        }
-      )
+        },
+      ),
     )
 
     expect(service.getCatalogProducts).toHaveBeenCalledWith(
@@ -121,7 +121,7 @@ describe("catalog query options region merge", () => {
         q: "kretin",
         region_id: "reg_cz",
       },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
   })
 
@@ -136,8 +136,8 @@ describe("catalog query options region merge", () => {
         },
         {
           region: { country_code: "sk", region_id: "reg_cz" },
-        }
-      )
+        },
+      ),
     )
 
     expect(service.getCatalogProducts).toHaveBeenCalledWith(
@@ -146,7 +146,7 @@ describe("catalog query options region merge", () => {
         q: "kretin",
         region_id: "reg_cz",
       },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
   })
 })

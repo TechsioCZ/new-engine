@@ -27,7 +27,7 @@ export function firstNonEmpty(
 }
 
 export async function deriveRepositoryUrl(
-  explicitValue?: string
+  explicitValue?: string,
 ): Promise<string> {
   if (explicitValue?.trim()) {
     return explicitValue.trim()
@@ -54,7 +54,7 @@ export async function deriveRepositoryUrl(
 }
 
 export async function deriveBranchName(
-  explicitValue?: string
+  explicitValue?: string,
 ): Promise<string> {
   if (explicitValue?.trim()) {
     return explicitValue.trim()
@@ -142,7 +142,7 @@ export function literalSource(value: string): BootstrapValueSource {
 }
 
 export function serviceNetworkAliasSource(
-  serviceSlug: string
+  serviceSlug: string,
 ): BootstrapValueSource {
   return {
     kind: "service_network_alias",
@@ -151,7 +151,7 @@ export function serviceNetworkAliasSource(
 }
 
 export function serviceGlobalNetworkAliasSource(
-  serviceSlug: string
+  serviceSlug: string,
 ): BootstrapValueSource {
   return {
     kind: "service_global_network_alias",
@@ -160,7 +160,7 @@ export function serviceGlobalNetworkAliasSource(
 }
 
 export function servicePublicOriginSource(
-  serviceSlug: string
+  serviceSlug: string,
 ): BootstrapValueSource {
   return {
     kind: "service_public_origin",

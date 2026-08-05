@@ -11,7 +11,7 @@ import type { StoreBrandsDetailProductsSchemaType } from "../../validators"
 
 export async function GET(
   req: MedusaRequest<unknown, StoreBrandsDetailProductsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
@@ -27,7 +27,7 @@ export async function GET(
   if (!brands.length) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Brand with id "${brandId}" was not found`
+      `Brand with id "${brandId}" was not found`,
     )
   }
 
@@ -39,7 +39,7 @@ export async function GET(
     },
   })
   const linkedProductIds = productLinks.flatMap((link) =>
-    typeof link.product_id === "string" ? [link.product_id] : []
+    typeof link.product_id === "string" ? [link.product_id] : [],
   )
 
   if (!linkedProductIds.length) {

@@ -39,7 +39,7 @@ export function formatPercent(rate: number, locale: string) {
 export function getCountryName(
   country: RegionCountry | undefined,
   countryCode: string,
-  locale: string
+  locale: string,
 ) {
   const explicitName = country?.display_name ?? country?.name
 
@@ -50,7 +50,7 @@ export function getCountryName(
   try {
     return (
       new Intl.DisplayNames(locale, { type: "region" }).of(
-        countryCode.toUpperCase()
+        countryCode.toUpperCase(),
       ) ?? countryCode.toUpperCase()
     )
   } catch {
@@ -93,7 +93,7 @@ export function sortSalesRegionRows<
 export function getSalesRegionRows(
   data: ProductSalesRegionsResponse | undefined,
   countriesByCode: Map<string, RegionCountry>,
-  locale: string
+  locale: string,
 ) {
   const availableCountryCodes = new Set(countriesByCode.keys())
 
@@ -101,14 +101,14 @@ export function getSalesRegionRows(
     .filter(
       ({ country_code }) =>
         availableCountryCodes.size === 0 ||
-        availableCountryCodes.has(country_code)
+        availableCountryCodes.has(country_code),
     )
     .map((countryRate) => ({
       ...countryRate,
       countryName: getCountryName(
         countriesByCode.get(countryRate.country_code),
         countryRate.country_code,
-        locale
+        locale,
       ),
     }))
     .sort(sortSalesRegionRows)

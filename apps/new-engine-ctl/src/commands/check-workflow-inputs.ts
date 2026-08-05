@@ -13,7 +13,7 @@ function requireEnv(requirement: EnvRequirement): void {
   const value = process.env[requirement.name]
   if (!value) {
     throw new Error(
-      `Missing required environment variable: ${requirement.name} (${requirement.description}).`
+      `Missing required environment variable: ${requirement.name} (${requirement.description}).`,
     )
   }
 }
@@ -110,7 +110,7 @@ function validateMode(mode: WorkflowInputMode): void {
     default: {
       const exhaustive: never = mode
       throw new Error(
-        `Unsupported workflow input mode: ${JSON.stringify(exhaustive)}`
+        `Unsupported workflow input mode: ${JSON.stringify(exhaustive)}`,
       )
     }
   }

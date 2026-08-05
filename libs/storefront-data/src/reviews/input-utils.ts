@@ -4,7 +4,7 @@ import { resolvePagination } from "../shared/pagination"
 import type { ProductReviewListInputBase } from "./types"
 
 export const stripListInput = <TInput extends ProductReviewListInputBase>(
-  input: TInput
+  input: TInput,
 ) => {
   const { enabled: _enabled, page: _page, ...params } = input
 
@@ -15,7 +15,7 @@ export const createDefaultListParams = <
   TInput extends ProductReviewListInputBase,
 >(
   input: TInput,
-  defaultPageSize: number
+  defaultPageSize: number,
 ) => {
   const params = stripListInput(input) as Record<string, unknown>
 
@@ -29,7 +29,7 @@ export const createDefaultListParams = <
       offset: input.offset,
       page: input.page,
     }),
-    defaultPageSize
+    defaultPageSize,
   )
 
   return compactRecord({

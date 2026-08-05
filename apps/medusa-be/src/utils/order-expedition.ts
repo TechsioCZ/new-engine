@@ -812,7 +812,7 @@ function isOrderExpeditionTransitionSourceStatus(
 }
 
 function formatStatusForReason(status: string) {
-  return status.replaceAll('_', " ")
+  return status.replaceAll("_", " ")
 }
 
 function formatStatusSubject(status: string) {

@@ -69,66 +69,66 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
 
 export const fetchServerRegions = async (
   queryClient: QueryClient,
-  listParams: RegionListParams
+  listParams: RegionListParams,
 ) =>
   queryClient.fetchQuery(
-    storefrontServerRead.queries.regions.getListQueryOptions(listParams)
+    storefrontServerRead.queries.regions.getListQueryOptions(listParams),
   )
 
 export const prefetchServerProducts = async (
   queryClient: QueryClient,
-  listParams: ProductListParams
+  listParams: ProductListParams,
 ) =>
   queryClient.prefetchQuery(
-    storefrontServerRead.queries.products.getListQueryOptions(listParams)
+    storefrontServerRead.queries.products.getListQueryOptions(listParams),
   )
 
 export const fetchServerProducts = async (
   queryClient: QueryClient,
-  listParams: ProductListParams
+  listParams: ProductListParams,
 ) =>
   queryClient.fetchQuery(
-    storefrontServerRead.queries.products.getListQueryOptions(listParams)
+    storefrontServerRead.queries.products.getListQueryOptions(listParams),
   )
 
 export const fetchServerProduct = async (
   queryClient: QueryClient,
-  detailParams: ProductDetailParams
+  detailParams: ProductDetailParams,
 ) =>
   queryClient.fetchQuery(
-    storefrontServerRead.queries.products.getDetailQueryOptions(detailParams)
+    storefrontServerRead.queries.products.getDetailQueryOptions(detailParams),
   )
 
 export const prefetchServerProductReviews = async (
   queryClient: QueryClient,
-  listParams: MedusaProductReviewListInput
+  listParams: MedusaProductReviewListInput,
 ) =>
   queryClient.prefetchQuery(
     storefrontServerRead.queries.reviews.getProductReviewsQueryOptions(
-      listParams
-    )
+      listParams,
+    ),
   )
 
 export const prefetchServerProductAttributes = async (
   queryClient: QueryClient,
-  input: MedusaProductAttributesInput
+  input: MedusaProductAttributesInput,
 ) =>
   queryClient.prefetchQuery(
-    storefrontServerRead.queries.productAttributes.getDetailQueryOptions(input)
+    storefrontServerRead.queries.productAttributes.getDetailQueryOptions(input),
   )
 
 export const fetchServerCategories = async (
   queryClient: QueryClient,
-  listParams: CategoryListParams
+  listParams: CategoryListParams,
 ) =>
   queryClient.fetchQuery(
-    storefrontServerRead.queries.categories.getListQueryOptions(listParams)
+    storefrontServerRead.queries.categories.getListQueryOptions(listParams),
   )
 
 export const prefetchServerCatalogProducts = async (
   queryClient: QueryClient,
-  listParams: CatalogListParams
+  listParams: CatalogListParams,
 ) =>
   queryClient.prefetchQuery(
-    storefrontServerRead.queries.catalog.getListQueryOptions(listParams)
+    storefrontServerRead.queries.catalog.getListQueryOptions(listParams),
   )

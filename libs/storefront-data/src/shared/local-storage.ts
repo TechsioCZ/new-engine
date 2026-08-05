@@ -1,5 +1,5 @@
 export const resolveLocalStorage = (
-  storage?: Storage | null
+  storage?: Storage | null,
 ): Storage | null => {
   try {
     if (storage) {
@@ -18,7 +18,7 @@ export const resolveLocalStorage = (
 
 const getStorageItem = (
   storage: Storage | null,
-  key: string
+  key: string,
 ): string | null => {
   if (!storage) {
     return null
@@ -34,7 +34,7 @@ const getStorageItem = (
 const setStorageItem = (
   storage: Storage | null,
   key: string,
-  value: string
+  value: string,
 ): boolean => {
   if (!storage) {
     return false
@@ -63,16 +63,16 @@ const removeStorageItem = (storage: Storage | null, key: string): boolean => {
 
 export const getLocalStorageItem = (
   key: string,
-  storage?: Storage | null
+  storage?: Storage | null,
 ): string | null => getStorageItem(resolveLocalStorage(storage), key) ?? null
 
 export const setLocalStorageItem = (
   key: string,
   value: string,
-  storage?: Storage | null
+  storage?: Storage | null,
 ): boolean => setStorageItem(resolveLocalStorage(storage), key, value)
 
 export const removeLocalStorageItem = (
   key: string,
-  storage?: Storage | null
+  storage?: Storage | null,
 ): boolean => removeStorageItem(resolveLocalStorage(storage), key)

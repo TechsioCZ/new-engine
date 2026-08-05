@@ -27,5 +27,5 @@ figma.connect(
         lg: "lg",
       }),
     },
-  }
+  },
 )

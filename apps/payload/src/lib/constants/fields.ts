@@ -35,7 +35,7 @@ interface ContentFieldOptions {
 
 /** Build a localized title field definition. */
 export const createTitleField = (
-  options: TextFieldOptions = {}
+  options: TextFieldOptions = {},
 ): TextField => ({
   name: "title",
   type: "text",
@@ -60,7 +60,7 @@ export const createSlugField = (options: SlugFieldOptions): TextField => ({
 
 /** Build a localized rich text content field definition. */
 export const createContentField = (
-  options: ContentFieldOptions
+  options: ContentFieldOptions,
 ): RichTextField => ({
   name: "content",
   type: "richText",

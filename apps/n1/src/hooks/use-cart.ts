@@ -181,7 +181,7 @@ export function useAddToCart(options?: UseAddToCartOptions) {
 
       // Snapshot the previous cart
       const previousCart = queryClient.getQueryData<Cart>(
-        queryKeys.cart.active()
+        queryKeys.cart.active(),
       )
 
       // Optimistic update - add loading state indicator
@@ -239,7 +239,7 @@ export function useUpdateLineItem() {
       await queryClient.cancelQueries({ queryKey: queryKeys.cart.active() })
 
       const previousCart = queryClient.getQueryData<Cart>(
-        queryKeys.cart.active()
+        queryKeys.cart.active(),
       )
 
       // Optimistic update with validation
@@ -249,7 +249,7 @@ export function useUpdateLineItem() {
           items: previousCart.items.map((item): OptimisticLineItem =>
             item.id === lineItemId
               ? { ...item, quantity, _optimistic: true }
-              : item
+              : item,
           ),
           _optimistic: true,
         }
@@ -298,7 +298,7 @@ export function useRemoveLineItem() {
       await queryClient.cancelQueries({ queryKey: queryKeys.cart.active() })
 
       const previousCart = queryClient.getQueryData<Cart>(
-        queryKeys.cart.active()
+        queryKeys.cart.active(),
       )
 
       // Optimistic removal
@@ -331,7 +331,7 @@ interface UseCompleteCartOptions {
   onSuccess?: (order: HttpTypes.StoreOrder) => void
   onError?: (
     error: { message: string; type: string; name?: string },
-    cart: Cart
+    cart: Cart,
   ) => void
 }
 
@@ -376,7 +376,7 @@ export function useCompleteCart(options?: UseCompleteCartOptions) {
         if (process.env.NODE_ENV === "development") {
           console.warn(
             "[useCompleteCart] Cart completion failed:",
-            result.error
+            result.error,
           )
         }
 

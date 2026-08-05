@@ -3,7 +3,7 @@ import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { ProductQueryKeys } from "./types"
 
 export function createProductQueryKeys<TListParams, TDetailParams>(
-  namespace: QueryNamespace
+  namespace: QueryNamespace,
 ): ProductQueryKeys<TListParams, TDetailParams> {
   return {
     detail: (params) =>
@@ -11,21 +11,21 @@ export function createProductQueryKeys<TListParams, TDetailParams>(
         namespace,
         "products",
         "detail",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
     infinite: (params) =>
       createQueryKey(
         namespace,
         "products",
         "infinite",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
     list: (params) =>
       createQueryKey(
         namespace,
         "products",
         "list",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
   }
 }

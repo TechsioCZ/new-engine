@@ -38,7 +38,7 @@ export const areStringArraysEqual = (left: string[], right: string[]) => {
 }
 
 const normalizeNonNegativeNumber = (
-  value: number | null
+  value: number | null,
 ): number | undefined => {
   if (
     typeof value !== "number" ||
@@ -54,7 +54,7 @@ const normalizeNonNegativeNumber = (
 
 export const normalizePriceRange = (
   minValue: number | null,
-  maxValue: number | null
+  maxValue: number | null,
 ): { min?: number; max?: number } => {
   let normalizedMin = normalizeNonNegativeNumber(minValue)
   let normalizedMax = normalizeNonNegativeNumber(maxValue)
@@ -86,12 +86,12 @@ export const toNonEmptyArray = (values: string[]): string[] | undefined => {
 
 export const hasOwnKey = <T extends object>(
   value: T,
-  key: PropertyKey
+  key: PropertyKey,
 ): key is keyof T => Object.hasOwn(value, key)
 
 export const areCatalogQueryValuesEqual = (
   left: CatalogQueryState[keyof CatalogQueryState],
-  right: CatalogQueryState[keyof CatalogQueryState]
+  right: CatalogQueryState[keyof CatalogQueryState],
 ) => {
   if (Array.isArray(left) && Array.isArray(right)) {
     return areStringArraysEqual(left, right)

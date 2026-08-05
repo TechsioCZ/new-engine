@@ -30,7 +30,7 @@ export const updateOrderStep = createStep(
 
     const dataBeforeUpdate = await orderModule.listOrders(
       { id: data.id },
-      { relations, select: selects }
+      { relations, select: selects },
     )
 
     const updatedQuotes = await orderModule.updateOrders(id, update)
@@ -51,8 +51,8 @@ export const updateOrderStep = createStep(
 
     await orderModule.updateOrders(
       dataBeforeUpdate.map((data) =>
-        convertItemResponseToUpdateRequest(data, selects, relations)
-      )
+        convertItemResponseToUpdateRequest(data, selects, relations),
+      ),
     )
-  }
+  },
 )

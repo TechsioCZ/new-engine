@@ -17,7 +17,7 @@ type GraphApprovalCart = Omit<AdminCartWithApprovals, "approval_requests"> & {
 }
 
 const normalizeApprovalCart = (
-  cart: GraphApprovalCart
+  cart: GraphApprovalCart,
 ): AdminCartWithApprovals => {
   const { approvals, approval_requests, ...normalizedCart } = cart
 
@@ -28,12 +28,12 @@ const normalizeApprovalCart = (
 }
 
 const isApprovalCart = (
-  cart: GraphApprovalCart | null
+  cart: GraphApprovalCart | null,
 ): cart is GraphApprovalCart => Boolean(cart)
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<AdminGetApprovalsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 

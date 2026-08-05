@@ -26,7 +26,7 @@ export interface ProductAttributeDeletionService {
       skip: number
       take: number
       withDeleted: boolean
-    }
+    },
   ) => Promise<ProductAttributeDeletionRecord[]>
   restoreProductAttributes: (ids: string[]) => Promise<unknown>
   softDeleteProductAttributes: (ids: string[]) => Promise<unknown>
@@ -70,7 +70,7 @@ export const cleanupDeletedProductAttributes = async ({
               skip: offset,
               take: ASSIGNMENT_BATCH_SIZE,
               withDeleted: true,
-            }
+            },
           )
           if (!assignments.length) {
             break
@@ -96,7 +96,7 @@ export const cleanupDeletedProductAttributes = async ({
           index += ASSIGNMENT_BATCH_SIZE
         ) {
           await service.restoreProductAttributes(
-            deletedIds.slice(index, index + ASSIGNMENT_BATCH_SIZE)
+            deletedIds.slice(index, index + ASSIGNMENT_BATCH_SIZE),
           )
         }
         throw error
@@ -104,7 +104,7 @@ export const cleanupDeletedProductAttributes = async ({
 
       return deletedIds
     },
-    { timeout: 5 }
+    { timeout: 5 },
   )
 
   return { assignment_ids: assignmentIds, product_ids: productIds }
@@ -134,11 +134,11 @@ export const restoreDeletedProductAttributes = async ({
         await service.restoreProductAttributes(
           compensation.assignment_ids.slice(
             index,
-            index + ASSIGNMENT_BATCH_SIZE
-          )
+            index + ASSIGNMENT_BATCH_SIZE,
+          ),
         )
       }
     },
-    { timeout: 5 }
+    { timeout: 5 },
   )
 }

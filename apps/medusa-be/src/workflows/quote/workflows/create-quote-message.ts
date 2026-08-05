@@ -17,5 +17,5 @@ import { createQuoteMessageStep } from "../steps/create-quote-message"
 export const createQuoteMessageWorkflow = createWorkflow(
   "create-quote-message",
   (input: ModuleCreateQuoteMessage): WorkflowResponse<ModuleQuoteMessage> =>
-    new WorkflowResponse(createQuoteMessageStep(input))
+    new WorkflowResponse(createQuoteMessageStep(input)),
 )

@@ -10,13 +10,13 @@ type RequestWithUrlParts = MedusaRequest & {
 }
 
 const isRequestWithUrlParts = (
-  req: MedusaRequest
+  req: MedusaRequest,
 ): req is RequestWithUrlParts =>
   "originalUrl" in req && typeof req.originalUrl === "string"
 
 const getHeaderValue = (
   req: MedusaRequest,
-  header: string
+  header: string,
 ): string | undefined => {
   const value = req.headers[header]
 
@@ -29,7 +29,7 @@ const getHeaderValue = (
 
 const getForwardedHeaderValue = (
   req: MedusaRequest,
-  header: string
+  header: string,
 ): string | undefined => getHeaderValue(req, header)?.split(",")[0]?.trim()
 
 const getRequestUrl = (req: MedusaRequest): string => {
@@ -64,7 +64,7 @@ const hasGopayPaymentId = (url: string): boolean => {
 
 export async function GET(
   req: MedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ): Promise<void> {
   const fullUrl = getRequestUrl(req)
 

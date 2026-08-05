@@ -38,7 +38,7 @@ export interface ProductAttributesInputBase {
 export interface ProductAttributeService<TAttribute, TParams> {
   getProductAttributes: (
     params: TParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TAttribute[]>
 }
 

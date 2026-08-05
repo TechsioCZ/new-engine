@@ -80,7 +80,7 @@ export const ACCOUNT_SETUP_ORDER_FIELDS = [
 ]
 
 export function isAccountSetupRequested(
-  metadata: Record<string, unknown> | null | undefined
+  metadata: Record<string, unknown> | null | undefined,
 ) {
   return metadata?.[ACCOUNT_SETUP_REQUESTED_METADATA_KEY] === true
 }
@@ -113,7 +113,7 @@ export function buildAccountSetupUrl(email: string, token: string) {
     if (!template.includes("{TOKEN}")) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "ACCOUNT_SETUP_URL_TEMPLATE must include {TOKEN} placeholder"
+        "ACCOUNT_SETUP_URL_TEMPLATE must include {TOKEN} placeholder",
       )
     }
 
@@ -127,7 +127,7 @@ export function buildAccountSetupUrl(email: string, token: string) {
   if (!storefrontUrl) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "STOREFRONT_URL env var is not set — cannot build account setup link"
+      "STOREFRONT_URL env var is not set — cannot build account setup link",
     )
   }
 
@@ -207,12 +207,12 @@ function isAccountSetupOrder(value: unknown): value is AccountSetupOrder {
 
 export function assertAccountSetupOrder(
   value: unknown,
-  source: string
+  source: string,
 ): asserts value is AccountSetupOrder {
   if (!isAccountSetupOrder(value)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Invalid account setup order returned from ${source}`
+      `Invalid account setup order returned from ${source}`,
     )
   }
 }
@@ -232,18 +232,18 @@ function isAccountSetupCustomer(value: unknown): value is AccountSetupCustomer {
 
 function assertAccountSetupCustomer(
   value: unknown,
-  source: string
+  source: string,
 ): asserts value is AccountSetupCustomer {
   if (!isAccountSetupCustomer(value)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Invalid account setup customer returned from ${source}`
+      `Invalid account setup customer returned from ${source}`,
     )
   }
 }
 
 function isEmailPassProviderIdentity(
-  value: unknown
+  value: unknown,
 ): value is EmailPassProviderIdentity {
   return (
     isRecord(value) &&
@@ -274,13 +274,13 @@ export async function getCustomerForAccountSetup({
 
   const listedCustomers: unknown = await customerModuleService.listCustomers(
     { email },
-    { take: 1 }
+    { take: 1 },
   )
 
   if (!Array.isArray(listedCustomers)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Invalid customer list response for account setup"
+      "Invalid customer list response for account setup",
     )
   }
 
@@ -289,17 +289,17 @@ export async function getCustomerForAccountSetup({
   if (existingCustomer) {
     assertAccountSetupCustomer(
       existingCustomer,
-      "customerModuleService.listCustomers"
+      "customerModuleService.listCustomers",
     )
     return existingCustomer
   }
 
   const createdCustomer: unknown = await customerModuleService.createCustomers(
-    getCustomerCreateData(order, email)
+    getCustomerCreateData(order, email),
   )
   assertAccountSetupCustomer(
     createdCustomer,
-    "customerModuleService.createCustomers"
+    "customerModuleService.createCustomers",
   )
 
   return createdCustomer
@@ -307,7 +307,7 @@ export async function getCustomerForAccountSetup({
 
 async function getExistingEmailPassIdentity(
   query: Query,
-  email: string
+  email: string,
 ): Promise<EmailPassProviderIdentity | undefined> {
   const {
     data: [providerIdentity],
@@ -329,7 +329,7 @@ async function getExistingEmailPassIdentity(
   if (!isEmailPassProviderIdentity(providerIdentityResult)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Invalid emailpass provider identity returned from query.graph"
+      "Invalid emailpass provider identity returned from query.graph",
     )
   }
 
@@ -365,7 +365,7 @@ export async function ensureEmailPassAuthIdentity({
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Failed to prepare customer account setup: ${registration.error ?? "unknown error"}`
+      `Failed to prepare customer account setup: ${registration.error ?? "unknown error"}`,
     )
   }
 

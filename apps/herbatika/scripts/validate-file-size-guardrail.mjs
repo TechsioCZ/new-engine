@@ -68,7 +68,7 @@ function loadConfig(configPath) {
 
   const warningThreshold = parseThreshold(
     thresholds.warning,
-    "thresholds.warning"
+    "thresholds.warning",
   )
   const errorThreshold = parseThreshold(thresholds.error, "thresholds.error")
 
@@ -201,11 +201,11 @@ function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
         .length,
       allowlistedErrors: findings.filter(
         (item) =>
-          item.severity === "allowlisted" && item.sourceSeverity === "error"
+          item.severity === "allowlisted" && item.sourceSeverity === "error",
       ).length,
       allowlistedWarnings: findings.filter(
         (item) =>
-          item.severity === "allowlisted" && item.sourceSeverity === "warning"
+          item.severity === "allowlisted" && item.sourceSeverity === "warning",
       ).length,
       errors: findings.filter((item) => item.severity === "error").length,
       warnings: findings.filter((item) => item.severity === "warning").length,
@@ -228,7 +228,7 @@ function printSection(title, findings) {
   console.log(`\n${title}`)
   for (const finding of findings) {
     console.log(
-      `  - ${finding.file} (${finding.lineCount} lines, threshold >= ${finding.threshold})`
+      `  - ${finding.file} (${finding.lineCount} lines, threshold >= ${finding.threshold})`,
     )
   }
 }
@@ -237,10 +237,10 @@ function printHumanReadable(report) {
   console.log("File size guardrail report")
   console.log(`Scanned files: ${report.scannedFiles}`)
   console.log(
-    `Thresholds: warning >= ${report.thresholds.warning}, error >= ${report.thresholds.error}`
+    `Thresholds: warning >= ${report.thresholds.warning}, error >= ${report.thresholds.error}`,
   )
   console.log(
-    `Counts: errors=${report.counts.errors}, warnings=${report.counts.warnings}, allowlisted=${report.counts.allowlisted}`
+    `Counts: errors=${report.counts.errors}, warnings=${report.counts.warnings}, allowlisted=${report.counts.allowlisted}`,
   )
 
   if (report.findings.length === 0) {
@@ -250,20 +250,20 @@ function printHumanReadable(report) {
 
   printSection(
     "Errors",
-    report.findings.filter((item) => item.severity === "error")
+    report.findings.filter((item) => item.severity === "error"),
   )
   printSection(
     "Warnings",
-    report.findings.filter((item) => item.severity === "warning")
+    report.findings.filter((item) => item.severity === "warning"),
   )
   printSection(
     "Allowlisted",
-    report.findings.filter((item) => item.severity === "allowlisted")
+    report.findings.filter((item) => item.severity === "allowlisted"),
   )
 
   if (report.counts.allowlistedErrors > 0) {
     console.log(
-      `\nAllowlisted errors: ${report.counts.allowlistedErrors} (baseline debt, does not fail guardrail).`
+      `\nAllowlisted errors: ${report.counts.allowlistedErrors} (baseline debt, does not fail guardrail).`,
     )
   }
 }
@@ -275,7 +275,7 @@ function main() {
 
   if (!fs.existsSync(configPath)) {
     console.error(
-      `Config file not found: ${normalizePath(path.relative(cwd, configPath))}`
+      `Config file not found: ${normalizePath(path.relative(cwd, configPath))}`,
     )
     process.exit(1)
   }
@@ -287,7 +287,7 @@ function main() {
     console.error(
       `Failed to parse config (${normalizePath(path.relative(cwd, configPath))}): ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     )
     process.exit(1)
   }

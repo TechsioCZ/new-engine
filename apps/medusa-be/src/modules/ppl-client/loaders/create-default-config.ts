@@ -3,7 +3,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 interface PplConfigServiceType {
   listAndCount: (
-    filter: Record<string, unknown>
+    filter: Record<string, unknown>,
   ) => Promise<[unknown[], number]>
   create: (data: Record<string, unknown>) => Promise<unknown>
 }

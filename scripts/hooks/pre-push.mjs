@@ -74,7 +74,7 @@ function runPreviousHook(stdin) {
     const runnable = path.join(
       gitDir,
       "hooks",
-      `pre-push-chained-${process.pid}-${Date.now()}`
+      `pre-push-chained-${process.pid}-${Date.now()}`,
     )
     copyFileSync(previousHook, runnable)
     process.once("exit", () => {
@@ -129,7 +129,7 @@ function materializePushedTree(sha) {
     run("git", ["ls-tree", "-r", "--name-only", sha], { capture: true })
       .split("\n")
       .filter((file) => path.basename(file) === "package.json")
-      .map((file) => path.dirname(file))
+      .map((file) => path.dirname(file)),
   )
   for (const dir of manifestDirs) {
     const source = path.resolve(dir, "node_modules")
@@ -174,7 +174,7 @@ function pushedFileGroups(stdin) {
       ["diff", "--name-only", "--diff-filter=ACMR", base, localSha],
       {
         capture: true,
-      }
+      },
     )
       .split("\n")
       .filter(Boolean)
@@ -217,14 +217,14 @@ process.stdin.on("end", () => {
       run(
         path.resolve("node_modules/.bin/oxfmt"),
         ["--check", "--no-error-on-unmatched-pattern", ...formatFiles],
-        { cwd: workdir }
+        { cwd: workdir },
       )
     }
     if (lintFiles.length > 0) {
       run(
         path.resolve("node_modules/.bin/oxlint"),
         ["--deny-warnings", ...lintFiles],
-        { cwd: workdir }
+        { cwd: workdir },
       )
     }
   }

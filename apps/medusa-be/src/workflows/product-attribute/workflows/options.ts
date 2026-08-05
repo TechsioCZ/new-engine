@@ -30,7 +30,7 @@ export const createProductAttributeOptionWorkflow = createWorkflow(
     const result = createProductAttributeOptionStep(input)
     releaseLockStep({ key: lockKey })
     return new WorkflowResponse(result)
-  }
+  },
 )
 
 export const updateProductAttributeOptionWorkflow = createWorkflow(
@@ -43,44 +43,44 @@ export const updateProductAttributeOptionWorkflow = createWorkflow(
     const result = updateProductAttributeOptionStep(input)
     releaseLockStep({ key: lockKey })
     return new WorkflowResponse(result)
-  }
+  },
 )
 
 export const deleteProductAttributeOptionsWorkflow = createWorkflow(
   "delete-product-attribute-options",
   (input: ProductAttributeOptionIdsInput) => {
     const lockKey = transform({ input }, ({ input: current }) =>
-      current.ids.map((id) => `product-attribute-option:${id}`).sort()
+      current.ids.map((id) => `product-attribute-option:${id}`).sort(),
     )
     acquireLockStep({ key: lockKey, timeout: 5, ttl: 30 })
     const result = deleteProductAttributeOptionsStep(input)
     releaseLockStep({ key: lockKey })
     return new WorkflowResponse(result)
-  }
+  },
 )
 
 export const restoreProductAttributeOptionsWorkflow = createWorkflow(
   "restore-product-attribute-options",
   (input: ProductAttributeOptionIdsInput) => {
     const lockKey = transform({ input }, ({ input: current }) =>
-      current.ids.map((id) => `product-attribute-option:${id}`).sort()
+      current.ids.map((id) => `product-attribute-option:${id}`).sort(),
     )
     acquireLockStep({ key: lockKey, timeout: 5, ttl: 30 })
     const result = restoreProductAttributeOptionsStep(input)
     releaseLockStep({ key: lockKey })
     return new WorkflowResponse(result)
-  }
+  },
 )
 
 export const permanentlyDeleteProductAttributeOptionsWorkflow = createWorkflow(
   "permanently-delete-product-attribute-options",
   (input: ProductAttributeOptionIdsInput) => {
     const lockKey = transform({ input }, ({ input: current }) =>
-      current.ids.map((id) => `product-attribute-option:${id}`).sort()
+      current.ids.map((id) => `product-attribute-option:${id}`).sort(),
     )
     acquireLockStep({ key: lockKey, timeout: 5, ttl: 30 })
     const result = permanentlyDeleteProductAttributeOptionsStep(input)
     releaseLockStep({ key: lockKey })
     return new WorkflowResponse(result)
-  }
+  },
 )

@@ -11,7 +11,7 @@ import {
 
 export const generatePublishableKey = async (appContainer: MedusaContainer) => {
   const apiKeyModule = appContainer.resolve<IApiKeyModuleService>(
-    Modules.API_KEY
+    Modules.API_KEY,
   )
 
   return await apiKeyModule.createApiKeys({

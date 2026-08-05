@@ -45,7 +45,7 @@ export type TranslatedProductAttributeAssignment = Omit<
 }
 
 export const toPublicStoreProductAttributes = (
-  assignments: TranslatedProductAttributeAssignment[]
+  assignments: TranslatedProductAttributeAssignment[],
 ) =>
   assignments.flatMap((assignment) => {
     const { definition } = assignment
@@ -82,19 +82,19 @@ export const toPublicStoreProductAttributes = (
 
 export const paginatePublicStoreProductAttributes = (
   assignments: TranslatedProductAttributeAssignment[],
-  pagination: { limit: number; offset: number }
+  pagination: { limit: number; offset: number },
 ) => {
   const publicAssignments = toPublicStoreProductAttributes(assignments).sort(
     (left, right) =>
       left.definition.key.localeCompare(right.definition.key) ||
-      left.id.localeCompare(right.id)
+      left.id.localeCompare(right.id),
   )
 
   return {
     count: publicAssignments.length,
     product_attributes: publicAssignments.slice(
       pagination.offset,
-      pagination.offset + pagination.limit
+      pagination.offset + pagination.limit,
     ),
   }
 }
@@ -128,7 +128,7 @@ export const listPublicStoreProductAttributes = async ({
           take: PRODUCT_ATTRIBUTE_READ_BATCH_SIZE,
         },
       },
-      locale === undefined ? {} : { locale }
+      locale === undefined ? {} : { locale },
     )
     assignments.push(...(data as TranslatedProductAttributeAssignment[]))
     sourceCount = metadata?.count ?? assignments.length

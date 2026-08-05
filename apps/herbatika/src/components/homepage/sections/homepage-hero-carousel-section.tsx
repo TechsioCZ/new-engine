@@ -82,7 +82,7 @@ function HeroBannerCard({
 const buildHeroSlides = (
   banners: HeroBannerItem[],
   onClickCapture: MouseEventHandler<HTMLAnchorElement>,
-  onPointerDownCapture: PointerEventHandler<HTMLAnchorElement>
+  onPointerDownCapture: PointerEventHandler<HTMLAnchorElement>,
 ): CarouselSlide[] =>
   banners.map((banner) => ({
     content: (
@@ -141,7 +141,7 @@ function HeroCarousel({
     didDragRef.current = false
   }
   const handleSlideClickCapture: MouseEventHandler<HTMLAnchorElement> = (
-    event
+    event,
   ) => {
     if (event.detail === 0) {
       didDragRef.current = false
@@ -159,7 +159,7 @@ function HeroCarousel({
   const slides = buildHeroSlides(
     banners,
     handleSlideClickCapture,
-    handleSlidePointerDownCapture
+    handleSlidePointerDownCapture,
   )
   const hasOverflow = slides.length > slidesPerPage
 

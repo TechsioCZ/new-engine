@@ -30,5 +30,5 @@ export const syncStorefrontTextsWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

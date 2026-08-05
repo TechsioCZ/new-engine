@@ -105,7 +105,7 @@ describe("order receipt service", () => {
         quantity: 2,
         subtotal: 160,
         unit_price: 100,
-      })
+      }),
     ).toBe(160)
   })
 
@@ -115,7 +115,7 @@ describe("order receipt service", () => {
         quantity: 2,
         subtotal: 100,
         unit_price: 100,
-      })
+      }),
     ).toBe(100)
   })
 
@@ -125,7 +125,7 @@ describe("order receipt service", () => {
         quantity: 2,
         subtotal: 0,
         unit_price: 100,
-      })
+      }),
     ).toBe(0)
 
     expect(
@@ -133,7 +133,7 @@ describe("order receipt service", () => {
         quantity: 2,
         total: 0,
         unit_price: 100,
-      })
+      }),
     ).toBe(0)
   })
 
@@ -186,7 +186,7 @@ describe("order receipt service", () => {
         summary: {
           current_order_total: 131,
         },
-      })
+      }),
     ).toBe(21)
   })
 
@@ -208,7 +208,7 @@ describe("order receipt service", () => {
         summary: {
           current_order_total: 100,
         },
-      })
+      }),
     ).toBe(0)
   })
 
@@ -236,7 +236,7 @@ describe("order receipt service", () => {
           current_order_total: 150,
         },
         tax_total: 11,
-      })
+      }),
     ).toBe(11)
   })
 
@@ -272,7 +272,7 @@ describe("order receipt service", () => {
         summary: {
           current_order_total: 100,
         },
-      })
+      }),
     ).toBe(7.5)
   })
 
@@ -297,7 +297,7 @@ describe("order receipt service", () => {
             tax_total: -5,
           },
         ],
-      })
+      }),
     ).toBe(21)
 
     expect(
@@ -314,7 +314,7 @@ describe("order receipt service", () => {
         ],
         shipping_methods: [],
         shipping_tax_total: -5,
-      })
+      }),
     ).toBe(0)
   })
 
@@ -342,7 +342,7 @@ describe("order receipt service", () => {
         summary: {
           current_order_total: 999,
         },
-      })
+      }),
     ).toBe(18)
   })
 
@@ -370,7 +370,7 @@ describe("order receipt service", () => {
         summary: {
           current_order_total: 999,
         },
-      })
+      }),
     ).toBe(18)
   })
 
@@ -394,7 +394,7 @@ describe("order receipt service", () => {
           current_order_total: 62.32,
         },
         tax_total: 21,
-      })
+      }),
     ).toBe(12.32)
   })
 
@@ -418,7 +418,7 @@ describe("order receipt service", () => {
           current_order_total: 62.32,
         },
         tax_total: 21,
-      })
+      }),
     ).toBe(12.32)
   })
 
@@ -442,7 +442,7 @@ describe("order receipt service", () => {
           current_order_total: 999,
         },
         tax_total: 99,
-      })
+      }),
     ).toBe(0)
   })
 
@@ -470,7 +470,7 @@ describe("order receipt service", () => {
         summary: {
           current_order_total: 61,
         },
-      })
+      }),
     ).toBe(1)
   })
 
@@ -491,7 +491,7 @@ describe("order receipt service", () => {
         summary: {
           current_order_total: 51,
         },
-      })
+      }),
     ).toBe(1)
   })
 
@@ -511,7 +511,7 @@ describe("order receipt service", () => {
         summary: {
           current_order_total: 6,
         },
-      })
+      }),
     ).toBe(1)
   })
 
@@ -546,7 +546,7 @@ describe("order receipt service", () => {
         summary: {
           current_order_total: 101,
         },
-      })
+      }),
     ).toBe(1)
   })
 
@@ -565,7 +565,7 @@ describe("order receipt service", () => {
         summary: {
           current_order_total: 10,
         },
-      })
+      }),
     ).toBe(0)
   })
 
@@ -625,7 +625,7 @@ describe("order receipt service", () => {
       for (const item of order.items) {
         expect(pdf).toContain(item.title)
       }
-    }
+    },
   )
 
   it("wraps long customer text without overlapping the item table", async () => {
@@ -668,7 +668,7 @@ describe("order receipt service", () => {
       (match) => ({
         text: match[2] ?? "",
         y: Number(match[1]),
-      })
+      }),
     )
 
     expect(customerRows.length).toBeGreaterThan(6)
@@ -764,7 +764,7 @@ describe("order receipt service", () => {
 
     expect(withNonQrPayment.content).toHaveLength(withoutQr.content.length)
     expect(withNonQrPayment.content.toString("utf-8")).not.toContain(
-      "64.00 606.00"
+      "64.00 606.00",
     )
   })
 
@@ -791,7 +791,7 @@ describe("order receipt service", () => {
 
     expect(withSystemPayment.content).toHaveLength(withoutQr.content.length)
     expect(withSystemPayment.content.toString("utf-8")).not.toContain(
-      "64.00 606.00"
+      "64.00 606.00",
     )
   })
 })

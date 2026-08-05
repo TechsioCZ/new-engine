@@ -29,7 +29,7 @@ interface AdminPublishableKeyQuerySchemaType {
 }
 
 function readTitleFromQuery(
-  req: AuthenticatedMedusaRequest<unknown, AdminPublishableKeyQuerySchemaType>
+  req: AuthenticatedMedusaRequest<unknown, AdminPublishableKeyQuerySchemaType>,
 ): string | undefined {
   const rawTitle = req.query["title"]
 
@@ -50,7 +50,7 @@ function toApiKeyResponse(result: PublishableKeyResult) {
 
 export async function GET(
   req: AuthenticatedMedusaRequest<unknown, AdminPublishableKeyQuerySchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const apiKeyService = req.scope.resolve<IApiKeyModuleService>(Modules.API_KEY)
   const title = readTitleFromQuery(req)
@@ -62,7 +62,7 @@ export async function GET(
   if (!result) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `No active publishable API key found for title "${resolvePublishableKeyTitle(title)}".`
+      `No active publishable API key found for title "${resolvePublishableKeyTitle(title)}".`,
     )
   }
 
@@ -71,7 +71,7 @@ export async function GET(
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminPublishableKeyBodySchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const apiKeyService = req.scope.resolve<IApiKeyModuleService>(Modules.API_KEY)
   const lockingModule = req.scope.resolve<ILockingModule>(Modules.LOCKING)

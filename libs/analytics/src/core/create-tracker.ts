@@ -31,7 +31,7 @@ export function createTracker<TGlobalFn, TParams>(
   getGlobalFn: () => TGlobalFn | null,
   trackFn: (globalFn: TGlobalFn, params: TParams) => void,
   debug?: boolean,
-  adapterKey?: string
+  adapterKey?: string,
 ): (params: TParams) => boolean {
   return (params: TParams): boolean => {
     const globalFn = getGlobalFn()
@@ -39,7 +39,7 @@ export function createTracker<TGlobalFn, TParams>(
     if (!globalFn) {
       if (debug) {
         console.warn(
-          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Global function not available`
+          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Global function not available`,
         )
       }
       return false
@@ -49,7 +49,7 @@ export function createTracker<TGlobalFn, TParams>(
       trackFn(globalFn, params)
       if (debug) {
         console.log(
-          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Event tracked`
+          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Event tracked`,
         )
       }
       return true
@@ -57,7 +57,7 @@ export function createTracker<TGlobalFn, TParams>(
       if (debug) {
         console.error(
           `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Tracking error:`,
-          error
+          error,
         )
       }
       return false
@@ -82,7 +82,7 @@ export function createSimpleTracker<TGlobalFn>(
   getGlobalFn: () => TGlobalFn | null,
   trackFn: (globalFn: TGlobalFn) => void,
   debug?: boolean,
-  adapterKey?: string
+  adapterKey?: string,
 ): () => boolean {
   return (): boolean => {
     const globalFn = getGlobalFn()
@@ -90,7 +90,7 @@ export function createSimpleTracker<TGlobalFn>(
     if (!globalFn) {
       if (debug) {
         console.warn(
-          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Global function not available`
+          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Global function not available`,
         )
       }
       return false
@@ -100,7 +100,7 @@ export function createSimpleTracker<TGlobalFn>(
       trackFn(globalFn)
       if (debug) {
         console.log(
-          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Event tracked`
+          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Event tracked`,
         )
       }
       return true
@@ -108,7 +108,7 @@ export function createSimpleTracker<TGlobalFn>(
       if (debug) {
         console.error(
           `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Tracking error:`,
-          error
+          error,
         )
       }
       return false

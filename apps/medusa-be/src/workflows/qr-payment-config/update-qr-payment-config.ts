@@ -15,11 +15,11 @@ const updateQrPaymentConfigStep = createStep(
     const service = container.resolve<QrPaymentModuleService>(QR_PAYMENT_MODULE)
 
     return new StepResponse(await service.updateConfig(input))
-  }
+  },
 )
 
 export const updateQrPaymentConfigWorkflow = createWorkflow(
   "update-qr-payment-config",
   (input: UpdateQrPaymentConfigInput) =>
-    new WorkflowResponse(updateQrPaymentConfigStep(input))
+    new WorkflowResponse(updateQrPaymentConfigStep(input)),
 )

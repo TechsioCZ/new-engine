@@ -74,7 +74,7 @@ export const authHelpers = {
     email: string,
     password: string,
     firstName?: string,
-    lastName?: string
+    lastName?: string,
   ) => {
     try {
       authStore.setState((state) => ({
@@ -137,7 +137,7 @@ export const authHelpers = {
     email: string,
     password: string,
     firstName?: string,
-    lastName?: string
+    lastName?: string,
   ) => {
     try {
       authStore.setState((state) => ({
@@ -238,7 +238,7 @@ export const authHelpers = {
           }
           return acc
         },
-        {}
+        {},
       )
 
       const { customer } = await sdk.store.customer.update(updateData)

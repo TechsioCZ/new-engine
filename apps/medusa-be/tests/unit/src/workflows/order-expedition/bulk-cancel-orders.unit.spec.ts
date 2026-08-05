@@ -42,7 +42,7 @@ describe("bulkCancelOrdersWorkflow", () => {
       {
         order_ids: ["order_1", "order_2"],
       },
-      container as never
+      container as never,
     )
 
     expect(mockCancelOrderWorkflow).toHaveBeenCalledTimes(2)

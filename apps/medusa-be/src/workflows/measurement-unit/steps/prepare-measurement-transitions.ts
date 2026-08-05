@@ -51,7 +51,7 @@ const hasValidDeletedAt = (record: Record<string, unknown>) =>
   record["deleted_at"] instanceof Date
 
 const isProductMeasurementLinkRecord = (
-  value: unknown
+  value: unknown,
 ): value is ProductMeasurementLinkRecord => {
   if (!(value && typeof value === "object")) {
     return false
@@ -67,7 +67,7 @@ const isProductMeasurementLinkRecord = (
 }
 
 const isProductVariantMeasurementLinkRecord = (
-  value: unknown
+  value: unknown,
 ): value is ProductVariantMeasurementLinkRecord => {
   if (!(value && typeof value === "object")) {
     return false
@@ -86,7 +86,7 @@ const parseProductMeasurementLinks = (value: unknown) => {
   if (!(Array.isArray(value) && value.every(isProductMeasurementLinkRecord))) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Product measurement link query returned invalid data."
+      "Product measurement link query returned invalid data.",
     )
   }
 
@@ -101,7 +101,7 @@ const parseProductVariantMeasurementLinks = (value: unknown) => {
   ) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Product variant measurement link query returned invalid data."
+      "Product variant measurement link query returned invalid data.",
     )
   }
 
@@ -173,7 +173,7 @@ export interface DeleteProductVariantMeasurementPlan {
 }
 
 const emptyVariantMeasurementMigrationPlan = (
-  unchangedRecords: ProductVariantMeasurementRecord[] = []
+  unchangedRecords: ProductVariantMeasurementRecord[] = [],
 ): VariantMeasurementMigrationPlan => ({
   creates: [],
   previous_for_update: [],
@@ -183,7 +183,7 @@ const emptyVariantMeasurementMigrationPlan = (
 })
 
 const indexCanonicalVariantMeasurements = (
-  records: ProductVariantMeasurementRecord[]
+  records: ProductVariantMeasurementRecord[],
 ) => {
   const recordsByVariantId = new Map<
     string,
@@ -200,7 +200,7 @@ const indexCanonicalVariantMeasurements = (
     [...recordsByVariantId.entries()].flatMap(([variantId, grouped]) => {
       const canonical = pickCanonicalRecord(grouped)
       return canonical ? [[variantId, canonical] as const] : []
-    })
+    }),
   )
 }
 
@@ -222,7 +222,7 @@ const buildVariantMeasurementMigrationPlan = ({
     if (!(Number.isFinite(quantity) && quantity > 0)) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        `Product variant measurement "${previous.id}" has an invalid quantity.`
+        `Product variant measurement "${previous.id}" has an invalid quantity.`,
       )
     }
 
@@ -267,16 +267,16 @@ export const prepareProductMeasurementTransitionStep = createStep(
     const productMeasurements = await listProductMeasurementsForProduct(
       container,
       input.product_id,
-      { withDeleted: true }
+      { withDeleted: true },
     )
     const previous = pickCanonicalRecord(
-      productMeasurements.filter((measurement) => !measurement.deleted_at)
+      productMeasurements.filter((measurement) => !measurement.deleted_at),
     )
     const existingTarget = pickCanonicalRecord(
       productMeasurements.filter(
         (measurement) =>
-          measurement.measurement_unit_id === input.measurement_unit_id
-      )
+          measurement.measurement_unit_id === input.measurement_unit_id,
+      ),
     )
     const sourceTargetSame =
       !!previous?.id && previous.id === existingTarget?.id
@@ -286,11 +286,11 @@ export const prepareProductMeasurementTransitionStep = createStep(
       previous,
       previous_variant_measurements:
         previous?.variant_measurements?.filter(
-          (measurement) => !measurement.deleted_at
+          (measurement) => !measurement.deleted_at,
         ) ?? [],
       source_target_same: sourceTargetSame,
     } satisfies ProductMeasurementTransitionPlan)
-  }
+  },
 )
 
 export const prepareVariantMeasurementMigrationStep = createStep(
@@ -301,7 +301,7 @@ export const prepareVariantMeasurementMigrationStep = createStep(
       source_target_same: boolean
       target_product_measurement_id: string
     },
-    { container }
+    { container },
   ) => {
     if (!input.previous_variant_measurements.length) {
       return new StepResponse(emptyVariantMeasurementMigrationPlan())
@@ -310,16 +310,16 @@ export const prepareVariantMeasurementMigrationStep = createStep(
     if (input.source_target_same) {
       return new StepResponse(
         emptyVariantMeasurementMigrationPlan(
-          input.previous_variant_measurements
-        )
+          input.previous_variant_measurements,
+        ),
       )
     }
 
     const variantIds = input.previous_variant_measurements.map(
-      (measurement) => measurement.product_variant_id
+      (measurement) => measurement.product_variant_id,
     )
     const existingRecords = await getMeasurementUnitService(
-      container
+      container,
     ).listProductVariantMeasurements(
       {
         product_measurement_id: input.target_product_measurement_id,
@@ -327,23 +327,23 @@ export const prepareVariantMeasurementMigrationStep = createStep(
       },
       {
         withDeleted: true,
-      }
+      },
     )
     return new StepResponse(
       buildVariantMeasurementMigrationPlan({
         existingRecords,
         previousRecords: input.previous_variant_measurements,
         targetProductMeasurementId: input.target_product_measurement_id,
-      })
+      }),
     )
-  }
+  },
 )
 
 export const prepareProductMeasurementLinkPlanStep = createStep(
   "prepare-product-measurement-link-plan",
   async (
     input: { product_id: string; product_measurement_id: string },
-    { container }
+    { container },
   ) => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const { data } = await query.graph({
@@ -358,7 +358,7 @@ export const prepareProductMeasurementLinkPlanStep = createStep(
     const target = links.find(
       (link) =>
         link.product_measurement_id === input.product_measurement_id &&
-        link.product_id === input.product_id
+        link.product_id === input.product_id,
     )
     const plan: ProductMeasurementLinkPlan = {
       links_to_create: target
@@ -373,7 +373,7 @@ export const prepareProductMeasurementLinkPlanStep = createStep(
         .filter(
           (link) =>
             !link.deleted_at &&
-            link.product_measurement_id !== input.product_measurement_id
+            link.product_measurement_id !== input.product_measurement_id,
         )
         .map((link) => ({
           product_id: link.product_id,
@@ -391,7 +391,7 @@ export const prepareProductMeasurementLinkPlanStep = createStep(
     }
 
     return new StepResponse(plan)
-  }
+  },
 )
 
 export const prepareProductVariantMeasurementLinkPlanStep = createStep(
@@ -424,9 +424,9 @@ export const prepareProductVariantMeasurementLinkPlanStep = createStep(
     const targetLinkByRecordId = new Map(
       links
         .filter((link) =>
-          targetRecordIds.has(link.product_variant_measurement_id)
+          targetRecordIds.has(link.product_variant_measurement_id),
         )
-        .map((link) => [link.product_variant_measurement_id, link])
+        .map((link) => [link.product_variant_measurement_id, link]),
     )
     const plan: ProductVariantMeasurementLinkPlan = {
       links_to_create: [],
@@ -436,7 +436,7 @@ export const prepareProductVariantMeasurementLinkPlanStep = createStep(
             !(
               link.deleted_at ||
               targetRecordIds.has(link.product_variant_measurement_id)
-            )
+            ),
         )
         .map((link) => ({
           product_variant_id: link.product_variant_id,
@@ -460,7 +460,7 @@ export const prepareProductVariantMeasurementLinkPlanStep = createStep(
     }
 
     return new StepResponse(plan)
-  }
+  },
 )
 
 export const prepareSetProductVariantMeasurementStep = createStep(
@@ -472,14 +472,14 @@ export const prepareSetProductVariantMeasurementStep = createStep(
     ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Product unit quantity must be a positive finite number."
+        "Product unit quantity must be a positive finite number.",
       )
     }
 
     await ensureProductVariantBelongsToProduct(
       container,
       input.product_id,
-      input.product_variant_id
+      input.product_variant_id,
     )
 
     const productMeasurement = await getCanonicalProductMeasurement({
@@ -490,7 +490,7 @@ export const prepareSetProductVariantMeasurementStep = createStep(
     if (!productMeasurement?.id) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Product must have a measurement unit before variant quantity can be set."
+        "Product must have a measurement unit before variant quantity can be set.",
       )
     }
 
@@ -524,7 +524,7 @@ export const prepareSetProductVariantMeasurementStep = createStep(
       restore: existing?.deleted_at ? [existing] : [],
       update,
     } satisfies SetVariantMeasurementPlan)
-  }
+  },
 )
 
 export const prepareDeleteProductMeasurementStep = createStep(
@@ -533,44 +533,44 @@ export const prepareDeleteProductMeasurementStep = createStep(
     await ensureProductExists(container, input.product_id)
     const current = await getCurrentProductMeasurement(
       container,
-      input.product_id
+      input.product_id,
     )
 
     return new StepResponse({
       current,
       variant_measurements:
         current?.variant_measurements?.filter(
-          (measurement) => !measurement.deleted_at
+          (measurement) => !measurement.deleted_at,
         ) ?? [],
     } satisfies DeleteProductMeasurementPlan)
-  }
+  },
 )
 
 export const prepareDeleteProductVariantMeasurementStep = createStep(
   "prepare-delete-product-variant-measurement",
   async (
     input: DeleteProductVariantMeasurementWorkflowInput,
-    { container }
+    { container },
   ) => {
     await ensureProductVariantBelongsToProduct(
       container,
       input.product_id,
-      input.product_variant_id
+      input.product_variant_id,
     )
     const productMeasurement = await getCurrentProductMeasurement(
       container,
-      input.product_id
+      input.product_id,
     )
     const current = productMeasurement?.variant_measurements?.find(
       (measurement) =>
         measurement.product_variant_id === input.product_variant_id &&
-        !measurement.deleted_at
+        !measurement.deleted_at,
     )
 
     return new StepResponse({
       current,
     } satisfies DeleteProductVariantMeasurementPlan)
-  }
+  },
 )
 
 export const findActiveProductMeasurementLinksStep = createStep(
@@ -594,9 +594,9 @@ export const findActiveProductMeasurementLinksStep = createStep(
       parseProductMeasurementLinks(data).map((link) => ({
         product_id: link.product_id,
         product_measurement_id: link.product_measurement_id,
-      }))
+      })),
     )
-  }
+  },
 )
 
 export const findActiveProductVariantMeasurementLinksStep = createStep(
@@ -620,7 +620,7 @@ export const findActiveProductVariantMeasurementLinksStep = createStep(
       parseProductVariantMeasurementLinks(data).map((link) => ({
         product_variant_id: link.product_variant_id,
         product_variant_measurement_id: link.product_variant_measurement_id,
-      }))
+      })),
     )
-  }
+  },
 )

@@ -28,7 +28,7 @@ function seedCategoriesWorkflowComposer(input: CategoryRaw[]) {
         handle: i.handle,
         isActive: Boolean(Number(i.isActive)),
         ...(i.parentHandle ? { parentHandle: i.parentHandle } : {}),
-      }))
+      })),
   )
 
   createProductCategoriesStep(productCategories)
@@ -42,7 +42,7 @@ function seedCategoriesWorkflowComposer(input: CategoryRaw[]) {
 
 const seedCategoriesWorkflow = createWorkflow(
   seedCategoriesWorkflowId,
-  seedCategoriesWorkflowComposer
+  seedCategoriesWorkflowComposer,
 )
 
 export default seedCategoriesWorkflow

@@ -8,12 +8,12 @@ const [, , packageDirectory = "libs/ui", ...playwrightArguments] = process.argv
 const packageRoot = path.resolve(packageDirectory)
 const packageRequire = createRequire(path.join(packageRoot, "package.json"))
 const testRunnerRequire = createRequire(
-  packageRequire.resolve("@storybook/test-runner/package.json")
+  packageRequire.resolve("@storybook/test-runner/package.json"),
 )
 const playwrightPackage = testRunnerRequire.resolve("playwright/package.json")
 const playwrightCli = path.join(path.dirname(playwrightPackage), "cli.js")
 const timeoutMilliseconds = Number(
-  process.env.PLAYWRIGHT_INSTALL_TIMEOUT_MS ?? "420000"
+  process.env.PLAYWRIGHT_INSTALL_TIMEOUT_MS ?? "420000",
 )
 
 if (!Number.isSafeInteger(timeoutMilliseconds) || timeoutMilliseconds <= 0) {
@@ -27,13 +27,13 @@ const result = spawnSync(
     cwd: packageRoot,
     stdio: "inherit",
     timeout: timeoutMilliseconds,
-  }
+  },
 )
 
 if (result.error) {
   if (result.error.code === "ETIMEDOUT") {
     console.error(
-      `Storybook Playwright command timed out after ${timeoutMilliseconds}ms`
+      `Storybook Playwright command timed out after ${timeoutMilliseconds}ms`,
     )
     process.exit(124)
   }

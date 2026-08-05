@@ -15,7 +15,7 @@ import type { StoreCreateReviewSchemaType } from "./validators"
 
 export async function POST(
   req: MedusaRequest<StoreCreateReviewSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { content, product_id, rating, review_token, title } = req.validatedBody
   const tokenRecord = review_token

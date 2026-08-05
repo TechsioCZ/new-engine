@@ -3,7 +3,7 @@ import { z } from "@medusajs/framework/zod"
 const optionalText = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().trim().min(1).optional()
+  z.string().trim().min(1).optional(),
 )
 
 const queryBoolean = z.preprocess((value) => {
@@ -67,7 +67,7 @@ export const AdminUpdateMeasurementUnitSchema = z
   .strict()
   .refine(
     (value) => Object.values(value).some((field) => field !== undefined),
-    "At least one measurement unit field must be provided."
+    "At least one measurement unit field must be provided.",
   )
 
 export const AdminSetProductMeasurementSchema = z

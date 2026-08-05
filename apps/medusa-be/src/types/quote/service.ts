@@ -26,28 +26,28 @@ export interface IQuoteModuleService extends IModuleService {
   /* Entity: Quotes */
   createQuotes(
     data: ModuleCreateQuote,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleQuote>
 
   createQuotes(
     data: ModuleCreateQuote[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleQuote[]>
 
   updateQuotes(
     data: ModuleUpdateQuote,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleQuote>
 
   updateQuotes(
     data: ModuleUpdateQuote[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleQuote[]>
 
   listQuotes(
     filters?: ModuleQuoteFilters,
     config?: FindConfig<ModuleQuote>,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleQuote[]>
 
   deleteQuotes(ids: string[], sharedContext?: Context): Promise<void>
@@ -56,7 +56,7 @@ export interface IQuoteModuleService extends IModuleService {
 
   createMessages(
     data: ModuleCreateQuoteMessage,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleQuoteMessage>
 
   deleteMessages(ids: string[], sharedContext?: Context): Promise<void>

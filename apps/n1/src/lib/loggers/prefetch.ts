@@ -28,7 +28,7 @@ export const prefetchLogger = {
     }
 
     console.log(
-      `✅ [Prefetch ${type}] ${label} ready in ${Math.round(duration)}ms`
+      `✅ [Prefetch ${type}] ${label} ready in ${Math.round(duration)}ms`,
     )
   },
 
@@ -61,7 +61,7 @@ export const prefetchLogger = {
   start: (
     type: PrefetchType,
     label: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ) => {
     if (process.env.NODE_ENV !== "development") {
       return

@@ -24,7 +24,7 @@ export const createBrandsStep = createStep(
       if (!(title && handle)) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          "Brand title and handle must not be empty"
+          "Brand title and handle must not be empty",
         )
       }
 
@@ -36,7 +36,7 @@ export const createBrandsStep = createStep(
             handle,
             title,
           },
-          handle
+          handle,
         ),
         handle,
         title,
@@ -47,7 +47,7 @@ export const createBrandsStep = createStep(
     if (new Set(handles).size !== handles.length) {
       throw new MedusaError(
         MedusaError.Types.DUPLICATE_ERROR,
-        "The create request contains duplicate brand handles"
+        "The create request contains duplicate brand handles",
       )
     }
 
@@ -58,7 +58,7 @@ export const createBrandsStep = createStep(
       {
         take: Math.max(handles.length * 2, 1),
         withDeleted: true,
-      }
+      },
     )
 
     if (existingBrands.length) {
@@ -66,12 +66,12 @@ export const createBrandsStep = createStep(
       if (!existing) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
-          "Brand lookup returned an empty record"
+          "Brand lookup returned an empty record",
         )
       }
       throw new MedusaError(
         MedusaError.Types.DUPLICATE_ERROR,
-        getBrandHandleCollisionMessage(existing)
+        getBrandHandleCollisionMessage(existing),
       )
     }
 
@@ -92,13 +92,13 @@ export const createBrandsStep = createStep(
             gpsr_postal_address: brand.gpsr_postal_address,
             handle: brand.handle,
             title: brand.title,
-          })
+          }),
         ),
-        context
+        context,
       )) as { id: string; handle: string }[]
 
       const createdBrandsByHandle = new Map(
-        createdBrands.map((brand) => [brand.handle, brand])
+        createdBrands.map((brand) => [brand.handle, brand]),
       )
 
       await Promise.all(
@@ -108,7 +108,7 @@ export const createBrandsStep = createStep(
           if (!createdBrand) {
             throw new MedusaError(
               MedusaError.Types.UNEXPECTED_STATE,
-              `Created brand "${brand.handle}" was not found`
+              `Created brand "${brand.handle}" was not found`,
             )
           }
 
@@ -116,9 +116,9 @@ export const createBrandsStep = createStep(
             service,
             createdBrand.id,
             brand.attributes,
-            context
+            context,
           )
-        })
+        }),
       )
 
       return createdBrands
@@ -133,5 +133,5 @@ export const createBrandsStep = createStep(
     }
 
     await getBrandService(container).deleteBrands(createdIds)
-  }
+  },
 )

@@ -39,7 +39,7 @@ export const LoginForm = ({
         emailRequired: tForm("validation.email_required"),
         passwordRequired: tAuth("validation.password_required"),
       }),
-    [tAuth, tForm]
+    [tAuth, tForm],
   )
 
   const form = useHerbatikaForm({

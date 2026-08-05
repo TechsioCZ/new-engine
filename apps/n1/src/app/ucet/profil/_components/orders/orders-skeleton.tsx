@@ -4,7 +4,7 @@ export function OrdersSkeleton({ itemsCount }: { itemsCount: number }) {
   const maxItemsCount = Math.min(itemsCount, 10)
   const skeletonKeys = Array.from(
     { length: maxItemsCount },
-    (_, index) => `order-skeleton-${index}`
+    (_, index) => `order-skeleton-${index}`,
   )
 
   return (

@@ -44,21 +44,21 @@ describe("env utilities", () => {
       // delete required to unset env vars in Node.js
       delete process.env.REQUIRED_VAR
       expect(() => getEnv("REQUIRED_VAR", true)).toThrow(
-        "Missing required environment variable: REQUIRED_VAR"
+        "Missing required environment variable: REQUIRED_VAR",
       )
     })
 
     it("throws when required variable is empty string", () => {
       process.env.REQUIRED_VAR = ""
       expect(() => getEnv("REQUIRED_VAR", true)).toThrow(
-        "Missing required environment variable: REQUIRED_VAR"
+        "Missing required environment variable: REQUIRED_VAR",
       )
     })
 
     it("throws when required variable is whitespace only", () => {
       process.env.REQUIRED_VAR = "   "
       expect(() => getEnv("REQUIRED_VAR", true)).toThrow(
-        "Missing required environment variable: REQUIRED_VAR"
+        "Missing required environment variable: REQUIRED_VAR",
       )
     })
 

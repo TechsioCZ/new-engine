@@ -58,7 +58,7 @@ medusaIntegrationTestRunner({
       await api.post(
         `/admin/api-keys/${publishableKey.id}/sales-channels`,
         { add: [salesChannel.id] },
-        adminHeaders
+        adminHeaders,
       )
 
       await cartSeeder({
@@ -89,7 +89,7 @@ medusaIntegrationTestRunner({
             currency_code: "USD",
             spending_limit_reset_frequency: "monthly",
           },
-          storeHeaders
+          storeHeaders,
         )
 
         expect(response.status).toEqual(200)
@@ -126,12 +126,12 @@ medusaIntegrationTestRunner({
             currency_code: "USD",
             spending_limit_reset_frequency: "monthly",
           },
-          storeHeaders
+          storeHeaders,
         )
 
         const response2 = await api.get(
           `/store/companies/${response1.data.companies[0].id}`,
-          storeHeaders
+          storeHeaders,
         )
 
         expect(response2.data.company).toMatchObject({
@@ -179,7 +179,7 @@ medusaIntegrationTestRunner({
             currency_code: "USD",
             spending_limit_reset_frequency: "monthly",
           },
-          storeHeaders
+          storeHeaders,
         )
 
         company1 = response.data.companies[0]
@@ -201,7 +201,7 @@ medusaIntegrationTestRunner({
             currency_code: "EUR",
             spending_limit_reset_frequency: "yearly",
           },
-          storeHeaders
+          storeHeaders,
         )
 
         expect(response.data.company).toMatchObject({
@@ -224,7 +224,7 @@ medusaIntegrationTestRunner({
           .post(
             "/store/companies/does-not-exist",
             { name: "Nonexistent Company" },
-            storeHeaders
+            storeHeaders,
           )
           .catch(getHttpError)
 
@@ -253,7 +253,7 @@ medusaIntegrationTestRunner({
             currency_code: "USD",
             spending_limit_reset_frequency: "monthly",
           },
-          storeHeaders
+          storeHeaders,
         )
 
         company1 = response.data.companies[0]
@@ -262,7 +262,7 @@ medusaIntegrationTestRunner({
       it("successfully deletes a company", async () => {
         const response = await api.delete(
           `/store/companies/${company1.id}`,
-          storeHeaders
+          storeHeaders,
         )
 
         expect(response.status).toEqual(204)

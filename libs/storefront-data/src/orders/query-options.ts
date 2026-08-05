@@ -41,14 +41,14 @@ export interface OrderQueryOptionsFactory<
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<OrderListResponse<TOrder>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TOrder | null>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TOrder | null>
 }
 
@@ -86,6 +86,6 @@ export function createOrderQueryOptionsFactory<
       getList: service.getOrders,
       missingDetailErrorMessage: "Order id is required for order queries",
       queryKeys: resolvedQueryKeys,
-    })
+    }),
   )
 }

@@ -48,7 +48,7 @@ export const RegisterForm = ({
         passwordRequired: tAuth("validation.password_required"),
         termsRequired: tAuth("validation.terms_required"),
       }),
-    [tAuth, tForm]
+    [tAuth, tForm],
   )
 
   const form = useHerbatikaForm({

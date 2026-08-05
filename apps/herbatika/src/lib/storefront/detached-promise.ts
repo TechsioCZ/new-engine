@@ -5,7 +5,7 @@ const reportDetachedPromiseError = (error: unknown) => {
 }
 
 const isPromiseLike = (
-  operation: unknown
+  operation: unknown,
 ): operation is PromiseLike<unknown> => {
   if (!(operation && typeof operation === "object")) {
     return false
@@ -16,7 +16,7 @@ const isPromiseLike = (
 
 export const runDetachedPromise = (
   operation: unknown,
-  onError: (error: unknown) => void = reportDetachedPromiseError
+  onError: (error: unknown) => void = reportDetachedPromiseError,
 ): void => {
   if (!isPromiseLike(operation)) {
     return

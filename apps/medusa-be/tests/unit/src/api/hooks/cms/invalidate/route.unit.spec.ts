@@ -27,11 +27,11 @@ vi.mock(import("../../../../../../../src/modules/payload"), () => ({
 vi.mock(import("../../../../../../../src/utils/webhooks"), () => ({
   getHeaderValue: vi.fn(
     (req: { headers: Record<string, string> }, name: string) =>
-      req.headers[name]
+      req.headers[name],
   ),
   isValidWebhookSignature: vi.fn(
     (sig: string | undefined, expected: string | undefined) =>
-      sig !== undefined && sig === expected
+      sig !== undefined && sig === expected,
   ),
 }))
 
@@ -52,7 +52,7 @@ afterAll(() => {
 
 const createMockRequest = (
   body: unknown,
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
 ) => {
   const bodyStr = JSON.stringify(body)
   return {
@@ -166,7 +166,7 @@ describe("POST /hooks/cms/invalidate", () => {
     expect(mockInvalidateCache).toHaveBeenCalledWith(
       "hero-carousels",
       undefined,
-      undefined
+      undefined,
     )
     expect(res.status).toHaveBeenCalledWith(200)
   })
@@ -178,7 +178,7 @@ describe("POST /hooks/cms/invalidate", () => {
     const res = createMockResponse()
 
     mockInvalidateCache.mockRejectedValue(
-      new Error("Cache service unavailable")
+      new Error("Cache service unavailable"),
     )
 
     await POST(req, res)
@@ -224,7 +224,7 @@ describe("POST /hooks/cms/invalidate", () => {
 
     expect(mockLogger.error).toHaveBeenCalledWith(
       expect.stringContaining("CMS cache invalidation failed"),
-      expect.any(Error)
+      expect.any(Error),
     )
     expect(res.status).toHaveBeenCalledWith(500)
   })

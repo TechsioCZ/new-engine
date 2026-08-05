@@ -52,7 +52,7 @@ export const fetchOrderPaymentQr = async ({
 }: FetchOrderPaymentQrOptions): Promise<StorefrontOrderPaymentQrResult> => {
   const response = await fetch(
     `/api/storefront/orders/${encodeURIComponent(orderId)}/qr-payment`,
-    { method: "GET" }
+    { method: "GET" },
   )
 
   if (!response.ok) {
@@ -65,7 +65,7 @@ export const fetchOrderPaymentQr = async ({
 }
 
 function mapOrderPaymentQr(
-  payload: StoreOrderPaymentQrResponse
+  payload: StoreOrderPaymentQrResponse,
 ): StorefrontOrderPaymentQrResult {
   const status = normalizeQrPaymentStatus(payload.status)
   const qrPayment = payload.qr_payment
@@ -107,7 +107,7 @@ function mapOrderPaymentQr(
 }
 
 function normalizeQrPaymentStatus(
-  status: StoreOrderPaymentQrResponse["status"]
+  status: StoreOrderPaymentQrResponse["status"],
 ): StorefrontOrderPaymentQrResult["status"] {
   if (
     status === "ready" ||

@@ -12,12 +12,12 @@ export const POST = async (
   req: AuthenticatedMedusaRequest<
     StoreCreateCompanyType | StoreCreateCompanyType[]
   >,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { result: createdCompanies } = await createCompaniesWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: Array.isArray(req.validatedBody)
       ? req.validatedBody.map((company) =>
@@ -25,7 +25,7 @@ export const POST = async (
             ...company,
             spending_limit_reset_frequency:
               company.spending_limit_reset_frequency ?? undefined,
-          })
+          }),
         )
       : [
           definedProperties({
@@ -42,7 +42,7 @@ export const POST = async (
       fields: req.queryConfig.fields,
       filters: { id: createdCompanies.map((company) => company.id) },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ companies })

@@ -7,10 +7,10 @@ import {
 export type AddressFormState = CheckoutAddressValues
 
 export const isCheckoutCountryAvailableForRegion = (
-  params: Parameters<typeof isCountryAvailableForRegion>[0]
+  params: Parameters<typeof isCountryAvailableForRegion>[0],
 ) => isCountryAvailableForRegion(params)
 export const resolveCheckoutCountryItemsForRegion = (
-  params: Parameters<typeof resolveCountryItemsForRegion>[0]
+  params: Parameters<typeof resolveCountryItemsForRegion>[0],
 ) => resolveCountryItemsForRegion(params)
 
 export const CHECKOUT_STEPS = [

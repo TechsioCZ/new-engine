@@ -80,7 +80,7 @@ function main() {
   }
   if (RESERVED.has(brand)) {
     die(
-      `"${brand}" is a reserved/canonical brand and cannot be scaffolded over`
+      `"${brand}" is a reserved/canonical brand and cannot be scaffolded over`,
     )
   }
 
@@ -93,10 +93,10 @@ function main() {
   console.log(`  2. Register "${brand}" in merge-figma-themes.mjs BRANDS and`)
   console.log("     theme-config.ts THEMES.")
   console.log(
-    `  3. node .agents/skills/vibe-theme/scripts/validate-brand.mjs ${brand}`
+    `  3. node .agents/skills/vibe-theme/scripts/validate-brand.mjs ${brand}`,
   )
   console.log(
-    "  4. node .agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs"
+    "  4. node .agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs",
   )
 }
 

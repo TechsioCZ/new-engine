@@ -68,22 +68,22 @@ type MedusaProductTransforms<
       transformProduct: (product: HttpTypes.StoreProduct) => TProduct
       transformListProduct?: (
         product: HttpTypes.StoreProduct,
-        context: MedusaProductTransformListContext<TListParams>
+        context: MedusaProductTransformListContext<TListParams>,
       ) => TProduct
       transformDetailProduct?: (
         product: HttpTypes.StoreProduct,
-        context: MedusaProductTransformDetailContext<TDetailParams>
+        context: MedusaProductTransformDetailContext<TDetailParams>,
       ) => TProduct
     }
   | {
       transformProduct?: never
       transformListProduct: (
         product: HttpTypes.StoreProduct,
-        context: MedusaProductTransformListContext<TListParams>
+        context: MedusaProductTransformListContext<TListParams>,
       ) => TProduct
       transformDetailProduct: (
         product: HttpTypes.StoreProduct,
-        context: MedusaProductTransformDetailContext<TDetailParams>
+        context: MedusaProductTransformDetailContext<TDetailParams>,
       ) => TProduct
     }
 
@@ -97,7 +97,7 @@ export type MedusaProductServiceConfig<
     : MedusaProductTransforms<TProduct, TListParams, TDetailParams>)
 
 const normalizeCountryCode = (
-  query: MedusaProductListQuery
+  query: MedusaProductListQuery,
 ): MedusaProductListQuery => {
   const countryCode = query.country_code
   if (typeof countryCode === "string") {
@@ -112,7 +112,7 @@ const normalizeCountryCode = (
 const toListResponse = <TProduct>(
   response: HttpTypes.StoreProductListResponse,
   query: MedusaProductListQuery,
-  products: TProduct[]
+  products: TProduct[],
 ): ProductListResponse<TProduct> => {
   const queryLimit = query.limit
   const queryOffset = query.offset
@@ -182,7 +182,7 @@ export function createMedusaProductService<
 >(
   sdk: Medusa,
   config?: MedusaProductServiceConfigBase<TListParams, TDetailParams> &
-    Partial<MedusaProductTransforms<unknown, TListParams, TDetailParams>>
+    Partial<MedusaProductTransforms<unknown, TListParams, TDetailParams>>,
 ): ProductService<unknown, TListParams, TDetailParams> {
   const {
     listPath = "/store/products",
@@ -241,7 +241,7 @@ export function createMedusaProductService<
 
   const getProducts = async (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<ProductListResponse<unknown>> => {
     const query = buildListQuery(params)
     const response = await sdk.client.fetch<HttpTypes.StoreProductListResponse>(
@@ -249,11 +249,11 @@ export function createMedusaProductService<
       {
         query,
         signal: signal ?? null,
-      }
+      },
     )
 
     const products = (response.products ?? []).map((product) =>
-      mapListProduct(product, { params, query, response })
+      mapListProduct(product, { params, query, response }),
     )
 
     return toListResponse(response, query, products)
@@ -270,7 +270,7 @@ export function createMedusaProductService<
     ...(getProductsGlobal ? { getProductsGlobal } : {}),
     async getProductByHandle(
       params: TDetailParams,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<unknown> {
       const query = buildDetailQuery(params)
       const response =

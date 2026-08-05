@@ -10,11 +10,11 @@ export const workflowQueueNames = {
 
 type WorkflowQueueRunner = (
   container: MedusaContainer,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ) => Promise<unknown>
 
 function isSendProductReviewRequestWorkflowInput(
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ): input is SendProductReviewRequestWorkflowInput {
   return typeof input["order_id"] === "string"
 }
@@ -22,12 +22,12 @@ function isSendProductReviewRequestWorkflowInput(
 const workflowQueueRegistry: Record<string, WorkflowQueueRunner> = {
   [workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST]: async (
     container,
-    input
+    input,
   ) => {
     if (!isSendProductReviewRequestWorkflowInput(input)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Invalid arguments for ${workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST}`
+        `Invalid arguments for ${workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST}`,
       )
     }
 

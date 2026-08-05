@@ -37,7 +37,7 @@ export interface Analytics {
   trackPurchase: (params: CorePurchaseParams) => TrackingResult
   trackCustom: (
     eventName: string,
-    params?: Record<string, unknown>
+    params?: Record<string, unknown>,
   ) => TrackingResult
 }
 
@@ -99,7 +99,7 @@ export function useAnalytics({
   if (!analyticsRef.current) {
     const executeAcrossAdapters = (
       label: string,
-      run: (adapter: AnalyticsAdapter) => boolean | undefined
+      run: (adapter: AnalyticsAdapter) => boolean | undefined,
     ): TrackingResult => {
       const results: Record<string, boolean> = Object.create(null)
       const keyCounts: Record<string, number> = Object.create(null)
@@ -112,7 +112,7 @@ export function useAnalytics({
 
         if (count > 1 && debugRef.current) {
           console.warn(
-            `[Analytics] Duplicate adapter key detected: "${adapter.key}". Results will be keyed as "${resultKey}".`
+            `[Analytics] Duplicate adapter key detected: "${adapter.key}". Results will be keyed as "${resultKey}".`,
           )
         }
 
@@ -142,27 +142,27 @@ export function useAnalytics({
     analyticsRef.current = {
       trackAddToCart: (params) =>
         executeAcrossAdapters("trackAddToCart", (adapter) =>
-          adapter.trackAddToCart?.(params)
+          adapter.trackAddToCart?.(params),
         ),
 
       trackCustom: (eventName, params) =>
         executeAcrossAdapters(`trackCustom(${eventName})`, (adapter) =>
-          adapter.trackCustom?.(eventName, params)
+          adapter.trackCustom?.(eventName, params),
         ),
 
       trackInitiateCheckout: (params) =>
         executeAcrossAdapters("trackInitiateCheckout", (adapter) =>
-          adapter.trackInitiateCheckout?.(params)
+          adapter.trackInitiateCheckout?.(params),
         ),
 
       trackPurchase: (params) =>
         executeAcrossAdapters("trackPurchase", (adapter) =>
-          adapter.trackPurchase?.(params)
+          adapter.trackPurchase?.(params),
         ),
 
       trackViewContent: (params) =>
         executeAcrossAdapters("trackViewContent", (adapter) =>
-          adapter.trackViewContent?.(params)
+          adapter.trackViewContent?.(params),
         ),
     }
   }

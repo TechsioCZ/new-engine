@@ -148,12 +148,12 @@ type ObservableStorageValueStore = StorageValueStore & {
 }
 
 const hasObservableCartStorage = (
-  storage?: StorageValueStore
+  storage?: StorageValueStore,
 ): storage is ObservableStorageValueStore =>
   Boolean(storage?.subscribe && storage.getSnapshot)
 
 const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
-  input: TInput
+  input: TInput,
 ): NormalizedCartCreatePayload<TInput> => {
   const normalizedInput = input as TInput & CartCreateTransientInput
   const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
@@ -170,7 +170,7 @@ const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
 }
 
 const normalizeCartUpdatePayload = <TInput extends UpdateCartInputBase>(
-  input: TInput
+  input: TInput,
 ): NormalizedCartUpdatePayload<TInput> => {
   const normalizedInput = input as TInput & CartUpdateTransientInput
   const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
@@ -187,19 +187,19 @@ const normalizeCartUpdatePayload = <TInput extends UpdateCartInputBase>(
 }
 
 const normalizeAddLineItemPayload = <TInput extends AddLineItemInputBase>(
-  input: TInput
+  input: TInput,
 ): NormalizedAddLineItemPayload<TInput> =>
   omitKeys(
     input as TInput & AddLineItemTransientInput,
-    addLineItemPayloadOmitKeys
+    addLineItemPayloadOmitKeys,
   )
 
 const normalizeUpdateLineItemPayload = <TInput extends UpdateLineItemInputBase>(
-  input: TInput
+  input: TInput,
 ): NormalizedUpdateLineItemPayload<TInput> =>
   omitKeys(
     input as TInput & UpdateLineItemTransientInput,
-    updateLineItemPayloadOmitKeys
+    updateLineItemPayloadOmitKeys,
   )
 
 const getItemCount = (cart: CartLike | null): number => {
@@ -385,7 +385,7 @@ export function createCartHooks<
 
   const normalizeAddressInput = (
     input: TAddressInput,
-    scope: "shipping" | "billing"
+    scope: "shipping" | "billing",
   ): TAddressInput =>
     addressAdapter?.normalize
       ? addressAdapter.normalize(input, { scope })
@@ -393,16 +393,16 @@ export function createCartHooks<
 
   const validateAddressInput = (
     input: TAddressInput,
-    scope: "shipping" | "billing"
+    scope: "shipping" | "billing",
   ) => {
     assertStorefrontAddressValidation(
-      addressAdapter?.validate?.(input, { scope })
+      addressAdapter?.validate?.(input, { scope }),
     )
   }
 
   const buildAddressPayload = (
     input: TAddressInput,
-    scope: "shipping" | "billing"
+    scope: "shipping" | "billing",
   ): TAddressPayload =>
     addressAdapter?.toPayload
       ? addressAdapter.toPayload(input, { scope })
@@ -431,7 +431,7 @@ export function createCartHooks<
     useSyncExternalStore(
       subscribeToStoredCart,
       readStoredCartId,
-      getStoredCartServerSnapshot
+      getStoredCartServerSnapshot,
     )
 
   const resolveCartId = (inputCartId?: string | null): string | null =>
@@ -463,7 +463,7 @@ export function createCartHooks<
   const resolveBillingAddressInput = (
     useSameAddress: boolean | undefined,
     billingAddress: TAddressInput | undefined,
-    normalizedShipping: TAddressInput
+    normalizedShipping: TAddressInput,
   ): TAddressInput | undefined => {
     if (useSameAddress || !billingAddress) {
       return normalizedShipping
@@ -472,18 +472,18 @@ export function createCartHooks<
   }
 
   const resolveAddressMutationInput = (
-    input: CartAddressInputBase<TAddressInput>
+    input: CartAddressInputBase<TAddressInput>,
   ) => {
     const { shippingAddress, billingAddress, useSameAddress, ...restInput } =
       input
     const normalizedShipping = normalizeAddressInput(
       shippingAddress,
-      "shipping"
+      "shipping",
     )
     const resolvedBillingInput = resolveBillingAddressInput(
       useSameAddress,
       billingAddress,
-      normalizedShipping
+      normalizedShipping,
     )
 
     return {
@@ -495,7 +495,7 @@ export function createCartHooks<
 
   const validateAddressInputs = (
     shippingInput: TAddressInput,
-    billingInput: TAddressInput | undefined
+    billingInput: TAddressInput | undefined,
   ) => {
     validateAddressInput(shippingInput, "shipping")
     if (!billingInput) {
@@ -510,7 +510,7 @@ export function createCartHooks<
       "shippingAddress" | "billingAddress" | "useSameAddress"
     >,
     normalizedShipping: TAddressInput,
-    resolvedBillingInput: TAddressInput | undefined
+    resolvedBillingInput: TAddressInput | undefined,
   ) =>
     ({
       ...(restInput as TUpdateInput),
@@ -525,7 +525,7 @@ export function createCartHooks<
 
   const invalidateCart = async (
     queryClient: ReturnType<typeof useQueryClient>,
-    cart: CartLike | null
+    cart: CartLike | null,
   ): Promise<void> => {
     const cartId = cart?.id
     if (!(invalidateOnSuccess && cartId)) {
@@ -537,12 +537,12 @@ export function createCartHooks<
 
   const syncMutationCart = async (
     queryClient: ReturnType<typeof useQueryClient>,
-    cart: TCart
+    cart: TCart,
   ) => {
     const cancellation = cancelCartCaches(
       queryClient,
       resolvedQueryKeys,
-      cart.id
+      cart.id,
     )
     syncCartCaches(queryClient, resolvedQueryKeys, cart)
     const invalidated = invalidateCart(queryClient, cart)
@@ -593,7 +593,7 @@ export function createCartHooks<
           buildUpdate({
             ...(input as TUpdateInput),
             region_id: input.region_id,
-          })
+          }),
         )
       }
 
@@ -627,7 +627,7 @@ export function createCartHooks<
     queryClient: ReturnType<typeof useQueryClient>,
     cart: CartLike | null,
     previousCartId: string | null,
-    previousRegionId: string | null
+    previousRegionId: string | null,
   ) => {
     if (!cart?.id) {
       return
@@ -656,7 +656,7 @@ export function createCartHooks<
 
   function useCart(
     input: CartInputBase,
-    options?: { queryOptions?: ReadQueryOptions<TCart | null> }
+    options?: { queryOptions?: ReadQueryOptions<TCart | null> },
   ): UseCartResult<TCart> {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
@@ -710,7 +710,7 @@ export function createCartHooks<
 
   function useSuspenseCart(
     input: CartInputBase,
-    options?: { queryOptions?: SuspenseQueryOptions<TCart | null> }
+    options?: { queryOptions?: SuspenseQueryOptions<TCart | null> },
   ): UseSuspenseCartResult<TCart> {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
@@ -808,7 +808,7 @@ export function createCartHooks<
   }
 
   function useUpdateCartAddress(
-    options?: CartMutationOptions<TCart, CartAddressInputBase<TAddressInput>>
+    options?: CartMutationOptions<TCart, CartAddressInputBase<TAddressInput>>,
   ) {
     const queryClient = useQueryClient()
     return useMutation({
@@ -822,7 +822,7 @@ export function createCartHooks<
         const updateInput = buildAddressUpdateInput(
           restInput,
           normalizedShipping,
-          resolvedBillingInput
+          resolvedBillingInput,
         )
 
         return callUpdateCart(cartId, buildUpdate(updateInput))
@@ -861,7 +861,7 @@ export function createCartHooks<
             throw new Error("Cart id is required")
           }
           const created = await service.createCart(
-            buildCreate(buildCreateInputFromAdd(resolvedInput))
+            buildCreate(buildCreateInputFromAdd(resolvedInput)),
           )
           persistCartId(created.id)
           cartId = created.id
@@ -870,7 +870,7 @@ export function createCartHooks<
 
         const updated = await service.addLineItem(
           cartId,
-          buildAdd(resolvedInput)
+          buildAdd(resolvedInput),
         )
         persistCartId(updated.id)
         return updated
@@ -890,7 +890,7 @@ export function createCartHooks<
   }
 
   function useUpdateLineItem(
-    options?: CartMutationOptions<TCart, TUpdateItemInput>
+    options?: CartMutationOptions<TCart, TUpdateItemInput>,
   ) {
     const queryClient = useQueryClient()
     return useMutation({
@@ -905,7 +905,7 @@ export function createCartHooks<
         return service.updateLineItem(
           cartId,
           input.lineItemId,
-          buildUpdateItem(input)
+          buildUpdateItem(input),
         )
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
@@ -923,7 +923,7 @@ export function createCartHooks<
   }
 
   function useRemoveLineItem(
-    options?: CartMutationOptions<TCart, RemoveLineItemInputBase>
+    options?: CartMutationOptions<TCart, RemoveLineItemInputBase>,
   ) {
     const queryClient = useQueryClient()
     return useMutation({
@@ -952,7 +952,7 @@ export function createCartHooks<
   }
 
   function useTransferCart(
-    options?: CartMutationOptions<TCart, TransferCartInputBase>
+    options?: CartMutationOptions<TCart, TransferCartInputBase>,
   ) {
     const queryClient = useQueryClient()
     return useMutation({
@@ -983,7 +983,7 @@ export function createCartHooks<
   function useCompleteCart(
     options?: CartMutationOptions<TCompleteResult, { cartId?: string }> & {
       clearCartOnSuccess?: boolean
-    }
+    },
   ) {
     return useMutation({
       mutationFn: async (input: { cartId?: string }) => {
@@ -1024,7 +1024,7 @@ export function createCartHooks<
     const skipMode = options?.skipMode ?? "fresh"
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
-      cacheStrategy
+      cacheStrategy,
     )
 
     const prefetchCart = async (input: CartInputBase) => {

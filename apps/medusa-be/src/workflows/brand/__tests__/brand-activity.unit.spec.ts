@@ -13,7 +13,7 @@ import { getActiveBrandIds } from "../brand-activity"
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (!isRecord(candidate)) {
     throw new TypeError("Expected a mock object")
@@ -27,7 +27,7 @@ function assertMockShape<T>(
 }
 
 const createContainer = (
-  resolve: ReturnType<typeof vi.fn>
+  resolve: ReturnType<typeof vi.fn>,
 ): MedusaContainer => {
   const candidate: unknown = { resolve }
   assertMockShape<MedusaContainer>(candidate, ["resolve"])
@@ -40,7 +40,7 @@ describe(getActiveBrandIds, () => {
     const container = createContainer(resolve)
 
     await expect(getActiveBrandIds(container, [])).resolves.toStrictEqual(
-      new Set()
+      new Set(),
     )
     expect(resolve).not.toHaveBeenCalled()
   })
@@ -48,7 +48,7 @@ describe(getActiveBrandIds, () => {
   it("deduplicates, chunks, and returns only active IDs", async () => {
     const ids = Array.from({ length: 501 }, (_, index) => `brand_${index}`)
     const listBrands = vi.fn(async (filters: { id: { $in: string[] } }) =>
-      filters.id.$in.filter((id) => id !== "brand_250").map((id) => ({ id }))
+      filters.id.$in.filter((id) => id !== "brand_250").map((id) => ({ id })),
     )
     const resolve = vi.fn(() => ({ listBrands }))
     const container = createContainer(resolve)
@@ -66,12 +66,12 @@ describe(getActiveBrandIds, () => {
     expect(listBrands).toHaveBeenNthCalledWith(
       1,
       { id: { $in: ids.slice(0, 500) } },
-      { select: ["id"], withDeleted: false }
+      { select: ["id"], withDeleted: false },
     )
     expect(listBrands).toHaveBeenNthCalledWith(
       2,
       { id: { $in: ids.slice(500) } },
-      { select: ["id"], withDeleted: false }
+      { select: ["id"], withDeleted: false },
     )
     expect(result.has("brand_250")).toBeFalsy()
     expect(result.size).toBe(500)

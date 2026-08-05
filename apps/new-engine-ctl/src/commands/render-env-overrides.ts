@@ -8,14 +8,14 @@ import { executeRenderEnvOverrides } from "../orchestration/render-env-overrides
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
 function redactResponseValues(
-  response: Awaited<ReturnType<typeof executeRenderEnvOverrides>>
+  response: Awaited<ReturnType<typeof executeRenderEnvOverrides>>,
 ) {
   return {
     ...response,
     services: response.services.map((service) => ({
       ...service,
       env: Object.fromEntries(
-        Object.keys(service.env).map((key) => [key, "***redacted***"])
+        Object.keys(service.env).map((key) => [key, "***redacted***"]),
       ),
     })),
   }
@@ -37,19 +37,19 @@ export function createRenderEnvOverridesCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
     .action(async (options) => {
       const previewRandomOnceSecrets = parsePreviewRandomOnceSecrets(
-        options.previewRandomOnceSecretsJson
+        options.previewRandomOnceSecretsJson,
       )
       const runtimeProviderOutputs = parseRuntimeProviderOutputs(
-        options.runtimeProviderOutputsJson
+        options.runtimeProviderOutputsJson,
       )
       const input = renderEnvOverridesCommandInputSchema.parse({
         lane: options.lane,
@@ -72,11 +72,11 @@ export function createRenderEnvOverridesCommand(): Command {
       const result = await executeRenderEnvOverrides(input)
       await appendGitHubOutput(
         "override_service_ids_csv",
-        result.services.map((service) => service.service_id).join(",")
+        result.services.map((service) => service.service_id).join(","),
       )
       await appendGitHubOutput(
         "override_service_count",
-        `${result.services.length}`
+        `${result.services.length}`,
       )
       process.stdout.write(`${JSON.stringify(redactResponseValues(result))}\n`)
     })

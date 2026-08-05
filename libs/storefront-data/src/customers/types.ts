@@ -52,7 +52,7 @@ export interface CustomerService<
 > {
   getAddresses: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<CustomerAddressListResponse<TAddress>>
   createAddress: (params: TCreateParams) => Promise<TAddress>
   updateAddress: (addressId: string, params: TUpdateParams) => Promise<TAddress>

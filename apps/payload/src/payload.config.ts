@@ -56,17 +56,17 @@ const getRuntimeEnv = (name: string, buildFallback: string): string => {
 
 const secret = getRuntimeEnv(
   "PAYLOAD_SECRET",
-  "payload-production-build-placeholder-secret"
+  "payload-production-build-placeholder-secret",
 )
 const databaseUrl = getRuntimeEnv(
   "DATABASE_URL",
-  "postgresql://payload:payload@127.0.0.1:5432/payload"
+  "postgresql://payload:payload@127.0.0.1:5432/payload",
 )
 const { locales, defaultLocale } = resolveEnvLocales("PAYLOAD_LOCALES", ["en"])
 const isArticlesEnabled = isEnabled("FEATURE_PAYLOAD_ARTICLES_ENABLED")
 const isPagesEnabled = isEnabled("FEATURE_PAYLOAD_PAGES_ENABLED")
 const isHeroCarouselsEnabled = isEnabled(
-  "FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED"
+  "FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED",
 )
 const isAutoTranslateConfigured = Boolean(getEnv("OPENAI_API_KEY"))
 
@@ -76,7 +76,7 @@ const s3Region = getRuntimeEnv("S3_REGION", "us-east-1")
 const s3AccessKeyId = getRuntimeEnv("S3_ACCESS_KEY_ID", "payload-build")
 const s3SecretAccessKey = getRuntimeEnv(
   "S3_SECRET_ACCESS_KEY",
-  "payload-build-secret"
+  "payload-build-secret",
 )
 
 /** Payload CMS configuration for the Medusa integration. */

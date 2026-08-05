@@ -12,7 +12,7 @@ export const Skeleton = ({ className, style }: SkeletonProps) => (
     aria-hidden
     className={clx(
       "h-3 w-3 animate-pulse rounded-[4px] bg-ui-bg-component",
-      className
+      className,
     )}
     style={style}
   />
@@ -313,7 +313,7 @@ export const TwoColumnPageSkeleton = ({
                 })}
                 key={section}
               />
-            )
+            ),
           )}
           {showExtraData && (
             <div className="flex flex-col gap-y-3 xl:hidden">

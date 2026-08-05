@@ -36,7 +36,7 @@ const getRequestPath = (req: MedusaRequest) => {
 
 const resolveAdminFile = (
   adminPublicDir: string,
-  requestPath: string
+  requestPath: string,
 ): string | undefined => {
   const relativePath =
     requestPath === "/app" || requestPath === "/app/"
@@ -74,7 +74,7 @@ const resolveAdminFile = (
 export const serveAdminAppStatic = (
   req: MedusaRequest,
   res: MedusaResponse,
-  next: MedusaNextFunction
+  next: MedusaNextFunction,
 ) => {
   const adminPublicDir = getAdminPublicDir()
 

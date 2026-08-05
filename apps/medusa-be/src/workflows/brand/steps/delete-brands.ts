@@ -15,7 +15,7 @@ export const deleteBrandsStep = createStep(
       {
         take: Math.max(input.ids.length, 1),
         withDeleted: true,
-      }
+      },
     )
     const foundIds = new Set(brands.map((brand) => brand.id))
     const missingIds = input.ids.filter((id) => !foundIds.has(id))
@@ -23,7 +23,7 @@ export const deleteBrandsStep = createStep(
     if (missingIds.length) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Brand ids were not found: ${missingIds.join(", ")}`
+        `Brand ids were not found: ${missingIds.join(", ")}`,
       )
     }
 
@@ -43,5 +43,5 @@ export const deleteBrandsStep = createStep(
     }
 
     await getBrandService(container).restoreBrands(deletedIds)
-  }
+  },
 )

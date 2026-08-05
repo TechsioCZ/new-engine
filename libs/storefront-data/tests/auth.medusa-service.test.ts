@@ -109,7 +109,7 @@ describe(createMedusaAuthService, () => {
       service.register({
         email: "john@example.com",
         password: "secret123",
-      })
+      }),
     ).resolves.toBe("session_token")
 
     expect(sdk.auth.register).toHaveBeenCalledOnce()
@@ -119,13 +119,13 @@ describe(createMedusaAuthService, () => {
       Authorization: "Bearer login_token",
     })
     expect(sdk.auth.register.mock.invocationCallOrder[0]!).toBeLessThan(
-      sdk.auth.login.mock.invocationCallOrder[0]!
+      sdk.auth.login.mock.invocationCallOrder[0]!,
     )
     expect(sdk.auth.login.mock.invocationCallOrder[0]!).toBeLessThan(
-      sdk.store.customer.create.mock.invocationCallOrder[0]!
+      sdk.store.customer.create.mock.invocationCallOrder[0]!,
     )
     expect(sdk.store.customer.create.mock.invocationCallOrder[0]!).toBeLessThan(
-      sdk.auth.refresh.mock.invocationCallOrder[0]!
+      sdk.auth.refresh.mock.invocationCallOrder[0]!,
     )
   })
 
@@ -140,7 +140,7 @@ describe(createMedusaAuthService, () => {
       service.register({
         email: "john@example.com",
         password: "secret123",
-      })
+      }),
     ).rejects.toThrow("Multi-step authentication not supported")
 
     expect(sdk.auth.login).not.toHaveBeenCalled()
@@ -158,7 +158,7 @@ describe(createMedusaAuthService, () => {
       service.register({
         email: "john@example.com",
         password: "secret123",
-      })
+      }),
     ).rejects.toThrow("Multi-step authentication not supported")
 
     expect(sdk.store.customer.create).not.toHaveBeenCalled()
@@ -178,7 +178,7 @@ describe(createMedusaAuthService, () => {
 
     expect(warnSpy).toHaveBeenCalledWith(
       "[storefront-data/auth] Failed to logout customer session.",
-      logoutError
+      logoutError,
     )
   })
 
@@ -226,12 +226,12 @@ describe(createMedusaAuthService, () => {
       service.register({
         email: "john@example.com",
         password: "secret123",
-      })
+      }),
     ).rejects.toBe(registerError)
 
     expect(onLogoutError).toHaveBeenCalledWith(
       cleanupLogoutError,
-      "register-cleanup"
+      "register-cleanup",
     )
     expect(sdk.auth.logout).toHaveBeenCalledOnce()
   })
@@ -250,7 +250,7 @@ describe(createMedusaAuthService, () => {
       service.register({
         email: "john@example.com",
         password: "secret123",
-      })
+      }),
     ).rejects.toThrow("Multi-step authentication not supported")
 
     expect(onLogoutError).not.toHaveBeenCalled()
@@ -276,11 +276,11 @@ describe(createMedusaAuthService, () => {
         email: "john@example.com",
         name: "MedusaRegistrationSignInError",
         reason: refreshError,
-      })
+      }),
     )
 
     await expect(registration).rejects.toBeInstanceOf(
-      MedusaRegistrationSignInError
+      MedusaRegistrationSignInError,
     )
     expect(sdk.store.customer.create).toHaveBeenCalledOnce()
     expect(sdk.auth.logout).toHaveBeenCalledOnce()

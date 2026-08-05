@@ -39,7 +39,7 @@ const myWorkflow = createWorkflow<WorkflowInput, WorkflowOutput>(
     return {
       message: str1,
     }
-  }
+  },
 )
 
 export default myWorkflow

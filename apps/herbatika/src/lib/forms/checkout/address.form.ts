@@ -65,7 +65,7 @@ export const DEFAULT_CHECKOUT_ADDRESS_VALUES: CheckoutAddressValues = {
 }
 
 const clearCheckoutCompanyFields = (
-  address: CheckoutAddressValues
+  address: CheckoutAddressValues,
 ): CheckoutAddressValues => ({
   ...address,
   company: "",
@@ -75,7 +75,7 @@ const clearCheckoutCompanyFields = (
 })
 
 export const resolveEffectiveCheckoutAddressDetails = (
-  values: CheckoutAddressDetailsValues
+  values: CheckoutAddressDetailsValues,
 ): CheckoutAddressDetailsValues => {
   const shouldKeepShippingCompanyFields =
     values.useSameAddress && values.isCompanyPurchase

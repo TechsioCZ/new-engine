@@ -44,7 +44,7 @@ export default async function productCreateHandler({
   const productId = data.id
 
   const productModuleService: IProductModuleService = container.resolve(
-    Modules.PRODUCT
+    Modules.PRODUCT,
   )
 
   const product = await productModuleService.retrieveProduct(productId)

@@ -34,7 +34,7 @@ export function useProductDetailGalleryState({
 
   const handleMainImagePointerDown = (
     event: PointerEvent<HTMLButtonElement>,
-    index: number
+    index: number,
   ) => {
     if (event.button !== 0) {
       cancelPendingOpen()
@@ -55,7 +55,7 @@ export function useProductDetailGalleryState({
 
   const handleMainImageClick = (
     event: MouseEvent<HTMLButtonElement>,
-    index: number
+    index: number,
   ) => {
     if (event.detail === 0) {
       handleOpenLightbox(index)
@@ -63,7 +63,7 @@ export function useProductDetailGalleryState({
   }
   const safeSelectedImageIndex = Math.min(
     selectedImageIndex,
-    Math.max(galleryItems.length - 1, 0)
+    Math.max(galleryItems.length - 1, 0),
   )
 
   const galleryItemsWithFallback: GalleryItem[] = galleryItems.map(
@@ -120,7 +120,7 @@ export function useProductDetailGalleryState({
           </span>
         ),
       }
-    }
+    },
   )
 
   return {

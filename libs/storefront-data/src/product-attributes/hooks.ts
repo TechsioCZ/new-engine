@@ -39,7 +39,7 @@ export interface ProductAttributeHooks<
     input: TInput,
     options?: {
       queryOptions?: ReadQueryOptions<TAttribute[]>
-    }
+    },
   ) => UseProductAttributesResult<TAttribute>
 }
 
@@ -72,7 +72,7 @@ export function createProductAttributeHooks<
     input: TInput,
     options?: {
       queryOptions?: ReadQueryOptions<TAttribute[]>
-    }
+    },
   ): UseProductAttributesResult<TAttribute> {
     const enabled = input.enabled ?? Boolean(input.productId)
     const query = useQuery({
@@ -80,7 +80,7 @@ export function createProductAttributeHooks<
         input,
         options?.queryOptions === undefined
           ? {}
-          : { queryOptions: options.queryOptions }
+          : { queryOptions: options.queryOptions },
       ),
       enabled,
     })

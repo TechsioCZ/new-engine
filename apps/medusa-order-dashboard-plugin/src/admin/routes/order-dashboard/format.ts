@@ -36,7 +36,7 @@ export function formatLocaleCode(language?: string) {
 
 export function formatOrderDate(
   date: string | null | undefined,
-  locale?: string
+  locale?: string,
 ) {
   if (!date) {
     return "-"
@@ -96,7 +96,7 @@ export function formatPaymentMethodLabel(value: string | null | undefined) {
 export function getOrderDashboardTransitionBlockReason(
   order: Pick<OrderDashboardOrder, "has_active_fulfillment" | "status">,
   targetStatus: OrderDashboardTargetStatus,
-  t: TranslationFunction
+  t: TranslationFunction,
 ) {
   const currentStatus = order.status
 
@@ -150,7 +150,7 @@ export function getOrderDashboardTransitionBlockReason(
 }
 
 export function isOrderDashboardCarrierKey(
-  value: unknown
+  value: unknown,
 ): value is OrderDashboardCarrierKey {
   return (
     typeof value === "string" &&
@@ -159,23 +159,23 @@ export function isOrderDashboardCarrierKey(
 }
 
 export function isOrderDashboardBusinessStatusId(
-  value: unknown
+  value: unknown,
 ): value is OrderDashboardBusinessStatusId {
   return (
     typeof value === "string" &&
     ORDER_DASHBOARD_BUSINESS_STATUS_IDS.includes(
-      value as OrderDashboardBusinessStatusId
+      value as OrderDashboardBusinessStatusId,
     )
   )
 }
 
 export function isOrderDashboardTargetStatus(
-  value: unknown
+  value: unknown,
 ): value is OrderDashboardTargetStatus {
   return (
     typeof value === "string" &&
     ORDER_DASHBOARD_TARGET_STATUSES.includes(
-      value as OrderDashboardTargetStatus
+      value as OrderDashboardTargetStatus,
     )
   )
 }
@@ -223,7 +223,7 @@ function formatPaymentProviderToken(token: string) {
 }
 
 function isOrderDashboardTransitionSourceStatus(
-  value: string
+  value: string,
 ): value is keyof typeof ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS {
   return value in ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS
 }

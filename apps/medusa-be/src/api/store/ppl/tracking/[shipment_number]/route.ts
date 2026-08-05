@@ -19,7 +19,7 @@ import type {
  */
 export async function GET(
   req: MedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ): Promise<void> {
   const { shipment_number } = req.params
   const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
@@ -74,7 +74,7 @@ export async function GET(
   } catch (error) {
     logger.error(
       "PPL tracking error",
-      error instanceof Error ? error : new Error(String(error))
+      error instanceof Error ? error : new Error(String(error)),
     )
     res.status(500).json({
       error: "Failed to fetch tracking status",

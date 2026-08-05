@@ -36,7 +36,7 @@ const resolveBreadcrumbItems = (
   slug: string,
   activeCategory: HttpTypes.StoreProductCategory | null,
   categoryById: Map<string, HttpTypes.StoreProductCategory>,
-  homeLabel: string
+  homeLabel: string,
 ) => {
   const items: HerbatikaBreadcrumbItem[] = [
     { href: "/", icon: "token-icon-home", label: homeLabel },
@@ -118,7 +118,7 @@ export function useCategoryListingQueries({
         activeCategory.id,
         ...collectDescendantCategoryIds(
           categoriesQuery.categories,
-          activeCategory.id
+          activeCategory.id,
         ),
       ]
     : []
@@ -134,7 +134,7 @@ export function useCategoryListingQueries({
 
       return normalizeCategoryName(left.name).localeCompare(
         normalizeCategoryName(right.name),
-        locale
+        locale,
       )
     })
 
@@ -142,7 +142,7 @@ export function useCategoryListingQueries({
     slug,
     activeCategory,
     categoryById,
-    tNavigation("breadcrumbs.home")
+    tNavigation("breadcrumbs.home"),
   )
 
   const catalogProductsInput = buildCatalogProductsParams({

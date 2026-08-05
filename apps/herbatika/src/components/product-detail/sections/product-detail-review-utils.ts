@@ -30,7 +30,7 @@ export const toReviewItem = (
   presentation: {
     anonymousLabel: string
     formatDate: (date: Date) => string
-  }
+  },
 ): ReviewItem => ({
   author: resolveReviewAuthor(review, presentation.anonymousLabel),
   dateLabel: (() => {

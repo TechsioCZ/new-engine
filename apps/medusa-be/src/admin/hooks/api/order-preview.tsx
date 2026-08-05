@@ -18,7 +18,7 @@ export const useOrderPreview = (
       HttpTypes.AdminOrderPreviewResponse
     >,
     "queryFn" | "queryKey"
-  >
+  >,
 ) => {
   const { data, ...rest } = useQuery({
     queryFn: async () => await sdk.admin.order.retrievePreview(id, query),

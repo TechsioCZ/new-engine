@@ -7,7 +7,7 @@ const SENTENCE_SEPARATOR_PATTERN = /[.!?]/
 export const resolveGalleryItems = (
   imageUrls: string[],
   title: string | null | undefined,
-  fallbackProductLabel: string
+  fallbackProductLabel: string,
 ): GalleryItem[] => {
   if (imageUrls.length === 0) {
     return [

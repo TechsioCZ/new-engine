@@ -56,7 +56,7 @@ export function usePrefetchPages({
 
       prefetchLogger.start(
         "Pages",
-        `${categoryName}: ${pageLabels} (${priority})`
+        `${categoryName}: ${pageLabels} (${priority})`,
       )
 
       void Promise.all(
@@ -74,13 +74,13 @@ export function usePrefetchPages({
             queryKey: queryKeys.products.list(queryParams),
             ...cacheConfig.semiStatic,
           })
-        })
+        }),
       ).then(() => {
         const duration = performance.now() - start
         prefetchLogger.complete(
           "Pages",
           `${categoryName}: ${pageLabels} (${priority})`,
-          duration
+          duration,
         )
       })
     }
@@ -111,7 +111,7 @@ export function usePrefetchPages({
       timers.push(
         setTimeout(() => {
           prefetchBatch(medium, "medium")
-        }, MEDIUM_PRIORITY_DELAY)
+        }, MEDIUM_PRIORITY_DELAY),
       )
     }
 
@@ -120,7 +120,7 @@ export function usePrefetchPages({
       timers.push(
         setTimeout(() => {
           prefetchBatch(low, "low")
-        }, LOW_PRIORITY_DELAY)
+        }, LOW_PRIORITY_DELAY),
       )
     }
 

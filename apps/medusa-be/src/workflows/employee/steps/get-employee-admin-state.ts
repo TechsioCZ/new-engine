@@ -14,7 +14,7 @@ export const getEmployeeAdminStateStep = createStep(
   "get-employee-admin-state",
   async (
     input: { company_id?: string | undefined; id: string },
-    { container }
+    { container },
   ): Promise<StepResponse<EmployeeAdminState>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const filters = {
@@ -30,16 +30,16 @@ export const getEmployeeAdminStateStep = createStep(
         fields: ["id", "is_admin"],
         filters,
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!employee) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Employee "${input.id}" was not found`
+        `Employee "${input.id}" was not found`,
       )
     }
 
     return new StepResponse(employee)
-  }
+  },
 )

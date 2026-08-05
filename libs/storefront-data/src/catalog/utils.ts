@@ -1,6 +1,6 @@
 export const resolvePositiveInteger = (
   value: number | undefined,
-  fallbackValue: number
+  fallbackValue: number,
 ): number => {
   const normalizedFallback =
     typeof fallbackValue === "number" &&

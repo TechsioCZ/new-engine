@@ -56,8 +56,8 @@ describe("invoice batch client mapper", () => {
           identifier_type: "display_id",
           order_id: undefined,
         }),
-        index
-      )
+        index,
+      ),
     ).toBe(order)
     expect(
       helper.findExistingOrder(
@@ -66,8 +66,8 @@ describe("invoice batch client mapper", () => {
           identifier_type: "erp_id",
           order_id: undefined,
         }),
-        index
-      )
+        index,
+      ),
     ).toBe(order)
   })
 
@@ -87,7 +87,7 @@ describe("invoice batch client mapper", () => {
       },
       invoice(),
       "https://example.test/new.pdf",
-      { id: "file_1", url: "https://example.test/uploaded.pdf" }
+      { id: "file_1", url: "https://example.test/uploaded.pdf" },
     )
 
     expect(metadata.invoices).toHaveLength(2)

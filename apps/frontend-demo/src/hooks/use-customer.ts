@@ -45,7 +45,7 @@ export function useCustomer() {
       if (mainAddress?.id) {
         return await sdk.store.customer.updateAddress(
           mainAddress.id,
-          medusaAddress
+          medusaAddress,
         )
       }
       return await sdk.store.customer.createAddress(medusaAddress)
@@ -55,7 +55,7 @@ export function useCustomer() {
       if (context?.previousAddresses) {
         queryClient.setQueryData(
           queryKeys.customer.addresses(),
-          context.previousAddresses
+          context.previousAddresses,
         )
       }
       toast.create({
@@ -72,7 +72,7 @@ export function useCustomer() {
 
       // Snapshot the previous value
       const previousAddresses = queryClient.getQueryData(
-        queryKeys.customer.addresses()
+        queryKeys.customer.addresses(),
       )
 
       // Optimistically update to the new value
@@ -90,7 +90,7 @@ export function useCustomer() {
           addresses: old?.addresses?.length
             ? [optimisticAddress, ...old.addresses.slice(1)]
             : [optimisticAddress],
-        })
+        }),
       )
 
       // Return context with snapshot for rollback
@@ -121,7 +121,7 @@ export function useCustomer() {
       if (context?.previousCustomer) {
         queryClient.setQueryData(
           queryKeys.auth.customer(),
-          context.previousCustomer
+          context.previousCustomer,
         )
       }
       toast.create({
@@ -135,7 +135,7 @@ export function useCustomer() {
       await queryClient.cancelQueries({ queryKey: queryKeys.auth.customer() })
       // Snapshot the previous value
       const previousCustomer = queryClient.getQueryData(
-        queryKeys.auth.customer()
+        queryKeys.auth.customer(),
       )
 
       // Optimistically update to the new value
@@ -147,7 +147,7 @@ export function useCustomer() {
           last_name: newData.last_name,
           phone: newData.phone,
           company_name: newData.company_name,
-        })
+        }),
       )
 
       // Return context with snapshot

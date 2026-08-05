@@ -38,7 +38,7 @@ const getMedusaBaseUrl = (): string | null => {
 /** Resolve a localized slug from a CMS document. */
 const resolveSlug = (
   doc: CmsDoc | undefined,
-  locale?: string
+  locale?: string,
 ): string | undefined => {
   if (!doc) {
     return
@@ -59,14 +59,14 @@ const resolveSlug = (
 /** Notify Medusa to invalidate its CMS cache. */
 const notifyMedusa = async (
   payload: MedusaInvalidatePayload,
-  req?: PayloadRequest | null
+  req?: PayloadRequest | null,
 ): Promise<void> => {
   const baseUrl = getMedusaBaseUrl()
   if (!baseUrl) {
     if (!loggedMissingBaseUrl) {
       loggedMissingBaseUrl = true
       req?.payload?.logger?.warn?.(
-        "MEDUSA_BACKEND_URL is not set; skipping CMS cache invalidation."
+        "MEDUSA_BACKEND_URL is not set; skipping CMS cache invalidation.",
       )
     }
     return
@@ -76,7 +76,7 @@ const notifyMedusa = async (
   const webhookSecret = getEnvString("PAYLOAD_WEBHOOK_SECRET")
   if (!webhookSecret) {
     throw new Error(
-      "PAYLOAD_WEBHOOK_SECRET is not set; refusing to send CMS cache invalidation."
+      "PAYLOAD_WEBHOOK_SECRET is not set; refusing to send CMS cache invalidation.",
     )
   }
 
@@ -99,14 +99,14 @@ const notifyMedusa = async (
     if (!response.ok) {
       const message = await response.text().catch(() => "")
       req?.payload?.logger?.error?.(
-        `CMS cache invalidation failed (${response.status}): ${message}`
+        `CMS cache invalidation failed (${response.status}): ${message}`,
       )
     }
   } catch (error) {
     req?.payload?.logger?.error?.(
       `CMS cache invalidation request failed: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     )
   } finally {
     clearTimeout()
@@ -115,7 +115,7 @@ const notifyMedusa = async (
 
 /** Create a hook that invalidates Medusa CMS cache for a collection. */
 export const createMedusaCacheHook = (
-  collection: string
+  collection: string,
 ): CollectionAfterChangeHook & CollectionAfterDeleteHook => {
   const invalidateCache = async ({
     doc,
@@ -145,7 +145,7 @@ export const createMedusaCacheHook = (
     }
 
     req?.payload?.logger?.info?.(
-      `CMS invalidate hook: ${op} -> ${JSON.stringify(payload)}`
+      `CMS invalidate hook: ${op} -> ${JSON.stringify(payload)}`,
     )
 
     await notifyMedusa(payload, req)

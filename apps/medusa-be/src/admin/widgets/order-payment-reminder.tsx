@@ -85,13 +85,13 @@ const OrderEmailSendControl = ({
 }) => {
   const queryClient = useQueryClient()
   const [template, setTemplate] = useState(
-    templates[0]?.template ?? DEFAULT_ORDER_EMAIL_TEMPLATE
+    templates[0]?.template ?? DEFAULT_ORDER_EMAIL_TEMPLATE,
   )
   const mutation = useMutation({
     mutationFn: async () => sendOrderEmail({ orderId, template }),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to send order email"
+        error instanceof Error ? error.message : "Failed to send order email",
       )
     },
     onSuccess: async (response) => {
@@ -134,7 +134,7 @@ const DetailReminderWidget = ({ order }: { order: AdminOrder }) => {
   const { data } = useQuery({
     queryFn: async () =>
       sdk.client.fetch<OrderEmailTemplatesResponse>(
-        "/admin/orders/email-templates"
+        "/admin/orders/email-templates",
       ),
     queryKey: ORDER_EMAIL_TEMPLATES_QUERY_KEY,
   })
@@ -167,14 +167,14 @@ const ListReminderWidget = () => {
   } = useQuery({
     queryFn: async () =>
       sdk.client.fetch<UnpaidOrdersResponse>(
-        "/admin/orders/payment-reminders/unpaid?limit=5"
+        "/admin/orders/payment-reminders/unpaid?limit=5",
       ),
     queryKey: UNPAID_ORDERS_QUERY_KEY,
   })
   const templatesQuery = useQuery({
     queryFn: async () =>
       sdk.client.fetch<OrderEmailTemplatesResponse>(
-        "/admin/orders/email-templates"
+        "/admin/orders/email-templates",
       ),
     queryKey: ORDER_EMAIL_TEMPLATES_QUERY_KEY,
   })

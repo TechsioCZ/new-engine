@@ -21,7 +21,7 @@ vi.mock(import("@medusajs/framework/utils"), () => ({
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
@@ -44,7 +44,7 @@ const createMockResponse = (): MockJsonResponse => {
 
 const createMockRequest = (
   graph: ReturnType<typeof vi.fn>,
-  validatedQuery: Record<string, unknown> = {}
+  validatedQuery: Record<string, unknown> = {},
 ): AuthenticatedMedusaRequest<AdminGetApprovalsType> => {
   const candidate: unknown = {
     queryConfig: {},
@@ -55,7 +55,7 @@ const createMockRequest = (
   }
   assertMockShape<AuthenticatedMedusaRequest<AdminGetApprovalsType>>(
     candidate,
-    ["queryConfig", "scope", "validatedQuery"]
+    ["queryConfig", "scope", "validatedQuery"],
   )
   return candidate
 }
@@ -111,7 +111,7 @@ describe("GET /admin/approvals", () => {
         filters: {
           status: "pending",
         },
-      })
+      }),
     )
     expect(res.json).toHaveBeenCalledWith({
       carts_with_approvals: [

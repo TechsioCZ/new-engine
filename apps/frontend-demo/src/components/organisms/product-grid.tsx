@@ -70,7 +70,7 @@ export function ProductGrid({
             product &&
             formatPrice(
               product.priceWithTax ?? 0,
-              selectedRegion?.currency_code
+              selectedRegion?.currency_code,
             )
 
           return (

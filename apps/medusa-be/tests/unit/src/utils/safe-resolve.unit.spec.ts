@@ -7,7 +7,7 @@ describe(safeResolve, () => {
     const dependency = { get: vi.fn() }
 
     expect(safeResolve<typeof dependency>({ cache: dependency }, "cache")).toBe(
-      dependency
+      dependency,
     )
   })
 

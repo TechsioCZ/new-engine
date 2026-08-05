@@ -13,7 +13,7 @@ import type { ApprovalItem } from "../approvals-items-popover"
 const columnHelper = createColumnHelper<AdminCartWithApprovals>()
 
 const getApprovalItems = (
-  items: AdminCartWithApprovals["items"]
+  items: AdminCartWithApprovals["items"],
 ): ApprovalItem[] =>
   items?.map((item) => ({
     id: item.id,

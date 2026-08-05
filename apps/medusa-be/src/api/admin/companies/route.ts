@@ -35,7 +35,7 @@ const parseCompanyOrder = (value: string = "name") => {
 
 const buildCompanyListFilters = (
   filterableFields: Record<string, unknown>,
-  withDeleted?: boolean
+  withDeleted?: boolean,
 ) => {
   const {
     order_by: _orderBy,
@@ -70,14 +70,14 @@ const buildCompanyListFilters = (
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<unknown, AdminGetCompanyParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { fields, pagination, withDeleted } = req.queryConfig
   const listFilters = buildCompanyListFilters(req.filterableFields, withDeleted)
   const order = parseCompanyOrder(
-    req.validatedQuery.order_by ?? req.validatedQuery.order
+    req.validatedQuery.order_by ?? req.validatedQuery.order,
   )
 
   const { data: companies, metadata } = await query.graph({
@@ -103,12 +103,12 @@ export const POST = async (
   req: AuthenticatedMedusaRequest<
     AdminCreateCompanyType | AdminCreateCompanyType[]
   >,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { result: createdCompanies } = await createCompaniesWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: Array.isArray(req.validatedBody)
       ? req.validatedBody.map((company) => definedProperties(company))
@@ -121,7 +121,7 @@ export const POST = async (
       fields: req.queryConfig.fields,
       filters: { id: createdCompanies.map((company) => company.id) },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ companies })

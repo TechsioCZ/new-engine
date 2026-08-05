@@ -93,7 +93,7 @@ export interface GlobalRuntimeRule {
 }
 
 function buildDeployableService(
-  service: StackManifest["services"][number]
+  service: StackManifest["services"][number],
 ): DeployableService {
   const { zane } = service.ci
   if (!zane) {
@@ -113,11 +113,11 @@ function buildDeployableService(
 }
 
 function toDeployableService(
-  service: StackManifest["services"][number]
+  service: StackManifest["services"][number],
 ): DeployableService {
   if (!service.ci.deployable || !service.ci.zane) {
     throw new Error(
-      `Service is not deployable or missing Zane metadata: ${service.id}`
+      `Service is not deployable or missing Zane metadata: ${service.id}`,
     )
   }
 
@@ -125,25 +125,25 @@ function toDeployableService(
 }
 
 export function listDeployableServices(
-  manifest: StackManifest
+  manifest: StackManifest,
 ): DeployableService[] {
   return manifest.services.flatMap((service) =>
     service.ci.deployable && service.ci.zane
       ? [toDeployableService(service)]
-      : []
+      : [],
   )
 }
 
 export function getDeployableService(
   manifest: StackManifest,
-  serviceId: string
+  serviceId: string,
 ): DeployableService {
   const service = manifest.services.find(
-    (candidate) => candidate.id === serviceId
+    (candidate) => candidate.id === serviceId,
   )
   if (!service) {
     throw new Error(
-      `Service is not deployable or missing Zane metadata: ${serviceId}`
+      `Service is not deployable or missing Zane metadata: ${serviceId}`,
     )
   }
 
@@ -152,10 +152,10 @@ export function getDeployableService(
 
 export function getZaneService(
   manifest: StackManifest,
-  serviceId: string
+  serviceId: string,
 ): DeployableService {
   const service = manifest.services.find(
-    (candidate) => candidate.id === serviceId
+    (candidate) => candidate.id === serviceId,
   )
   if (!service?.ci.zane) {
     throw new Error(`Service is missing Zane metadata: ${serviceId}`)
@@ -167,7 +167,7 @@ export function getZaneService(
 export function listComposeServicesForPhase(
   manifest: StackManifest,
   phase: LocalPhase,
-  defaultOnly: boolean
+  defaultOnly: boolean,
 ): string[] {
   return manifest.services.flatMap((service) => {
     if (!(service.compose_service && service.local)) {
@@ -188,35 +188,35 @@ export function listComposeServicesForPhase(
 
 export function listPrepareServiceIds(
   manifest: StackManifest,
-  requirement: "preview_db"
+  requirement: "preview_db",
 ): string[] {
   return manifest.services.flatMap((service) =>
-    service.ci.prepare[requirement] ? [service.id] : []
+    service.ci.prepare[requirement] ? [service.id] : [],
   )
 }
 
 export function listLaneServiceIds(
   manifest: StackManifest,
   lane: Lane,
-  defaultOnly = false
+  defaultOnly = false,
 ): string[] {
   return listDeployableServices(manifest)
     .filter(
       (service) =>
         (!defaultOnly || service.enabledByDefault) &&
         service.deployLanes.includes(lane) &&
-        (lane !== "preview" || service.cloneToPreview)
+        (lane !== "preview" || service.cloneToPreview),
     )
     .map((service) => service.id)
 }
 
 export function listDowntimeRiskServiceIds(
   manifest: StackManifest,
-  lane: Lane
+  lane: Lane,
 ): string[] {
   return listDeployableServices(manifest)
     .filter(
-      (service) => service.deployLanes.includes(lane) && service.downtimeRisk
+      (service) => service.deployLanes.includes(lane) && service.downtimeRisk,
     )
     .map((service) => service.id)
 }
@@ -226,7 +226,7 @@ export function getIgnorePathGlobs(manifest: StackManifest): string[] {
 }
 
 export function getGlobalRuntimeRules(
-  manifest: StackManifest
+  manifest: StackManifest,
 ): GlobalRuntimeRule[] {
   return manifest.ci.global_runtime_rules.map((rule) => ({
     pathGlobs: rule.path_globs,

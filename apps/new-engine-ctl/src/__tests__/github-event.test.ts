@@ -30,7 +30,7 @@ async function withoutBranchEnv(callback: () => Promise<void>): Promise<void> {
 
 async function withEventFile(
   event: unknown,
-  callback: (path: string) => Promise<void>
+  callback: (path: string) => Promise<void>,
 ): Promise<void> {
   const directory = await mkdtemp(join(tmpdir(), "new-engine-ctl-event-"))
   const path = join(directory, "event.json")
@@ -62,7 +62,7 @@ test("resolves PR head branch from workflow_run pull request payload", async () 
         const branch = await resolveGitHubPreviewHeadBranch(path)
 
         expect(branch).toBe("ci/pipeline-smoke-20260428")
-      }
+      },
     )
   })
 })
@@ -80,7 +80,7 @@ test("falls back to workflow_run head_branch when PR head ref is unavailable", a
         const branch = await resolveGitHubPreviewHeadBranch(path)
 
         expect(branch).toBe("ci/pipeline-smoke-20260428")
-      }
+      },
     )
   })
 })
@@ -99,7 +99,7 @@ test("explicit preview branch env overrides event payload", async () => {
         const branch = await resolveGitHubPreviewHeadBranch(path)
 
         expect(branch).toBe("manual-preview-branch")
-      }
+      },
     )
   })
 })

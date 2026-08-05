@@ -37,14 +37,14 @@ export const normalizeProductAttributeKey = (value: string) =>
 
 export const normalizeRequiredProductAttributeKey = (
   value: string,
-  field = "key"
+  field = "key",
 ) => {
   const key = normalizeProductAttributeKey(value)
 
   if (!key) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Product Attribute ${field} must contain at least one letter or number.`
+      `Product Attribute ${field} must contain at least one letter or number.`,
     )
   }
 
@@ -76,12 +76,12 @@ export const assertProductAttributeKeyAvailable = ({
 
   throw new MedusaError(
     MedusaError.Types.DUPLICATE_ERROR,
-    `Product Attribute ${kind} key "${key}" already exists${scope}. ${guidance}`
+    `Product Attribute ${kind} key "${key}" already exists${scope}. ${guidance}`,
   )
 }
 
 export const partitionProductAttributeRecordIds = (
-  records: SoftDeletableRecord[]
+  records: SoftDeletableRecord[],
 ) => ({
   active_ids: records
     .filter((record) => !record.deleted_at)
@@ -97,11 +97,11 @@ export const getProductAttributeService = (container: MedusaContainer) =>
 export const withProductAttributeTransaction = async <T>(
   service: ProductAttributeModuleService,
   task: (context: Context<SqlEntityManager>) => Promise<T>,
-  sharedContext: Context<SqlEntityManager> = {}
+  sharedContext: Context<SqlEntityManager> = {},
 ) => await service.runInTransaction(task, sharedContext)
 
 export const toUsageCountMap = (
-  rows: { count: number | string; id: string }[]
+  rows: { count: number | string; id: string }[],
 ) =>
   new Map(
     rows.map((row) => {
@@ -110,5 +110,5 @@ export const toUsageCountMap = (
           ? row.count
           : Number.parseInt(row.count, 10)
       return [row.id, Number.isFinite(count) ? count : 0] as const
-    })
+    }),
   )

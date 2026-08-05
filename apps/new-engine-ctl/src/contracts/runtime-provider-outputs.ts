@@ -7,7 +7,7 @@ const runtimeProviderOutputValueSchema = z.object({
 
 export const runtimeProviderOutputsSchema = z.record(
   z.string(),
-  runtimeProviderOutputValueSchema
+  runtimeProviderOutputValueSchema,
 )
 
 export type RuntimeProviderOutputs = z.infer<
@@ -16,14 +16,14 @@ export type RuntimeProviderOutputs = z.infer<
 
 export function runtimeProviderOutputKey(
   providerId: string,
-  outputId: string
+  outputId: string,
 ): string {
   return `${providerId}:${outputId}`
 }
 
 export function parseRuntimeProviderOutputs(
   raw: string | undefined,
-  label = "--runtime-provider-outputs-json"
+  label = "--runtime-provider-outputs-json",
 ): RuntimeProviderOutputs {
   const value = raw?.trim()
   if (!value) {

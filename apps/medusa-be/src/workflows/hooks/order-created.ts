@@ -36,5 +36,5 @@ createOrderWorkflow.hooks.orderCreated(
         order_id: orderId,
       },
     })
-  }
+  },
 )

@@ -21,7 +21,7 @@ type JsonResponse = MedusaResponse & {
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
@@ -81,7 +81,7 @@ describe("promotion rule attribute route", () => {
           promotion_type: "standard",
         },
       }),
-      res
+      res,
     )
 
     const payload = res.json.mock.calls[0]?.[0]
@@ -92,17 +92,17 @@ describe("promotion rule attribute route", () => {
     }[]
 
     expect(attributes.map((attribute) => attribute.id)).toStrictEqual(
-      expect.arrayContaining(["product", "brand", "product_variant"])
+      expect.arrayContaining(["product", "brand", "product_variant"]),
     )
     expect(
-      attributes.find((attribute) => attribute.id === "brand")
+      attributes.find((attribute) => attribute.id === "brand"),
     ).toStrictEqual(
       expect.objectContaining({
         operators: expect.arrayContaining([
           expect.objectContaining({ value: "ne", label: "Not In" }),
         ]),
         value: "items.brand_ids",
-      })
+      }),
     )
   })
 
@@ -112,8 +112,8 @@ describe("promotion rule attribute route", () => {
         createRequest<RuleAttributeOptionsQuerySchemaType>({
           ruleType: "bad-rule",
         }),
-        createResponse()
-      )
+        createResponse(),
+      ),
     ).rejects.toThrow("Invalid param rule_type (bad-rule)")
   })
 })
@@ -136,7 +136,7 @@ describe("promotion custom rule value routes", () => {
           value: "brand_1",
         },
       }),
-      res
+      res,
     )
 
     expect(graph).toHaveBeenCalledWith({
@@ -181,7 +181,7 @@ describe("promotion custom rule value routes", () => {
           q: "Trail",
         },
       }),
-      res
+      res,
     )
 
     expect(graph).toHaveBeenCalledWith({

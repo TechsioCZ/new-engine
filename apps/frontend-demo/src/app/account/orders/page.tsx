@@ -46,13 +46,13 @@ export default function OrdersPage() {
   const totalAmount = orders.reduce(
     (sum, order) =>
       sum + (order.summary?.current_order_total || order.total || 0),
-    0
+    0,
   )
   const completedOrders = orders.filter(
-    (order) => order.status === "completed"
+    (order) => order.status === "completed",
   ).length
   const pendingOrders = orders.filter(
-    (order) => order.status === "pending"
+    (order) => order.status === "pending",
   ).length
 
   return (

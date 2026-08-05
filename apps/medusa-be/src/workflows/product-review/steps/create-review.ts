@@ -8,7 +8,7 @@ export const createReviewStep = createStep(
   "create-review",
   async (input: CreateReviewWorkflowInput, { container }) => {
     const service = container.resolve<ProductReviewModuleService>(
-      PRODUCT_REVIEW_MODULE
+      PRODUCT_REVIEW_MODULE,
     )
     const review = await service.createReviews({
       ...input.review,
@@ -25,5 +25,5 @@ export const createReviewStep = createStep(
     await container
       .resolve<ProductReviewModuleService>(PRODUCT_REVIEW_MODULE)
       .deleteReviews([reviewId])
-  }
+  },
 )

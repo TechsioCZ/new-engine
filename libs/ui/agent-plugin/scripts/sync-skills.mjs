@@ -33,7 +33,7 @@ const AUTHORED = new Set([
 if (!existsSync(srcDir)) {
   console.error(`Source skills directory not found: ${srcDir}`)
   console.error(
-    "Run this script from a checkout of the new-engine repo (plugin at libs/ui/agent-plugin)."
+    "Run this script from a checkout of the new-engine repo (plugin at libs/ui/agent-plugin).",
   )
   process.exit(1)
 }
@@ -46,7 +46,7 @@ let copied = 0
 for (const name of entries) {
   if (AUTHORED.has(name)) {
     console.error(
-      `COLLISION: repo skill "${name}" clashes with an authored plugin skill — rename one.`
+      `COLLISION: repo skill "${name}" clashes with an authored plugin skill — rename one.`,
     )
     process.exit(1)
   }

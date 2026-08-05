@@ -10,7 +10,7 @@ interface SyncPreviewSharedEnvDeps {
 
 export async function handleSyncPreviewSharedEnv(
   request: Request,
-  deps: SyncPreviewSharedEnvDeps
+  deps: SyncPreviewSharedEnvDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

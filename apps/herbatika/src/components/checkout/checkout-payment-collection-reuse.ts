@@ -13,7 +13,7 @@ const areAmountsEqual = (left: number, right: number) =>
 
 const resolveProviderPaymentSession = (
   paymentCollection: HttpTypes.StorePaymentCollection,
-  selectedPaymentProviderId: string
+  selectedPaymentProviderId: string,
 ) => {
   const paymentSessions = paymentCollection.payment_sessions
   if (!paymentSessions?.length) {
@@ -24,10 +24,10 @@ const resolveProviderPaymentSession = (
     paymentSessions.find(
       (session) =>
         session.provider_id === selectedPaymentProviderId &&
-        (session as { is_selected?: unknown }).is_selected === true
+        (session as { is_selected?: unknown }).is_selected === true,
     ) ??
     paymentSessions.find(
-      (session) => session.provider_id === selectedPaymentProviderId
+      (session) => session.provider_id === selectedPaymentProviderId,
     ) ??
     null
   )
@@ -42,7 +42,7 @@ export const resolveReusablePaymentCollection = ({
 }): HttpTypes.StorePaymentCollection | null => {
   const paymentCollection = resolveExistingPaymentCollection(
     cart,
-    selectedPaymentProviderId
+    selectedPaymentProviderId,
   )
   if (!paymentCollection) {
     return null
@@ -59,7 +59,7 @@ export const resolveReusablePaymentCollection = ({
 
   const selectedPaymentSession = resolveProviderPaymentSession(
     paymentCollection,
-    selectedPaymentProviderId
+    selectedPaymentProviderId,
   )
   const paymentSessionAmount = asFiniteNumber(selectedPaymentSession?.amount)
   if (

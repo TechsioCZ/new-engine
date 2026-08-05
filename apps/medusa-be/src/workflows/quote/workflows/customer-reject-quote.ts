@@ -28,5 +28,5 @@ export const customerRejectQuoteWorkflow = createWorkflow(
         },
       ],
     })
-  }
+  },
 )

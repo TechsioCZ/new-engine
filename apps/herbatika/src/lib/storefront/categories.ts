@@ -13,16 +13,16 @@ type CategoryHooks = typeof storefront.hooks.categories
 
 const categoryHooks = storefront.hooks.categories
 const toCategoryListParams = (
-  input: CategoryListInput
+  input: CategoryListInput,
 ): FindParams & HttpTypes.StoreProductCategoryListParams => input
 
 export const useCategories = (
   input: CategoryListInput,
-  options?: Parameters<CategoryHooks["useCategories"]>[1]
+  options?: Parameters<CategoryHooks["useCategories"]>[1],
 ) =>
   categoryHooks.useCategories(
     toCategoryListParams(buildCategoryListParams(input)),
-    options
+    options,
   )
 
 export const { usePrefetchCategory } = categoryHooks
@@ -45,7 +45,7 @@ export const usePrefetchCategories = (
     ) =>
       prefetch.delayedPrefetch(
         toCategoryListParams(buildCategoryListParams(input)),
-        ...prefetchArgs
+        ...prefetchArgs,
       ),
     prefetchCategories: async (
       input: CategoryListInput,
@@ -57,7 +57,7 @@ export const usePrefetchCategories = (
     ) =>
       prefetch.prefetchCategories(
         toCategoryListParams(buildCategoryListParams(input)),
-        ...prefetchArgs
+        ...prefetchArgs,
       ),
   }
 }

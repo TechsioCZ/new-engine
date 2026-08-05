@@ -12,13 +12,13 @@ const LinkStockLocationFulfillmentProviderStepId =
   "link-stock-location-fulfillment-provider-seed-step"
 
 function normalizeFulfillmentProviderIds(
-  ids?: (string | null | undefined)[]
+  ids?: (string | null | undefined)[],
 ): string[] {
   return [
     ...new Set(
       (ids ?? [])
         .map((id) => id?.toString().trim())
-        .filter((id): id is string => Boolean(id))
+        .filter((id): id is string => Boolean(id)),
     ),
   ]
 }
@@ -27,7 +27,7 @@ export const linkStockLocationFulfillmentProviderSeedStep = createStep(
   LinkStockLocationFulfillmentProviderStepId,
   async (
     input: LinkStockLocationFulfillmentProviderStepInput,
-    { container }
+    { container },
   ) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
@@ -36,11 +36,11 @@ export const linkStockLocationFulfillmentProviderSeedStep = createStep(
 
     const result: unknown[] = []
     const providerIds = normalizeFulfillmentProviderIds(
-      input.fulfillmentProviderIds
+      input.fulfillmentProviderIds,
     )
     if (providerIds.length === 0) {
       logger.warn(
-        "No fulfillment provider IDs supplied, skipping stock-location fulfillment-provider links."
+        "No fulfillment provider IDs supplied, skipping stock-location fulfillment-provider links.",
       )
       return new StepResponse({
         result,
@@ -64,11 +64,11 @@ export const linkStockLocationFulfillmentProviderSeedStep = createStep(
           const message = error instanceof Error ? error.message : String(error)
           if (
             message.includes(
-              "Cannot create multiple links between 'stock_location' and 'fulfillment'"
+              "Cannot create multiple links between 'stock_location' and 'fulfillment'",
             )
           ) {
             logger.warn(
-              `Skipping existing stock location -> fulfillment provider link for stock location "${stockLocation.id}" and provider "${providerId}"`
+              `Skipping existing stock location -> fulfillment provider link for stock location "${stockLocation.id}" and provider "${providerId}"`,
             )
             continue
           }
@@ -80,5 +80,5 @@ export const linkStockLocationFulfillmentProviderSeedStep = createStep(
     return new StepResponse({
       result,
     })
-  }
+  },
 )

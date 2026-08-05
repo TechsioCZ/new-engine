@@ -26,11 +26,11 @@ export interface OrderListResponse<TOrder> {
 export interface OrderService<TOrder, TListParams, TDetailParams> {
   getOrders: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<OrderListResponse<TOrder>>
   getOrder: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TOrder | null>
 }
 

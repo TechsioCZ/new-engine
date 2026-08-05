@@ -20,7 +20,7 @@ const MobileMenu = dynamic(
   async () => import("./mobile-menu").then((m) => m.MobileMenu),
   {
     ssr: false,
-  }
+  },
 )
 
 export const N1Header = () => {

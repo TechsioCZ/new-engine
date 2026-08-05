@@ -100,7 +100,7 @@ export class CartServiceError extends Error {
   constructor(
     message: string,
     code: CartServiceErrorCode,
-    originalError?: unknown
+    originalError?: unknown,
   ) {
     super(message)
     this.name = "CartServiceError"
@@ -113,7 +113,7 @@ export class CartServiceError extends Error {
    */
   static fromMedusaError(
     error: unknown,
-    fallbackCode: CartServiceErrorCode = "VALIDATION_ERROR"
+    fallbackCode: CartServiceErrorCode = "VALIDATION_ERROR",
   ): CartServiceError {
     const message = resolveErrorMessage(error)
     const status = getErrorStatus(error)
@@ -164,7 +164,7 @@ export class CartAddressUpdateError extends Error {
   constructor(
     message: string,
     code: CartAddressUpdateErrorCode,
-    originalError?: unknown
+    originalError?: unknown,
   ) {
     super(message)
     this.name = "CartAddressUpdateError"
@@ -173,7 +173,7 @@ export class CartAddressUpdateError extends Error {
   }
 
   static isCartAddressUpdateError(
-    error: unknown
+    error: unknown,
   ): error is CartAddressUpdateError {
     return error instanceof CartAddressUpdateError
   }
@@ -218,7 +218,7 @@ export class AddressValidationError extends Error {
    * Check if error is AddressValidationError
    */
   static isAddressValidationError(
-    error: unknown
+    error: unknown,
   ): error is AddressValidationError {
     return error instanceof AddressValidationError
   }

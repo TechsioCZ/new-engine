@@ -49,18 +49,18 @@ export function isProductRule(rule: TaxRateRule, productId: string) {
 export function resolveEffectiveRate(
   regionRates: SalesRegionTaxRate[],
   rulesByRateId: Map<string, TaxRateRule[]>,
-  productId: string
+  productId: string,
 ) {
   const productRate = regionRates.find((candidateRate) =>
     (rulesByRateId.get(candidateRate.id) ?? []).some((rule) =>
-      isProductRule(rule, productId)
-    )
+      isProductRule(rule, productId),
+    ),
   )
   const defaultRate = regionRates.find(
-    (candidateRate) => candidateRate.is_default
+    (candidateRate) => candidateRate.is_default,
   )
   const fallbackRate = regionRates.find(
-    (candidateRate) => (rulesByRateId.get(candidateRate.id) ?? []).length === 0
+    (candidateRate) => (rulesByRateId.get(candidateRate.id) ?? []).length === 0,
   )
   const selectedRate = productRate ?? defaultRate ?? fallbackRate
   const rate = toNumber(selectedRate?.rate)
@@ -72,7 +72,7 @@ export function resolveEffectiveRate(
 
 export function getStringField(
   value: unknown,
-  field: string
+  field: string,
 ): string | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return
@@ -97,7 +97,7 @@ export function isTaxRateRule(value: unknown): value is TaxRateRule {
   return Boolean(
     getStringField(value, "reference") &&
     getStringField(value, "reference_id") &&
-    getStringField(value, "tax_rate_id")
+    getStringField(value, "tax_rate_id"),
   )
 }
 
@@ -112,7 +112,7 @@ export function toRegionWithCountries(value: unknown): RegionWithCountries {
 }
 
 export function toSalesRegionProduct(
-  value: unknown
+  value: unknown,
 ): SalesRegionProduct | undefined {
   const id = getStringField(value, "id")
 
@@ -136,7 +136,7 @@ export function toSalesRegionProduct(
             name: getStringField(salesChannel, "name") ?? null,
           },
         ]
-      }
+      },
     ),
   }
 }
@@ -147,7 +147,7 @@ export function getRegionCountryCodes(regions: RegionWithCountries[]) {
       regions
         .flatMap((region) => region.countries ?? [])
         .map((country) => normalizeCountryCode(country.iso_2))
-        .filter((countryCode): countryCode is string => Boolean(countryCode))
+        .filter((countryCode): countryCode is string => Boolean(countryCode)),
     ),
   ]
 }

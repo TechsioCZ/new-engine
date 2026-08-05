@@ -19,7 +19,7 @@ export async function GET(
     unknown,
     AdminGetProductAttributeOptionsSchemaType
   >,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { definition_id, limit, offset, order, q, status } = req.validatedQuery
   const filters: Record<string, unknown> = { definition_id }
@@ -33,7 +33,7 @@ export async function GET(
   applyProductAttributeStatusFilter(filters, status)
 
   const [options, count] = await getProductAttributeService(
-    req.scope
+    req.scope,
   ).listAndCountProductAttributeOptions(filters, {
     order: parseProductAttributeOrder(order),
     skip: offset,
@@ -42,7 +42,7 @@ export async function GET(
   })
   const usageCounts = await getOptionUsageCountMap(
     req.scope,
-    options.map((option) => option.id)
+    options.map((option) => option.id),
   )
 
   res.json({
@@ -50,7 +50,7 @@ export async function GET(
     limit,
     offset,
     options: options.map((option) =>
-      toProductAttributeOptionResponse(option, usageCounts.get(option.id) ?? 0)
+      toProductAttributeOptionResponse(option, usageCounts.get(option.id) ?? 0),
     ),
   })
 }

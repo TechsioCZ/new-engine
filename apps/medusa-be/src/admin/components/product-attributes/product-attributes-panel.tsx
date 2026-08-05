@@ -37,20 +37,23 @@ const PAGE_SIZE = 10
 const optionColumnHelper = createDataTableColumnHelper<ProductAttributeOption>()
 
 const getInitialValues = (
-  items: ProductAttributeDetailItem[]
+  items: ProductAttributeDetailItem[],
 ): AttributeValues =>
   Object.fromEntries(
     items.map((item) => [
       item.definition.id,
       item.assignment?.option_id ?? item.assignment?.text_value ?? "",
-    ])
+    ]),
   )
 
 const getInitialOptionLabels = (
-  items: ProductAttributeDetailItem[]
+  items: ProductAttributeDetailItem[],
 ): AttributeOptionLabels =>
   Object.fromEntries(
-    items.map((item) => [item.definition.id, item.selected_option?.label ?? ""])
+    items.map((item) => [
+      item.definition.id,
+      item.selected_option?.label ?? "",
+    ]),
   )
 
 const AttributeOptionSelector = ({
@@ -108,7 +111,7 @@ const AttributeOptionSelector = ({
         id: "selection",
       }),
     ],
-    [disabled, onSelect, selectedId, t]
+    [disabled, onSelect, selectedId, t],
   )
   const table = useDataTable({
     columns,
@@ -269,13 +272,13 @@ export const ProductAttributesDrawer = ({
   const { t } = useTranslation("productAttributes")
   const queryClient = useQueryClient()
   const [values, setValues] = useState<AttributeValues>(() =>
-    getInitialValues(items)
+    getInitialValues(items),
   )
   const [optionLabels, setOptionLabels] = useState<AttributeOptionLabels>(() =>
-    getInitialOptionLabels(items)
+    getInitialOptionLabels(items),
   )
   const [openDefinitionIds, setOpenDefinitionIds] = useState<Set<string>>(
-    () => new Set()
+    () => new Set(),
   )
   const resetEditor = useEffectEvent(() => {
     setValues(getInitialValues(items))
@@ -294,7 +297,7 @@ export const ProductAttributesDrawer = ({
       setProductAttributes(productId, operations),
     onError: (error) =>
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       ),
     onSuccess: async () => {
       await Promise.all([
@@ -437,7 +440,7 @@ export const ProductAttributesContent = ({
 }) => {
   const { t } = useTranslation("productAttributes")
   const visibleItems = items.filter(
-    (item) => !item.definition.deleted_at || item.assignment
+    (item) => !item.definition.deleted_at || item.assignment,
   )
 
   return (
@@ -457,7 +460,7 @@ export const ProductAttributesContent = ({
         const displayValue =
           item.selected_option?.label ?? item.assignment?.text_value
         const isDeleted = Boolean(
-          item.definition.deleted_at || item.selected_option?.deleted_at
+          item.definition.deleted_at || item.selected_option?.deleted_at,
         )
         return (
           <div

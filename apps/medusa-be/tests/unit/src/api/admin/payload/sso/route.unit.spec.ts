@@ -50,7 +50,7 @@ const restoreEnv = () => {
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
@@ -96,7 +96,7 @@ const createMockResponse = (): MockResponse => {
 
 const createMockRequest = (
   overrides: Record<string, unknown> = {},
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
 ): MockRequest => {
   const candidate: unknown = {
     auth_context: {
@@ -171,7 +171,7 @@ describe("GET /admin/payload/sso", () => {
 
     expect(res.setHeader).toHaveBeenCalledWith(
       "Content-Type",
-      "text/html; charset=utf-8"
+      "text/html; charset=utf-8",
     )
     expect(res.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store")
     expect(res.setHeader).toHaveBeenCalledWith("Referrer-Policy", "origin")
@@ -183,7 +183,7 @@ describe("GET /admin/payload/sso", () => {
     expect(html).toContain("background: rgb(20, 20, 20)")
     expect(html).toContain("form {\n        display: none;")
     expect(html).toContain(
-      '<form method="POST" action="http://localhost:8083/api/medusa-sso">'
+      '<form method="POST" action="http://localhost:8083/api/medusa-sso">',
     )
     expect(html).toContain('name="token" value="signed-sso-token"')
     expect(html).toContain('name="returnTo" value="/admin"')
@@ -258,7 +258,7 @@ describe("GET /admin/payload/sso", () => {
 
     const html = res.send.mock.calls[0]?.[0]
     expect(html).toContain(
-      '<form method="POST" action="http://127.0.0.1:8083/api/medusa-sso">'
+      '<form method="POST" action="http://127.0.0.1:8083/api/medusa-sso">',
     )
   })
 
@@ -267,7 +267,7 @@ describe("GET /admin/payload/sso", () => {
       await import("../../../../../../../src/api/admin/payload/sso/route")
     const req = createMockRequest(
       {},
-      { "x-forwarded-host": "admin.medusa.localhost" }
+      { "x-forwarded-host": "admin.medusa.localhost" },
     )
     const res = createMockResponse()
 
@@ -275,7 +275,7 @@ describe("GET /admin/payload/sso", () => {
 
     const html = res.send.mock.calls[0]?.[0]
     expect(html).toContain(
-      '<form method="POST" action="https://admin.payload.medusa.localhost/api/medusa-sso">'
+      '<form method="POST" action="https://admin.payload.medusa.localhost/api/medusa-sso">',
     )
   })
 })

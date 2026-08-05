@@ -74,7 +74,7 @@ const DETAIL_FIELDS = [
  * Fetch products with filtering, pagination and sorting
  */
 export const getProducts = async (
-  params: ProductListParams = {}
+  params: ProductListParams = {},
 ): Promise<ProductListResponse> => {
   const {
     limit = 20,
@@ -145,7 +145,7 @@ export const getProducts = async (
  */
 const transformProduct = (
   product: HttpTypes.StoreProduct,
-  withVariants?: boolean
+  withVariants?: boolean,
 ): Product => {
   if (!product) {
     throw new Error("Cannot transform null product")
@@ -185,7 +185,7 @@ const transformProduct = (
 export async function getProduct(
   handle: string,
   region_id?: string,
-  country_code?: string
+  country_code?: string,
 ): Promise<Product> {
   const response = await sdk.store.product.list({
     handle,

@@ -10,7 +10,7 @@ import type { AdminUpdateReviewStatusSchemaType } from "../validators"
 
 export async function POST(
   req: MedusaRequest<AdminUpdateReviewStatusSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { ids, status } = req.validatedBody
   const { result: reviews } = await updateReviewStatusWorkflow(req.scope).run({
@@ -21,12 +21,12 @@ export async function POST(
   })
   const productsById = await getProductsById(
     req,
-    getUniqueReviewProductIds(reviews)
+    getUniqueReviewProductIds(reviews),
   )
 
   res.status(200).json({
     reviews: reviews.map((review) =>
-      normalizeAdminReview(review, productsById)
+      normalizeAdminReview(review, productsById),
     ),
   })
 }

@@ -32,5 +32,5 @@ figma.connect(
         child: "child",
       }),
     },
-  }
+  },
 )

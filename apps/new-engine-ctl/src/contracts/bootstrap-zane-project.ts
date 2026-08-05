@@ -20,7 +20,7 @@ export const bootstrapZaneProjectInspectResponseSchema = z.object({
       service_slug: z.string().min(1),
       exists: z.boolean(),
       details: bootstrapInspectServiceDetailsSchema.nullable(),
-    })
+    }),
   ),
   settings: bootstrapInspectSettingsSchema,
   shared_variables: z
@@ -28,7 +28,7 @@ export const bootstrapZaneProjectInspectResponseSchema = z.object({
       z.looseObject({
         key: z.string().min(1),
         value: z.string(),
-      })
+      }),
     )
     .default([]),
 })
@@ -107,7 +107,7 @@ export const bootstrapZaneProjectPlanResponseSchema = z.object({
           container_path: z.string().min(1),
           host_path: z.string().nullable().optional(),
           mode: z.string().min(1),
-        })
+        }),
       ),
       desired_urls: z.array(bootstrapInspectUrlSchema),
       desired_healthcheck: bootstrapInspectHealthcheckSchema.nullable(),
@@ -123,7 +123,7 @@ export const bootstrapZaneProjectPlanResponseSchema = z.object({
         cpus: z.number().nullable(),
         memory_mb: z.number().nullable(),
       }),
-    })
+    }),
   ),
   settings: bootstrapInspectSettingsSchema,
   shared_env: z.record(z.string(), z.string()),

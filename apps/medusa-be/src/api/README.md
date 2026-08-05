@@ -81,7 +81,7 @@ import { Modules } from "@medusajs/framework/utils"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const productModuleService: IProductModuleService = req.scope.resolve(
-    Modules.PRODUCT
+    Modules.PRODUCT,
   )
 
   const [, count] = await productModuleService.listAndCount()
@@ -109,7 +109,7 @@ import type {
 async function logger(
   req: MedusaRequest,
   res: MedusaResponse,
-  next: MedusaNextFunction
+  next: MedusaNextFunction,
 ) {
   console.log("Request received")
   next()

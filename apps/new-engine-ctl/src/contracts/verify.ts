@@ -46,7 +46,7 @@ export const previewRandomOnceSecretInputSchema = z.looseObject({
       z.looseObject({
         env_var: z.string().min(1),
         service_id: z.string().min(1),
-      })
+      }),
     )
     .default([]),
   value: z.string().min(1),
@@ -104,7 +104,7 @@ export const verifyResponseSchema = z.object({
       deployment_hash: z.string().min(1),
       status: z.string().min(1),
       status_reason: z.string().nullable(),
-    })
+    }),
   ),
   checked_env_override_service_ids: z.array(z.string()),
   checked_forbidden_env_service_ids: z.array(z.string()),
@@ -166,7 +166,7 @@ function parseJson<T>(raw: string, schema: z.ZodType<T>, label: string): T {
 }
 
 export function parsePreviewRandomOnceSecrets(
-  raw: string | undefined
+  raw: string | undefined,
 ): PreviewRandomOnceSecretInput[] {
   const value = raw?.trim()
   if (!value) {
@@ -176,17 +176,17 @@ export function parsePreviewRandomOnceSecrets(
   return parseJson(
     value,
     z.array(previewRandomOnceSecretInputSchema),
-    "--preview-random-once-secrets-json"
+    "--preview-random-once-secrets-json",
   )
 }
 
 export async function resolveDeploymentRefs(
   deploymentsJsonPath: string | undefined,
-  deploymentsJsonInline: string | undefined
+  deploymentsJsonInline: string | undefined,
 ): Promise<DeploymentRef[]> {
   if (deploymentsJsonPath && deploymentsJsonInline) {
     throw new Error(
-      "Pass only one of --deployments-json or --deployments-json-inline."
+      "Pass only one of --deployments-json or --deployments-json-inline.",
     )
   }
 
@@ -195,7 +195,7 @@ export async function resolveDeploymentRefs(
     const envelope = parseJson(
       raw,
       deploymentEnvelopeSchema,
-      deploymentsJsonPath
+      deploymentsJsonPath,
     )
     return envelope.services
   }
@@ -204,7 +204,7 @@ export async function resolveDeploymentRefs(
     const envelope = parseJson(
       deploymentsJsonInline,
       deploymentEnvelopeSchema,
-      "--deployments-json-inline"
+      "--deployments-json-inline",
     )
     return envelope.services
   }

@@ -23,7 +23,7 @@ export const AdminGetQuoteParams = createFindParams({
         .union([z.string(), z.array(z.string()), createOperatorMap()])
         .optional(),
       updated_at: createOperatorMap().optional(),
-    })
+    }),
   )
   .strict()
 

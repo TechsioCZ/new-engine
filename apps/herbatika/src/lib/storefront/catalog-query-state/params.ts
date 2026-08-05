@@ -54,7 +54,7 @@ export const buildCatalogProductsParams = ({
   const normalizedSearchQuery = queryState.q.trim()
   const normalizedPriceRange = normalizePriceRange(
     queryState.price_min,
-    queryState.price_max
+    queryState.price_max,
   )
 
   const categoryIdsValue = toNonEmptyArray(categoryIds ?? [])
@@ -98,11 +98,11 @@ export const buildCatalogProductsParams = ({
 }
 
 export const resolveCatalogActiveFilterCount = (
-  queryState: CatalogQueryState
+  queryState: CatalogQueryState,
 ): number => {
   const normalizedPriceRange = normalizePriceRange(
     queryState.price_min,
-    queryState.price_max
+    queryState.price_max,
   )
 
   return (

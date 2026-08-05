@@ -25,7 +25,7 @@ export interface UseMetaAdapterConfig {
  * ```
  */
 export function useMetaAdapter(
-  config?: UseMetaAdapterConfig
+  config?: UseMetaAdapterConfig,
 ): AnalyticsAdapter {
   const debug = config?.debug
   const adapterKey = "meta" as const
@@ -36,7 +36,7 @@ export function useMetaAdapter(
       fbq("trackCustom", args.eventName, args.params)
     },
     debug,
-    adapterKey
+    adapterKey,
   )
 
   return {
@@ -60,7 +60,7 @@ export function useMetaAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackCustom: (eventName, params) =>
@@ -85,7 +85,7 @@ export function useMetaAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackPurchase: createTracker(
@@ -104,7 +104,7 @@ export function useMetaAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackViewContent: createTracker(
@@ -120,7 +120,7 @@ export function useMetaAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
   }
 }

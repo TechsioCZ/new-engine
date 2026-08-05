@@ -27,7 +27,7 @@ export function EmployeesUpdateDrawer({
   const { t } = useTranslation("companies")
   const { mutateAsync, isPending } = useUpdateEmployee(
     employee.company_id,
-    employee.id
+    employee.id,
   )
 
   const handleSubmit = async (formData: AdminUpdateEmployee) => {
@@ -35,11 +35,11 @@ export function EmployeesUpdateDrawer({
       await mutateAsync(formData)
       setOpen(false)
       toast.success(
-        t("toasts.employeeUpdated", { email: employee?.customer?.email })
+        t("toasts.employeeUpdated", { email: employee?.customer?.email }),
       )
     } catch (error) {
       toast.error(
-        `${t("errors.updateEmployeeFailed")}: ${getErrorMessage(error)}`
+        `${t("errors.updateEmployeeFailed")}: ${getErrorMessage(error)}`,
       )
     }
   }

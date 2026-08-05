@@ -32,7 +32,7 @@ type PacketaClientStub = Pick<
 interface FileServiceStub {
   createFiles: (
     data: CreateFileDTO[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ) => Promise<FileDTO[]>
 }
 interface QueryStub {
@@ -122,7 +122,7 @@ const baseShippingAddress = {
 }
 
 const createOrder = (
-  overrides: Partial<FulfillmentOrderDTO> = {}
+  overrides: Partial<FulfillmentOrderDTO> = {},
 ): Partial<FulfillmentOrderDTO> => ({
   currency_code: "CZK",
   display_id: 1001,
@@ -191,7 +191,7 @@ describe(PacketaFulfillmentProviderService, () => {
       [undefined, false],
     ])("validates code=%s -> %s", async (code, expected) => {
       await expect(createService().validateOption({ code })).resolves.toBe(
-        expected
+        expected,
       )
     })
   })
@@ -202,8 +202,8 @@ describe(PacketaFulfillmentProviderService, () => {
         createService().validateFulfillmentData(
           { code: "z_point", supports_cod: false },
           {},
-          validationContext
-        )
+          validationContext,
+        ),
       ).rejects.toThrow(PICKUP_POINT_ERROR)
     })
 
@@ -212,8 +212,8 @@ describe(PacketaFulfillmentProviderService, () => {
         createService().validateFulfillmentData(
           { code: "z_point", supports_cod: false },
           { access_point_id: "not-a-number" },
-          validationContext
-        )
+          validationContext,
+        ),
       ).rejects.toThrow(INVALID_PICKUP_POINT_ERROR)
     })
 
@@ -221,7 +221,7 @@ describe(PacketaFulfillmentProviderService, () => {
       const data = await createService().validateFulfillmentData(
         { code: "z_point_cod", supports_cod: true },
         { access_point_id: "4242", access_point_name: "Praha 1" },
-        validationContext
+        validationContext,
       )
       expect(data).toMatchObject({
         access_point_id: 4242,
@@ -237,7 +237,7 @@ describe(PacketaFulfillmentProviderService, () => {
       await expect(
         createService().createFulfillment(createShippingData(), [], undefined, {
           id: "ful_1",
-        })
+        }),
       ).rejects.toThrow("Packeta: Order is required")
     })
 
@@ -246,7 +246,7 @@ describe(PacketaFulfillmentProviderService, () => {
       await expect(
         createService().createFulfillment(createShippingData(), [], order, {
           id: "ful_1",
-        })
+        }),
       ).rejects.toThrow("Packeta: Shipping address is required")
     })
 
@@ -256,7 +256,7 @@ describe(PacketaFulfillmentProviderService, () => {
         createShippingData(),
         [],
         order,
-        { id: "ful_1" }
+        { id: "ful_1" },
       )
 
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
@@ -268,10 +268,10 @@ describe(PacketaFulfillmentProviderService, () => {
           number: "1001",
           surname: "Doe",
           weight: 0.5,
-        })
+        }),
       )
       expect(mockPacketaClient.downloadLabelPdf).toHaveBeenCalledWith(
-        987_654_321
+        987_654_321,
       )
       expect(mockFileService.createFiles).toHaveBeenCalledWith()
       expect(result.data).toMatchObject({
@@ -296,10 +296,10 @@ describe(PacketaFulfillmentProviderService, () => {
         createShippingData({ supports_cod: true }),
         [],
         order,
-        { id: "ful_1" }
+        { id: "ful_1" },
       )
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
-        expect.objectContaining({ cod: 1500, currency: "CZK" })
+        expect.objectContaining({ cod: 1500, currency: "CZK" }),
       )
     })
 
@@ -311,10 +311,10 @@ describe(PacketaFulfillmentProviderService, () => {
           createShippingData({ supports_cod: true }),
           [],
           order,
-          { id: "ful_1" }
-        )
+          { id: "ful_1" },
+        ),
       ).rejects.toThrow(
-        "Packeta: order total or item_total is required for COD shipments"
+        "Packeta: order total or item_total is required for COD shipments",
       )
       expect(mockPacketaClient.createPacket).not.toHaveBeenCalled()
     })
@@ -325,11 +325,11 @@ describe(PacketaFulfillmentProviderService, () => {
         createShippingData({ weight: 1.2 }),
         [],
         order,
-        { id: "ful_1" }
+        { id: "ful_1" },
       )
 
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
-        expect.objectContaining({ weight: 1.2 })
+        expect.objectContaining({ weight: 1.2 }),
       )
     })
 
@@ -348,11 +348,11 @@ describe(PacketaFulfillmentProviderService, () => {
         createShippingData(),
         [{ line_item_id: "ordli_1", quantity: 2 }],
         order,
-        { id: "ful_1" }
+        { id: "ful_1" },
       )
 
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
-        expect.objectContaining({ weight: 0.8 })
+        expect.objectContaining({ weight: 0.8 }),
       )
     })
 
@@ -375,24 +375,24 @@ describe(PacketaFulfillmentProviderService, () => {
         createShippingData(),
         [{ line_item_id: "ordli_1", quantity: 3 }],
         order,
-        { id: "ful_1" }
+        { id: "ful_1" },
       )
 
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
-        expect.objectContaining({ weight: 3 })
+        expect.objectContaining({ weight: 3 }),
       )
     })
 
     it("still returns completed fulfillment if label upload fails", async () => {
       mockPacketaClient.downloadLabelPdf.mockRejectedValueOnce(
-        new Error("S3 down")
+        new Error("S3 down"),
       )
       const order = createOrder()
       const result = await createService().createFulfillment(
         createShippingData(),
         [],
         order,
-        { id: "ful_1" }
+        { id: "ful_1" },
       )
       expect(result.data["status"]).toBe("completed")
       expect(result.data["label_url"]).toBeUndefined()

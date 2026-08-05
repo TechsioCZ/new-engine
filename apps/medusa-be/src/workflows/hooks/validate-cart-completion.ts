@@ -25,7 +25,7 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
   if (!queryCart) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Cart "${cart.id}" was not found`
+      `Cart "${cart.id}" was not found`,
     )
   }
 
@@ -35,7 +35,7 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
   if (isPendingApproval) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "Cart is pending approval"
+      "Cart is pending approval",
     )
   }
 
@@ -54,7 +54,7 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
     if (!customer) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Customer "${queryCart.customer_id}" was not found`
+        `Customer "${queryCart.customer_id}" was not found`,
       )
     }
 
@@ -64,7 +64,7 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
       if (spendLimitExceeded) {
         throw new MedusaError(
           MedusaError.Types.NOT_ALLOWED,
-          "Cart total exceeds spending limit"
+          "Cart total exceeds spending limit",
         )
       }
     }

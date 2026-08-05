@@ -10,7 +10,7 @@ interface VerifyZaneDeployDeps {
 
 export async function handleVerifyZaneDeploy(
   request: Request,
-  deps: VerifyZaneDeployDeps
+  deps: VerifyZaneDeployDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

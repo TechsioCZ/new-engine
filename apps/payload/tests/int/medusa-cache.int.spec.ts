@@ -109,7 +109,7 @@ describe("medusaCache hooks", () => {
             "x-payload-signature": expect.any(String),
           }),
           method: "POST",
-        })
+        }),
       )
     })
 
@@ -184,7 +184,7 @@ describe("medusaCache hooks", () => {
 
       expect(mockFetch).not.toHaveBeenCalled()
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("MEDUSA_BACKEND_URL is not set")
+        expect.stringContaining("MEDUSA_BACKEND_URL is not set"),
       )
     })
 
@@ -220,7 +220,7 @@ describe("medusaCache hooks", () => {
           doc,
           operation: "update",
           req: { payload: { logger: mockLogger } } as unknown as PayloadRequest,
-        } as any)
+        } as any),
       ).rejects.toThrow("PAYLOAD_WEBHOOK_SECRET is not set")
     })
 
@@ -243,7 +243,7 @@ describe("medusaCache hooks", () => {
       } as any)
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining("Network error")
+        expect.stringContaining("Network error"),
       )
     })
 
@@ -254,7 +254,7 @@ describe("medusaCache hooks", () => {
 
       const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch.mockResolvedValue(
-        new Response("Internal Server Error", { status: 500 })
+        new Response("Internal Server Error", { status: 500 }),
       )
 
       const hook = createMedusaCacheHook("pages")
@@ -268,7 +268,7 @@ describe("medusaCache hooks", () => {
       } as any)
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining("CMS cache invalidation failed (500)")
+        expect.stringContaining("CMS cache invalidation failed (500)"),
       )
     })
 

@@ -29,17 +29,17 @@ export async function executeResolveTargetsPayload(input: {
         environment_name: input.payload.environment_name,
         project_slug: input.payload.project_slug,
         services: input.payload.services,
-      })
+      }),
     )
   }
 
   return new ZaneOperatorClient(input.baseUrl, input.apiToken).resolveTargets(
-    input.payload
+    input.payload,
   )
 }
 
 export async function executeResolveTargets(
-  input: ResolveTargetsCommandInput
+  input: ResolveTargetsCommandInput,
 ): Promise<ResolveTargetsResponse> {
   const services = await resolvePlanServices(input.planJsonPath)
   const response = await executeResolveTargetsPayload({

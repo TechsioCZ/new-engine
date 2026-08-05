@@ -31,7 +31,7 @@ const SEED_ADMIN_PASSWORD = deriveSeedPassword(SSO_PRIVATE_KEY)
 
 const ONE_PIXEL_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lNnJYQAAAABJRU5ErkJggg==",
-  "base64"
+  "base64",
 )
 
 const isEnabled = (value: string | undefined): boolean =>
@@ -161,7 +161,7 @@ const createSeedMedia = async (payload: SeedPayload) => {
 const createArticleSeed = async (
   payload: SeedPayload,
   userId: PayloadId,
-  mediaId: PayloadId
+  mediaId: PayloadId,
 ) => {
   if (!isEnabled(process.env.FEATURE_PAYLOAD_ARTICLES_ENABLED)) {
     return
@@ -178,7 +178,7 @@ const createArticleSeed = async (
     const category = result.docs[0]
     if (!category) {
       throw new Error(
-        "Article category count is non-zero but no document was returned"
+        "Article category count is non-zero but no document was returned",
       )
     }
     categoryId = category.id
@@ -209,7 +209,7 @@ const createArticleSeed = async (
       author: userId,
       category: categoryId,
       content: paragraph(
-        "This starter article confirms Payload content is available."
+        "This starter article confirms Payload content is available.",
       ),
       excerpt: "A starter article created by the local seed script.",
       featuredImage: mediaId,
@@ -240,7 +240,7 @@ const createPageSeed = async (payload: SeedPayload) => {
     const category = result.docs[0]
     if (!category) {
       throw new Error(
-        "Page category count is non-zero but no document was returned"
+        "Page category count is non-zero but no document was returned",
       )
     }
     categoryId = category.id
@@ -270,7 +270,7 @@ const createPageSeed = async (payload: SeedPayload) => {
     data: {
       category: categoryId,
       content: paragraph(
-        "This starter page confirms Payload pages are available."
+        "This starter page confirms Payload pages are available.",
       ),
       publishedDate: new Date().toISOString(),
       slug: "about-herbatica",
@@ -285,7 +285,7 @@ const createPageSeed = async (payload: SeedPayload) => {
 
 const createHeroCarouselSeed = async (
   payload: SeedPayload,
-  mediaId: PayloadId
+  mediaId: PayloadId,
 ) => {
   if (!isEnabled(process.env.FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED)) {
     return

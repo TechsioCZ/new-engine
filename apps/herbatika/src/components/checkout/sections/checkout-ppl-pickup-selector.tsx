@@ -37,7 +37,7 @@ export function CheckoutPplPickupSelector({
   const [failureReason, setFailureReason] =
     useState<CarrierPickupFailureReason | null>(null)
   const [selectedPoint, setSelectedPoint] = useState<PplAccessPoint | null>(
-    null
+    null,
   )
   const fallbackPointLabel = tCheckout("pickup_point_fallback")
 
@@ -52,7 +52,7 @@ export function CheckoutPplPickupSelector({
       defaultLang: resolveCarrierPickupWidgetLanguage(marketContext.locale),
       viewMode: "modal" as const,
     }),
-    [marketContext.countryCode, marketContext.locale, selectedPoint?.code]
+    [marketContext.countryCode, marketContext.locale, selectedPoint?.code],
   )
 
   if (!PPL_WIDGET_API_KEY) {
@@ -137,7 +137,7 @@ export function CheckoutPplPickupSelector({
 
 function buildPplShippingData(
   accessPoint: PplAccessPoint,
-  fallbackPointLabel: string
+  fallbackPointLabel: string,
 ) {
   const { address } = accessPoint
   const payload: Record<string, unknown> = {
@@ -152,7 +152,9 @@ function buildPplShippingData(
   }
 
   return Object.fromEntries(
-    Object.entries(payload).filter(([, value]) => value != null && value !== "")
+    Object.entries(payload).filter(
+      ([, value]) => value != null && value !== "",
+    ),
   )
 }
 

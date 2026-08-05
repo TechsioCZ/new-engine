@@ -40,7 +40,7 @@ export interface UseLeadhubAdapterConfig {
  * ```
  */
 export function useLeadhubAdapter(
-  config?: UseLeadhubAdapterConfig
+  config?: UseLeadhubAdapterConfig,
 ): AnalyticsAdapter & LeadhubExtras {
   const debug = config?.debug
   const adapterKey = "leadhub" as const
@@ -56,7 +56,7 @@ export function useLeadhubAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     // Leadhub uses SetCart instead of AddToCart
@@ -75,7 +75,7 @@ export function useLeadhubAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     // Leadhub doesn't support InitiateCheckout event - using SetCart as workaround.
@@ -99,7 +99,7 @@ export function useLeadhubAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackPurchase: createTracker(
@@ -119,7 +119,7 @@ export function useLeadhubAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     // ========================================
@@ -135,7 +135,7 @@ export function useLeadhubAdapter(
         lhi("ViewCategory", params)
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackIdentify: createTracker<LeadhubFunction, LeadhubIdentifyParams>(
@@ -144,7 +144,7 @@ export function useLeadhubAdapter(
         lhi("Identify", params)
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackSetCart: createTracker<LeadhubFunction, LeadhubSetCartParams>(
@@ -153,7 +153,7 @@ export function useLeadhubAdapter(
         lhi("SetCart", params)
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackPageview: createSimpleTracker<LeadhubFunction>(
@@ -162,7 +162,7 @@ export function useLeadhubAdapter(
         lhi("pageview")
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
   }
 }

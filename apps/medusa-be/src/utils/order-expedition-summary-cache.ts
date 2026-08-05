@@ -32,7 +32,7 @@ export async function clearOrderExpeditionSummaryCache(scope: RequestScope) {
 
     if (typeof logger?.warn === "function") {
       logger.warn(
-        `Order expedition summary cache invalidation failed: ${getCacheFailureMessage(error)}`
+        `Order expedition summary cache invalidation failed: ${getCacheFailureMessage(error)}`,
       )
     }
   }

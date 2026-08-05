@@ -68,7 +68,7 @@ const isHerbaticaProduct = (product: ProductDTO) =>
 const normalizeLegacyName = (value: string) => value.trim().toLowerCase()
 
 export const resolveLegacySupplierValuesByBrand = (
-  attributes: LegacyBrandSupplier[]
+  attributes: LegacyBrandSupplier[],
 ) => {
   const attributesByBrand = new Map<string, LegacyBrandSupplier[]>()
 
@@ -87,7 +87,7 @@ export const resolveLegacySupplierValuesByBrand = (
         records
           .filter((record) => !record.deleted_at)
           .map(({ value }) => value.trim())
-          .filter(Boolean)
+          .filter(Boolean),
       ),
     ]
 
@@ -129,7 +129,7 @@ export const planLegacySupplierAssignments = ({
       ...new Set(
         brandIds
           .map((brandId) => supplierByBrandId.get(brandId))
-          .filter((value): value is string => Boolean(value))
+          .filter((value): value is string => Boolean(value)),
       ),
     ]
 
@@ -143,7 +143,7 @@ export const planLegacySupplierAssignments = ({
       brandIds.some(
         (brandId) =>
           supplierByBrandId.has(brandId) &&
-          (productIdsByBrandId.get(brandId)?.length ?? 0) !== 1
+          (productIdsByBrandId.get(brandId)?.length ?? 0) !== 1,
       )
     ) {
       unresolved.push({
@@ -180,11 +180,12 @@ export const selectRemovableLegacySupplierBrandIds = ({
       productIds.length &&
       productIds.every(
         (productId) =>
-          herbaticaProductIds.has(productId) && coveredProductIds.has(productId)
+          herbaticaProductIds.has(productId) &&
+          coveredProductIds.has(productId),
       )
         ? [brandId]
-        : []
-    )
+        : [],
+    ),
   )
 
 async function listHerbaticaProducts(productService: IProductModuleService) {
@@ -200,7 +201,7 @@ async function listHerbaticaProducts(productService: IProductModuleService) {
         select: ["id", "metadata"],
         skip: offset,
         take: BATCH_SIZE,
-      }
+      },
     )
     products.push(...page.filter(isHerbaticaProduct))
     count = pageCount
@@ -226,13 +227,13 @@ async function listSupplierAttributeTypes(service: BrandModuleService) {
         skip: offset,
         take: BATCH_SIZE,
         withDeleted: true,
-      }
+      },
     )
     matching.push(
       ...page.filter(
         (attributeType) =>
-          normalizeLegacyName(attributeType.name) === SUPPLIER_DEFINITION_KEY
-      )
+          normalizeLegacyName(attributeType.name) === SUPPLIER_DEFINITION_KEY,
+      ),
     )
     count = pageCount
     if (!page.length) {
@@ -247,7 +248,7 @@ async function listSupplierAttributeTypes(service: BrandModuleService) {
 async function listLegacySupplierAttributes(
   service: BrandModuleService,
   brandIds: string[],
-  attributeTypeIds: string[]
+  attributeTypeIds: string[],
 ) {
   const attributes: BrandAttributeRecord[] = []
 
@@ -267,7 +268,7 @@ async function listLegacySupplierAttributes(
           skip: offset,
           take: BATCH_SIZE,
           withDeleted: true,
-        }
+        },
       )
       attributes.push(...page)
       count = pageCount
@@ -284,7 +285,7 @@ async function listLegacySupplierAttributes(
 async function findSupplierDefinition(service: ProductAttributeService) {
   const definitions = await service.listProductAttributeDefinitions(
     { key: SUPPLIER_DEFINITION_KEY },
-    { order: { id: "ASC" }, withDeleted: true }
+    { order: { id: "ASC" }, withDeleted: true },
   )
   const definition =
     definitions.find((candidate) => !candidate.deleted_at) ?? definitions[0]
@@ -292,7 +293,7 @@ async function findSupplierDefinition(service: ProductAttributeService) {
   if (definition && definition.input_type !== "select") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Reserved Product Attribute "${SUPPLIER_DEFINITION_KEY}" must use input type "select", but persisted type is "${definition.input_type}"`
+      `Reserved Product Attribute "${SUPPLIER_DEFINITION_KEY}" must use input type "select", but persisted type is "${definition.input_type}"`,
     )
   }
   return definition
@@ -327,7 +328,7 @@ async function listValidActiveSupplierAssignmentProductIds({
           skip: offset,
           take: BATCH_SIZE,
           withDeleted: true,
-        }
+        },
       )
       assignments.push(...page)
       count = pageCount
@@ -343,8 +344,8 @@ async function listValidActiveSupplierAssignmentProductIds({
       assignments.flatMap((assignment) =>
         !assignment.deleted_at && assignment.option_id
           ? [assignment.option_id]
-          : []
-      )
+          : [],
+      ),
     ),
   ]
   const activeOptionIds = new Set<string>()
@@ -352,7 +353,7 @@ async function listValidActiveSupplierAssignmentProductIds({
   for (const optionIdBatch of chunk(optionIds, BATCH_SIZE)) {
     const options = await service.listProductAttributeOptions(
       { id: { $in: optionIdBatch } },
-      { select: ["id"], take: optionIdBatch.length }
+      { select: ["id"], take: optionIdBatch.length },
     )
     for (const option of options) {
       activeOptionIds.add(option.id)
@@ -365,8 +366,8 @@ async function listValidActiveSupplierAssignmentProductIds({
       assignment.option_id &&
       activeOptionIds.has(assignment.option_id)
         ? [assignment.product_id]
-        : []
-    )
+        : [],
+    ),
   )
 }
 
@@ -376,13 +377,13 @@ export function collectSupplierLabelsByKey(suppliers: string[]) {
   for (const label of suppliers) {
     const key = normalizeRequiredProductAttributeKey(
       label,
-      "Supplier option key"
+      "Supplier option key",
     )
     const collision = labelsByKey.get(key)
     if (collision && collision !== label) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Supplier option key collision from legacy labels "${collision}" and "${label}"`
+        `Supplier option key collision from legacy labels "${collision}" and "${label}"`,
       )
     }
     labelsByKey.set(key, label)
@@ -394,7 +395,7 @@ export function collectSupplierLabelsByKey(suppliers: string[]) {
 async function ensureSupplierDefinition(
   existing: ProductAttributeDefinitionRecord | undefined,
   service: ProductAttributeService,
-  context: ProductAttributeContext
+  context: ProductAttributeContext,
 ) {
   let definition = existing
 
@@ -406,13 +407,13 @@ async function ensureSupplierDefinition(
         key: SUPPLIER_DEFINITION_KEY,
         label: SUPPLIER_DEFINITION_LABEL,
       },
-      context
+      context,
     )
   } else if (definition.deleted_at) {
     await service.restoreProductAttributeDefinitions(
       [definition.id],
       {},
-      context
+      context,
     )
   }
 
@@ -422,7 +423,7 @@ async function ensureSupplierDefinition(
       is_public: false,
       label: SUPPLIER_DEFINITION_LABEL,
     },
-    context
+    context,
   )
 }
 
@@ -430,7 +431,7 @@ async function ensureSupplierOptions(
   definition: ProductAttributeDefinitionRecord,
   labelsByKey: Map<string, string>,
   service: ProductAttributeService,
-  context: ProductAttributeContext
+  context: ProductAttributeContext,
 ) {
   const keys = [...labelsByKey.keys()]
   const existing = keys.length
@@ -440,7 +441,7 @@ async function ensureSupplierOptions(
           key: { $in: keys },
         },
         { order: { id: "ASC" }, withDeleted: true },
-        context
+        context,
       )
     : []
   const optionByKey = new Map<string, ProductAttributeOptionRecord>()
@@ -456,7 +457,7 @@ async function ensureSupplierOptions(
     if (!option) {
       const created = await service.createProductAttributeOptions(
         { definition_id: definition.id, key, label },
-        context
+        context,
       )
       optionByKey.set(key, created)
       continue
@@ -468,8 +469,8 @@ async function ensureSupplierOptions(
       key,
       await service.updateProductAttributeOptions(
         { id: option.id, label },
-        context
-      )
+        context,
+      ),
     )
   }
 
@@ -489,13 +490,13 @@ async function ensureSupplierCatalog({
     const ensuredDefinition = await ensureSupplierDefinition(
       definition,
       service,
-      context
+      context,
     )
     const optionByKey = await ensureSupplierOptions(
       ensuredDefinition,
       labelsByKey,
       service,
-      context
+      context,
     )
     return { definition: ensuredDefinition, optionByKey }
   })
@@ -503,7 +504,7 @@ async function ensureSupplierCatalog({
 
 async function listLinksByBrand(
   query: Query,
-  brandIds: string[]
+  brandIds: string[],
 ): Promise<Required<ProductBrandLinkRecord>[]> {
   const links: Required<ProductBrandLinkRecord>[] = []
 
@@ -516,8 +517,8 @@ async function listLinksByBrand(
     links.push(
       ...(data as ProductBrandLinkRecord[]).filter(
         (link): link is Required<ProductBrandLinkRecord> =>
-          Boolean(link.product_id && link.brand_id)
-      )
+          Boolean(link.product_id && link.brand_id),
+      ),
     )
   }
 
@@ -526,7 +527,7 @@ async function listLinksByBrand(
 
 const groupProductBrandLinks = (
   links: Required<ProductBrandLinkRecord>[],
-  groupBy: "brand" | "product"
+  groupBy: "brand" | "product",
 ) => {
   const grouped = new Map<string, string[]>()
 
@@ -543,11 +544,11 @@ const groupProductBrandLinks = (
 
 const logUnresolvedSupplierAssignments = (
   logger: Logger,
-  unresolved: LegacySupplierAssignmentPlan["unresolved"]
+  unresolved: LegacySupplierAssignmentPlan["unresolved"],
 ) => {
   for (const item of unresolved) {
     logger.warn(
-      `Skipped legacy Supplier for Product "${item.product_id}": ${item.reason}; values: ${item.values.join(", ") || "none"}`
+      `Skipped legacy Supplier for Product "${item.product_id}": ${item.reason}; values: ${item.values.join(", ") || "none"}`,
     )
   }
 }
@@ -571,7 +572,7 @@ async function applySupplierAssignments({
     if (!option) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        `Supplier option "${optionKey}" was not reconciled for Product "${assignment.product_id}"`
+        `Supplier option "${optionKey}" was not reconciled for Product "${assignment.product_id}"`,
       )
     }
     await setProductAttributesWorkflow(container).run({
@@ -615,7 +616,7 @@ async function cleanupMigratedBrandSupplierAttributes({
   const attributeIds = attributes.flatMap((attribute) =>
     !attribute.deleted_at && removableBrandIds.has(attribute.brand_id)
       ? [attribute.id]
-      : []
+      : [],
   )
   const deletedTypeIds: string[] = []
 
@@ -631,13 +632,13 @@ async function cleanupMigratedBrandSupplierAttributes({
       const remaining = await service.listBrandAttributes(
         { attribute_type_id: attributeType.id },
         { select: ["id"], take: 1 },
-        context
+        context,
       )
       if (!remaining.length) {
         await service.softDeleteBrandAttributeTypes(
           [attributeType.id],
           {},
-          context
+          context,
         )
         deletedTypeIds.push(attributeType.id)
       }
@@ -655,7 +656,7 @@ export default async function migrateHerbaticaSupplier({
 }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const productService = container.resolve<IProductModuleService>(
-    Modules.PRODUCT
+    Modules.PRODUCT,
   )
   const products = await listHerbaticaProducts(productService)
   if (!products.length) {
@@ -681,7 +682,7 @@ export default async function migrateHerbaticaSupplier({
   const attributes = await listLegacySupplierAttributes(
     brandService,
     brandIds,
-    attributeTypes.map(({ id }) => id)
+    attributeTypes.map(({ id }) => id),
   )
   const legacySuppliers = attributes.map(
     ({ brand_id, deleted_at, id, value }) => ({
@@ -689,7 +690,7 @@ export default async function migrateHerbaticaSupplier({
       deleted_at,
       id,
       value,
-    })
+    }),
   )
   const { ambiguousBrandIds, supplierByBrandId } =
     resolveLegacySupplierValuesByBrand(legacySuppliers)
@@ -717,13 +718,13 @@ export default async function migrateHerbaticaSupplier({
   logUnresolvedSupplierAssignments(logger, plan.unresolved)
   if (!(plan.assignments.length || activeAssignmentProductIds.size)) {
     logger.info(
-      `No provable legacy Supplier assignments were found; preserved ${plan.unresolved.length} unresolved Product record(s)`
+      `No provable legacy Supplier assignments were found; preserved ${plan.unresolved.length} unresolved Product record(s)`,
     )
     return
   }
 
   const labelsByKey = collectSupplierLabelsByKey(
-    plan.assignments.map(({ supplier }) => supplier)
+    plan.assignments.map(({ supplier }) => supplier),
   )
   const coveredProductIds = new Set(activeAssignmentProductIds)
 
@@ -752,6 +753,6 @@ export default async function migrateHerbaticaSupplier({
   })
 
   logger.info(
-    `Migrated ${plan.assignments.length} legacy Brand Supplier assignment(s); preserved ${activeAssignmentProductIds.size} existing structured assignment(s) and ${plan.unresolved.length} unresolved legacy record(s); removed ${cleanup.attributeCount} legacy Brand attribute(s) and ${cleanup.attributeTypeCount} unused type(s)`
+    `Migrated ${plan.assignments.length} legacy Brand Supplier assignment(s); preserved ${activeAssignmentProductIds.size} existing structured assignment(s) and ${plan.unresolved.length} unresolved legacy record(s); removed ${cleanup.attributeCount} legacy Brand attribute(s) and ${cleanup.attributeTypeCount} unused type(s)`,
   )
 }

@@ -24,7 +24,7 @@ updateCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
   if (!queryCart) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Cart "${cart.id}" was not found`
+      `Cart "${cart.id}" was not found`,
     )
   }
 
@@ -33,7 +33,7 @@ updateCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
   if (isPendingApproval) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "Cart is pending approval"
+      "Cart is pending approval",
     )
   }
 

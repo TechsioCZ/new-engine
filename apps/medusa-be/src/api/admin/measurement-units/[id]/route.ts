@@ -22,7 +22,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
 export async function POST(
   req: MedusaRequest<AdminUpdateMeasurementUnitSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const unitId = req.params["id"] ?? ""
 
@@ -37,7 +37,7 @@ export async function POST(
 
   const unit = await retrieveMeasurementUnitOrThrow(
     req.scope,
-    result?.id ?? unitId
+    result?.id ?? unitId,
   )
 
   res.status(200).json({

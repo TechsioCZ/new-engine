@@ -8,7 +8,7 @@ export type HerbatikaOrderListInput = MedusaOrderListInput & {
 }
 
 export const buildHerbatikaOrderListParams = (
-  input: HerbatikaOrderListInput
+  input: HerbatikaOrderListInput,
 ): MedusaOrderListInput => {
   const { page, limit, offset, ...rest } = input
 

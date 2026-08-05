@@ -19,7 +19,7 @@ const FONT_SEARCH_PREFIXES = {
 } as const
 
 export async function createExpeditionPdfContext(
-  req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>
+  req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
 ) {
   const document = await PDFDocument.create()
   document.registerFontkit?.(fontkit)
@@ -60,7 +60,7 @@ async function readPdfFontBytes(prefixes: readonly string[]) {
         (entry) =>
           entry.isFile() &&
           prefixes.some((prefix) => entry.name.startsWith(prefix)) &&
-          entry.name.endsWith(".ttf")
+          entry.name.endsWith(".ttf"),
       )
 
       if (fontFile) {

@@ -43,7 +43,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function collectEnvMaps(
   value: unknown,
-  envMaps: Record<string, unknown>[] = []
+  envMaps: Record<string, unknown>[] = [],
 ) {
   if (!isRecord(value)) {
     return envMaps
@@ -90,7 +90,7 @@ test.skip("ZaneOps workflows alias the prefixed project slug secret for ctl", as
 test.skip("main deploy passes downtime approval only after the approval gate", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-main-after-ci.yml"),
-    "utf-8"
+    "utf-8",
   )
 
   expect(raw).toMatch(downtimeEnvironmentPattern)
@@ -102,7 +102,7 @@ test.skip("main deploy passes downtime approval only after the approval gate", a
 test.skip("main verify falls back to the production environment secret", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-main-after-ci.yml"),
-    "utf-8"
+    "utf-8",
   )
 
   expect(raw).toMatch(mainVerifyEnvironmentFallbackPattern)
@@ -113,7 +113,7 @@ test.skip("main verify falls back to the production environment secret", async (
 test.skip("preview scope feeds baseline state into prepare decisions", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-preview-after-ci.yml"),
-    "utf-8"
+    "utf-8",
   )
 
   expect(raw).toMatch(baselineCompleteOutputPattern)
@@ -124,7 +124,7 @@ test.skip("preview scope feeds baseline state into prepare decisions", async () 
 test("main CI runs new-engine-ctl tests on the supported Node version", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/ci.yml"),
-    "utf-8"
+    "utf-8",
   )
 
   expect(raw).toMatch(node24Pattern)
@@ -134,11 +134,11 @@ test("main CI runs new-engine-ctl tests on the supported Node version", async ()
 test("Storybook accessibility CI compares against an immutable base baseline", async () => {
   const workflow = await readFile(
     join(repoRoot, ".github/workflows/storybook-a11y.yml"),
-    "utf-8"
+    "utf-8",
   )
   const baselineWorkflow = await readFile(
     join(repoRoot, ".github/workflows/storybook-a11y-baseline.yml"),
-    "utf-8"
+    "utf-8",
   )
 
   expect(workflow).toContain("fail-on-violations: false")
@@ -147,7 +147,7 @@ test("Storybook accessibility CI compares against an immutable base baseline", a
   expect(workflow).toMatch(immutableBaseA11yBaselinePattern)
   expect(workflow).toMatch(baseA11yRegressionPattern)
   expect(workflow).not.toMatch(
-    /--baseline libs\/ui\/a11y-baseline\.json --fail-on-new/
+    /--baseline libs\/ui\/a11y-baseline\.json --fail-on-new/,
   )
   expect(baselineWorkflow).not.toMatch(/\bpush:/)
 })
@@ -155,41 +155,41 @@ test("Storybook accessibility CI compares against an immutable base baseline", a
 test("Storybook baseline changes run and require the explicit authorized workflow", async () => {
   const workflow = await readFile(
     join(repoRoot, ".github/workflows/storybook-a11y.yml"),
-    "utf-8"
+    "utf-8",
   )
   const baselineWorkflow = await readFile(
     join(repoRoot, ".github/workflows/storybook-a11y-baseline.yml"),
-    "utf-8"
+    "utf-8",
   )
 
   expect(workflow).not.toContain("!libs/ui/a11y-baseline.json")
   expect(workflow).toContain(
-    "libs/ui/a11y-baseline.json)\n                baseline_changed=true\n                should_run=true"
+    "libs/ui/a11y-baseline.json)\n                baseline_changed=true\n                should_run=true",
   )
   expect(workflow).toContain(
-    "/actions/workflows/storybook-a11y-baseline.yml/runs?event=workflow_dispatch"
+    "/actions/workflows/storybook-a11y-baseline.yml/runs?event=workflow_dispatch",
   )
   expect(workflow).toContain(
-    'select(.head_sha == env.BASELINE_SHA and .conclusion == "success")'
+    'select(.head_sha == env.BASELINE_SHA and .conclusion == "success")',
   )
   expect(workflow).toContain(
-    "Accessibility baseline changes require a successful authorized run"
+    "Accessibility baseline changes require a successful authorized run",
   )
   expect(workflow).toContain("- authorize-baseline-change")
   expect(workflow).toContain(
     [
       "AUTHORIZATION_RESULT: ${{",
       "needs.authorize-baseline-change.result }}",
-    ].join(" ")
+    ].join(" "),
   )
   expect(workflow).toContain(
-    '[ "$BASELINE_CHANGED" = "true" ] && [ "$AUTHORIZATION_RESULT" != "success" ]'
+    '[ "$BASELINE_CHANGED" = "true" ] && [ "$AUTHORIZATION_RESULT" != "success" ]',
   )
   expect(baselineWorkflow).toContain(
-    "Verify proposed baseline matches the authorized scan"
+    "Verify proposed baseline matches the authorized scan",
   )
   expect(baselineWorkflow).toContain(
-    'cmp --silent "$AUTHORIZED_BASELINE" libs/ui/a11y-baseline.json'
+    'cmp --silent "$AUTHORIZED_BASELINE" libs/ui/a11y-baseline.json',
   )
 })
 
@@ -217,7 +217,7 @@ test("accessibility regression counts nodes and preserves story coverage", async
           storyIds: ["contract--injected"],
           violations: 1,
         },
-      ])
+      ]),
     ),
     version: 2,
   }
@@ -241,7 +241,7 @@ test("accessibility regression counts nodes and preserves story coverage", async
             storyId: "contract--injected",
             title: "Contract",
           },
-        ])
+        ]),
       )
     }
     await writeFile(baselinePath, JSON.stringify(baseline))
@@ -254,7 +254,7 @@ test("accessibility regression counts nodes and preserves story coverage", async
         "--baseline",
         baselinePath,
         "--fail-on-new",
-      ])
+      ]),
     ).rejects.toMatchObject({ code: 1 })
 
     for (const theme of ["light", "dark"]) {
@@ -268,7 +268,7 @@ test("accessibility regression counts nodes and preserves story coverage", async
         "--baseline",
         baselinePath,
         "--fail-on-new",
-      ])
+      ]),
     ).rejects.toMatchObject({ code: 1 })
   } finally {
     await rm(fixtureRoot, { force: true, recursive: true })
@@ -310,7 +310,7 @@ test("a PR-edited baseline cannot mask an injected accessibility finding", async
           storyIds: ["contract--injected"],
           violations: count,
         },
-      ])
+      ]),
     ),
     version: 2,
   })
@@ -320,7 +320,7 @@ test("a PR-edited baseline cannot mask an injected accessibility finding", async
       await mkdir(join(reportRoot, theme), { recursive: true })
       await writeFile(
         join(reportRoot, theme, "report.json"),
-        JSON.stringify(report)
+        JSON.stringify(report),
       )
     }
     await writeFile(baseBaselinePath, JSON.stringify(makeBaseline(0)))
@@ -328,7 +328,7 @@ test("a PR-edited baseline cannot mask an injected accessibility finding", async
 
     const script = join(
       repoRoot,
-      "libs/ui/scripts/storybook-a11y-regression.mjs"
+      "libs/ui/scripts/storybook-a11y-regression.mjs",
     )
     await expect(
       execFileAsync(process.execPath, [
@@ -338,7 +338,7 @@ test("a PR-edited baseline cannot mask an injected accessibility finding", async
         "--baseline",
         pullRequestBaselinePath,
         "--fail-on-new",
-      ])
+      ]),
     ).resolves.toBeDefined()
     await expect(
       execFileAsync(process.execPath, [
@@ -348,7 +348,7 @@ test("a PR-edited baseline cannot mask an injected accessibility finding", async
         "--baseline",
         baseBaselinePath,
         "--fail-on-new",
-      ])
+      ]),
     ).rejects.toMatchObject({ code: 1 })
   } finally {
     await rm(fixtureRoot, { force: true, recursive: true })

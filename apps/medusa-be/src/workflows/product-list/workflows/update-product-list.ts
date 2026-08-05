@@ -41,5 +41,5 @@ export const updateProductListWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(list)
-  }
+  },
 )

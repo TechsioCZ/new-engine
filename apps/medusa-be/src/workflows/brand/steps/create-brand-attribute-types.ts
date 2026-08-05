@@ -16,7 +16,7 @@ interface EnsuredBrandAttributeType {
 async function ensureBrandAttributeType(
   service: BrandModuleService,
   name: string,
-  sharedContext: Context
+  sharedContext: Context,
 ): Promise<{
   created_id?: string
   restored_id?: string
@@ -28,7 +28,7 @@ async function ensureBrandAttributeType(
       take: 3,
       withDeleted: true,
     },
-    sharedContext
+    sharedContext,
   )
   const active = matches.filter((record) => !record.deleted_at)
   const deleted = matches.filter((record) => !!record.deleted_at)
@@ -36,7 +36,7 @@ async function ensureBrandAttributeType(
   if (active.length > 1 || (!active.length && deleted.length > 1)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Brand attribute type "${name}" has ambiguous persisted records`
+      `Brand attribute type "${name}" has ambiguous persisted records`,
     )
   }
 
@@ -55,7 +55,7 @@ async function ensureBrandAttributeType(
     await service.restoreBrandAttributeTypes(
       [deletedAttributeType.id],
       {},
-      sharedContext
+      sharedContext,
     )
     return {
       restored_id: deletedAttributeType.id,
@@ -71,14 +71,14 @@ async function ensureBrandAttributeType(
 
   const created = await service.createBrandAttributeTypes(
     { name },
-    sharedContext
+    sharedContext,
   )
   const createdAttributeType = Array.isArray(created) ? created[0] : created
 
   if (!createdAttributeType) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Brand attribute type "${name}" was not returned after creation`
+      `Brand attribute type "${name}" was not returned after creation`,
     )
   }
 
@@ -100,7 +100,7 @@ export const createBrandAttributeTypesStep = createStep(
     if (new Set(names).size !== names.length) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Brand attribute type names must be unique within a request"
+        "Brand attribute type names must be unique within a request",
       )
     }
 
@@ -129,7 +129,7 @@ export const createBrandAttributeTypesStep = createStep(
           },
           results: ensured,
         }
-      }
+      },
     )
 
     return new StepResponse(results, compensation)
@@ -145,16 +145,16 @@ export const createBrandAttributeTypesStep = createStep(
       if (compensation.created_ids.length) {
         await service.deleteBrandAttributeTypes(
           compensation.created_ids,
-          context
+          context,
         )
       }
       if (compensation.restored_ids.length) {
         await service.softDeleteBrandAttributeTypes(
           compensation.restored_ids,
           {},
-          context
+          context,
         )
       }
     })
-  }
+  },
 )

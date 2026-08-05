@@ -30,5 +30,5 @@ export const importStorefrontTextCatalogWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

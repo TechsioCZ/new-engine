@@ -95,7 +95,7 @@ export function createCategoryHooks<
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<CategoryListResponse<TCategory>>
-    }
+    },
   ): UseCategoriesResult<TCategory> {
     const { items, ...result } = simpleHooks.useList(input, options)
     return {
@@ -108,7 +108,7 @@ export function createCategoryHooks<
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<CategoryListResponse<TCategory>>
-    }
+    },
   ): UseSuspenseCategoriesResult<TCategory> {
     const { items, ...result } = simpleHooks.useSuspenseList(input, options)
     return {
@@ -119,7 +119,7 @@ export function createCategoryHooks<
 
   function useCategory(
     input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TCategory | null> }
+    options?: { queryOptions?: ReadQueryOptions<TCategory | null> },
   ): UseCategoryResult<TCategory> {
     const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
@@ -130,7 +130,7 @@ export function createCategoryHooks<
 
   function useSuspenseCategory(
     input: TDetailInput,
-    options?: { queryOptions?: SuspenseQueryOptions<TCategory | null> }
+    options?: { queryOptions?: SuspenseQueryOptions<TCategory | null> },
   ): UseSuspenseCategoryResult<TCategory> {
     const { item, ...result } = simpleHooks.useSuspenseDetail(input, options)
     return {

@@ -28,13 +28,13 @@ interface EmailLogDTO {
 type EmailLogService = EmailLogModuleService & {
   listEmailLogs: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<EmailLogDTO[]>
 }
 
 async function sendReminder(
   container: MedusaContainer,
-  order: PaymentReminderOrder
+  order: PaymentReminderOrder,
 ) {
   if (!order.email) {
     return
@@ -59,7 +59,7 @@ async function sendReminder(
 
 async function getAlreadyRemindedOrderIds(
   container: MedusaContainer,
-  orders: PaymentReminderOrder[]
+  orders: PaymentReminderOrder[],
 ) {
   const orderIds = [...new Set(orders.map((order) => order.id))]
   if (!orderIds.length) {
@@ -76,7 +76,7 @@ async function getAlreadyRemindedOrderIds(
   ) {
     const orderIdChunk = orderIds.slice(
       index,
-      index + EMAIL_LOG_LOOKUP_BATCH_SIZE
+      index + EMAIL_LOG_LOOKUP_BATCH_SIZE,
     )
     const alreadySentLogs = await emailLogService.listEmailLogs(
       {
@@ -85,7 +85,7 @@ async function getAlreadyRemindedOrderIds(
       },
       {
         select: ["order_id"],
-      }
+      },
     )
 
     for (const log of alreadySentLogs) {
@@ -100,7 +100,7 @@ async function getAlreadyRemindedOrderIds(
 
 async function executePaymentReminderJob(
   container: MedusaContainer,
-  logger: Logger
+  logger: Logger,
 ) {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
@@ -108,37 +108,37 @@ async function executePaymentReminderJob(
 
   const unpaidOrders = await fetchUnpaidOrders(query, MAX_ORDERS_PER_RUN)
   const readyOrders = unpaidOrders.filter((order) =>
-    isPaymentReminderReadyOrder(order)
+    isPaymentReminderReadyOrder(order),
   )
 
   if (!readyOrders.length) {
     logger.info(
-      "Unpaid Order Payment Reminders: No unpaid orders older than 24 hours found"
+      "Unpaid Order Payment Reminders: No unpaid orders older than 24 hours found",
     )
     return
   }
 
   logger.info(
-    `Unpaid Order Payment Reminders: Found ${readyOrders.length} unpaid orders older than 24 hours`
+    `Unpaid Order Payment Reminders: Found ${readyOrders.length} unpaid orders older than 24 hours`,
   )
 
   const alreadyRemindedOrderIds = await getAlreadyRemindedOrderIds(
     container,
-    readyOrders
+    readyOrders,
   )
   const ordersToRemind = readyOrders.filter(
-    (order) => !alreadyRemindedOrderIds.has(order.id)
+    (order) => !alreadyRemindedOrderIds.has(order.id),
   )
 
   if (!ordersToRemind.length) {
     logger.info(
-      "Unpaid Order Payment Reminders: All matching orders already have a reminder email log"
+      "Unpaid Order Payment Reminders: All matching orders already have a reminder email log",
     )
     return
   }
 
   logger.info(
-    `Unpaid Order Payment Reminders: Sending ${ordersToRemind.length} reminders, skipping ${alreadyRemindedOrderIds.size} already sent`
+    `Unpaid Order Payment Reminders: Sending ${ordersToRemind.length} reminders, skipping ${alreadyRemindedOrderIds.size} already sent`,
   )
 
   let sentCount = 0
@@ -149,18 +149,18 @@ async function executePaymentReminderJob(
     } catch (error) {
       logger.error(
         `Unpaid Order Payment Reminders: Failed to send reminder for order ${order.id}`,
-        error instanceof Error ? error : new Error(String(error))
+        error instanceof Error ? error : new Error(String(error)),
       )
     }
   }
 
   logger.info(
-    `Unpaid Order Payment Reminders: Completed, sent ${sentCount} reminders`
+    `Unpaid Order Payment Reminders: Completed, sent ${sentCount} reminders`,
   )
 }
 
 export default async function unpaidOrderPaymentRemindersJob(
-  container: MedusaContainer
+  container: MedusaContainer,
 ) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
@@ -171,12 +171,12 @@ export default async function unpaidOrderPaymentRemindersJob(
     JOB_LOCK_TIMEOUT,
     async () => {
       await executePaymentReminderJob(container, logger)
-    }
+    },
   )
 
   if (result.status === "timed_out") {
     logger.info(
-      "Unpaid Order Payment Reminders: Skipping - another instance is already running"
+      "Unpaid Order Payment Reminders: Skipping - another instance is already running",
     )
   }
 }

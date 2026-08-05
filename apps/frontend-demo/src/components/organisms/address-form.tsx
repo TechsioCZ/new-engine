@@ -22,7 +22,7 @@ import type { AddressData, AddressFormProps } from "@/types/checkout"
 
 const createInitialAddress = (
   user: ReturnType<typeof useAuth>["user"],
-  address: ReturnType<typeof useCustomer>["address"]
+  address: ReturnType<typeof useCustomer>["address"],
 ): AddressData => ({
   city: address?.city || "",
   company: user?.company_name || "",
@@ -43,10 +43,10 @@ export function AddressForm({
   const { address } = useCustomer()
 
   const [shippingAddress, setShippingAddress] = useState<AddressData>(() =>
-    createInitialAddress(user, address)
+    createInitialAddress(user, address),
   )
   const [billingAddress, setBillingAddress] = useState<AddressData>(() =>
-    createInitialAddress(user, address)
+    createInitialAddress(user, address),
   )
 
   useEffect(() => {

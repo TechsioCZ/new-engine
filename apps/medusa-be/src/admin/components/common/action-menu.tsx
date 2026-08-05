@@ -52,7 +52,7 @@ export const ActionMenu = ({ groups }: ActionMenuProps) => (
                       "flex items-center gap-x-2 [&_svg]:text-ui-fg-subtle",
                       {
                         "[&_svg]:text-ui-fg-disabled": action.disabled,
-                      }
+                      },
                     )}
                     disabled={action.disabled ?? false}
                     key={action.label}
@@ -75,7 +75,7 @@ export const ActionMenu = ({ groups }: ActionMenuProps) => (
                       "flex items-center gap-x-2 [&_svg]:text-ui-fg-subtle",
                       {
                         "[&_svg]:text-ui-fg-disabled": action.disabled,
-                      }
+                      },
                     )}
                     disabled={action.disabled ?? false}
                   >

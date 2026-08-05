@@ -47,7 +47,7 @@ export const buildErrorResponse = async (response: Response) => {
       details: payload ?? undefined,
       message: messageFromPayload ?? fallbackErrorMessage(response.status),
     },
-    { status: response.status || 500 }
+    { status: response.status || 500 },
   )
 }
 
@@ -65,7 +65,7 @@ export const serverError = (message: string, details?: unknown) =>
       details,
       message,
     },
-    { status: 500 }
+    { status: 500 },
   )
 
 export const getPublishableHeaders = (): Record<string, string> => {
@@ -80,7 +80,7 @@ export const getPublishableHeaders = (): Record<string, string> => {
 
 export const setSessionTokenCookie = (
   response: NextResponse,
-  token: string
+  token: string,
 ) => {
   response.cookies.set({
     httpOnly: true,
@@ -106,7 +106,7 @@ export const clearSessionTokenCookie = (response: NextResponse) => {
 }
 
 export const getSessionTokenFromCookieHeader = (
-  cookieHeader: string | null
+  cookieHeader: string | null,
 ) => {
   if (!cookieHeader) {
     return null

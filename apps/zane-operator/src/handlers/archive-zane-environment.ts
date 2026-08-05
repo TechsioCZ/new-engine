@@ -10,7 +10,7 @@ interface ArchiveZaneEnvironmentDeps {
 
 export async function handleArchiveZaneEnvironment(
   request: Request,
-  deps: ArchiveZaneEnvironmentDeps
+  deps: ArchiveZaneEnvironmentDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

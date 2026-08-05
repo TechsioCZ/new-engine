@@ -15,13 +15,13 @@ export const GetAdminOrderBusinessStatusesByIdsSchema = z
       (value) => {
         if (Array.isArray(value)) {
           return value.flatMap((item) =>
-            typeof item === "string" ? item.split(",") : item
+            typeof item === "string" ? item.split(",") : item,
           )
         }
 
         return typeof value === "string" ? value.split(",") : value
       },
-      z.array(z.string().min(1)).min(1).max(100)
+      z.array(z.string().min(1)).min(1).max(100),
     ),
   })
   .strict()

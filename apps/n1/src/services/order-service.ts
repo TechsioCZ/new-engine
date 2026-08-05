@@ -19,7 +19,7 @@ export interface GetOrdersParams {
 }
 
 export async function getOrders(
-  params?: GetOrdersParams
+  params?: GetOrdersParams,
 ): Promise<OrdersResponse> {
   const limit = params?.limit || 20
   const offset = params?.offset || 0

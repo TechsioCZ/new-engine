@@ -29,7 +29,7 @@ export type MedusaRegionDetailInput = SelectParams & {
  * ```
  */
 export function createMedusaRegionService(
-  sdk: Medusa
+  sdk: Medusa,
 ): RegionService<
   HttpTypes.StoreRegion,
   MedusaRegionListInput,
@@ -38,7 +38,7 @@ export function createMedusaRegionService(
   return {
     async getRegion(
       params: MedusaRegionDetailInput,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<HttpTypes.StoreRegion | null> {
       if (!params.id) {
         return null
@@ -49,14 +49,14 @@ export function createMedusaRegionService(
         {
           query,
           signal: signal ?? null,
-        }
+        },
       )
       return response.region ?? null
     },
 
     async getRegions(
       params: MedusaRegionListInput,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<RegionListResponse<HttpTypes.StoreRegion>> {
       const { enabled: _enabled, ...query } = params
       const response =
@@ -65,7 +65,7 @@ export function createMedusaRegionService(
           {
             query,
             signal: signal ?? null,
-          }
+          },
         )
       return {
         regions: response.regions ?? [],

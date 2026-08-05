@@ -6,11 +6,11 @@ import { isMeilisearchEnabled } from "../modules/meilisearch/env"
 import { syncMeilisearchBrandsWorkflow } from "../workflows/meilisearch/workflows/sync-brands"
 
 const resolveContainer = (
-  input: MedusaContainer | ExecArgs
+  input: MedusaContainer | ExecArgs,
 ): MedusaContainer => ("container" in input ? input.container : input)
 
 export default async function meilisearchBrandsIndexJob(
-  input: MedusaContainer | ExecArgs
+  input: MedusaContainer | ExecArgs,
 ) {
   const container = resolveContainer(input)
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)

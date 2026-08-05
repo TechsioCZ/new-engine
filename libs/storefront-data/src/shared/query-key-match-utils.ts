@@ -4,7 +4,7 @@ import type { QueryKey } from "./query-keys"
 
 export const areQueryKeySegmentsEqual = (
   left: unknown,
-  right: unknown
+  right: unknown,
 ): boolean => {
   if (Object.is(left, right)) {
     return true
@@ -14,7 +14,7 @@ export const areQueryKeySegmentsEqual = (
     return (
       left.length === right.length &&
       left.every((entry, index) =>
-        areQueryKeySegmentsEqual(entry, right[index])
+        areQueryKeySegmentsEqual(entry, right[index]),
       )
     )
   }
@@ -39,5 +39,5 @@ export const getSortedRecordKeys = (
 
 export const hasQueryKeyPrefix = (
   queryKey: QueryKey,
-  prefix: QueryKey
+  prefix: QueryKey,
 ): boolean => prefix.every((segment, index) => queryKey[index] === segment)

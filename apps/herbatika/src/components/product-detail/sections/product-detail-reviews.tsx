@@ -178,7 +178,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   const searchParams = useSearchParams()
   const [currentPage, setCurrentPage] = useQueryState(
     REVIEW_PAGE_PARAM,
-    reviewPageParser
+    reviewPageParser,
   )
   const getReviewPageUrl = ({ page }: { page: number }) => {
     const query = searchParams.toString()
@@ -207,7 +207,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
           month: "numeric",
           year: "numeric",
         }),
-    })
+    }),
   )
   const isInitialLoading = reviewsQuery.isLoading && reviews.length === 0
   const isEmpty = reviewsQuery.isSuccess && totalCount === 0
@@ -223,7 +223,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
     }
 
     runDetachedPromise(
-      setCurrentPage(reviewsQuery.totalPages, { history: "replace" })
+      setCurrentPage(reviewsQuery.totalPages, { history: "replace" }),
     )
   }, [isPageOutOfRange, reviewsQuery.totalPages, setCurrentPage])
 

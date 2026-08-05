@@ -85,7 +85,7 @@ export interface OrderBusinessStatusSummary {
 function createOrderBusinessStatus<const TId extends OrderBusinessStatusId>(
   id: TId,
   priority: number,
-  tone: OrderBusinessStatusTone
+  tone: OrderBusinessStatusTone,
 ) {
   return {
     id,
@@ -106,7 +106,7 @@ export const ORDER_BUSINESS_STATUSES = {
   waiting_for_supplier: createOrderBusinessStatus(
     "waiting_for_supplier",
     4,
-    "orange"
+    "orange",
   ),
 } as const satisfies Record<OrderBusinessStatusId, OrderBusinessStatus>
 
@@ -138,7 +138,7 @@ const SHIPPED_FULFILLMENT_STATUSES = new Set([
 ])
 
 function hasValue(
-  value: Date | string | null | undefined
+  value: Date | string | null | undefined,
 ): value is Date | string {
   return (
     value instanceof Date || (typeof value === "string" && value.length > 0)
@@ -147,25 +147,25 @@ function hasValue(
 
 function getActiveFulfillments(order: OrderBusinessStatusInput) {
   return (order.fulfillments ?? []).filter(
-    (fulfillment) => !hasValue(fulfillment.canceled_at)
+    (fulfillment) => !hasValue(fulfillment.canceled_at),
   )
 }
 
 function isIncluded<const TValue extends string>(
   values: readonly TValue[],
-  value: unknown
+  value: unknown,
 ): value is TValue {
   return typeof value === "string" && values.includes(value as TValue)
 }
 
 export function isOrderBusinessStatusId(
-  value: unknown
+  value: unknown,
 ): value is OrderBusinessStatusId {
   return isIncluded(ORDER_BUSINESS_STATUS_IDS, value)
 }
 
 export function isActionRequiredOrderBusinessStatusId(
-  value: OrderBusinessStatusId
+  value: OrderBusinessStatusId,
 ) {
   return (
     ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS as readonly OrderBusinessStatusId[]
@@ -173,13 +173,13 @@ export function isActionRequiredOrderBusinessStatusId(
 }
 
 export function isManualOrderBusinessStatusId(
-  value: unknown
+  value: unknown,
 ): value is ManualOrderBusinessStatusId {
   return isIncluded(MANUAL_ORDER_BUSINESS_STATUS_IDS, value)
 }
 
 export function getManualOrderBusinessStatusId(
-  order: OrderBusinessStatusInput
+  order: OrderBusinessStatusInput,
 ): ManualOrderBusinessStatusId | undefined {
   const manualStatus = order.metadata?.[ORDER_BUSINESS_STATUS_METADATA_KEY]
 
@@ -192,7 +192,7 @@ export function getManualOrderBusinessStatusId(
 
 export function getOrderBusinessManualStatusUpdateBlockReason(
   order: OrderBusinessStatusInput,
-  status: ManualOrderBusinessStatusId | null
+  status: ManualOrderBusinessStatusId | null,
 ) {
   const currentManualStatus = getManualOrderBusinessStatusId(order) ?? null
 
@@ -237,7 +237,7 @@ export function isPendingUnpaidOrder(order: OrderBusinessStatusInput) {
   }
 
   return PENDING_UNPAID_PAYMENT_STATUSES.has(
-    getOrderBusinessPaymentStatus(order) ?? ""
+    getOrderBusinessPaymentStatus(order) ?? "",
   )
 }
 
@@ -249,7 +249,7 @@ function hasPaidPaymentSignal(order: OrderBusinessStatusInput) {
   }
 
   return (order.payment_collections ?? []).some((collection) =>
-    PAID_PAYMENT_STATUSES.has(collection.status ?? "")
+    PAID_PAYMENT_STATUSES.has(collection.status ?? ""),
   )
 }
 
@@ -258,7 +258,7 @@ function formatBusinessStatus(status: OrderBusinessStatusId) {
 }
 
 export function resolveOrderBusinessStatus(
-  order: OrderBusinessStatusInput
+  order: OrderBusinessStatusInput,
 ): OrderBusinessStatus {
   const manualStatus = getManualOrderBusinessStatusId(order)
 
@@ -272,7 +272,7 @@ export function resolveOrderBusinessStatus(
   const allActiveFulfillmentsDelivered =
     hasActiveFulfillments &&
     activeFulfillments.every((fulfillment) =>
-      hasValue(fulfillment.delivered_at)
+      hasValue(fulfillment.delivered_at),
     )
 
   if (
@@ -283,7 +283,7 @@ export function resolveOrderBusinessStatus(
   }
 
   const anyActiveFulfillmentShipped = activeFulfillments.some((fulfillment) =>
-    hasValue(fulfillment.shipped_at)
+    hasValue(fulfillment.shipped_at),
   )
 
   if (

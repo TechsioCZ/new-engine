@@ -13,10 +13,10 @@ import type { CreateQuoteType, GetQuoteParamsType } from "./validators"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<GetQuoteParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve<RemoteQueryFunction>(
-    ContainerRegistrationKeys.QUERY
+    ContainerRegistrationKeys.QUERY,
   )
 
   const { fields, pagination } = req.queryConfig
@@ -43,10 +43,10 @@ export const GET = async (
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<CreateQuoteType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve<RemoteQueryFunction>(
-    ContainerRegistrationKeys.QUERY
+    ContainerRegistrationKeys.QUERY,
   )
 
   const {
@@ -61,7 +61,7 @@ export const POST = async (
   if (!createdQuote) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Failed to create quote"
+      "Failed to create quote",
     )
   }
 
@@ -73,7 +73,7 @@ export const POST = async (
       fields: req.queryConfig.fields,
       filters: { id: createdQuote.id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   return res.json({ quote })

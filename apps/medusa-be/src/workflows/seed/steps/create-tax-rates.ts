@@ -173,7 +173,7 @@ function getMetadataString(metadata: TaxRateMetadata | null, key: string) {
 
 function buildDefaultRateMetadata(
   countryCode: string,
-  config: TaxRateSeedConfig
+  config: TaxRateSeedConfig,
 ): TaxRateMetadata {
   return {
     seed_country_code: countryCode,
@@ -185,7 +185,7 @@ function buildDefaultRateMetadata(
 function buildProductRateMetadata(
   countryCode: string,
   rate: number,
-  config: TaxRateSeedConfig
+  config: TaxRateSeedConfig,
 ): TaxRateMetadata {
   return {
     seed_country_code: countryCode,
@@ -197,7 +197,7 @@ function buildProductRateMetadata(
 
 function extractProductVat(
   metadata: Record<string, unknown> | undefined,
-  metadataPath: string[] = ["top_offer", "vat"]
+  metadataPath: string[] = ["top_offer", "vat"],
 ): number | undefined {
   let current: unknown = metadata
   for (const segment of metadataPath) {
@@ -214,12 +214,12 @@ function extractProductVat(
 export function buildTaxRateSeedTargets(
   products: ProductTaxSource[],
   requestedCountries: string[] = [],
-  config: TaxRateSeedConfig = DEFAULT_TAX_RATE_SEED_CONFIG
+  config: TaxRateSeedConfig = DEFAULT_TAX_RATE_SEED_CONFIG,
 ): TaxRateSeedTargets {
   const requestedCountrySet = new Set(
     requestedCountries
       .map((countryCode) => normalizeCountryCode(countryCode))
-      .filter((countryCode): countryCode is string => Boolean(countryCode))
+      .filter((countryCode): countryCode is string => Boolean(countryCode)),
   )
 
   const defaultRatesByCountry = new Map<string, number>(
@@ -236,11 +236,11 @@ export function buildTaxRateSeedTargets(
         return []
       }
       return [[normalizedCountryCode, normalizedRate]]
-    })
+    }),
   )
   const productRateGroupsByCountry = new Map<string, Map<number, string[]>>()
   const productOverridesCountryCode = normalizeCountryCode(
-    config.productOverrides?.countryCode
+    config.productOverrides?.countryCode,
   )
   if (!productOverridesCountryCode) {
     return {
@@ -250,7 +250,7 @@ export function buildTaxRateSeedTargets(
   }
 
   const defaultOverrideRate = defaultRatesByCountry.get(
-    productOverridesCountryCode
+    productOverridesCountryCode,
   )
 
   if (defaultOverrideRate === undefined) {
@@ -264,7 +264,7 @@ export function buildTaxRateSeedTargets(
   for (const product of products) {
     const vat = extractProductVat(
       asObject(product.metadata),
-      config.productOverrides?.metadataPath
+      config.productOverrides?.metadataPath,
     )
     if (vat === undefined || isSameRate(vat, defaultOverrideRate)) {
       continue
@@ -278,7 +278,7 @@ export function buildTaxRateSeedTargets(
   if (overrideProductRateGroups.size > 0) {
     productRateGroupsByCountry.set(
       productOverridesCountryCode,
-      overrideProductRateGroups
+      overrideProductRateGroups,
     )
   }
 
@@ -314,7 +314,7 @@ function formatRateValue(rate: number): string {
 function formatTemplate(
   template: string,
   countryCode: string,
-  rate?: number
+  rate?: number,
 ): string {
   const rateValue = rate === undefined ? "" : formatRateValue(rate)
   const rateCode = rateValue.replaceAll(/[^0-9]+/g, "_")
@@ -328,45 +328,45 @@ function formatTemplate(
 function buildDefaultRateCode(countryCode: string, config: TaxRateSeedConfig) {
   return formatTemplate(
     config.defaultRateCodeTemplate ?? DEFAULT_TAX_RATE_CODE_TEMPLATE,
-    countryCode
+    countryCode,
   )
 }
 
 function buildDefaultRateName(countryCode: string, config: TaxRateSeedConfig) {
   return formatTemplate(
     config.defaultRateNameTemplate ?? DEFAULT_TAX_RATE_NAME_TEMPLATE,
-    countryCode
+    countryCode,
   )
 }
 
 function buildProductRateCode(
   countryCode: string,
   rate: number,
-  config: TaxRateSeedConfig
+  config: TaxRateSeedConfig,
 ): string {
   return formatTemplate(
     config.productRateCodeTemplate ?? DEFAULT_PRODUCT_TAX_RATE_CODE_TEMPLATE,
     countryCode,
-    rate
+    rate,
   )
 }
 
 function buildProductRateName(
   countryCode: string,
   rate: number,
-  config: TaxRateSeedConfig
+  config: TaxRateSeedConfig,
 ): string {
   return formatTemplate(
     config.productRateNameTemplate ?? DEFAULT_PRODUCT_TAX_RATE_NAME_TEMPLATE,
     countryCode,
-    rate
+    rate,
   )
 }
 
 export function buildProductTaxRateIdentity(
   countryCode: string,
   rate: number,
-  config: TaxRateSeedConfig = DEFAULT_TAX_RATE_SEED_CONFIG
+  config: TaxRateSeedConfig = DEFAULT_TAX_RATE_SEED_CONFIG,
 ) {
   return {
     code: buildProductRateCode(countryCode, rate, config),
@@ -383,7 +383,7 @@ function buildProductRules(productIds: string[]) {
 
 function areProductRulesEqual(
   left: { reference: string; reference_id: string }[],
-  right: { reference: string; reference_id: string }[]
+  right: { reference: string; reference_id: string }[],
 ): boolean {
   if (left.length !== right.length) {
     return false
@@ -410,13 +410,13 @@ function normalizeSeedCountries(countries: string[] | undefined): string[] {
     ...new Set(
       (countries ?? [])
         .map((countryCode) => normalizeCountryCode(countryCode))
-        .filter((countryCode): countryCode is string => Boolean(countryCode))
+        .filter((countryCode): countryCode is string => Boolean(countryCode)),
     ),
   ]
 }
 
 function buildExistingDefaultIndex(
-  existingRates: TaxRateDTO[]
+  existingRates: TaxRateDTO[],
 ): Map<string, TaxRateDTO> {
   const existingDefaultByRegionId = new Map<string, TaxRateDTO>()
 
@@ -434,11 +434,11 @@ function buildExistingDefaultIndex(
 
 function getSeededProductRateKey(
   taxRate: TaxRateDTO,
-  metadataSource: string
+  metadataSource: string,
 ): string | undefined {
   const seedSource = getMetadataString(taxRate.metadata, "seed_source")
   const countryCode = normalizeCountryCode(
-    getMetadataString(taxRate.metadata, "seed_country_code")
+    getMetadataString(taxRate.metadata, "seed_country_code"),
   )
   const seedScope = getMetadataString(taxRate.metadata, "seed_scope")
   const seedRate = parseRate(getMetadataString(taxRate.metadata, "seed_rate"))
@@ -457,7 +457,7 @@ function getSeededProductRateKey(
 
 function buildSeededProductRateIndex(
   existingRates: TaxRateDTO[],
-  config: TaxRateSeedConfig
+  config: TaxRateSeedConfig,
 ): Map<string, TaxRateDTO> {
   const existingProductByKey = new Map<string, TaxRateDTO>()
 
@@ -473,7 +473,7 @@ function buildSeededProductRateIndex(
 
 async function loadRulesByRateId(
   taxService: ITaxModuleService,
-  nonDefaultRates: TaxRateDTO[]
+  nonDefaultRates: TaxRateDTO[],
 ): Promise<Map<string, TaxRateRule[]>> {
   const rulesByRateId = new Map<string, TaxRateRule[]>()
 
@@ -507,7 +507,7 @@ function shouldIndexLegacyProductRate(params: {
   const hasOnlyProductRules =
     params.rules.length > 0 &&
     params.rules.every(
-      (rule) => rule.reference === "product" && rule.reference_id
+      (rule) => rule.reference === "product" && rule.reference_id,
     )
 
   return (
@@ -528,7 +528,7 @@ function addLegacyProductRateIndexes(params: {
     [...params.countryToRegion.entries()].map(([countryCode, taxRegion]) => [
       taxRegion.id,
       countryCode,
-    ])
+    ]),
   )
 
   for (const taxRate of params.nonDefaultRates) {
@@ -563,18 +563,18 @@ async function buildExistingTaxRateIndexes(params: {
   config: TaxRateSeedConfig
 }): Promise<ExistingTaxRateIndexes> {
   const existingDefaultByRegionId = buildExistingDefaultIndex(
-    params.existingRates
+    params.existingRates,
   )
   const existingProductByKey = buildSeededProductRateIndex(
     params.existingRates,
-    params.config
+    params.config,
   )
   const nonDefaultRates = params.existingRates.filter(
-    (taxRate) => !taxRate.is_default
+    (taxRate) => !taxRate.is_default,
   )
   const rulesByRateId = await loadRulesByRateId(
     params.taxService,
-    nonDefaultRates
+    nonDefaultRates,
   )
 
   addLegacyProductRateIndexes({
@@ -604,10 +604,10 @@ function addDefaultRatePlan(params: {
   const defaultCode = buildDefaultRateCode(params.countryCode, params.config)
   const defaultMetadata = buildDefaultRateMetadata(
     params.countryCode,
-    params.config
+    params.config,
   )
   const existingDefault = params.existingDefaultByRegionId.get(
-    params.taxRegion.id
+    params.taxRegion.id,
   )
 
   if (!existingDefault) {
@@ -660,12 +660,12 @@ function addProductRatePlan(params: {
   const { code, name } = buildProductTaxRateIdentity(
     params.countryCode,
     params.rate,
-    params.config
+    params.config,
   )
   const metadata = buildProductRateMetadata(
     params.countryCode,
     params.rate,
-    params.config
+    params.config,
   )
   const existingProductRate = params.existingProductByKey.get(key)
   const existingRules = existingProductRate
@@ -765,7 +765,7 @@ async function runCreateTaxRates(params: {
   for (let i = 0; i < params.createPayloads.length; i += CHUNK_SIZE) {
     const chunk = params.createPayloads.slice(i, i + CHUNK_SIZE)
     const { result: createdChunk } = await createTaxRatesWorkflow(
-      params.container
+      params.container,
     ).run({
       input: chunk,
     })
@@ -780,7 +780,7 @@ async function runUpdateTaxRates(params: {
 }): Promise<void> {
   for (const updatePayload of params.updatePayloads) {
     const { result: updatedChunk } = await updateTaxRatesWorkflow(
-      params.container
+      params.container,
     ).run({
       input: updatePayload,
     })
@@ -793,7 +793,7 @@ export const createTaxRatesStep = createStep(
   async (input: CreateTaxRatesStepInput, { container }) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const productService = container.resolve<IProductModuleService>(
-      Modules.PRODUCT
+      Modules.PRODUCT,
     )
     const taxService = container.resolve<ITaxModuleService>(Modules.TAX)
 
@@ -815,18 +815,18 @@ export const createTaxRatesStep = createStep(
       },
       {
         select: ["id", "metadata"],
-      }
+      },
     )
 
     const taxRateTargets = buildTaxRateSeedTargets(
       products,
       normalizedSeedCountries,
-      config
+      config,
     )
 
     if (taxRateTargets.defaultRatesByCountry.size === 0) {
       logger.warn(
-        "No approved tax-rate countries configured, skipping tax rate seed"
+        "No approved tax-rate countries configured, skipping tax rate seed",
       )
       return new StepResponse({ result: emptyOutput() })
     }
@@ -838,17 +838,17 @@ export const createTaxRatesStep = createStep(
     const countryToRegion = mapCountryToRegion(taxRegions)
 
     const missingCountries = countries.filter(
-      (countryCode) => !countryToRegion.has(countryCode)
+      (countryCode) => !countryToRegion.has(countryCode),
     )
 
     if (missingCountries.length > 0) {
       logger.warn(
-        `Tax regions missing for countries: ${missingCountries.join(", ")}. These rates will be skipped.`
+        `Tax regions missing for countries: ${missingCountries.join(", ")}. These rates will be skipped.`,
       )
     }
 
     const regionIds = [...countryToRegion.values()].map(
-      (taxRegion) => taxRegion.id
+      (taxRegion) => taxRegion.id,
     )
 
     if (regionIds.length === 0) {
@@ -877,7 +877,7 @@ export const createTaxRatesStep = createStep(
     await runUpdateTaxRates({ container, updatePayloads, updated })
 
     logger.info(
-      `Tax rates seed complete: created ${created.length}, updated ${updated.length}`
+      `Tax rates seed complete: created ${created.length}, updated ${updated.length}`,
     )
 
     const output: CreateTaxRatesStepOutput = {
@@ -886,5 +886,5 @@ export const createTaxRatesStep = createStep(
     }
 
     return new StepResponse({ result: output })
-  }
+  },
 )

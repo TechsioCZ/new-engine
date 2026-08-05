@@ -37,7 +37,7 @@ import { toPaykitPaymentData, toPaykitRefundData } from "../utils/mappers"
 import { requirePaykitOptions } from "../utils/validation"
 
 const isPaymentAmount = (
-  value: unknown
+  value: unknown,
 ): value is InitiatePaymentInput["amount"] =>
   typeof value === "number" ||
   typeof value === "string" ||
@@ -53,7 +53,7 @@ const isStripeResourceMissingError = (error: unknown): boolean =>
   isRecord(error) && error["code"] === "resource_missing"
 
 const getStripeCheckoutSessionRetriever = (
-  provider: unknown
+  provider: unknown,
 ): PaykitPaymentClient["stripeCheckoutSessions"] | undefined => {
   const native = isRecord(provider) ? provider["_native"] : undefined
   const checkout = isRecord(native) ? native["checkout"] : undefined
@@ -70,7 +70,7 @@ const getStripeCheckoutSessionRetriever = (
       retrieve.call(
         sessions,
         id,
-        options
+        options,
       ) as Promise<PaykitStripeCheckoutSession>,
     ...(typeof expire === "function"
       ? {
@@ -82,14 +82,14 @@ const getStripeCheckoutSessionRetriever = (
 }
 
 const requireStripeCheckoutSessionRetriever = (
-  provider: unknown
+  provider: unknown,
 ): NonNullable<PaykitPaymentClient["stripeCheckoutSessions"]> => {
   const checkoutSessions = getStripeCheckoutSessionRetriever(provider)
 
   if (!checkoutSessions) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "PayKit Stripe Checkout Session compatibility mapping could not access provider._native.checkout.sessions. This mapping is required until PayKit preserves Checkout Session metadata when retrieving cs_ payment ids."
+      "PayKit Stripe Checkout Session compatibility mapping could not access provider._native.checkout.sessions. This mapping is required until PayKit preserves Checkout Session metadata when retrieving cs_ payment ids.",
     )
   }
 
@@ -99,7 +99,7 @@ const requireStripeCheckoutSessionRetriever = (
 const getStripeCustomer = (
   value:
     | PaykitStripeCheckoutSession["customer"]
-    | PaykitStripePaymentIntent["customer"]
+    | PaykitStripePaymentIntent["customer"],
 ): PaykitPayment["customer"] => {
   if (typeof value === "string" && value.length > 0) {
     return { id: value }
@@ -113,13 +113,13 @@ const getStripeCustomer = (
 }
 
 const getStripeCheckoutPaymentIntent = (
-  session: PaykitStripeCheckoutSession
+  session: PaykitStripeCheckoutSession,
 ): PaykitStripePaymentIntent | null =>
   isRecord(session.payment_intent) ? session.payment_intent : null
 
 const getStripeCheckoutCustomer = (
   session: PaykitStripeCheckoutSession,
-  paymentIntent: PaykitStripePaymentIntent | null
+  paymentIntent: PaykitStripePaymentIntent | null,
 ): PaykitPayment["customer"] => {
   const paymentIntentCustomer = getStripeCustomer(paymentIntent?.customer)
 
@@ -145,7 +145,7 @@ const getStripeCheckoutCustomer = (
 
 const getStripeCheckoutPaymentIntentId = (
   session: PaykitStripeCheckoutSession,
-  paymentIntent: PaykitStripePaymentIntent | null
+  paymentIntent: PaykitStripePaymentIntent | null,
 ): string | null => {
   if (
     typeof session.payment_intent === "string" &&
@@ -162,7 +162,7 @@ const getStripeCheckoutPaymentIntentId = (
 }
 
 const getStripeCheckoutItemId = (
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown>,
 ): string | null => {
   const paykitMetadata = metadata[PAYKIT_METADATA_KEY]
 
@@ -182,7 +182,7 @@ const getStripeCheckoutItemId = (
 }
 
 const mapStripePaymentIntentStatus = (
-  status: string | null | undefined
+  status: string | null | undefined,
 ): PaykitPayment["status"] | undefined => {
   switch (status) {
     case "requires_payment_method":
@@ -212,10 +212,10 @@ const mapStripePaymentIntentStatus = (
 
 const getStripeCheckoutStatus = (
   session: PaykitStripeCheckoutSession,
-  paymentIntent: PaykitStripePaymentIntent | null
+  paymentIntent: PaykitStripePaymentIntent | null,
 ): PaykitPayment["status"] => {
   const paymentIntentStatus = mapStripePaymentIntentStatus(
-    paymentIntent?.status
+    paymentIntent?.status,
   )
 
   if (paymentIntentStatus) {
@@ -237,7 +237,7 @@ const getStripeCheckoutStatus = (
 }
 
 const toPaykitPaymentFromStripeCheckoutSession = (
-  session: PaykitStripeCheckoutSession
+  session: PaykitStripeCheckoutSession,
 ): PaykitPayment => {
   const paymentIntent = getStripeCheckoutPaymentIntent(session)
   const paymentIntentStatus = paymentIntent?.status
@@ -274,7 +274,7 @@ const toPaykitPaymentFromStripeCheckoutSession = (
 }
 
 const withStripeCheckoutSessionRetrieve = (
-  client: PaykitPaymentClient
+  client: PaykitPaymentClient,
 ): PaykitPaymentClient => {
   const checkoutSessions = client.stripeCheckoutSessions
 
@@ -326,7 +326,7 @@ const getCurrencyCode = (data?: Record<string, unknown>): string | undefined =>
     : undefined
 
 const getPaymentIntentIdFromData = (
-  data?: Record<string, unknown>
+  data?: Record<string, unknown>,
 ): string | undefined =>
   typeof data?.["payment_intent_id"] === "string" &&
   data["payment_intent_id"].length > 0
@@ -334,7 +334,7 @@ const getPaymentIntentIdFromData = (
     : undefined
 
 const getExplicitCaptureAmount = (
-  input: CapturePaymentInput
+  input: CapturePaymentInput,
 ): RefundPaymentInput["amount"] | undefined => {
   if (!("amount" in input)) {
     return
@@ -345,7 +345,7 @@ const getExplicitCaptureAmount = (
   if (amount !== undefined && !isPaymentAmount(amount)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "PayKit capture amount must be numeric"
+      "PayKit capture amount must be numeric",
     )
   }
 
@@ -353,7 +353,7 @@ const getExplicitCaptureAmount = (
 }
 
 const getStoredCaptureAmount = (
-  data?: Record<string, unknown>
+  data?: Record<string, unknown>,
 ): RefundPaymentInput["amount"] | undefined => {
   const amount = data?.["amount"]
 
@@ -364,7 +364,7 @@ const getStoredCaptureAmount = (
   if (!isPaymentAmount(amount)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "PayKit stored payment amount must be numeric"
+      "PayKit stored payment amount must be numeric",
     )
   }
 
@@ -375,7 +375,7 @@ const withPreservedStripePaymentData = (
   data: Record<string, unknown> | undefined,
   providerPaymentId: string,
   operationPaymentId: string,
-  payment: PaykitPayment
+  payment: PaykitPayment,
 ): Record<string, unknown> => ({
   ...data,
   ...toPaykitPaymentData(payment),
@@ -392,7 +392,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   // the base constructor is protected; this keeps the provider constructor public.
   constructor(
     container: PaykitInjectedDependencies,
-    options: PaykitStripeOptions
+    options: PaykitStripeOptions,
   ) {
     super(container, options)
   }
@@ -410,7 +410,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       "@paykit-sdk/stripe",
       "createStripe",
       getStripeProviderOptions(this.options_),
-      getStripeWebhookOptions(this.options_)
+      getStripeWebhookOptions(this.options_),
     )
 
     return {
@@ -425,7 +425,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
 
   private async getStripeOperationPaymentId(
     data: Record<string, unknown> | undefined,
-    client: PaykitPaymentClient
+    client: PaykitPaymentClient,
   ): Promise<string> {
     const providerPaymentId = this.getProviderPaymentId(data)
 
@@ -443,19 +443,19 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     // expose a stable PaymentIntent id for Checkout Session payments.
     const session = await client.stripeCheckoutSessions?.retrieve(
       providerPaymentId,
-      { expand: ["payment_intent"] }
+      { expand: ["payment_intent"] },
     )
     const paymentIntentId = session
       ? getStripeCheckoutPaymentIntentId(
           session,
-          getStripeCheckoutPaymentIntent(session)
+          getStripeCheckoutPaymentIntent(session),
         )
       : null
 
     if (!paymentIntentId) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `PayKit Stripe payment ${providerPaymentId} did not include a PaymentIntent id`
+        `PayKit Stripe payment ${providerPaymentId} did not include a PaymentIntent id`,
       )
     }
 
@@ -463,7 +463,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   }
 
   override async capturePayment(
-    input: CapturePaymentInput
+    input: CapturePaymentInput,
   ): Promise<CapturePaymentOutput> {
     const client = await this.getClient()
     const providerPaymentId = this.getProviderPaymentId(input.data)
@@ -471,7 +471,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     if (!client.payments.capture) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "PayKit provider does not support payment capture"
+        "PayKit provider does not support payment capture",
       )
     }
 
@@ -482,13 +482,13 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     if (amount === undefined) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PayKit capture amount is missing"
+        "PayKit capture amount is missing",
       )
     }
 
     const operationPaymentId = await this.getStripeOperationPaymentId(
       input.data,
-      client
+      client,
     )
     const currencyCode = getCurrencyCode(input.data)
     const normalizedAmount =
@@ -504,31 +504,31 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
         input.data,
         providerPaymentId,
         operationPaymentId,
-        payment
+        payment,
       ),
     }
   }
 
   override async refundPayment(
-    input: RefundPaymentInput
+    input: RefundPaymentInput,
   ): Promise<RefundPaymentOutput> {
     const client = await this.getClient()
     const providerPaymentId = this.getProviderPaymentId(input.data)
     const amount = this.normalizeAmount(
       input.amount,
-      getCurrencyCode(input.data)
+      getCurrencyCode(input.data),
     )
 
     if (!client.refunds?.create) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "PayKit provider does not support refunds"
+        "PayKit provider does not support refunds",
       )
     }
 
     const operationPaymentId = await this.getStripeOperationPaymentId(
       input.data,
-      client
+      client,
     )
     const refund = await client.refunds.create({
       amount,
@@ -540,7 +540,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     if (!refund.id) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PayKit refund response did not include an id"
+        "PayKit refund response did not include an id",
       )
     }
 
@@ -558,13 +558,13 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   }
 
   override async cancelPayment(
-    input: CancelPaymentInput
+    input: CancelPaymentInput,
   ): Promise<CancelPaymentOutput> {
     return await this.cancelOrExpirePayment(input.data)
   }
 
   override async deletePayment(
-    input: DeletePaymentInput
+    input: DeletePaymentInput,
   ): Promise<DeletePaymentOutput> {
     if (!input.data?.["id"]) {
       return input.data === undefined ? {} : { data: input.data }
@@ -574,7 +574,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   }
 
   private async cancelOrExpirePayment(
-    data: Record<string, unknown> | undefined
+    data: Record<string, unknown> | undefined,
   ): Promise<CancelPaymentOutput> {
     const providerPaymentId = this.getProviderPaymentId(data)
     const client = await this.getClient()
@@ -586,7 +586,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       const output = await this.cancelOrExpireCheckoutSessionPayment(
         data,
         providerPaymentId,
-        client
+        client,
       )
 
       if (output) {
@@ -600,7 +600,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
 
     const operationPaymentId = await this.getStripeOperationPaymentId(
       data,
-      client
+      client,
     )
     const payment = await client.payments.cancel(operationPaymentId)
 
@@ -609,7 +609,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
         data,
         providerPaymentId,
         operationPaymentId,
-        payment
+        payment,
       ),
     }
   }
@@ -617,11 +617,11 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   private async cancelOrExpireCheckoutSessionPayment(
     data: Record<string, unknown> | undefined,
     providerPaymentId: string,
-    client: PaykitPaymentClient
+    client: PaykitPaymentClient,
   ): Promise<CancelPaymentOutput | undefined> {
     const session = await client.stripeCheckoutSessions?.retrieve(
       providerPaymentId,
-      { expand: ["payment_intent"] }
+      { expand: ["payment_intent"] },
     )
 
     if (!session) {
@@ -645,7 +645,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
           data,
           providerPaymentId,
           providerPaymentId,
-          payment
+          payment,
         ),
       }
     }
@@ -665,7 +665,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
           data,
           providerPaymentId,
           operationPaymentId,
-          canceledPayment
+          canceledPayment,
         ),
       }
     }
@@ -675,14 +675,14 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
         data,
         providerPaymentId,
         operationPaymentId ?? providerPaymentId,
-        payment
+        payment,
       ),
     }
   }
 
   protected override normalizeAmount(
     amount: InitiatePaymentInput["amount"],
-    currencyCode?: string
+    currencyCode?: string,
   ): number {
     const normalized = super.normalizeAmount(amount, currencyCode)
 
@@ -691,14 +691,14 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
 
   protected override normalizePaymentDataAmount(
     amount: InitiatePaymentInput["amount"],
-    currencyCode?: string
+    currencyCode?: string,
   ): number {
     return super.normalizeAmount(amount, currencyCode)
   }
 
   protected override normalizeWebhookAmount(
     amount: BigNumberValue | undefined,
-    payment: PaykitPayment
+    payment: PaykitPayment,
   ): BigNumberValue | undefined {
     if (amount === undefined) {
       return amount

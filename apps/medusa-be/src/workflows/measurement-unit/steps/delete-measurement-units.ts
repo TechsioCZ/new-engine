@@ -15,7 +15,7 @@ export const deleteMeasurementUnitsStep = createStep(
           {
             select: ["id", "code", "deleted_at"],
             withDeleted: true,
-          }
+          },
         )
       : []
     const foundIds = new Set(units.map((unit) => unit.id))
@@ -24,7 +24,7 @@ export const deleteMeasurementUnitsStep = createStep(
     if (missingIds.length) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Measurement units were not found: ${missingIds.join(", ")}`
+        `Measurement units were not found: ${missingIds.join(", ")}`,
       )
     }
 
@@ -41,8 +41,8 @@ export const deleteMeasurementUnitsStep = createStep(
   async (deletedIds, { container }) => {
     if (deletedIds?.length) {
       await getMeasurementUnitService(container).restoreMeasurementUnits(
-        deletedIds
+        deletedIds,
       )
     }
-  }
+  },
 )

@@ -24,7 +24,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const medusaUrl = new URL(
-    buildMedusaUrl(`/store/orders/${encodeURIComponent(id)}`)
+    buildMedusaUrl(`/store/orders/${encodeURIComponent(id)}`),
   )
   medusaUrl.searchParams.set("fields", ORDER_PAYMENT_QR_FIELDS.join(","))
 
@@ -46,7 +46,7 @@ export async function GET(_request: Request, context: RouteContext) {
           details: payload ?? { status: response.status },
           message: "QR payment request failed.",
         },
-        { status: 502 }
+        { status: 502 },
       )
     }
 
@@ -59,7 +59,7 @@ export async function GET(_request: Request, context: RouteContext) {
         details: error instanceof Error ? error.message : String(error),
         message: "QR payment request failed.",
       },
-      { status: 502 }
+      { status: 502 },
     )
   }
 }

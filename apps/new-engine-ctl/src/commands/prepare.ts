@@ -27,13 +27,13 @@ function buildPrepareInput(options: Record<string, unknown>) {
 }
 
 async function writePrepareOutputs(
-  result: Awaited<ReturnType<typeof executePrepare>>
+  result: Awaited<ReturnType<typeof executePrepare>>,
 ): Promise<void> {
   if (result.response.lane === "preview") {
     maskGitHubValue(result.previewDbPassword)
     await appendGitHubOutput(
       "preview_db_created",
-      String(result.response.preview_db_created)
+      String(result.response.preview_db_created),
     )
     await appendGitHubOutput("preview_db_name", result.response.preview_db_name)
     await appendGitHubOutput("preview_db_user", result.response.preview_db_user)
@@ -59,12 +59,12 @@ export function createPrepareCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
     .action(async (options) => {
       const input = buildPrepareInput(options)

@@ -22,15 +22,15 @@ void test("application boundaries allow own files and libraries, not other apps"
   assert.ok(rule)
   assert.equal(
     catches(rule, "apps/n1/src/page.tsx", "apps/n1/src/lib.ts"),
-    false
+    false,
   )
   assert.equal(
     catches(rule, "apps/n1/src/page.tsx", "libs/ui/src/button.tsx"),
-    false
+    false,
   )
   assert.equal(
     catches(rule, "apps/n1/src/page.tsx", "apps/medusa-be/src/index.ts"),
-    true
+    true,
   )
 })
 
@@ -39,7 +39,7 @@ void test("library boundaries reject application dependencies", () => {
   assert.ok(rule)
   assert.equal(
     catches(rule, "libs/storefront-data/src/index.ts", "apps/n1/src/page.tsx"),
-    true
+    true,
   )
 })
 
@@ -48,10 +48,10 @@ void test("platform boundaries reject web to backend imports", () => {
   assert.ok(rule)
   assert.equal(
     catches(rule, "apps/n1/src/page.tsx", "apps/medusa-be/src/index.ts"),
-    true
+    true,
   )
   assert.equal(
     catches(rule, "apps/n1/src/page.tsx", "libs/storefront-data/src/index.ts"),
-    false
+    false,
   )
 })

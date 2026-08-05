@@ -21,7 +21,7 @@ export const deleteBrandsWorkflow = createWorkflow(
   "delete-brands",
   (input: DeleteBrandsWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
-      getBrandLifecycleLockKeys(workflowInput.ids)
+      getBrandLifecycleLockKeys(workflowInput.ids),
     )
 
     acquireLockStep({
@@ -41,7 +41,7 @@ export const deleteBrandsWorkflow = createWorkflow(
     const eventData = transform({ input }, ({ input: workflowInput }) =>
       buildBrandSearchProjectionEventData({
         brandIds: workflowInput.ids,
-      })
+      }),
     )
 
     emitEventStep({
@@ -51,5 +51,5 @@ export const deleteBrandsWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

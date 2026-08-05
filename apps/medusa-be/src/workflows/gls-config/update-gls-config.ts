@@ -5,8 +5,8 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 
-import { GLS_CLIENT_MODULE } from '../../modules/gls-client';
-import type { GLSClientModuleService } from '../../modules/gls-client';
+import { GLS_CLIENT_MODULE } from "../../modules/gls-client"
+import type { GLSClientModuleService } from "../../modules/gls-client"
 import type { UpdateGLSConfigInput } from "../../modules/gls-client/types"
 
 const updateGLSConfigStep = createStep(

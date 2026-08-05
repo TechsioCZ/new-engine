@@ -53,14 +53,14 @@ export function ReviewTrustBadges({
       className={joinClassNames(
         ROOT_CLASS_NAME,
         sizeClassNames.root,
-        className
+        className,
       )}
     >
       {sources.map((source) => (
         <li
           className={joinClassNames(
             "flex items-center justify-center rounded-sm",
-            sizeClassNames.item
+            sizeClassNames.item,
           )}
           key={source.id}
         >

@@ -47,7 +47,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
     enabled: !!user && !!id,
     queryFn: async () => {
       const cachedOrdersList = queryClient.getQueryData<{ orders: Order[] }>(
-        queryKeys.orders.list()
+        queryKeys.orders.list(),
       )
       const cachedOrder = cachedOrdersList?.orders?.find((o) => o.id === id)
 
@@ -196,7 +196,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                         <p className="font-semibold text-orders-fg-primary">
                           {formatPrice(
                             item.refundable_total_per_unit,
-                            order.currency_code
+                            order.currency_code,
                           )}
                         </p>
                       </div>
@@ -227,9 +227,9 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     {formatPrice(
                       order.items?.reduce(
                         (sum, item) => sum + item.subtotal,
-                        0
+                        0,
                       ) || 0,
-                      order.currency_code
+                      order.currency_code,
                     )}
                   </span>
                 </div>
@@ -239,9 +239,9 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     {formatPrice(
                       order.items?.reduce(
                         (sum, item) => sum + item.tax_total,
-                        0
+                        0,
                       ) || 0,
-                      order.currency_code
+                      order.currency_code,
                     )}
                   </span>
                 </div>
@@ -251,7 +251,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     <span className="font-medium">
                       {formatPrice(
                         order.shipping_methods[0].total || 0,
-                        order.currency_code
+                        order.currency_code,
                       )}
                     </span>
                   </div>
@@ -262,7 +262,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     <span className="font-bold text-orders-fg-primary text-orders-price-size">
                       {formatPrice(
                         order.summary?.current_order_total || order.total || 0,
-                        order.currency_code
+                        order.currency_code,
                       )}
                     </span>
                   </div>

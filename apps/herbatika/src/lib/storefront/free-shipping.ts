@@ -7,7 +7,7 @@ const FREE_SHIPPING_THRESHOLDS: Partial<Record<HerbatikaCurrencyCode, number>> =
   }
 
 export const resolveFreeShippingThresholdAmount = (
-  currencyCode: string
+  currencyCode: string,
 ): number | null => {
   const normalizedCurrencyCode = normalizeSupportedCurrencyCode(currencyCode)
   if (!normalizedCurrencyCode) {

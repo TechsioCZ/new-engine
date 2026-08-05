@@ -43,7 +43,7 @@ const OrderCustomerNoteWidget = ({ data }: OrderCustomerNoteWidgetProps) => {
     enabled: Boolean(orderId),
     queryFn: async () =>
       sdk.client.fetch<OrderCustomerNoteResponse>(
-        `/admin/orders/${orderId}/customer-note`
+        `/admin/orders/${orderId}/customer-note`,
       ),
     queryKey: [QUERY_KEY_PREFIX, orderId],
   })

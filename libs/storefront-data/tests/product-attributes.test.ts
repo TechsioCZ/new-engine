@@ -45,7 +45,7 @@ describe("product attributes", () => {
       queryKeys.detail({
         enabled: false,
         productId: "prod_1",
-      })
+      }),
     ).toStrictEqual([
       "shop",
       "product-attributes",
@@ -80,7 +80,7 @@ describe("product attributes", () => {
     })
 
     await expect(
-      service.getProductAttributes({ productId: "prod 1" }, signal)
+      service.getProductAttributes({ productId: "prod 1" }, signal),
     ).resolves.toStrictEqual([supplierAttribute, warrantyAttribute])
     expect(fetch).toHaveBeenNthCalledWith(
       1,
@@ -88,7 +88,7 @@ describe("product attributes", () => {
       {
         query: { limit: 1, offset: 0 },
         signal,
-      }
+      },
     )
     expect(fetch).toHaveBeenNthCalledWith(
       2,
@@ -96,7 +96,7 @@ describe("product attributes", () => {
       {
         query: { limit: 1, offset: 1 },
         signal,
-      }
+      },
     )
   })
 
@@ -108,7 +108,7 @@ describe("product attributes", () => {
     } as unknown as Medusa
 
     expect(() =>
-      createMedusaProductAttributeService(sdk, { pageSize: 101 })
+      createMedusaProductAttributeService(sdk, { pageSize: 101 }),
     ).toThrow("Product Attribute page size must be between 1 and 100.")
   })
 
@@ -126,7 +126,7 @@ describe("product attributes", () => {
     expect(
       preset.queryKeys.productAttributes.detail({
         productId: "prod_1",
-      })
+      }),
     ).toStrictEqual([
       "shop",
       "product-attributes",
@@ -136,7 +136,7 @@ describe("product attributes", () => {
     expect(
       preset.hooks.productAttributes.getDetailQueryOptions({
         productId: "prod_1",
-      }).queryKey
+      }).queryKey,
     ).toStrictEqual([
       "shop",
       "product-attributes",

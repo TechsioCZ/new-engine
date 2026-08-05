@@ -9,7 +9,7 @@ describe(escapeLikePattern, () => {
 
   it("escapes percent signs, underscores, and backslashes", () => {
     expect(escapeLikePattern("50%_discount\\sale")).toBe(
-      "50\\%\\_discount\\\\sale"
+      "50\\%\\_discount\\\\sale",
     )
   })
 

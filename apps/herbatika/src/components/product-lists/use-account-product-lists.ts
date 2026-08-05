@@ -50,7 +50,7 @@ interface ListCartErrorMessages {
 
 const resolveListCartErrorMessage = (
   error: unknown,
-  messages: ListCartErrorMessages
+  messages: ListCartErrorMessages,
 ) => {
   const errorMessage = resolveErrorMessage(error, messages.addListFailed)
 
@@ -105,7 +105,7 @@ export function useAccountProductLists() {
     string | null
   >(null)
   const [activeDeleteItemId, setActiveDeleteItemId] = useState<string | null>(
-    null
+    null,
   )
   const [deleteListId, setDeleteListId] = useState<string | null>(null)
 
@@ -130,7 +130,7 @@ export function useAccountProductLists() {
   const activeListSupportsQuantity = Boolean(activeList)
   const deleteList =
     sortedLists.find(
-      (list) => list.id === deleteListId && !isFavoriteProductList(list)
+      (list) => list.id === deleteListId && !isFavoriteProductList(list),
     ) ?? null
   const activeItems = getProductListItems(activeList)
   const productIds = uniqueProductIds(activeItems)
@@ -169,7 +169,7 @@ export function useAccountProductLists() {
   const activeListCanCreateCart = Boolean(
     activeList?.id &&
     activeListAvailabilitySummary.canAddAnyToCart &&
-    (region?.region_id || region?.country_code)
+    (region?.region_id || region?.country_code),
   )
 
   useEffect(() => {
@@ -182,10 +182,10 @@ export function useAccountProductLists() {
 
     const requestedListId = searchParams.get("list")
     const requestedListExists = sortedLists.some(
-      (list) => list.id === requestedListId
+      (list) => list.id === requestedListId,
     )
     const activeListExists = sortedLists.some(
-      (list) => list.id === activeListId
+      (list) => list.id === activeListId,
     )
     let nextActiveListId = firstList.id
     if (requestedListId && requestedListExists) {
@@ -255,7 +255,7 @@ export function useAccountProductLists() {
       toast.error({
         title: resolveErrorMessage(
           error,
-          tAuth("product_lists.errors.create_failed")
+          tAuth("product_lists.errors.create_failed"),
         ),
       })
     }
@@ -263,7 +263,7 @@ export function useAccountProductLists() {
 
   const handleAddToCart = async (
     item: StoreProductListItem,
-    product: HttpTypes.StoreProduct
+    product: HttpTypes.StoreProduct,
   ) => {
     const quantity =
       typeof item.quantity === "number" && item.quantity > 0
@@ -355,11 +355,11 @@ export function useAccountProductLists() {
         messages: {
           addListFailed: tAuth("product_lists.errors.add_list_to_cart_failed"),
           allAvailableFailed: tAuth(
-            "product_lists.errors.add_available_all_failed"
+            "product_lists.errors.add_available_all_failed",
           ),
           missingVariant: tAuth("product_lists.errors.missing_variant"),
           partiallyAvailableFailed: tAuth(
-            "product_lists.errors.add_available_partial_failed"
+            "product_lists.errors.add_available_partial_failed",
           ),
         },
         toast,
@@ -370,11 +370,11 @@ export function useAccountProductLists() {
         title: resolveListCartErrorMessage(error, {
           addListFailed: tAuth("product_lists.errors.add_list_to_cart_failed"),
           allAvailableFailed: tAuth(
-            "product_lists.errors.add_available_all_failed"
+            "product_lists.errors.add_available_all_failed",
           ),
           missingVariant: tAuth("product_lists.errors.missing_variant"),
           partiallyAvailableFailed: tAuth(
-            "product_lists.errors.add_available_partial_failed"
+            "product_lists.errors.add_available_partial_failed",
           ),
         }),
       })
@@ -386,7 +386,7 @@ export function useAccountProductLists() {
 
   const handleQuantitySet = async (
     item: StoreProductListItem,
-    quantity: number
+    quantity: number,
   ) => {
     if (!(item.id && activeListSupportsQuantity)) {
       return
@@ -417,7 +417,7 @@ export function useAccountProductLists() {
       toast.error({
         title: resolveErrorMessage(
           error,
-          tAuth("product_lists.errors.quantity_update_failed")
+          tAuth("product_lists.errors.quantity_update_failed"),
         ),
       })
     } finally {
@@ -432,7 +432,7 @@ export function useAccountProductLists() {
 
     const deletedListId = deleteList.id
     const deletedListIndex = sortedLists.findIndex(
-      (list) => list.id === deletedListId
+      (list) => list.id === deletedListId,
     )
     const nextList =
       sortedLists[deletedListIndex - 1] ??
@@ -456,7 +456,7 @@ export function useAccountProductLists() {
       toast.error({
         title: resolveErrorMessage(
           error,
-          tAuth("product_lists.errors.delete_list_failed")
+          tAuth("product_lists.errors.delete_list_failed"),
         ),
       })
     }
@@ -478,7 +478,7 @@ export function useAccountProductLists() {
       toast.error({
         title: resolveErrorMessage(
           error,
-          tAuth("product_lists.errors.remove_product_failed")
+          tAuth("product_lists.errors.remove_product_failed"),
         ),
       })
     } finally {

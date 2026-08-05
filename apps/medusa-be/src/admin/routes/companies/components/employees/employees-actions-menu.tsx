@@ -26,7 +26,7 @@ export const EmployeesActionsMenu = ({
     await mutateDelete(employee.id, {
       onError: (error) => {
         toast.error(
-          `${t("errors.deleteEmployeeFailed")}: ${getErrorMessage(error)}`
+          `${t("errors.deleteEmployeeFailed")}: ${getErrorMessage(error)}`,
         )
       },
       onSuccess: () => {

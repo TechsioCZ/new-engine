@@ -22,7 +22,7 @@ export interface PaykitPaymentProviderConfig {
 
 const parseBooleanEnv = (
   value: string | undefined,
-  defaultValue: boolean
+  defaultValue: boolean,
 ): boolean => {
   if (value === undefined || value === "") {
     return defaultValue
@@ -34,20 +34,20 @@ const parseBooleanEnv = (
 const requirePaykitEnv = (
   env: PaykitConfigEnv,
   label: string,
-  names: string[]
+  names: string[],
 ): void => {
   const missing = names.filter((name) => !env[name]?.trim())
 
   if (missing.length) {
     throw new Error(
-      `${label} missing required environment variable(s): ${missing.join(", ")}`
+      `${label} missing required environment variable(s): ${missing.join(", ")}`,
     )
   }
 }
 
 const isPaykitProviderEnabledForEnv = (
   env: PaykitConfigEnv,
-  provider: PaykitProviderFeature
+  provider: PaykitProviderFeature,
 ): boolean => {
   const providerFlag = env[PAYKIT_PROVIDER_FEATURE_FLAGS[provider]]
 
@@ -63,7 +63,7 @@ const isPaykitProviderEnabledForEnv = (
 }
 
 export const buildPaykitPaymentProviders = (
-  env: PaykitConfigEnv = process.env
+  env: PaykitConfigEnv = process.env,
 ): PaykitPaymentProviderConfig[] => {
   const providers: PaykitPaymentProviderConfig[] = []
   const debug = env["PAYKIT_DEBUG"] === "1"

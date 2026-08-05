@@ -60,7 +60,7 @@ export interface CatalogService<
 > {
   getCatalogProducts: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<CatalogListResponse<TProduct, TFacets>>
 }
 

@@ -16,8 +16,8 @@ export const createBrandAttributeTypesWorkflow = createWorkflow(
   (input: CreateBrandAttributeTypesWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
       getBrandAttributeTypeLockKeys(
-        workflowInput.attribute_types.map(({ name }) => name.trim())
-      )
+        workflowInput.attribute_types.map(({ name }) => name.trim()),
+      ),
     )
 
     acquireLockStep({
@@ -35,5 +35,5 @@ export const createBrandAttributeTypesWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

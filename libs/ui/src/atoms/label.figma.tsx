@@ -23,5 +23,5 @@ figma.connect(
         current: "current",
       }),
     },
-  }
+  },
 )

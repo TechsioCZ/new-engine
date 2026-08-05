@@ -18,7 +18,7 @@ export interface TrackingOrderLookupKeys {
 
 export class TrackingBatchClientMapperHelper {
   collectOrderLookupKeys(
-    shipments: TrackingShipmentInput[]
+    shipments: TrackingShipmentInput[],
   ): TrackingOrderLookupKeys {
     const orderIds = new Set<string>()
     const displayIds = new Set<number>()
@@ -63,7 +63,7 @@ export class TrackingBatchClientMapperHelper {
 
   findExistingOrder(
     shipment: TrackingShipmentInput,
-    index: TrackingOrderIndex
+    index: TrackingOrderIndex,
   ): ExistingOrder | null {
     if (shipment.identifier_type === "order_id" && shipment.order_id) {
       return index.byId.get(shipment.order_id) ?? null
@@ -79,7 +79,7 @@ export class TrackingBatchClientMapperHelper {
 
   resolveItems(
     order: ExistingOrder,
-    requestedItems: TrackingItemInput[] | undefined
+    requestedItems: TrackingItemInput[] | undefined,
   ): ResolvedTrackingItems {
     if (!requestedItems?.length) {
       return order.items.map((item) => ({
@@ -94,13 +94,13 @@ export class TrackingBatchClientMapperHelper {
       if (matches.length === 0) {
         throw new MedusaError(
           MedusaError.Types.NOT_FOUND,
-          `SKU '${requested.sku}' was not found in order '${order.id}'`
+          `SKU '${requested.sku}' was not found in order '${order.id}'`,
         )
       }
       if (matches.length > 1) {
         throw new MedusaError(
           MedusaError.Types.CONFLICT,
-          `SKU '${requested.sku}' matches multiple order items in order '${order.id}'`
+          `SKU '${requested.sku}' matches multiple order items in order '${order.id}'`,
         )
       }
       const match = matches[0]
@@ -149,7 +149,7 @@ export class TrackingBatchClientMapperHelper {
 
   private stringMetadataValue(
     metadata: Metadata | null | undefined,
-    key: string
+    key: string,
   ) {
     const value = metadata?.[key]
     return typeof value === "string" && value.length ? value : null

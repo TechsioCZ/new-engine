@@ -31,7 +31,7 @@ const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0
 
 const resolveTopicFromCategory = (
-  category: CmsCategory | null | undefined
+  category: CmsCategory | null | undefined,
 ): Exclude<BlogTopicKey, "all"> => {
   switch (category?.slug) {
     case "beauty":
@@ -106,7 +106,7 @@ const fetchCmsArticleCategories = async () => {
 
 const fetchCmsArticleBySlug = async (slug: string) => {
   const response = await fetchCmsJson<CmsArticleResponse>(
-    `articles/${encodeURIComponent(slug)}`
+    `articles/${encodeURIComponent(slug)}`,
   )
 
   return response?.article ?? null
@@ -125,8 +125,8 @@ export const fetchCmsBlogPosts = async () => {
       categories.flatMap((category) =>
         (category.articles ?? [])
           .map((article) => article.slug?.trim())
-          .filter(isNonEmptyString)
-      )
+          .filter(isNonEmptyString),
+      ),
     ),
   ]
 
@@ -138,6 +138,6 @@ export const fetchCmsBlogPosts = async () => {
     .sort(
       (left, right) =>
         new Date(right.publishedAt).getTime() -
-        new Date(left.publishedAt).getTime()
+        new Date(left.publishedAt).getTime(),
     )
 }

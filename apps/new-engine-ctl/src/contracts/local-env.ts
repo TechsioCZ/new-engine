@@ -17,7 +17,7 @@ export const localEnvRuntimeProviderOutputTargetsResponseSchema = z.object({
       service_id: z.string().min(1),
       env_var: z.string().min(1),
       local_env_var: z.string().min(1),
-    })
+    }),
   ),
 })
 

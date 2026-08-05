@@ -25,12 +25,12 @@ export function createResolveEnvironmentCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
     .option("--dry-run", "", false)
     .option("--dry-run-created", "", false)
@@ -76,16 +76,16 @@ export function createResolveEnvironmentCommand(): Command {
       await appendGitHubOutput("environment_created", String(result.created))
       await appendGitHubOutput(
         "environment_baseline_complete",
-        String(result.baseline_complete)
+        String(result.baseline_complete),
       )
       await appendGitHubOutput("environment_ready", String(result.ready))
       await appendGitHubOutput(
         "missing_preview_service_slugs_csv",
-        result.missing_preview_service_slugs.join(",")
+        result.missing_preview_service_slugs.join(","),
       )
       await appendGitHubOutput(
         "environment_warning_count",
-        `${result.warnings.length}`
+        `${result.warnings.length}`,
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
     })

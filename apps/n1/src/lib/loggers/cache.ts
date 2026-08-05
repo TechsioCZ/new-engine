@@ -41,7 +41,7 @@ class CacheLogger {
     status: CacheStatus,
     operation: string,
     details?: Record<string, unknown>,
-    options: LogOptions = {}
+    options: LogOptions = {},
   ) {
     if (!this.enabled) {
       return
@@ -71,7 +71,7 @@ class CacheLogger {
       console.log(
         `%c${indicator} [Cache] ${operation}%c ${detailsStr}`,
         LEVEL_STYLES[level],
-        "color: #6b7280"
+        "color: #6b7280",
       )
     }
   }
@@ -88,7 +88,7 @@ class CacheLogger {
       isSuccess?: boolean
       isError?: boolean
       dataUpdatedAt?: number
-    }
+    },
   ) {
     if (!this.enabled) {
       return

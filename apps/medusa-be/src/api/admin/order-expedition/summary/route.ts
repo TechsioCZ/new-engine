@@ -111,14 +111,14 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
     const notesByOrderId = await fetchOrderExpeditionOrderNotesByOrderIds(
       orderNoteService,
-      orders.map((order) => order.id)
+      orders.map((order) => order.id),
     )
     const { counts: pageSignalCounts } =
       await resolveOrderExpeditionCustomerSignals(
         query,
         orders,
         notesByOrderId,
-        customerCounters
+        customerCounters,
       )
 
     accumulateSignalCounts(signalCounts, pageSignalCounts)
@@ -146,7 +146,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 }
 
 async function getCachedSummary(
-  cacheService: ICachingModuleService | null
+  cacheService: ICachingModuleService | null,
 ): Promise<OrderExpeditionSummaryResponse | null> {
   if (!cacheService) {
     return null
@@ -165,7 +165,7 @@ async function getCachedSummary(
 
 async function setCachedSummary(
   cacheService: ICachingModuleService | null,
-  summary: OrderExpeditionSummaryResponse
+  summary: OrderExpeditionSummaryResponse,
 ) {
   if (!cacheService) {
     return
@@ -186,7 +186,7 @@ async function setCachedSummary(
 function accumulateStatusAndCustomerCounters(
   statusCounts: Record<OrderBusinessStatusId, number>,
   customerCounters: Map<string, OrderCustomerCounters>,
-  orders: ReturnType<typeof parseOrderBusinessStatusOrders>
+  orders: ReturnType<typeof parseOrderBusinessStatusOrders>,
 ) {
   for (const order of orders) {
     const statusId = resolveOrderBusinessStatus(order).id
@@ -211,7 +211,7 @@ function accumulateStatusAndCustomerCounters(
 }
 
 function accumulatePendingUnpaidCount(
-  orders: ReturnType<typeof parseOrderBusinessStatusOrders>
+  orders: ReturnType<typeof parseOrderBusinessStatusOrders>,
 ) {
   let count = 0
 
@@ -224,7 +224,7 @@ function accumulatePendingUnpaidCount(
 
 function accumulateSignalCounts(
   target: OrderCustomerSignalCounts,
-  source: OrderCustomerSignalCounts
+  source: OrderCustomerSignalCounts,
 ) {
   target.note += source.note
   target.returning_customer += source.returning_customer
@@ -232,7 +232,7 @@ function accumulateSignalCounts(
 }
 
 function isOrderExpeditionSummaryResponse(
-  value: unknown
+  value: unknown,
 ): value is OrderExpeditionSummaryResponse {
   if (!(typeof value === "object" && value !== null)) {
     return false
@@ -252,7 +252,7 @@ function isOrderExpeditionSummaryResponse(
 }
 
 function isOrderBusinessStatusCounts(
-  value: unknown
+  value: unknown,
 ): value is Record<OrderBusinessStatusId, number> {
   if (!(typeof value === "object" && value !== null)) {
     return false
@@ -261,21 +261,21 @@ function isOrderBusinessStatusCounts(
   const counts = value as Partial<Record<OrderBusinessStatusId, unknown>>
 
   return ORDER_BUSINESS_STATUS_IDS.every(
-    (statusId) => typeof counts[statusId] === "number"
+    (statusId) => typeof counts[statusId] === "number",
   )
 }
 
 function getActionRequiredCount(
-  statusCounts: Record<OrderBusinessStatusId, number>
+  statusCounts: Record<OrderBusinessStatusId, number>,
 ) {
   return ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS.reduce(
     (count, statusId) => count + statusCounts[statusId],
-    0
+    0,
   )
 }
 
 function isOrderExpeditionSignalCounts(
-  value: unknown
+  value: unknown,
 ): value is OrderExpeditionSummaryResponse["signal_counts"] {
   if (!(typeof value === "object" && value !== null)) {
     return false

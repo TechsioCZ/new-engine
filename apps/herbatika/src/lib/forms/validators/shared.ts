@@ -4,7 +4,7 @@ const PHONE_ALLOWED_REGEX = /^[0-9+\s()-]+$/
 
 const validateCustomerNameWithMessage = (
   value: string,
-  minLengthMessage: string
+  minLengthMessage: string,
 ) => (value.trim().length < 2 ? minLengthMessage : undefined)
 
 export const createCustomerNameValidator =

@@ -58,7 +58,7 @@ const normalizeMultiValueParam = (
   options?: {
     allowValue?: (value: string) => boolean
     maxItems?: number
-  }
+  },
 ): string[] => {
   const rawValues = toRawMultiValueArray(value)
   const seen = new Set<string>()
@@ -90,7 +90,7 @@ const normalizeMultiValueParam = (
 
 const buildOrFilterExpression = (
   field: string,
-  values: string[]
+  values: string[],
 ): string | undefined => {
   if (values.length === 0) {
     return
@@ -111,7 +111,7 @@ const buildOrFilterExpression = (
 }
 
 const toFinitePositiveNumber = (
-  value: number | undefined
+  value: number | undefined,
 ): number | undefined => {
   if (value === undefined || Number.isNaN(value) || !Number.isFinite(value)) {
     return
@@ -148,7 +148,7 @@ export const normalizeIngredientParam = (value: MultiValueParam): string[] =>
   normalizeMultiValueParam(value, { allowValue: isIngredientFacetValue })
 
 export const resolveCatalogSort = (
-  sort: CatalogSortValue
+  sort: CatalogSortValue,
 ): string[] | undefined => {
   switch (sort) {
     case "best-selling": {
@@ -179,13 +179,13 @@ export const resolveCatalogSort = (
 }
 
 export const buildCatalogFilterExpressions = (
-  input: CatalogFilterInput
+  input: CatalogFilterInput,
 ): string[] => {
   const expressions: string[] = []
 
   const categoryExpression = buildOrFilterExpression(
     "facet_category_ids",
-    input.categoryIds
+    input.categoryIds,
   )
   if (categoryExpression) {
     expressions.push(categoryExpression)
@@ -193,7 +193,7 @@ export const buildCatalogFilterExpressions = (
 
   const statusExpression = buildOrFilterExpression(
     "facet_status",
-    input.statusIds
+    input.statusIds,
   )
   if (statusExpression) {
     expressions.push(statusExpression)
@@ -211,7 +211,7 @@ export const buildCatalogFilterExpressions = (
 
   const ingredientExpression = buildOrFilterExpression(
     "facet_ingredient",
-    input.ingredientIds
+    input.ingredientIds,
   )
   if (ingredientExpression) {
     expressions.push(ingredientExpression)
@@ -238,7 +238,7 @@ export const buildCatalogFilterExpressions = (
 
 export const getFacetDistribution = (
   distribution: unknown,
-  facetKey: string
+  facetKey: string,
 ): Map<string, number> => {
   if (
     !distribution ||
@@ -266,7 +266,7 @@ export const getFacetDistribution = (
 
 export const getNumericFacetStats = (
   facetStats: unknown,
-  facetKey: string
+  facetKey: string,
 ): { min?: number; max?: number } => {
   if (
     !facetStats ||
@@ -298,7 +298,7 @@ export const humanizeFacetHandle = (handle: string): string =>
   handle.replaceAll("-", " ").replaceAll(/\s+/g, " ").trim()
 
 export const sortFacetCountItems = (
-  items: FacetCountItem[]
+  items: FacetCountItem[],
 ): FacetCountItem[] =>
   [...items].sort((left, right) => {
     if (left.count !== right.count) {

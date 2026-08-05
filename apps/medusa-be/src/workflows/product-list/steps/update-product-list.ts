@@ -23,12 +23,12 @@ export const updateProductListStep = createStep(
     const previousList = await service.retrieveProductList(input.list_id)
     const productList = await service.updateCustomProductList(
       input.list_id,
-      input.data
+      input.data,
     )
 
     return new StepResponse<ProductListRecord, ProductListRecord>(
       productList,
-      previousList
+      previousList,
     )
   },
   async (list, { container }) => {
@@ -46,5 +46,5 @@ export const updateProductListStep = createStep(
         metadata: list.metadata ?? null,
         title: list.title,
       })
-  }
+  },
 )

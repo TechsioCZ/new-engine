@@ -27,7 +27,7 @@ const schema = {
 const db = drizzle(
   process.env["DATABASE_URL"] ??
     "postgresql://root:root@medusa-db:5432/medusa?sslmode=disable&options=-csearch_path%3Dmedusa%2Cpg_catalog",
-  { schema }
+  { schema },
 )
 // Helper function to check if a string is a date (ISO format YYYY-MM-DD)
 // Uses strict regex to avoid false positives from new Date() coercion
@@ -54,7 +54,7 @@ export async function sqlRaw<T = object>(sql: SQL<T>): Promise<T[]> {
           value && typeof value === "string" && isDateString(value)
             ? new Date(value)
             : value,
-        ])
-      ) as T
+        ]),
+      ) as T,
   )
 }

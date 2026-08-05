@@ -59,7 +59,7 @@ export interface ProductReviewService<
 > {
   listProductReviews: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<ProductReviewListResponse<TReview>>
   createProductReview: (input: TCreateInput) => Promise<TReview>
 }

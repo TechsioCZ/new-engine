@@ -11,7 +11,7 @@ import { defineLink } from "@medusajs/framework/utils"
 
 export default defineLink(
   ProductModule.linkable.product,
-  HelloModule.linkable.myCustom
+  HelloModule.linkable.myCustom,
 )
 ```
 

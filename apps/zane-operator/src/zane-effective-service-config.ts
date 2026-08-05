@@ -26,10 +26,10 @@ export interface EffectiveBuilder {
 
 function getLastPendingFieldChange(
   serviceDetails: Pick<ZaneServiceDetails, "unapplied_changes">,
-  field: string
+  field: string,
 ): PendingFieldChange | null {
   const matchingChanges = (serviceDetails.unapplied_changes ?? []).filter(
-    (change) => change.field === field
+    (change) => change.field === field,
   )
 
   return matchingChanges.at(-1) ?? null
@@ -69,7 +69,7 @@ function normalizeHealthcheck(value: unknown): ZaneServiceHealthcheck | null {
 }
 
 function normalizeResourceLimits(
-  value: unknown
+  value: unknown,
 ): ZaneServiceResourceLimits | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null
@@ -108,7 +108,7 @@ export function computeEffectiveGitSource(
     | "commit_sha"
     | "git_app"
     | "unapplied_changes"
-  >
+  >,
 ): EffectiveGitSource {
   const pending = getLastPendingFieldChange(serviceDetails, "git_source")
   const pendingValue = pending?.new_value
@@ -134,7 +134,7 @@ export function computeEffectiveBuilder(
   serviceDetails: Pick<
     ZaneServiceDetails,
     "builder" | "dockerfile_builder_options" | "unapplied_changes"
-  >
+  >,
 ): EffectiveBuilder {
   const pending = getLastPendingFieldChange(serviceDetails, "builder")
   const pendingValue = pending?.new_value
@@ -150,20 +150,20 @@ export function computeEffectiveBuilder(
 
   return {
     build_context_dir: normalizeString(
-      serviceDetails.dockerfile_builder_options?.build_context_dir
+      serviceDetails.dockerfile_builder_options?.build_context_dir,
     ),
     build_stage_target: normalizeString(
-      serviceDetails.dockerfile_builder_options?.build_stage_target
+      serviceDetails.dockerfile_builder_options?.build_stage_target,
     ),
     builder: normalizeString(serviceDetails.builder),
     dockerfile_path: normalizeString(
-      serviceDetails.dockerfile_builder_options?.dockerfile_path
+      serviceDetails.dockerfile_builder_options?.dockerfile_path,
     ),
   }
 }
 
 export function computeEffectiveHealthcheck(
-  serviceDetails: Pick<ZaneServiceDetails, "healthcheck" | "unapplied_changes">
+  serviceDetails: Pick<ZaneServiceDetails, "healthcheck" | "unapplied_changes">,
 ): ZaneServiceHealthcheck | null {
   const pending = getLastPendingFieldChange(serviceDetails, "healthcheck")
   return pending?.new_value
@@ -175,7 +175,7 @@ export function computeEffectiveResourceLimits(
   serviceDetails: Pick<
     ZaneServiceDetails,
     "resource_limits" | "unapplied_changes"
-  >
+  >,
 ): ZaneServiceResourceLimits | null {
   const pending = getLastPendingFieldChange(serviceDetails, "resource_limits")
   return pending?.new_value

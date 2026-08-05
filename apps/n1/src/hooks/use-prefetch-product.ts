@@ -45,7 +45,7 @@ export function usePrefetchProduct() {
   const delayedPrefetch = (
     handle: string,
     delay = PREFETCH_DELAY,
-    fields?: string
+    fields?: string,
   ) => {
     const existing = timeoutsRef.current.get(handle)
     if (existing) {

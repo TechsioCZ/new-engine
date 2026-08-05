@@ -69,7 +69,7 @@ const serializeJob = (job: SymmyImportJobDTO) => ({
  */
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const importJobService = req.scope.resolve<SymmyImportJobModuleService>(
-    SYMMY_IMPORT_JOB_MODULE
+    SYMMY_IMPORT_JOB_MODULE,
   )
 
   const jobId = req.params.id

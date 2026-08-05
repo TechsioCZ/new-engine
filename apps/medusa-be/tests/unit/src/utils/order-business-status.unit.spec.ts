@@ -11,7 +11,7 @@ import {
 import type { OrderBusinessStatusInput } from "../../../../src/utils/order-business-status"
 
 const createOrder = (
-  overrides: Partial<OrderBusinessStatusInput> = {}
+  overrides: Partial<OrderBusinessStatusInput> = {},
 ): OrderBusinessStatusInput => ({
   ...overrides,
 })
@@ -22,7 +22,7 @@ describe("order business status", () => {
       Object.values(ORDER_BUSINESS_STATUSES).map((status) => [
         status.id,
         status.translation_key,
-      ])
+      ]),
     ).toStrictEqual([
       ["canceled", "statuses.canceled"],
       ["delivered", "statuses.delivered"],
@@ -80,7 +80,7 @@ describe("order business status", () => {
     overrides: Partial<OrderBusinessStatusInput>
   }[])("shows Čeká na platbu when $name", ({ overrides }) => {
     expect(resolveOrderBusinessStatus(createOrder(overrides)).id).toBe(
-      "awaiting_payment"
+      "awaiting_payment",
     )
   })
 
@@ -107,8 +107,8 @@ describe("order business status", () => {
   it("does not show Zaplacená for partially captured payment", () => {
     expect(
       resolveOrderBusinessStatus(
-        createOrder({ payment_status: "partially_captured" })
-      ).id
+        createOrder({ payment_status: "partially_captured" }),
+      ).id,
     ).not.toBe("paid")
   })
 
@@ -138,7 +138,7 @@ describe("order business status", () => {
     overrides: Partial<OrderBusinessStatusInput>
   }[])("counts pending unpaid orders when $name", ({ overrides }) => {
     expect(
-      isPendingUnpaidOrder(createOrder({ status: "pending", ...overrides }))
+      isPendingUnpaidOrder(createOrder({ status: "pending", ...overrides })),
     ).toBeTruthy()
   })
 
@@ -174,8 +174,8 @@ describe("order business status", () => {
             [ORDER_BUSINESS_STATUS_METADATA_KEY]: "processing",
           },
           payment_status: "captured",
-        })
-      ).id
+        }),
+      ).id,
     ).toBe("processing")
     expect(
       resolveOrderBusinessStatus(
@@ -184,8 +184,8 @@ describe("order business status", () => {
             [ORDER_BUSINESS_STATUS_METADATA_KEY]: "waiting_for_supplier",
           },
           payment_status: "captured",
-        })
-      ).id
+        }),
+      ).id,
     ).toBe("waiting_for_supplier")
   })
 
@@ -198,8 +198,8 @@ describe("order business status", () => {
             [ORDER_BUSINESS_STATUS_METADATA_KEY]: "processing",
           },
           payment_status: "captured",
-        })
-      ).id
+        }),
+      ).id,
     ).toBe("shipped")
     expect(
       resolveOrderBusinessStatus(
@@ -209,8 +209,8 @@ describe("order business status", () => {
             [ORDER_BUSINESS_STATUS_METADATA_KEY]: "processing",
           },
           payment_status: "captured",
-        })
-      ).id
+        }),
+      ).id,
     ).toBe("delivered")
   })
 
@@ -219,15 +219,15 @@ describe("order business status", () => {
       resolveOrderBusinessStatus(
         createOrder({
           fulfillments: [{ shipped_at: "2026-05-07T12:00:00.000Z" }],
-        })
-      ).id
+        }),
+      ).id,
     ).toBe("shipped")
     expect(
       resolveOrderBusinessStatus(
         createOrder({
           fulfillments: [{ delivered_at: "2026-05-07T12:00:00.000Z" }],
-        })
-      ).id
+        }),
+      ).id,
     ).toBe("delivered")
   })
 
@@ -239,16 +239,16 @@ describe("order business status", () => {
             { delivered_at: "2026-05-07T12:00:00.000Z" },
             { shipped_at: "2026-05-07T12:00:00.000Z" },
           ],
-        })
-      ).id
+        }),
+      ).id,
     ).toBe("shipped")
     expect(
       resolveOrderBusinessStatus(
         createOrder({
           fulfillment_status: "partially_delivered",
           fulfillments: [{ delivered_at: "2026-05-07T12:00:00.000Z" }],
-        })
-      ).id
+        }),
+      ).id,
     ).toBe("shipped")
   })
 
@@ -261,16 +261,16 @@ describe("order business status", () => {
             [ORDER_BUSINESS_STATUS_METADATA_KEY]: "canceled",
           },
           payment_status: "captured",
-        })
-      ).id
+        }),
+      ).id,
     ).toBe("canceled")
     expect(
       resolveOrderBusinessStatus(
         createOrder({
           payment_status: "captured",
           status: "canceled",
-        })
-      ).id
+        }),
+      ).id,
     ).toBe("canceled")
   })
 
@@ -281,8 +281,8 @@ describe("order business status", () => {
           fulfillment_status: "delivered",
           payment_status: "captured",
         }),
-        "processing"
-      )
+        "processing",
+      ),
     ).toBe("delivered status has higher priority")
     expect(
       getOrderBusinessManualStatusUpdateBlockReason(
@@ -291,26 +291,26 @@ describe("order business status", () => {
             [ORDER_BUSINESS_STATUS_METADATA_KEY]: "processing",
           },
         }),
-        "processing"
-      )
+        "processing",
+      ),
     ).toBe("Manual status is already processing")
     expect(
       getOrderBusinessManualStatusUpdateBlockReason(
         createOrder({ payment_status: "captured" }),
-        "waiting_for_supplier"
-      )
+        "waiting_for_supplier",
+      ),
     ).toBeUndefined()
     expect(
       getOrderBusinessManualStatusUpdateBlockReason(
         createOrder({ status: "canceled" }),
-        "processing"
-      )
+        "processing",
+      ),
     ).toBe("canceled status has higher priority")
     expect(
       getOrderBusinessManualStatusUpdateBlockReason(
         createOrder({ status: "canceled" }),
-        "canceled"
-      )
+        "canceled",
+      ),
     ).toBeUndefined()
     expect(
       getOrderBusinessManualStatusUpdateBlockReason(
@@ -319,8 +319,8 @@ describe("order business status", () => {
             [ORDER_BUSINESS_STATUS_METADATA_KEY]: "canceled",
           },
         }),
-        "processing"
-      )
+        "processing",
+      ),
     ).toBeUndefined()
   })
 })

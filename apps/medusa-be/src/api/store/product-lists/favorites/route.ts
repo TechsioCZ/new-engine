@@ -10,7 +10,7 @@ import type { StoreCreateFavoriteProductListSchemaType } from "../validators"
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreCreateFavoriteProductListSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result } = await createCustomerProductListWorkflow(req.scope).run({
     input: {

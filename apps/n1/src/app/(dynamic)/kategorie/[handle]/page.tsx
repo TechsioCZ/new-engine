@@ -55,7 +55,7 @@ export default function CategoryPage() {
 
   const currentCategory = allCategories.find((cat) => cat.handle === handle)
   const currentCategoryChildren = allCategories.filter(
-    (cat) => cat.parent_category_id === currentCategory?.id
+    (cat) => cat.parent_category_id === currentCategory?.id,
   )
   const rootCategory =
     allCategories.find((cat) => cat.id === currentCategory?.root_category_id) ??
@@ -129,7 +129,7 @@ export default function CategoryPage() {
   }
 
   const rootCategoryTree = categoryTree.find(
-    (cat) => cat.id === rootCategory?.id
+    (cat) => cat.id === rootCategory?.id,
   )
 
   const breadcrumbItems: BreadcrumbTemplateItem[] = [

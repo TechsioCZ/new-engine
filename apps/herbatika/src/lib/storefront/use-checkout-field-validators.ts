@@ -12,6 +12,6 @@ export function useCheckoutFieldValidators() {
   return useMemo(
     () =>
       createCheckoutFieldValidators(translateAddressValidationMessages(tForm)),
-    [tForm]
+    [tForm],
   )
 }

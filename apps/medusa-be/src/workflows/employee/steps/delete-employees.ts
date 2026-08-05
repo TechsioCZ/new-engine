@@ -54,7 +54,7 @@ export const deleteEmployeesStep = createStep(
   "delete-employees",
   async (
     input: DeleteEmployeesStepInput,
-    { container }
+    { container },
   ): Promise<StepResponse<string[], DeleteEmployeesCompensation>> => {
     const { company_id: companyId, id } = normalizeInput(input)
     const ids = Array.isArray(id) ? id : [id]
@@ -82,13 +82,13 @@ export const deleteEmployeesStep = createStep(
           ...(companyId ? { company_id: companyId } : {}),
         },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (employees.length !== ids.length) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        "One or more employees were not found for the requested company."
+        "One or more employees were not found for the requested company.",
       )
     }
 
@@ -123,7 +123,7 @@ export const deleteEmployeesStep = createStep(
 
     if (providerIdentityIds.length) {
       const authModuleService = container.resolve<IAuthModuleService>(
-        Modules.AUTH
+        Modules.AUTH,
       )
 
       await authModuleService.updateProviderIdentities(
@@ -132,13 +132,13 @@ export const deleteEmployeesStep = createStep(
           user_metadata: {
             role: null,
           },
-        }))
+        })),
       )
     }
 
     if (removedCustomerGroups.length) {
       const customerModuleService = container.resolve<ICustomerModuleService>(
-        Modules.CUSTOMER
+        Modules.CUSTOMER,
       )
 
       await customerModuleService.removeCustomerFromGroup(removedCustomerGroups)
@@ -174,17 +174,17 @@ export const deleteEmployeesStep = createStep(
 
     if (input.removed_customer_groups.length) {
       const customerModuleService = container.resolve<ICustomerModuleService>(
-        Modules.CUSTOMER
+        Modules.CUSTOMER,
       )
 
       await customerModuleService.addCustomerToGroup(
-        input.removed_customer_groups
+        input.removed_customer_groups,
       )
     }
 
     if (input.provider_identity_ids.length) {
       const authModuleService = container.resolve<IAuthModuleService>(
-        Modules.AUTH
+        Modules.AUTH,
       )
 
       await authModuleService.updateProviderIdentities(
@@ -193,8 +193,8 @@ export const deleteEmployeesStep = createStep(
           user_metadata: {
             role: "company_admin",
           },
-        }))
+        })),
       )
     }
-  }
+  },
 )

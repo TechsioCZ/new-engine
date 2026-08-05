@@ -12,7 +12,7 @@ import type { PostAdminOrderCommercialValuesPreviewSchemaType } from "../validat
 
 export async function POST(
   req: MedusaRequest<PostAdminOrderCommercialValuesPreviewSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const id = requireCommercialValuesOrderId(req.params["id"])
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -20,12 +20,12 @@ export async function POST(
     req.scope,
     query,
     id,
-    req.validatedBody.expected_order_version
+    req.validatedBody.expected_order_version,
   )
 
   const calculationInput = toCommercialValuesCalculationInput(
     order,
-    req.validatedBody
+    req.validatedBody,
   )
   const preview = calculateCommercialValuesPreview(calculationInput)
 

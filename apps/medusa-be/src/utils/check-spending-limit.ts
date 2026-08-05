@@ -64,7 +64,7 @@ function getSpendWindow(company: CompanySpendContext): {
 
 function getOrderTotalInSpendWindow(
   orders: (OrderSpendContext | null)[],
-  spendWindow: { start: Date; end: Date }
+  spendWindow: { start: Date; end: Date },
 ): number {
   return (
     orders.reduce((acc, order) => {
@@ -83,7 +83,7 @@ function getOrderTotalInSpendWindow(
 
 export function checkSpendingLimit(
   cart: CartSpendTotal | null,
-  customer: CustomerSpendContext | null
+  customer: CustomerSpendContext | null,
 ) {
   if (!(cart && customer && customer.employee)) {
     return false

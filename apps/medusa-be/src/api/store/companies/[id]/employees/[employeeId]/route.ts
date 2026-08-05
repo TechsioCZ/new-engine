@@ -17,7 +17,7 @@ import type {
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<StoreGetEmployeeParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
   const employeeId = requirePathParam(req.params["employeeId"], "Employee id")
@@ -36,7 +36,7 @@ export const GET = async (
         id: employeeId,
       },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ employee })
@@ -44,7 +44,7 @@ export const GET = async (
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<StoreUpdateEmployeeType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
   const employeeId = requirePathParam(req.params["employeeId"], "Employee id")
@@ -73,7 +73,7 @@ export const POST = async (
         id: employeeId,
       },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ employee })
@@ -81,7 +81,7 @@ export const POST = async (
 
 export const DELETE = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
   const employeeId = requirePathParam(req.params["employeeId"], "Employee id")

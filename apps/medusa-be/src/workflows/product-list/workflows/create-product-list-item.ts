@@ -68,14 +68,14 @@ export const createProductListItemWorkflow = createWorkflow(
         }
 
         return links
-      }
+      },
     )
 
     createRemoteLinkStep(productListItemLinks)
 
     const item = transform(
       { itemResult },
-      ({ itemResult: createdItemResult }) => createdItemResult.item
+      ({ itemResult: createdItemResult }) => createdItemResult.item,
     )
 
     releaseLockStep({
@@ -84,5 +84,5 @@ export const createProductListItemWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(item)
-  }
+  },
 )

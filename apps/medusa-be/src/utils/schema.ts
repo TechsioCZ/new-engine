@@ -24,7 +24,7 @@ export const users = pgTable(
       .$onUpdate(() => new Date()),
     username: varchar({ length: 100 }).notNull(),
   },
-  (table) => [uniqueIndex("users_username_unique").on(table.username)]
+  (table) => [uniqueIndex("users_username_unique").on(table.username)],
 )
 
 export const collections = pgTable("collections", {
@@ -43,7 +43,7 @@ export const categories = pgTable(
     name: text().notNull(),
     slug: text().primaryKey().notNull(),
   },
-  (table) => [index("categories_collection_id_idx").on(table.collectionId)]
+  (table) => [index("categories_collection_id_idx").on(table.collectionId)],
 )
 
 export const subcollections = pgTable(
@@ -55,7 +55,7 @@ export const subcollections = pgTable(
     id: serial().primaryKey().notNull(),
     name: text().notNull(),
   },
-  (table) => [index("subcollections_category_slug_idx").on(table.categorySlug)]
+  (table) => [index("subcollections_category_slug_idx").on(table.categorySlug)],
 )
 
 export const subcategories = pgTable(
@@ -70,7 +70,7 @@ export const subcategories = pgTable(
   },
   (table) => [
     index("subcategories_subcollection_id_idx").on(table.subcollectionId),
-  ]
+  ],
 )
 
 export const products = pgTable(
@@ -85,5 +85,5 @@ export const products = pgTable(
       .notNull()
       .references(() => subcategories.slug),
   },
-  () => []
+  () => [],
 )

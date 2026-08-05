@@ -13,10 +13,10 @@ interface CliArgs {
 function printUsage(): void {
   console.error("Usage:")
   console.error(
-    "  bun src/cli.ts create-dev-user --username <name> --password-env <ENV_VAR> [--no-grant-connect-all-dbs] [--allow-prod-broad-grants]"
+    "  bun src/cli.ts create-dev-user --username <name> --password-env <ENV_VAR> [--no-grant-connect-all-dbs] [--allow-prod-broad-grants]",
   )
   console.error(
-    "  plaintext --password is not supported; provide the password via environment variable"
+    "  plaintext --password is not supported; provide the password via environment variable",
   )
 }
 
@@ -50,7 +50,7 @@ function parseCreateDevUserArgs(args: string[]): CliArgs {
 
     if (arg === "--password") {
       throw new BadRequestError(
-        "plaintext --password is not supported; use --password-env <ENV_VAR>"
+        "plaintext --password is not supported; use --password-env <ENV_VAR>",
       )
     }
 
@@ -78,13 +78,13 @@ function parseCreateDevUserArgs(args: string[]): CliArgs {
   const password = process.env[passwordEnvVar]
   if (password === undefined || password === "") {
     throw new BadRequestError(
-      `environment variable ${passwordEnvVar} is required and must be non-empty when using --password-env`
+      `environment variable ${passwordEnvVar} is required and must be non-empty when using --password-env`,
     )
   }
 
   if (password !== password.trim()) {
     console.warn(
-      `warning: environment variable ${passwordEnvVar} contains leading/trailing whitespace and will be used as-is`
+      `warning: environment variable ${passwordEnvVar} contains leading/trailing whitespace and will be used as-is`,
     )
   }
 
@@ -105,7 +105,7 @@ async function runCreateDevUser(args: string[]): Promise<void> {
     !parsed.allowProdBroadGrants
   ) {
     throw new BadRequestError(
-      "broad cross-database grants are blocked in production by default; use --no-grant-connect-all-dbs or explicitly pass --allow-prod-broad-grants"
+      "broad cross-database grants are blocked in production by default; use --no-grant-connect-all-dbs or explicitly pass --allow-prod-broad-grants",
     )
   }
 
@@ -139,7 +139,7 @@ async function runCreateDevUser(args: string[]): Promise<void> {
         event: "cli.create-dev-user",
         schema_grants_applied: result.schemaGrantsApplied,
         username: result.username,
-      })
+      }),
     )
   } finally {
     await sql.close({ timeout: 5 })

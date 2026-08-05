@@ -9,7 +9,7 @@ import { areCatalogQueryValuesEqual, hasOwnKey } from "./utils"
 export const resolveCatalogQueryStatePatch = (
   currentState: CatalogQueryState,
   patch: CatalogQueryStatePatch,
-  options: ResolveCatalogQueryStatePatchOptions = {}
+  options: ResolveCatalogQueryStatePatchOptions = {},
 ): CatalogQueryStatePatch => {
   const resetMode = options.resetPage ?? "auto"
 

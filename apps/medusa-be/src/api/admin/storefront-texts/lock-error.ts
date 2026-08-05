@@ -27,7 +27,7 @@ export interface StorefrontTextLockErrorResponse {
 
 export function handleStorefrontTextLockError(
   error: unknown,
-  res: StorefrontTextLockErrorResponse
+  res: StorefrontTextLockErrorResponse,
 ): void {
   if (!isLockTimeoutError(error)) {
     throw error

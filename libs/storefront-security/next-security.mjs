@@ -150,7 +150,7 @@ export function createStorefrontSecurityConfig(options = {}) {
 
   const isCspSuppressed = normalizedReplace.headers.some(
     (header) =>
-      header.key === "Content-Security-Policy" && header.value === null
+      header.key === "Content-Security-Policy" && header.value === null,
   )
 
   // Only the CSP consumes the backend origin, and resolving it throws when the

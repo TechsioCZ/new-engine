@@ -76,7 +76,7 @@ function isEmailResponse(value: unknown): value is ResendApiEmailResponse {
 }
 
 function isTemplateVariableValue(
-  value: unknown
+  value: unknown,
 ): value is TemplateVariableValue {
   if (
     value === null ||
@@ -136,14 +136,14 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     if (!options["api_key"]) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Option `api_key` is required in the provider's options."
+        "Option `api_key` is required in the provider's options.",
       )
     }
 
     if (!options["from"]) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Option `from` is required in the provider's options."
+        "Option `from` is required in the provider's options.",
       )
     }
   }
@@ -188,7 +188,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
 
   protected getTemplateVariables(
     definition: ResendTemplateDefinition,
-    data?: Record<string, unknown> | null
+    data?: Record<string, unknown> | null,
   ) {
     const variables: Record<string, TemplateVariableValue> = {}
     const missingVariables: string[] = []
@@ -292,26 +292,26 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
   }
 
   override async send(
-    notification: ProviderSendNotificationDTO
+    notification: ProviderSendNotificationDTO,
   ): Promise<ProviderSendNotificationResultsDTO> {
     const templateKey = notification.template as Template
     const template = getResendTemplateDefinition(templateKey)
 
     if (!template) {
       this.logger.error(
-        `Couldn't find a Resend email template for ${notification.template}.`
+        `Couldn't find a Resend email template for ${notification.template}.`,
       )
       return {}
     }
 
     const { missingVariables, variables } = this.getTemplateVariables(
       template,
-      notification.data
+      notification.data,
     )
 
     if (missingVariables.length) {
       this.logger.error(
-        `Missing Resend email template variables for ${templateKey}: ${missingVariables.join(", ")}`
+        `Missing Resend email template variables for ${templateKey}: ${missingVariables.join(", ")}`,
       )
       return {}
     }
@@ -334,7 +334,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     if (error || !data) {
       if (error) {
         this.logger.error(
-          `Failed to send email: ${error.message ?? "unknown Resend API error"}`
+          `Failed to send email: ${error.message ?? "unknown Resend API error"}`,
         )
       } else {
         this.logger.error("Failed to send email: unknown error")

@@ -22,7 +22,7 @@ interface VariantFixture {
 }
 
 const createVariant = (
-  overrides: Partial<VariantFixture> = {}
+  overrides: Partial<VariantFixture> = {},
 ): VariantFixture => ({
   id: "variant_test",
   product: { title: "Test Product" },
@@ -161,7 +161,7 @@ describe(escapeLikePattern, () => {
 
   it("escapes all special characters together", () => {
     expect(escapeLikePattern("50%_discount\\sale")).toBe(
-      "50\\%\\_discount\\\\sale"
+      "50\\%\\_discount\\\\sale",
     )
   })
 
@@ -194,7 +194,7 @@ describe(validateRuleType, () => {
         expect(() => {
           validateRuleType(invalidType)
         }).toThrow(`Invalid param rule_type (${invalidType})`)
-      }
+      },
     )
   })
 
@@ -283,14 +283,14 @@ describe(getExtendedRuleAttributesMap, () => {
       const targetRules = map["target-rules"]
 
       const applyToQuantity = targetRules.find(
-        (r) => r.id === "apply_to_quantity"
+        (r) => r.id === "apply_to_quantity",
       )
       expect(applyToQuantity).toBeDefined()
       expect(applyToQuantity?.required).toBeTruthy()
       expect(
         applyToQuantity !== undefined &&
           "disguised" in applyToQuantity &&
-          applyToQuantity.disguised
+          applyToQuantity.disguised,
       ).toBeTruthy()
     })
   })
@@ -325,7 +325,7 @@ describe(getExtendedRuleAttributesMap, () => {
       const buyRules = map["buy-rules"]
 
       const minQuantity = buyRules.find(
-        (r) => r.id === "buy_rules_min_quantity"
+        (r) => r.id === "buy_rules_min_quantity",
       )
       expect(minQuantity).toBeDefined()
       expect(minQuantity?.required).toBeTruthy()
@@ -360,7 +360,7 @@ describe(getExtendedRuleAttributesMap, () => {
 
       // original map should not be affected
       expect(
-        map1["buy-rules"].find((r) => r.id === "buy_rules_min_quantity")
+        map1["buy-rules"].find((r) => r.id === "buy_rules_min_quantity"),
       ).toBeUndefined()
     })
   })
@@ -369,7 +369,7 @@ describe(getExtendedRuleAttributesMap, () => {
 describe("custom rule operator compatibility", () => {
   it("uses Medusa's supported not-in operator for multiselect rules", () => {
     const operatorValues = brandRuleAttribute.operators.map(
-      (operator) => operator.value
+      (operator) => operator.value,
     )
 
     expect(operatorValues).toContain("ne")
@@ -385,15 +385,15 @@ describe("custom rule operator compatibility", () => {
       areRulesValidForContext(
         [rule] as never,
         { brand_ids: ["brand_allowed"] },
-        ApplicationMethodTargetType.ITEMS
-      )
+        ApplicationMethodTargetType.ITEMS,
+      ),
     ).toBeTruthy()
     expect(
       areRulesValidForContext(
         [rule] as never,
         { brand_ids: ["brand_blocked"] },
-        ApplicationMethodTargetType.ITEMS
-      )
+        ApplicationMethodTargetType.ITEMS,
+      ),
     ).toBeFalsy()
   })
 })
@@ -416,7 +416,7 @@ describe(buildBrandPromotionContext, () => {
       ])
     const container = {
       resolve: vi.fn((key) =>
-        key === BRAND_MODULE ? { listBrands } : { graph }
+        key === BRAND_MODULE ? { listBrands } : { graph },
       ),
     }
 
@@ -437,7 +437,7 @@ describe(buildBrandPromotionContext, () => {
         ],
       },
       container as never,
-      "product_brand"
+      "product_brand",
     )
 
     expect(graph).toHaveBeenCalledWith({
@@ -481,7 +481,7 @@ describe(buildBrandPromotionContext, () => {
     const listBrands = vi.fn().mockResolvedValue([{ id: "brand_a" }])
     const container = {
       resolve: vi.fn((key) =>
-        key === BRAND_MODULE ? { listBrands } : { graph }
+        key === BRAND_MODULE ? { listBrands } : { graph },
       ),
     }
 
@@ -493,7 +493,7 @@ describe(buildBrandPromotionContext, () => {
         ],
       },
       container as never,
-      "product_brand"
+      "product_brand",
     )
 
     expect(graph).toHaveBeenCalledWith({
@@ -522,7 +522,7 @@ describe(buildBrandPromotionContext, () => {
       ],
     })
     expect(
-      (result["items"] as Record<string, unknown>[])[1]
+      (result["items"] as Record<string, unknown>[])[1],
     ).not.toHaveProperty("brand_ids")
   })
 
@@ -537,7 +537,7 @@ describe(buildBrandPromotionContext, () => {
     const listBrands = vi.fn().mockResolvedValue([{ id: "brand_active" }])
     const container = {
       resolve: vi.fn((key) =>
-        key === BRAND_MODULE ? { listBrands } : { graph }
+        key === BRAND_MODULE ? { listBrands } : { graph },
       ),
     }
 
@@ -549,7 +549,7 @@ describe(buildBrandPromotionContext, () => {
         ],
       },
       container as never,
-      "product_brand"
+      "product_brand",
     )
 
     expect(listBrands).toHaveBeenCalledWith(
@@ -561,7 +561,7 @@ describe(buildBrandPromotionContext, () => {
       {
         select: ["id"],
         withDeleted: false,
-      }
+      },
     )
     expect(result).toStrictEqual({
       items: [

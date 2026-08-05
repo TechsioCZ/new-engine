@@ -31,5 +31,5 @@ export const updateApprovalSettingsWorkflow = createWorkflow(
     }))
 
     return new WorkflowResponse(updateApprovalSettingsStep(updateInput))
-  }
+  },
 )

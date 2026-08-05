@@ -100,7 +100,7 @@ export function createProductReviewHooks<
   const resolveListState = (
     input: TListInput,
     params: TListParams,
-    data?: ProductReviewListResponse<TReview>
+    data?: ProductReviewListResponse<TReview>,
   ) => {
     const limitFromParams = (params as { limit?: number }).limit
     const offsetFromParams = (params as { offset?: number }).offset
@@ -110,7 +110,7 @@ export function createProductReviewHooks<
         offset: offsetFromParams,
         page: input.page,
       }),
-      defaultPageSize
+      defaultPageSize,
     )
     const totalCount = data?.count ?? 0
     const totalPages = pagination.limit
@@ -132,14 +132,14 @@ export function createProductReviewHooks<
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductReviewListResponse<TReview>>
-    }
+    },
   ): UseProductReviewsResult<TReview> {
     const enabled = input.enabled ?? Boolean(input.productId)
     const listParams = buildList(input)
     const query = useQuery({
       ...getProductReviewsQueryOptions(
         input,
-        omitUndefined({ queryOptions: options?.queryOptions })
+        omitUndefined({ queryOptions: options?.queryOptions }),
       ),
       enabled,
     })
@@ -158,7 +158,7 @@ export function createProductReviewHooks<
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductReviewListResponse<TReview>>
-    }
+    },
   ): UseSuspenseProductReviewsResult<TReview> {
     const listParams = buildList(input)
     const query = useSuspenseQuery({
@@ -180,7 +180,7 @@ export function createProductReviewHooks<
   }
 
   function usePrefetchProductReviews(
-    options?: ProductReviewPrefetchHookOptions
+    options?: ProductReviewPrefetchHookOptions,
   ) {
     const queryClient = useQueryClient()
     const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
@@ -190,7 +190,7 @@ export function createProductReviewHooks<
     const skipMode = options?.skipMode ?? "fresh"
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
-      cacheStrategy
+      cacheStrategy,
     )
 
     const prefetchProductReviews = async (input: TListInput) => {
@@ -224,7 +224,7 @@ export function createProductReviewHooks<
     const delayedPrefetch = (
       input: TListInput,
       delay = defaultDelay,
-      prefetchId?: string
+      prefetchId?: string,
     ) => {
       const listParams = buildList(input)
       const queryKey = resolvedQueryKeys.productList(listParams)
@@ -232,7 +232,7 @@ export function createProductReviewHooks<
       return schedulePrefetch(
         async () => prefetchProductReviews(input),
         id,
-        delay
+        delay,
       )
     }
 
@@ -244,7 +244,7 @@ export function createProductReviewHooks<
   }
 
   function useCreateProductReview<TContext = unknown>(
-    options?: ProductReviewMutationOptions<TReview, TCreateInput, TContext>
+    options?: ProductReviewMutationOptions<TReview, TCreateInput, TContext>,
   ): UseCreateProductReviewResult<TReview, TCreateInput, TContext> {
     const queryClient = useQueryClient()
 

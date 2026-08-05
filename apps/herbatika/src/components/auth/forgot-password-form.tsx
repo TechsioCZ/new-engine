@@ -37,7 +37,7 @@ export const ForgotPasswordForm = ({
         emailInvalid: tForm("validation.email_invalid"),
         emailRequired: tForm("validation.email_required"),
       }),
-    [tForm]
+    [tForm],
   )
 
   const form = useHerbatikaForm({

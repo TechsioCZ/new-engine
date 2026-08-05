@@ -23,7 +23,7 @@ describe(defineStorefrontMarkets, () => {
       resolver.resolveMarket({
         acceptLanguage: "sk;q=1",
         host: "https://HERBATICA.CZ:3001/path",
-      })
+      }),
     ).toStrictEqual({ code: "cz", label: "Czechia", locale: "cs-CZ" })
   })
 
@@ -32,7 +32,7 @@ describe(defineStorefrontMarkets, () => {
       resolver.resolveMarket({
         acceptLanguage: "sk;q=0.5, cs-CZ;q=0.9",
         host: "preview.example.com",
-      }).code
+      }).code,
     ).toBe("cz")
   })
 
@@ -41,13 +41,13 @@ describe(defineStorefrontMarkets, () => {
       resolver.resolveMarket({
         acceptLanguage: "en;q=1, cs-CZ; q=0",
         host: "preview.example.com",
-      }).code
+      }).code,
     ).toBe("sk")
   })
 
   it("uses the configured default when no signal matches", () => {
     expect(resolver.resolveMarket({ host: "preview.example.com" }).code).toBe(
-      "sk"
+      "sk",
     )
   })
 })

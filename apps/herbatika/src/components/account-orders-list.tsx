@@ -29,7 +29,7 @@ export function AccountOrdersList() {
   const getPageUrl = usePaginationUrlBuilder()
   const [currentPage, setCurrentPage] = useQueryState(
     "page",
-    parseAsInteger.withDefault(1)
+    parseAsInteger.withDefault(1),
   )
   const ordersQuery = useOrders({
     enabled: authQuery.isAuthenticated,
@@ -55,14 +55,14 @@ export function AccountOrdersList() {
       runDetachedPromise(
         setCurrentPage(normalizedPage, {
           history: "replace",
-        })
+        }),
       )
     })
   }, [currentPage, ordersQuery.totalPages, setCurrentPage])
 
   const prefetchOrderDetail = (orderId: string) => {
     runDetachedPromise(
-      queryClient.prefetchQuery(getOrderDetailQueryOptions({ id: orderId }))
+      queryClient.prefetchQuery(getOrderDetailQueryOptions({ id: orderId })),
     )
   }
 

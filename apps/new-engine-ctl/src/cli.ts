@@ -23,7 +23,7 @@ async function main(): Promise<void> {
   const program = new Command()
     .name("new-engine-ctl")
     .description(
-      "Repo-specific orchestration CLI for CI and local deploy flows"
+      "Repo-specific orchestration CLI for CI and local deploy flows",
     )
     .showHelpAfterError()
 

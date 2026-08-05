@@ -60,7 +60,7 @@ export const uniqueIds = (ids: string[]) => [...new Set(ids)]
 export const retrieveMeasurementUnitOrThrow = async (
   scope: MedusaContainer,
   unitId: string,
-  options: RetrieveMeasurementUnitOptions = {}
+  options: RetrieveMeasurementUnitOptions = {},
 ) => {
   const [unit] = await getMeasurementUnitService(scope).listMeasurementUnits(
     {
@@ -69,13 +69,13 @@ export const retrieveMeasurementUnitOrThrow = async (
     {
       take: 1,
       withDeleted: options.withDeleted ?? false,
-    }
+    },
   )
 
   if (!unit) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Measurement unit with id "${unitId}" was not found`
+      `Measurement unit with id "${unitId}" was not found`,
     )
   }
 
@@ -84,10 +84,10 @@ export const retrieveMeasurementUnitOrThrow = async (
 
 export const retrieveProductMeasurement = async (
   scope: MedusaContainer,
-  productId: string
+  productId: string,
 ) => {
   const [measurement] = await getMeasurementUnitService(
-    scope
+    scope,
   ).listProductMeasurements(
     {
       deleted_at: null,
@@ -97,7 +97,7 @@ export const retrieveProductMeasurement = async (
       relations: ["measurement_unit", "variant_measurements"],
       take: 1,
       withDeleted: true,
-    }
+    },
   )
 
   return measurement ?? null
@@ -105,7 +105,7 @@ export const retrieveProductMeasurement = async (
 
 export const retrieveProductOrThrow = async (
   scope: MedusaContainer,
-  productId: string
+  productId: string,
 ) => {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -119,7 +119,7 @@ export const retrieveProductOrThrow = async (
   if (!data[0]) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product with id "${productId}" was not found`
+      `Product with id "${productId}" was not found`,
     )
   }
 
@@ -128,7 +128,7 @@ export const retrieveProductOrThrow = async (
 
 export const retrieveProductVariants = async (
   scope: MedusaContainer,
-  productId: string
+  productId: string,
 ): Promise<ProductMeasurementVariantResponse[]> => {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -149,7 +149,7 @@ export const retrieveProductVariants = async (
 export const retrieveProductVariantOrThrow = async (
   scope: MedusaContainer,
   productId: string,
-  productVariantId: string
+  productVariantId: string,
 ) => {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -166,14 +166,14 @@ export const retrieveProductVariantOrThrow = async (
   if (!variant?.id) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product variant with id "${productVariantId}" was not found`
+      `Product variant with id "${productVariantId}" was not found`,
     )
   }
 
   if (variant.product_id !== productId) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Product variant "${productVariantId}" does not belong to product "${productId}".`
+      `Product variant "${productVariantId}" does not belong to product "${productId}".`,
     )
   }
 
@@ -182,7 +182,7 @@ export const retrieveProductVariantOrThrow = async (
 
 export const toMeasurementUnitDetailResponse = async (
   scope: MedusaContainer,
-  unit: MeasurementUnitRecord
+  unit: MeasurementUnitRecord,
 ) => {
   const counts = await getMeasurementUnitActiveProductCounts(scope, [unit.id])
 
@@ -243,7 +243,7 @@ const listMeasurementUnitAssignments = async ({
 }
 
 export const getCanonicalAssignmentByProductId = (
-  measurements: ProductMeasurementRecord[]
+  measurements: ProductMeasurementRecord[],
 ) => {
   const byProductId = new Map<string, ProductMeasurementRecord>()
 
@@ -287,7 +287,7 @@ export const listMeasurementUnitAssignedProducts = async ({
     unitId,
   })
   const productIds = uniqueIds(
-    measurements.map((measurement) => measurement.product_id)
+    measurements.map((measurement) => measurement.product_id),
   )
 
   if (!productIds.length) {
@@ -317,7 +317,7 @@ export const listMeasurementUnitAssignedProducts = async ({
       skip: offset,
       take: limit,
       withDeleted: true,
-    }
+    },
   )
   const measurementByProductId = getCanonicalAssignmentByProductId(measurements)
   const assignedProducts = products.flatMap((product) => {
@@ -365,7 +365,7 @@ export const toProductVariantMeasurementDetailResponse = ({
   productVariantId: string
 }) => {
   const variantMeasurement = measurement?.variant_measurements?.find(
-    (current) => current.product_variant_id === productVariantId
+    (current) => current.product_variant_id === productVariantId,
   )
 
   return {

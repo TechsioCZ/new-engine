@@ -54,7 +54,7 @@ export default async function pplTrackingSyncJob(container: MedusaContainer) {
   // Check global feature flag (module loaded)
   if (process.env["FEATURE_PPL_ENABLED"] !== "1") {
     logger.debug(
-      "PPL Tracking Sync: PPL module is disabled (FEATURE_PPL_ENABLED != 1), skipping"
+      "PPL Tracking Sync: PPL module is disabled (FEATURE_PPL_ENABLED != 1), skipping",
     )
     return
   }
@@ -65,14 +65,14 @@ export default async function pplTrackingSyncJob(container: MedusaContainer) {
   const config = await pplClient.getConfig()
   if (!config?.is_enabled) {
     logger.debug(
-      "PPL Tracking Sync: PPL is disabled in settings (is_enabled = false), skipping"
+      "PPL Tracking Sync: PPL is disabled in settings (is_enabled = false), skipping",
     )
     return
   }
 
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const fulfillmentService = container.resolve<IFulfillmentModuleService>(
-    Modules.FULFILLMENT
+    Modules.FULFILLMENT,
   )
   const eventBus = container.resolve<IEventBusModuleService>(Modules.EVENT_BUS)
 
@@ -87,7 +87,7 @@ export default async function pplTrackingSyncJob(container: MedusaContainer) {
     }
 
     logger.info(
-      `PPL Tracking Sync: Found ${pendingFulfillments.length} pending fulfillments`
+      `PPL Tracking Sync: Found ${pendingFulfillments.length} pending fulfillments`,
     )
 
     const ctx: TrackingContext = { eventBus, fulfillmentService, logger }
@@ -97,7 +97,7 @@ export default async function pplTrackingSyncJob(container: MedusaContainer) {
   } catch (error) {
     logger.error(
       "PPL Tracking Sync failed",
-      error instanceof Error ? error : new Error(String(error))
+      error instanceof Error ? error : new Error(String(error)),
     )
   }
 }
@@ -108,7 +108,7 @@ export const config = {
 }
 
 async function fetchPendingFulfillments(
-  query: Query
+  query: Query,
 ): Promise<PendingFulfillment[]> {
   const { data: fulfillments } = await query.graph({
     entity: "fulfillment",
@@ -123,18 +123,18 @@ async function fetchPendingFulfillments(
     (f): f is PendingFulfillment =>
       f.shipped_at !== null &&
       !f.delivered_at &&
-      typeof f.data?.shipment_number === "string"
+      typeof f.data?.shipment_number === "string",
   )
 }
 
 async function processFulfillmentsInBatches(
   ctx: TrackingContext,
   pplClient: PplClientModuleService,
-  fulfillments: PendingFulfillment[]
+  fulfillments: PendingFulfillment[],
 ): Promise<void> {
   // Create lookup map: shipment_number -> fulfillment
   const fulfillmentMap = new Map(
-    fulfillments.map((f) => [f.data.shipment_number, f])
+    fulfillments.map((f) => [f.data.shipment_number, f]),
   )
   const shipmentNumbers = [...fulfillmentMap.keys()]
 
@@ -148,7 +148,7 @@ async function processBatch(
   ctx: TrackingContext,
   pplClient: PplClientModuleService,
   shipmentNumbers: string[],
-  fulfillmentMap: Map<string, PendingFulfillment>
+  fulfillmentMap: Map<string, PendingFulfillment>,
 ): Promise<void> {
   try {
     const shipmentInfos = await pplClient.getShipmentInfo({ shipmentNumbers })
@@ -156,11 +156,11 @@ async function processBatch(
     // Log shipments requested but not returned by PPL
     const returnedNumbers = new Set(shipmentInfos.map((i) => i.shipmentNumber))
     const missingNumbers = shipmentNumbers.filter(
-      (n) => !returnedNumbers.has(n)
+      (n) => !returnedNumbers.has(n),
     )
     if (missingNumbers.length > 0) {
       ctx.logger.warn(
-        `PPL Tracking Sync: ${missingNumbers.length} shipments not found in PPL response (batch ${shipmentNumbers[0]}...): ${missingNumbers.join(", ")}`
+        `PPL Tracking Sync: ${missingNumbers.length} shipments not found in PPL response (batch ${shipmentNumbers[0]}...): ${missingNumbers.join(", ")}`,
       )
     }
 
@@ -172,7 +172,7 @@ async function processBatch(
     }
   } catch (error) {
     ctx.logger.warn(
-      `PPL Tracking Sync: Failed to fetch batch status: ${error instanceof Error ? error.message : String(error)}`
+      `PPL Tracking Sync: Failed to fetch batch status: ${error instanceof Error ? error.message : String(error)}`,
     )
   }
 }
@@ -180,7 +180,7 @@ async function processBatch(
 async function processFulfillmentStatus(
   ctx: TrackingContext,
   fulfillment: PendingFulfillment,
-  info: PplShipmentInfo
+  info: PplShipmentInfo,
 ): Promise<void> {
   const fulfillmentData = fulfillment.data
   const currentStatus = fulfillmentData.last_status
@@ -191,7 +191,7 @@ async function processFulfillmentStatus(
   }
 
   ctx.logger.info(
-    `PPL: Shipment ${fulfillmentData.shipment_number} status changed: ${currentStatus || "unknown"} -> ${newStatus}`
+    `PPL: Shipment ${fulfillmentData.shipment_number} status changed: ${currentStatus || "unknown"} -> ${newStatus}`,
   )
 
   if (PPL_DELIVERED_STATES.includes(newStatus)) {
@@ -207,13 +207,13 @@ async function handleDelivered(
   ctx: TrackingContext,
   fulfillment: PendingFulfillment,
   info: PplShipmentInfo,
-  newStatus: PplShipmentState
+  newStatus: PplShipmentState,
 ): Promise<void> {
   const { logger, fulfillmentService, eventBus } = ctx
   const fulfillmentData = fulfillment.data
 
   logger.info(
-    `PPL: Shipment ${fulfillmentData.shipment_number} delivered (${newStatus})`
+    `PPL: Shipment ${fulfillmentData.shipment_number} delivered (${newStatus})`,
   )
 
   const deliveredAt = info.deliveryDate
@@ -244,13 +244,13 @@ async function handleFailed(
   ctx: TrackingContext,
   fulfillment: PendingFulfillment,
   info: PplShipmentInfo,
-  newStatus: PplShipmentState
+  newStatus: PplShipmentState,
 ): Promise<void> {
   const { logger, fulfillmentService, eventBus } = ctx
   const fulfillmentData = fulfillment.data
 
   logger.warn(
-    `PPL: Shipment ${fulfillmentData.shipment_number} failed (${newStatus})`
+    `PPL: Shipment ${fulfillmentData.shipment_number} failed (${newStatus})`,
   )
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {
@@ -277,13 +277,13 @@ async function handleInTransit(
   ctx: TrackingContext,
   fulfillment: PendingFulfillment,
   info: PplShipmentInfo,
-  newStatus: PplShipmentState
+  newStatus: PplShipmentState,
 ): Promise<void> {
   const { logger, fulfillmentService } = ctx
   const fulfillmentData = fulfillment.data
 
   logger.debug(
-    `PPL: Shipment ${fulfillmentData.shipment_number} status: ${newStatus}`
+    `PPL: Shipment ${fulfillmentData.shipment_number} status: ${newStatus}`,
   )
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {

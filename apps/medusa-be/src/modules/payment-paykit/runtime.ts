@@ -34,17 +34,17 @@ interface CreatedPaykitClient {
 const PAYKIT_STRIPE_API_VERSION = "2026-06-24.dahlia" as const
 
 const isPaykitProviderRuntime = (
-  provider: unknown
+  provider: unknown,
 ): provider is PaykitProviderRuntime =>
   isRecord(provider) && typeof provider["handleWebhook"] === "function"
 
 const dynamicImport = async (
-  specifier: string
+  specifier: string,
 ): Promise<Record<string, unknown>> => await import(specifier)
 
 const isMissingPackageImportError = (
   packageName: string,
-  error: unknown
+  error: unknown,
 ): boolean => {
   if (!isRecord(error) || error["code"] !== "ERR_MODULE_NOT_FOUND") {
     return false
@@ -62,7 +62,7 @@ const isMissingPackageImportError = (
 
 export const getPaykitPackageLoadErrorMessage = (
   packageName: string,
-  error: unknown
+  error: unknown,
 ): string => {
   const originalMessage = getErrorMessage(error)
 
@@ -75,7 +75,7 @@ export const getPaykitPackageLoadErrorMessage = (
 
 const loadExport = async <T>(
   packageName: string,
-  exportName: string
+  exportName: string,
 ): Promise<T> => {
   let mod: Record<string, unknown>
 
@@ -86,7 +86,7 @@ const loadExport = async <T>(
       MedusaError.Types.UNEXPECTED_STATE,
       getPaykitPackageLoadErrorMessage(packageName, error),
       undefined,
-      { cause: error }
+      { cause: error },
     )
   }
 
@@ -95,7 +95,7 @@ const loadExport = async <T>(
   if (!loaded) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `PayKit package "${packageName}" does not export "${exportName}".`
+      `PayKit package "${packageName}" does not export "${exportName}".`,
     )
   }
 
@@ -106,14 +106,14 @@ export const createPaykitClient = async (
   providerPackage: string,
   providerExport: string,
   providerOptions: Record<string, unknown>,
-  webhookOptions: Record<string, unknown> = providerOptions
+  webhookOptions: Record<string, unknown> = providerOptions,
 ): Promise<PaykitPaymentClient> =>
   (
     await createPaykitClientWithProvider(
       providerPackage,
       providerExport,
       providerOptions,
-      webhookOptions
+      webhookOptions,
     )
   ).client
 
@@ -121,13 +121,13 @@ export const createPaykitClientWithProvider = async (
   providerPackage: string,
   providerExport: string,
   providerOptions: Record<string, unknown>,
-  webhookOptions: Record<string, unknown> = providerOptions
+  webhookOptions: Record<string, unknown> = providerOptions,
 ): Promise<CreatedPaykitClient> => {
   const [PayKitClass, createProvider] = await Promise.all([
     loadExport<PaykitConstructor>("@paykit-sdk/core", "PayKit"),
     loadExport<(options: Record<string, unknown>) => PayKitProvider>(
       providerPackage,
-      providerExport
+      providerExport,
     ),
   ])
 
@@ -136,7 +136,7 @@ export const createPaykitClientWithProvider = async (
   if (!isPaykitProviderRuntime(provider)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `PayKit provider "${providerPackage}" does not implement handleWebhook`
+      `PayKit provider "${providerPackage}" does not implement handleWebhook`,
     )
   }
 
@@ -157,15 +157,15 @@ export const createPaykitClientWithProvider = async (
 export const callPaykitProviderWebhook = async (
   provider: PaykitProviderRuntime,
   payload: ProviderWebhookPayload["payload"],
-  webhookOptions: Record<string, unknown> = {}
+  webhookOptions: Record<string, unknown> = {},
 ): Promise<PaykitWebhookEvent[]> =>
   provider.handleWebhook(
     toPaykitWebhookPayload(payload),
-    getWebhookSecret(webhookOptions)
+    getWebhookSecret(webhookOptions),
   )
 
 export const resolveConfiguredClient = async (
-  options: PaykitAdapterOptions
+  options: PaykitAdapterOptions,
 ): Promise<PaykitPaymentClient | undefined> => {
   if (options.client) {
     return options.client
@@ -175,7 +175,7 @@ export const resolveConfiguredClient = async (
 }
 
 export const getGopayProviderOptions = (
-  options: PaykitGopayOptions
+  options: PaykitGopayOptions,
 ): PaykitGopayProviderOptions => ({
   ...(options.clientId ? { clientId: options.clientId } : {}),
   ...(options.clientSecret ? { clientSecret: options.clientSecret } : {}),
@@ -186,7 +186,7 @@ export const getGopayProviderOptions = (
 })
 
 export const getStripeProviderOptions = (
-  options: PaykitStripeOptions
+  options: PaykitStripeOptions,
 ): PaykitStripeProviderOptions => ({
   ...(options.apiKey ? { apiKey: options.apiKey } : {}),
   apiVersion: PAYKIT_STRIPE_API_VERSION,
@@ -194,13 +194,13 @@ export const getStripeProviderOptions = (
 })
 
 export const getStripeWebhookOptions = (
-  options: PaykitStripeOptions
+  options: PaykitStripeOptions,
 ): Record<string, unknown> => ({
   webhookSecret: options.webhookSecret ?? "",
 })
 
 export const getComgateProviderOptions = (
-  options: PaykitComgateOptions
+  options: PaykitComgateOptions,
 ): PaykitComgateProviderOptions => ({
   ...(options.merchant ? { merchant: options.merchant } : {}),
   ...(options.secret ? { secret: options.secret } : {}),
@@ -209,7 +209,7 @@ export const getComgateProviderOptions = (
 })
 
 const toPaykitWebhookPayload = (
-  payload: ProviderWebhookPayload["payload"]
+  payload: ProviderWebhookPayload["payload"],
 ) => ({
   body: rawBodyToString(payload.rawData),
   fullUrl: getWebhookFullUrl(payload),
@@ -217,14 +217,14 @@ const toPaykitWebhookPayload = (
 })
 
 const getWebhookSecret = (
-  providerOptions: Record<string, unknown>
+  providerOptions: Record<string, unknown>,
 ): string | null =>
   typeof providerOptions["webhookSecret"] === "string"
     ? providerOptions["webhookSecret"]
     : null
 
 const rawBodyToString = (
-  rawData: ProviderWebhookPayload["payload"]["rawData"]
+  rawData: ProviderWebhookPayload["payload"]["rawData"],
 ): string => {
   if (Buffer.isBuffer(rawData)) {
     return rawData.toString("utf-8")
@@ -238,7 +238,7 @@ const rawBodyToString = (
 }
 
 const toHeadersAsObject = (
-  headers: ProviderWebhookPayload["payload"]["headers"]
+  headers: ProviderWebhookPayload["payload"]["headers"],
 ): Record<string, string> => {
   const result: Record<string, string> = {}
 
@@ -259,7 +259,7 @@ const toHeadersAsObject = (
 }
 
 const getWebhookFullUrl = (
-  payload: ProviderWebhookPayload["payload"]
+  payload: ProviderWebhookPayload["payload"],
 ): string => {
   const rawData = payload.data
   const data = isRecord(rawData) ? rawData : undefined
@@ -298,7 +298,7 @@ const getFirstHeaderValue = (value: unknown): string | undefined => {
 
 const getWebhookProtocol = (
   headers: ProviderWebhookPayload["payload"]["headers"],
-  host: string
+  host: string,
 ): "http" | "https" => {
   const forwardedProto = getFirstHeaderValue(headers?.["x-forwarded-proto"])
     ?.split(",")[0]

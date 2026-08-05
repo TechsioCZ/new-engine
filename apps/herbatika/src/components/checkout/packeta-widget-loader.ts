@@ -30,7 +30,7 @@ export async function loadPacketaWidget() {
     }
 
     const existingScript = document.querySelector<HTMLScriptElement>(
-      `script[src="${PACKETA_WIDGET_LIBRARY_URL}"]`
+      `script[src="${PACKETA_WIDGET_LIBRARY_URL}"]`,
     )
 
     if (existingScript) {
@@ -41,7 +41,7 @@ export async function loadPacketaWidget() {
           loaderPromise = null
           reject(new Error("Packeta widget library failed to load."))
         },
-        { once: true }
+        { once: true },
       )
       return
     }

@@ -4,7 +4,7 @@ import type { MedusaRequest } from "@medusajs/framework/http"
 
 export function getHeaderValue(
   req: MedusaRequest,
-  name: string
+  name: string,
 ): string | undefined {
   const value = req.headers[name]
   if (Array.isArray(value)) {
@@ -26,7 +26,7 @@ export function getHeaderValue(
  */
 export function isValidWebhookSignature(
   signature: string | undefined,
-  expectedSignature: string | undefined
+  expectedSignature: string | undefined,
 ): boolean {
   if (!(expectedSignature && signature)) {
     return false

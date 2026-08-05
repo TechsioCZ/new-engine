@@ -29,7 +29,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
   const marketContext = useMarketContext()
 
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(
-    initialRegion?.region_id ?? null
+    initialRegion?.region_id ?? null,
   )
 
   const { regions, isLoading, isFetching, error } = useRegions({
@@ -56,7 +56,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     const resolvedRegion = resolveRegionForMarket(
       regions,
       marketContext,
-      selectedRegionId
+      selectedRegionId,
     )
 
     if (!resolvedRegion) {
@@ -68,14 +68,14 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     }
 
     persistRegionPreference(
-      toRegionInfo(resolvedRegion, marketContext.countryCode)
+      toRegionInfo(resolvedRegion, marketContext.countryCode),
     )
   }, [marketContext, regions, selectedRegionId])
 
   const selectedRegion = resolveRegionForMarket(
     regions,
     marketContext,
-    selectedRegionId
+    selectedRegionId,
   )
   const region = selectedRegion
     ? toRegionInfo(selectedRegion, marketContext.countryCode)
@@ -83,7 +83,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
 
   const setRegionById = (regionId: string) => {
     const nextRegion = regions.find(
-      (candidateRegion) => candidateRegion.id === regionId
+      (candidateRegion) => candidateRegion.id === regionId,
     )
     if (!(nextRegion && regionMatchesMarket(nextRegion, marketContext))) {
       return

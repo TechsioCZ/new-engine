@@ -39,7 +39,7 @@ export function CompanyUpdateDrawer({
       toast.success(t("toasts.companyUpdated", { name: formData.name }))
     } catch (error) {
       toast.error(
-        `${t("errors.updateCompanyFailed")}: ${getErrorMessage(error)}`
+        `${t("errors.updateCompanyFailed")}: ${getErrorMessage(error)}`,
       )
     }
   }

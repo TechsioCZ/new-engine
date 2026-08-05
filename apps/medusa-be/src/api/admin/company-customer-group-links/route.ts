@@ -31,7 +31,7 @@ const toStringArray = (value: unknown): string[] => {
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const groupIds = [...new Set(toStringArray(req.query["group_id"]))]
 
@@ -58,7 +58,7 @@ export const GET = async (
     ...new Set(
       linkedRows
         .map((linkedRow) => linkedRow.company_id)
-        .filter((companyId): companyId is string => Boolean(companyId))
+        .filter((companyId): companyId is string => Boolean(companyId)),
     ),
   ]
 
@@ -68,11 +68,11 @@ export const GET = async (
         {
           select: ["id", "name", "deleted_at"],
           withDeleted: true,
-        }
+        },
       )
     : []
   const companiesById = new Map(
-    companies.map((company) => [company.id, company])
+    companies.map((company) => [company.id, company]),
   )
   const customerGroupLinks = linkedRows.flatMap((linkedRow) => {
     if (!(linkedRow.company_id && linkedRow.customer_group_id)) {

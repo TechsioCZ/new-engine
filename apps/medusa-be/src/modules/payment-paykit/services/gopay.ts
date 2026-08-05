@@ -36,7 +36,7 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
   // the base constructor is protected; this keeps the provider constructor public.
   constructor(
     container: PaykitInjectedDependencies,
-    options: PaykitGopayOptions
+    options: PaykitGopayOptions,
   ) {
     super(container, options)
   }
@@ -58,13 +58,13 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
     return await createPaykitClient(
       "@paykit-sdk/gopay",
       "createGopay",
-      getGopayProviderOptions(this.options_)
+      getGopayProviderOptions(this.options_),
     )
   }
 
   protected override normalizeAmount(
     amount: InitiatePaymentInput["amount"],
-    currencyCode?: string
+    currencyCode?: string,
   ): number {
     const normalized = super.normalizeAmount(amount, currencyCode)
 
@@ -73,14 +73,14 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
 
   protected override normalizePaymentDataAmount(
     amount: InitiatePaymentInput["amount"],
-    currencyCode?: string
+    currencyCode?: string,
   ): number {
     return super.normalizeAmount(amount, currencyCode)
   }
 
   protected override normalizeWebhookAmount(
     amount: BigNumberValue | undefined,
-    payment: PaykitPayment
+    payment: PaykitPayment,
   ): BigNumberValue | undefined {
     if (amount === undefined) {
       return amount
@@ -94,12 +94,12 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
 
   protected override getCreateProviderMetadata(
     input: InitiatePaymentInput,
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Record<string, unknown> {
     const providerMetadata = super.getCreateProviderMetadata(input, data)
     const successUrl = getStringValue(
       providerMetadata["success_url"],
-      providerMetadata["return_url"]
+      providerMetadata["return_url"],
     )
 
     return {

@@ -2,7 +2,7 @@ export const findNodeById = <
   T extends { id: string; children?: T[] | undefined },
 >(
   nodes: T[],
-  id: string
+  id: string,
 ): T | null => {
   for (const node of nodes) {
     if (node.id === id) {

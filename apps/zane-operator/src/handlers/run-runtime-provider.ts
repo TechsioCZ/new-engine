@@ -10,7 +10,7 @@ interface RunRuntimeProviderDeps {
 
 export async function handleRunRuntimeProvider(
   request: Request,
-  deps: RunRuntimeProviderDeps
+  deps: RunRuntimeProviderDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

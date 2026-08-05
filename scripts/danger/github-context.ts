@@ -34,7 +34,7 @@ function collectLogins(value: unknown): string[] {
 }
 
 export function createPullRequestPolicyInput(
-  dsl: unknown
+  dsl: unknown,
 ): PullRequestPolicyInput | undefined {
   const root = asRecord(dsl)
   const github = asRecord(root?.github)

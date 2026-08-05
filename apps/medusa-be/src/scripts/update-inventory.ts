@@ -18,14 +18,14 @@ type ProductWithVariants = ProductDTO & {
 interface ProductService {
   listProducts: (
     filters: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<ProductDTO[]>
 }
 
 interface StockLocationService {
   listStockLocations: (
     filters: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<StockLocationDTO[]>
 }
 
@@ -59,7 +59,7 @@ interface QueryService {
 
 async function findProductWithVariants(
   productService: ProductService,
-  logger: Logger
+  logger: Logger,
 ): Promise<ProductWithVariants | undefined> {
   logger.info(`Looking for product with handle: ${PRODUCT_HANDLE}`)
 
@@ -69,7 +69,7 @@ async function findProductWithVariants(
     },
     {
       relations: ["variants", "variants.inventory_items"],
-    }
+    },
   )
 
   const product = products[0]
@@ -90,13 +90,13 @@ async function findProductWithVariants(
 
 async function findStockLocation(
   stockLocationService: StockLocationService,
-  logger: Logger
+  logger: Logger,
 ): Promise<StockLocationDTO | undefined> {
   const stockLocations = await stockLocationService.listStockLocations(
     {
       name: STOCK_LOCATION_NAME,
     },
-    { take: 1 }
+    { take: 1 },
   )
 
   const stockLocation = stockLocations[0]
@@ -106,7 +106,7 @@ async function findStockLocation(
   }
 
   logger.info(
-    `Using stock location: ${stockLocation.name} (${stockLocation.id})`
+    `Using stock location: ${stockLocation.name} (${stockLocation.id})`,
   )
 
   return stockLocation
@@ -115,7 +115,7 @@ async function findStockLocation(
 async function fetchInventoryItemLinks(
   query: QueryService,
   product: ProductWithVariants,
-  logger: Logger
+  logger: Logger,
 ): Promise<InventoryItemLink[] | undefined> {
   const { data: inventoryItemLinks } = await query.graph<InventoryItemLink>({
     entity: "product_variant_inventory_item",
@@ -137,10 +137,10 @@ async function fetchInventoryLevels(
   query: QueryService,
   inventoryItemLinks: InventoryItemLink[],
   stockLocation: StockLocationDTO,
-  logger: Logger
+  logger: Logger,
 ): Promise<InventoryLevel[] | undefined> {
   const inventoryItemIds = inventoryItemLinks.map(
-    (link) => link.inventory_item_id
+    (link) => link.inventory_item_id,
   )
   const { data: inventoryLevels } = await query.graph<InventoryLevel>({
     entity: "inventory_level",
@@ -181,10 +181,10 @@ function buildInventoryLevelUpdates({
 
   for (const level of inventoryLevels) {
     const link = inventoryItemLinks.find(
-      (candidate) => candidate.inventory_item_id === level.inventory_item_id
+      (candidate) => candidate.inventory_item_id === level.inventory_item_id,
     )
     const variant = product.variants.find(
-      (candidate) => candidate.id === link?.variant_id
+      (candidate) => candidate.id === link?.variant_id,
     )
 
     if (!variant) {
@@ -192,15 +192,15 @@ function buildInventoryLevelUpdates({
     }
 
     logger.info(
-      `Checking inventory for variant: ${variant.title} (${variant.sku})`
+      `Checking inventory for variant: ${variant.title} (${variant.sku})`,
     )
     logger.info(
-      `Current stock: ${level.stocked_quantity}, Reserved: ${level.reserved_quantity}`
+      `Current stock: ${level.stocked_quantity}, Reserved: ${level.reserved_quantity}`,
     )
 
     if (level.stocked_quantity === TARGET_STOCK_QUANTITY) {
       logger.info(
-        `Skipping update - stock quantity already at target: ${TARGET_STOCK_QUANTITY}`
+        `Skipping update - stock quantity already at target: ${TARGET_STOCK_QUANTITY}`,
       )
       continue
     }
@@ -222,7 +222,7 @@ export default async function updateInventory({ container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const productService = container.resolve<ProductService>(Modules.PRODUCT)
   const stockLocationService = container.resolve<StockLocationService>(
-    Modules.STOCK_LOCATION
+    Modules.STOCK_LOCATION,
   )
   const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
 
@@ -236,7 +236,7 @@ export default async function updateInventory({ container }: ExecArgs) {
     const inventoryItemLinks = await fetchInventoryItemLinks(
       query,
       product,
-      logger
+      logger,
     )
     if (!inventoryItemLinks) {
       return
@@ -246,7 +246,7 @@ export default async function updateInventory({ container }: ExecArgs) {
       query,
       inventoryItemLinks,
       stockLocation,
-      logger
+      logger,
     )
     if (!inventoryLevels) {
       return

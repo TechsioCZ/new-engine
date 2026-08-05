@@ -33,7 +33,7 @@ const getNormalizedCurrency = (currencyCode?: string): string =>
 
 const roundToSmallestCurrencyUnit = (
   amount: number,
-  multiplier: number
+  multiplier: number,
 ): number => {
   const roundedMajor =
     Math.round(new BigNumber(MathBN.mult(amount, multiplier)).numeric) /
@@ -72,23 +72,23 @@ export const getStripeCurrencyMultiplier = (currencyCode?: string): number => {
 
 export const toSmallestCurrencyUnit = (
   amount: number,
-  currencyCode?: string
+  currencyCode?: string,
 ): number =>
   roundToSmallestCurrencyUnit(amount, getCurrencyMultiplier(currencyCode))
 
 export const fromSmallestCurrencyUnit = (
   amount: number,
-  currencyCode?: string
+  currencyCode?: string,
 ): number => amount / getCurrencyMultiplier(currencyCode)
 
 export const fromStripeSmallestCurrencyUnit = (
   amount: number,
-  currencyCode?: string
+  currencyCode?: string,
 ): number => amount / getStripeCurrencyMultiplier(currencyCode)
 
 export const toStripeSmallestCurrencyUnit = (
   amount: number,
-  currencyCode?: string
+  currencyCode?: string,
 ): number => {
   const multiplier = getStripeCurrencyMultiplier(currencyCode)
   const smallestUnitAmount = roundToSmallestCurrencyUnit(amount, multiplier)

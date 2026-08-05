@@ -43,7 +43,7 @@ const validateReviewForm = (
   messages: {
     contentMinLength: string
     ratingRequired: string
-  }
+  },
 ) => {
   const errors: ProductReviewFormErrors = {}
 

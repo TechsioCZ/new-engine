@@ -38,14 +38,14 @@ export class CustomerGroupCustomersBatchClient {
     this.container = container
     this.customerGroupCodeService =
       container.resolve<SymmyCustomerGroupCodeModuleService>(
-        SYMMY_CUSTOMER_GROUP_CODE_MODULE
+        SYMMY_CUSTOMER_GROUP_CODE_MODULE,
       )
     this.query = getQuery(container)
   }
 
   async resolveCustomerGroupId(code: string): Promise<string | null> {
     const [mapping] = await this.customerGroupCodeService.listByCodes(
-      new Set([code])
+      new Set([code]),
     )
     if (mapping) {
       return mapping.customer_group_id
@@ -61,7 +61,7 @@ export class CustomerGroupCustomersBatchClient {
   }
 
   async preloadCustomers(
-    identifiers: CustomerGroupCustomerIdentifier[]
+    identifiers: CustomerGroupCustomerIdentifier[],
   ): Promise<CustomerIndex> {
     const ids = new Set<string>()
     const emails = new Set<string>()
@@ -94,7 +94,7 @@ export class CustomerGroupCustomersBatchClient {
 
   findCustomer(
     identifier: CustomerGroupCustomerIdentifier,
-    index: CustomerIndex
+    index: CustomerIndex,
   ): ExistingCustomer | null {
     if (identifier.identifier_type === "customer_id") {
       return identifier.customer_id
@@ -148,7 +148,7 @@ export class CustomerGroupCustomersBatchClient {
   }
 
   private async queryCustomerIdsByErpId(
-    erpIds: Set<string>
+    erpIds: Set<string>,
   ): Promise<Set<string>> {
     if (!erpIds.size) {
       return new Set()
@@ -188,7 +188,7 @@ export class CustomerGroupCustomersBatchClient {
 
   private getIdentifierFieldValue(
     identifier: CustomerGroupCustomerIdentifier,
-    type: CustomerGroupCustomerIdentifierType
+    type: CustomerGroupCustomerIdentifierType,
   ) {
     const value = identifier[type]
     return typeof value === "string" && value.length ? value : null
@@ -196,7 +196,7 @@ export class CustomerGroupCustomersBatchClient {
 
   private stringMetadataValue(
     metadata: Record<string, unknown> | null | undefined,
-    key: string
+    key: string,
   ) {
     const value = metadata?.[key]
     return typeof value === "string" && value.length ? value : null

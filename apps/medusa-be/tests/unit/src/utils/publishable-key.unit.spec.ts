@@ -17,7 +17,7 @@ import {
 interface ApiKeyServiceStub {
   createApiKeys: (
     data: CreateApiKeyDTO,
-    sharedContext?: Context
+    sharedContext?: Context,
   ) => Promise<ApiKeyDTO>
   listApiKeys: IApiKeyModuleService["listApiKeys"]
 }
@@ -37,12 +37,12 @@ const createApiKeyService = (): Mocked<ApiKeyServiceStub> => ({
 const createLockingModule = (): LockingModuleStub => ({
   execute: vi.fn(
     async (_key: string | string[], callback: () => Promise<unknown>) =>
-      await callback()
+      await callback(),
   ) as ILockingModule["execute"],
 })
 
 const createApiKey = (
-  overrides: Partial<ApiKeyDTO> & Pick<ApiKeyDTO, "id" | "token">
+  overrides: Partial<ApiKeyDTO> & Pick<ApiKeyDTO, "id" | "token">,
 ): ApiKeyDTO => ({
   created_at: new Date(),
   created_by: "user_123",
@@ -138,7 +138,7 @@ describe("publishable-key utils", () => {
       ])
 
       await expect(
-        getActivePublishableKey({ apiKeyService, title: "CI Key" })
+        getActivePublishableKey({ apiKeyService, title: "CI Key" }),
       ).resolves.toBeNull()
       expect(apiKeyService.createApiKeys).not.toHaveBeenCalled()
     })
@@ -181,7 +181,7 @@ describe("publishable-key utils", () => {
         }),
       ])
       apiKeyService.createApiKeys.mockResolvedValue(
-        createApiKey({ id: "key_created", token: "pk_created" })
+        createApiKey({ id: "key_created", token: "pk_created" }),
       )
 
       const result = await provisionPublishableKey({
@@ -210,7 +210,7 @@ describe("publishable-key utils", () => {
       const lockingModule = createLockingModule()
       apiKeyService.listApiKeys.mockResolvedValue([])
       apiKeyService.createApiKeys.mockResolvedValue(
-        createApiKey({ id: "key_created", token: "pk_created" })
+        createApiKey({ id: "key_created", token: "pk_created" }),
       )
 
       await provisionPublishableKey({
@@ -223,7 +223,7 @@ describe("publishable-key utils", () => {
       expect(lockingModule.execute).toHaveBeenCalledWith(
         "publishable-key:provision:CI%20Key",
         expect.any(Function),
-        { timeout: 5 }
+        { timeout: 5 },
       )
     })
   })

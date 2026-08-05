@@ -39,7 +39,7 @@ const FilterChip = ({
           "flex items-center justify-center whitespace-nowrap px-2 py-1",
           {
             "border-r": !!(value || hadPreviousValue),
-          }
+          },
         )}
       >
         <Text leading="compact" size="small" weight="plus">
@@ -67,7 +67,7 @@ const FilterChip = ({
               {
                 "data-[state=open]:bg-ui-bg-field-hover": !readonly,
                 "hover:bg-ui-bg-field-hover": !readonly,
-              }
+              },
             )}
           >
             <Text
@@ -86,7 +86,7 @@ const FilterChip = ({
           className={clx(
             "flex items-center justify-center p-1 text-ui-fg-muted transition-fg",
             "hover:bg-ui-bg-subtle-hover",
-            "active:bg-ui-bg-subtle-pressed active:text-ui-fg-base"
+            "active:bg-ui-bg-subtle-pressed active:text-ui-fg-base",
           )}
           onClick={handleRemove}
           type="button"

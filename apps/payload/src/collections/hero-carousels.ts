@@ -38,7 +38,7 @@ const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
 
 const resolveInternalTitle = (
   data: Record<string, unknown>,
-  locale: string | undefined
+  locale: string | undefined,
 ) =>
   cleanString(data.internalTitle) ||
   resolveLocalizedString(data.heading, locale) ||
@@ -118,7 +118,7 @@ export const HeroCarousels: CollectionConfig = {
           operation === "update" && originalDoc
             ? { ...originalDoc, ...data }
             : data,
-          req?.locale
+          req?.locale,
         )
 
         return data

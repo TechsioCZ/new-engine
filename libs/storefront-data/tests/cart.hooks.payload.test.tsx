@@ -160,7 +160,7 @@ describe("createCartHooks payload normalization", () => {
       updateLineItem: async (
         cartId: string,
         lineItemId: string,
-        params: Record<string, unknown>
+        params: Record<string, unknown>,
       ) => {
         receivedCartId = cartId
         receivedLineItemId = lineItemId

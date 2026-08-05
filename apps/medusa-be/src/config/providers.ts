@@ -13,7 +13,7 @@ interface ModuleProviderConfig {
 }
 
 export function buildNotificationProvider(
-  env: MedusaConfigEnv
+  env: MedusaConfigEnv,
 ): ModuleProviderConfig {
   switch (env.notificationProvider) {
     case "local": {
@@ -44,7 +44,7 @@ export function buildNotificationProvider(
 }
 
 export function buildNotificationProviders(
-  env: MedusaConfigEnv
+  env: MedusaConfigEnv,
 ): ModuleProviderConfig[] {
   const provider = buildNotificationProvider(env)
 
@@ -124,7 +124,7 @@ export function buildEventBusModule(env: MedusaConfigEnv): MedusaModuleConfig {
 }
 
 export function buildWorkflowEngineModule(
-  env: MedusaConfigEnv
+  env: MedusaConfigEnv,
 ): MedusaModuleConfig {
   switch (env.workflowEngineProvider) {
     case "inmemory": {

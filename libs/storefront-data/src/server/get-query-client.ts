@@ -9,7 +9,7 @@ const ensureServerEnvironment = () => {
 
   if (typeof window !== "undefined" && !isVitest) {
     throw new Error(
-      "[storefront-data] server/get-query-client must not be imported in client code."
+      "[storefront-data] server/get-query-client must not be imported in client code.",
     )
   }
 }

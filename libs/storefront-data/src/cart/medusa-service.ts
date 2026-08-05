@@ -27,7 +27,7 @@ const defaultIsNotFoundError = (error: unknown): boolean =>
   getErrorStatus(error) === 404
 
 const buildCartSelectParams = (
-  fields?: string
+  fields?: string,
 ): HttpTypes.SelectParams | undefined => {
   if (!fields) {
     return
@@ -37,7 +37,7 @@ const buildCartSelectParams = (
 }
 
 const sanitizeCartWriteParams = <TParams extends MedusaCartWriteParams>(
-  params: TParams
+  params: TParams,
 ): TParams => {
   if (!("country_code" in params)) {
     return params
@@ -79,7 +79,7 @@ export type MedusaCartService = Required<
 
 export function createMedusaCartService(
   sdk: Medusa,
-  config?: MedusaCartServiceConfig
+  config?: MedusaCartServiceConfig,
 ): MedusaCartService {
   const cartQuery = buildCartSelectParams(config?.cartFields)
   const isNotFoundError = (error: unknown): boolean =>
@@ -88,7 +88,7 @@ export function createMedusaCartService(
   return {
     async addLineItem(
       cartId: string,
-      params: MedusaCartAddItemParams
+      params: MedusaCartAddItemParams,
     ): Promise<HttpTypes.StoreCart> {
       const { cart } = cartQuery
         ? await sdk.store.cart.createLineItem(cartId, params, cartQuery)
@@ -105,7 +105,7 @@ export function createMedusaCartService(
     },
 
     async createCart(
-      params: MedusaCartCreateParams
+      params: MedusaCartCreateParams,
     ): Promise<HttpTypes.StoreCart> {
       const sanitizedParams = sanitizeCartWriteParams(params)
       const { cart } = cartQuery
@@ -119,7 +119,7 @@ export function createMedusaCartService(
 
     async removeLineItem(
       cartId: string,
-      lineItemId: string
+      lineItemId: string,
     ): Promise<HttpTypes.StoreCart> {
       const { parent } = cartQuery
         ? await sdk.store.cart.deleteLineItem(cartId, lineItemId, cartQuery)
@@ -132,7 +132,7 @@ export function createMedusaCartService(
 
     async retrieveCart(
       cartId: string,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<HttpTypes.StoreCart | null> {
       try {
         const fetchOptions = cartQuery
@@ -140,7 +140,7 @@ export function createMedusaCartService(
           : { signal: signal ?? null }
         const { cart } = await sdk.client.fetch<HttpTypes.StoreCartResponse>(
           `/store/carts/${cartId}`,
-          fetchOptions
+          fetchOptions,
         )
         return cart ?? null
       } catch (error: unknown) {
@@ -163,7 +163,7 @@ export function createMedusaCartService(
 
     async updateCart(
       cartId: string,
-      params: MedusaCartUpdateParams
+      params: MedusaCartUpdateParams,
     ): Promise<HttpTypes.StoreCart> {
       const sanitizedParams = sanitizeCartWriteParams(params)
       const { cart } = cartQuery
@@ -178,14 +178,14 @@ export function createMedusaCartService(
     async updateLineItem(
       cartId: string,
       lineItemId: string,
-      params: MedusaCartUpdateItemParams
+      params: MedusaCartUpdateItemParams,
     ): Promise<HttpTypes.StoreCart> {
       const { cart } = cartQuery
         ? await sdk.store.cart.updateLineItem(
             cartId,
             lineItemId,
             params,
-            cartQuery
+            cartQuery,
           )
         : await sdk.store.cart.updateLineItem(cartId, lineItemId, params)
       if (!cart) {

@@ -11,7 +11,7 @@ export interface CarrierPickupAddress {
 export function resolveCarrierPickupAddress(
   data: unknown,
   fallbackCountryCode: string,
-  fallbackLabel: string
+  fallbackLabel: string,
 ): CarrierPickupAddress | null {
   if (!(isRecord(data) && readString(data.access_point_id))) {
     return null

@@ -22,7 +22,7 @@ import {
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
@@ -133,7 +133,7 @@ describe("GoPay payment webhook route", () => {
       {
         attempts: 2,
         delay: 25,
-      }
+      },
     )
     expect(res.sendStatus).toHaveBeenCalledWith(200)
   })
@@ -186,10 +186,10 @@ describe("GoPay payment webhook route", () => {
     expect(emit).toHaveBeenCalledOnce()
     expect(logger.error).toHaveBeenCalledWith(
       "Failed to emit PayKit payment webhook event",
-      expect.any(Error)
+      expect.any(Error),
     )
     expect(logger.debug).toHaveBeenCalledWith(
-      expect.stringContaining(PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID)
+      expect.stringContaining(PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID),
     )
     expect(res.sendStatus).toHaveBeenCalledWith(200)
   })
@@ -217,10 +217,10 @@ describe("GoPay payment webhook route", () => {
 
     expect(logger.error).toHaveBeenCalledWith(
       "Failed to emit PayKit payment webhook event",
-      expect.any(Error)
+      expect.any(Error),
     )
     expect(logger.debug).toHaveBeenCalledWith(
-      expect.stringContaining(PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID)
+      expect.stringContaining(PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID),
     )
     expect(res.sendStatus).toHaveBeenCalledWith(200)
   })

@@ -35,7 +35,7 @@ const seedQrPaymentRegionsWorkflow = createWorkflow(
     const result = setRegionsPaymentProvidersStep(input)
 
     return new WorkflowResponse(result)
-  }
+  },
 )
 
 export default async function seedQrPayment({ container }: ExecArgs) {
@@ -53,7 +53,7 @@ export default async function seedQrPayment({ container }: ExecArgs) {
 
   const existingLinks = await getRegionPaymentProviderLinks(
     query,
-    regions.map((region) => region.id)
+    regions.map((region) => region.id),
   )
   const providersByRegion = toRegionPaymentProviderMap(existingLinks)
 
@@ -74,7 +74,7 @@ export default async function seedQrPayment({ container }: ExecArgs) {
   })
 
   logger.info(
-    `QR payment region provider seed completed with provider: ${QR_PAYMENT_MEDUSA_PROVIDER_ID}`
+    `QR payment region provider seed completed with provider: ${QR_PAYMENT_MEDUSA_PROVIDER_ID}`,
   )
 }
 
@@ -88,7 +88,7 @@ async function listAllRegions(regionService: IRegionModuleService) {
       {
         skip,
         take,
-      }
+      },
     )
 
     regions.push(...page)
@@ -101,7 +101,7 @@ async function listAllRegions(regionService: IRegionModuleService) {
 
 async function getRegionPaymentProviderLinks(
   query: Query,
-  regionIds: string[]
+  regionIds: string[],
 ) {
   const { data } = await query.graph({
     entity: "region_payment_provider",
@@ -114,7 +114,7 @@ async function getRegionPaymentProviderLinks(
   if (!isRegionPaymentProviderLinks(data)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "QR payment seed region provider query returned invalid row"
+      "QR payment seed region provider query returned invalid row",
     )
   }
 
@@ -133,13 +133,13 @@ function toRegionPaymentProviderMap(links: RegionPaymentProviderLink[]) {
 }
 
 function isRegionPaymentProviderLinks(
-  data: unknown[]
+  data: unknown[],
 ): data is RegionPaymentProviderLink[] {
   return data.every(isRegionPaymentProviderLink)
 }
 
 function isRegionPaymentProviderLink(
-  link: unknown
+  link: unknown,
 ): link is RegionPaymentProviderLink {
   if (typeof link !== "object" || link === null) {
     return false

@@ -44,10 +44,10 @@ export function CheckoutShippingPaymentStepSection({
   >(null)
   const pendingPickupOption =
     controller.checkoutShippingQuery.shippingOptions.find(
-      (option) => option.id === pendingPickupOptionId
+      (option) => option.id === pendingPickupOptionId,
     )
   const hasPendingPickupRequirement = Boolean(
-    pendingPickupOption && resolveCarrierPickupRequirement(pendingPickupOption)
+    pendingPickupOption && resolveCarrierPickupRequirement(pendingPickupOption),
   )
   let paymentSelectionMessage: string | null = null
   if (!controller.checkoutPaymentQuery.canInitiatePayment) {

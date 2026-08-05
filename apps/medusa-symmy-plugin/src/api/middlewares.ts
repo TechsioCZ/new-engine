@@ -98,7 +98,7 @@ export default defineMiddlewares({
     error: unknown,
     req: MedusaRequest,
     res: MedusaResponse,
-    next: MedusaNextFunction
+    next: MedusaNextFunction,
   ) => {
     if (!isSymmyRoute(req)) {
       defaultErrorHandler(error, req, res, next)

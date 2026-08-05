@@ -22,7 +22,7 @@ describe("doc selector utilities", () => {
     expect(getMediaUrl(null)).toBeNull()
     expect(getMediaUrl({ url: 123 })).toBeNull()
     expect(getMediaUrl({ url: "https://example.com/image.jpg" })).toBe(
-      "https://example.com/image.jpg"
+      "https://example.com/image.jpg",
     )
   })
 })

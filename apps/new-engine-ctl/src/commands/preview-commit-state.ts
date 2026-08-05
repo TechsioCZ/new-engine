@@ -40,19 +40,19 @@ export function createPreviewCommitStateCommand(): Command {
       await appendGitHubOutput("environment_name", result.environment_name)
       await appendGitHubOutput(
         "environment_exists",
-        String(result.environment_exists)
+        String(result.environment_exists),
       )
       await appendGitHubOutput(
         "baseline_complete",
-        String(result.baseline_complete)
+        String(result.baseline_complete),
       )
       await appendGitHubOutput(
         "target_commit_sha",
-        result.target_commit_sha ?? ""
+        result.target_commit_sha ?? "",
       )
       await appendGitHubOutput(
         "last_deployed_commit_sha",
-        result.last_deployed_commit_sha ?? ""
+        result.last_deployed_commit_sha ?? "",
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
     })

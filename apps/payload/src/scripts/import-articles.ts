@@ -63,7 +63,7 @@ const debugLog = (...args: unknown[]) => {
 }
 const PLACEHOLDER_IMAGE = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lNnJYQAAAABJRU5ErkJggg==",
-  "base64"
+  "base64",
 )
 
 const usage = `Usage:
@@ -112,7 +112,7 @@ const getValueArg = (args: string[], index: number) => {
 }
 
 const parseStatusArg = (
-  value: string | undefined
+  value: string | undefined,
 ): ImportStatus | undefined => {
   if (!value) {
     return
@@ -124,7 +124,7 @@ const parseStatusArg = (
   }
 
   console.warn(
-    `Invalid --status value: ${value}. Allowed: ${STATUS_VALUES.join(", ")}`
+    `Invalid --status value: ${value}. Allowed: ${STATUS_VALUES.join(", ")}`,
   )
   return
 }
@@ -271,7 +271,7 @@ const sanitizeTitle = (value: string, rowIndex: number) => {
   const truncated = normalized.slice(0, TITLE_MAX_LENGTH - 3).trimEnd()
   const safeTitle = `${truncated}...`
   console.warn(
-    `Truncated title at row ${rowIndex + 2}: ${normalized.length} -> ${safeTitle.length} chars`
+    `Truncated title at row ${rowIndex + 2}: ${normalized.length} -> ${safeTitle.length} chars`,
   )
 
   return safeTitle
@@ -344,7 +344,7 @@ const parseTags = (value: string) =>
 
 const hasLocaleValue = (
   value: string | Record<string, string> | undefined,
-  locale: PayloadLocale
+  locale: PayloadLocale,
 ) => {
   if (!locale) {
     return false
@@ -375,7 +375,7 @@ const resolveSupportedLocales = () => {
 
 const resolvePayloadLocale = (
   locale: string | undefined,
-  supportedLocales: string[]
+  supportedLocales: string[],
 ): ResolvedLocale => {
   const normalized = locale?.trim().toLowerCase()
   if (!normalized) {
@@ -391,7 +391,7 @@ const resolvePayloadLocale = (
   }
 
   throw new Error(
-    `Invalid locale ${locale}. Supported values: ${supportedLocales.join(", ")}`
+    `Invalid locale ${locale}. Supported values: ${supportedLocales.join(", ")}`,
   )
 }
 
@@ -424,7 +424,7 @@ interface UpsertArticleParams {
 
 const resolveWriteLocale = (
   value: PayloadLocale,
-  supportedLocales: string[]
+  supportedLocales: string[],
 ): WriteLocale =>
   value === "all" || value === undefined
     ? ((supportedLocales[0] ?? DEFAULT_LOCALES[0]) as WriteLocale)
@@ -490,7 +490,7 @@ const parseStatus = (value: string) => {
 
   if (value) {
     console.warn(
-      `Unknown status value "${value}", defaulting to "draft". Allowed: ${STATUS_VALUES.join(", ")}`
+      `Unknown status value "${value}", defaulting to "draft". Allowed: ${STATUS_VALUES.join(", ")}`,
     )
   }
 
@@ -521,7 +521,7 @@ const findExistingBySlug = async (
   payload: Payload,
   collection: "articles" | "article-categories",
   slug: string,
-  locale: PayloadLocale = "all"
+  locale: PayloadLocale = "all",
 ) => {
   const result = await payload.find({
     collection,
@@ -688,7 +688,7 @@ const readRows = async (filePath: string, sheetName?: string) => {
   if (!selectedSheetName) {
     throw new ArticleImportError(
       "NO_SHEETS",
-      "XLSX file does not contain any sheets"
+      "XLSX file does not contain any sheets",
     )
   }
 
@@ -696,7 +696,7 @@ const readRows = async (filePath: string, sheetName?: string) => {
   if (!worksheet) {
     throw new ArticleImportError(
       "SHEET_NOT_FOUND",
-      `Sheet not found: ${selectedSheetName}`
+      `Sheet not found: ${selectedSheetName}`,
     )
   }
 
@@ -767,7 +767,7 @@ const assertRequiredColumns = (rows: Row[]) => {
   if (missing.length > 0) {
     throw new ArticleImportError(
       "MISSING_REQUIRED_COLUMNS",
-      `Missing required columns: ${missing.join(", ")}`
+      `Missing required columns: ${missing.join(", ")}`,
     )
   }
 }
@@ -775,7 +775,7 @@ const assertRequiredColumns = (rows: Row[]) => {
 const processArticleRow = async (
   row: Row,
   index: number,
-  context: ImportContext
+  context: ImportContext,
 ): Promise<ImportResult> => {
   const {
     dryRun,
@@ -795,7 +795,7 @@ const processArticleRow = async (
       "post_url",
       "post_title",
     ]),
-    index
+    index,
   )
   const content = getText(row, [
     "content",
@@ -840,15 +840,15 @@ const processArticleRow = async (
       "post_img_src",
       "post_img",
     ]),
-    fallbackMediaId
+    fallbackMediaId,
   )
 
   const author = await findAuthor(
     payload,
-    getText(row, ["author_email", "author", "email"])
+    getText(row, ["author_email", "author", "email"]),
   )
   const tags = parseTags(
-    getText(row, ["tags", "tagy", "keywords", "klicova_slova"])
+    getText(row, ["tags", "tagy", "keywords", "klicova_slova"]),
   )
   const status =
     statusOverride ?? parseStatus(getText(row, ["status", "state", "stav"]))
@@ -868,7 +868,7 @@ const processArticleRow = async (
     tags,
     ...(author ? { author } : {}),
     publishedDate: parseDate(
-      firstValue(row, ["publishedDate", "published_date", "date", "datum"])
+      firstValue(row, ["publishedDate", "published_date", "date", "datum"]),
     ),
     status,
     translationSync: translate,
@@ -889,7 +889,7 @@ const processArticleRow = async (
 }
 
 export const runImportFromFile = async (
-  options: ArticleImportOptions
+  options: ArticleImportOptions,
 ): Promise<ArticleImportResult> => {
   const {
     filePath,
@@ -912,7 +912,7 @@ export const runImportFromFile = async (
   throwIfAborted(signal)
   const { selectedSheetName, rows } = await readRows(
     resolvedFilePath,
-    sheetName
+    sheetName,
   )
   debugLog(`Rows loaded: ${rows.length}, sheet: ${selectedSheetName}`)
   assertRequiredColumns(rows)
@@ -930,7 +930,7 @@ export const runImportFromFile = async (
   const categoryCache = new Map<string, PayloadId>()
 
   console.log(
-    `${dryRun ? "Dry-run import" : "Importing"} ${rows.length} rows from ${resolvedFilePath} (${selectedSheetName})`
+    `${dryRun ? "Dry-run import" : "Importing"} ${rows.length} rows from ${resolvedFilePath} (${selectedSheetName})`,
   )
 
   for (const [index, row] of rows.entries()) {
@@ -996,7 +996,7 @@ const runImportFromCli = async () => {
   })
 
   console.log(
-    `Finished. Imported: ${result.imported}. Skipped: ${result.skipped}.`
+    `Finished. Imported: ${result.imported}. Skipped: ${result.skipped}.`,
   )
 }
 

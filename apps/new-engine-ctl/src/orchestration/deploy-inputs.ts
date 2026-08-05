@@ -71,7 +71,7 @@ export function normalizeCsvToArray(csv: string): string[] {
 
 async function loadYamlContract<T>(
   path: string,
-  parseContract: (value: unknown) => T
+  parseContract: (value: unknown) => T,
 ): Promise<T> {
   const raw = await readFile(path, "utf-8")
   let parsed: unknown
@@ -89,24 +89,24 @@ async function loadYamlContract<T>(
 }
 
 export async function loadManifest(
-  stackManifestPath: string
+  stackManifestPath: string,
 ): Promise<StackManifest> {
   return loadYamlContract(stackManifestPath, (value) =>
-    stackManifestSchema.parse(value)
+    stackManifestSchema.parse(value),
   )
 }
 
 export async function loadStackInputs(
-  stackInputsPath: string
+  stackInputsPath: string,
 ): Promise<StackInputs> {
   return loadYamlContract(stackInputsPath, (value) =>
-    stackInputsSchema.parse(value)
+    stackInputsSchema.parse(value),
   )
 }
 
 export async function loadDeployContracts(
   stackManifestPath: string,
-  stackInputsPath: string
+  stackInputsPath: string,
 ): Promise<DeployContracts> {
   const manifest = await loadManifest(stackManifestPath)
   const stackInputs = await loadStackInputs(stackInputsPath)
@@ -120,7 +120,7 @@ export async function loadDeployContracts(
 function appendPreviewRandomOnceEnv(
   env: Record<string, string>,
   context: DeployEnvContext,
-  serviceId: string
+  serviceId: string,
 ): void {
   for (const secret of context.previewRandomOnceSecrets) {
     if (previewRandomOnceSecretPersistsToZaneEnv(secret)) {
@@ -144,7 +144,7 @@ function appendConfiguredRuntimeProviderEnv(input: {
   for (const target of listRuntimeProviderTargetsForServiceInLane(
     input.stackInputs,
     input.context.lane,
-    input.serviceId
+    input.serviceId,
   )) {
     const outputValue =
       input.context.runtimeProviderOutputs[
@@ -153,7 +153,7 @@ function appendConfiguredRuntimeProviderEnv(input: {
 
     if (input.context.lane === "main" && !outputValue) {
       throw new Error(
-        `Runtime provider output ${target.provider_id}.${target.output_id} is required for service ${input.serviceId}.`
+        `Runtime provider output ${target.provider_id}.${target.output_id} is required for service ${input.serviceId}.`,
       )
     }
 
@@ -166,7 +166,7 @@ function appendConfiguredRuntimeProviderEnv(input: {
 function buildServiceEnvOverride(
   service: DeployableService,
   contracts: DeployContracts,
-  context: DeployEnvContext
+  context: DeployEnvContext,
 ): EnvOverride | null {
   const env: Record<string, string> = {}
 
@@ -195,7 +195,7 @@ function buildServiceEnvOverride(
 export function buildExpectedEnvOverrides(
   deployServiceIds: string[],
   contracts: DeployContracts,
-  context: DeployEnvContext
+  context: DeployEnvContext,
 ): EnvOverride[] {
   return deployServiceIds.flatMap((serviceId) => {
     const service = getDeployableService(contracts.manifest, serviceId)
@@ -208,7 +208,7 @@ export function buildExpectedEnvOverrides(
 function addPersistedEnvKey(
   envKeys: string[],
   seen: Set<string>,
-  key: string
+  key: string,
 ): void {
   if (key && !seen.has(key)) {
     seen.add(key)
@@ -219,18 +219,18 @@ function addPersistedEnvKey(
 function buildPersistedEnvKeysForService(
   service: DeployableService,
   lane: Lane,
-  contracts: DeployContracts
+  contracts: DeployContracts,
 ): string[] {
   const envKeys: string[] = []
   const seen = new Set<string>()
   const definitions = getPreviewRandomOnceSecretDefinitions(
-    contracts.stackInputs
+    contracts.stackInputs,
   )
 
   for (const target of listRuntimeProviderTargetsForServiceInLane(
     contracts.stackInputs,
     lane,
-    service.id
+    service.id,
   )) {
     addPersistedEnvKey(envKeys, seen, target.env_var)
   }
@@ -255,7 +255,7 @@ function buildPersistedEnvKeysForService(
 export function buildRequiredPersistedEnv(
   lane: Lane,
   deployServiceIds: string[],
-  contracts: DeployContracts
+  contracts: DeployContracts,
 ): RequiredPersistedEnv[] {
   const persisted = deployServiceIds.flatMap((serviceId) => {
     const service = getDeployableService(contracts.manifest, serviceId)
@@ -284,7 +284,7 @@ export function buildRequiredPersistedEnv(
     stackInputs: contracts.stackInputs,
   })
   const byServiceId = new Map(
-    persisted.map((requirement) => [requirement.service_id, requirement])
+    persisted.map((requirement) => [requirement.service_id, requirement]),
   )
 
   for (const runtimeRequirement of runtimeEnvRequirements) {
@@ -296,7 +296,7 @@ export function buildRequiredPersistedEnv(
     }
 
     existing.env_keys = normalizeCsvToArray(
-      [...existing.env_keys, ...runtimeRequirement.env_keys].join(",")
+      [...existing.env_keys, ...runtimeRequirement.env_keys].join(","),
     )
   }
 
@@ -306,7 +306,7 @@ export function buildRequiredPersistedEnv(
 export function buildRequiredSharedEnv(
   lane: Lane,
   deployServiceIds: string[],
-  contracts: DeployContracts
+  contracts: DeployContracts,
 ): RequiredSharedEnv[] {
   if (lane !== "preview") {
     return []
@@ -315,7 +315,7 @@ export function buildRequiredSharedEnv(
   const envKeys: string[] = []
   const seen = new Set<string>()
   const randomOnceDefinitions = getPreviewRandomOnceSecretDefinitions(
-    contracts.stackInputs
+    contracts.stackInputs,
   )
 
   for (const key of buildPreviewRequiredSharedEnvKeys({
@@ -332,12 +332,12 @@ export function buildRequiredSharedEnv(
 
     if (!secret.persisted_env_var) {
       throw new Error(
-        `Preview secret ${secret.secret_id} persists to zane_env but missing persisted_env_var.`
+        `Preview secret ${secret.secret_id} persists to zane_env but missing persisted_env_var.`,
       )
     }
 
     const isConsumedByDeploy = secret.targets.some((target) =>
-      deployServiceIds.includes(target.service_id)
+      deployServiceIds.includes(target.service_id),
     )
 
     if (isConsumedByDeploy) {
@@ -351,14 +351,14 @@ export function buildRequiredSharedEnv(
 export function buildForbiddenPreviewOnlyEnv(
   lane: Lane,
   deployServiceIds: string[],
-  contracts: DeployContracts
+  contracts: DeployContracts,
 ): ForbiddenEnvRequirement[] {
   if (lane !== "preview") {
     return []
   }
 
   return getPreviewForbiddenServiceEnvDefinitions(
-    contracts.stackInputs
+    contracts.stackInputs,
   ).flatMap((definition) => {
     if (!deployServiceIds.includes(definition.service_id)) {
       return []
@@ -366,7 +366,7 @@ export function buildForbiddenPreviewOnlyEnv(
 
     const service = getDeployableService(
       contracts.manifest,
-      definition.service_id
+      definition.service_id,
     )
     const envKeys = normalizeCsvToArray(definition.env_keys.join(","))
     if (envKeys.length === 0) {

@@ -35,7 +35,7 @@ export default async function CategoryPage({
   const queryState = parsePlpQueryStateFromSearchParams(resolvedSearchParams)
   const { dehydratedState } = await prefetchCategoryPageStorefrontData(
     normalizedSlug,
-    queryState
+    queryState,
   )
 
   return (

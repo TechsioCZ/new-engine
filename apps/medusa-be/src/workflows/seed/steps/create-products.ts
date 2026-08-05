@@ -261,7 +261,7 @@ function stripBrandHandleDiacritics(title: string) {
 export function normalizeBrandRegistryKey(title: string): string {
   const separated = stripBrandHandleDiacritics(title).replaceAll(
     /[^\p{L}\p{N}]+/gu,
-    "-"
+    "-",
   )
   const kebab = kebabCase(separated)
     .replaceAll(/-+/g, "-")
@@ -283,13 +283,13 @@ function getLegacyBrandHandles(title: string): string[] {
     .replaceAll(/^-|-$/g, "")
 
   return [...new Set([historicalKebabHandle, previousAsciiHandle])].filter(
-    Boolean
+    Boolean,
   )
 }
 
 export function getBrandSeedHandleCandidates(
   title: string,
-  canonicalHandle = normalizeBrandRegistryKey(title)
+  canonicalHandle = normalizeBrandRegistryKey(title),
 ): string[] {
   return [
     ...new Set([canonicalHandle, ...getLegacyBrandHandles(title)]),
@@ -300,7 +300,7 @@ function mergeBrandScalar(
   brand: BrandRegistryEntry,
   field: SeedBrandScalarField,
   value: boolean | string | null | undefined,
-  productHandle: string
+  productHandle: string,
 ) {
   const normalizedValue =
     typeof value === "string" ? normalizeSeedText(value) : value
@@ -311,7 +311,7 @@ function mergeBrandScalar(
   const currentValue = brand[field]
   if (currentValue !== undefined && currentValue !== normalizedValue) {
     throw new Error(
-      `Conflicting ${field} values for brand "${brand.title}" from products "${brand.products[0]}" and "${productHandle}"`
+      `Conflicting ${field} values for brand "${brand.title}" from products "${brand.products[0]}" and "${productHandle}"`,
     )
   }
 
@@ -321,12 +321,12 @@ function mergeBrandScalar(
 function mergeBrandAttribute(
   brand: BrandRegistryEntry,
   attribute: { name: string; value: string },
-  productHandle: string
+  productHandle: string,
 ) {
   const name = attribute.name.trim().toLowerCase()
   if (!name) {
     throw new Error(
-      `Brand "${brand.title}" has an attribute with an empty name on product "${productHandle}"`
+      `Brand "${brand.title}" has an attribute with an empty name on product "${productHandle}"`,
     )
   }
 
@@ -334,7 +334,7 @@ function mergeBrandAttribute(
   const currentValue = brand.attributes.get(name)
   if (currentValue !== undefined && currentValue !== value) {
     throw new Error(
-      `Conflicting attribute "${name}" values for brand "${brand.title}" from products "${brand.products[0]}" and "${productHandle}"`
+      `Conflicting attribute "${name}" values for brand "${brand.title}" from products "${brand.products[0]}" and "${productHandle}"`,
     )
   }
 
@@ -342,7 +342,7 @@ function mergeBrandAttribute(
 }
 
 export function buildBrandRegistry(
-  inputProducts: Pick<ProductInput, "brand" | "handle" | "productAttributes">[]
+  inputProducts: Pick<ProductInput, "brand" | "handle" | "productAttributes">[],
 ): BrandRegistry {
   const brands: BrandRegistry = new Map()
 
@@ -355,7 +355,7 @@ export function buildBrandRegistry(
     const handle = normalizeBrandRegistryKey(title)
     if (!handle) {
       throw new Error(
-        `Product "${inputProduct.handle}" has a brand title that cannot produce a valid handle`
+        `Product "${inputProduct.handle}" has a brand title that cannot produce a valid handle`,
       )
     }
 
@@ -382,14 +382,14 @@ export function buildBrandRegistry(
         brand,
         field,
         inputProduct.brand?.[field],
-        inputProduct.handle
+        inputProduct.handle,
       )
     }
     mergeBrandScalar(
       brand,
       "gpsr_manufactured_outside_eu",
       inputProduct.brand?.gpsr_manufactured_outside_eu,
-      inputProduct.handle
+      inputProduct.handle,
     )
   }
 
@@ -414,7 +414,9 @@ function getExistingVariantSkus(product?: ProductDTO): Set<string> {
   return new Set(
     (product?.variants ?? [])
       .map((variant) => variant.sku)
-      .filter((sku): sku is string => typeof sku === "string" && sku.length > 0)
+      .filter(
+        (sku): sku is string => typeof sku === "string" && sku.length > 0,
+      ),
   )
 }
 
@@ -440,7 +442,7 @@ function buildUniqueVariantSku(params: {
 
 function renameVariantSku(
   variant: NonNullable<ProductInput["variants"]>[number],
-  candidate: string
+  candidate: string,
 ): boolean {
   if (candidate === variant.sku) {
     return false
@@ -458,10 +460,10 @@ function renameVariantSku(
 function ensureUniqueVariantSkus(
   inputProducts: ProductInput[],
   existingProducts: ProductDTO[],
-  logger: Logger
+  logger: Logger,
 ) {
   const existingProductsByHandle = new Map(
-    existingProducts.map((product) => [product.handle, product])
+    existingProducts.map((product) => [product.handle, product]),
   )
   const usedSkus = collectUsedVariantSkus(existingProducts)
   let renamedSkus = 0
@@ -495,7 +497,7 @@ function ensureUniqueVariantSkus(
 
   if (renamedSkus > 0) {
     logger.warn(
-      `Detected duplicate or empty SKUs in seed input, renamed ${renamedSkus} variant SKUs to keep them unique`
+      `Detected duplicate or empty SKUs in seed input, renamed ${renamedSkus} variant SKUs to keep them unique`,
     )
   }
 }
@@ -526,7 +528,7 @@ export function getSourceVariantId(variant: {
 
 function findExistingVariant(
   existingProduct: ProductDTO,
-  inputVariant: NonNullable<ProductInput["variants"]>[number]
+  inputVariant: NonNullable<ProductInput["variants"]>[number],
 ) {
   const sourceVariantId = getSourceVariantId(inputVariant)
   if (sourceVariantId) {
@@ -543,13 +545,13 @@ function findExistingVariant(
   }
 
   return (existingProduct.variants ?? []).find(
-    (variant) => variant.sku === inputVariant.sku
+    (variant) => variant.sku === inputVariant.sku,
   )
 }
 
 function processProductVariantImagesInput(
   inputProduct: ProductInput,
-  productVariantImages: Map<string, Map<string, ProductVariantImagesInput>>
+  productVariantImages: Map<string, Map<string, ProductVariantImagesInput>>,
 ) {
   if (inputProduct.variants?.length === 0) {
     return
@@ -580,7 +582,7 @@ function processProductVariantImagesInput(
 
 function prepareVariantImagesWorkflowInput(
   product: ProductDTO,
-  productVariantImages: Map<string, Map<string, ProductVariantImagesInput>>
+  productVariantImages: Map<string, Map<string, ProductVariantImagesInput>>,
 ): BatchVariantImagesWorkflowInput[] | undefined {
   if (product.variants?.length === 0) {
     return
@@ -589,7 +591,7 @@ function prepareVariantImagesWorkflowInput(
   const variantImages = productVariantImages.get(product.handle)
   if (!variantImages) {
     throw new Error(
-      `Product "${product.handle}" not found when processing variant images`
+      `Product "${product.handle}" not found when processing variant images`,
     )
   }
 
@@ -610,7 +612,7 @@ function prepareVariantImagesWorkflowInput(
       // if no images are specified for variant, use base images from the product entity
       const toAdd = productImages
         .map(
-          (image) => productImages.find((v) => v.url === image.url)?.id ?? null
+          (image) => productImages.find((v) => v.url === image.url)?.id ?? null,
         )
         .filter((id): id is string => id !== null)
 
@@ -645,7 +647,7 @@ function prepareVariantImagesWorkflowInput(
 function collectCategoryHandles(input: CreateProductsStepInput): string[] {
   return [
     ...new Set(
-      input.flatMap((product) => product.categories.map((cat) => cat.handle))
+      input.flatMap((product) => product.categories.map((cat) => cat.handle)),
     ),
   ]
 }
@@ -656,10 +658,10 @@ function collectSalesChannelNames(input: CreateProductsStepInput): string[] {
 
 function resolveCategory(
   existingCategories: ExistingCategory[],
-  handle: string
+  handle: string,
 ): ExistingCategory {
   const existingCategory = existingCategories.find(
-    (cat) => cat.handle === handle
+    (cat) => cat.handle === handle,
   )
   if (!existingCategory) {
     throw new Error(`Category "${handle}" not found`)
@@ -670,7 +672,7 @@ function resolveCategory(
 
 function resolveShippingProfileId(
   existingShippingProfiles: ExistingShippingProfile[],
-  name: string
+  name: string,
 ): string {
   const profile = existingShippingProfiles.find((sp) => sp.name === name)
   if (!profile) {
@@ -682,7 +684,7 @@ function resolveShippingProfileId(
 
 function resolveSalesChannel(
   existingSalesChannels: ExistingSalesChannel[],
-  name: string
+  name: string,
 ): ExistingSalesChannel {
   const channel = existingSalesChannels.find((sc) => sc.name === name)
   if (!channel) {
@@ -694,14 +696,14 @@ function resolveSalesChannel(
 
 function registerProductSideInputs(
   inputProduct: ProductInput,
-  productVariantImages: VariantImagesRegistry
+  productVariantImages: VariantImagesRegistry,
 ): void {
   processProductVariantImagesInput(inputProduct, productVariantImages)
 }
 
 function buildUpdateVariant(
   existingProduct: ProductDTO,
-  inputVariant: NonNullable<ProductInput["variants"]>[number]
+  inputVariant: NonNullable<ProductInput["variants"]>[number],
 ) {
   const existingVariant = findExistingVariant(existingProduct, inputVariant)
 
@@ -760,7 +762,7 @@ function buildUpdateProductPayload(params: {
     id: existingProduct.id,
     title: inputProduct.title,
     category_ids: inputProduct.categories?.map(
-      (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
+      (inputCat) => resolveCategory(existingCategories, inputCat.handle).id,
     ),
     description: inputProduct.description,
     ...(inputProduct.weight === undefined
@@ -772,7 +774,7 @@ function buildUpdateProductPayload(params: {
       : { metadata: inputProduct.metadata }),
     shipping_profile_id: resolveShippingProfileId(
       existingShippingProfiles,
-      inputProduct.shippingProfileName
+      inputProduct.shippingProfileName,
     ),
     thumbnail: inputProduct.thumbnail || existingProduct.thumbnail,
     images: inputProduct.images ?? [],
@@ -783,17 +785,17 @@ function buildUpdateProductPayload(params: {
       ? {}
       : {
           variants: inputProduct.variants.map((inputVariant) =>
-            buildUpdateVariant(existingProduct, inputVariant)
+            buildUpdateVariant(existingProduct, inputVariant),
           ),
         }),
     sales_channels: inputProduct.salesChannelNames.map((name) =>
-      resolveSalesChannel(existingSalesChannels, name)
+      resolveSalesChannel(existingSalesChannels, name),
     ),
   }
 }
 
 function buildCreateVariant(
-  inputVariant: NonNullable<ProductInput["variants"]>[number]
+  inputVariant: NonNullable<ProductInput["variants"]>[number],
 ) {
   return {
     sku: inputVariant.sku,
@@ -838,7 +840,7 @@ function buildCreateProductPayload(params: {
   return {
     title: inputProduct.title,
     category_ids: inputProduct.categories?.map(
-      (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
+      (inputCat) => resolveCategory(existingCategories, inputCat.handle).id,
     ),
     description: inputProduct.description,
     handle: inputProduct.handle,
@@ -851,7 +853,7 @@ function buildCreateProductPayload(params: {
       : { metadata: inputProduct.metadata }),
     shipping_profile_id: resolveShippingProfileId(
       existingShippingProfiles,
-      inputProduct.shippingProfileName
+      inputProduct.shippingProfileName,
     ),
     ...(inputProduct.thumbnail === undefined
       ? {}
@@ -864,7 +866,7 @@ function buildCreateProductPayload(params: {
       ? {}
       : { variants: inputProduct.variants.map(buildCreateVariant) }),
     sales_channels: inputProduct.salesChannelNames.map((name) =>
-      resolveSalesChannel(existingSalesChannels, name)
+      resolveSalesChannel(existingSalesChannels, name),
     ),
   }
 }
@@ -879,7 +881,7 @@ function buildUpdateProductPayloads(params: {
 }) {
   return params.existingProducts.flatMap((existingProduct) => {
     const inputProduct = params.input.find(
-      (product) => product.handle === existingProduct.handle
+      (product) => product.handle === existingProduct.handle,
     )
 
     if (!inputProduct) {
@@ -928,7 +930,7 @@ async function applyVariantImageUpdates(params: {
   for (const product of params.products) {
     const variantImageInputs = prepareVariantImagesWorkflowInput(
       product,
-      params.productVariantImages
+      params.productVariantImages,
     )
 
     for (const variantImageInput of variantImageInputs ?? []) {
@@ -949,7 +951,7 @@ function getDesiredBrandHandleByProduct(brands: BrandRegistry) {
       const existing = desiredBrandHandleByProduct.get(productHandle)
       if (existing && existing !== brand.handle) {
         throw new Error(
-          `Product "${productHandle}" resolves to multiple brands: "${existing}" and "${brand.handle}"`
+          `Product "${productHandle}" resolves to multiple brands: "${existing}" and "${brand.handle}"`,
         )
       }
       desiredBrandHandleByProduct.set(productHandle, brand.handle)
@@ -961,21 +963,21 @@ function getDesiredBrandHandleByProduct(brands: BrandRegistry) {
 
 function mergeExistingBrandAttributes(
   existing: ExistingBrand,
-  incoming: BrandRegistryEntry
+  incoming: BrandRegistryEntry,
 ) {
   const attributes = new Map<string, { name: string; value: string }>()
   for (const attribute of existing.attributes ?? []) {
     const persistedName = attribute.attributeType?.name?.trim()
     if (!persistedName) {
       throw new Error(
-        `Existing brand "${existing.title}" has an attribute without an attribute type name`
+        `Existing brand "${existing.title}" has an attribute without an attribute type name`,
       )
     }
     const key = persistedName.toLowerCase()
     const prior = attributes.get(key)
     if (prior !== undefined && prior.value !== attribute.value) {
       throw new Error(
-        `Existing brand "${existing.title}" has conflicting values for attribute "${key}"`
+        `Existing brand "${existing.title}" has conflicting values for attribute "${key}"`,
       )
     }
     attributes.set(key, {
@@ -1004,7 +1006,7 @@ function mergeExistingBrandAttributes(
 
 export function buildExistingBrandReconciliation(
   existing: ExistingBrand,
-  incoming: BrandRegistryEntry
+  incoming: BrandRegistryEntry,
 ): Partial<BrandInput> {
   const update: Partial<BrandInput> = {}
   if (existing.title !== incoming.title) {
@@ -1065,11 +1067,11 @@ function toCreateBrandInput(brand: BrandRegistryEntry) {
 
 async function findExistingSeedBrand(
   brandService: BrandModuleService,
-  brandData: BrandRegistryEntry
+  brandData: BrandRegistryEntry,
 ): Promise<ExistingBrand | undefined> {
   const candidateHandles = getBrandSeedHandleCandidates(
     brandData.title,
-    brandData.handle
+    brandData.handle,
   )
   const existingBrands = (await brandService.listBrands(
     {
@@ -1079,12 +1081,12 @@ async function findExistingSeedBrand(
       relations: ["attributes", "attributes.attributeType"],
       take: Math.max(candidateHandles.length * 2, 1),
       withDeleted: true,
-    }
+    },
   )) as ExistingBrand[]
 
   if (existingBrands.length > 1) {
     throw new Error(
-      `Brand "${brandData.title}" resolves to multiple persisted records for handles ${candidateHandles.map((handle) => `"${handle}"`).join(", ")}: ${existingBrands.map((brand) => `"${brand.title}" (${brand.handle})`).join(", ")}`
+      `Brand "${brandData.title}" resolves to multiple persisted records for handles ${candidateHandles.map((handle) => `"${handle}"`).join(", ")}: ${existingBrands.map((brand) => `"${brand.title}" (${brand.handle})`).join(", ")}`,
     )
   }
 
@@ -1093,7 +1095,7 @@ async function findExistingSeedBrand(
 
 function validateExistingSeedBrandReconciliation(
   existing: ExistingBrand,
-  brandData: BrandRegistryEntry
+  brandData: BrandRegistryEntry,
 ) {
   const update = buildExistingBrandReconciliation(existing, brandData)
   const effectiveState: BrandScalarWriteInput = {
@@ -1117,7 +1119,7 @@ function validateExistingSeedBrandReconciliation(
 
 async function assertSeedBrandsCompatibleWithPersistence(
   brandService: BrandModuleService,
-  brands: BrandRegistry
+  brands: BrandRegistry,
 ) {
   const desiredHandleByExistingBrandId = new Map<string, string>()
 
@@ -1127,7 +1129,7 @@ async function assertSeedBrandsCompatibleWithPersistence(
       const priorDesiredHandle = desiredHandleByExistingBrandId.get(existing.id)
       if (priorDesiredHandle && priorDesiredHandle !== brandData.handle) {
         throw new Error(
-          `Persisted brand "${existing.title}" (${existing.handle}) resolves to multiple seed handles: "${priorDesiredHandle}" and "${brandData.handle}"`
+          `Persisted brand "${existing.title}" (${existing.handle}) resolves to multiple seed handles: "${priorDesiredHandle}" and "${brandData.handle}"`,
         )
       }
       desiredHandleByExistingBrandId.set(existing.id, brandData.handle)
@@ -1145,7 +1147,7 @@ async function upsertSeedBrand(params: {
 }): Promise<ExistingBrand> {
   const existing = await findExistingSeedBrand(
     params.brandService,
-    params.brandData
+    params.brandData,
   )
   if (!existing) {
     const { result } = await createBrandsWorkflow(params.container).run({
@@ -1217,7 +1219,7 @@ async function listSeedProductsByHandle(params: {
       {
         select: ["id", "handle"],
         take: handleChunk.length,
-      }
+      },
     )
     products.push(...chunkProducts)
   }
@@ -1225,10 +1227,10 @@ async function listSeedProductsByHandle(params: {
   if (products.length !== uniqueHandles.length) {
     const foundHandles = new Set(products.map((product) => product.handle))
     const missingHandles = uniqueHandles.filter(
-      (handle) => !foundHandles.has(handle)
+      (handle) => !foundHandles.has(handle),
     )
     throw new Error(
-      `Products were not found for brand linking: ${missingHandles.join(", ")}`
+      `Products were not found for brand linking: ${missingHandles.join(", ")}`,
     )
   }
 
@@ -1249,7 +1251,7 @@ export function buildDesiredProductBrandLinks(params: {
       : undefined
     if (desiredHandle && !desiredBrandId) {
       throw new Error(
-        `Resolved brand was not found for product "${product.handle}"`
+        `Resolved brand was not found for product "${product.handle}"`,
       )
     }
 
@@ -1264,7 +1266,7 @@ export function buildDesiredProductBrandLinks(params: {
 
 async function reconcileProductBrandLinks(
   container: WorkflowContainer,
-  links: { brandIds: string[]; productId: string }[]
+  links: { brandIds: string[]; productId: string }[],
 ) {
   for (const link of links) {
     await setProductBrandsWorkflow(container).run({
@@ -1291,7 +1293,7 @@ async function linkBrands(params: {
 
   const brandIdsByHandle = await upsertSeedBrandsByHandle(params)
   const desiredBrandHandleByProduct = getDesiredBrandHandleByProduct(
-    params.brands
+    params.brands,
   )
   const products = await listSeedProductsByHandle({
     productHandles: params.seedProducts.map((product) => product.handle),
@@ -1312,13 +1314,13 @@ export const createProductsStep = createStep(
     const result: string[] = []
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const productService = container.resolve<IProductModuleService>(
-      Modules.PRODUCT
+      Modules.PRODUCT,
     )
     const fulfillmentService = container.resolve<IFulfillmentModuleService>(
-      Modules.FULFILLMENT
+      Modules.FULFILLMENT,
     )
     const salesChannelService = container.resolve<ISalesChannelModuleService>(
-      Modules.SALES_CHANNEL
+      Modules.SALES_CHANNEL,
     )
     const brandService = container.resolve<BrandModuleService>(BRAND_MODULE)
 
@@ -1331,7 +1333,7 @@ export const createProductsStep = createStep(
       },
       {
         select: ["id", "handle"],
-      }
+      },
     )
     const existingSalesChannels = await salesChannelService.listSalesChannels({
       name: collectSalesChannelNames(input),
@@ -1349,7 +1351,7 @@ export const createProductsStep = createStep(
       {
         relations: ["variants", "variants.options"],
         select: ["variants.*", "variants.options.*", "*"],
-      }
+      },
     )
 
     await assertSeedBrandsCompatibleWithPersistence(brandService, brands)
@@ -1357,7 +1359,7 @@ export const createProductsStep = createStep(
     ensureUniqueVariantSkus(input, existingProducts, logger)
 
     const missingProducts = input.filter(
-      (i) => !existingProducts.find((j) => j.handle === i.handle)
+      (i) => !existingProducts.find((j) => j.handle === i.handle),
     )
     const updateProducts = existingProducts.flatMap((existingProduct) =>
       buildUpdateProductPayloads({
@@ -1367,7 +1369,7 @@ export const createProductsStep = createStep(
         existingShippingProfiles,
         input,
         productVariantImages,
-      })
+      }),
     )
 
     if (missingProducts.length !== 0) {
@@ -1401,7 +1403,7 @@ export const createProductsStep = createStep(
             "variants.images.id",
             "variants.images.url",
           ],
-        }
+        },
       )
 
       logger.info("Creating product variant images...")
@@ -1444,7 +1446,7 @@ export const createProductsStep = createStep(
             "variants.images.id",
             "variants.images.url",
           ],
-        }
+        },
       )
 
       logger.info("Updating product variant images...")
@@ -1468,5 +1470,5 @@ export const createProductsStep = createStep(
     return new StepResponse({
       result,
     })
-  }
+  },
 )

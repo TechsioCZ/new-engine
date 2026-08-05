@@ -70,7 +70,7 @@ interface ToastProps {
 export function Toast({ actor, index, parent, placement }: ToastProps) {
   const composedProps = {
     ...Object.fromEntries(
-      Object.entries(actor).filter(([, option]) => option !== undefined)
+      Object.entries(actor).filter(([, option]) => option !== undefined),
     ),
     index,
     parent,

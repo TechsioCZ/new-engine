@@ -11,7 +11,7 @@ import type { PacketaShipmentState } from "./types"
  * Source: https://docs.packetery.com/03-creating-packets/01-rest-api.html#status-codes
  */
 export function mapPacketaStatusCode(
-  code: string | number
+  code: string | number,
 ): PacketaShipmentState {
   const key = String(code).trim().toLowerCase()
 

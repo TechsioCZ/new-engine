@@ -144,7 +144,7 @@ import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-
 export default async function Page() {
   const queryClient = getServerQueryClient()
   await queryClient.prefetchQuery(
-    productHooks.getListQueryOptions({ limit: 20 })
+    productHooks.getListQueryOptions({ limit: 20 }),
   )
 
   return (

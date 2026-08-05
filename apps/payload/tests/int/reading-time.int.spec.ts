@@ -91,7 +91,7 @@ describe("readingTime utilities", () => {
 
     it("handles content with multiple whitespace between words", () => {
       convertLexicalToPlaintextMock.mockReturnValue(
-        "word1   word2\t\tword3\n\nword4"
+        "word1   word2\t\tword3\n\nword4",
       )
 
       const content = { root: { children: [] } } as any

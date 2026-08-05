@@ -14,7 +14,7 @@ import { Modules } from "@medusajs/framework/utils"
 
 export default async function myScript({ container }: ExecArgs) {
   const productModuleService: IProductModuleService = container.resolve(
-    Modules.PRODUCT
+    Modules.PRODUCT,
   )
 
   const [, count] = await productModuleService.listAndCountProducts()

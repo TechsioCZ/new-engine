@@ -51,7 +51,7 @@ function buildDryRunResponse({
 }: DryRunResponseOptions): VerifyResponse {
   return {
     checked_deployment_service_ids: input.deployments.map(
-      (deployment: DeploymentRef) => deployment.service_id
+      (deployment: DeploymentRef) => deployment.service_id,
     ),
     checked_deployments: input.deployments.map((deployment: DeploymentRef) => ({
       service_id: deployment.service_id,
@@ -61,17 +61,17 @@ function buildDryRunResponse({
       status_reason: null,
     })),
     checked_env_override_service_ids: expectedEnvOverrides.map(
-      (override) => override.service_id
+      (override) => override.service_id,
     ),
     checked_forbidden_env_service_ids: forbiddenEnv.map(
-      (requirement) => requirement.service_id
+      (requirement) => requirement.service_id,
     ),
     checked_persisted_env_service_ids: requiredPersistedEnv.map(
-      (requirement) => requirement.service_id
+      (requirement) => requirement.service_id,
     ),
     checked_preview_cloned_service_slugs: expectedPreviewServiceSlugs,
     checked_shared_env_keys: requiredSharedEnv.map(
-      (requirement) => requirement.key
+      (requirement) => requirement.key,
     ),
     deploy_service_ids: deployServiceIds,
     environment_name: input.environmentName,
@@ -86,7 +86,7 @@ function buildDryRunResponse({
 
 function resolvePreviewServiceSlugs(
   input: VerifyCommandInput,
-  contracts: Awaited<ReturnType<typeof loadDeployContracts>>
+  contracts: Awaited<ReturnType<typeof loadDeployContracts>>,
 ): {
   expectedPreviewServiceSlugs: string[]
   excludedPreviewServiceSlugs: string[]
@@ -102,8 +102,8 @@ function resolvePreviewServiceSlugs(
     contracts.manifest.services.flatMap((service) =>
       service.ci.deployable && service.ci.zane
         ? [[service.id, service.ci.zane.service_slug] as const]
-        : []
-    )
+        : [],
+    ),
   )
 
   const toServiceSlugs = (servicesCsv: string, label: string): string[] =>
@@ -111,7 +111,7 @@ function resolvePreviewServiceSlugs(
       const serviceSlug = serviceSlugById.get(serviceId)
       if (!serviceSlug) {
         throw new Error(
-          `${label} references missing deployable service ${serviceId}.`
+          `${label} references missing deployable service ${serviceId}.`,
         )
       }
       return serviceSlug
@@ -120,21 +120,21 @@ function resolvePreviewServiceSlugs(
   return {
     excludedPreviewServiceSlugs: toServiceSlugs(
       input.previewExcludedServiceIdsCsv,
-      "Preview excluded service set"
+      "Preview excluded service set",
     ),
     expectedPreviewServiceSlugs: toServiceSlugs(
       input.previewClonedServiceIdsCsv,
-      "Preview cloned service set"
+      "Preview cloned service set",
     ),
   }
 }
 
 export async function executeVerify(
-  input: VerifyCommandInput
+  input: VerifyCommandInput,
 ): Promise<VerifyResponse> {
   const contracts = await loadDeployContracts(
     input.stackManifestPath,
-    input.stackInputsPath
+    input.stackInputsPath,
   )
   const deployServiceIds = normalizeCsvToArray(input.deployServicesCsv)
   const requestedServiceIds = normalizeCsvToArray(input.requestedServicesCsv)
@@ -151,22 +151,22 @@ export async function executeVerify(
       previewDbUser: input.previewDbUser,
       previewRandomOnceSecrets: input.previewRandomOnceSecrets,
       runtimeProviderOutputs: input.runtimeProviderOutputs,
-    }
+    },
   )
   const requiredPersistedEnv = buildRequiredPersistedEnv(
     input.lane,
     deployServiceIds,
-    contracts
+    contracts,
   )
   const requiredSharedEnv = buildRequiredSharedEnv(
     input.lane,
     deployServiceIds,
-    contracts
+    contracts,
   )
   const forbiddenEnv = buildForbiddenPreviewOnlyEnv(
     input.lane,
     deployServiceIds,
-    contracts
+    contracts,
   )
   const payload: VerifyDeployPayload = {
     deploy_service_ids: deployServiceIds,
@@ -175,7 +175,7 @@ export async function executeVerify(
         service_id,
         service_slug,
         deployment_hash,
-      })
+      }),
     ),
     environment_name: input.environmentName,
     excluded_preview_service_slugs: excludedPreviewServiceSlugs,
@@ -203,7 +203,7 @@ export async function executeVerify(
         triggeredServiceIds,
       })
     : await new ZaneOperatorClient(input.baseUrl, input.apiToken).verifyDeploy(
-        payload
+        payload,
       )
 
   if (!response.verified) {

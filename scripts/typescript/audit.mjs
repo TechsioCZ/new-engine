@@ -9,7 +9,7 @@ const rootTypeScriptVersion = "7.0.2"
 const isolatedCompilerVersion = "5.9.3"
 const isolatedCompilerPackages = ["@medusajs/cli", "@medusajs/framework"]
 const strictConfigPath = realpathSync(
-  path.join(repositoryRoot, "tsconfig.strict.json")
+  path.join(repositoryRoot, "tsconfig.strict.json"),
 )
 const requiredStrictOptions = new Set([
   "allowUnreachableCode",
@@ -104,7 +104,9 @@ const resolveTypeScriptFrom = (packageJsonPath) => {
     "process.stdout.write(JSON.stringify({ compiler: require('node:fs').realpathSync(compiler), version }))",
   ].join(";")
   return JSON.parse(
-    execFileSync(process.execPath, ["-e", requireScript], { encoding: "utf-8" })
+    execFileSync(process.execPath, ["-e", requireScript], {
+      encoding: "utf-8",
+    }),
   )
 }
 
@@ -113,15 +115,15 @@ const showConfig = (configPath) =>
     execFileSync(
       path.join(repositoryRoot, "node_modules/.bin/tsc"),
       ["--showConfig", "-p", configPath],
-      { cwd: repositoryRoot, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 }
-    )
+      { cwd: repositoryRoot, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 },
+    ),
   )
 
 const strictConfig = readJson(strictConfigPath)
 const strictOptions = strictConfig.compilerOptions ?? {}
 if (strictConfig.extends !== undefined) {
   fail(
-    "tsconfig.strict.json must be policy-only and must not extend another config"
+    "tsconfig.strict.json must be policy-only and must not extend another config",
   )
 }
 for (const option of requiredStrictOptions) {
@@ -135,11 +137,11 @@ const rootConfigPath = path.join(repositoryRoot, "tsconfig.json")
 const rootConfig = readJson(rootConfigPath)
 const referencedWrappers = new Set(
   (rootConfig.references ?? []).map(({ path: referencePath }) =>
-    resolveConfigReference(rootConfigPath, referencePath)
-  )
+    resolveConfigReference(rootConfigPath, referencePath),
+  ),
 )
 const wrapperConfigs = collectTsconfigs(projectsDirectory).map((filePath) =>
-  realpathSync(filePath)
+  realpathSync(filePath),
 )
 const wrappedSources = new Set()
 
@@ -184,7 +186,7 @@ for (const wrapper of wrapperConfigs) {
     const normalizedFile = normalizePath(file)
     if (migrationPattern.test(normalizedFile)) {
       fail(
-        `${relative(wrapper)} includes immutable migration ${normalizedFile}`
+        `${relative(wrapper)} includes immutable migration ${normalizedFile}`,
       )
     }
     if (
@@ -205,7 +207,7 @@ const sourceConfigs = collectTsconfigs(repositoryRoot).filter(
     !filePath.startsWith(projectsDirectory) &&
     filePath !== rootConfigPath &&
     filePath !== path.join(repositoryRoot, "tsconfig.base.json") &&
-    filePath !== path.join(repositoryRoot, "tsconfig.strict.json")
+    filePath !== path.join(repositoryRoot, "tsconfig.strict.json"),
 )
 for (const sourceConfig of sourceConfigs) {
   const realSourceConfig = realpathSync(sourceConfig)
@@ -217,7 +219,7 @@ for (const sourceConfig of sourceConfigs) {
 }
 
 const rootCompiler = resolveTypeScriptFrom(
-  path.join(repositoryRoot, "package.json")
+  path.join(repositoryRoot, "package.json"),
 )
 if (rootCompiler.version !== rootTypeScriptVersion) {
   fail(`Root TypeScript must resolve to ${rootTypeScriptVersion}`)
@@ -226,7 +228,7 @@ for (const packageName of isolatedCompilerPackages) {
   const compiler = resolveTypeScriptFrom(resolvePackageJson(packageName))
   if (compiler.version !== isolatedCompilerVersion) {
     fail(
-      `${packageName} must resolve TypeScript ${isolatedCompilerVersion}, got ${compiler.version}`
+      `${packageName} must resolve TypeScript ${isolatedCompilerVersion}, got ${compiler.version}`,
     )
   }
   if (compiler.compiler === rootCompiler.compiler) {
@@ -235,5 +237,5 @@ for (const packageName of isolatedCompilerPackages) {
 }
 
 console.log(
-  `TypeScript audit passed: ${wrappedSources.size} source configs enforce root ${rootCompiler.version} strict policy; Medusa compilers use ${isolatedCompilerVersion}.`
+  `TypeScript audit passed: ${wrappedSources.size} source configs enforce root ${rootCompiler.version} strict policy; Medusa compilers use ${isolatedCompilerVersion}.`,
 )

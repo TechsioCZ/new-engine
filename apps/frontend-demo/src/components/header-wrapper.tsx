@@ -36,7 +36,7 @@ export function HeaderWrapper({ logo }: HeaderWrapperProps) {
     ([title, categoryIds]) => ({
       href: `/products?categories=${categoryIds.join(",")}`,
       title,
-    })
+    }),
   )
 
   const navigationItems: NavItem[] = [

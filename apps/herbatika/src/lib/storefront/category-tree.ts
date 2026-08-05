@@ -2,7 +2,7 @@ import type { HttpTypes } from "@medusajs/types"
 
 export const collectDescendantCategoryIds = (
   categories: HttpTypes.StoreProductCategory[],
-  rootCategoryId: string
+  rootCategoryId: string,
 ): string[] => {
   const childrenByParentId = new Map<string, string[]>()
 
@@ -42,7 +42,7 @@ export const collectDescendantCategoryIds = (
 }
 
 export const resolveRelatedCategoryIds = (
-  product: HttpTypes.StoreProduct | null
+  product: HttpTypes.StoreProduct | null,
 ): string[] => {
   const productCategories = product?.categories ?? []
   if (productCategories.length === 0) {
@@ -63,7 +63,7 @@ export const resolveRelatedCategoryIds = (
   }
 
   const leafCategoryIds = [...allCategoryIds].filter(
-    (categoryId) => !parentCategoryIds.has(categoryId)
+    (categoryId) => !parentCategoryIds.has(categoryId),
   )
 
   return (

@@ -131,7 +131,7 @@ const OrderDashboardPage = () => {
   })
   const [filtering, setFiltering] = useState<DataTableFilteringState>({})
   const [rowSelection, setRowSelection] = useState<DataTableRowSelectionState>(
-    {}
+    {},
   )
   const [selectedOrdersById, setSelectedOrdersById] = useState<
     Map<string, OrderDashboardOrder>
@@ -198,13 +198,13 @@ const OrderDashboardPage = () => {
 
   const orders = useMemo(
     () => ordersQuery.data?.orders ?? [],
-    [ordersQuery.data?.orders]
+    [ordersQuery.data?.orders],
   )
   const selectedOrders = [...selectedOrdersById.values()]
   const selectedOrderIds = [...selectedOrdersById.keys()]
   const selectedOrderIdSet = useMemo(
     () => new Set(selectedOrdersById.keys()),
-    [selectedOrdersById]
+    [selectedOrdersById],
   )
   const selectedPacketaCarrierOrderIds =
     getPacketaCarrierOrderIds(selectedOrders)
@@ -217,7 +217,7 @@ const OrderDashboardPage = () => {
   const packetaLabelPreview = getPacketaLabelPreview(
     selectedOrders,
     packetaEligibilityQuery.data,
-    t
+    t,
   )
   const selectedCount = selectedOrders.length
   const packetaEligibleCount = packetaLabelPreview.printableOrders.length
@@ -235,7 +235,7 @@ const OrderDashboardPage = () => {
       ? getSelectedStatusBlockedMessage(
           selectedTargetStatusOption.label,
           selectedTargetStatusBlockers,
-          t
+          t,
         )
       : null
   const manualStatusTarget = getManualStatusTarget(manualStatus)
@@ -325,7 +325,7 @@ const OrderDashboardPage = () => {
     columnHelper.accessor("delivery_address", {
       cell: ({ row }) => {
         const address = formatOrderDeliveryAddress(
-          row.original.delivery_address
+          row.original.delivery_address,
         )
 
         return (
@@ -400,7 +400,7 @@ const OrderDashboardPage = () => {
         <Button
           onClick={() => {
             setDetailOrderId((currentOrderId) =>
-              currentOrderId === row.original.id ? null : row.original.id
+              currentOrderId === row.original.id ? null : row.original.id,
             )
           }}
           size="small"
@@ -424,8 +424,8 @@ const OrderDashboardPage = () => {
     nextSelection:
       | DataTableRowSelectionState
       | ((
-          currentSelection: DataTableRowSelectionState
-        ) => DataTableRowSelectionState)
+          currentSelection: DataTableRowSelectionState,
+        ) => DataTableRowSelectionState),
   ) => {
     if (isPreparingPacketaLabels) {
       return
@@ -547,7 +547,7 @@ const OrderDashboardPage = () => {
                 count: result.count,
                 skippedCount: result.skipped_count,
               })
-            : t("toast.businessStatusUpdated", { count: result.count })
+            : t("toast.businessStatusUpdated", { count: result.count }),
         )
       } else {
         toast.error(result.skipped[0]?.reason ?? t("toast.manualStatusSkipped"))
@@ -639,7 +639,7 @@ const OrderDashboardPage = () => {
   const handlePacketaLabels = async () => {
     const selectedOrdersSnapshot = selectedOrders
     const selectedPacketaCarrierOrderIdsSnapshot = getPacketaCarrierOrderIds(
-      selectedOrdersSnapshot
+      selectedOrdersSnapshot,
     )
     const labelFormatSnapshot = labelFormat
 
@@ -661,16 +661,16 @@ const OrderDashboardPage = () => {
 
     try {
       const eligibilityOrders = await listOrderDashboardPacketaEligibility(
-        selectedPacketaCarrierOrderIdsSnapshot
+        selectedPacketaCarrierOrderIdsSnapshot,
       )
       queryClient.setQueryData(
         [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIdsSnapshot],
-        eligibilityOrders
+        eligibilityOrders,
       )
       const packetaLabelPreparation = preparePacketaLabelDownload(
         selectedOrdersSnapshot,
         eligibilityOrders,
-        t
+        t,
       )
 
       setBlockingOrders(packetaLabelPreparation.blockingOrders)
@@ -684,7 +684,7 @@ const OrderDashboardPage = () => {
         toast.error(
           t("toast.packetaLabelLimit", {
             count: packetaLabelPreparation.limit,
-          })
+          }),
         )
         return
       }
@@ -724,7 +724,7 @@ const OrderDashboardPage = () => {
       toast.error(
         t("toast.fulfillmentLimit", {
           count: ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
-        })
+        }),
       )
       return
     }
@@ -739,7 +739,7 @@ const OrderDashboardPage = () => {
     }
 
     setFiltering((currentFiltering) =>
-      getFilteringForQueue(currentFiltering, value)
+      getFilteringForQueue(currentFiltering, value),
     )
     setPagination((currentPagination) => ({
       ...currentPagination,
@@ -756,7 +756,7 @@ const OrderDashboardPage = () => {
 
   useEffect(() => {
     setOrderDashboardSidebarBadgeCount(
-      summaryQuery.isLoading ? null : pendingUnpaidCount
+      summaryQuery.isLoading ? null : pendingUnpaidCount,
     )
   }, [pendingUnpaidCount, summaryQuery.isLoading])
 
@@ -796,7 +796,7 @@ const OrderDashboardPage = () => {
     setRowSelection((currentSelection) =>
       isSameRowSelection(currentSelection, visibleSelection)
         ? currentSelection
-        : visibleSelection
+        : visibleSelection,
     )
   }, [orders, selectedOrderIdSet])
 
@@ -943,7 +943,7 @@ const OrderDashboardPage = () => {
             <Select
               onValueChange={(value) => {
                 setPacketaLabelStartPosition(
-                  Number(value) as PacketaLabelStartPosition
+                  Number(value) as PacketaLabelStartPosition,
                 )
               }}
               value={String(packetaLabelStartPosition)}
@@ -1094,7 +1094,7 @@ const OrderDashboardPage = () => {
                 }
 
                 const option = targetStatusOptions.find(
-                  (status) => status.value === value
+                  (status) => status.value === value,
                 )
 
                 if (option?.blockedOrders.length) {
@@ -1426,7 +1426,7 @@ function OrderDetailField({
 }
 
 function getManualStatusTarget(
-  value: ManualStatusValue | ""
+  value: ManualStatusValue | "",
 ): ManualStatusTarget | undefined {
   if (!value) {
     return
@@ -1437,14 +1437,14 @@ function getManualStatusTarget(
 
 function getManualStatusLabel(
   status: ManualStatusTarget,
-  t: TranslationFunction
+  t: TranslationFunction,
 ) {
   return status === null ? t("manualStatus.clear") : t(`manualStatus.${status}`)
 }
 
 function getFulfillmentStatusDisplay(
   order: OrderDashboardOrder,
-  t: TranslationFunction
+  t: TranslationFunction,
 ) {
   const status = order.fulfillment_status?.toLowerCase()
 
@@ -1471,7 +1471,7 @@ function getFulfillmentStatusDisplay(
 }
 
 function isKnownFulfillmentStatus(
-  status: string
+  status: string,
 ): status is keyof typeof fulfillmentStatusColors {
   return status in fulfillmentStatusColors
 }
@@ -1479,7 +1479,7 @@ function isKnownFulfillmentStatus(
 function getBulkManualStatusBlockReason(
   order: OrderDashboardOrder,
   status: ManualStatusTarget,
-  t: TranslationFunction
+  t: TranslationFunction,
 ) {
   const currentManualStatus = order.manual_status ?? null
 
@@ -1514,7 +1514,7 @@ function getBulkManualStatusBlockReason(
 function getBulkManualStatusPreview(
   orders: OrderDashboardOrder[],
   status: ManualStatusTarget,
-  t: TranslationFunction
+  t: TranslationFunction,
 ) {
   const skipped: OrderDashboardBlockingOrder[] = []
   const updatable: OrderDashboardOrder[] = []
@@ -1662,7 +1662,7 @@ function BlockingOrdersPanel({
 
 function getVisibleRowSelection(
   orders: OrderDashboardOrder[],
-  selectedOrderIdSet: ReadonlySet<string>
+  selectedOrderIdSet: ReadonlySet<string>,
 ) {
   const visibleSelection: DataTableRowSelectionState = {}
 
@@ -1677,7 +1677,7 @@ function getVisibleRowSelection(
 
 function isSameRowSelection(
   left: DataTableRowSelectionState,
-  right: DataTableRowSelectionState
+  right: DataTableRowSelectionState,
 ) {
   const leftKeys = Object.keys(left)
   const rightKeys = Object.keys(right)
@@ -1699,14 +1699,14 @@ function getCarrierFilter(filtering: DataTableFilteringState) {
 }
 
 function getBusinessStatusFilter(
-  filtering: DataTableFilteringState
+  filtering: DataTableFilteringState,
 ): OrderDashboardBusinessStatusId | undefined {
   const value = filtering[BUSINESS_STATUS_FILTER_ID]
   return isOrderDashboardBusinessStatusId(value) ? value : undefined
 }
 
 function getBusinessStatusGroupFilter(
-  filtering: DataTableFilteringState
+  filtering: DataTableFilteringState,
 ): OrderDashboardBusinessStatusGroupId | undefined {
   const value = filtering[BUSINESS_STATUS_GROUP_FILTER_ID]
   return isOrderDashboardBusinessStatusGroupId(value) ? value : undefined
@@ -1716,24 +1716,24 @@ function isManualStatus(value: unknown): value is OrderDashboardManualStatusId {
   return (
     typeof value === "string" &&
     ORDER_DASHBOARD_MANUAL_STATUS_IDS.includes(
-      value as OrderDashboardManualStatusId
+      value as OrderDashboardManualStatusId,
     )
   )
 }
 
 function isOrderDashboardBusinessStatusGroupId(
-  value: unknown
+  value: unknown,
 ): value is OrderDashboardBusinessStatusGroupId {
   return (
     typeof value === "string" &&
     ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS.includes(
-      value as OrderDashboardBusinessStatusGroupId
+      value as OrderDashboardBusinessStatusGroupId,
     )
   )
 }
 
 function isOrderDashboardQueueId(
-  value: unknown
+  value: unknown,
 ): value is OrderDashboardQueueId {
   return (
     typeof value === "string" &&
@@ -1753,7 +1753,7 @@ function normalizeFiltering(filtering: DataTableFilteringState) {
 
 function getFilteringForQueue(
   filtering: DataTableFilteringState,
-  queueId: OrderDashboardQueueId
+  queueId: OrderDashboardQueueId,
 ) {
   const nextFiltering = { ...filtering }
 
@@ -1775,7 +1775,7 @@ function getFilteringForQueue(
 
 function getQueueCount(
   queueId: OrderDashboardQueueId,
-  summary?: OrderDashboardSummaryResponse
+  summary?: OrderDashboardSummaryResponse,
 ) {
   if (!summary) {
     return null
@@ -1802,13 +1802,13 @@ function getQueueLabel(queueId: OrderDashboardQueueId, t: TranslationFunction) {
 
 function getTargetStatusOptions(
   selectedOrders: OrderDashboardOrder[],
-  t: TranslationFunction
+  t: TranslationFunction,
 ): TargetStatusOption[] {
   return ORDER_DASHBOARD_TARGET_STATUSES.map((targetStatus) => ({
     blockedOrders: getTargetStatusBlockedOrders(
       selectedOrders,
       targetStatus,
-      t
+      t,
     ),
     label: t(`targetStatus.${targetStatus}`),
     value: targetStatus,
@@ -1818,13 +1818,13 @@ function getTargetStatusOptions(
 function getTargetStatusBlockedOrders(
   selectedOrders: OrderDashboardOrder[],
   targetStatus: OrderDashboardTargetStatus,
-  t: TranslationFunction
+  t: TranslationFunction,
 ): OrderDashboardBlockingOrder[] {
   return selectedOrders.flatMap((order) => {
     const reason = getOrderDashboardTransitionBlockReason(
       order,
       targetStatus,
-      t
+      t,
     )
 
     return reason
@@ -1842,7 +1842,7 @@ function getTargetStatusBlockedOrders(
 function getSelectedStatusBlockedMessage(
   statusLabel: string,
   blockedOrders: OrderDashboardBlockingOrder[],
-  t: TranslationFunction
+  t: TranslationFunction,
 ) {
   if (blockedOrders.length === 1) {
     const order = blockedOrders[0]

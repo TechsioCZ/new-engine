@@ -360,7 +360,7 @@ SearchForm.ClearButton = function SearchFormClearButton({
       tone={tone}
       {...props}
     />,
-    clearSlot
+    clearSlot,
   )
 }
 

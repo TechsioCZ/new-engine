@@ -79,7 +79,7 @@ describe(assertProductSelectionExists, () => {
     }
 
     await expect(
-      assertProductSelectionExists(makeContainer({ query }), "prod_1")
+      assertProductSelectionExists(makeContainer({ query }), "prod_1"),
     ).resolves.toBeUndefined()
   })
 
@@ -89,7 +89,7 @@ describe(assertProductSelectionExists, () => {
     }
 
     await expect(
-      assertProductSelectionExists(makeContainer({ query }), "prod_draft")
+      assertProductSelectionExists(makeContainer({ query }), "prod_draft"),
     ).rejects.toMatchObject({
       message: "Product prod_draft was not found",
       type: MedusaError.Types.NOT_FOUND,
@@ -109,7 +109,7 @@ describe(assertProductSelectionExists, () => {
     }
 
     await expect(
-      assertProductSelectionExists(makeContainer({ query }), "prod_1", "var_1")
+      assertProductSelectionExists(makeContainer({ query }), "prod_1", "var_1"),
     ).resolves.toBeUndefined()
   })
 
@@ -126,7 +126,7 @@ describe(assertProductSelectionExists, () => {
     }
 
     await expect(
-      assertProductSelectionExists(makeContainer({ query }), "prod_1", "var_1")
+      assertProductSelectionExists(makeContainer({ query }), "prod_1", "var_1"),
     ).rejects.toMatchObject({
       message: "Product variant var_1 was not found",
       type: MedusaError.Types.NOT_FOUND,
@@ -160,8 +160,8 @@ describe(findProductListItemForSelection, () => {
       findProductListItemForSelection(
         makeContainer({ query, service }),
         "plist_1",
-        "prod_1"
-      )
+        "prod_1",
+      ),
     ).resolves.toStrictEqual({ id: "item_plain", quantity: 1 })
   })
 
@@ -191,8 +191,8 @@ describe(findProductListItemForSelection, () => {
         makeContainer({ query, service }),
         "plist_1",
         "prod_1",
-        "var_1"
-      )
+        "var_1",
+      ),
     ).resolves.toStrictEqual({ id: "item_variant", quantity: 2 })
   })
 
@@ -213,7 +213,7 @@ describe(findProductListItemForSelection, () => {
       listProductListItems: vi.fn(
         async (
           filters: { id?: { $in: string[] }; list_id: string },
-          options?: { skip?: number; take?: number }
+          options?: { skip?: number; take?: number },
         ) => {
           if (filters.id) {
             return [{ id: "item_target", quantity: 1 }]
@@ -224,7 +224,7 @@ describe(findProductListItemForSelection, () => {
           }
 
           return firstPageItems
-        }
+        },
       ),
     }
 
@@ -232,8 +232,8 @@ describe(findProductListItemForSelection, () => {
       findProductListItemForSelection(
         makeContainer({ query, service }),
         "plist_1",
-        "prod_1"
-      )
+        "prod_1",
+      ),
     ).resolves.toStrictEqual({ id: "item_target", quantity: 1 })
   })
 })

@@ -10,7 +10,7 @@ import type { HerbatikaProductCardBaseProps } from "@/components/herbatika-produ
 
 export type HerbatikaProductCardCompactProps = HerbatikaProductCardBaseProps & {
   onCompactImageError?: (
-    product: HerbatikaProductCardBaseProps["product"]
+    product: HerbatikaProductCardBaseProps["product"],
   ) => void
 }
 

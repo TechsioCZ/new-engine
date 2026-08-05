@@ -89,7 +89,7 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
 
 const resolveRegionPhoneCountry = (
   countryCode: string | null | undefined,
-  countries: PhoneInputCountry[]
+  countries: PhoneInputCountry[],
 ) => {
   const normalizedCountryCode = countryCode?.trim().toUpperCase()
 

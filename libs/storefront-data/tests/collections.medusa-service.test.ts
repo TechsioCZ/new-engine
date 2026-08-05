@@ -16,12 +16,12 @@ interface SdkLike {
 const createCollection = (
   id: string,
   title = "Collection",
-  handle = id
+  handle = id,
 ): HttpTypes.StoreCollection =>
   ({ handle, id, title }) as HttpTypes.StoreCollection
 
 function createSdkMock(
-  response?: Partial<HttpTypes.StoreCollectionListResponse>
+  response?: Partial<HttpTypes.StoreCollectionListResponse>,
 ): SdkLike {
   return {
     client: {
@@ -49,7 +49,7 @@ describe(createMedusaCollectionService, () => {
 
     await service.getCollections(
       { enabled: true, limit: 8, offset: 0 },
-      controller.signal
+      controller.signal,
     )
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/collections", {

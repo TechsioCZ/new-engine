@@ -50,5 +50,5 @@ figma.connect(
         striped: "striped",
       }),
     },
-  }
+  },
 )

@@ -61,7 +61,7 @@ medusaIntegrationTestRunner({
       await api.post(
         `/admin/api-keys/${publishableKey.id}/sales-channels`,
         { add: [salesChannel.id] },
-        adminHeaders
+        adminHeaders,
       )
 
       cart = await cartSeeder({
@@ -95,7 +95,7 @@ medusaIntegrationTestRunner({
             text: "test message",
             item_id: cart.items[0].id,
           },
-          adminHeaders
+          adminHeaders,
         )
 
         expect(quote).toEqual(
@@ -109,7 +109,7 @@ medusaIntegrationTestRunner({
                 customer_id: null,
               }),
             ],
-          })
+          }),
         )
       })
     })

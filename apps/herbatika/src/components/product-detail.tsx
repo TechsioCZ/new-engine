@@ -58,7 +58,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
     window.history.replaceState(
       null,
       "",
-      `#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
+      `#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`,
     )
     window.requestAnimationFrame(() => {
       document

@@ -114,21 +114,21 @@ export interface CreateSimpleListDetailHooksConfig<
   getList: (params: TListParams, signal?: AbortSignal) => Promise<TListResponse>
   getDetail: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TItem | null>
   getListQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<TListResponse>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TListResponse>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TItem | null>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TItem | null>
   resolvedCacheConfig: CacheConfig
   resolvedQueryKeys: SimpleQueryKeys<TListParams, TDetailParams>
@@ -144,7 +144,7 @@ const stripEnabled = <TInput extends EnabledInput>(input: TInput): TInput => {
 const resolveListPagination = <TInput extends ListInputBase, TListParams>(
   input: TInput,
   listParams: TListParams,
-  defaultPageSize: number
+  defaultPageSize: number,
 ) => {
   const limitFromParams = (listParams as { limit?: number }).limit
   const offsetFromParams = (listParams as { offset?: number }).offset
@@ -155,7 +155,7 @@ const resolveListPagination = <TInput extends ListInputBase, TListParams>(
       offset: offsetFromParams,
       page: input.page,
     }),
-    defaultPageSize
+    defaultPageSize,
   )
 }
 
@@ -188,7 +188,7 @@ export function createSimpleListDetailHooks<
 >) {
   function useList(
     input: TListInput,
-    options?: SimpleReadOptions<TListResponse>
+    options?: SimpleReadOptions<TListResponse>,
   ): SimpleListHookResult<TItem, TListResponse> {
     const { enabled: inputEnabled } = input
     const listParams = buildList(stripEnabled(input))
@@ -196,7 +196,7 @@ export function createSimpleListDetailHooks<
     const query = useQuery({
       ...getListQueryOptions(
         input,
-        omitUndefined({ queryOptions: options?.queryOptions })
+        omitUndefined({ queryOptions: options?.queryOptions }),
       ),
       enabled,
     })
@@ -224,13 +224,13 @@ export function createSimpleListDetailHooks<
 
   function useSuspenseList(
     input: TListInput,
-    options?: SimpleSuspenseOptions<TListResponse>
+    options?: SimpleSuspenseOptions<TListResponse>,
   ): SimpleSuspenseListHookResult<TItem, TListResponse> {
     const listParams = buildList(stripEnabled(input))
     const query = useSuspenseQuery({
       ...getListQueryOptions(
         input,
-        omitUndefined({ queryOptions: options?.queryOptions })
+        omitUndefined({ queryOptions: options?.queryOptions }),
       ),
     })
     const { data, isFetching } = query
@@ -257,13 +257,13 @@ export function createSimpleListDetailHooks<
 
   function useDetail(
     input: TDetailInput,
-    options?: SimpleReadOptions<TItem | null>
+    options?: SimpleReadOptions<TItem | null>,
   ): SimpleDetailHookResult<TItem> {
     const enabled = input.enabled ?? Boolean(input.id)
     const query = useQuery({
       ...getDetailQueryOptions(
         input,
-        omitUndefined({ queryOptions: options?.queryOptions })
+        omitUndefined({ queryOptions: options?.queryOptions }),
       ),
       enabled,
     })
@@ -281,12 +281,12 @@ export function createSimpleListDetailHooks<
 
   function useSuspenseDetail(
     input: TDetailInput,
-    options?: SimpleSuspenseOptions<TItem | null>
+    options?: SimpleSuspenseOptions<TItem | null>,
   ): SimpleSuspenseDetailHookResult<TItem> {
     const query = useSuspenseQuery({
       ...getDetailQueryOptions(
         input,
-        omitUndefined({ queryOptions: options?.queryOptions })
+        omitUndefined({ queryOptions: options?.queryOptions }),
       ),
     })
     const { data, isFetching } = query
@@ -310,7 +310,7 @@ export function createSimpleListDetailHooks<
     const skipMode = options?.skipMode ?? "fresh"
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
-      cacheStrategy
+      cacheStrategy,
     )
 
     const prefetchList = async (input: TListInput) => {
@@ -340,7 +340,7 @@ export function createSimpleListDetailHooks<
     const delayedPrefetch = (
       input: TListInput,
       delay = defaultDelay,
-      prefetchId?: string
+      prefetchId?: string,
     ) => {
       const listParams = buildList(stripEnabled(input))
       const queryKey = resolvedQueryKeys.list(listParams)
@@ -364,7 +364,7 @@ export function createSimpleListDetailHooks<
     const skipMode = options?.skipMode ?? "fresh"
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
-      cacheStrategy
+      cacheStrategy,
     )
 
     const prefetchDetail = async (input: TDetailInput) => {
@@ -398,7 +398,7 @@ export function createSimpleListDetailHooks<
     const delayedPrefetch = (
       input: TDetailInput,
       delay = defaultDelay,
-      prefetchId?: string
+      prefetchId?: string,
     ) => {
       const detailParams = buildDetail(stripEnabled(input))
       const queryKey = resolvedQueryKeys.detail(detailParams)

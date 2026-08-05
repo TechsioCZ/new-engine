@@ -43,7 +43,7 @@ function getSetCookieHeaders(headers: Headers): string[] {
 
 export function updateCookiesFromHeaders(
   cookies: Map<string, string>,
-  headers: Headers
+  headers: Headers,
 ): void {
   for (const headerValue of getSetCookieHeaders(headers)) {
     const cookiePair = headerValue.split(";", 1)[0]
@@ -107,24 +107,24 @@ function requireZaneDeployConfig(config: AppConfig): {
 } {
   if (!config.zaneBaseUrl) {
     throw new BadRequestError(
-      "ZANE_BASE_URL is required for deploy orchestration"
+      "ZANE_BASE_URL is required for deploy orchestration",
     )
   }
   if (!config.zaneUsername) {
     throw new BadRequestError(
-      "ZANE_USERNAME is required for deploy orchestration"
+      "ZANE_USERNAME is required for deploy orchestration",
     )
   }
   if (!config.zanePassword) {
     throw new BadRequestError(
-      "ZANE_PASSWORD is required for deploy orchestration"
+      "ZANE_PASSWORD is required for deploy orchestration",
     )
   }
 
   return {
     connectBaseUrl: (config.zaneConnectBaseUrl ?? config.zaneBaseUrl).replace(
       /\/+$/,
-      ""
+      "",
     ),
     connectHostHeader: config.zaneConnectHostHeader,
     password: config.zanePassword,
@@ -154,7 +154,7 @@ export class ZaneUpstreamClient {
 
   buildHeaders(
     session: ZaneSession | undefined,
-    method: HttpMethod
+    method: HttpMethod,
   ): Record<string, string> {
     const csrfToken = session?.cookies.get("csrftoken")
     const headers: Record<string, string> = {
@@ -213,7 +213,7 @@ export class ZaneUpstreamClient {
     method: HttpMethod,
     path: string,
     payload?: unknown,
-    options?: ZaneRequestOptions
+    options?: ZaneRequestOptions,
   ): Promise<T | null> {
     const response = await fetch(`${this.#baseUrl}${path}`, {
       body:
@@ -252,7 +252,7 @@ export class ZaneUpstreamClient {
       throw new UpstreamHttpError(
         response.status,
         "zane_request_failed",
-        errorMessage
+        errorMessage,
       )
     }
 
@@ -278,7 +278,7 @@ export class ZaneUpstreamClient {
       throw new UpstreamHttpError(
         csrfResponse.status,
         "zane_csrf_failed",
-        `Failed to initialize ZaneOps CSRF session (HTTP ${csrfResponse.status})`
+        `Failed to initialize ZaneOps CSRF session (HTTP ${csrfResponse.status})`,
       )
     }
 
@@ -287,7 +287,7 @@ export class ZaneUpstreamClient {
       throw new UpstreamHttpError(
         502,
         "zane_csrf_missing",
-        "ZaneOps did not issue a csrftoken cookie"
+        "ZaneOps did not issue a csrftoken cookie",
       )
     }
 
@@ -306,7 +306,7 @@ export class ZaneUpstreamClient {
       try {
         errorMessage = parseErrorMessage(
           await loginResponse.json(),
-          errorMessage
+          errorMessage,
         )
       } catch {
         // keep fallback message when upstream response is not JSON
@@ -314,7 +314,7 @@ export class ZaneUpstreamClient {
       throw new UpstreamHttpError(
         loginResponse.status,
         "zane_login_failed",
-        errorMessage
+        errorMessage,
       )
     }
 
@@ -322,7 +322,7 @@ export class ZaneUpstreamClient {
       throw new UpstreamHttpError(
         502,
         "zane_session_missing",
-        "ZaneOps login did not return a session cookie"
+        "ZaneOps login did not return a session cookie",
       )
     }
 

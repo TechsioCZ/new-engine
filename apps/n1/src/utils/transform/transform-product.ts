@@ -14,7 +14,7 @@ import { formatPrice, formatVariants } from "../format/format-product"
 const IMAGE_PREFIX_REGEX = /^[a-f0-9]{10}-/
 
 const formatStockValue = (
-  variants?: StoreProduct["variants"]
+  variants?: StoreProduct["variants"],
 ): "Skladem" | "Vyprodáno" => {
   if (!variants || variants.every((v) => v.inventory_quantity === 0)) {
     return "Vyprodáno"
@@ -59,7 +59,7 @@ const removeDuplicatedImageUrl = (images: ProductImage[]) => {
 // ============================================
 
 export const transformProductDetail = (
-  product: StoreProductExtended
+  product: StoreProductExtended,
 ): ProductDetail => {
   const variantMetadata = product.variants?.[0]
     ?.metadata as ProductVariantDetail["metadata"]

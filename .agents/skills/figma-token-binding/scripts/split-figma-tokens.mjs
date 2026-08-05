@@ -33,11 +33,11 @@ const __dirname = import.meta.dirname
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
 const LIGHT_INPUT = join(
   REPO_ROOT,
-  "libs/ui/src/tokens/figma/light/variables.css"
+  "libs/ui/src/tokens/figma/light/variables.css",
 )
 const DARK_INPUT = join(
   REPO_ROOT,
-  "libs/ui/src/tokens/figma/dark/variables.css"
+  "libs/ui/src/tokens/figma/dark/variables.css",
 )
 const OUT_DIR_LIGHT = join(REPO_ROOT, "libs/ui/src/tokens/figma/light")
 const OUT_DIR_DARK = join(REPO_ROOT, "libs/ui/src/tokens/figma/dark")
@@ -135,7 +135,7 @@ function emitDark(component, lightTokens, darkTokens) {
   // value, so they would emit `: undefined;` if left in `lightBody`. Skip
   // them here — they should live in their own dark-only declaration.
   const overrides = darkTokens.filter(
-    ([n, v]) => lightMap.has(n) && lightMap.get(n) !== v
+    ([n, v]) => lightMap.has(n) && lightMap.get(n) !== v,
   )
   if (overrides.length === 0) {
     return `${header("dark", component)}/* No tokens differ between light and dark mode. */\n`
@@ -195,7 +195,7 @@ function writeFragment(component, lightTokens, darkTokens) {
   console.log(`✓ wrote ${lightOut}`)
   console.log(`✓ wrote ${darkOut}`)
   console.log(
-    `  ${lightTokens.length} tokens (${darkTokens.filter(([n, v]) => lightTokens.find(([ln]) => ln === n)?.[1] !== v).length} differ in dark)`
+    `  ${lightTokens.length} tokens (${darkTokens.filter(([n, v]) => lightTokens.find(([ln]) => ln === n)?.[1] !== v).length} differ in dark)`,
   )
 }
 

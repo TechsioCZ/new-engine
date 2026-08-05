@@ -55,7 +55,7 @@ const isDeleted = (record: { deleted_at?: string | Date | null | undefined }) =>
 
 export const shouldDeleteBrandAttribute = (
   attribute: BrandAttributeRecord,
-  requestedNames: ReadonlySet<string>
+  requestedNames: ReadonlySet<string>,
 ) => {
   if (isDeleted(attribute) || isDeleted(attribute.attributeType ?? {})) {
     return false
@@ -73,7 +73,7 @@ class BrandModuleService extends MedusaService({
   @InjectManager()
   async runInTransaction<T>(
     task: (context: Context) => Promise<T>,
-    @MedusaContext() sharedContext: Context = {}
+    @MedusaContext() sharedContext: Context = {},
   ) {
     return await this.runInTransaction_(task, sharedContext)
   }
@@ -81,7 +81,7 @@ class BrandModuleService extends MedusaService({
   @InjectTransactionManager()
   protected async runInTransaction_<T>(
     task: (context: Context) => Promise<T>,
-    @MedusaContext() sharedContext: Context = {}
+    @MedusaContext() sharedContext: Context = {},
   ) {
     return await task(sharedContext)
   }
@@ -89,7 +89,7 @@ class BrandModuleService extends MedusaService({
   @InjectTransactionManager()
   protected async getAttributeTypeIdsByName(
     names: string[],
-    @MedusaContext() sharedContext: Context = {}
+    @MedusaContext() sharedContext: Context = {},
   ) {
     const existingAttributeTypes = names.length
       ? ((await this.listBrandAttributeTypes(
@@ -99,7 +99,7 @@ class BrandModuleService extends MedusaService({
           {
             withDeleted: true,
           },
-          sharedContext
+          sharedContext,
         )) as BrandAttributeTypeRecord[])
       : []
     const attributeTypeIdsByName = new Map<string, string>()
@@ -138,18 +138,18 @@ class BrandModuleService extends MedusaService({
       await this.restoreBrandAttributeTypes(
         attributeTypeIdsToRestore,
         {},
-        sharedContext
+        sharedContext,
       )
     }
 
     const missingAttributeTypeNames = names.filter(
-      (name) => !attributeTypeIdsByName.has(name)
+      (name) => !attributeTypeIdsByName.has(name),
     )
 
     if (missingAttributeTypeNames.length) {
       const createdAttributeTypes = (await this.createBrandAttributeTypes(
         missingAttributeTypeNames.map((name) => ({ name })),
-        sharedContext
+        sharedContext,
       )) as { id: string; name: string }[]
 
       for (const attributeType of createdAttributeTypes) {
@@ -171,7 +171,7 @@ class BrandModuleService extends MedusaService({
       attributes: BrandAttributeInput[]
       brandId: string
     },
-    @MedusaContext() sharedContext: Context = {}
+    @MedusaContext() sharedContext: Context = {},
   ) {
     const existingAttributes = (await this.listBrandAttributes(
       { brand_id: brandId },
@@ -179,7 +179,7 @@ class BrandModuleService extends MedusaService({
         relations: ["attributeType"],
         withDeleted: true,
       },
-      sharedContext
+      sharedContext,
     )) as BrandAttributeRecord[]
     const existingByName = new Map<string, BrandAttributeRecord>()
     const deletedAttributesByName = new Map<string, BrandAttributeRecord>()
@@ -224,7 +224,7 @@ class BrandModuleService extends MedusaService({
       await this.restoreBrandAttributes(
         attributeIdsToRestore,
         {},
-        sharedContext
+        sharedContext,
       )
     }
 
@@ -235,7 +235,7 @@ class BrandModuleService extends MedusaService({
   async setBrandAttributes(
     brandId: string,
     inputAttributes: BrandAttributeInput[] = [],
-    @MedusaContext() sharedContext: Context = {}
+    @MedusaContext() sharedContext: Context = {},
   ) {
     await this.setBrandAttributes_(brandId, inputAttributes, sharedContext)
   }
@@ -244,14 +244,14 @@ class BrandModuleService extends MedusaService({
   protected async setBrandAttributes_(
     brandId: string,
     inputAttributes: BrandAttributeInput[] = [],
-    @MedusaContext() sharedContext: Context = {}
+    @MedusaContext() sharedContext: Context = {},
   ) {
     const attributes = normalizeAttributes(inputAttributes)
     const names = attributes.map((attribute) => attribute.name)
     const requestedNames = new Set(names)
     const attributeTypeIdsByName = await this.getAttributeTypeIdsByName(
       names,
-      sharedContext
+      sharedContext,
     )
     const { existingAttributes, existingByName } =
       await this.getReusableAttributesByName(
@@ -260,7 +260,7 @@ class BrandModuleService extends MedusaService({
           attributes,
           brandId,
         },
-        sharedContext
+        sharedContext,
       )
 
     const toCreate = attributes.flatMap((attribute) => {
@@ -297,12 +297,12 @@ class BrandModuleService extends MedusaService({
         }
       })
       .filter(
-        (attribute): attribute is { id: string; value: string } => !!attribute
+        (attribute): attribute is { id: string; value: string } => !!attribute,
       )
 
     const toDelete = existingAttributes
       .filter((attribute) =>
-        shouldDeleteBrandAttribute(attribute, requestedNames)
+        shouldDeleteBrandAttribute(attribute, requestedNames),
       )
       .map((attribute) => attribute.id)
 

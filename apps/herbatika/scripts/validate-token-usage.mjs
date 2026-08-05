@@ -161,7 +161,7 @@ function stripVariants(className) {
 function resolvePrefixValue(baseClass, prefixes) {
   const normalized = baseClass.startsWith("-") ? baseClass.slice(1) : baseClass
   const sortedPrefixes = [...prefixes].sort(
-    (left, right) => right.length - left.length
+    (left, right) => right.length - left.length,
   )
 
   for (const prefix of sortedPrefixes) {
@@ -189,7 +189,7 @@ function checkNoArbitraryValues(className, ruleConfig) {
   const allowPatterns = ruleConfig.allowClassPatterns ?? []
   if (
     allowPatterns.some(
-      (pattern) => pattern.test(className) || pattern.test(baseClass)
+      (pattern) => pattern.test(className) || pattern.test(baseClass),
     )
   ) {
     return null
@@ -220,7 +220,7 @@ function checkNoTailwindPalette(className, ruleConfig) {
   const baseClass = stripVariants(className).replace(OPACITY_SUFFIX_REGEX, "")
   const match = resolvePrefixValue(
     baseClass,
-    ruleConfig.colorUtilityPrefixes ?? []
+    ruleConfig.colorUtilityPrefixes ?? [],
   )
   if (!match) {
     return null
@@ -229,7 +229,7 @@ function checkNoTailwindPalette(className, ruleConfig) {
   const palette = ruleConfig.paletteNames ?? []
   const { value } = match
   const isPalette = palette.some(
-    (colorName) => value === colorName || value.startsWith(`${colorName}-`)
+    (colorName) => value === colorName || value.startsWith(`${colorName}-`),
   )
   if (!isPalette) {
     return null
@@ -422,7 +422,7 @@ function printSummary(findings, scannedFileCount) {
 
   console.log(`Total violations: ${findings.length}`)
   for (const [rule, count] of [...byRule.entries()].sort((left, right) =>
-    left[0].localeCompare(right[0])
+    left[0].localeCompare(right[0]),
   )) {
     console.log(`- ${rule}: ${count}`)
   }
@@ -436,7 +436,7 @@ function printSummary(findings, scannedFileCount) {
   }
 
   for (const [file, fileFindings] of [...groupedByFile.entries()].sort(
-    (left, right) => left[0].localeCompare(right[0])
+    (left, right) => left[0].localeCompare(right[0]),
   )) {
     console.log(`\n${file}`)
     for (const finding of fileFindings) {
@@ -496,8 +496,8 @@ async function main() {
           violationCount: findings.length,
         },
         null,
-        2
-      )
+        2,
+      ),
     )
   } else {
     printSummary(findings, sourceFiles.length)

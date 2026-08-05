@@ -11,5 +11,5 @@ export const ProductReviewLink = defineLink(
   ProductModule.linkable["product"],
   {
     readOnly: true,
-  }
+  },
 )

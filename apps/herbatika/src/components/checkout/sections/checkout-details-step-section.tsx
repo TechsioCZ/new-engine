@@ -64,7 +64,7 @@ export function CheckoutDetailsStepSection({
               if (didSaveAddress) {
                 router.push(nextStepHref)
               }
-            })()
+            })(),
           )
         }}
       >
@@ -103,7 +103,7 @@ export function CheckoutDetailsStepSection({
                     label={tCheckout("billing_same_as_shipping")}
                     onValueChange={(nextUseSameAddress) => {
                       controller.checkoutDetailsForm.trackUseSameAddressIntent(
-                        nextUseSameAddress
+                        nextUseSameAddress,
                       )
 
                       if (
@@ -113,7 +113,7 @@ export function CheckoutDetailsStepSection({
                         ) &&
                         resolveAddressFormsMatch(
                           controller.checkoutDetailsForm.values.billing,
-                          controller.checkoutDetailsForm.hydratedValues.billing
+                          controller.checkoutDetailsForm.hydratedValues.billing,
                         )
                       ) {
                         controller.checkoutDetailsForm.copyShippingIntoBilling()

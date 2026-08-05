@@ -69,7 +69,7 @@ import type { UpsertCustomersBatchSchemaType } from "./validators"
  */
 export const POST = async (
   req: MedusaRequest<UpsertCustomersBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   await enqueueImportJob(req, res, {
     payload: { customers: req.validatedBody.customers },

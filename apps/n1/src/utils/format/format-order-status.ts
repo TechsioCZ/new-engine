@@ -14,7 +14,7 @@ const orderStatusMap: Record<OrderStatus, string> = {
 }
 
 export function getOrderStatusColor(
-  status: string
+  status: string,
 ): "success" | "danger" | "info" {
   switch (status) {
     case "completed": {

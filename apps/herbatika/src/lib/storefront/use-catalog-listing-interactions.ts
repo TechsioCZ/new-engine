@@ -39,7 +39,7 @@ interface UseCatalogListingPageBoundsInput {
 const resolveNextMultiSelectValues = (
   key: CatalogMultiSelectKey,
   queryState: NuqsPlpQueryState,
-  itemId: string
+  itemId: string,
 ) => {
   switch (key) {
     case "status": {
@@ -109,9 +109,9 @@ export function useCatalogListingInteractions({
       setQueryState(
         resolveCatalogQueryStatePatch(
           queryState,
-          resolveNextMultiSelectValues(key, queryState, itemId)
-        )
-      )
+          resolveNextMultiSelectValues(key, queryState, itemId),
+        ),
+      ),
     )
   }
 
@@ -134,13 +134,13 @@ export function useCatalogListingInteractions({
           resolveCatalogQueryStatePatch(queryState, {
             price_max: range.max ?? null,
             price_min: range.min ?? null,
-          })
-        )
+          }),
+        ),
       )
     },
     onProductHoverEnd: (product: HttpTypes.StoreProduct) => {
       prefetchProduct.cancelPrefetch(
-        `${productPrefetchKeyPrefix}-${product.id}`
+        `${productPrefetchKeyPrefix}-${product.id}`,
       )
     },
     onProductHoverStart: (product: HttpTypes.StoreProduct) => {
@@ -151,7 +151,7 @@ export function useCatalogListingInteractions({
       prefetchProduct.delayedPrefetch(
         { fields: PRODUCT_DETAIL_FIELDS, handle: product.handle },
         180,
-        `${productPrefetchKeyPrefix}-${product.id}`
+        `${productPrefetchKeyPrefix}-${product.id}`,
       )
     },
     onResetFilters: () => {
@@ -167,16 +167,16 @@ export function useCatalogListingInteractions({
               price_min: null,
               status: [],
             },
-            { resetPage: "always" }
-          )
-        )
+            { resetPage: "always" },
+          ),
+        ),
       )
     },
     onSortChange: (value: ProductSortValue) => {
       runDetachedPromise(
         setQueryState(
-          resolveCatalogQueryStatePatch(queryState, { sort: value })
-        )
+          resolveCatalogQueryStatePatch(queryState, { sort: value }),
+        ),
       )
     },
     onStatusToggle: (itemId: string) => {

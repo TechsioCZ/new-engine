@@ -16,7 +16,7 @@ const toErrorMessage = (error: unknown) =>
 const buildFailedResult = (
   client: CustomerGroupCustomersBatchClient,
   identifier: CustomerGroupCustomerIdentifier,
-  error: string
+  error: string,
 ): AssignCustomersToGroupBatchResult => ({
   error,
   identifier: client.getIdentifierValue(identifier),
@@ -47,7 +47,7 @@ export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
     }
 
     const customerIndex = await client.preloadCustomers(
-      input.customer_identifiers
+      input.customer_identifiers,
     )
     const results: AssignCustomersToGroupBatchResult[] = []
 
@@ -72,14 +72,14 @@ export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
       } catch (error) {
         const message = toErrorMessage(error)
         logger.warn(
-          `[symmy-plugin] Failed to assign customer ${identifierValue} to customer group ${input.code}: ${message}`
+          `[symmy-plugin] Failed to assign customer ${identifierValue} to customer group ${input.code}: ${message}`,
         )
         results.push(buildFailedResult(client, identifier, message))
       }
     }
 
     const assigned = results.filter(
-      (result) => result.status === "assigned"
+      (result) => result.status === "assigned",
     ).length
     const failed = results.length - assigned
     const output: AssignCustomersToGroupBatchOutput = {
@@ -91,5 +91,5 @@ export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
     }
 
     return new StepResponse(output)
-  }
+  },
 )

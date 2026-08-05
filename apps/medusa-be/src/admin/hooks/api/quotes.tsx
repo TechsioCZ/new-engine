@@ -31,11 +31,11 @@ type QueryOptions<TData> = Omit<
 
 export const useQuotes = (
   quoteQuery: QuoteFilterParams,
-  options?: QueryOptions<StoreQuotesResponse>
+  options?: QueryOptions<StoreQuotesResponse>,
 ) => {
   const fetchQuotes = async (
     filters: QuoteFilterParams,
-    headers?: ClientHeaders
+    headers?: ClientHeaders,
   ) =>
     sdk.client.fetch<StoreQuotesResponse>("/admin/quotes", {
       query: filters,
@@ -54,12 +54,12 @@ export const useQuotes = (
 export const useQuote = (
   id: string,
   quoteQuery?: QuoteFilterParams,
-  options?: QueryOptions<StoreQuoteResponse>
+  options?: QueryOptions<StoreQuoteResponse>,
 ) => {
   const fetchQuote = async (
     quoteId: string,
     filters?: QuoteFilterParams,
-    headers?: ClientHeaders
+    headers?: ClientHeaders,
   ) =>
     sdk.client.fetch<StoreQuoteResponse>(`/admin/quotes/${quoteId}`, {
       ...(filters ? { query: filters } : {}),
@@ -81,7 +81,7 @@ export const useAddItemsToQuote = (
     HttpTypes.AdminOrderEditPreviewResponse,
     FetchError,
     HttpTypes.AdminAddOrderEditItems
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -105,7 +105,7 @@ export const useUpdateQuoteItem = (
     HttpTypes.AdminOrderEditPreviewResponse,
     FetchError,
     UpdateQuoteItemPayload & { itemId: string }
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -132,7 +132,7 @@ export const useRemoveQuoteItem = (
     HttpTypes.AdminOrderEditPreviewResponse,
     FetchError,
     string
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -155,7 +155,7 @@ export const useUpdateAddedQuoteItem = (
     HttpTypes.AdminOrderEditPreviewResponse,
     FetchError,
     UpdateQuoteItemPayload & { actionId: string }
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -181,7 +181,7 @@ export const useConfirmQuote = (
   options?: UseMutationOptions<
     HttpTypes.AdminOrderEditPreviewResponse,
     FetchError
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -200,7 +200,7 @@ export const useConfirmQuote = (
 
 export const useSendQuote = (
   id: string,
-  options?: UseMutationOptions<AdminQuoteResponse, FetchError>
+  options?: UseMutationOptions<AdminQuoteResponse, FetchError>,
 ) => {
   const queryClient = useQueryClient()
 
@@ -209,7 +209,7 @@ export const useSendQuote = (
       `/admin/quotes/${quoteId}/send`,
       {
         method: "POST",
-      }
+      },
     )
 
   return useMutation({
@@ -235,7 +235,7 @@ export const useSendQuote = (
 
 export const useRejectQuote = (
   id: string,
-  options?: UseMutationOptions<AdminQuoteResponse, FetchError>
+  options?: UseMutationOptions<AdminQuoteResponse, FetchError>,
 ) => {
   const queryClient = useQueryClient()
 
@@ -244,7 +244,7 @@ export const useRejectQuote = (
       `/admin/quotes/${quoteId}/reject`,
       {
         method: "POST",
-      }
+      },
     )
 
   return useMutation({
@@ -274,7 +274,7 @@ export const useCreateQuoteMessage = (
     AdminQuoteResponse,
     FetchError,
     AdminCreateQuoteMessage
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -284,7 +284,7 @@ export const useCreateQuoteMessage = (
       {
         body,
         method: "POST",
-      }
+      },
     )
 
   return useMutation({

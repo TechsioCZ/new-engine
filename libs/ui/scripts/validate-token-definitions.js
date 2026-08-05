@@ -323,7 +323,7 @@ async function buildTokenIndices() {
       } catch (error) {
         console.error(`💥 Failed to process ${file}:`, error?.message || error)
       }
-    })
+    }),
   )
 
   // Ensure every token key exists in maps
@@ -422,7 +422,7 @@ async function buildComponentIndices(classToTokens, knownTokens) {
       } catch {
         // ignore unreadable files
       }
-    })
+    }),
   )
 
   return { classUsageTokens, componentVarUsage }
@@ -491,7 +491,7 @@ async function validateTokenDefinitions({
   p.mark("components")
   const { componentVarUsage, classUsageTokens } = await buildComponentIndices(
     classToTokens,
-    new Set(allTokens)
+    new Set(allTokens),
   )
   if (profile) {
     console.log(`⏱️  components: ${p.end("components").toFixed(1)}ms`)
@@ -570,11 +570,11 @@ async function validateTokenDefinitions({
     console.log()
   }
   console.log(
-    "💡 Note: Tokens might be used dynamically or externally and not detected."
+    "💡 Note: Tokens might be used dynamically or externally and not detected.",
   )
   if (!failOnUnused) {
     console.log(
-      "ℹ️  Non-blocking mode: treating potentially unused tokens as warnings."
+      "ℹ️  Non-blocking mode: treating potentially unused tokens as warnings.",
     )
     if (profile) {
       console.log(`⏱️  total: ${p.end("total").toFixed(1)}ms`)

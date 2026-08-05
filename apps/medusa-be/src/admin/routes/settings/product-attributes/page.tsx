@@ -202,14 +202,14 @@ const OptionEditDrawer = ({
       order: "title",
       q: debouncedProductQ,
     }),
-    [debouncedProductQ, productPage]
+    [debouncedProductQ, productPage],
   )
   const productsQuery = useQuery({
     queryFn: async () =>
       listProductAttributeOptionAssignedProducts(option.id, productParams),
     queryKey: productAttributeQueryKeys.optionProducts(
       option.id,
-      productParams
+      productParams,
     ),
   })
   const mutation = useMutation({
@@ -494,7 +494,7 @@ const DefinitionEditDrawer = ({
     }
   }
   const handlePermanentDeleteOption = async (
-    option: ProductAttributeOption
+    option: ProductAttributeOption,
   ) => {
     const confirmed = await prompt({
       cancelText: t("actions.cancel"),
@@ -663,7 +663,7 @@ const DefinitionEditDrawer = ({
                                     </Button>
                                     <IconButton
                                       aria-label={t(
-                                        "actions.deletePermanently"
+                                        "actions.deletePermanently",
                                       )}
                                       disabled={
                                         restoreOptionMutation.isPending ||
@@ -789,7 +789,7 @@ const ProductAttributesSettingsPage = () => {
       q: debouncedQ,
       status,
     }),
-    [debouncedQ, pageIndex, status]
+    [debouncedQ, pageIndex, status],
   )
   const query = useQuery({
     queryFn: async () => listProductAttributeDefinitions(params),
@@ -854,7 +854,7 @@ const ProductAttributesSettingsPage = () => {
     }
   }
   const handlePermanentDelete = async (
-    definition: ProductAttributeDefinition
+    definition: ProductAttributeDefinition,
   ) => {
     const confirmed = await prompt({
       cancelText: t("actions.cancel"),

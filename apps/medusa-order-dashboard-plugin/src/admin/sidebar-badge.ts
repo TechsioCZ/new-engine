@@ -47,13 +47,13 @@ export function startOrderDashboardSidebarBadge() {
 
   window.setInterval(
     queueOrderDashboardSidebarBadgeRefresh,
-    ORDER_DASHBOARD_SIDEBAR_BADGE_REFRESH_MS
+    ORDER_DASHBOARD_SIDEBAR_BADGE_REFRESH_MS,
   )
   window.addEventListener("focus", queueOrderDashboardSidebarBadgeRefresh)
 }
 
 export function setOrderDashboardSidebarBadgeCount(
-  count: number | null | undefined
+  count: number | null | undefined,
 ) {
   currentCount = normalizeOrderDashboardSidebarBadgeCount(count)
   renderOrderDashboardSidebarBadge(currentCount)
@@ -70,7 +70,7 @@ async function refreshOrderDashboardSidebarBadge() {
 
   try {
     const summary = await sdk.client.fetch<OrderDashboardSummaryResponse>(
-      "/admin/order-expedition/summary"
+      "/admin/order-expedition/summary",
     )
     setOrderDashboardSidebarBadgeCount(summary.pending_unpaid_count)
   } catch {
@@ -144,7 +144,7 @@ function renderOrderDashboardSidebarBadge(count: number | null | undefined) {
 }
 
 function normalizeOrderDashboardSidebarBadgeCount(
-  count: number | null | undefined
+  count: number | null | undefined,
 ) {
   return typeof count === "number" && Number.isFinite(count) ? count : null
 }
@@ -156,7 +156,7 @@ function removeOrderDashboardSidebarBadge() {
 function getOrderDashboardSidebarLink() {
   return (
     document.querySelector<HTMLAnchorElement>(
-      ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR
+      ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR,
     ) ?? null
   )
 }
@@ -169,6 +169,6 @@ function getOrderDashboardSidebarBadgeLabel(count: number) {
 
   return dictionary.sidebar.actionRequiredOrders.replace(
     "{{count}}",
-    String(count)
+    String(count),
   )
 }

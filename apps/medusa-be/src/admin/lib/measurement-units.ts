@@ -24,7 +24,7 @@ export interface MeasurementUnitInput {
 export type MeasurementUnitStatus = "active" | "all" | "deleted"
 
 export const isMeasurementUnitStatus = (
-  value: string
+  value: string,
 ): value is MeasurementUnitStatus =>
   value === "active" || value === "all" || value === "deleted"
 
@@ -90,7 +90,7 @@ export interface ProductVariantMeasurementResponse {
 }
 
 const toSearch = (
-  params: Record<string, boolean | number | string | undefined>
+  params: Record<string, boolean | number | string | undefined>,
 ) => {
   const search = new URLSearchParams()
 
@@ -113,7 +113,7 @@ export const measurementUnitQueryKeys = {
     ["product-measurement", productId] as const,
   productVariantMeasurement: (
     productId: string | undefined,
-    productVariantId: string | undefined
+    productVariantId: string | undefined,
   ) => ["product-variant-measurement", productId, productVariantId] as const,
   productVariantMeasurements: (productId: string | undefined) =>
     ["product-variant-measurement", productId] as const,
@@ -133,7 +133,7 @@ export const listMeasurementUnits = async (params: {
   status?: MeasurementUnitStatus
 }) =>
   sdk.client.fetch<MeasurementUnitsResponse>(
-    `/admin/measurement-units?${toSearch(params)}`
+    `/admin/measurement-units?${toSearch(params)}`,
   )
 
 export const retrieveMeasurementUnit = async (id: string) =>
@@ -147,10 +147,10 @@ export const listMeasurementUnitAssignedProducts = async (
     order_by?: string
     q?: string
     status?: MeasurementUnitStatus
-  }
+  },
 ) =>
   sdk.client.fetch<MeasurementUnitAssignedProductsResponse>(
-    `/admin/measurement-units/${id}/products?${toSearch(params)}`
+    `/admin/measurement-units/${id}/products?${toSearch(params)}`,
   )
 
 export const createMeasurementUnit = async (input: MeasurementUnitInput) =>
@@ -161,7 +161,7 @@ export const createMeasurementUnit = async (input: MeasurementUnitInput) =>
 
 export const updateMeasurementUnit = async (
   id: string,
-  input: Partial<MeasurementUnitInput>
+  input: Partial<MeasurementUnitInput>,
 ) =>
   sdk.client.fetch<MeasurementUnitResponse>(`/admin/measurement-units/${id}`, {
     body: input,
@@ -178,26 +178,26 @@ export const restoreMeasurementUnit = async (id: string) =>
     `/admin/measurement-units/${id}/restore`,
     {
       method: "POST",
-    }
+    },
   )
 
 export const retrieveProductMeasurement = async (productId: string) =>
   sdk.client.fetch<ProductMeasurementResponse>(
-    `/admin/products/${productId}/measurement`
+    `/admin/products/${productId}/measurement`,
   )
 
 export const setProductMeasurement = async (
   productId: string,
   input: {
     measurement_unit_id: string
-  }
+  },
 ) =>
   sdk.client.fetch<ProductMeasurementResponse>(
     `/admin/products/${productId}/measurement`,
     {
       body: input,
       method: "POST",
-    }
+    },
   )
 
 export const deleteProductMeasurement = async (productId: string) =>
@@ -207,10 +207,10 @@ export const deleteProductMeasurement = async (productId: string) =>
 
 export const retrieveProductVariantMeasurement = async (
   productId: string,
-  productVariantId: string
+  productVariantId: string,
 ) =>
   sdk.client.fetch<ProductVariantMeasurementResponse>(
-    `/admin/products/${productId}/variants/${productVariantId}/measurement`
+    `/admin/products/${productId}/variants/${productVariantId}/measurement`,
   )
 
 export const setProductVariantMeasurement = async (
@@ -218,23 +218,23 @@ export const setProductVariantMeasurement = async (
   productVariantId: string,
   input: {
     product_unit_quantity: number
-  }
+  },
 ) =>
   sdk.client.fetch<ProductVariantMeasurementResponse>(
     `/admin/products/${productId}/variants/${productVariantId}/measurement`,
     {
       body: input,
       method: "POST",
-    }
+    },
   )
 
 export const deleteProductVariantMeasurement = async (
   productId: string,
-  productVariantId: string
+  productVariantId: string,
 ) =>
   sdk.client.fetch(
     `/admin/products/${productId}/variants/${productVariantId}/measurement`,
     {
       method: "DELETE",
-    }
+    },
   )

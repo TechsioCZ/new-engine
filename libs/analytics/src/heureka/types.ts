@@ -47,7 +47,7 @@ export interface HeurekaFunction {
     productId: string,
     productName: string,
     priceWithVat: string,
-    quantity: string
+    quantity: string,
   ): void
   (command: "set_total_vat", totalWithVat: string): void
   (command: "set_currency", currency: string): void

@@ -12,7 +12,7 @@ export interface PaginationState {
 
 export function resolvePagination(
   input: PaginationInput,
-  defaultLimit: number
+  defaultLimit: number,
 ): PaginationState {
   const limit = input.limit ?? defaultLimit
   const offset =

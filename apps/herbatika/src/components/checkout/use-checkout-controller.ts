@@ -111,10 +111,10 @@ export function useCheckoutController() {
       enabled: Boolean(cartQuery.cart?.id),
       onError: (error) => {
         setCheckoutError(
-          resolveErrorMessage(error, tCheckout("shipping_update_failed"))
+          resolveErrorMessage(error, tCheckout("shipping_update_failed")),
         )
       },
-    }
+    },
   )
 
   const checkoutPaymentQuery = storefront.flows.checkout.useCheckoutPayment(
@@ -123,13 +123,13 @@ export function useCheckoutController() {
     cartQuery.cart,
     {
       enabled: Boolean(activeRegionId),
-    }
+    },
   )
   const cartSelectedPaymentProviderId = resolveSelectedPaymentProviderId(
-    cartQuery.cart
+    cartQuery.cart,
   )
   const storedPaymentProviderId = useStoredPaymentProviderSelection(
-    cartQuery.cart?.id
+    cartQuery.cart?.id,
   )
   const effectiveSelectedPaymentProviderId =
     storedPaymentProviderId ?? cartSelectedPaymentProviderId
@@ -170,7 +170,7 @@ export function useCheckoutController() {
       fetchPaymentProviders(queryClient, activeRegionId),
       () => {
         // Best-effort prefetch only.
-      }
+      },
     )
   }, [activeRegionId, queryClient])
 
@@ -189,7 +189,7 @@ export function useCheckoutController() {
       marketContext.locale,
       region?.country_code,
       regionsQuery.regions,
-    ]
+    ],
   )
 
   const actions = useCheckoutActions({
@@ -201,12 +201,12 @@ export function useCheckoutController() {
       logCheckoutAccountSetupDebug("complete cart invoked", {
         cart_id: cartQuery.cart?.id ?? null,
         cart_metadata_requested: readAccountSetupRequested(
-          cartQuery.cart?.metadata
+          cartQuery.cart?.metadata,
         ),
       })
 
       const completeResult = await completeCheckoutMutation.mutateAsync(
-        cartQuery.cart?.id === undefined ? {} : { cartId: cartQuery.cart?.id }
+        cartQuery.cart?.id === undefined ? {} : { cartId: cartQuery.cart?.id },
       )
 
       logCheckoutAccountSetupDebug("complete cart returned", {
@@ -215,7 +215,7 @@ export function useCheckoutController() {
         has_result: Boolean(completeResult),
         order_id: resolveOrderId(completeResult),
         order_metadata_requested: readAccountSetupRequested(
-          resolveCompleteResultOrderMetadata(completeResult)
+          resolveCompleteResultOrderMetadata(completeResult),
         ),
       })
 
@@ -297,13 +297,13 @@ export function useCheckoutController() {
       try {
         const accountSetupMetadata = buildAccountSetupRequestedMetadata(
           cartQuery.cart.metadata,
-          !authQuery.isAuthenticated && values.accountSetupRequested
+          !authQuery.isAuthenticated && values.accountSetupRequested,
         )
 
         logCheckoutAccountSetupDebug("address submit update cart request", {
           cart_id: cartQuery.cart.id,
           current_metadata_requested: readAccountSetupRequested(
-            cartQuery.cart.metadata
+            cartQuery.cart.metadata,
           ),
           form_requested: values.accountSetupRequested,
           is_authenticated: authQuery.isAuthenticated,
@@ -313,13 +313,13 @@ export function useCheckoutController() {
 
         const updatedCart = await updateCartAddressMutation.mutateAsync({
           billingAddress: buildHerbatikaCheckoutAddressInput(
-            effectiveCheckoutDetails.billing
+            effectiveCheckoutDetails.billing,
           ),
           cartId: cartQuery.cart.id,
           email: values.shipping.email.trim(),
           metadata: accountSetupMetadata,
           shippingAddress: buildHerbatikaCheckoutAddressInput(
-            effectiveCheckoutDetails.shipping
+            effectiveCheckoutDetails.shipping,
           ),
           useSameAddress: effectiveCheckoutDetails.useSameAddress,
         })
@@ -327,14 +327,14 @@ export function useCheckoutController() {
         logCheckoutAccountSetupDebug("address submit update cart response", {
           cart_id: updatedCart.id,
           response_metadata_requested: readAccountSetupRequested(
-            updatedCart.metadata
+            updatedCart.metadata,
           ),
         })
 
         saveAddressSucceededRef.current = true
       } catch (error) {
         setCheckoutError(
-          resolveErrorMessage(error, tCheckout("address_update_failed"))
+          resolveErrorMessage(error, tCheckout("address_update_failed")),
         )
       }
     },
@@ -392,14 +392,14 @@ export function useCheckoutController() {
       logCheckoutAccountSetupDebug("complete order metadata sync response", {
         cart_id: updatedCart.id,
         response_metadata_requested: readAccountSetupRequested(
-          updatedCart.metadata
+          updatedCart.metadata,
         ),
       })
 
       return true
     } catch (error) {
       setCheckoutError(
-        resolveErrorMessage(error, tCheckout("registration_update_failed"))
+        resolveErrorMessage(error, tCheckout("registration_update_failed")),
       )
       return false
     }
@@ -421,7 +421,7 @@ export function useCheckoutController() {
 
   const currencyCode = resolveSupportedCurrencyCode(
     cartQuery.cart?.currency_code,
-    regionCurrencyCode
+    regionCurrencyCode,
   )
 
   const cartItems = cartQuery.cart?.items ?? []
@@ -437,7 +437,7 @@ export function useCheckoutController() {
         ] ?? 0)
       : 0
   const hasCartShippingMethods = Boolean(
-    cartQuery.cart?.shipping_methods?.length
+    cartQuery.cart?.shipping_methods?.length,
   )
   const cartItemsTotalAmount = resolveCartItemsTotalAmount(cartQuery.cart)
   const cartShippingTotalAmount = hasCartShippingMethods
@@ -449,7 +449,7 @@ export function useCheckoutController() {
   const cartTaxAmount = resolveCartTaxAmount(cartQuery.cart)
   const cartTotalAmount = resolveCartTotalAmount(cartQuery.cart)
   const cartTotalWithoutTaxAmount = resolveCartTotalWithoutTaxAmount(
-    cartQuery.cart
+    cartQuery.cart,
   )
   const cartItemsSubtotalAmount = resolveCartItemsSubtotalAmount(cartQuery.cart)
 

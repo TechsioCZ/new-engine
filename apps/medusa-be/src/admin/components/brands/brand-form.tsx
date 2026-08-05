@@ -51,12 +51,12 @@ type BrandFormErrors = Partial<Record<keyof BrandFormState, string | undefined>>
 
 const emptyAttribute = (
   attributeTypes: BrandAttributeType[] = [],
-  selectedNames = new Set<string>()
+  selectedNames = new Set<string>(),
 ): BrandAttribute => ({
   name:
     attributeTypes.find(
       (attributeType) =>
-        !(attributeType.deleted_at || selectedNames.has(attributeType.name))
+        !(attributeType.deleted_at || selectedNames.has(attributeType.name)),
     )?.name ?? "",
   value: "",
 })
@@ -64,7 +64,7 @@ const emptyAttribute = (
 export const toBrandFormState = (brand?: Brand): BrandFormState => ({
   attributes: brand?.attributes.length
     ? brand.attributes.filter(
-        (attribute) => !attribute.attribute_type_deleted_at
+        (attribute) => !attribute.attribute_type_deleted_at,
       )
     : [],
   gpsr_contact_email: brand?.gpsr_contact_email ?? "",
@@ -92,17 +92,17 @@ const toBrandInput = (form: BrandFormState): BrandInput => ({
     .filter((attribute) => attribute.name.length > 0),
   gpsr_contact_email: trimmedOrNull(form.gpsr_contact_email),
   gpsr_european_reseller_contact_email: trimmedOrNull(
-    form.gpsr_european_reseller_contact_email
+    form.gpsr_european_reseller_contact_email,
   ),
   gpsr_european_reseller_manufacturing_company_name: trimmedOrNull(
-    form.gpsr_european_reseller_manufacturing_company_name
+    form.gpsr_european_reseller_manufacturing_company_name,
   ),
   gpsr_european_reseller_postal_address: trimmedOrNull(
-    form.gpsr_european_reseller_postal_address
+    form.gpsr_european_reseller_postal_address,
   ),
   gpsr_manufactured_outside_eu: form.gpsr_manufactured_outside_eu,
   gpsr_manufacturing_company_name: trimmedOrNull(
-    form.gpsr_manufacturing_company_name
+    form.gpsr_manufacturing_company_name,
   ),
   gpsr_postal_address: trimmedOrNull(form.gpsr_postal_address),
   handle: form.handle.trim() || undefined,
@@ -111,7 +111,7 @@ const toBrandInput = (form: BrandFormState): BrandInput => ({
 
 const validateBrandForm = (
   form: BrandFormState,
-  messages: { invalidEmail: string; mustBeEmpty: string; required: string }
+  messages: { invalidEmail: string; mustBeEmpty: string; required: string },
 ) => {
   const errors: BrandFormErrors = {}
 
@@ -224,25 +224,25 @@ const BrandFormFields = ({
   const selectedAttributeNames = new Set(
     form.attributes
       .map((attribute) => attribute.name)
-      .filter((name): name is string => !!name)
+      .filter((name): name is string => !!name),
   )
   const canAddAttribute = attributeTypes.some(
     (attributeType) =>
       !(
         attributeType.deleted_at ||
         selectedAttributeNames.has(attributeType.name)
-      )
+      ),
   )
 
   const updateAttribute = (
     index: number,
     key: keyof BrandAttribute,
-    value: string
+    value: string,
   ) => {
     setForm((current) => ({
       ...current,
       attributes: current.attributes.map((attribute, currentIndex) =>
-        currentIndex === index ? { ...attribute, [key]: value } : attribute
+        currentIndex === index ? { ...attribute, [key]: value } : attribute,
       ),
     }))
   }
@@ -251,12 +251,12 @@ const BrandFormFields = ({
     const selectedNames = new Set(
       form.attributes
         .map((attribute) => attribute.name)
-        .filter((name) => name && name !== selectedName)
+        .filter((name) => name && name !== selectedName),
     )
 
     return attributeTypes.filter(
       (attributeType) =>
-        !(attributeType.deleted_at || selectedNames.has(attributeType.name))
+        !(attributeType.deleted_at || selectedNames.has(attributeType.name)),
     )
   }
 
@@ -356,7 +356,7 @@ const BrandFormFields = ({
             form={form}
             id={`${idPrefix}-gpsr-eu-company-name`}
             label={t(
-              "fields.gpsr_european_reseller_manufacturing_company_name"
+              "fields.gpsr_european_reseller_manufacturing_company_name",
             )}
             name="gpsr_european_reseller_manufacturing_company_name"
             required={required}
@@ -451,7 +451,7 @@ const BrandFormFields = ({
                   setForm((current) => ({
                     ...current,
                     attributes: current.attributes.filter(
-                      (_, currentIndex) => currentIndex !== index
+                      (_, currentIndex) => currentIndex !== index,
                     ),
                   }))
                 }}
@@ -475,7 +475,7 @@ const BrandFormFields = ({
 
 const useBrandFormState = (brand: Brand | undefined, open: boolean) => {
   const [form, setForm] = useState<BrandFormState>(() =>
-    toBrandFormState(brand)
+    toBrandFormState(brand),
   )
   const [errors, setErrors] = useState<BrandFormErrors>({})
   const lastOpen = useRef(false)
@@ -497,7 +497,7 @@ const useBrandFormState = (brand: Brand | undefined, open: boolean) => {
 const useValidatedSubmit = (
   form: BrandFormState,
   setErrors: Dispatch<SetStateAction<BrandFormErrors>>,
-  submit: (input: BrandInput) => void
+  submit: (input: BrandInput) => void,
 ) => {
   const { t } = useTranslation("brands")
 
@@ -531,13 +531,13 @@ export const BrandCreateModal = ({
   const queryClient = useQueryClient()
   const { errors, form, setErrors, setForm } = useBrandFormState(
     undefined,
-    open
+    open,
   )
   const mutation = useMutation({
     mutationFn: createBrand,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveBrandFailed")
+        error instanceof Error ? error.message : t("errors.saveBrandFailed"),
       )
     },
     onSuccess: async () => {
@@ -634,7 +634,7 @@ export const BrandEditDrawer = ({
     mutationFn: async (input: BrandInput) => updateBrand(brand.id, input),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveBrandFailed")
+        error instanceof Error ? error.message : t("errors.saveBrandFailed"),
       )
     },
     onSuccess: async () => {

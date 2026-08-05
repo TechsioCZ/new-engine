@@ -32,7 +32,7 @@ interface UseCheckoutPaymentReturn {
 export function useCheckoutPayment(
   cartId?: string,
   regionId?: string,
-  cart?: Cart | null
+  cart?: Cart | null,
 ): UseCheckoutPaymentReturn {
   const queryClient = useQueryClient()
   const toast = useCartToast()
@@ -65,7 +65,7 @@ export function useCheckoutPayment(
         if (!providerId) {
           throw new CartServiceError(
             "Provider ID je povinné",
-            "VALIDATION_ERROR"
+            "VALIDATION_ERROR",
           )
         }
         return createPaymentCollection(cartId, providerId)
@@ -74,7 +74,7 @@ export function useCheckoutPayment(
         if (process.env.NODE_ENV === "development") {
           console.error(
             "[useCheckoutPayment] Failed to initiate payment:",
-            error
+            error,
           )
         }
 

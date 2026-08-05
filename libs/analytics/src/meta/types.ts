@@ -74,7 +74,7 @@ export interface MetaPixelFbq {
   (
     action: "track",
     event: MetaPixelStandardEvent,
-    params?: Record<string, unknown>
+    params?: Record<string, unknown>,
   ): void
   (action: "trackCustom", event: string, params?: Record<string, unknown>): void
   callMethod?: (...args: unknown[]) => void

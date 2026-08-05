@@ -25,7 +25,7 @@ export interface ProductLocationAvailabilityInputBase {
 export interface ProductLocationAvailabilityService<TResponse, TParams> {
   getProductLocationAvailability: (
     params: TParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TResponse>
 }
 

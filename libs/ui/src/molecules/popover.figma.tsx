@@ -30,5 +30,5 @@ figma.connect(
         "bottom-end": "bottom-end",
       }),
     },
-  }
+  },
 )

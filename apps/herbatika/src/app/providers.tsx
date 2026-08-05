@@ -42,7 +42,7 @@ function useDisableNextDevIndicator() {
       }),
       () => {
         // Ignore failures in environments where Next.js devtools endpoint is unavailable.
-      }
+      },
     )
   }, [])
 }

@@ -15,7 +15,7 @@ describe(formatUnitPriceLabel, () => {
         unit_id: "unit_ml",
         unit_name: "millilitre",
         unit_symbol: "ml",
-      })
+      }),
     ).toBe("13,45 € / 100 ml")
   })
 
@@ -30,7 +30,7 @@ describe(formatUnitPriceLabel, () => {
         unit_id: "unit_kg",
         unit_name: "kilogram",
         unit_symbol: "kg",
-      })
+      }),
     ).toBe("4,50 € / 0,5 kg")
   })
 
@@ -90,7 +90,7 @@ describe(resolveVariantPricePerUnit, () => {
       resolveVariantPricePerUnit(variant, {
         currencyCode: "EUR",
         source: "calculated_price",
-      })
+      }),
     ).toBe(pricePerUnit)
   })
 
@@ -99,7 +99,7 @@ describe(resolveVariantPricePerUnit, () => {
       resolveVariantPricePerUnit(undefined, {
         currencyCode: "EUR",
         source: "calculated_price",
-      })
+      }),
     ).toBeNull()
   })
 
@@ -123,7 +123,7 @@ describe(resolveVariantPricePerUnit, () => {
       resolveVariantPricePerUnit(variant, {
         currencyCode: "EUR",
         source: "top_offer",
-      })
+      }),
     ).toBeNull()
   })
 
@@ -147,7 +147,7 @@ describe(resolveVariantPricePerUnit, () => {
       resolveVariantPricePerUnit(variant, {
         currencyCode: "EUR",
         source: "calculated_price",
-      })
+      }),
     ).toBeNull()
   })
 })

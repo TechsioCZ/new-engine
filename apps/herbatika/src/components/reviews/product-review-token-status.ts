@@ -11,7 +11,7 @@ export const resolveProductStatusMessage = (
     loading: string
     loadFailed: string
     notFound: string
-  }
+  },
 ) => {
   switch (status) {
     case "loading": {

@@ -47,7 +47,7 @@ export const createCustomerProductListWorkflow = createWorkflow(
             },
           },
         ]
-      }
+      },
     )
 
     createRemoteLinkStep(customerProductListLinks)
@@ -58,5 +58,5 @@ export const createCustomerProductListWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

@@ -73,7 +73,7 @@ describe("request utilities", () => {
   describe(shouldReturnHtmlForRequest, () => {
     const createMockRequest = (
       method: string,
-      headerValue?: string
+      headerValue?: string,
     ): PayloadRequest => {
       const headers = new Headers()
       if (headerValue !== undefined) {
@@ -122,7 +122,7 @@ describe("request utilities", () => {
 
     it("returns false for null request", () => {
       expect(
-        shouldReturnHtmlForRequest(null as unknown as PayloadRequest)
+        shouldReturnHtmlForRequest(null as unknown as PayloadRequest),
       ).toBeFalsy()
     })
 

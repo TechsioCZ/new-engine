@@ -17,17 +17,17 @@ import type {
 const matchesQuery = (values: unknown[], query: string) => {
   const comparableQuery = normalizeComparable(query)
   return values.some((value) =>
-    normalizeComparable(normalizeString(value)).includes(comparableQuery)
+    normalizeComparable(normalizeString(value)).includes(comparableQuery),
   )
 }
 
 const categoryMatchesQuery = (
   category: RawSearchAutocompleteCategoryRef,
-  query: string
+  query: string,
 ) => matchesQuery([category.name, category.handle], query)
 
 const createCategorySuggestion = (
-  category: RawSearchAutocompleteCategoryRef
+  category: RawSearchAutocompleteCategoryRef,
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(category.id)
   const handle = normalizeString(category.handle)
@@ -79,11 +79,11 @@ export const createCategorySuggestions = ({
 
 const brandMatchesQuery = (
   brand: RawSearchAutocompleteBrandRef,
-  query: string
+  query: string,
 ) => matchesQuery([brand.title, brand.handle], query)
 
 const createBrandSuggestion = (
-  brand: RawSearchAutocompleteBrandRef
+  brand: RawSearchAutocompleteBrandRef,
 ): SearchAutocompleteSuggestion | null => {
   const title = normalizeString(brand.title)
   const handle = normalizeString(brand.handle)
@@ -103,7 +103,7 @@ const createBrandSuggestion = (
 }
 
 const createBrandSuggestionFromFacet = (
-  facet: RawSearchAutocompleteFacetItem
+  facet: RawSearchAutocompleteFacetItem,
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(facet.id)
   const title = normalizeString(facet.label)
@@ -126,7 +126,7 @@ const createBrandSuggestionFromFacet = (
 const pushUniqueSuggestion = (
   suggestions: SearchAutocompleteSuggestion[],
   seen: Set<string>,
-  suggestion: SearchAutocompleteSuggestion | null
+  suggestion: SearchAutocompleteSuggestion | null,
 ) => {
   if (!suggestion || seen.has(suggestion.href)) {
     return
@@ -158,7 +158,7 @@ export const createBrandSuggestions = ({
     pushUniqueSuggestion(
       suggestions,
       seen,
-      createBrandSuggestionFromFacet(facet)
+      createBrandSuggestionFromFacet(facet),
     )
   }
 

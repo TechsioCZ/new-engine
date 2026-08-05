@@ -112,7 +112,7 @@ describe(createMedusaStorefrontServerReadPreset, () => {
       })
 
     expect(productQuery.queryKey).toStrictEqual(
-      productQueryKeys.list({ limit: 2 })
+      productQueryKeys.list({ limit: 2 }),
     )
     expect(regionQuery.queryKey).toStrictEqual(regionQueryKeys.list({}))
     expect(productListQuery.queryKey).toStrictEqual(
@@ -120,13 +120,13 @@ describe(createMedusaStorefrontServerReadPreset, () => {
         customerId: "cus_1",
         limit: 5,
         offset: 5,
-      })
+      }),
     )
     expect(productListDetailQuery.queryKey).toStrictEqual(
       productListQueryKeys.detail({
         customerId: "cus_1",
         id: "list_1",
-      })
+      }),
     )
 
     await queryClient.prefetchQuery(productQuery)
@@ -140,13 +140,13 @@ describe(createMedusaStorefrontServerReadPreset, () => {
         query: expect.objectContaining({
           limit: 2,
         }),
-      })
+      }),
     )
     expect(spies.clientFetch).toHaveBeenCalledWith(
       "/store/regions",
       expect.objectContaining({
         query: {},
-      })
+      }),
     )
     expect(spies.clientFetch).toHaveBeenCalledWith(
       "/store/product-lists",
@@ -155,13 +155,13 @@ describe(createMedusaStorefrontServerReadPreset, () => {
           limit: 5,
           offset: 5,
         }),
-      })
+      }),
     )
     expect(spies.clientFetch).toHaveBeenCalledWith(
       "/store/product-lists/list_1",
       expect.objectContaining({
         signal: expect.any(AbortSignal),
-      })
+      }),
     )
   })
 
@@ -181,7 +181,7 @@ describe(createMedusaStorefrontServerReadPreset, () => {
         }> => ({
           orders: [],
           count: 0,
-        })
+        }),
       ),
     }
 
@@ -209,7 +209,7 @@ describe(createMedusaStorefrontServerReadPreset, () => {
     })
 
     expect(ordersQuery.queryKey).toStrictEqual(
-      orderQueryKeys.list({ limit: 5, offset: 10 })
+      orderQueryKeys.list({ limit: 5, offset: 10 }),
     )
     expect(ordersQuery.staleTime).toBe(5 * 60 * 1000)
 
@@ -217,7 +217,7 @@ describe(createMedusaStorefrontServerReadPreset, () => {
 
     expect(customOrderService.getOrders).toHaveBeenCalledWith(
       { limit: 5, offset: 10 },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
   })
 
@@ -253,7 +253,7 @@ describe(createMedusaStorefrontServerReadPreset, () => {
     await queryClient.prefetchQuery(query)
     expect(productAttributeService.getProductAttributes).toHaveBeenCalledWith(
       { productId: "resolved:prod_1" },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
     )
   })
 })

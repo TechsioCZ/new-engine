@@ -51,7 +51,7 @@ export const StorefrontTextCatalogActions = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.exportFailed")
+        error instanceof Error ? error.message : t("errors.exportFailed"),
       )
     },
     onSuccess: () => toast.success(t("toasts.exported")),
@@ -74,7 +74,7 @@ export const StorefrontTextCatalogActions = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.importFailed")
+        error instanceof Error ? error.message : t("errors.importFailed"),
       )
     },
     onSuccess: async (response) => {
@@ -85,7 +85,7 @@ export const StorefrontTextCatalogActions = ({
         t("toasts.imported", {
           unchanged: response.result.unchanged_count,
           updated: response.result.updated_count,
-        })
+        }),
       )
       setOpen(false)
       setFile(null)

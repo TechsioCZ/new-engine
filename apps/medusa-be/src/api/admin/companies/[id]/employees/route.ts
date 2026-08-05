@@ -11,7 +11,7 @@ import type {
 
 export const GET = async (
   req: MedusaRequest<AdminGetEmployeeParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
@@ -28,7 +28,7 @@ export const GET = async (
         ...req.filterableFields,
       },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
   const employees = company?.employees ?? []
 
@@ -42,13 +42,13 @@ export const GET = async (
 
 export const POST = async (
   req: MedusaRequest<AdminCreateEmployeeType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const id = requirePathParam(req.params["id"], "Company id")
 
   const { result: createdEmployee } = await createEmployeesWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
       customerId: req.validatedBody.customer_id,
@@ -64,7 +64,7 @@ export const POST = async (
       fields: req.queryConfig.fields,
       filters: { id: createdEmployee.id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ employee })

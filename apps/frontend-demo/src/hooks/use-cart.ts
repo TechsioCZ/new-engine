@@ -51,7 +51,7 @@ export function useCart() {
     queryKey: queryKeys.cart(
       typeof window === "undefined"
         ? undefined
-        : localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined
+        : localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined,
     ),
     queryFn: async () => {
       const cartId =
@@ -128,7 +128,7 @@ export function useCart() {
         {
           variant_id: variantId,
           quantity,
-        }
+        },
       )
       return updatedCart
     },
@@ -198,7 +198,7 @@ export function useCart() {
       const { cart: updatedCart } = await sdk.store.cart.updateLineItem(
         cart.id,
         lineItemId,
-        { quantity }
+        { quantity },
       )
       return updatedCart
     },

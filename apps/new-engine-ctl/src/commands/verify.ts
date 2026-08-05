@@ -36,28 +36,28 @@ export function createVerifyCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
     .option(
       "--dry-run",
       "Skip network calls and emit deterministic verification output",
-      false
+      false,
     )
     .action(async (options) => {
       const deployments = await resolveDeploymentRefs(
         options.deploymentsJson,
-        options.deploymentsJsonInline
+        options.deploymentsJsonInline,
       )
       const previewRandomOnceSecrets = parsePreviewRandomOnceSecrets(
-        options.previewRandomOnceSecretsJson
+        options.previewRandomOnceSecretsJson,
       )
       const runtimeProviderOutputs = parseRuntimeProviderOutputs(
-        options.runtimeProviderOutputsJson
+        options.runtimeProviderOutputsJson,
       )
       const input = verifyCommandInputSchema.parse({
         apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",

@@ -31,7 +31,7 @@ export function createApplyEnvOverridesCommand(): Command {
       const result = await executeApplyEnvOverrides(input)
       await appendGitHubOutput(
         "applied_service_ids_csv",
-        result.applied_service_ids.join(",")
+        result.applied_service_ids.join(","),
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
     })

@@ -177,14 +177,14 @@ interface RadioGroupItemContextValue {
 }
 
 const RadioGroupItemContext = createContext<RadioGroupItemContextValue | null>(
-  null
+  null,
 )
 
 function useRadioGroupItemContext() {
   const context = useContext(RadioGroupItemContext)
   if (!context) {
     throw new Error(
-      "RadioGroup item components must be used within RadioGroup.Item"
+      "RadioGroup item components must be used within RadioGroup.Item",
     )
   }
   return context

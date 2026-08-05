@@ -23,7 +23,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -59,7 +59,7 @@ type MockContainer = ReturnType<typeof makeContainer>
 
 type MockStep<TInput> = (
   input: TInput,
-  context: { container: MockContainer }
+  context: { container: MockContainer },
 ) => Promise<{
   compensateInput?: unknown
   payload: unknown
@@ -68,7 +68,7 @@ type MockStep<TInput> = (
 const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -76,7 +76,7 @@ const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
 }
 
 const makeCustomerService = (
-  overrides: Partial<CustomerService> = {}
+  overrides: Partial<CustomerService> = {},
 ): CustomerService => ({
   addCustomerToGroup: vi.fn(),
   removeCustomerFromGroup: vi.fn(),
@@ -85,7 +85,7 @@ const makeCustomerService = (
 })
 
 const makeLinkService = (
-  overrides: Partial<LinkService> = {}
+  overrides: Partial<LinkService> = {},
 ): LinkService => ({
   create: vi.fn(),
   delete: vi.fn(),
@@ -96,7 +96,7 @@ const makeLinkService = (
 })
 
 const makeCompanyService = (
-  overrides: Partial<CompanyService> = {}
+  overrides: Partial<CompanyService> = {},
 ): CompanyService => ({
   createEmployees: vi.fn(),
   deleteEmployees: vi.fn(),
@@ -111,7 +111,7 @@ const makeCompanyService = (
 })
 
 const makeAuthService = (
-  overrides: Partial<AuthService> = {}
+  overrides: Partial<AuthService> = {},
 ): AuthService => ({
   updateProviderIdentities: vi.fn(),
   ...overrides,
@@ -179,7 +179,7 @@ describe("customer-group sync steps", () => {
       employee_id: string
     }>(addEmployeeToCustomerGroupStep)(
       { customer_id: "cus_1", employee_id: "emp_1" },
-      { container }
+      { container },
     )
 
     expect(customerService.addCustomerToGroup).toHaveBeenCalledWith({
@@ -218,7 +218,7 @@ describe("customer-group sync steps", () => {
       group_id: string
     }>(setCompanyCustomerGroupStep)(
       { company_id: "comp_1", group_id: "cgrp_new" },
-      { container }
+      { container },
     )
 
     expect(linkService.dismiss).toHaveBeenCalledWith({
@@ -284,7 +284,7 @@ describe("customer-group sync steps", () => {
       group_id: string
     }>(setCompanyCustomerGroupStep)(
       { company_id: "comp_1", group_id: "cgrp_new" },
-      { container }
+      { container },
     )
 
     expect(graph).toHaveBeenNthCalledWith(2, {
@@ -345,8 +345,8 @@ describe("customer-group sync steps", () => {
         group_id: string
       }>(setCompanyCustomerGroupStep)(
         { company_id: "comp_1", group_id: "cgrp_new" },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toThrow(MedusaError)
 
     expect(linkService.create).not.toHaveBeenCalled()
@@ -372,7 +372,7 @@ describe("customer-group sync steps", () => {
 
     const result = await asMockStep<string>(removeCompanyCustomerGroupLinkStep)(
       "comp_1",
-      { container }
+      { container },
     )
 
     expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
@@ -414,7 +414,7 @@ describe("customer-group sync steps", () => {
       preserve_link: boolean
     }>(removeCompanyCustomerGroupLinkStep)(
       { company_id: "comp_1", preserve_link: true },
-      { container }
+      { container },
     )
 
     expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
@@ -451,8 +451,8 @@ describe("customer-group sync steps", () => {
         expected_group_id: string
       }>(removeCompanyCustomerGroupLinkStep)(
         { company_id: "comp_1", expected_group_id: "cgrp_requested" },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toThrow(MedusaError)
 
     expect(customerService.removeCustomerFromGroup).not.toHaveBeenCalled()
@@ -474,7 +474,7 @@ describe("customer-group sync steps", () => {
     await expect(
       asMockStep<string>(validateCompanyActiveStep)("comp_deleted", {
         container,
-      })
+      }),
     ).rejects.toThrow(MedusaError)
   })
 
@@ -553,7 +553,7 @@ describe("customer-group sync steps", () => {
       customer_id: string
     }>(prepareEmployeeCustomerLinkStep)(
       { company_id: "comp_1", customer_id: "cus_1" },
-      { container }
+      { container },
     )
 
     expect(graph).toHaveBeenNthCalledWith(1, {
@@ -652,8 +652,8 @@ describe("customer-group sync steps", () => {
         customer_id: string
       }>(prepareEmployeeCustomerLinkStep)(
         { company_id: "comp_1", customer_id: "cus_1" },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toThrow(MedusaError)
 
     expect(linkService.dismiss).not.toHaveBeenCalled()
@@ -736,7 +736,7 @@ describe("customer-group sync steps", () => {
       customer_id: string
     }>(prepareEmployeeCustomerLinkStep)(
       { company_id: "comp_1", customer_id: "cus_1" },
-      { container }
+      { container },
     )
 
     expect(linkService.dismiss).toHaveBeenCalledWith({
@@ -810,7 +810,7 @@ describe("customer-group sync steps", () => {
       customer_id: string
     }>(prepareEmployeeCustomerLinkStep)(
       { company_id: "comp_1", customer_id: "cus_1" },
-      { container }
+      { container },
     )
 
     expect(linkService.dismiss).not.toHaveBeenCalled()
@@ -870,7 +870,7 @@ describe("customer-group sync steps", () => {
         is_admin: false,
         spending_limit: 50,
       },
-      { container }
+      { container },
     )
 
     expect(companyService.restoreEmployees).toHaveBeenCalledWith([
@@ -963,7 +963,7 @@ describe("customer-group sync steps", () => {
         is_admin: false,
         spending_limit: 50,
       },
-      { container }
+      { container },
     )
 
     expect(companyService.restoreEmployees).not.toHaveBeenCalled()
@@ -1033,7 +1033,7 @@ describe("customer-group sync steps", () => {
         is_admin: false,
         spending_limit: 50,
       },
-      { container }
+      { container },
     )
 
     expect(companyService.restoreEmployees).not.toHaveBeenCalled()

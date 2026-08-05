@@ -13,7 +13,7 @@ export class QrPaymentModuleService extends MedusaService({
   }
 
   async updateConfig(
-    data: UpdateQrPaymentConfigInput
+    data: UpdateQrPaymentConfigInput,
   ): Promise<QrPaymentConfigDTO> {
     const existing = await this.getConfig()
     const update = {
@@ -29,7 +29,7 @@ export class QrPaymentModuleService extends MedusaService({
     }
 
     return await (this.createQrPaymentConfigs(
-      update
+      update,
     ) as Promise<QrPaymentConfigDTO>)
   }
 

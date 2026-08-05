@@ -80,7 +80,7 @@ const ProductSalesRegionsWidget = ({
     enabled: !!productId,
     queryFn: async () =>
       sdk.client.fetch<ProductSalesRegionsResponse>(
-        `/admin/products/${productId}/sales-regions`
+        `/admin/products/${productId}/sales-regions`,
       ),
     queryKey: ["product-sales-regions", productId],
   })
@@ -93,7 +93,7 @@ const ProductSalesRegionsWidget = ({
   const rows = getSalesRegionRows(
     data,
     countriesByCode,
-    i18n.resolvedLanguage ?? i18n.language
+    i18n.resolvedLanguage ?? i18n.language,
   )
   const salesChannelCount = data?.product.sales_channels.length ?? 0
 

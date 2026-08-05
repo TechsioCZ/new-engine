@@ -16,7 +16,7 @@ const sourceEntries = Object.fromEntries(
   }).map((filePath) => [
     filePath.slice("src/".length).replace(/\.(?:ts|tsx)$/u, ""),
     `./${filePath}`,
-  ])
+  ]),
 )
 
 export default defineConfig({

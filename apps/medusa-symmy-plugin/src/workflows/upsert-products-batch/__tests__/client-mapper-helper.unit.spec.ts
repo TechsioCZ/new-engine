@@ -29,7 +29,7 @@ const buildUpdatePayload = (product: ProductInput) =>
     existingProduct.id,
     product,
     existingProduct,
-    resolvedCategories
+    resolvedCategories,
   )
 
 describe("ProductBatchClientMapperHelper category updates", () => {

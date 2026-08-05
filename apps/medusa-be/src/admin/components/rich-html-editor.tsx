@@ -84,7 +84,7 @@ export const htmlToMarkdown = (html: string) => {
       const renderTableLine = (cells: string[], columnTotal: number) =>
         `| ${Array.from(
           { length: columnTotal },
-          (_, index) => cells[index] ?? ""
+          (_, index) => cells[index] ?? "",
         ).join(" | ")} |`
 
       if (!(node instanceof HTMLTableElement)) {
@@ -107,7 +107,7 @@ export const htmlToMarkdown = (html: string) => {
         renderTableLine(headerCells ?? [], columnCount),
         renderTableLine(
           Array.from({ length: columnCount }, () => "---"),
-          columnCount
+          columnCount,
         ),
         ...contentRows.map((row) => renderTableLine(row, columnCount)),
       ].join("\n")}\n\n`
@@ -222,7 +222,7 @@ export const RichHtmlEditor = ({
       tablePlugin(),
       markdownShortcutPlugin(),
     ],
-    []
+    [],
   )
 
   return (

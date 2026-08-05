@@ -20,7 +20,7 @@ interface EmailLogDTO {
 type EmailLogService = EmailLogModuleService & {
   listAndCountEmailLogs: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<[EmailLogDTO[], number]>
 }
 
@@ -50,7 +50,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       order: { sent_at: "DESC" },
       skip: Number.isFinite(offset) ? offset : 0,
       take: Number.isFinite(limit) ? limit : 20,
-    }
+    },
   )
 
   res.json({

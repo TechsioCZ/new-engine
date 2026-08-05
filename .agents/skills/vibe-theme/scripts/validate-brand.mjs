@@ -92,12 +92,12 @@ function checkParity(label, brandMap, baseMap) {
   }
   if (missing.length) {
     err(
-      `${label}: missing ${missing.length} base tokens, e.g. ${missing.slice(0, 5).join(", ")}`
+      `${label}: missing ${missing.length} base tokens, e.g. ${missing.slice(0, 5).join(", ")}`,
     )
   }
   if (extra.length) {
     err(
-      `${label}: ${extra.length} tokens not in base, e.g. ${extra.slice(0, 5).join(", ")}`
+      `${label}: ${extra.length} tokens not in base, e.g. ${extra.slice(0, 5).join(", ")}`,
     )
   }
 }
@@ -167,7 +167,7 @@ function hexToLinear(hex) {
 
 function oklchToLinear(str) {
   const m = str.match(
-    /^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*[\d.]+)?\s*\)$/
+    /^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*[\d.]+)?\s*\)$/,
   )
   if (!m) {
     return null
@@ -232,7 +232,7 @@ function checkContrast(label, brandMap) {
     const ratio = contrast(fg, bg)
     if (ratio < min) {
       warn(
-        `${label}: ${pairLabel} contrast ${ratio.toFixed(2)}:1 < ${min}:1 (${fgName} on ${bgName})`
+        `${label}: ${pairLabel} contrast ${ratio.toFixed(2)}:1 < ${min}:1 (${fgName} on ${bgName})`,
       )
     } else {
       ok(`${label}: ${pairLabel} contrast ${ratio.toFixed(2)}:1`)

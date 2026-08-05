@@ -6,7 +6,7 @@ type IdentifiedValue = Record<string, unknown> & {
 
 export function requireIdentifierField(
   value: IdentifiedValue,
-  ctx: z.RefinementCtx
+  ctx: z.RefinementCtx,
 ): void {
   const identifierType = value.identifier_type
   if (value[identifierType]) {

@@ -9,12 +9,12 @@ import type { AdminRemoveCompanyFromCustomerGroupType } from "../../../validator
 
 export const DELETE = async (
   req: AuthenticatedMedusaRequest<AdminRemoveCompanyFromCustomerGroupType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
   const customerGroupId = requirePathParam(
     req.params["customerGroupId"],
-    "Customer group id"
+    "Customer group id",
   )
 
   await removeCompanyFromCustomerGroupWorkflow(req.scope).run({

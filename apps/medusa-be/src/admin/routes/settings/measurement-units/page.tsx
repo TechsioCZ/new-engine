@@ -55,7 +55,7 @@ const toFormState = (unit?: MeasurementUnit): MeasurementUnitFormState => ({
 })
 
 const normalizeInput = (
-  input: MeasurementUnitFormState
+  input: MeasurementUnitFormState,
 ): MeasurementUnitInput => ({
   base_quantity: Number(input.base_quantity),
   code: input.code.trim(),
@@ -183,7 +183,7 @@ const MeasurementUnitCreateModal = ({
   const { t } = useTranslation("measurementUnits")
   const queryClient = useQueryClient()
   const [form, setForm] = useState<MeasurementUnitFormState>(() =>
-    toFormState()
+    toFormState(),
   )
   const formIsValid = getFormIsValid(form)
 
@@ -191,7 +191,7 @@ const MeasurementUnitCreateModal = ({
     mutationFn: createMeasurementUnit,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       )
     },
     onSuccess: async () => {
@@ -266,7 +266,7 @@ const MeasurementUnitFormDrawer = ({
   const { t } = useTranslation("measurementUnits")
   const queryClient = useQueryClient()
   const [form, setForm] = useState<MeasurementUnitFormState>(() =>
-    toFormState(unit)
+    toFormState(unit),
   )
   const formIsValid = getFormIsValid(form)
 
@@ -275,7 +275,7 @@ const MeasurementUnitFormDrawer = ({
       updateMeasurementUnit(unit.id, input),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       )
     },
     onSuccess: async () => {
@@ -352,7 +352,7 @@ const MeasurementUnitsSettingsPage = () => {
       q: debouncedQ,
       status,
     }),
-    [debouncedQ, pageIndex, status]
+    [debouncedQ, pageIndex, status],
   )
 
   const { data, error, isLoading } = useQuery({
@@ -366,7 +366,7 @@ const MeasurementUnitsSettingsPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : t("errors.deleteFailed")
+          : t("errors.deleteFailed"),
       )
     },
     onSuccess: async () => {
@@ -383,7 +383,7 @@ const MeasurementUnitsSettingsPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : t("errors.restoreFailed")
+          : t("errors.restoreFailed"),
       )
     },
     onSuccess: async () => {

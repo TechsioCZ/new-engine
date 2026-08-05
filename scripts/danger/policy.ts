@@ -70,7 +70,7 @@ function isMeaningfulBody(body: string): boolean {
 function addBlockingFinding(
   result: PullRequestPolicyResult,
   draft: boolean,
-  finding: string
+  finding: string,
 ): void {
   if (draft) {
     result.warnings.push(`[draft] ${finding}`)
@@ -95,7 +95,7 @@ function collectRequiredReviewers(files: readonly string[]): string[] {
 }
 
 export function evaluatePullRequestPolicy(
-  input: PullRequestPolicyInput
+  input: PullRequestPolicyInput,
 ): PullRequestPolicyResult {
   const result: PullRequestPolicyResult = {
     failures: [],
@@ -107,7 +107,7 @@ export function evaluatePullRequestPolicy(
     addBlockingFinding(
       result,
       input.draft,
-      "Use a Conventional Commit PR title, for example `fix(checkout): preserve selected payment provider`."
+      "Use a Conventional Commit PR title, for example `fix(checkout): preserve selected payment provider`.",
     )
   }
 
@@ -115,14 +115,14 @@ export function evaluatePullRequestPolicy(
     addBlockingFinding(
       result,
       input.draft,
-      "Add a meaningful PR description (at least 40 non-template characters) covering intent and validation."
+      "Add a meaningful PR description (at least 40 non-template characters) covering intent and validation.",
     )
   }
 
   const changedLines = input.additions
   if (input.changedFiles > 25 || changedLines > 1000) {
     result.warnings.push(
-      `Large PR: ${input.changedFiles} files and ${changedLines} added lines. Explain why the change cannot be split and give reviewers a review order.`
+      `Large PR: ${input.changedFiles} files and ${changedLines} added lines. Explain why the change cannot be split and give reviewers a review order.`,
     )
   }
 
@@ -130,33 +130,33 @@ export function evaluatePullRequestPolicy(
   const changesTests = input.files.some((file) => TEST_FILE.test(file))
   if (changesSource && !changesTests) {
     result.warnings.push(
-      "Source changed without test changes. Add durable regression coverage or explain why existing tests are sufficient."
+      "Source changed without test changes. Add durable regression coverage or explain why existing tests are sufficient.",
     )
   }
 
   const editedMigrations = input.modifiedFiles.filter((file) =>
-    MIGRATION_FILE.test(file)
+    MIGRATION_FILE.test(file),
   )
   if (editedMigrations.length > 0) {
     addBlockingFinding(
       result,
       input.draft,
-      `Do not edit existing migrations; add a new migration instead: ${editedMigrations.join(", ")}`
+      `Do not edit existing migrations; add a new migration instead: ${editedMigrations.join(", ")}`,
     )
   }
 
   const changesManifest = input.files.some((file) =>
-    PACKAGE_MANIFEST.test(file)
+    PACKAGE_MANIFEST.test(file),
   )
   const changesLockfile = input.files.includes("pnpm-lock.yaml")
   if (changesManifest && !changesLockfile) {
     result.warnings.push(
-      "A package manifest changed without `pnpm-lock.yaml`. Confirm the change is script/metadata-only or update the lockfile."
+      "A package manifest changed without `pnpm-lock.yaml`. Confirm the change is script/metadata-only or update the lockfile.",
     )
   }
 
   const presentReviewers = new Set(
-    input.reviewerLogins.map((login) => login.toLowerCase())
+    input.reviewerLogins.map((login) => login.toLowerCase()),
   )
   const authorLogin = input.authorLogin.toLowerCase()
 
@@ -164,7 +164,7 @@ export function evaluatePullRequestPolicy(
     const reviewerLogin = reviewer.toLowerCase()
     if (reviewerLogin === authorLogin) {
       result.warnings.push(
-        `@${reviewer} owns this change area but authored the PR; request another maintainer as a substitute reviewer.`
+        `@${reviewer} owns this change area but authored the PR; request another maintainer as a substitute reviewer.`,
       )
       continue
     }
@@ -173,7 +173,7 @@ export function evaluatePullRequestPolicy(
       addBlockingFinding(
         result,
         input.draft,
-        `Request @${reviewer} for ${reviewer === REVIEWERS.infrastructure ? "pnpm/CI/Docker infrastructure" : "frontend/UI"} changes.`
+        `Request @${reviewer} for ${reviewer === REVIEWERS.infrastructure ? "pnpm/CI/Docker infrastructure" : "frontend/UI"} changes.`,
       )
     }
   }

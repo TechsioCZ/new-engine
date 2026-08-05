@@ -5,7 +5,7 @@ export interface RegionInfo {
 
 export const applyRegion = <T extends RegionInfo>(
   input: T,
-  region?: RegionInfo | null
+  region?: RegionInfo | null,
 ): T => {
   if (!region) {
     return input

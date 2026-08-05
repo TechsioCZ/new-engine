@@ -53,7 +53,7 @@ export class InvoicesBatchClient {
       this.mapper.collectOrderLookupKeys(invoices)
     const metadataOrderIds = await this.queryOrderIdsByMetadata(
       "erp_id",
-      erpIds
+      erpIds,
     )
     const [byIdOrders, byDisplayIdOrders, metadataOrders] = await Promise.all([
       this.queryOrders({ id: [...orderIds] }),
@@ -69,7 +69,7 @@ export class InvoicesBatchClient {
 
   findExistingOrder(
     invoice: InvoiceInput,
-    index: ExistingOrderIndex
+    index: ExistingOrderIndex,
   ): ExistingOrder | null {
     return this.mapper.findExistingOrder(invoice, index)
   }
@@ -90,13 +90,13 @@ export class InvoicesBatchClient {
     order: ExistingOrder,
     invoice: InvoiceInput,
     uploaded: UploadedInvoice | null,
-    userId?: string
+    userId?: string,
   ): Promise<string> {
     const invoiceUrl = this.mapper.buildInvoiceUrl(invoice, uploaded)
     if (!invoiceUrl) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Invoice URL was not provided or uploaded"
+        "Invoice URL was not provided or uploaded",
       )
     }
     await updateOrderWorkflow(this.container).run({
@@ -106,7 +106,7 @@ export class InvoicesBatchClient {
           order.metadata,
           invoice,
           invoiceUrl,
-          uploaded
+          uploaded,
         ),
         user_id: userId ?? "symmy-plugin",
       },
@@ -115,7 +115,7 @@ export class InvoicesBatchClient {
   }
 
   private async queryOrders(
-    filters: Record<string, string[] | number[]>
+    filters: Record<string, string[] | number[]>,
   ): Promise<ExistingOrder[]> {
     if (Object.values(filters).every((values) => values.length === 0)) {
       return []
@@ -130,7 +130,7 @@ export class InvoicesBatchClient {
 
   private async queryOrderIdsByMetadata(
     key: string,
-    values: InvoiceOrderLookupKeys["erpIds"]
+    values: InvoiceOrderLookupKeys["erpIds"],
   ): Promise<Set<string>> {
     const ids = new Set<string>()
     if (!values.size) {

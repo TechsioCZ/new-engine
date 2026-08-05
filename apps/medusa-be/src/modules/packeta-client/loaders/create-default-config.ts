@@ -3,7 +3,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 interface PacketaConfigServiceType {
   listAndCount: (
-    filter: Record<string, unknown>
+    filter: Record<string, unknown>,
   ) => Promise<[unknown[], number]>
   create: (data: Record<string, unknown>) => Promise<unknown>
 }
@@ -20,7 +20,7 @@ export default async function createDefaultConfigLoader({
   const environment = options?.environment ?? "testing"
 
   const packetaConfigService = container.resolve<PacketaConfigServiceType>(
-    "packetaConfigService"
+    "packetaConfigService",
   )
 
   const [, count] = await packetaConfigService.listAndCount({ environment })
@@ -39,7 +39,7 @@ export default async function createDefaultConfigLoader({
       errorMessage.includes("duplicate key")
     ) {
       logger.debug(
-        `Packeta: Config for ${environment} created by another process`
+        `Packeta: Config for ${environment} created by another process`,
       )
       return
     }

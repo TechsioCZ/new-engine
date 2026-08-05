@@ -48,26 +48,26 @@ export interface CheckoutService<
 > {
   listShippingOptions: (
     cartId: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TShippingOption[]>
   calculateShippingOption?: (
     optionId: string,
     input: { cart_id: string; data?: Record<string, unknown> },
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TShippingOption>
   addShippingMethod: (
     cartId: string,
     optionId: string,
-    data?: Record<string, unknown>
+    data?: Record<string, unknown>,
   ) => Promise<TCart>
   listPaymentProviders: (
     regionId: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TPaymentProvider[]>
   initiatePaymentSession: (
     cartId: string,
     providerId: string,
-    cart?: TCart | null
+    cart?: TCart | null,
   ) => Promise<TPaymentCollection>
   completeCart?: (cartId: string) => Promise<TCompleteResult>
 }
@@ -92,7 +92,7 @@ export interface UseCheckoutShippingResult<TShippingOption, TCart = unknown> {
   setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
   setShippingMethodAsync: (
     optionId: string,
-    data?: Record<string, unknown>
+    data?: Record<string, unknown>,
   ) => Promise<TCart>
   isSettingShipping: boolean
   selectedShippingMethodId?: string

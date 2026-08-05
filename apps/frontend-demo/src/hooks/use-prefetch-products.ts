@@ -73,7 +73,7 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
   // Prefetch next page of current query
   const prefetchNextPage = (
     currentParams: ProductListParams,
-    currentPage: number
+    currentPage: number,
   ) => {
     const limit = currentParams.limit || DEFAULT_LIMIT
     prefetchProducts({

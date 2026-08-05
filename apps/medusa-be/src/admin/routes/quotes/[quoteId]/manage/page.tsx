@@ -20,7 +20,7 @@ const QuoteManage = () => {
       fields:
         "*draft_order.customer,*draft_order.customer.employee,*draft_order.customer.employee.company",
     },
-    { enabled: Boolean(quoteId) }
+    { enabled: Boolean(quoteId) },
   )
 
   if (isLoading) {

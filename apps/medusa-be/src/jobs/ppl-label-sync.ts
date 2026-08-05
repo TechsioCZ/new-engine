@@ -56,7 +56,7 @@ export default async function pplLabelSyncJob(container: MedusaContainer) {
   // Check global feature flag (module loaded)
   if (process.env["FEATURE_PPL_ENABLED"] !== "1") {
     logger.debug(
-      "PPL Label Sync: PPL module is disabled (FEATURE_PPL_ENABLED != 1), skipping"
+      "PPL Label Sync: PPL module is disabled (FEATURE_PPL_ENABLED != 1), skipping",
     )
     return
   }
@@ -67,7 +67,7 @@ export default async function pplLabelSyncJob(container: MedusaContainer) {
   const config = await pplClient.getConfig()
   if (!config?.is_enabled) {
     logger.debug(
-      "PPL Label Sync: PPL is disabled in settings (is_enabled = false), skipping"
+      "PPL Label Sync: PPL is disabled in settings (is_enabled = false), skipping",
     )
     return
   }
@@ -81,12 +81,12 @@ export default async function pplLabelSyncJob(container: MedusaContainer) {
     JOB_LOCK_TIMEOUT,
     async () => {
       await executeSync(container, pplClient, logger)
-    }
+    },
   )
 
   if (result.status === "timed_out") {
     logger.info(
-      "PPL Label Sync: Skipping - another instance is already running"
+      "PPL Label Sync: Skipping - another instance is already running",
     )
   }
 }
@@ -97,11 +97,11 @@ export default async function pplLabelSyncJob(container: MedusaContainer) {
 async function executeSync(
   container: MedusaContainer,
   pplClient: PplClientModuleService,
-  logger: Logger
+  logger: Logger,
 ): Promise<void> {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const fulfillmentService = container.resolve<IFulfillmentModuleService>(
-    Modules.FULFILLMENT
+    Modules.FULFILLMENT,
   )
   const fileService = container.resolve<IFileModuleService>(Modules.FILE)
   const eventBus = container.resolve<IEventBusModuleService>(Modules.EVENT_BUS)
@@ -125,7 +125,7 @@ async function executeSync(
     }
 
     logger.info(
-      `PPL Label Sync: Found ${pendingFulfillments.length} pending fulfillments`
+      `PPL Label Sync: Found ${pendingFulfillments.length} pending fulfillments`,
     )
 
     for (const fulfillment of pendingFulfillments) {
@@ -136,7 +136,7 @@ async function executeSync(
   } catch (error) {
     logger.error(
       "PPL Label Sync failed",
-      error instanceof Error ? error : new Error(String(error))
+      error instanceof Error ? error : new Error(String(error)),
     )
   }
 }
@@ -150,7 +150,7 @@ export const config = {
  * Fetch pending PPL fulfillments from database
  */
 async function fetchPendingFulfillments(
-  query: Query
+  query: Query,
 ): Promise<PendingFulfillment[]> {
   const { data: fulfillments } = await query.graph({
     entity: "fulfillment",
@@ -163,7 +163,7 @@ async function fetchPendingFulfillments(
   // JSON field filtering (data.status, data.batch_id) must be done in-memory
   return (fulfillments as FulfillmentRecord[]).filter(
     (f): f is PendingFulfillment =>
-      f.data?.status === "pending" && typeof f.data?.batch_id === "string"
+      f.data?.status === "pending" && typeof f.data?.batch_id === "string",
   )
 }
 
@@ -172,7 +172,7 @@ async function fetchPendingFulfillments(
  */
 async function processFulfillment(
   ctx: SyncContext,
-  fulfillment: PendingFulfillment
+  fulfillment: PendingFulfillment,
 ): Promise<void> {
   const { logger, pplClient } = ctx
   const fulfillmentData = fulfillment.data
@@ -190,21 +190,21 @@ async function processFulfillment(
     const timeoutError = checkTimeoutConditions(fulfillment, attemptInfo)
     if (timeoutError) {
       logger.error(
-        `PPL Label Sync: Fulfillment ${fulfillment.id} ${timeoutError.reason}`
+        `PPL Label Sync: Fulfillment ${fulfillment.id} ${timeoutError.reason}`,
       )
       await markAsError(ctx, fulfillment, timeoutError.message, attemptInfo)
       return
     }
 
     logger.debug(
-      `PPL Label Sync: Checking batch ${batchId} for fulfillment ${fulfillment.id} (attempt ${attemptInfo.syncAttempts})`
+      `PPL Label Sync: Checking batch ${batchId} for fulfillment ${fulfillment.id} (attempt ${attemptInfo.syncAttempts})`,
     )
 
     const batchResult = await pplClient.getBatchStatus(batchId)
     await handleBatchResult(ctx, fulfillment, batchResult, attemptInfo)
   } catch (error) {
     logger.error(
-      `PPL Label Sync: Error processing fulfillment ${fulfillment.id}: ${error instanceof Error ? error.message : String(error)}`
+      `PPL Label Sync: Error processing fulfillment ${fulfillment.id}: ${error instanceof Error ? error.message : String(error)}`,
     )
 
     await updateAttemptCount(ctx, fulfillment, attemptInfo)
@@ -218,7 +218,7 @@ async function handleBatchResult(
   ctx: SyncContext,
   fulfillment: PendingFulfillment,
   batchResult: PplBatchResponse,
-  attemptInfo: SyncAttemptInfo
+  attemptInfo: SyncAttemptInfo,
 ): Promise<void> {
   const { logger, fulfillmentService } = ctx
   const fulfillmentData = fulfillment.data
@@ -229,7 +229,7 @@ async function handleBatchResult(
       ctx,
       fulfillment,
       "Batch response has no items",
-      attemptInfo
+      attemptInfo,
     )
     return
   }
@@ -241,12 +241,12 @@ async function handleBatchResult(
       ctx,
       fulfillment,
       `PPL error: ${item.errorMessage || "Unknown error"}`,
-      attemptInfo
+      attemptInfo,
     )
   } else {
     // Still processing (Received or InProcess)
     logger.debug(
-      `PPL Label Sync: Batch ${fulfillmentData.batch_id} still processing (${item.importState}), will retry`
+      `PPL Label Sync: Batch ${fulfillmentData.batch_id} still processing (${item.importState}), will retry`,
     )
 
     await fulfillmentService.updateFulfillment(fulfillment.id, {
@@ -267,7 +267,7 @@ async function handleCompletedItem(
   ctx: SyncContext,
   fulfillment: PendingFulfillment,
   item: PplBatchItem,
-  attemptInfo: SyncAttemptInfo
+  attemptInfo: SyncAttemptInfo,
 ): Promise<void> {
   const { logger, fulfillmentService, eventBus } = ctx
   const fulfillmentData = fulfillment.data
@@ -278,7 +278,7 @@ async function handleCompletedItem(
       ctx,
       fulfillment,
       "Batch completed but missing shipment number or label URL",
-      attemptInfo
+      attemptInfo,
     )
     return
   }
@@ -289,7 +289,7 @@ async function handleCompletedItem(
   const storedLabelUrl = await downloadAndStoreLabel(
     ctx,
     shipmentNumber,
-    labelUrl
+    labelUrl,
   )
 
   const trackingUrl =
@@ -314,7 +314,7 @@ async function handleCompletedItem(
   })
 
   logger.info(
-    `PPL Label Sync: Fulfillment ${fulfillment.id} completed - Shipment: ${shipmentNumber}`
+    `PPL Label Sync: Fulfillment ${fulfillment.id} completed - Shipment: ${shipmentNumber}`,
   )
 
   await eventBus.emit({
@@ -334,7 +334,7 @@ async function handleCompletedItem(
 async function downloadAndStoreLabel(
   ctx: SyncContext,
   shipmentNumber: string,
-  labelUrl: string
+  labelUrl: string,
 ): Promise<string> {
   const { logger, fileService, pplClient } = ctx
 
@@ -351,13 +351,13 @@ async function downloadAndStoreLabel(
 
     if (uploadedFiles[0]) {
       logger.info(
-        `PPL Label Sync: Label for ${shipmentNumber} stored at ${uploadedFiles[0].url}`
+        `PPL Label Sync: Label for ${shipmentNumber} stored at ${uploadedFiles[0].url}`,
       )
       return uploadedFiles[0].url
     }
   } catch (error) {
     logger.warn(
-      `PPL Label Sync: Failed to store label in S3 for ${shipmentNumber}: ${error instanceof Error ? error.message : String(error)}. Using PPL URL.`
+      `PPL Label Sync: Failed to store label in S3 for ${shipmentNumber}: ${error instanceof Error ? error.message : String(error)}. Using PPL URL.`,
     )
   }
 
@@ -370,7 +370,7 @@ async function downloadAndStoreLabel(
 async function updateAttemptCount(
   ctx: SyncContext,
   fulfillment: PendingFulfillment,
-  attemptInfo: SyncAttemptInfo
+  attemptInfo: SyncAttemptInfo,
 ): Promise<void> {
   const { fulfillmentService, logger } = ctx
 
@@ -386,7 +386,7 @@ async function updateAttemptCount(
   } catch (error) {
     logger.error(
       `PPL Label Sync: Failed to update attempt count for ${fulfillment.id}`,
-      error instanceof Error ? error : new Error(String(error))
+      error instanceof Error ? error : new Error(String(error)),
     )
   }
 }
@@ -398,7 +398,7 @@ async function markAsError(
   ctx: SyncContext,
   fulfillment: PendingFulfillment,
   errorMessage: string,
-  attemptInfo: SyncAttemptInfo
+  attemptInfo: SyncAttemptInfo,
 ): Promise<void> {
   const { fulfillmentService, eventBus } = ctx
   const fulfillmentData = fulfillment.data

@@ -37,7 +37,7 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
     await mutateDelete(undefined, {
       onError: (error) => {
         toast.error(
-          `${t("errors.deleteCompanyFailed")}: ${getErrorMessage(error)}`
+          `${t("errors.deleteCompanyFailed")}: ${getErrorMessage(error)}`,
         )
       },
     })

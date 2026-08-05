@@ -42,10 +42,10 @@ export function useCategoryFacetItems({
   const t = useTranslations("catalog")
   const asideStatusItems = buildFacetChipItems(
     catalogFacets.status.filter((item) =>
-      isCatalogStatusFilterSupported(item.id)
+      isCatalogStatusFilterSupported(item.id),
     ),
     seedFacets.status.filter((item) => isCatalogStatusFilterSupported(item.id)),
-    queryState.status.filter(isCatalogStatusFilterSupported)
+    queryState.status.filter(isCatalogStatusFilterSupported),
   ).map((item) => {
     const labelKey = STATUS_LABEL_KEYS[item.id]
 
@@ -58,7 +58,7 @@ export function useCategoryFacetItems({
   const asideFormItems = buildFacetChipItems(
     catalogFacets.form,
     seedFacets.form,
-    queryState.form
+    queryState.form,
   ).map((item) => {
     const labelKey = FORM_LABEL_KEYS[item.id]
 
@@ -71,13 +71,13 @@ export function useCategoryFacetItems({
   const asideBrandItems = buildFacetChipItems(
     catalogFacets.brand,
     seedFacets.brand,
-    queryState.brand
+    queryState.brand,
   )
 
   const asideIngredientItems = buildFacetChipItems(
     catalogFacets.ingredient,
     seedFacets.ingredient,
-    queryState.ingredient
+    queryState.ingredient,
   )
 
   return {

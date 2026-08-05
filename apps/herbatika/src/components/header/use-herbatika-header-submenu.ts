@@ -46,7 +46,7 @@ const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
 
     return normalizeCategoryName(left.name).localeCompare(
       normalizeCategoryName(right.name),
-      "sk"
+      "sk",
     )
   })
 
@@ -110,7 +110,7 @@ export function useHerbatikaHeaderSubmenu() {
                   href: child.handle ? `/c/${child.handle}` : "#",
                   id: child.id,
                   label: normalizeCategoryName(child.name),
-                })
+                }),
               ),
             }
           })
@@ -123,7 +123,7 @@ export function useHerbatikaHeaderSubmenu() {
           rootHandle,
         },
       ] as const
-    })
+    }),
   )
 
   return {

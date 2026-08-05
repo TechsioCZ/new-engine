@@ -98,7 +98,7 @@ function assertString(value: unknown, label: string): string {
     throw new UpstreamHttpError(
       502,
       "zane_payload_invalid",
-      `${label} must be a non-empty string`
+      `${label} must be a non-empty string`,
     )
   }
 
@@ -121,7 +121,7 @@ function assertServiceType(value: unknown, label: string): ServiceType {
       throw new UpstreamHttpError(
         502,
         "zane_service_type_invalid",
-        `${label} must be docker or git`
+        `${label} must be docker or git`,
       )
     }
   }
@@ -132,7 +132,7 @@ function assertObject(value: unknown, label: string): Record<string, unknown> {
     throw new UpstreamHttpError(
       502,
       "zane_payload_invalid",
-      `${label} must be an object`
+      `${label} must be an object`,
     )
   }
 
@@ -155,11 +155,11 @@ function assertStringArrayInput(value: unknown, label: string): string[] {
 
 function toMeiliProvisionOutputInput(
   output: RuntimeProviderOutputInput,
-  label: string
+  label: string,
 ): NonNullable<ProvisionMeiliKeysInput["backendOutput"]> {
   if (output.policy.kind !== "meilisearch_key") {
     throw new BadRequestError(
-      `${label}.policy.kind must be meilisearch_key for meili_api_credentials`
+      `${label}.policy.kind must be meilisearch_key for meili_api_credentials`,
     )
   }
 
@@ -170,7 +170,7 @@ function toMeiliProvisionOutputInput(
   }
   if (typeof description !== "string" || !description.trim()) {
     throw new BadRequestError(
-      `${label}.policy.description must be a non-empty string`
+      `${label}.policy.description must be a non-empty string`,
     )
   }
 
@@ -179,12 +179,12 @@ function toMeiliProvisionOutputInput(
     policy: {
       actions: assertStringArrayInput(
         output.policy.actions,
-        `${label}.policy.actions`
+        `${label}.policy.actions`,
       ),
       description: description.trim(),
       indexes: assertStringArrayInput(
         output.policy.indexes,
-        `${label}.policy.indexes`
+        `${label}.policy.indexes`,
       ),
       uid: uid.trim(),
     },
@@ -193,11 +193,11 @@ function toMeiliProvisionOutputInput(
 
 function toMedusaPublishableKeyProvisionOutputInput(
   output: RuntimeProviderOutputInput,
-  label: string
+  label: string,
 ): ProvisionMedusaPublishableKeyInput["frontendOutput"] {
   if (output.policy.kind !== "medusa_publishable_key") {
     throw new BadRequestError(
-      `${label}.policy.kind must be medusa_publishable_key for medusa_publishable_key`
+      `${label}.policy.kind must be medusa_publishable_key for medusa_publishable_key`,
     )
   }
 
@@ -208,7 +208,7 @@ function toMedusaPublishableKeyProvisionOutputInput(
     (typeof title !== "string" || !title.trim())
   ) {
     throw new BadRequestError(
-      `${label}.policy.title must be a non-empty string when provided`
+      `${label}.policy.title must be a non-empty string when provided`,
     )
   }
 
@@ -224,7 +224,7 @@ function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
     throw new UpstreamHttpError(
       502,
       "zane_service_list_invalid",
-      "ZaneOps service list response was not an array"
+      "ZaneOps service list response was not an array",
     )
   }
 
@@ -240,7 +240,7 @@ function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
 }
 
 function normalizeDockerfileBuilderOptions(
-  value: unknown
+  value: unknown,
 ): NonNullable<ZaneServiceDetails["dockerfile_builder_options"]> | undefined {
   if (!isRecord(value)) {
     return undefined
@@ -289,7 +289,7 @@ function normalizeEnvVariables(value: unknown): ZaneEnvVariable[] | undefined {
 // {{env.X}} references resolve against. Dropping it makes the Meilisearch and
 // Medusa provisioners fall back to the literal placeholder as a credential.
 function normalizeEnvironmentReference(
-  value: unknown
+  value: unknown,
 ): ZaneServiceDetails["environment"] | undefined {
   if (value === null) {
     return null
@@ -312,7 +312,7 @@ function normalizeEnvironmentReference(
 }
 
 function normalizeGitAppRef(
-  value: unknown
+  value: unknown,
 ): ZaneServiceDetails["git_app"] | undefined {
   if (value === null) {
     return null
@@ -324,7 +324,7 @@ function normalizeGitAppRef(
 }
 
 function normalizeHealthcheck(
-  value: unknown
+  value: unknown,
 ): ZaneServiceHealthcheck | null | undefined {
   if (value === null) {
     return null
@@ -352,7 +352,7 @@ function normalizeHealthcheck(
 }
 
 function normalizeResourceLimits(
-  value: unknown
+  value: unknown,
 ): ZaneServiceResourceLimits | null | undefined {
   if (value === null) {
     return null
@@ -387,11 +387,11 @@ function normalizeResourceLimits(
 
 function normalizeServiceDetails(
   payload: unknown,
-  label: string
+  label: string,
 ): ZaneServiceDetails {
   const object = assertObject(payload, label)
   const dockerfileBuilderOptions = normalizeDockerfileBuilderOptions(
-    object.dockerfile_builder_options
+    object.dockerfile_builder_options,
   )
   const environment = normalizeEnvironmentReference(object.environment)
   const gitApp = normalizeGitAppRef(object.git_app)
@@ -482,7 +482,7 @@ export class ZaneClient {
     options?: {
       allowNotFound?: boolean
       retryOnAuthFailure?: boolean
-    }
+    },
   ): Promise<T | null> {
     return await this.#upstream.request(session, method, path, payload, options)
   }
@@ -499,13 +499,13 @@ export class ZaneClient {
         session,
         projectSlug,
         environmentName,
-        serviceSlug
+        serviceSlug,
       ) =>
         await this.getServiceDetails(
           session,
           projectSlug,
           environmentName,
-          serviceSlug
+          serviceSlug,
         ),
       listServiceCards: async (session, projectSlug, environmentName) =>
         await this.listServiceCards(session, projectSlug, environmentName),
@@ -525,38 +525,38 @@ export class ZaneClient {
         projectSlug,
         environmentName,
         serviceSlug,
-        deploymentHash
+        deploymentHash,
       ) =>
         await this.getDeployment(
           session,
           projectSlug,
           environmentName,
           serviceSlug,
-          deploymentHash
+          deploymentHash,
         ),
       getServiceDetails: async (
         session,
         projectSlug,
         environmentName,
-        serviceSlug
+        serviceSlug,
       ) =>
         await this.getServiceDetails(
           session,
           projectSlug,
           environmentName,
-          serviceSlug
+          serviceSlug,
         ),
       listDeployments: async (
         session,
         projectSlug,
         environmentName,
-        serviceSlug
+        serviceSlug,
       ) =>
         await this.listDeployments(
           session,
           projectSlug,
           environmentName,
-          serviceSlug
+          serviceSlug,
         ),
       listServiceCards: async (session, projectSlug, environmentName) =>
         await this.listServiceCards(session, projectSlug, environmentName),
@@ -574,13 +574,13 @@ export class ZaneClient {
         session,
         projectSlug,
         environmentName,
-        serviceSlug
+        serviceSlug,
       ) =>
         await this.getServiceDetails(
           session,
           projectSlug,
           environmentName,
-          serviceSlug
+          serviceSlug,
         ),
     })
   }
@@ -594,13 +594,13 @@ export class ZaneClient {
         session,
         projectSlug,
         environmentName,
-        serviceSlug
+        serviceSlug,
       ) =>
         await this.getServiceDetails(
           session,
           projectSlug,
           environmentName,
-          serviceSlug
+          serviceSlug,
         ),
     })
   }
@@ -613,14 +613,14 @@ export class ZaneClient {
         projectSlug,
         environmentName,
         serviceSlug,
-        deploymentHash
+        deploymentHash,
       ) =>
         await this.getDeployment(
           session,
           projectSlug,
           environmentName,
           serviceSlug,
-          deploymentHash
+          deploymentHash,
         ),
       getEnvironment: async (session, projectSlug, environmentName) =>
         await this.getEnvironment(session, projectSlug, environmentName),
@@ -628,13 +628,13 @@ export class ZaneClient {
         session,
         projectSlug,
         environmentName,
-        serviceSlug
+        serviceSlug,
       ) =>
         await this.listDeployments(
           session,
           projectSlug,
           environmentName,
-          serviceSlug
+          serviceSlug,
         ),
       listServiceCards: async (session, projectSlug, environmentName) =>
         await this.listServiceCards(session, projectSlug, environmentName),
@@ -692,27 +692,27 @@ export class ZaneClient {
     const environment = await this.getEnvironment(
       session,
       input.projectSlug,
-      input.environmentName
+      input.environmentName,
     )
 
     return {
       baseline_complete:
         this.getSharedEnvironmentVariable(
           environment,
-          previewBaselineCompleteEnvKey
+          previewBaselineCompleteEnvKey,
         ) === "true",
       environment_exists: environment !== null,
       environment_name: input.environmentName,
       last_deployed_commit_sha:
         this.getSharedEnvironmentVariable(
           environment,
-          previewLastDeployedCommitEnvKey
+          previewLastDeployedCommitEnvKey,
         ) ?? null,
       project_slug: input.projectSlug,
       target_commit_sha:
         this.getSharedEnvironmentVariable(
           environment,
-          previewTargetCommitEnvKey
+          previewTargetCommitEnvKey,
         ) ?? null,
     }
   }
@@ -729,19 +729,19 @@ export class ZaneClient {
     const environment = await this.getEnvironment(
       session,
       input.projectSlug,
-      input.environmentName
+      input.environmentName,
     )
 
     if (!environment) {
       throw new UpstreamHttpError(
         404,
         "zane_environment_not_found",
-        `Environment ${input.projectSlug}/${input.environmentName} was not found`
+        `Environment ${input.projectSlug}/${input.environmentName} was not found`,
       )
     }
 
     const envByKey = new Map(
-      environment.variables.map((variable) => [variable.key, variable])
+      environment.variables.map((variable) => [variable.key, variable]),
     )
 
     const targetCommitSha = await this.upsertSharedEnvironmentVariable({
@@ -777,7 +777,7 @@ export class ZaneClient {
         (baselineComplete ??
           this.getSharedEnvironmentVariable(
             environment,
-            previewBaselineCompleteEnvKey
+            previewBaselineCompleteEnvKey,
           )) === "true",
       environment_exists: true,
       environment_name: input.environmentName,
@@ -785,7 +785,7 @@ export class ZaneClient {
         lastDeployedCommitSha ??
         this.getSharedEnvironmentVariable(
           environment,
-          previewLastDeployedCommitEnvKey
+          previewLastDeployedCommitEnvKey,
         ) ??
         null,
       project_slug: input.projectSlug,
@@ -793,14 +793,14 @@ export class ZaneClient {
         targetCommitSha ??
         this.getSharedEnvironmentVariable(
           environment,
-          previewTargetCommitEnvKey
+          previewTargetCommitEnvKey,
         ) ??
         null,
     }
   }
 
   async syncPreviewRandomOnceSecrets(
-    input: SyncPreviewRandomOnceSecretsInput
+    input: SyncPreviewRandomOnceSecretsInput,
   ): Promise<{
     project_slug: string
     environment_name: string
@@ -815,19 +815,19 @@ export class ZaneClient {
     const environment = await this.getEnvironment(
       session,
       input.projectSlug,
-      input.environmentName
+      input.environmentName,
     )
 
     if (!environment) {
       throw new UpstreamHttpError(
         404,
         "zane_environment_not_found",
-        `Environment ${input.projectSlug}/${input.environmentName} was not found`
+        `Environment ${input.projectSlug}/${input.environmentName} was not found`,
       )
     }
 
     const envByKey = new Map(
-      environment.variables.map((variable) => [variable.key, variable])
+      environment.variables.map((variable) => [variable.key, variable]),
     )
     const serviceDetailsBySlug = new Map<string, ZaneServiceDetails>()
     const secrets: { secret_id: string; value: string }[] = []
@@ -839,7 +839,7 @@ export class ZaneClient {
           throw new UpstreamHttpError(
             400,
             "preview_secret_persisted_env_missing",
-            `Preview secret ${secret.secretId} is missing persisted_env_var`
+            `Preview secret ${secret.secretId} is missing persisted_env_var`,
           )
         }
 
@@ -866,7 +866,7 @@ export class ZaneClient {
             throw new UpstreamHttpError(
               500,
               "preview_secret_write_failed",
-              `Failed to persist preview random-once secret ${secret.secretId} to ${secret.persistedEnvVar}`
+              `Failed to persist preview random-once secret ${secret.secretId} to ${secret.persistedEnvVar}`,
             )
           }
 
@@ -907,13 +907,13 @@ export class ZaneClient {
             session,
             input.projectSlug,
             input.environmentName,
-            target.serviceSlug
+            target.serviceSlug,
           )
           serviceDetailsBySlug.set(target.serviceSlug, serviceDetails)
         }
 
         const existingValue = computeEffectiveEnvVariables(serviceDetails).find(
-          (envVar) => envVar.key === target.envVar
+          (envVar) => envVar.key === target.envVar,
         )?.value
 
         if (existingValue) {
@@ -925,7 +925,7 @@ export class ZaneClient {
         throw new UpstreamHttpError(
           409,
           "preview_secret_conflict",
-          `Preview secret ${secret.secretId} has conflicting persisted target values in ${input.environmentName}`
+          `Preview secret ${secret.secretId} has conflicting persisted target values in ${input.environmentName}`,
         )
       }
 
@@ -968,19 +968,19 @@ export class ZaneClient {
     const environment = await this.getEnvironment(
       session,
       input.projectSlug,
-      input.environmentName
+      input.environmentName,
     )
 
     if (!environment) {
       throw new UpstreamHttpError(
         404,
         "zane_environment_not_found",
-        `Environment ${input.projectSlug}/${input.environmentName} was not found`
+        `Environment ${input.projectSlug}/${input.environmentName} was not found`,
       )
     }
 
     const envByKey = new Map(
-      environment.variables.map((variable) => [variable.key, variable])
+      environment.variables.map((variable) => [variable.key, variable]),
     )
     const variables = await this.syncResolvedPreviewSharedVariables({
       envByKey,
@@ -1015,19 +1015,19 @@ export class ZaneClient {
     const environment = await this.getEnvironment(
       session,
       input.projectSlug,
-      input.environmentName
+      input.environmentName,
     )
 
     if (!environment) {
       throw new UpstreamHttpError(
         404,
         "zane_environment_not_found",
-        `Environment ${input.projectSlug}/${input.environmentName} was not found`
+        `Environment ${input.projectSlug}/${input.environmentName} was not found`,
       )
     }
 
     const envByKey = new Map(
-      environment.variables.map((variable) => [variable.key, variable])
+      environment.variables.map((variable) => [variable.key, variable]),
     )
     const serviceDetailsByRef = new Map<string, ZaneServiceDetails>()
     const envOverrides = await Promise.all(
@@ -1046,12 +1046,12 @@ export class ZaneClient {
                 label: `${service.service_slug}.${envVar.env_var}`,
                 serviceDetailsByRef,
               }),
-            ])
-          )
+            ]),
+          ),
         ),
         service_id: service.service_id,
         service_slug: service.service_slug,
-      }))
+      })),
     )
 
     const ops = this.createDeployOps()
@@ -1142,20 +1142,20 @@ export class ZaneClient {
   }
 
   async runRuntimeProvider(
-    input: RuntimeProviderRunInput
+    input: RuntimeProviderRunInput,
   ): Promise<RuntimeProviderRunResult> {
     switch (input.providerId) {
       case "meili_api_credentials": {
         const provider = this.createMeiliApiCredentialsProvisioner()
         const backendOutput = input.outputs.find(
-          (candidate) => candidate.outputId === "backend_key"
+          (candidate) => candidate.outputId === "backend_key",
         )
         const frontendOutput = input.outputs.find(
-          (candidate) => candidate.outputId === "frontend_key"
+          (candidate) => candidate.outputId === "frontend_key",
         )
         if (!(backendOutput || frontendOutput)) {
           throw new BadRequestError(
-            "Runtime provider meili_api_credentials requires at least one requested output."
+            "Runtime provider meili_api_credentials requires at least one requested output.",
           )
         }
 
@@ -1168,7 +1168,7 @@ export class ZaneClient {
             ? {
                 backendOutput: toMeiliProvisionOutputInput(
                   backendOutput,
-                  "outputs[backend_key]"
+                  "outputs[backend_key]",
                 ),
               }
             : {}),
@@ -1176,7 +1176,7 @@ export class ZaneClient {
             ? {
                 frontendOutput: toMeiliProvisionOutputInput(
                   frontendOutput,
-                  "outputs[frontend_key]"
+                  "outputs[frontend_key]",
                 ),
               }
             : {}),
@@ -1218,11 +1218,11 @@ export class ZaneClient {
       case "medusa_publishable_key": {
         const provider = this.createMedusaPublishableKeyProvisioner()
         const frontendOutput = input.outputs.find(
-          (candidate) => candidate.outputId === "frontend_key"
+          (candidate) => candidate.outputId === "frontend_key",
         )
         if (!frontendOutput) {
           throw new BadRequestError(
-            "Runtime provider medusa_publishable_key requires frontend_key output."
+            "Runtime provider medusa_publishable_key requires frontend_key output.",
           )
         }
 
@@ -1230,7 +1230,7 @@ export class ZaneClient {
           environmentName: input.environmentName,
           frontendOutput: toMedusaPublishableKeyProvisionOutputInput(
             frontendOutput,
-            "outputs[frontend_key]"
+            "outputs[frontend_key]",
           ),
           projectSlug: input.projectSlug,
           readinessPath: input.readinessPath,
@@ -1256,7 +1256,7 @@ export class ZaneClient {
       }
       default: {
         throw new BadRequestError(
-          `Unsupported runtime provider: ${input.providerId}`
+          `Unsupported runtime provider: ${input.providerId}`,
         )
       }
     }
@@ -1291,20 +1291,20 @@ export class ZaneClient {
   private async getEnvironment(
     session: ZaneSession,
     projectSlug: string,
-    environmentName: string
+    environmentName: string,
   ): Promise<ZaneEnvironmentWithVariables | null> {
     return await this.request<ZaneEnvironmentWithVariables>(
       session,
       "GET",
       `/api/projects/${encodeURIComponent(projectSlug)}/environment-details/${encodeURIComponent(environmentName)}/`,
       undefined,
-      { allowNotFound: true }
+      { allowNotFound: true },
     )
   }
 
   private getSharedEnvironmentVariable(
     environment: ZaneEnvironmentWithVariables | null,
-    key: string
+    key: string,
   ): string | undefined {
     return environment?.variables.find((variable) => variable.key === key)
       ?.value
@@ -1337,9 +1337,9 @@ export class ZaneClient {
         input.session,
         "PATCH",
         `/api/projects/${encodeURIComponent(
-          input.projectSlug
+          input.projectSlug,
         )}/${encodeURIComponent(input.environmentName)}/variables/${encodeURIComponent(existing.id)}/`,
-        payload
+        payload,
       )
       input.envByKey.set(input.key, {
         ...existing,
@@ -1356,9 +1356,9 @@ export class ZaneClient {
       input.session,
       "POST",
       `/api/projects/${encodeURIComponent(
-        input.projectSlug
+        input.projectSlug,
       )}/${encodeURIComponent(input.environmentName)}/variables/`,
-      payload
+      payload,
     )
 
     if (created?.id) {
@@ -1408,7 +1408,7 @@ export class ZaneClient {
         throw new UpstreamHttpError(
           500,
           "preview_shared_env_write_failed",
-          `Failed to persist preview shared env ${variable.key}`
+          `Failed to persist preview shared env ${variable.key}`,
         )
       }
 
@@ -1435,7 +1435,7 @@ export class ZaneClient {
   }
 
   private async resolvePreviewRuntimeValueSource(
-    input: PreviewRuntimeSourceContext
+    input: PreviewRuntimeSourceContext,
   ): Promise<string> {
     switch (input.source.kind) {
       case "literal": {
@@ -1443,7 +1443,7 @@ export class ZaneClient {
           throw new UpstreamHttpError(
             400,
             "preview_runtime_value_missing",
-            `Preview runtime source ${input.label} requires an explicit value`
+            `Preview runtime source ${input.label} requires an explicit value`,
           )
         }
 
@@ -1456,7 +1456,7 @@ export class ZaneClient {
         if (!value) {
           throw this.createPreviewRuntimeSourceMissingError(
             input,
-            serviceDetails.slug
+            serviceDetails.slug,
           )
         }
 
@@ -1469,7 +1469,7 @@ export class ZaneClient {
         if (!value) {
           throw this.createPreviewRuntimeSourceMissingError(
             input,
-            serviceDetails.slug
+            serviceDetails.slug,
           )
         }
 
@@ -1482,7 +1482,7 @@ export class ZaneClient {
         if (!publicUrl) {
           throw this.createPreviewRuntimeSourceMissingError(
             input,
-            serviceDetails.slug
+            serviceDetails.slug,
           )
         }
 
@@ -1496,7 +1496,7 @@ export class ZaneClient {
         if (!(alias && port)) {
           throw this.createPreviewRuntimeSourceMissingError(
             input,
-            serviceDetails.slug
+            serviceDetails.slug,
           )
         }
 
@@ -1514,7 +1514,7 @@ export class ZaneClient {
         if (!(alias && port && bucketSharedEnvKey)) {
           throw this.createPreviewRuntimeSourceMissingError(
             input,
-            serviceDetails.slug
+            serviceDetails.slug,
           )
         }
 
@@ -1523,27 +1523,27 @@ export class ZaneClient {
           throw new UpstreamHttpError(
             409,
             "preview_runtime_bucket_missing",
-            `Could not resolve ${input.label} because ${bucketSharedEnvKey} is missing in ${input.projectSlug}/${input.environment.name}`
+            `Could not resolve ${input.label} because ${bucketSharedEnvKey} is missing in ${input.projectSlug}/${input.environment.name}`,
           )
         }
 
         return new URL(
           `/${encodeURIComponent(bucketName)}`,
-          `http://${alias}:${port}`
+          `http://${alias}:${port}`,
         ).toString()
       }
     }
   }
 
   private async getCachedPreviewRuntimeServiceDetails(
-    input: PreviewRuntimeSourceContext
+    input: PreviewRuntimeSourceContext,
   ): Promise<ZaneServiceDetails> {
     const serviceSlug = input.source.serviceSlug?.trim()
     if (!serviceSlug) {
       throw new UpstreamHttpError(
         400,
         "preview_runtime_service_missing",
-        `Preview runtime source ${input.label} requires service_slug`
+        `Preview runtime source ${input.label} requires service_slug`,
       )
     }
 
@@ -1559,7 +1559,7 @@ export class ZaneClient {
       input.session,
       input.projectSlug,
       sourceEnvironmentName,
-      serviceSlug
+      serviceSlug,
     )
     input.serviceDetailsByRef.set(cacheKey, serviceDetails)
     return serviceDetails
@@ -1567,7 +1567,7 @@ export class ZaneClient {
 
   private createPreviewRuntimeSourceMissingError(
     input: PreviewRuntimeSourceContext,
-    serviceSlug: string
+    serviceSlug: string,
   ): UpstreamHttpError {
     const sourceEnvironmentName =
       input.source.sourceEnvironmentName ?? input.environmentName
@@ -1575,13 +1575,13 @@ export class ZaneClient {
     return new UpstreamHttpError(
       409,
       "preview_runtime_source_missing",
-      `Could not resolve ${input.label} from ${input.projectSlug}/${sourceEnvironmentName}/${serviceSlug} using ${input.source.kind}`
+      `Could not resolve ${input.label} from ${input.projectSlug}/${sourceEnvironmentName}/${serviceSlug} using ${input.source.kind}`,
     )
   }
 
   private buildUpstreamHeaders(
     session: ZaneSession | undefined,
-    method: HttpMethod
+    method: HttpMethod,
   ): Record<string, string> {
     return this.#upstream.buildHeaders(session, method)
   }
@@ -1589,12 +1589,12 @@ export class ZaneClient {
   private async listServiceCards(
     session: ZaneSession,
     projectSlug: string,
-    environmentName: string
+    environmentName: string,
   ): Promise<ZaneServiceCard[]> {
     const cardsPayload = await this.request<unknown>(
       session,
       "GET",
-      `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(environmentName)}/service-list/`
+      `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(environmentName)}/service-list/`,
     )
 
     return normalizeServiceCards(cardsPayload ?? [])
@@ -1604,27 +1604,27 @@ export class ZaneClient {
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
-    serviceSlug: string
+    serviceSlug: string,
   ): Promise<ZaneServiceDetails> {
     const detailsPayload = await this.request<unknown>(
       session,
       "GET",
       `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(
-        environmentName
-      )}/service-details/${encodeURIComponent(serviceSlug)}/`
+        environmentName,
+      )}/service-details/${encodeURIComponent(serviceSlug)}/`,
     )
 
     if (!detailsPayload) {
       throw new UpstreamHttpError(
         404,
         "zane_service_not_found",
-        `Service ${serviceSlug} was not found in ${projectSlug}/${environmentName}`
+        `Service ${serviceSlug} was not found in ${projectSlug}/${environmentName}`,
       )
     }
 
     return normalizeServiceDetails(
       detailsPayload,
-      `${projectSlug}/${environmentName}/${serviceSlug}.service_details`
+      `${projectSlug}/${environmentName}/${serviceSlug}.service_details`,
     )
   }
 
@@ -1633,21 +1633,21 @@ export class ZaneClient {
     projectSlug: string,
     environmentName: string,
     serviceSlug: string,
-    deploymentHash: string
+    deploymentHash: string,
   ): Promise<ZaneDeployment> {
     const deployment = await this.request<ZaneDeployment>(
       session,
       "GET",
       `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(
-        environmentName
-      )}/service-details/${encodeURIComponent(serviceSlug)}/deployments/${encodeURIComponent(deploymentHash)}/`
+        environmentName,
+      )}/service-details/${encodeURIComponent(serviceSlug)}/deployments/${encodeURIComponent(deploymentHash)}/`,
     )
 
     if (!deployment) {
       throw new UpstreamHttpError(
         404,
         "zane_deployment_not_found",
-        `Deployment ${deploymentHash} was not found for ${projectSlug}/${environmentName}/${serviceSlug}`
+        `Deployment ${deploymentHash} was not found for ${projectSlug}/${environmentName}/${serviceSlug}`,
       )
     }
 
@@ -1658,14 +1658,14 @@ export class ZaneClient {
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
-    serviceSlug: string
+    serviceSlug: string,
   ): Promise<ZaneDeployment[]> {
     const payload = await this.request<ZaneDeploymentListResponse>(
       session,
       "GET",
       `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(
-        environmentName
-      )}/service-details/${encodeURIComponent(serviceSlug)}/deployments/`
+        environmentName,
+      )}/service-details/${encodeURIComponent(serviceSlug)}/deployments/`,
     )
 
     return Array.isArray(payload?.results) ? payload.results : []

@@ -17,7 +17,7 @@ const buildDefinition = (
   values: Pick<
     ProductAttributeDefinitionRecord,
     "id" | "input_type" | "is_public" | "key" | "label"
-  >
+  >,
 ): ProductAttributeDefinitionRecord => ({
   assignments: [],
   created_at: FIXED_DATE,
@@ -31,7 +31,7 @@ const buildOption = (
   values: Pick<
     ProductAttributeOptionRecord,
     "definition" | "definition_id" | "id" | "key" | "label"
-  >
+  >,
 ): ProductAttributeOptionRecord => ({
   assignments: [],
   created_at: FIXED_DATE,
@@ -128,7 +128,7 @@ describe("Product Attribute assignment validation", () => {
           },
         ],
         options: [{ ...option, definition_id: "patdef_other" }],
-      })
+      }),
     ).toThrow(INACTIVE_OPTION_ERROR)
   })
 
@@ -148,7 +148,7 @@ describe("Product Attribute assignment validation", () => {
           },
         ],
         options: [],
-      })
+      }),
     ).toThrow(DUPLICATE_DEFINITION_ERROR)
   })
 })
@@ -192,7 +192,7 @@ describe("Product Attribute set/remove reconciliation", () => {
       },
     ])
     expect(
-      prepareProductAttributeAssignmentCompensation(mutations)
+      prepareProductAttributeAssignmentCompensation(mutations),
     ).toStrictEqual({
       created_ids: [],
       previous: [previous],
@@ -225,7 +225,7 @@ describe("Product Attribute set/remove reconciliation", () => {
     })
 
     expect(
-      prepareProductAttributeAssignmentCompensation(mutations)
+      prepareProductAttributeAssignmentCompensation(mutations),
     ).toStrictEqual({
       created_ids: [],
       previous: [],
@@ -274,6 +274,6 @@ describe("Product Attribute set/remove reconciliation", () => {
       })
 
       expect(mutations[0]?.existing).toBe(active)
-    }
+    },
   )
 })

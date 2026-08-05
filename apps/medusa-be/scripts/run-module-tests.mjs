@@ -116,7 +116,7 @@ async function waitForDockerPostgres(containerName, attempts = 60) {
         "-d",
         dbEnv.DB_TEMP_NAME,
       ],
-      { allowFailure: true, stdio: "ignore" }
+      { allowFailure: true, stdio: "ignore" },
     )
 
     return code === 0
@@ -130,7 +130,7 @@ async function canRunDocker() {
     {
       allowFailure: true,
       stdio: "ignore",
-    }
+    },
   )
 
   return code === 0
@@ -193,7 +193,7 @@ async function ensurePostgres() {
   ) {
     await run("docker", ["logs", name], { allowFailure: true })
     throw new Error(
-      `Postgres did not become ready on ${dbEnv.DB_HOST}:${dbEnv.DB_PORT}`
+      `Postgres did not become ready on ${dbEnv.DB_HOST}:${dbEnv.DB_PORT}`,
     )
   }
 
@@ -217,7 +217,7 @@ try {
       allowFailure: true,
       cwd: medusaBeDir,
       env: testEnv,
-    }
+    },
   )
 
   process.exitCode = exitCode

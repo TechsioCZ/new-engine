@@ -9,14 +9,14 @@ describe("measurement unit utilities", () => {
         filters.product_id.$in.map((productId) => ({
           id: `pm_${productId}`,
           product_id: productId,
-        }))
+        })),
     )
     const scope = {
       resolve: vi.fn(() => ({ listProductMeasurements })),
     }
     const productIds = Array.from(
       { length: 501 },
-      (_, index) => `prod_${index}`
+      (_, index) => `prod_${index}`,
     )
     const result = await listProductMeasurementsByProductIds(scope as never, [
       ...productIds,
@@ -33,7 +33,7 @@ describe("measurement unit utilities", () => {
       {
         relations: ["measurement_unit", "variant_measurements"],
         take: 500,
-      }
+      },
     )
     expect(listProductMeasurements).toHaveBeenNthCalledWith(
       2,
@@ -43,7 +43,7 @@ describe("measurement unit utilities", () => {
       {
         relations: ["measurement_unit", "variant_measurements"],
         take: 1,
-      }
+      },
     )
     expect(result).toHaveLength(501)
   })
@@ -52,7 +52,7 @@ describe("measurement unit utilities", () => {
     const resolve = vi.fn()
 
     await expect(
-      listProductMeasurementsByProductIds({ resolve } as never, ["", ""])
+      listProductMeasurementsByProductIds({ resolve } as never, ["", ""]),
     ).resolves.toStrictEqual([])
     expect(resolve).not.toHaveBeenCalled()
   })

@@ -14,7 +14,7 @@ export function createMeiliApiCredentialsCommand(): Command {
 
   command
     .description(
-      "Reconcile Meili API credentials from the active CLI-managed contract"
+      "Reconcile Meili API credentials from the active CLI-managed contract",
     )
     .option("--meili-url <url>")
     .option("--master-key <key>")
@@ -27,12 +27,12 @@ export function createMeiliApiCredentialsCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
     .action(async (options) => {
       const input = meiliApiCredentialsCommandInputSchema.parse({
@@ -63,25 +63,25 @@ export function createMeiliApiCredentialsCommand(): Command {
       await appendGitHubOutput("meili_backend_env_var", result.backend_env_var)
       await appendGitHubOutput(
         "meili_frontend_env_var",
-        result.frontend_env_var
+        result.frontend_env_var,
       )
       await appendGitHubOutput("meili_backend_uid", result.backend_uid)
       await appendGitHubOutput("meili_frontend_uid", result.frontend_uid)
       await appendGitHubOutput(
         "meili_backend_created",
-        String(result.backend_created)
+        String(result.backend_created),
       )
       await appendGitHubOutput(
         "meili_frontend_created",
-        String(result.frontend_created)
+        String(result.frontend_created),
       )
       await appendGitHubOutput(
         "meili_backend_updated",
-        String(result.backend_updated)
+        String(result.backend_updated),
       )
       await appendGitHubOutput(
         "meili_frontend_updated",
-        String(result.frontend_updated)
+        String(result.frontend_updated),
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
     })

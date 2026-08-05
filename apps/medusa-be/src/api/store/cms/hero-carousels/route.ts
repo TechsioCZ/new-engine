@@ -24,7 +24,7 @@ export type StoreCmsHeroCarouselsSchemaType = z.infer<
 /** Store API handler returning hero carousels with list options. */
 export async function GET(
   req: MedusaRequest<unknown, StoreCmsHeroCarouselsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 

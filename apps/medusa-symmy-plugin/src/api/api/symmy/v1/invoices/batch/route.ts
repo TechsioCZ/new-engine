@@ -57,7 +57,7 @@ type AuthenticatedRequest = MedusaRequest<AttachInvoicesBatchSchemaType> & {
  */
 export const POST = async (
   req: MedusaRequest<AttachInvoicesBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const authReq = req as AuthenticatedRequest
   const { result } = await attachInvoicesBatchWorkflow(req.scope).run({

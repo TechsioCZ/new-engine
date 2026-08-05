@@ -6,7 +6,7 @@ import type { CreateReviewWorkflowInput } from "../types"
 
 type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
   updateReviewTokens: (
-    data: { id: string; used_at: Date | null }[]
+    data: { id: string; used_at: Date | null }[],
   ) => Promise<unknown>
 }
 
@@ -18,7 +18,7 @@ export const markReviewTokenUsedStep = createStep(
     }
 
     const service = container.resolve<ProductReviewModuleServiceWithTokens>(
-      PRODUCT_REVIEW_MODULE
+      PRODUCT_REVIEW_MODULE,
     )
 
     await service.updateReviewTokens([
@@ -43,5 +43,5 @@ export const markReviewTokenUsedStep = createStep(
           used_at: null,
         },
       ])
-  }
+  },
 )

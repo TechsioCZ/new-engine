@@ -25,7 +25,7 @@ export interface ProductListItemVariantLinkRecord {
 const CUSTOMER_PRODUCT_LIST_LINK_LOOKUP_CHUNK_SIZE = 1000
 
 const isCustomerProductListLinkRecord = (
-  value: unknown
+  value: unknown,
 ): value is CustomerProductListLinkRecord =>
   isObjectRecord(value) &&
   (value["customer_id"] === undefined ||
@@ -34,7 +34,7 @@ const isCustomerProductListLinkRecord = (
     typeof value["product_list_id"] === "string")
 
 const isProductListItemProductLinkRecord = (
-  value: unknown
+  value: unknown,
 ): value is ProductListItemProductLinkRecord =>
   isObjectRecord(value) &&
   (value["product_id"] === undefined ||
@@ -43,7 +43,7 @@ const isProductListItemProductLinkRecord = (
     typeof value["product_list_item_id"] === "string")
 
 const isProductListItemVariantLinkRecord = (
-  value: unknown
+  value: unknown,
 ): value is ProductListItemVariantLinkRecord =>
   isObjectRecord(value) &&
   (value["product_variant_id"] === undefined ||
@@ -62,7 +62,7 @@ export const toProductListItemVariantLinks = (value: unknown) =>
 
 export const listCustomerProductListIds = async (
   container: MedusaContainer,
-  customerId: string
+  customerId: string,
 ) => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const productListIds: string[] = []
@@ -84,8 +84,8 @@ export const listCustomerProductListIds = async (
     const links = toCustomerProductListLinks(data)
     productListIds.push(
       ...links.flatMap((link) =>
-        link.product_list_id ? [link.product_list_id] : []
-      )
+        link.product_list_id ? [link.product_list_id] : [],
+      ),
     )
 
     if (links.length < CUSTOMER_PRODUCT_LIST_LINK_LOOKUP_CHUNK_SIZE) {
@@ -99,7 +99,7 @@ export const listCustomerProductListIds = async (
 export const assertCustomerOwnsProductList = async (
   container: MedusaContainer,
   customerId: string,
-  listId: string
+  listId: string,
 ) => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -118,7 +118,7 @@ export const assertCustomerOwnsProductList = async (
   if (!link?.product_list_id) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product list ${listId} was not found`
+      `Product list ${listId} was not found`,
     )
   }
 }

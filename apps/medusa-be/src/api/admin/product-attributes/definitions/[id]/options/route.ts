@@ -12,7 +12,7 @@ import type { AdminCreateProductAttributeOptionSchemaType } from "../../../valid
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminCreateProductAttributeOptionSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const definitionId = req.params["id"] ?? ""
   await retrieveProductAttributeDefinitionOrThrow(req.scope, definitionId)

@@ -13,12 +13,12 @@ import {
 
 const OptionalNonNegativeIntQuerySchema = z.preprocess(
   (value) => (Array.isArray(value) ? value[0] : value),
-  z.coerce.number().int().min(0).optional()
+  z.coerce.number().int().min(0).optional(),
 )
 
 const OptionalLimitQuerySchema = z.preprocess(
   (value) => (Array.isArray(value) ? value[0] : value),
-  z.coerce.number().int().min(1).max(ORDER_EXPEDITION_MAX_LIMIT).optional()
+  z.coerce.number().int().min(1).max(ORDER_EXPEDITION_MAX_LIMIT).optional(),
 )
 
 export const GetAdminOrderExpeditionOrdersSchema = z.object({

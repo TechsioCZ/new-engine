@@ -215,7 +215,7 @@ function createSearchPatterns(utilities) {
       new RegExp(`data-\\[[^\\]]+\\]:[^\\s"'\`]*${escaped}`),
       // Modifier prefixes (hover:, focus:, etc.)
       new RegExp(
-        `(?:hover|focus|focus-visible|active|disabled|group-hover|peer-focus|peer-disabled|group-disabled|placeholder):[^\\s"'\`]*${escaped}`
+        `(?:hover|focus|focus-visible|active|disabled|group-hover|peer-focus|peer-disabled|group-disabled|placeholder):[^\\s"'\`]*${escaped}`,
       ),
       // Responsive prefixes
       new RegExp(`(?:sm|md|lg|xl|2xl):[^\\s"'\`]*${escaped}`),
@@ -239,7 +239,7 @@ function isTokenUsed(token, allTokens) {
   // Count how many times the token appears in the file
   const tokenRegex = new RegExp(
     token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-    "g"
+    "g",
   )
   const matches = sameFileContent.match(tokenRegex) || []
   // If it appears more than once (definition + usage), it's a helper token
@@ -300,23 +300,23 @@ function isTokenUsed(token, allTokens) {
         const specialMatches = [
           content.match(
             new RegExp(
-              `\\(length:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
-            )
+              `\\(length:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`,
+            ),
           ),
           content.match(
             new RegExp(
-              `\\(width:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
-            )
+              `\\(width:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`,
+            ),
           ),
           content.match(
             new RegExp(
-              `\\(height:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
-            )
+              `\\(height:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`,
+            ),
           ),
           content.match(
             new RegExp(
-              `\\(size:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
-            )
+              `\\(size:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`,
+            ),
           ),
         ].filter((m) => m !== null)
 
@@ -366,11 +366,11 @@ function generateReport(unusedTokens, allTokens) {
 
   report.push(
     "# Unused Tokens Report\n",
-    `Generated on: ${new Date().toISOString()}\n`
+    `Generated on: ${new Date().toISOString()}\n`,
   )
   report.push(
     `Total tokens analyzed: ${allTokens.size}`,
-    `Unused tokens found: ${unusedTokens.length}\n`
+    `Unused tokens found: ${unusedTokens.length}\n`,
   )
 
   // Group by file
@@ -392,7 +392,7 @@ function generateReport(unusedTokens, allTokens) {
         .join(", ")
       report.push(
         `- Line ${line}: \`${token}\``,
-        `  - Namespace: ${namespace || "none"}`
+        `  - Namespace: ${namespace || "none"}`,
       )
       report.push(`  - Expected utilities: ${possibleUtils}...`)
     })
@@ -465,7 +465,7 @@ async function main() {
       console.log(`\nChecking token: ${token}`)
       const utilities = generatePossibleUtilities(token)
       console.log(
-        `Possible utilities: ${utilities.slice(0, 10).join(", ")}${utilities.length > 10 ? "..." : ""}`
+        `Possible utilities: ${utilities.slice(0, 10).join(", ")}${utilities.length > 10 ? "..." : ""}`,
       )
     }
 
@@ -505,10 +505,10 @@ async function main() {
     console.log("\n📊 Summary:")
     console.log(`   Total tokens: ${allTokens.size}`)
     console.log(
-      `   Unused tokens: ${unusedTokens.length} (${((unusedTokens.length / allTokens.size) * 100).toFixed(1)}%)`
+      `   Unused tokens: ${unusedTokens.length} (${((unusedTokens.length / allTokens.size) * 100).toFixed(1)}%)`,
     )
     console.log(
-      `   Used tokens: ${allTokens.size - unusedTokens.length} (${(((allTokens.size - unusedTokens.length) / allTokens.size) * 100).toFixed(1)}%)`
+      `   Used tokens: ${allTokens.size - unusedTokens.length} (${(((allTokens.size - unusedTokens.length) / allTokens.size) * 100).toFixed(1)}%)`,
     )
   }
 

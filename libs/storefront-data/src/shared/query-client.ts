@@ -43,7 +43,7 @@ const defaultQueryClientConfig: QueryClientConfig = {
  */
 const mergeQueryClientConfig = (
   baseConfig: QueryClientConfig,
-  overrides?: QueryClientConfig
+  overrides?: QueryClientConfig,
 ): QueryClientConfig => {
   if (!overrides) {
     return baseConfig
@@ -76,7 +76,7 @@ const mergeQueryClientConfig = (
 }
 
 export function createQueryClientConfig(
-  overrides?: QueryClientConfig
+  overrides?: QueryClientConfig,
 ): QueryClientConfig {
   return mergeQueryClientConfig(defaultQueryClientConfig, overrides)
 }
@@ -99,7 +99,7 @@ export function getQueryClient(overrides?: QueryClientConfig): QueryClient {
   ) {
     console.warn(
       "[getQueryClient] Browser QueryClient already exists; overrides will be ignored. " +
-        "Pass overrides only on first initialisation or use makeQueryClient for a fresh instance."
+        "Pass overrides only on first initialisation or use makeQueryClient for a fresh instance.",
     )
   }
   if (!browserQueryClient) {

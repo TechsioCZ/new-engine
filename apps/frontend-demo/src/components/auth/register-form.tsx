@@ -103,7 +103,7 @@ export function RegisterForm() {
                 },
                 value: firstName,
               }),
-              isFormLoading
+              isFormLoading,
             )}
           />
 
@@ -115,7 +115,7 @@ export function RegisterForm() {
                 },
                 value: lastName,
               }),
-              isFormLoading
+              isFormLoading,
             )}
           />
         </div>
@@ -129,7 +129,7 @@ export function RegisterForm() {
               },
               value: email,
             }),
-            isFormLoading
+            isFormLoading,
           )}
           helpText={getFieldError("email")}
           validateStatus={getFieldError("email") ? "error" : "default"}
@@ -146,7 +146,7 @@ export function RegisterForm() {
                 placeholder: "Zadejte heslo",
                 value: password,
               }),
-              isFormLoading
+              isFormLoading,
             )}
             helpText={getFieldError("password")}
             validateStatus={getFieldError("password") ? "error" : "default"}
@@ -164,7 +164,7 @@ export function RegisterForm() {
               placeholder: "Znovu zadejte heslo",
               value: confirmPassword,
             }),
-            isFormLoading
+            isFormLoading,
           )}
           helpText={getFieldError("confirmPassword")}
           validateStatus={

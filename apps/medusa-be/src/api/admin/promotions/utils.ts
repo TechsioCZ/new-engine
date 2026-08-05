@@ -12,7 +12,7 @@ import type {
 } from "./types"
 
 export function validateRuleType(
-  ruleType: string
+  ruleType: string,
 ): asserts ruleType is RuleType {
   medusaValidateRuleType(ruleType)
 }
@@ -21,7 +21,7 @@ export const escapeLikePattern = (str: string) =>
   str.replaceAll(/[%_\\]/g, (char) => `\\${char}`)
 
 export function mapVariantToRuleValueOption(
-  variant: ProductVariantInput
+  variant: ProductVariantInput,
 ): RuleValueOption {
   const parts: string[] = []
 
@@ -47,7 +47,7 @@ export function mapVariantToRuleValueOption(
 }
 
 export function getExtendedRuleAttributesMap(
-  params: GetRuleAttributesMapParams
+  params: GetRuleAttributesMapParams,
 ) {
   const map = getRuleAttributesMap(params)
   const itemRuleAttributes =
@@ -60,18 +60,18 @@ export function getExtendedRuleAttributesMap(
     rules: appendMissingAttributes(map.rules, customRuleAttributes.rules),
     "target-rules": appendMissingAttributes(
       map["target-rules"],
-      itemRuleAttributes
+      itemRuleAttributes,
     ),
   } satisfies Record<RuleType, typeof map.rules>
 }
 
 function appendMissingAttributes<T extends { id: string }>(
   baseAttributes: T[],
-  customAttributes: readonly T[]
+  customAttributes: readonly T[],
 ) {
   const existingIds = new Set(baseAttributes.map((attribute) => attribute.id))
   const additions = customAttributes.filter(
-    (attribute) => !existingIds.has(attribute.id)
+    (attribute) => !existingIds.has(attribute.id),
   )
 
   return [...baseAttributes, ...additions]

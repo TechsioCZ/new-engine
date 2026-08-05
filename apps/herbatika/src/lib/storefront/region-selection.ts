@@ -23,12 +23,12 @@ const resolveRegionCountryCodes = (region: HttpTypes.StoreRegion): string[] =>
 
 export const regionMatchesMarket = (
   region: HttpTypes.StoreRegion,
-  marketContext: HerbatikaMarketContext
+  marketContext: HerbatikaMarketContext,
 ) => resolveRegionCountryCodes(region).includes(marketContext.countryCode)
 
 const resolveCountryCode = (
   region: HttpTypes.StoreRegion,
-  expectedCountryCode?: string
+  expectedCountryCode?: string,
 ): string => {
   const countryCodes = resolveRegionCountryCodes(region)
   const normalizedExpectedCountryCode = expectedCountryCode
@@ -43,7 +43,7 @@ const resolveCountryCode = (
 
 export const toRegionInfo = (
   region: HttpTypes.StoreRegion,
-  expectedCountryCode?: string
+  expectedCountryCode?: string,
 ): HerbatikaRegionInfo => {
   const currencyCode = normalizeSupportedCurrencyCode(region.currency_code)
 
@@ -55,10 +55,10 @@ export const toRegionInfo = (
 }
 
 export const resolveRegionCurrency = (
-  region?: RegionInfo | null
+  region?: RegionInfo | null,
 ): HerbatikaCurrencyCode => {
   const explicitCurrencyCode = normalizeSupportedCurrencyCode(
-    region?.currency_code
+    region?.currency_code,
   )
 
   if (explicitCurrencyCode) {
@@ -71,7 +71,7 @@ export const resolveRegionCurrency = (
 export const resolveRegionForMarket = (
   regions: HttpTypes.StoreRegion[],
   marketContext: HerbatikaMarketContext,
-  regionId: string | null | undefined
+  regionId: string | null | undefined,
 ): HttpTypes.StoreRegion | null => {
   if (regionId) {
     const selectedRegion = regions.find((region) => region.id === regionId)

@@ -26,14 +26,14 @@ const CreateProductCategoriesStepId = "create-product-categories-seed-step"
 function dedupeStringValues(values: (string | undefined)[]): string[] {
   return [
     ...new Set(
-      values.filter((value): value is string => Boolean(value?.trim()))
+      values.filter((value): value is string => Boolean(value?.trim())),
     ),
   ]
 }
 
 function matchesCategoryInput(
   inputCategory: CreateProductCategoriesStepInput[number],
-  existingCategory: Pick<ProductCategoryDTO, "name" | "handle">
+  existingCategory: Pick<ProductCategoryDTO, "name" | "handle">,
 ): boolean {
   if (inputCategory.handle) {
     return inputCategory.handle === existingCategory.handle
@@ -50,16 +50,16 @@ export const createProductCategoriesStep = createStep(
 
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const productService = container.resolve<IProductModuleService>(
-      Modules.PRODUCT
+      Modules.PRODUCT,
     )
 
     const inputHandles = dedupeStringValues(
-      input.map((category) => category.handle)
+      input.map((category) => category.handle),
     )
     const inputNamesWithoutHandle = dedupeStringValues(
       input
         .filter((category) => !category.handle)
-        .map((category) => category.name)
+        .map((category) => category.name),
     )
 
     const existingByHandle =
@@ -70,7 +70,7 @@ export const createProductCategoriesStep = createStep(
             },
             {
               select: ["id", "name", "handle"],
-            }
+            },
           )
         : []
 
@@ -82,7 +82,7 @@ export const createProductCategoriesStep = createStep(
             },
             {
               select: ["id", "name", "handle"],
-            }
+            },
           )
         : []
 
@@ -91,20 +91,20 @@ export const createProductCategoriesStep = createStep(
         [...existingByHandle, ...existingByName].map((category) => [
           category.id,
           category,
-        ])
+        ]),
       ).values(),
     ]
 
     const missingProductCategories = input.filter(
       (i) =>
         !existingProductCategories.find((existingCategory) =>
-          matchesCategoryInput(i, existingCategory)
-        )
+          matchesCategoryInput(i, existingCategory),
+        ),
     )
     const updateProductCategories = existingProductCategories.flatMap(
       (existingProductCategory) => {
         const inputProductCategories = input.find((productCategory) =>
-          matchesCategoryInput(productCategory, existingProductCategory)
+          matchesCategoryInput(productCategory, existingProductCategory),
         )
         if (!inputProductCategories) {
           return []
@@ -122,14 +122,14 @@ export const createProductCategoriesStep = createStep(
             rank: inputProductCategories.rank,
           },
         ]
-      }
+      },
     )
 
     if (missingProductCategories.length !== 0) {
       logger.info("Creating product categories...")
 
       const { result: categoryResult } = await createProductCategoriesWorkflow(
-        container
+        container,
       ).run({
         input: {
           product_categories: missingProductCategories.map((category) => ({
@@ -185,7 +185,7 @@ export const createProductCategoriesStep = createStep(
             },
           })
         productCategoriesUpdateResult.push(
-          categoryResult[0] as ProductCategoryDTO
+          categoryResult[0] as ProductCategoryDTO,
         )
       }
     }
@@ -203,7 +203,7 @@ export const createProductCategoriesStep = createStep(
             },
             {
               select: ["id", "name", "handle"],
-            }
+            },
           )
         : []
 
@@ -212,12 +212,12 @@ export const createProductCategoriesStep = createStep(
       .map((i) => {
         const category = allProductCategories.find((j) => j.handle === i.handle)
         const parent = allProductCategories.find(
-          (j) => j.handle === i.parentHandle
+          (j) => j.handle === i.parentHandle,
         )
 
         if (category === undefined || parent === undefined) {
           throw new Error(
-            `Could not find category parent pair ${i.handle} -> ${i.parentHandle}`
+            `Could not find category parent pair ${i.handle} -> ${i.parentHandle}`,
           )
         }
 
@@ -250,5 +250,5 @@ export const createProductCategoriesStep = createStep(
         updateProductCategoriesResult: productCategoriesUpdateResult,
       },
     })
-  }
+  },
 )

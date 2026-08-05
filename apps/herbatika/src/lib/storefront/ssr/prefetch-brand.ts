@@ -9,7 +9,7 @@ import { getRegionServerContext } from "./context"
 
 export const prefetchBrandPageStorefrontData = async (
   brandFacetId: string,
-  queryState: PlpQueryState
+  queryState: PlpQueryState,
 ) => {
   const { queryClient, region } = await getRegionServerContext()
 
@@ -29,7 +29,7 @@ export const prefetchBrandPageStorefrontData = async (
           ...(region.country_code === undefined
             ? {}
             : { countryCode: region.country_code }),
-        })
+        }),
       ),
       prefetchServerCatalogProducts(
         queryClient,
@@ -52,7 +52,7 @@ export const prefetchBrandPageStorefrontData = async (
           ...(region.country_code === undefined
             ? {}
             : { countryCode: region.country_code }),
-        })
+        }),
       ),
     ])
   }

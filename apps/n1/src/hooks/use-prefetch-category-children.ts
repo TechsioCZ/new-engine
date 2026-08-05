@@ -21,7 +21,7 @@ export function usePrefetchCategoryChildren({
 }: UsePrefetchCategoryChildrenParams) {
   const queryClient = useQueryClient()
   const currentCategory = allCategories.find(
-    (cat) => cat.handle === categoryHandle
+    (cat) => cat.handle === categoryHandle,
   )
   const { regionId } = useRegion()
   const { prefetchCategoryProducts } = usePrefetchProducts()
@@ -35,7 +35,7 @@ export function usePrefetchCategoryChildren({
 
     // Collect all category IDs that will be prefetched
     const children = allCategories.filter(
-      (cat) => cat.parent_category_id === currentCategory.id
+      (cat) => cat.parent_category_id === currentCategory.id,
     )
     void (async () => {
       // PHASE 1: Direct children - wait for completion
@@ -50,7 +50,7 @@ export function usePrefetchCategoryChildren({
               return prefetchCategoryProducts(categoryIds, categoryHandle)
             }
             return Promise.resolve()
-          })
+          }),
         )
 
         if (isCancelled) {
@@ -73,7 +73,7 @@ export function usePrefetchCategoryChildren({
 
       prefetchLogger.info(
         "Children",
-        `Cancelled prefetches for ${categoryHandle}`
+        `Cancelled prefetches for ${categoryHandle}`,
       )
     }
   }, [

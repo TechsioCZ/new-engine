@@ -41,7 +41,7 @@ export function HeurekaProduct({
       '[HeurekaProduct] Invalid country provided, defaulting to "cz"',
       {
         country: rawCountry,
-      }
+      },
     )
   }
   const domain = safeCountry === "sk" ? "heureka.sk" : "heureka.cz"
@@ -66,7 +66,7 @@ export function HeurekaProduct({
             g.parentNode.insertBefore(n, g);
           })(window, document, 'script',
              ${JSON.stringify(
-               `https://${domain}/ocm/sdk.js?version=2&page=product_detail`
+               `https://${domain}/ocm/sdk.js?version=2&page=product_detail`,
              )},
              'heureka', ${JSON.stringify(safeCountry)});
         `,

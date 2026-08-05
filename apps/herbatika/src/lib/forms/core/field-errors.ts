@@ -44,17 +44,17 @@ const toFieldErrorText = (error: unknown): string | undefined => {
 
 const hasValidationResult = (
   meta: FieldErrorMeta,
-  source: FieldValidationSource
+  source: FieldValidationSource,
 ) => Object.hasOwn(meta.errorMap, source)
 
 const hasValidationResultFromSources = (
   meta: FieldErrorMeta,
-  sources: readonly FieldValidationSource[]
+  sources: readonly FieldValidationSource[],
 ) => sources.some((source) => hasValidationResult(meta, source))
 
 const resolveErrorFromValidationSources = (
   meta: FieldErrorMeta,
-  sources: readonly FieldValidationSource[]
+  sources: readonly FieldValidationSource[],
 ): ResolvedFieldValidationResult => {
   for (const source of sources) {
     if (hasValidationResult(meta, source)) {
@@ -106,7 +106,7 @@ export const shouldTrackLiveFieldFeedback = ({
 const resolveChangedFieldError = (meta: FieldErrorMeta) => {
   const liveResult = resolveErrorFromValidationSources(
     meta,
-    LIVE_VALIDATION_SOURCES
+    LIVE_VALIDATION_SOURCES,
   )
 
   return liveResult.matchedSource ? liveResult.errorText : undefined
@@ -114,7 +114,7 @@ const resolveChangedFieldError = (meta: FieldErrorMeta) => {
 
 const resolveSubmittedFieldError = (
   meta: FieldErrorMeta,
-  hasChangedSinceBlur: boolean
+  hasChangedSinceBlur: boolean,
 ) => {
   if (hasChangedSinceBlur) {
     return resolveChangedFieldError(meta)
@@ -123,7 +123,7 @@ const resolveSubmittedFieldError = (
   if (meta.isBlurred) {
     const blurredResult = resolveErrorFromValidationSources(
       meta,
-      BLURRED_SUBMITTED_VALIDATION_SOURCES
+      BLURRED_SUBMITTED_VALIDATION_SOURCES,
     )
 
     return blurredResult.matchedSource
@@ -133,7 +133,7 @@ const resolveSubmittedFieldError = (
 
   const submittedResult = resolveErrorFromValidationSources(
     meta,
-    SUBMITTED_VALIDATION_SOURCES
+    SUBMITTED_VALIDATION_SOURCES,
   )
 
   if (submittedResult.matchedSource) {
@@ -147,7 +147,7 @@ const resolveSubmittedFieldError = (
 
 const resolveBlurredFieldError = (
   meta: FieldErrorMeta,
-  hasChangedSinceBlur: boolean
+  hasChangedSinceBlur: boolean,
 ) => {
   if (hasChangedSinceBlur) {
     return resolveChangedFieldError(meta)
@@ -155,7 +155,7 @@ const resolveBlurredFieldError = (
 
   const blurredResult = resolveErrorFromValidationSources(
     meta,
-    BLURRED_VALIDATION_SOURCES
+    BLURRED_VALIDATION_SOURCES,
   )
 
   return blurredResult.matchedSource
@@ -185,7 +185,7 @@ const resolveVisibleFieldError = ({
 }
 
 export const resolveVisibleFieldFeedback = (
-  options: ResolveVisibleFieldErrorOptions
+  options: ResolveVisibleFieldErrorOptions,
 ): VisibleFieldFeedback => {
   const errorText = resolveVisibleFieldError(options)
 

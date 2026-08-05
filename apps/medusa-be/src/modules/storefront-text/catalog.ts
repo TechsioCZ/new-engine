@@ -43,12 +43,12 @@ const hasOwn = (value: object, key: PropertyKey) => Object.hasOwn(value, key)
 const flattenCatalogGroup = (
   catalog: unknown,
   parentKey: string,
-  messages: Record<string, string>
+  messages: Record<string, string>,
 ) => {
   if (!isCatalogGroup(catalog)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Storefront text catalog must be a JSON object"
+      "Storefront text catalog must be a JSON object",
     )
   }
 
@@ -56,7 +56,7 @@ const flattenCatalogGroup = (
     if (!isValidCatalogSegment(key)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Invalid storefront text catalog key "${key}"`
+        `Invalid storefront text catalog key "${key}"`,
       )
     }
 
@@ -70,7 +70,7 @@ const flattenCatalogGroup = (
     if (!isCatalogGroup(value) || Object.keys(value).length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Storefront text catalog value "${messageKey}" must be a string or non-empty object`
+        `Storefront text catalog value "${messageKey}" must be a string or non-empty object`,
       )
     }
 
@@ -79,7 +79,7 @@ const flattenCatalogGroup = (
 }
 
 export const flattenStorefrontTextCatalog = (
-  catalog: unknown
+  catalog: unknown,
 ): Record<string, string> => {
   const messages = Object.create(null) as Record<string, string>
   flattenCatalogGroup(catalog, "", messages)
@@ -87,7 +87,7 @@ export const flattenStorefrontTextCatalog = (
 }
 
 export const nestStorefrontTextMessages = (
-  messages: Record<string, string>
+  messages: Record<string, string>,
 ): StorefrontTextCatalog => {
   const catalog = createCatalogGroup()
 
@@ -101,7 +101,7 @@ export const nestStorefrontTextMessages = (
     ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Invalid storefront text message key "${messageKey}"`
+        `Invalid storefront text message key "${messageKey}"`,
       )
     }
 
@@ -113,7 +113,7 @@ export const nestStorefrontTextMessages = (
       if (typeof existing === "string") {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          `Storefront text message key "${messageKey}" conflicts with "${segment}"`
+          `Storefront text message key "${messageKey}" conflicts with "${segment}"`,
         )
       }
 
@@ -130,7 +130,7 @@ export const nestStorefrontTextMessages = (
     if (hasOwn(group, leaf)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Duplicate storefront text message key "${messageKey}"`
+        `Duplicate storefront text message key "${messageKey}"`,
       )
     }
 
@@ -158,7 +158,7 @@ const FLAT_CATALOGS_BY_LOCALE: Record<
 }
 
 export const getFlatStorefrontTextCatalog = (
-  locale: StorefrontTextLocale
+  locale: StorefrontTextLocale,
 ): Record<string, string> => FLAT_CATALOGS_BY_LOCALE[locale]
 
 interface PublishedStorefrontTextRecord {
@@ -192,7 +192,7 @@ export const getPublishedStorefrontTextValue = ({
 export const getPublishedStorefrontTextMessages = (
   defaultMessages: Record<string, string>,
   records: PublishedStorefrontTextRecord[],
-  locale: StorefrontTextLocale
+  locale: StorefrontTextLocale,
 ) => {
   const messages = { ...defaultMessages }
 

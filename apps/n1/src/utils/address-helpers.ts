@@ -29,7 +29,7 @@ export const DEFAULT_ADDRESS: AddressFormData = {
  * works for customer address, cart address or any compatible address object
  */
 function addressToFormData(
-  address?: Partial<HttpTypes.StoreCartAddress> | StoreCustomerAddress | null
+  address?: Partial<HttpTypes.StoreCartAddress> | StoreCustomerAddress | null,
 ): AddressFormData {
   // Return empty form if no address provided
   if (!address) {
@@ -60,7 +60,7 @@ export { addressToFormData }
  * The first address in the list is considered the default
  */
 export function getDefaultAddress(
-  addresses: StoreCustomerAddress[] | undefined
+  addresses: StoreCustomerAddress[] | undefined,
 ): StoreCustomerAddress | null {
   if (!addresses || addresses.length === 0) {
     return null
@@ -77,7 +77,7 @@ export function isPPLParcelOption(optionName: string): boolean {
 
 /** Convert PPL access point to shipping method data */
 export function accessPointToShippingData(
-  accessPoint: PplAccessPointData
+  accessPoint: PplAccessPointData,
 ): ShippingMethodData {
   return {
     access_point_id: accessPoint.code,
@@ -101,7 +101,7 @@ export function accessPointToShippingData(
 /** Convert PPL access point to Medusa address format for shipping_address */
 export function accessPointToAddress(
   accessPoint: PplAccessPointData,
-  billingAddress: AddressFormData
+  billingAddress: AddressFormData,
 ): AddressFormData {
   return {
     address_1: accessPoint.address?.street || "",

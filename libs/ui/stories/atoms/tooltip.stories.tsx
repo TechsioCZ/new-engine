@@ -137,7 +137,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       },
       description: "Icon for icon trigger",
       options: iconOptions.filter((option): option is IconType =>
-        Boolean(option)
+        Boolean(option),
       ),
     },
     triggerLabel: {

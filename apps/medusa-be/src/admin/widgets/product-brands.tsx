@@ -122,7 +122,7 @@ const getActiveBrand = (brand: Brand | undefined) => {
 const useBrandSelection = (currentBrand: Brand | undefined, open: boolean) => {
   const activeCurrentBrand = getActiveBrand(currentBrand)
   const [selectedId, setSelectedId] = useState<string | undefined>(
-    activeCurrentBrand?.id
+    activeCurrentBrand?.id,
   )
   const [selectedBrandSnapshot, setSelectedBrandSnapshot] = useState<
     Brand | undefined
@@ -164,7 +164,7 @@ const useBrandSelection = (currentBrand: Brand | undefined, open: boolean) => {
 const findSelectedBrand = (
   brands: Brand[],
   selectedId: string | undefined,
-  selectedBrandSnapshot: Brand | undefined
+  selectedBrandSnapshot: Brand | undefined,
 ) => {
   const listedBrand = brands.find((brand) => brand.id === selectedId)
   if (listedBrand) {
@@ -292,14 +292,14 @@ const BrandAssignmentDrawer = ({
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : t("errors.saveBrandFailed")
+          : t("errors.saveBrandFailed"),
       )
     },
     onSuccess: async (_, submittedBrandId) => {
       const affectedBrandIds = new Set(
         [currentBrand?.id, submittedBrandId].filter(
-          (id): id is string => id !== undefined
-        )
+          (id): id is string => id !== undefined,
+        ),
       )
 
       await Promise.all([
@@ -321,7 +321,7 @@ const BrandAssignmentDrawer = ({
         ...[...affectedBrandIds].map(async (brandId) =>
           queryClient.invalidateQueries({
             queryKey: brandQueryKeys.detail(brandId),
-          })
+          }),
         ),
       ])
       toast.success(t("toasts.productBrandUpdated"))
@@ -335,12 +335,12 @@ const BrandAssignmentDrawer = ({
   }
 
   const brands = [...(data?.brands ?? [])].sort(
-    (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at)
+    (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at),
   )
   const selectedBrand = findSelectedBrand(
     brands,
     selectedId,
-    selectedBrandSnapshot
+    selectedBrandSnapshot,
   )
   const count = data?.count ?? 0
   const clearSelection = () => {
@@ -541,9 +541,9 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
         .map((item) =>
           item.selected_option?.deleted_at
             ? { ...item, assignment: null, selected_option: null }
-            : item
+            : item,
         ),
-    [attributeQuery.data]
+    [attributeQuery.data],
   )
 
   if (!product?.id) {
@@ -551,7 +551,7 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
   }
 
   const brands = [...(brandQuery.data?.brands ?? [])].sort(
-    (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at)
+    (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at),
   )
   const attributeItems = attributeQuery.data?.product_attributes ?? []
   const activeBrand = brands.find((brand) => !brand.deleted_at)

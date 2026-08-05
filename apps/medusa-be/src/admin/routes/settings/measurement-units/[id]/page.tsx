@@ -169,7 +169,7 @@ const MeasurementUnitDetailPage = () => {
       q: debouncedQ,
       status,
     }),
-    [debouncedQ, pageIndex, status]
+    [debouncedQ, pageIndex, status],
   )
 
   const {
@@ -212,7 +212,7 @@ const MeasurementUnitDetailPage = () => {
       toast.error(
         error instanceof Error
           ? error.message
-          : t("errors.removeAssignmentFailed")
+          : t("errors.removeAssignmentFailed"),
       )
     },
     onSuccess: async (_response, productId) => {
@@ -236,7 +236,7 @@ const MeasurementUnitDetailPage = () => {
     mutationFn: async (unitId: string) => restoreMeasurementUnit(unitId),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.restoreFailed")
+        error instanceof Error ? error.message : t("errors.restoreFailed"),
       )
     },
     onSuccess: async () => {

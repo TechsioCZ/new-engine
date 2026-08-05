@@ -14,7 +14,7 @@ const isNonEmptyString = (value: unknown): value is string =>
 
 const resolveTitleFromMap = (
   titleMap: Record<string, unknown>,
-  locale?: string | null
+  locale?: string | null,
 ): string | undefined => {
   if (locale && isNonEmptyString(titleMap[locale])) {
     return titleMap[locale]
@@ -26,7 +26,7 @@ const resolveTitleFromMap = (
 /** Generate a slug from a title or return the fallback value. */
 export const generateSlugFromTitle = (
   title: unknown,
-  options: { fallback?: string; locale?: string | null } = {}
+  options: { fallback?: string; locale?: string | null } = {},
 ): string => {
   const fallback = options.fallback ?? ""
 
@@ -37,7 +37,7 @@ export const generateSlugFromTitle = (
   } else if (title && typeof title === "object") {
     resolvedTitle = resolveTitleFromMap(
       title as Record<string, unknown>,
-      options.locale
+      options.locale,
     )
   }
 

@@ -34,7 +34,7 @@ describe("Product Attribute Warranty", () => {
             input_type: "text",
           },
         },
-      ])
+      ]),
     ).toBeNull()
     expect(
       resolveProductWarranty([
@@ -42,7 +42,7 @@ describe("Product Attribute Warranty", () => {
           ...warrantyAttribute,
           option: null,
         },
-      ])
+      ]),
     ).toBeNull()
     expect(resolveProductWarranty([])).toBeNull()
   })
@@ -58,8 +58,8 @@ describe("Product Attribute Warranty", () => {
           },
         ],
         "24 mesiacov",
-        "Ostatné informácie"
-      )
+        "Ostatné informácie",
+      ),
     ).toStrictEqual([
       {
         html: "<p>Existing content</p>\n<p><strong>Záruka:</strong> 24 mesiacov</p>",
@@ -74,8 +74,8 @@ describe("Product Attribute Warranty", () => {
       mergeWarrantyIntoProductContentSections(
         [],
         `12 < 24 & "valid"`,
-        "Ostatné informácie"
-      )
+        "Ostatné informácie",
+      ),
     ).toStrictEqual([
       {
         html: "<p><strong>Záruka:</strong> 12 &lt; 24 &amp; &quot;valid&quot;</p>",
@@ -98,8 +98,8 @@ describe("Product Attribute Warranty", () => {
       mergeWarrantyIntoProductContentSections(
         sections,
         null,
-        "Ostatné informácie"
-      )
+        "Ostatné informácie",
+      ),
     ).toBe(sections)
   })
 })

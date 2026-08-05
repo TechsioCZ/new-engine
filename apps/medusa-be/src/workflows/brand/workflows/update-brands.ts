@@ -26,7 +26,7 @@ export const updateBrandsWorkflow = createWorkflow(
   (input: UpdateBrandsWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) => {
       const attributeNames = (workflowInput.update.attributes ?? []).map(
-        ({ name }) => name.trim()
+        ({ name }) => name.trim(),
       )
 
       return [
@@ -54,7 +54,7 @@ export const updateBrandsWorkflow = createWorkflow(
     const eventData = transform({ input }, ({ input: workflowInput }) =>
       buildBrandSearchProjectionEventData({
         brandIds: [workflowInput.selector.id],
-      })
+      }),
     )
 
     emitEventStep({
@@ -64,5 +64,5 @@ export const updateBrandsWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

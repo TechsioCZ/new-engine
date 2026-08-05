@@ -46,7 +46,7 @@ export default async function dockerOnlyGlobalSetup() {
         "- bunx nx run ui-kit:test:components",
         "- bunx nx run ui-kit:test:components:update",
         "- pnpm -C libs/ui test:components",
-      ].join("\n")
+      ].join("\n"),
     )
   }
 }

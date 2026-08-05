@@ -19,33 +19,33 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
 }
 
 export async function executeMeiliApiCredentialsCommand(
-  input: MeiliApiCredentialsCommandInput
+  input: MeiliApiCredentialsCommandInput,
 ): Promise<MeiliApiCredentialsResponse> {
   const contracts = await loadDeployContracts(
     input.stackManifestPath,
-    input.stackInputsPath
+    input.stackInputsPath,
   )
   const backendPolicy = getRuntimeProviderOutputPolicy(
     contracts.stackInputs,
     input.providerId,
-    "backend_key"
+    "backend_key",
   )
   const frontendPolicy = getRuntimeProviderOutputPolicy(
     contracts.stackInputs,
     input.providerId,
-    "frontend_key"
+    "frontend_key",
   )
   const backendEnvVar = getRuntimeProviderTargetEnvVar(
     contracts.stackInputs,
     input.providerId,
     "backend_key",
-    "medusa-be"
+    "medusa-be",
   )
   const frontendEnvVar = getRuntimeProviderTargetEnvVar(
     contracts.stackInputs,
     input.providerId,
     "frontend_key",
-    "n1"
+    "n1",
   )
 
   const reconciled = await reconcileMainMeiliApiCredentials({

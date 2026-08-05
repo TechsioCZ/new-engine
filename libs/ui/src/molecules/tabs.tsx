@@ -251,7 +251,7 @@ Tabs.Trigger = function TabsTrigger({
   const { api, styles } = useTabsContext()
   const triggerProps = mergeProps(
     api.getTriggerProps({ disabled, value }),
-    props
+    props,
   )
 
   return (

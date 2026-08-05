@@ -81,7 +81,7 @@ export class StockBatchClientMapperHelper {
 
   lookupInventoryItem(
     update: StockUpdateInput,
-    maps: ResolverMaps
+    maps: ResolverMaps,
   ): { identifier: string; inventoryItemId: string | undefined } {
     switch (update.identifier_type) {
       case "sku": {
@@ -106,7 +106,7 @@ export class StockBatchClientMapperHelper {
         return {
           identifier: update.inventory_item_id ?? "",
           inventoryItemId: maps.validInventoryItemIds.has(
-            update.inventory_item_id ?? ""
+            update.inventory_item_id ?? "",
           )
             ? update.inventory_item_id
             : undefined,
@@ -121,13 +121,13 @@ export class StockBatchClientMapperHelper {
   resolveUpdates(
     updates: StockUpdateInput[],
     maps: ResolverMaps,
-    results: UpdateStockBatchResult[]
+    results: UpdateStockBatchResult[],
   ): ResolvedUpdate[] {
     const resolved: ResolvedUpdate[] = []
     for (const [index, update] of updates.entries()) {
       const { identifier, inventoryItemId } = this.lookupInventoryItem(
         update,
-        maps
+        maps,
       )
       if (!inventoryItemId) {
         results[index] = {
@@ -179,7 +179,7 @@ export class StockBatchClientMapperHelper {
 
   buildVariantInventoryItemMap(
     field: "sku" | "ean" | "id",
-    variants: VariantInventoryItemRow[]
+    variants: VariantInventoryItemRow[],
   ): Map<string, string> {
     const index = new Map<string, string>()
     for (const variant of variants) {
@@ -201,7 +201,7 @@ export class StockBatchClientMapperHelper {
 
   buildBatchPayload(
     resolved: ResolvedUpdate[],
-    existingLevels: Map<string, ExistingLevel>
+    existingLevels: Map<string, ExistingLevel>,
   ): StockBatchPayload {
     const create: Record<string, unknown>[] = []
     const update: Record<string, unknown>[] = []
@@ -210,7 +210,7 @@ export class StockBatchClientMapperHelper {
 
     for (const item of resolved) {
       const existing = existingLevels.get(
-        levelKey(item.inventoryItemId, item.locationId)
+        levelKey(item.inventoryItemId, item.locationId),
       )
       const payload: Record<string, unknown> = {
         inventory_item_id: item.inventoryItemId,
@@ -237,7 +237,7 @@ export class StockBatchClientMapperHelper {
     owners: ResolvedUpdate[],
     levels: LevelDTO[],
     existingLevels: Map<string, ExistingLevel>,
-    results: UpdateStockBatchResult[]
+    results: UpdateStockBatchResult[],
   ): void {
     for (const [i, owner] of owners.entries()) {
       const level = levels[i]

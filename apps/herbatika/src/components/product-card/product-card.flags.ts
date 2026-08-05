@@ -23,13 +23,13 @@ const resolveSupportedFlagCode = (value: unknown): SupportedFlagCode | null => {
 const isFlagActive = (
   code: SupportedFlagCode,
   active: boolean | null | undefined,
-  hasDiscount: boolean
+  hasDiscount: boolean,
 ) => (code === "action" ? active === true || hasDiscount : active === true)
 
 export const resolveFlags = (
   product: HttpTypes.StoreProduct,
   hasDiscount: boolean,
-  labels: ProductFlagLabels
+  labels: ProductFlagLabels,
 ): ProductFlagState[] => {
   const metadata = asRecord(product.metadata)
   const flags = metadata?.flags

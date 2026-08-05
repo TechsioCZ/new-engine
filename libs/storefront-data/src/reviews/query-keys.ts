@@ -3,7 +3,7 @@ import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { ProductReviewQueryKeys } from "./types"
 
 export function createProductReviewQueryKeys<TListParams>(
-  namespace: QueryNamespace
+  namespace: QueryNamespace,
 ): ProductReviewQueryKeys<TListParams> {
   return {
     all: () => createQueryKey(namespace, "reviews"),
@@ -12,7 +12,7 @@ export function createProductReviewQueryKeys<TListParams>(
         namespace,
         "reviews",
         "product",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
   }
 }

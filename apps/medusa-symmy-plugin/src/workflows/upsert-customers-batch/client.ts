@@ -78,7 +78,7 @@ export class CustomerBatchClient {
     this.container = container
     this.customerGroupCodeService =
       container.resolve<SymmyCustomerGroupCodeModuleService>(
-        SYMMY_CUSTOMER_GROUP_CODE_MODULE
+        SYMMY_CUSTOMER_GROUP_CODE_MODULE,
       )
     this.query = getQuery(container)
   }
@@ -121,12 +121,12 @@ export class CustomerBatchClient {
         ...nameGroups,
         ...this.mapper.applyGroupCodeMappings(codeGroups, codeMappings),
       ],
-      codes
+      codes,
     )
   }
 
   private async queryGroups(
-    filters: Record<string, string[]>
+    filters: Record<string, string[]>,
   ): Promise<ExistingGroup[]> {
     if (Object.values(filters).every((values) => values.length === 0)) {
       return []
@@ -142,14 +142,14 @@ export class CustomerBatchClient {
   cacheCustomer(
     index: ExistingCustomerIndex,
     customer: CustomerInput,
-    customerId: string
+    customerId: string,
   ): void {
     this.mapper.addCreatedCustomerToIndex(index, customer, customerId)
   }
 
   findExistingCustomer(
     customer: CustomerInput,
-    index: ExistingCustomerIndex
+    index: ExistingCustomerIndex,
   ): ExistingCustomer | null {
     return this.mapper.findExistingCustomer(customer, index)
   }
@@ -164,7 +164,7 @@ export class CustomerBatchClient {
     if (!created) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "createCustomersWorkflow returned empty result"
+        "createCustomersWorkflow returned empty result",
       )
     }
     return created
@@ -173,7 +173,7 @@ export class CustomerBatchClient {
   async updateCustomer(
     customerId: string,
     existing: ExistingCustomer,
-    customer: CustomerInput
+    customer: CustomerInput,
   ): Promise<void> {
     await updateCustomersWorkflow(this.container).run({
       input: {
@@ -186,7 +186,7 @@ export class CustomerBatchClient {
   async upsertAddresses(
     customerId: string,
     existing: ExistingCustomer | null,
-    addresses: CustomerAddressInput[] | undefined
+    addresses: CustomerAddressInput[] | undefined,
   ): Promise<void> {
     if (!addresses?.length) {
       return
@@ -195,19 +195,19 @@ export class CustomerBatchClient {
     if (!existing && addresses.some((address) => address.address_id)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "address_id can only be used when updating a customer"
+        "address_id can only be used when updating a customer",
       )
     }
 
     const existingAddressIds = new Set(
-      (existing?.addresses ?? []).map((address) => address.id)
+      (existing?.addresses ?? []).map((address) => address.id),
     )
     for (const address of addresses) {
       if (address.address_id) {
         if (existing && !existingAddressIds.has(address.address_id)) {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `Address '${address.address_id}' does not belong to customer '${customerId}'`
+            `Address '${address.address_id}' does not belong to customer '${customerId}'`,
           )
         }
         await updateCustomerAddressesWorkflow(this.container).run({
@@ -236,7 +236,7 @@ export class CustomerBatchClient {
     customerId: string,
     existing: ExistingCustomer | null,
     groupCodes: string[] | undefined,
-    groupIndex: CustomerGroupIndex
+    groupIndex: CustomerGroupIndex,
   ): Promise<void> {
     if (!groupCodes) {
       return
@@ -248,14 +248,14 @@ export class CustomerBatchClient {
       if (!group) {
         throw new MedusaError(
           MedusaError.Types.NOT_FOUND,
-          `Customer group code '${code}' was not found`
+          `Customer group code '${code}' was not found`,
         )
       }
       targetIds.add(group.id)
     }
 
     const currentIds = new Set(
-      (existing?.groups ?? []).map((group) => group.id)
+      (existing?.groups ?? []).map((group) => group.id),
     )
     const add = [...targetIds].filter((id) => !currentIds.has(id))
     const remove = [...currentIds].filter((id) => !targetIds.has(id))
@@ -274,7 +274,7 @@ export class CustomerBatchClient {
   }
 
   private async queryCustomers(
-    filters: Record<string, string[]>
+    filters: Record<string, string[]>,
   ): Promise<ExistingCustomer[]> {
     if (Object.values(filters).every((values) => values.length === 0)) {
       return []
@@ -288,7 +288,7 @@ export class CustomerBatchClient {
   }
 
   private async queryCustomerIdsByMetadata(
-    identifiers: CustomerLookupKeys["metadataIdentifiers"]
+    identifiers: CustomerLookupKeys["metadataIdentifiers"],
   ): Promise<Set<string>> {
     const ids = new Set<string>()
     for (const [key, values] of Object.entries(identifiers)) {

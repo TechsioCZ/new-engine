@@ -107,7 +107,7 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
           <span className="font-semibold text-orders-fg-primary">
             {formatPrice(
               order.summary?.current_order_total || order.total || 0,
-              order.currency_code
+              order.currency_code,
             )}
           </span>
         </div>

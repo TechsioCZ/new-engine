@@ -33,7 +33,7 @@ run(process.execPath, [path.join(import.meta.dirname, "resolution.mjs")])
 run("pnpm", ["--filter", "@techsio/std", "build"])
 
 const rootConfig = JSON.parse(
-  readFileSync(path.join(repositoryRoot, "tsconfig.json"), "utf-8")
+  readFileSync(path.join(repositoryRoot, "tsconfig.json"), "utf-8"),
 )
 const compiler = path.join(repositoryRoot, "node_modules/.bin", compilerName)
 let failedProjects = 0
@@ -48,7 +48,7 @@ for (const { path: projectPath } of rootConfig.references ?? []) {
       path.resolve(repositoryRoot, projectPath),
       ...arguments_,
     ],
-    { continueOnError: true }
+    { continueOnError: true },
   )
   if (status !== 0) {
     failedProjects += 1

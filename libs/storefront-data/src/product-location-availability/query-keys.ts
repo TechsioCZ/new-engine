@@ -3,7 +3,7 @@ import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { ProductLocationAvailabilityQueryKeys } from "./types"
 
 export function createProductLocationAvailabilityQueryKeys<TParams>(
-  namespace: QueryNamespace
+  namespace: QueryNamespace,
 ): ProductLocationAvailabilityQueryKeys<TParams> {
   return {
     detail: (params) =>
@@ -11,7 +11,7 @@ export function createProductLocationAvailabilityQueryKeys<TParams>(
         namespace,
         "product-location-availability",
         "detail",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
   }
 }

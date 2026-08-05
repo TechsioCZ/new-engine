@@ -23,7 +23,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -36,21 +36,21 @@ interface MockStep {
       email: string
       excluded_employee_ids?: string[]
     },
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ): Promise<{
     compensateInput?: string[]
     payload: unknown
   }>
   compensate: (
     providerIdentityIds: string[] | undefined,
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ) => Promise<void>
 }
 
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -59,7 +59,7 @@ const asMockStep = (candidate: unknown): MockStep => {
     typeof candidate.compensate !== "function"
   ) {
     throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function"
+      "Expected the mocked workflow step to expose a compensate function",
     )
   }
 
@@ -120,7 +120,7 @@ describe("removeAdminRoleStep", () => {
         email: "employee@example.com",
         excluded_employee_ids: ["emp_1"],
       },
-      { container }
+      { container },
     )
 
     expect(graph).toHaveBeenNthCalledWith(3, {
@@ -166,7 +166,7 @@ describe("removeAdminRoleStep", () => {
         email: "employee@example.com",
         excluded_employee_ids: ["emp_1"],
       },
-      { container }
+      { container },
     )
 
     expect(updateProviderIdentities).toHaveBeenCalledWith([
@@ -218,7 +218,7 @@ describe("removeAdminRoleStep", () => {
         email: "employee@example.com",
         excluded_employee_ids: ["emp_1"],
       },
-      { container }
+      { container },
     )
 
     expect(updateProviderIdentities).not.toHaveBeenCalled()

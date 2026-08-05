@@ -384,7 +384,7 @@ export const Controlled: Story = {
   render: (args) => {
     const [value, setValue] = useState("")
     const [details, setDetails] = useState<PhoneInputValueChangeDetails | null>(
-      null
+      null,
     )
 
     return (

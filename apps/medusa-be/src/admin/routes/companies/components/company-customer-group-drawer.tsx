@@ -106,7 +106,7 @@ export function CompanyCustomerGroupDrawer({
   const getActiveLinkedCompany = (group: HttpTypes.AdminCustomerGroup) =>
     (ownersByGroupId.get(group.id) ?? []).find(
       (linkedCompany) =>
-        linkedCompany.id !== company.id && !linkedCompany.deleted_at
+        linkedCompany.id !== company.id && !linkedCompany.deleted_at,
     )
 
   const renderGroupName = (group: HttpTypes.AdminCustomerGroup) => {

@@ -27,7 +27,7 @@ vi.mock(import("../../../../links/product-brand"), () => ({
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (!isRecord(candidate)) {
     throw new TypeError("Expected a mock object")
@@ -59,7 +59,7 @@ describe("Brand search projection", () => {
       buildBrandSearchProjectionEventData({
         brandIds: ["brand_1", "brand_1"],
         productIds: ["prod_1", "prod_1"],
-      })
+      }),
     ).toStrictEqual({
       brand_ids: ["brand_1"],
       product_ids: ["prod_1"],
@@ -79,7 +79,7 @@ describe("Brand search projection", () => {
       data: [{ product_id: "prod_linked" }, { product_id: "prod_explicit" }],
     })
     const container = asContainer((key) =>
-      key === ContainerRegistrationKeys.QUERY ? { graph } : undefined
+      key === ContainerRegistrationKeys.QUERY ? { graph } : undefined,
     )
 
     const targets = await resolveBrandSearchProjectionTargets(
@@ -87,7 +87,7 @@ describe("Brand search projection", () => {
         brand_ids: ["brand_1", "brand_1"],
         product_ids: ["prod_explicit"],
       },
-      container
+      container,
     )
 
     expect(targets).toStrictEqual({
@@ -138,7 +138,7 @@ describe("Brand search projection", () => {
         lock_keys: [],
         product_ids: ["prod_published", "prod_draft", "prod_missing"],
       },
-      container
+      container,
     )
 
     expect(meilisearch.addDocuments).toHaveBeenNthCalledWith(
@@ -152,7 +152,7 @@ describe("Brand search projection", () => {
         },
       ],
       "brands",
-      { container }
+      { container },
     )
     expect(meilisearch.deleteDocuments).toHaveBeenNthCalledWith(1, "brands", [
       "brand_deleted",
@@ -162,7 +162,7 @@ describe("Brand search projection", () => {
       "products",
       [{ id: "prod_published", status: "published" }],
       SearchUtils.indexTypes.PRODUCTS,
-      { container }
+      { container },
     )
     expect(meilisearch.deleteDocuments).toHaveBeenNthCalledWith(2, "products", [
       "prod_draft",
@@ -188,8 +188,8 @@ describe("Brand search projection", () => {
           lock_keys: [],
           product_ids: ["prod_1"],
         },
-        container
-      )
+        container,
+      ),
     ).resolves.toStrictEqual({
       brands_deleted: 0,
       brands_upserted: 0,

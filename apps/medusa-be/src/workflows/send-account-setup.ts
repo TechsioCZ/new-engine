@@ -48,15 +48,15 @@ const prepareAccountSetupStep = createStep(
   "prepare-account-setup",
   async (
     input: WorkflowInput,
-    { container }
+    { container },
   ): Promise<StepResponse<AccountSetupResult>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     const {
@@ -88,7 +88,7 @@ const prepareAccountSetupStep = createStep(
 
     if (!email) {
       logger.warn(
-        `Order ${graphOrder.id} has no email; account setup email skipped.`
+        `Order ${graphOrder.id} has no email; account setup email skipped.`,
       )
       return new StepResponse<AccountSetupResult>({
         order_id: graphOrder.id,
@@ -118,7 +118,7 @@ const prepareAccountSetupStep = createStep(
     if (!jwtSecret) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "JWT_SECRET env var is not set — cannot generate account setup token"
+        "JWT_SECRET env var is not set — cannot generate account setup token",
       )
     }
 
@@ -131,7 +131,7 @@ const prepareAccountSetupStep = createStep(
       {
         expiresIn: ACCOUNT_SETUP_TOKEN_EXPIRES_IN,
         secret: jwtSecret,
-      }
+      },
     )
     const resetUrl = buildAccountSetupUrl(email, token)
 
@@ -157,21 +157,21 @@ const prepareAccountSetupStep = createStep(
       reset_url: resetUrl,
       sent: true,
     })
-  }
+  },
 )
 
 const markCustomerHasAccountStep = createStep(
   "mark-customer-has-account",
   async (
     input: { customer_id?: string | undefined; sent: boolean },
-    { container }
+    { container },
   ) => {
     if (!(input.sent && input.customer_id)) {
       return new StepResponse({ skipped: true })
     }
 
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
     const customerUpdate: AccountSetupCustomerUpdate = {
       has_account: true,
@@ -179,11 +179,11 @@ const markCustomerHasAccountStep = createStep(
 
     await customerModuleService.updateCustomers(
       input.customer_id,
-      customerUpdate
+      customerUpdate,
     )
 
     return new StepResponse({ skipped: false })
-  }
+  },
 )
 
 export const sendAccountSetupWorkflow = createWorkflow(
@@ -220,7 +220,7 @@ export const sendAccountSetupWorkflow = createWorkflow(
     })
     when(
       accountSetup,
-      (result) => result.sent && Boolean(result.email && result.reset_url)
+      (result) => result.sent && Boolean(result.email && result.reset_url),
     ).then(() => {
       const notification = sendNotificationStep(notificationInput)
       const markCustomerInput = transform(
@@ -228,12 +228,12 @@ export const sendAccountSetupWorkflow = createWorkflow(
         (data) => ({
           customer_id: data.accountSetup.customer_id,
           sent: data.accountSetup.sent,
-        })
+        }),
       )
 
       markCustomerHasAccountStep(markCustomerInput)
     })
 
     return new WorkflowResponse(accountSetup)
-  }
+  },
 )

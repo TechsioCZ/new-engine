@@ -6,7 +6,7 @@ import { getCategoryPath } from "../transform/get-category-path"
 
 export function buildBreadcrumbs(
   categoryId: string | undefined,
-  categoryMap: Record<string, Category>
+  categoryMap: Record<string, Category>,
 ): BreadcrumbTemplateItem[] {
   const breadcrumbs: BreadcrumbTemplateItem[] = [{ href: "/", label: "Domů" }]
 
@@ -40,7 +40,7 @@ export function buildProductBreadcrumbs(
   categoryId: string | undefined,
   categoryMap: Record<string, Category>,
   productTitle: string,
-  productHandle: string
+  productHandle: string,
 ): BreadcrumbTemplateItem[] {
   const categoryBreadcrumbs = buildBreadcrumbs(categoryId, categoryMap)
 

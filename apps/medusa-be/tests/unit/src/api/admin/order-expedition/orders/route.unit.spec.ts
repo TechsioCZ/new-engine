@@ -23,7 +23,7 @@ vi.mock(import("@medusajs/framework/utils"), async (importOriginal) => {
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
@@ -46,7 +46,7 @@ const createMockResponse = (): MockJsonResponse => {
 
 const createMockRequest = (
   validatedQuery: Record<string, unknown>,
-  graph: ReturnType<typeof vi.fn>
+  graph: ReturnType<typeof vi.fn>,
 ): MedusaRequest => {
   const orderNoteService = {
     listOrderNotes: vi.fn().mockResolvedValue([]),
@@ -55,7 +55,7 @@ const createMockRequest = (
   const candidate: unknown = {
     scope: {
       resolve: vi.fn((token: string) =>
-        token === "query" ? { graph } : orderNoteService
+        token === "query" ? { graph } : orderNoteService,
       ),
     },
     validatedQuery,
@@ -97,7 +97,7 @@ describe("GET /admin/order-expedition/orders", () => {
           skip: 0,
           take: 50,
         },
-      })
+      }),
     )
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -116,7 +116,7 @@ describe("GET /admin/order-expedition/orders", () => {
           }),
         ],
         scanned_count: null,
-      })
+      }),
     )
   })
 
@@ -143,7 +143,7 @@ describe("GET /admin/order-expedition/orders", () => {
     })
     const req = createMockRequest(
       { carrier: "packeta", limit: 50, offset: 0 },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -162,7 +162,7 @@ describe("GET /admin/order-expedition/orders", () => {
           skip: 0,
           take: 100,
         },
-      })
+      }),
     )
     expect(graph).toHaveBeenCalledOnce()
     expect(res.json).toHaveBeenCalledWith(
@@ -180,7 +180,7 @@ describe("GET /admin/order-expedition/orders", () => {
           }),
         ],
         scanned_count: 2,
-      })
+      }),
     )
   })
 
@@ -219,7 +219,7 @@ describe("GET /admin/order-expedition/orders", () => {
         limit: 50,
         offset: 0,
       },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -237,7 +237,7 @@ describe("GET /admin/order-expedition/orders", () => {
             id: "order_1",
           }),
         ],
-      })
+      }),
     )
   })
 
@@ -269,7 +269,7 @@ describe("GET /admin/order-expedition/orders", () => {
     })
     const req = createMockRequest(
       { carrier: "packeta", limit: 1, offset: 0 },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -288,7 +288,7 @@ describe("GET /admin/order-expedition/orders", () => {
           }),
         ],
         scanned_count: 3,
-      })
+      }),
     )
   })
 
@@ -311,7 +311,7 @@ describe("GET /admin/order-expedition/orders", () => {
 
     const req = createMockRequest(
       { carrier: "packeta", limit: 50, offset: 0 },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
@@ -327,7 +327,7 @@ describe("GET /admin/order-expedition/orders", () => {
         has_next: false,
         orders: [],
         scanned_count: 1000,
-      })
+      }),
     )
   })
 })

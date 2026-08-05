@@ -11,5 +11,5 @@ figma.connect(
     props: {
       children: figma.string("children"),
     },
-  }
+  },
 )

@@ -28,7 +28,7 @@ export default async function createInitialSuperadmin({
 
   if (!(email && password)) {
     console.log(
-      "Skipping superadmin initialization: SUPERADMIN_EMAIL or SUPERADMIN_PASSWORD is missing."
+      "Skipping superadmin initialization: SUPERADMIN_EMAIL or SUPERADMIN_PASSWORD is missing.",
     )
     return
   }
@@ -40,7 +40,7 @@ export default async function createInitialSuperadmin({
     { email },
     {
       take: 1,
-    }
+    },
   )
 
   const user = existingUser ?? (await userService.createUsers({ email }))
@@ -54,7 +54,7 @@ export default async function createInitialSuperadmin({
     },
     {
       take: 1,
-    }
+    },
   )
 
   let authIdentity = existingAuthIdentity
@@ -70,14 +70,14 @@ export default async function createInitialSuperadmin({
     if (registration.error || !registration.success) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Failed to register superadmin auth identity: ${registration.error ?? "unknown error"}`
+        `Failed to register superadmin auth identity: ${registration.error ?? "unknown error"}`,
       )
     }
 
     if (!registration.authIdentity) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Failed to register superadmin auth identity."
+        "Failed to register superadmin auth identity.",
       )
     }
 

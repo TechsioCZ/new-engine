@@ -27,7 +27,7 @@ export async function regionSeeder({
     await api.post(
       "/admin/regions",
       { currency_code: "usd", name: "Test region", ...data },
-      adminHeaders
+      adminHeaders,
     )
   ).data.region
 }
@@ -41,7 +41,7 @@ export async function salesChannelSeeder({
     await api.post(
       "/admin/sales-channels",
       { name: "test sales channel", ...data },
-      adminHeaders
+      adminHeaders,
     )
   ).data.sales_channel
 }
@@ -81,7 +81,7 @@ export async function productSeeder({
         ],
         ...data,
       },
-      adminHeaders
+      adminHeaders,
     )
   ).data.product
 }
@@ -107,7 +107,7 @@ export async function cartSeeder({
         },
         ...data,
       },
-      storeHeaders
+      storeHeaders,
     )
   ).data.cart
 }

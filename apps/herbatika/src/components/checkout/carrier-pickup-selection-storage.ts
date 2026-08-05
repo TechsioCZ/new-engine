@@ -57,7 +57,7 @@ export function writeStoredCarrierPickupSelection({
 
   window.sessionStorage.setItem(
     createStorageKey(cartId),
-    JSON.stringify({ data, optionId })
+    JSON.stringify({ data, optionId }),
   )
 }
 
@@ -74,7 +74,7 @@ function createStorageKey(cartId: string) {
 }
 
 function hasAccessPointId(
-  data: Record<string, unknown> | null | undefined
+  data: Record<string, unknown> | null | undefined,
 ): data is Record<string, unknown> {
   return typeof data?.access_point_id === "string"
     ? data.access_point_id.trim().length > 0
@@ -83,7 +83,7 @@ function hasAccessPointId(
 }
 
 function isStoredCarrierPickupSelection(
-  value: unknown
+  value: unknown,
 ): value is StoredCarrierPickupSelection {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false

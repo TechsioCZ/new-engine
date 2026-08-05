@@ -16,13 +16,13 @@ import type { AdminUpdateProductAttributeDefinitionSchemaType } from "../../vali
 
 export async function GET(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const definitionId = req.params["id"] ?? ""
   const definition = await retrieveProductAttributeDefinitionOrThrow(
     req.scope,
     definitionId,
-    true
+    true,
   )
   const usageCounts = await getDefinitionUsageCountMap(req.scope, [
     definition.id,
@@ -30,19 +30,19 @@ export async function GET(
   res.json({
     definition: toProductAttributeDefinitionResponse(
       definition,
-      usageCounts.get(definition.id) ?? 0
+      usageCounts.get(definition.id) ?? 0,
     ),
   })
 }
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminUpdateProductAttributeDefinitionSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const definitionId = req.params["id"] ?? ""
   const { input_type, is_public, label } = req.validatedBody
   const { result } = await updateProductAttributeDefinitionWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
       id: definitionId,
@@ -55,17 +55,17 @@ export async function POST(
   res.json({
     definition: toProductAttributeDefinitionResponse(
       result,
-      usageCounts.get(result.id) ?? 0
+      usageCounts.get(result.id) ?? 0,
     ),
   })
 }
 
 export async function DELETE(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result } = await deleteProductAttributeDefinitionsWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: { ids: [req.params["id"] ?? ""] },
   })

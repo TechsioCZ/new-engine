@@ -57,7 +57,7 @@ const getCurrencySymbol = (currencyCode: string) =>
   currencyCode.toUpperCase()
 
 const toCustomerOption = (
-  customer: HttpTypes.AdminCustomer
+  customer: HttpTypes.AdminCustomer,
 ): CustomerOption | null => {
   if (!customer.id) {
     return null
@@ -163,7 +163,7 @@ const CustomerSelection = ({
           className={clx(
             "flex w-full flex-col px-3 py-2 text-left hover:bg-ui-bg-base-hover",
             customer.email?.toLowerCase() === normalizedEmail &&
-              "bg-ui-bg-subtle"
+              "bg-ui-bg-subtle",
           )}
           key={customer.id}
           onClick={() => {
@@ -220,12 +220,12 @@ export function EmployeesCreateForm({
     (customer) => {
       const customerOption = toCustomerOption(customer)
       return customerOption ? [customerOption] : []
-    }
+    },
   )
   const normalizedEmail = emailInput.toLowerCase()
   const exactCustomer =
     customerOptions.find(
-      (customer) => customer.email?.toLowerCase() === normalizedEmail
+      (customer) => customer.email?.toLowerCase() === normalizedEmail,
     ) ?? null
   const selectedCustomer =
     customerOptions.find((customer) => customer.id === formData.customer_id) ??

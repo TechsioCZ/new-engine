@@ -60,7 +60,7 @@ import {
 export type PaykitInjectedDependencies = Record<string, unknown>
 
 const isPaymentAmount = (
-  value: unknown
+  value: unknown,
 ): value is InitiatePaymentInput["amount"] =>
   typeof value === "number" ||
   typeof value === "string" ||
@@ -80,12 +80,12 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const isEmailValue = (value: string): boolean => EMAIL_PATTERN.test(value)
 
 const getMetadataRecord = (
-  metadata: unknown
+  metadata: unknown,
 ): Record<string, unknown> | undefined =>
   isRecord(metadata) ? metadata : undefined
 
 const getCaptureAmount = (
-  input: CapturePaymentInput
+  input: CapturePaymentInput,
 ): RefundPaymentInput["amount"] | undefined => {
   if (!("amount" in input)) {
     return
@@ -96,7 +96,7 @@ const getCaptureAmount = (
   if (amount !== undefined && !isPaymentAmount(amount)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "PayKit capture amount must be numeric"
+      "PayKit capture amount must be numeric",
     )
   }
 
@@ -125,7 +125,7 @@ export abstract class PaykitPaymentProviderBase<
 
   protected constructor(
     container: PaykitInjectedDependencies,
-    options: TOptions
+    options: TOptions,
   ) {
     super(container, options)
 
@@ -149,7 +149,7 @@ export abstract class PaykitPaymentProviderBase<
     if (typeof id !== "string" || id.length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PayKit payment id is missing from payment data.id"
+        "PayKit payment id is missing from payment data.id",
       )
     }
 
@@ -168,12 +168,12 @@ export abstract class PaykitPaymentProviderBase<
 
   protected requirePayment(
     payment: PaykitPayment | null,
-    id: string
+    id: string,
   ): PaykitPayment {
     if (!payment) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `PayKit payment ${id} could not be retrieved`
+        `PayKit payment ${id} could not be retrieved`,
       )
     }
 
@@ -182,17 +182,17 @@ export abstract class PaykitPaymentProviderBase<
 
   protected normalizeAmount(
     amount: InitiatePaymentInput["amount"],
-    _currencyCode?: string
+    _currencyCode?: string,
   ): number {
     return this.normalizeNumericAmount(
       amount,
-      "PayKit payment amount must be numeric"
+      "PayKit payment amount must be numeric",
     )
   }
 
   protected normalizePaymentDataAmount(
     amount: RefundPaymentInput["amount"],
-    currencyCode?: string
+    currencyCode?: string,
   ): number {
     return this.normalizeAmount(amount, currencyCode)
   }
@@ -200,14 +200,14 @@ export abstract class PaykitPaymentProviderBase<
   protected normalizeWebhookAmount(
     amount: BigNumberValue | undefined,
     _payment: PaykitPayment,
-    _event: PaykitWebhookEvent
+    _event: PaykitWebhookEvent,
   ): BigNumberValue | undefined {
     return amount
   }
 
   protected normalizeNumericAmount(
     amount: BigNumberValue | InitiatePaymentInput["amount"],
-    message: string
+    message: string,
   ): number {
     const normalized =
       isRecord(amount) && "value" in amount
@@ -223,18 +223,18 @@ export abstract class PaykitPaymentProviderBase<
 
   protected normalizeWebhookNumericAmount(
     amount: BigNumberValue,
-    _currencyCode?: string
+    _currencyCode?: string,
   ): number {
     // Keep webhook payload parsing in the base class; provider overrides should
     // only convert from provider units, such as Stripe cents, to Medusa units.
     return this.normalizeNumericAmount(
       amount,
-      "PayKit webhook amount must be numeric"
+      "PayKit webhook amount must be numeric",
     )
   }
 
   protected toStringMetadata(
-    metadata?: Record<string, unknown> | null
+    metadata?: Record<string, unknown> | null,
   ): Record<string, string> | undefined {
     if (!metadata) {
       return
@@ -246,7 +246,7 @@ export abstract class PaykitPaymentProviderBase<
         .map(([key, value]) => [
           key,
           typeof value === "string" ? value : JSON.stringify(value),
-        ])
+        ]),
     )
   }
 
@@ -254,7 +254,7 @@ export abstract class PaykitPaymentProviderBase<
     input:
       | InitiatePaymentInput
       | CreateAccountHolderInput
-      | UpdateAccountHolderInput
+      | UpdateAccountHolderInput,
   ): BillingInfo | undefined {
     const currencyCode =
       "currency_code" in input && typeof input.currency_code === "string"
@@ -274,7 +274,7 @@ export abstract class PaykitPaymentProviderBase<
     const contextBilling = this.mapMedusaBillingAddress(
       input.context?.customer?.billing_address,
       currencyCode,
-      input
+      input,
     )
 
     if (contextBilling) {
@@ -286,7 +286,7 @@ export abstract class PaykitPaymentProviderBase<
 
   private mapPaykitBillingInfo(
     billing: unknown,
-    currencyCode?: string
+    currencyCode?: string,
   ): BillingInfo | undefined {
     if (!(isRecord(billing) && isRecord(billing["address"]))) {
       return
@@ -339,7 +339,7 @@ export abstract class PaykitPaymentProviderBase<
     input:
       | InitiatePaymentInput
       | CreateAccountHolderInput
-      | UpdateAccountHolderInput
+      | UpdateAccountHolderInput,
   ): BillingInfo | undefined {
     if (
       !(
@@ -360,7 +360,7 @@ export abstract class PaykitPaymentProviderBase<
           joinName(billing["first_name"], billing["last_name"]) ||
           joinName(
             input.context?.customer?.first_name,
-            input.context?.customer?.last_name
+            input.context?.customer?.last_name,
           ) ||
           input.context?.customer?.email ||
           input.context?.customer?.id ||
@@ -385,27 +385,27 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   protected getProviderMetadata(
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Record<string, unknown> {
     return isRecord(data["provider_metadata"]) ? data["provider_metadata"] : {}
   }
 
   protected getCreateProviderMetadata(
     _input: InitiatePaymentInput,
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Record<string, unknown> {
     return this.getProviderMetadata(data)
   }
 
   protected getUpdateProviderMetadata(
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Record<string, unknown> {
     return this.getProviderMetadata(data)
   }
 
   protected getPaykitCustomer(
     input: InitiatePaymentInput,
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): CreatePaymentSchema["customer"] {
     const dataCustomer = data["customer"]
 
@@ -451,7 +451,7 @@ export abstract class PaykitPaymentProviderBase<
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "PayKit requires customer email or id in payment session data.customer, data.customer_email, or context.customer.email"
+      "PayKit requires customer email or id in payment session data.customer, data.customer_email, or context.customer.email",
     )
   }
 
@@ -469,7 +469,7 @@ export abstract class PaykitPaymentProviderBase<
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "PayKit requires item_id in payment session data"
+      "PayKit requires item_id in payment session data",
     )
   }
 
@@ -482,12 +482,12 @@ export abstract class PaykitPaymentProviderBase<
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "PayKit requires session_id in payment session data"
+      "PayKit requires session_id in payment session data",
     )
   }
 
   protected getCaptureMethod(
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): "automatic" | "manual" {
     const providerMetadata = this.getProviderMetadata(data)
     const captureMethod =
@@ -501,7 +501,7 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async initiatePayment(
-    input: InitiatePaymentInput
+    input: InitiatePaymentInput,
   ): Promise<InitiatePaymentOutput> {
     const client = await this.getClient()
     const data = input.data ?? {}
@@ -527,7 +527,7 @@ export abstract class PaykitPaymentProviderBase<
     if (!payment.id) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PayKit create payment response did not include an id"
+        "PayKit create payment response did not include an id",
       )
     }
 
@@ -544,7 +544,7 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async getPaymentStatus(
-    input: GetPaymentStatusInput
+    input: GetPaymentStatusInput,
   ): Promise<GetPaymentStatusOutput> {
     const client = await this.getClient()
     const id = this.getProviderPaymentId(input.data)
@@ -554,13 +554,13 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async authorizePayment(
-    input: AuthorizePaymentInput
+    input: AuthorizePaymentInput,
   ): Promise<AuthorizePaymentOutput> {
     return await this.getPaymentStatus(input)
   }
 
   async retrievePayment(
-    input: RetrievePaymentInput
+    input: RetrievePaymentInput,
   ): Promise<RetrievePaymentOutput> {
     const client = await this.getClient()
     const id = this.getProviderPaymentId(input.data)
@@ -576,13 +576,13 @@ export abstract class PaykitPaymentProviderBase<
     if (!client.payments.update) {
       const payment = this.requirePayment(
         await client.payments.retrieve(id),
-        id
+        id,
       )
       return this.normalizePaymentOutput(payment)
     }
 
     const metadata = this.toStringMetadata(
-      getMetadataRecord(input.data?.["metadata"])
+      getMetadataRecord(input.data?.["metadata"]),
     )
     const updateInput: UpdatePaymentSchema = {
       amount: this.normalizeAmount(input.amount, input.currency_code),
@@ -596,7 +596,7 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async capturePayment(
-    input: CapturePaymentInput
+    input: CapturePaymentInput,
   ): Promise<CapturePaymentOutput> {
     const client = await this.getClient()
     const id = this.getProviderPaymentId(input.data)
@@ -604,7 +604,7 @@ export abstract class PaykitPaymentProviderBase<
     if (!client.payments.capture) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "PayKit provider does not support payment capture"
+        "PayKit provider does not support payment capture",
       )
     }
 
@@ -615,7 +615,7 @@ export abstract class PaykitPaymentProviderBase<
       if (!isPaymentAmount(input.data["amount"])) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          "PayKit stored payment amount must be numeric"
+          "PayKit stored payment amount must be numeric",
         )
       }
 
@@ -627,7 +627,7 @@ export abstract class PaykitPaymentProviderBase<
     if (amount === undefined) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PayKit capture amount is missing"
+        "PayKit capture amount is missing",
       )
     }
 
@@ -649,7 +649,7 @@ export abstract class PaykitPaymentProviderBase<
     const id = this.getProviderPaymentId(input.data)
     const amount = this.normalizeAmount(
       input.amount,
-      getCurrencyCode(input.data)
+      getCurrencyCode(input.data),
     )
 
     if (client.refunds?.create) {
@@ -663,7 +663,7 @@ export abstract class PaykitPaymentProviderBase<
       if (!refund.id) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          "PayKit refund response did not include an id"
+          "PayKit refund response did not include an id",
         )
       }
 
@@ -679,7 +679,7 @@ export abstract class PaykitPaymentProviderBase<
 
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "PayKit provider does not support refunds"
+      "PayKit provider does not support refunds",
     )
   }
 
@@ -716,14 +716,14 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async retrieveAccountHolder(
-    input: RetrieveAccountHolderInput
+    input: RetrieveAccountHolderInput,
   ): Promise<RetrieveAccountHolderOutput> {
     const { id } = input
 
     if (typeof id !== "string" || !id) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PayKit account holder id is missing"
+        "PayKit account holder id is missing",
       )
     }
 
@@ -748,7 +748,7 @@ export abstract class PaykitPaymentProviderBase<
     if (!customer?.id) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `PayKit account holder ${id} could not be retrieved`
+        `PayKit account holder ${id} could not be retrieved`,
       )
     }
 
@@ -756,7 +756,7 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async createAccountHolder(
-    input: CreateAccountHolderInput
+    input: CreateAccountHolderInput,
   ): Promise<CreateAccountHolderOutput> {
     const { customer } = input.context
 
@@ -800,14 +800,14 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async updateAccountHolder(
-    input: UpdateAccountHolderInput
+    input: UpdateAccountHolderInput,
   ): Promise<UpdateAccountHolderOutput> {
     const { id } = input.context.account_holder.data
 
     if (typeof id !== "string" || !id) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PayKit account holder id is missing from context.account_holder.data.id"
+        "PayKit account holder id is missing from context.account_holder.data.id",
       )
     }
 
@@ -842,7 +842,7 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async deleteAccountHolder(
-    input: DeleteAccountHolderInput
+    input: DeleteAccountHolderInput,
   ): Promise<DeleteAccountHolderOutput> {
     const id = input.context.account_holder.data?.["id"]
 
@@ -869,7 +869,7 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async getWebhookActionAndData(
-    payload: ProviderWebhookPayload["payload"]
+    payload: ProviderWebhookPayload["payload"],
   ): Promise<WebhookActionResult> {
     const client = await this.getClient()
 
@@ -881,7 +881,7 @@ export abstract class PaykitPaymentProviderBase<
     const eventList = Array.isArray(events) ? events : [events]
     const validEvents = eventList.filter(
       (webhookEvent): webhookEvent is PaykitWebhookEvent =>
-        Boolean(webhookEvent)
+        Boolean(webhookEvent),
     )
 
     if (!validEvents.length) {

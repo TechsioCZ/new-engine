@@ -22,7 +22,7 @@ export function HeaderSearch() {
         clearTimeout(debounceTimerRef.current)
       }
     },
-    []
+    [],
   )
 
   // Use search hook
@@ -85,7 +85,7 @@ export function HeaderSearch() {
         handleSearch(searchQuery)
       } else if (
         searchResults.some(
-          (product) => (product.handle || product.id) === nextSelectedValue
+          (product) => (product.handle || product.id) === nextSelectedValue,
         )
       ) {
         router.push(`/products/${nextSelectedValue}`)

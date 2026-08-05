@@ -46,11 +46,11 @@ export function CartItemRow({
   const itemInventory = resolveLineItemInventory(item)
   const itemMaxQuantity = Math.max(
     baseQuantity,
-    itemInventory ?? FALLBACK_MAX_QUANTITY
+    itemInventory ?? FALLBACK_MAX_QUANTITY,
   )
   const itemUnitAmountLabel = formatCurrencyAmount(
     resolveLineItemUnitAmount(item),
-    currencyCode
+    currencyCode,
   )
 
   return (

@@ -6,7 +6,7 @@ import {
 } from "../../../../src/utils/webhooks"
 
 const createMockRequest = (
-  headers: Record<string, string | string[] | undefined>
+  headers: Record<string, string | string[] | undefined>,
 ) =>
   ({
     headers,

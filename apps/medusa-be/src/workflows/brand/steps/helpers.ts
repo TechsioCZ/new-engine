@@ -85,11 +85,11 @@ export const getBrandService = (container: MedusaContainer) =>
 
 export const withBrandTransaction = async <T>(
   service: BrandModuleService,
-  task: (sharedContext: Context) => Promise<T>
+  task: (sharedContext: Context) => Promise<T>,
 ) => service.runInTransaction(task)
 
 const isBrandSnapshotRecord = (
-  brand: unknown
+  brand: unknown,
 ): brand is BrandSnapshotRecord => {
   if (!isRecord(brand)) {
     return false
@@ -123,10 +123,10 @@ const isBrandSnapshotRecord = (
 
 const assertBrandSnapshotRecord: (
   brand: unknown,
-  brandId: string
+  brandId: string,
 ) => asserts brand is BrandSnapshotRecord = (
   brand: unknown,
-  brandId: string
+  brandId: string,
 ) => {
   if (isBrandSnapshotRecord(brand)) {
     return
@@ -134,21 +134,21 @@ const assertBrandSnapshotRecord: (
 
   throw new MedusaError(
     MedusaError.Types.UNEXPECTED_STATE,
-    `Brand "${brandId}" was retrieved without the fields required for a workflow snapshot`
+    `Brand "${brandId}" was retrieved without the fields required for a workflow snapshot`,
   )
 }
 
 export const snapshotBrand = async (
   service: BrandModuleService,
   brandId: string,
-  sharedContext: Context = {}
+  sharedContext: Context = {},
 ): Promise<BrandSnapshot> => {
   const brand = await service.retrieveBrand(
     brandId,
     {
       relations: ["attributes", "attributes.attributeType"],
     },
-    sharedContext
+    sharedContext,
   )
 
   assertBrandSnapshotRecord(brand, brandId)
@@ -216,7 +216,7 @@ export const setBrandAttributes = async (
   service: BrandModuleService,
   brandId: string,
   inputAttributes: BrandAttributeInput[] = [],
-  sharedContext: Context = {}
+  sharedContext: Context = {},
 ) => await service.setBrandAttributes(brandId, inputAttributes, sharedContext)
 
 export const buildBrandWriteInput = (brand: BrandScalarWriteInput) =>
@@ -255,7 +255,7 @@ export const getBrandAttributeTypeLockKeys = (namesOrIds: string[]) => [
 
 export const getBrandProductsLockKeys = (
   brandId: string,
-  productIds: string[]
+  productIds: string[],
 ) => [`brand-products:${brandId}`, ...getProductBrandLockKeys(productIds)]
 
 export const normalizeBrandProductDelta = (input: {
@@ -266,13 +266,13 @@ export const normalizeBrandProductDelta = (input: {
   const removeProductIds = [...new Set(input.remove)]
   const removeProductIdSet = new Set(removeProductIds)
   const overlappingProductIds = addProductIds.filter((productId) =>
-    removeProductIdSet.has(productId)
+    removeProductIdSet.has(productId),
   )
 
   if (overlappingProductIds.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Product ids cannot be added and removed in the same request: ${overlappingProductIds.join(", ")}`
+      `Product ids cannot be added and removed in the same request: ${overlappingProductIds.join(", ")}`,
     )
   }
 
@@ -287,7 +287,7 @@ export const resolveBrandProductDelta = (
   input: {
     add: string[]
     remove: string[]
-  }
+  },
 ) => {
   const delta = normalizeBrandProductDelta(input)
   const currentProductIdSet = new Set(currentProductIds)
@@ -295,7 +295,7 @@ export const resolveBrandProductDelta = (
   return {
     add: delta.add.filter((productId) => !currentProductIdSet.has(productId)),
     remove: delta.remove.filter((productId) =>
-      currentProductIdSet.has(productId)
+      currentProductIdSet.has(productId),
     ),
   }
 }
@@ -303,25 +303,25 @@ export const resolveBrandProductDelta = (
 export const partitionProductBrandConflicts = (
   links: { brand_id: string; product_id: string }[],
   activeBrandIds: Set<string>,
-  targetBrandId: string
+  targetBrandId: string,
 ) => {
   const conflictingLinks = links.filter(
-    (link) => link.brand_id !== targetBrandId
+    (link) => link.brand_id !== targetBrandId,
   )
 
   return {
     active: conflictingLinks.filter((link) =>
-      activeBrandIds.has(link.brand_id)
+      activeBrandIds.has(link.brand_id),
     ),
     inactive: conflictingLinks.filter(
-      (link) => !activeBrandIds.has(link.brand_id)
+      (link) => !activeBrandIds.has(link.brand_id),
     ),
   }
 }
 
 export const getCurrentProductBrandIds = async (
   container: MedusaContainer,
-  productId: string
+  productId: string,
 ) => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -339,7 +339,7 @@ export const getCurrentProductBrandIds = async (
 
 export const getCurrentProductBrandLinks = async (
   container: MedusaContainer,
-  productIds: string[]
+  productIds: string[],
 ) => {
   const ids = [...new Set(productIds)]
 
@@ -364,13 +364,13 @@ export const getCurrentProductBrandLinks = async (
 
   return data.filter(
     (link): link is Required<ProductBrandLinkRecord> =>
-      !!(link.product_id && link.brand_id)
+      !!(link.product_id && link.brand_id),
   )
 }
 
 export const getCurrentBrandProductLinks = async (
   container: MedusaContainer,
-  brandIds: string[]
+  brandIds: string[],
 ) => {
   const ids = [...new Set(brandIds)]
 
@@ -395,13 +395,13 @@ export const getCurrentBrandProductLinks = async (
 
   return data.filter(
     (link): link is Required<ProductBrandLinkRecord> =>
-      !!(link.product_id && link.brand_id)
+      !!(link.product_id && link.brand_id),
   )
 }
 
 export const getExistingProductIds = async (
   container: MedusaContainer,
-  productIds: string[]
+  productIds: string[],
 ) => {
   const ids = [...new Set(productIds)]
 
@@ -439,11 +439,11 @@ export const diffIds = (currentIds: string[], nextIds: string[]) => {
 export const hasActiveBrandConflict = (
   currentIds: string[],
   activeBrandIds: Set<string>,
-  nextIds: string[]
+  nextIds: string[],
 ) =>
   nextIds.length > 0 &&
   currentIds.some(
-    (brandId) => activeBrandIds.has(brandId) && brandId !== nextIds[0]
+    (brandId) => activeBrandIds.has(brandId) && brandId !== nextIds[0],
   )
 
 export const asArray = <T>(value: T | T[]) =>

@@ -40,7 +40,7 @@ function parsePayload(rawPayload: unknown): EnsurePreviewDbPayload {
 
 export async function handleEnsurePreviewDb(
   request: Request,
-  deps: EnsurePreviewDbDeps
+  deps: EnsurePreviewDbDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {
@@ -67,7 +67,7 @@ export async function handleEnsurePreviewDb(
         owner,
         pr_number: prNumber,
         template_db: templateDatabase,
-      })
+      }),
     )
 
     return jsonResponse(200, {

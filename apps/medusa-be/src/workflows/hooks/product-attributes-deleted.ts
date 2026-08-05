@@ -24,7 +24,7 @@ deleteProductsWorkflow.hooks.productsDeleted(
   },
   async (
     compensation: ProductAttributeDeletionCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (compensation) {
       await restoreDeletedProductAttributes({
@@ -33,5 +33,5 @@ deleteProductsWorkflow.hooks.productsDeleted(
         service: getProductAttributeService(container),
       })
     }
-  }
+  },
 )

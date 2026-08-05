@@ -90,7 +90,7 @@ describe("store quote middlewares", () => {
       const route = storeQuotesMiddlewares.find(
         (middlewareRoute) =>
           middlewareRoute.method?.includes(method) &&
-          middlewareRoute.matcher === matcher
+          middlewareRoute.matcher === matcher,
       )
 
       expect(route).toBeDefined()

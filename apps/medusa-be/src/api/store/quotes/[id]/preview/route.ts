@@ -14,19 +14,19 @@ import {
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const { id } = req.params
 
   if (!id) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "The id path parameter is required"
+      "The id path parameter is required",
     )
   }
 
   const query = req.scope.resolve<RemoteQueryFunction>(
-    ContainerRegistrationKeys.QUERY
+    ContainerRegistrationKeys.QUERY,
   )
 
   const {
@@ -37,22 +37,22 @@ export const GET = async (
       fields: req.queryConfig.fields,
       filters: { customer_id: req.auth_context.actor_id, id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   if (!quote) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Quote ${id} was not found`
+      `Quote ${id} was not found`,
     )
   }
 
   const orderModuleService: IOrderModuleService = req.scope.resolve(
-    Modules.ORDER
+    Modules.ORDER,
   )
 
   const preview = await orderModuleService.previewOrderChange(
-    quote.draft_order_id
+    quote.draft_order_id,
   )
 
   res.status(200).json({

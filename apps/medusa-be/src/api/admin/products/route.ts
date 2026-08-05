@@ -17,7 +17,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     idOrFilter: await normalizeProductSalesChannelFilter(
       req.scope.resolve(ContainerRegistrationKeys.QUERY),
       req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY),
-      req.filterableFields
+      req.filterableFields,
     ),
     pagination: req.queryConfig.pagination,
     scope: req.scope,
@@ -33,7 +33,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     products: products.map((product) =>
       // Medusa applies this helper to field-selected graph results, but its
       // public parameter type is the stricter, fully populated ProductDTO.
-      remapProductResponse(product as ProductDTO)
+      remapProductResponse(product as ProductDTO),
     ),
   })
 }

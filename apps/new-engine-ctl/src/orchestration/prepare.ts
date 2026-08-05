@@ -31,7 +31,7 @@ function buildPreviewEnvironmentName(input: PrepareCommandInput): string {
 }
 
 async function resolveRequiresPreviewDb(
-  input: PrepareCommandInput
+  input: PrepareCommandInput,
 ): Promise<boolean> {
   if (input.requiresPreviewDb) {
     return true
@@ -48,16 +48,16 @@ async function resolveRequiresPreviewDb(
         (service) =>
           service.enabledByDefault &&
           service.cloneToPreview &&
-          service.deployLanes.includes("preview")
+          service.deployLanes.includes("preview"),
       )
-      .map((service) => service.id)
+      .map((service) => service.id),
   )
   const previewDbPrepareServiceIds = listPrepareServiceIds(
     manifest,
-    "preview_db"
+    "preview_db",
   )
   const baselineNeedsPreviewDb = previewDbPrepareServiceIds.some((serviceId) =>
-    previewBaselineServiceIds.has(serviceId)
+    previewBaselineServiceIds.has(serviceId),
   )
 
   if (!baselineNeedsPreviewDb) {
@@ -66,7 +66,7 @@ async function resolveRequiresPreviewDb(
 
   const previewCommitState = await new ZaneOperatorClient(
     input.baseUrl,
-    input.apiToken
+    input.apiToken,
   ).readPreviewCommitState({
     environment_name: buildPreviewEnvironmentName(input),
     project_slug: input.projectSlug,
@@ -79,7 +79,7 @@ async function resolveRequiresPreviewDb(
 }
 
 async function executePreviewPrepare(
-  input: PrepareCommandInput
+  input: PrepareCommandInput,
 ): Promise<PrepareExecutionResult> {
   const prNumber = input.prNumber ?? 0
   const requiresPreviewDb = await resolveRequiresPreviewDb(input)
@@ -115,7 +115,7 @@ async function executePreviewPrepare(
     : (
         await new ZaneOperatorClient(
           input.baseUrl,
-          input.apiToken
+          input.apiToken,
         ).ensurePreviewDb(prNumber)
       ).body
 
@@ -140,7 +140,7 @@ async function executePreviewPrepare(
 }
 
 async function executeMainPrepare(
-  input: PrepareCommandInput
+  input: PrepareCommandInput,
 ): Promise<PrepareExecutionResult> {
   const response = prepareResponseSchema.parse({
     lane: "main",
@@ -159,7 +159,7 @@ async function executeMainPrepare(
 }
 
 export async function executePrepare(
-  input: PrepareCommandInput
+  input: PrepareCommandInput,
 ): Promise<PrepareExecutionResult> {
   if (input.lane === "preview") {
     return await executePreviewPrepare(input)

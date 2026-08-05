@@ -11,7 +11,7 @@ export type CategoryListInput = FindParams &
   }
 
 export const buildCategoryListParams = (
-  input: CategoryListInput
+  input: CategoryListInput,
 ): FindParams & HttpTypes.StoreProductCategoryListParams => {
   const { page, limit, offset, ...rest } = input
 

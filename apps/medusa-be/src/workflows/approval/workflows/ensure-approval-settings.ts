@@ -23,11 +23,11 @@ export const ensureApprovalSettingsWorkflow = createWorkflow(
     const ensureResult = ensureApprovalSettingsStep(companyIds)
     const approvalSettings = transform(
       { ensureResult },
-      (data) => data.ensureResult.approval_settings
+      (data) => data.ensureResult.approval_settings,
     )
     const createdApprovalSettings = transform(
       { ensureResult },
-      (data) => data.ensureResult.created_approval_settings
+      (data) => data.ensureResult.created_approval_settings,
     )
     const linkData = transform(createdApprovalSettings, (settings) =>
       settings.map((setting) => ({
@@ -37,19 +37,19 @@ export const ensureApprovalSettingsWorkflow = createWorkflow(
         [APPROVAL_MODULE]: {
           approval_settings_id: setting.id,
         },
-      }))
+      })),
     )
     const createdCompanyIds = transform(createdApprovalSettings, (settings) =>
-      settings.map((setting) => setting.company_id)
+      settings.map((setting) => setting.company_id),
     )
 
     when(createdApprovalSettings, (settings) => settings.length > 0).then(
       () => {
         dismissCompanyApprovalSettingsLinksStep(createdCompanyIds)
         createRemoteLinkStep(linkData)
-      }
+      },
     )
 
     return new WorkflowResponse(approvalSettings)
-  }
+  },
 )

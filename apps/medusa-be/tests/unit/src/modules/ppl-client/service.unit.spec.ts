@@ -20,7 +20,7 @@ type FirstOverload<T> = T extends {
  * single-item overload before spying, without any unsafe cast.
  */
 const asSingleUpdatePplConfigs = (
-  service: PplClientModuleService
+  service: PplClientModuleService,
 ): {
   updatePplConfigs: FirstOverload<PplClientModuleService["updatePplConfigs"]>
 } => service
@@ -105,7 +105,7 @@ const createMockConfig = (
     sender_country: string | null
     sender_phone: string | null
     sender_email: string | null
-  }> = {}
+  }> = {},
 ) => ({
   client_id: "id",
   client_secret: "secret",
@@ -133,7 +133,7 @@ const createMockConfig = (
 const createService = (
   options = validOptions,
   cacheService: typeof mockCacheService | null = mockCacheService,
-  lockingService: typeof mockLockingService | null = mockLockingService
+  lockingService: typeof mockLockingService | null = mockLockingService,
 ) => {
   const service = new PplClientModuleService(
     {
@@ -141,7 +141,7 @@ const createService = (
       [Modules.CACHING]: cacheService,
       [Modules.LOCKING]: lockingService,
     } as any,
-    options
+    options,
   )
   // Mock getEffectiveConfig by default to bypass DB dependency
   // Tests that need to test config behavior should override this
@@ -181,7 +181,7 @@ describe(PplClientModuleService, () => {
 
       expect(service).toBeInstanceOf(PplClientModuleService)
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        "PPL: Cache or locking service not available. Using local-only mode (not suitable for multi-container)."
+        "PPL: Cache or locking service not available. Using local-only mode (not suitable for multi-container).",
       )
     })
   })
@@ -203,7 +203,7 @@ describe(PplClientModuleService, () => {
       expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith(
         "cached-token",
         [],
-        undefined
+        undefined,
       )
     })
 
@@ -227,7 +227,7 @@ describe(PplClientModuleService, () => {
 
       expect(mockPplClient.fetchNewToken).toHaveBeenCalledWith()
       expect(mockCacheService.set).toHaveBeenCalledWith(
-        expect.objectContaining({ key: "ppl:oauth:token" })
+        expect.objectContaining({ key: "ppl:oauth:token" }),
       )
     })
 
@@ -254,7 +254,7 @@ describe(PplClientModuleService, () => {
       expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith(
         "fallback-token",
         [],
-        undefined
+        undefined,
       )
     })
 
@@ -292,7 +292,7 @@ describe(PplClientModuleService, () => {
       await promise
 
       expect(mockCacheService.set).toHaveBeenCalledWith(
-        expect.objectContaining({ key: "ppl:rate:last_request" })
+        expect.objectContaining({ key: "ppl:rate:last_request" }),
       )
       expect(mockPplClient.fetchNewToken).not.toHaveBeenCalled()
     })
@@ -301,7 +301,7 @@ describe(PplClientModuleService, () => {
       // A provider that never grants the lock within the service's own
       // acquisition timeout (LOCK_ACQUIRE_TIMEOUT_MS = 5000 in service.ts).
       mockLockingService.execute.mockImplementationOnce(
-        async () => new Promise<void>(() => {})
+        async () => new Promise<void>(() => {}),
       )
       mockCacheService.get.mockResolvedValueOnce({
         accessToken: "cached-token",
@@ -315,12 +315,12 @@ describe(PplClientModuleService, () => {
       await promise
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        "PPL: Rate limit lock timed out, using local fallback"
+        "PPL: Rate limit lock timed out, using local fallback",
       )
       expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith(
         "cached-token",
         [],
-        undefined
+        undefined,
       )
     })
 
@@ -371,7 +371,7 @@ describe(PplClientModuleService, () => {
         expect.objectContaining({
           key: "ppl:codelist:countries",
           tags: ["ppl", "ppl:codelists"],
-        })
+        }),
       )
     })
   })
@@ -442,17 +442,17 @@ describe(PplClientModuleService, () => {
           createMockConfig({
             client_id: "existing-id",
             client_secret: "existing-secret",
-          })
+          }),
         )
         // Mock updatePplConfigs
         vi.spyOn(
           asSingleUpdatePplConfigs(service),
-          "updatePplConfigs"
+          "updatePplConfigs",
         ).mockResolvedValue(
           createMockConfig({
             client_id: "new-id",
             client_secret: "existing-secret",
-          })
+          }),
         )
 
         await service.updateConfig({
@@ -470,7 +470,7 @@ describe(PplClientModuleService, () => {
         expect(encryptCallArgs).not.toHaveProperty("client_secret")
         expect(encryptFields).toHaveBeenCalledWith(
           expect.any(Object),
-          expect.any(Array)
+          expect.any(Array),
         )
       })
 
@@ -480,11 +480,11 @@ describe(PplClientModuleService, () => {
           createMockConfig({
             client_id: "existing-id",
             client_secret: "existing-secret",
-          })
+          }),
         )
         vi.spyOn(
           asSingleUpdatePplConfigs(service),
-          "updatePplConfigs"
+          "updatePplConfigs",
         ).mockResolvedValue(createMockConfig({ client_secret: null }))
 
         await service.updateConfig({
@@ -494,7 +494,7 @@ describe(PplClientModuleService, () => {
         // encryptFields should receive null (to clear the value)
         expect(encryptFields).toHaveBeenCalledWith(
           expect.objectContaining({ client_secret: null }),
-          expect.any(Array)
+          expect.any(Array),
         )
       })
     })
@@ -508,7 +508,7 @@ describe(PplClientModuleService, () => {
             [Modules.CACHING]: mockCacheService,
             [Modules.LOCKING]: mockLockingService,
           } as any,
-          validOptions
+          validOptions,
         )
 
       it("returns cached config on cache hit", async () => {
@@ -530,7 +530,7 @@ describe(PplClientModuleService, () => {
 
         const service = createServiceForConfigTests()
         vi.spyOn(service, "getConfig").mockResolvedValue(
-          createMockConfig({ is_enabled: false })
+          createMockConfig({ is_enabled: false }),
         )
 
         const result = await service.getEffectiveConfig()
@@ -543,7 +543,7 @@ describe(PplClientModuleService, () => {
 
         const service = createServiceForConfigTests()
         vi.spyOn(service, "getConfig").mockResolvedValue(
-          createMockConfig({ client_id: null })
+          createMockConfig({ client_id: null }),
         )
 
         const result = await service.getEffectiveConfig()
@@ -556,7 +556,7 @@ describe(PplClientModuleService, () => {
 
         const service = createServiceForConfigTests()
         vi.spyOn(service, "getConfig").mockResolvedValue(
-          createMockConfig({ client_secret: null })
+          createMockConfig({ client_secret: null }),
         )
 
         const result = await service.getEffectiveConfig()
@@ -575,7 +575,7 @@ describe(PplClientModuleService, () => {
             cod_bank_account: "123456",
             cod_bank_code: "0100",
             sender_name: "Test Sender",
-          })
+          }),
         )
 
         const result = await service.getEffectiveConfig()
@@ -589,14 +589,14 @@ describe(PplClientModuleService, () => {
             default_label_format: "Pdf",
             environment: "testing",
             sender_name: "Test Sender",
-          })
+          }),
         )
         expect(mockCacheService.set).toHaveBeenCalledWith(
           expect.objectContaining({
             key: "ppl:config",
             tags: ["ppl"],
             ttl: 60,
-          })
+          }),
         )
       })
     })

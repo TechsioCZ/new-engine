@@ -97,12 +97,12 @@ interface InspectedServiceState {
 
 function requiredServiceSlug(
   serviceSlugs: Record<string, string>,
-  serviceId: string
+  serviceId: string,
 ): string {
   const serviceSlug = serviceSlugs[serviceId]
   if (!serviceSlug) {
     throw new Error(
-      `Missing manifest service slug for bootstrap service ${serviceId}.`
+      `Missing manifest service slug for bootstrap service ${serviceId}.`,
     )
   }
 
@@ -444,7 +444,7 @@ function summarizeSource(input: {
 
 function buildSharedEnvVariables(
   serviceSlugs: Record<string, string>,
-  stackInputs: StackInputs
+  stackInputs: StackInputs,
 ): PlannedSharedEnvVariable[] {
   return getBootstrapZaneProjectSharedEnvDefinitions(stackInputs).map(
     (definition) => {
@@ -455,8 +455,8 @@ function buildSharedEnvVariables(
             source: serviceGlobalNetworkAliasSource(
               requiredServiceSlug(
                 serviceSlugs,
-                definition.source.service_id ?? ""
-              )
+                definition.source.service_id ?? "",
+              ),
             ),
           }
         }
@@ -466,8 +466,8 @@ function buildSharedEnvVariables(
             source: serviceNetworkAliasSource(
               requiredServiceSlug(
                 serviceSlugs,
-                definition.source.service_id ?? ""
-              )
+                definition.source.service_id ?? "",
+              ),
             ),
           }
         }
@@ -477,17 +477,17 @@ function buildSharedEnvVariables(
             source: literalSource(
               process.env[definition.source.env_var ?? ""] ??
                 definition.source.default_value ??
-                ""
+                "",
             ),
           }
         }
         default: {
           throw new Error(
-            `Unsupported bootstrap shared env source: ${JSON.stringify(definition.source)}`
+            `Unsupported bootstrap shared env source: ${JSON.stringify(definition.source)}`,
           )
         }
       }
-    }
+    },
   )
 }
 
@@ -496,13 +496,13 @@ function applySharedEnvServiceTargets(input: {
   stackInputs: StackInputs
 }): void {
   for (const definition of getBootstrapZaneProjectSharedEnvDefinitions(
-    input.stackInputs
+    input.stackInputs,
   )) {
     for (const target of definition.service_targets) {
       const servicePlan = input.plannedServices[target.service_id]
       if (!servicePlan) {
         throw new Error(
-          `Missing bootstrap service plan for shared env target ${target.service_id}.${target.env_var}.`
+          `Missing bootstrap service plan for shared env target ${target.service_id}.${target.env_var}.`,
         )
       }
 
@@ -511,7 +511,7 @@ function applySharedEnvServiceTargets(input: {
         source: literalSource(placeholderSharedValue(definition.key)),
       }
       const existingIndex = servicePlan.env.findIndex(
-        (envVar) => envVar.envVar === target.env_var
+        (envVar) => envVar.envVar === target.env_var,
       )
 
       if (existingIndex !== -1) {
@@ -526,7 +526,7 @@ function applySharedEnvServiceTargets(input: {
 // this is a declarative service bootstrap plan; splitting it would hide the service graph.
 function buildZaneProjectServices(
   context: ZaneProjectContext,
-  serviceSlugs: Record<string, string>
+  serviceSlugs: Record<string, string>,
 ): Record<string, PlannedBootstrapService> {
   const protectedNamesBase =
     process.env.DC_ZANE_OPERATOR_DB_PROTECTED_NAMES ??
@@ -540,7 +540,7 @@ function buildZaneProjectServices(
   const n1Slug = serviceSlugs.n1
   const meilisearchSlug = requiredServiceSlug(
     serviceSlugs,
-    "medusa-meilisearch"
+    "medusa-meilisearch",
   )
   const minioSlug = requiredServiceSlug(serviceSlugs, "medusa-minio")
   const medusaBePublicDomain = publicServiceDomain({
@@ -602,7 +602,7 @@ function buildZaneProjectServices(
         {
           envVar: "POSTGRES_PASSWORD",
           source: literalSource(
-            process.env.DC_POSTGRES_SUPERUSER_PASSWORD ?? "root"
+            process.env.DC_POSTGRES_SUPERUSER_PASSWORD ?? "root",
           ),
         },
         {
@@ -612,7 +612,7 @@ function buildZaneProjectServices(
         {
           envVar: "MEDUSA_DEV_DB_USER",
           source: literalSource(
-            process.env.DC_MEDUSA_DEV_DB_USER ?? "medusa_dev"
+            process.env.DC_MEDUSA_DEV_DB_USER ?? "medusa_dev",
           ),
         },
         {
@@ -622,7 +622,7 @@ function buildZaneProjectServices(
         {
           envVar: "MEDUSA_DB_ZANE_OPERATOR_USER",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_PGUSER ?? "zane_operator"
+            process.env.DC_ZANE_OPERATOR_PGUSER ?? "zane_operator",
           ),
         },
         {
@@ -632,7 +632,7 @@ function buildZaneProjectServices(
         {
           envVar: "MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_DB_TEMPLATE_NAME ?? "template_medusa"
+            process.env.DC_ZANE_OPERATOR_DB_TEMPLATE_NAME ?? "template_medusa",
           ),
         },
       ],
@@ -873,7 +873,7 @@ function buildZaneProjectServices(
         {
           envVar: "MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD",
           source: literalSource(
-            process.env.DC_MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD ?? "0"
+            process.env.DC_MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD ?? "0",
           ),
         },
         { envVar: "MEDUSA_BACKEND_URL", source: servicePublicOrigins.medusaBe },
@@ -892,7 +892,7 @@ function buildZaneProjectServices(
           envVar: "INITIAL_PUBLISHABLE_KEY_NAME",
           source: literalSource(
             process.env.DC_INITIAL_PUBLISHABLE_KEY_NAME ??
-              "Storefront Publishable Key"
+              "Storefront Publishable Key",
           ),
         },
         {
@@ -910,7 +910,7 @@ function buildZaneProjectServices(
         {
           envVar: "SENTRY_TRACES_SAMPLE_RATE",
           source: literalSource(
-            process.env.DC_SENTRY_TRACES_SAMPLE_RATE ?? "0.1"
+            process.env.DC_SENTRY_TRACES_SAMPLE_RATE ?? "0.1",
           ),
         },
         {
@@ -927,31 +927,31 @@ function buildZaneProjectServices(
           envVar: "PRODUCT_REVIEW_REQUEST_MESSAGE",
           source: literalSource(
             process.env.DC_PRODUCT_REVIEW_REQUEST_MESSAGE ??
-              "Napiš recenzi produktu"
+              "Napiš recenzi produktu",
           ),
         },
         {
           envVar: "PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
           source: literalSource(
-            process.env.DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES ?? "10080"
+            process.env.DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES ?? "10080",
           ),
         },
         {
           envVar: "PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
           source: literalSource(
-            process.env.DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS ?? "90"
+            process.env.DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS ?? "90",
           ),
         },
         {
           envVar: "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
           source: literalSource(
-            process.env.DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE ?? "500"
+            process.env.DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE ?? "500",
           ),
         },
         {
           envVar: "WORKFLOW_QUEUE_RUNNER_SCHEDULE",
           source: literalSource(
-            process.env.DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE ?? "0 * * * *"
+            process.env.DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE ?? "0 * * * *",
           ),
         },
         {
@@ -961,19 +961,19 @@ function buildZaneProjectServices(
         {
           envVar: "HERBATICA_CATEGORIES_XML_PATH",
           source: literalSource(
-            process.env.DC_HERBATICA_CATEGORIES_XML_PATH ?? ""
+            process.env.DC_HERBATICA_CATEGORIES_XML_PATH ?? "",
           ),
         },
         {
           envVar: "HERBATICA_MANUFACTURERS_CSV_PATH",
           source: literalSource(
-            process.env.DC_HERBATICA_MANUFACTURERS_CSV_PATH ?? ""
+            process.env.DC_HERBATICA_MANUFACTURERS_CSV_PATH ?? "",
           ),
         },
         {
           envVar: "HERBATICA_REVIEWS_XML_PATH",
           source: literalSource(
-            process.env.DC_HERBATICA_REVIEWS_XML_PATH ?? ""
+            process.env.DC_HERBATICA_REVIEWS_XML_PATH ?? "",
           ),
         },
         {
@@ -991,19 +991,19 @@ function buildZaneProjectServices(
         {
           envVar: "PACKETA_ENVIRONMENT",
           source: literalSource(
-            process.env.DC_PACKETA_ENVIRONMENT ?? "testing"
+            process.env.DC_PACKETA_ENVIRONMENT ?? "testing",
           ),
         },
         {
           envVar: "PACKETA_PICKUP_POINTS_API_KEY",
           source: literalSource(
-            process.env.DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
+            process.env.DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? "",
           ),
         },
         {
           envVar: "FEATURE_PAYMENT_QR_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYMENT_QR_ENABLED ?? "0"
+            process.env.DC_FEATURE_PAYMENT_QR_ENABLED ?? "0",
           ),
         },
         {
@@ -1013,19 +1013,19 @@ function buildZaneProjectServices(
         {
           envVar: "FEATURE_PAYKIT_GOPAY_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYKIT_GOPAY_ENABLED ?? ""
+            process.env.DC_FEATURE_PAYKIT_GOPAY_ENABLED ?? "",
           ),
         },
         {
           envVar: "FEATURE_PAYKIT_STRIPE_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYKIT_STRIPE_ENABLED ?? ""
+            process.env.DC_FEATURE_PAYKIT_STRIPE_ENABLED ?? "",
           ),
         },
         {
           envVar: "FEATURE_PAYKIT_COMGATE_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYKIT_COMGATE_ENABLED ?? ""
+            process.env.DC_FEATURE_PAYKIT_COMGATE_ENABLED ?? "",
           ),
         },
         {
@@ -1108,13 +1108,13 @@ function buildZaneProjectServices(
         {
           envVar: "DATABASE_URL",
           source: literalSource(
-            "postgresql://{{env.MEDUSA_APP_DB_USER}}:{{env.MEDUSA_APP_DB_PASSWORD}}@{{env.MEDUSA_DB_HOST}}:5432/{{env.MEDUSA_APP_DB_NAME}}?sslmode=disable&options=-csearch_path%3D{{env.MEDUSA_APP_DB_SCHEMA}}%2Cpg_catalog"
+            "postgresql://{{env.MEDUSA_APP_DB_USER}}:{{env.MEDUSA_APP_DB_PASSWORD}}@{{env.MEDUSA_DB_HOST}}:5432/{{env.MEDUSA_APP_DB_NAME}}?sslmode=disable&options=-csearch_path%3D{{env.MEDUSA_APP_DB_SCHEMA}}%2Cpg_catalog",
           ),
         },
         {
           envVar: "REDIS_URL",
           source: literalSource(
-            "redis://:{{env.MEDUSA_VALKEY_PASSWORD}}@{{env.MEDUSA_VALKEY_HOST}}:6379"
+            "redis://:{{env.MEDUSA_VALKEY_PASSWORD}}@{{env.MEDUSA_VALKEY_HOST}}:6379",
           ),
         },
         {
@@ -1133,7 +1133,7 @@ function buildZaneProjectServices(
         {
           envVar: "NOTIFICATION_PROVIDER",
           source: literalSource(
-            process.env.DC_MEDUSA_BE_NOTIFICATION_PROVIDER ?? "resend"
+            process.env.DC_MEDUSA_BE_NOTIFICATION_PROVIDER ?? "resend",
           ),
         },
         {
@@ -1141,8 +1141,8 @@ function buildZaneProjectServices(
           source: literalSource(
             firstNonEmpty(
               process.env.DC_MEDUSA_BE_RESEND_API_KEY,
-              process.env.DC_RESEND_API_KEY
-            ) ?? ""
+              process.env.DC_RESEND_API_KEY,
+            ) ?? "",
           ),
         },
         {
@@ -1150,8 +1150,8 @@ function buildZaneProjectServices(
           source: literalSource(
             firstNonEmpty(
               process.env.DC_MEDUSA_BE_RESEND_FROM_EMAIL,
-              process.env.DC_RESEND_FROM_EMAIL
-            ) ?? ""
+              process.env.DC_RESEND_FROM_EMAIL,
+            ) ?? "",
           ),
         },
         {
@@ -1159,8 +1159,8 @@ function buildZaneProjectServices(
           source: literalSource(
             firstNonEmpty(
               process.env.DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET,
-              process.env.DC_RESEND_WEBHOOK_SECRET
-            ) ?? ""
+              process.env.DC_RESEND_WEBHOOK_SECRET,
+            ) ?? "",
           ),
         },
       ],
@@ -1219,13 +1219,13 @@ function buildZaneProjectServices(
         {
           envVar: "DATABASE_URL",
           source: literalSource(
-            "postgresql://{{env.PAYLOAD_DB_USER}}:{{env.PAYLOAD_DB_PASSWORD}}@{{env.MEDUSA_DB_HOST}}:5432/{{env.MEDUSA_APP_DB_NAME}}?sslmode=disable&options=-csearch_path%3D{{env.PAYLOAD_DB_SCHEMA}}%2Cpg_catalog"
+            "postgresql://{{env.PAYLOAD_DB_USER}}:{{env.PAYLOAD_DB_PASSWORD}}@{{env.MEDUSA_DB_HOST}}:5432/{{env.MEDUSA_APP_DB_NAME}}?sslmode=disable&options=-csearch_path%3D{{env.PAYLOAD_DB_SCHEMA}}%2Cpg_catalog",
           ),
         },
         {
           envVar: "PAYLOAD_SECRET",
           source: literalSource(
-            process.env.DC_PAYLOAD_SECRET ?? "payload_secret_change_me"
+            process.env.DC_PAYLOAD_SECRET ?? "payload_secret_change_me",
           ),
         },
         { envVar: "PAYLOAD_BASE_URL", source: servicePublicOrigins.payload },
@@ -1239,19 +1239,19 @@ function buildZaneProjectServices(
         {
           envVar: "FEATURE_PAYLOAD_ARTICLES_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYLOAD_ARTICLES_ENABLED ?? "1"
+            process.env.DC_FEATURE_PAYLOAD_ARTICLES_ENABLED ?? "1",
           ),
         },
         {
           envVar: "FEATURE_PAYLOAD_PAGES_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYLOAD_PAGES_ENABLED ?? "1"
+            process.env.DC_FEATURE_PAYLOAD_PAGES_ENABLED ?? "1",
           ),
         },
         {
           envVar: "FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED ?? "1"
+            process.env.DC_FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED ?? "1",
           ),
         },
         {
@@ -1341,26 +1341,26 @@ function buildZaneProjectServices(
           envVar: "NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
           source: literalSource(
             process.env.DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE ??
-              "session_proxy"
+              "session_proxy",
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
           source: literalSource(
             process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES ??
-              "sk"
+              "sk",
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? "",
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PPL_WIDGET_API_KEY",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY ?? ""
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY ?? "",
           ),
         },
         {
@@ -1449,25 +1449,25 @@ function buildZaneProjectServices(
               {
                 envVar: "NEXT_PUBLIC_META_PIXEL_ID",
                 source: literalSource(
-                  process.env.DC_N1_NEXT_PUBLIC_META_PIXEL_ID ?? ""
+                  process.env.DC_N1_NEXT_PUBLIC_META_PIXEL_ID ?? "",
                 ),
               },
               {
                 envVar: "NEXT_PUBLIC_GOOGLE_ADS_ID",
                 source: literalSource(
-                  process.env.DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID ?? ""
+                  process.env.DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID ?? "",
                 ),
               },
               {
                 envVar: "NEXT_PUBLIC_HEUREKA_API_KEY",
                 source: literalSource(
-                  process.env.DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY ?? ""
+                  process.env.DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY ?? "",
                 ),
               },
               {
                 envVar: "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
                 source: literalSource(
-                  process.env.DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""
+                  process.env.DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? "",
                 ),
               },
               {
@@ -1475,8 +1475,8 @@ function buildZaneProjectServices(
                 source: literalSource(
                   firstNonEmpty(
                     process.env.DC_N1_RESEND_API_KEY,
-                    process.env.DC_RESEND_API_KEY
-                  ) ?? ""
+                    process.env.DC_RESEND_API_KEY,
+                  ) ?? "",
                 ),
               },
               {
@@ -1484,8 +1484,8 @@ function buildZaneProjectServices(
                 source: literalSource(
                   firstNonEmpty(
                     process.env.DC_N1_CONTACT_EMAIL,
-                    process.env.DC_CONTACT_EMAIL
-                  ) ?? ""
+                    process.env.DC_CONTACT_EMAIL,
+                  ) ?? "",
                 ),
               },
               {
@@ -1493,8 +1493,8 @@ function buildZaneProjectServices(
                 source: literalSource(
                   firstNonEmpty(
                     process.env.DC_N1_RESEND_FROM_EMAIL,
-                    process.env.DC_RESEND_FROM_EMAIL
-                  ) ?? ""
+                    process.env.DC_RESEND_FROM_EMAIL,
+                  ) ?? "",
                 ),
               },
             ],
@@ -1557,14 +1557,14 @@ function buildZaneProjectServices(
         {
           envVar: "API_AUTH_TOKEN",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_API_AUTH_TOKEN ?? ""
+            process.env.DC_ZANE_OPERATOR_API_AUTH_TOKEN ?? "",
           ),
         },
         { envVar: "PGPORT", source: literalSource("5432") },
         {
           envVar: "PGUSER",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_PGUSER ?? "zane_operator"
+            process.env.DC_ZANE_OPERATOR_PGUSER ?? "zane_operator",
           ),
         },
         {
@@ -1576,32 +1576,32 @@ function buildZaneProjectServices(
         {
           envVar: "DB_TEMPLATE_NAME",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_DB_TEMPLATE_NAME ?? "template_medusa"
+            process.env.DC_ZANE_OPERATOR_DB_TEMPLATE_NAME ?? "template_medusa",
           ),
         },
         {
           envVar: "DB_PREVIEW_PREFIX",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_DB_PREVIEW_PREFIX ?? "medusa_pr_"
+            process.env.DC_ZANE_OPERATOR_DB_PREVIEW_PREFIX ?? "medusa_pr_",
           ),
         },
         {
           envVar: "DB_PREVIEW_APP_USER_PREFIX",
           source: literalSource(
             process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX ??
-              "medusa_pr_app_"
+              "medusa_pr_app_",
           ),
         },
         {
           envVar: "DB_PREVIEW_DEV_ROLE",
           source: literalSource(
-            process.env.DC_MEDUSA_DEV_DB_USER ?? "medusa_dev"
+            process.env.DC_MEDUSA_DEV_DB_USER ?? "medusa_dev",
           ),
         },
         {
           envVar: "DB_PREVIEW_APP_PASSWORD_SECRET",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET ?? ""
+            process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET ?? "",
           ),
         },
         { envVar: "DB_PROTECTED_NAMES", source: literalSource(protectedNames) },
@@ -1616,7 +1616,7 @@ function buildZaneProjectServices(
         {
           envVar: "ZANE_CONNECT_HOST_HEADER",
           source: literalSource(
-            context.operatorUpstreamConnectHostHeader ?? ""
+            context.operatorUpstreamConnectHostHeader ?? "",
           ),
         },
         {
@@ -1680,8 +1680,8 @@ function buildContext(input: {
   const operatorUpstreamBaseUrlCandidate = normalizeOriginUrl(
     firstNonEmpty(
       input.planInput.operatorUpstreamZaneBaseUrl,
-      process.env.DC_ZANE_OPERATOR_ZANE_BASE_URL
-    )
+      process.env.DC_ZANE_OPERATOR_ZANE_BASE_URL,
+    ),
   )
   const operatorUpstreamBaseUrl = resolveOperatorUpstreamBaseUrl({
     appDomain: input.settings.app_domain,
@@ -1693,13 +1693,13 @@ function buildContext(input: {
       process.env.DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL,
       input.settings.root_domain === "127-0-0-1.sslip.io"
         ? "http://zane-app"
-        : undefined
-    )
+        : undefined,
+    ),
   )
   const connectHostHeader =
     firstNonEmpty(
       input.planInput.operatorUpstreamZaneConnectHostHeader,
-      process.env.DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER
+      process.env.DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER,
     ) ??
     (connectBaseUrl && input.settings.app_domain
       ? input.settings.app_domain
@@ -1788,25 +1788,25 @@ function buildBlockingReasons(input: {
 
   if (input.projectExists && !input.environmentExists) {
     reasons.push(
-      `Environment ${input.context.environmentName} is missing and must exist before bootstrap sync.`
+      `Environment ${input.context.environmentName} is missing and must exist before bootstrap sync.`,
     )
   }
 
   if (!input.context.publicDomain) {
     reasons.push(
-      "Public domain could not be derived from input or Zane settings."
+      "Public domain could not be derived from input or Zane settings.",
     )
   }
 
   for (const [serviceId, serviceState] of Object.entries(
-    input.inspectedServices
+    input.inspectedServices,
   )) {
     const serviceType = serviceState.details?.type ?? null
     const isGitServiceType =
       serviceType === "git" || serviceType === "GIT_REPOSITORY"
     if (serviceState.exists && !isGitServiceType) {
       reasons.push(
-        `Service ${serviceId} already exists but is not a Git service and cannot be reconciled by this bootstrap flow.`
+        `Service ${serviceId} already exists but is not a Git service and cannot be reconciled by this bootstrap flow.`,
       )
     }
   }
@@ -1817,7 +1817,7 @@ function buildBlockingReasons(input: {
 
   if (!input.context.operatorUpstreamBaseUrl) {
     reasons.push(
-      "zane-operator upstream Zane base URL could not be derived from input or Zane settings."
+      "zane-operator upstream Zane base URL could not be derived from input or Zane settings.",
     )
   }
 
@@ -1848,7 +1848,7 @@ function buildBlockingReasons(input: {
       missingMessage: "could not be resolved for bootstrap.",
       placeholderMessage:
         "is still set to a placeholder value and must be replaced before bootstrap.",
-    })
+    }),
   )
 
   const aliasChecks: {
@@ -1866,7 +1866,7 @@ function buildBlockingReasons(input: {
     const details = input.inspectedServices[aliasCheck.serviceId]?.details
     if (!details?.[aliasCheck.field]) {
       reasons.push(
-        `Service ${aliasCheck.serviceId} is missing ${aliasCheck.field} required for bootstrap env resolution.`
+        `Service ${aliasCheck.serviceId} is missing ${aliasCheck.field} required for bootstrap env resolution.`,
       )
     }
   }
@@ -1980,11 +1980,11 @@ function buildWarningReasons(): string[] {
 
 function interpolateSharedValues(
   value: string,
-  sharedEnv: Record<string, string>
+  sharedEnv: Record<string, string>,
 ): string {
   return value.replaceAll(
     /\{\{env\.([A-Z0-9_]+)\}\}/g,
-    (_match, key) => sharedEnv[key] ?? ""
+    (_match, key) => sharedEnv[key] ?? "",
   )
 }
 
@@ -2001,7 +2001,7 @@ function resolveSharedSourceValue(input: {
   }
 
   const serviceState = Object.values(inspectedServices).find(
-    (service) => service.details?.slug === source.service_slug
+    (service) => service.details?.slug === source.service_slug,
   )
   const serviceDetails = serviceState?.details
   if (!serviceDetails) {
@@ -2062,7 +2062,7 @@ function resolveServiceSourceValue(input: {
   }
 
   const serviceState = Object.values(inspectedServices).find(
-    (service) => service.details?.slug === source.service_slug
+    (service) => service.details?.slug === source.service_slug,
   )
   const serviceDetails = serviceState?.details
   if (!serviceDetails) {
@@ -2095,7 +2095,7 @@ function resolveServiceSourceValue(input: {
     case "service_internal_bucket_url": {
       const alias = serviceDetails.network_alias ?? ""
       const bucketReference = renderSharedEnvReference(
-        source.bucket_shared_env_key
+        source.bucket_shared_env_key,
       )
       return alias && source.port && bucketReference
         ? `http://${alias}:${source.port}/${bucketReference}`
@@ -2110,7 +2110,7 @@ function resolveServiceSourceValue(input: {
 function resolveSharedEnv(
   variables: PlannedSharedEnvVariable[],
   context: ZaneProjectContext,
-  inspectedServices: Record<string, InspectedServiceState>
+  inspectedServices: Record<string, InspectedServiceState>,
 ): Record<string, string> {
   const sharedEnv: Record<string, string> = {}
   for (const variable of variables) {
@@ -2127,7 +2127,7 @@ function resolveSharedEnv(
 function resolveServiceEnv(
   env: PlannedServiceEnvVariable[],
   context: ZaneProjectContext,
-  inspectedServices: Record<string, InspectedServiceState>
+  inspectedServices: Record<string, InspectedServiceState>,
 ): Record<string, string> {
   const result: Record<string, string> = {}
   for (const envVar of env) {
@@ -2141,24 +2141,24 @@ function resolveServiceEnv(
 }
 
 export async function executeBootstrapZaneProjectPlan(
-  input: BootstrapZaneProjectPlanCommandInput
+  input: BootstrapZaneProjectPlanCommandInput,
 ) {
   const { manifest, stackInputs } = await loadDeployContracts(
     input.stackManifestPath,
-    input.stackInputsPath
+    input.stackInputsPath,
   )
   const repositoryUrl = await deriveRepositoryUrl(input.repositoryUrl)
   const branchName = await deriveBranchName(input.branchName)
   const inspectResponse = bootstrapZaneProjectInspectResponseSchema.parse(
-    await readJsonFile(input.inspectJsonPath)
+    await readJsonFile(input.inspectJsonPath),
   )
   const inspectedServiceSlugs = new Set(
-    inspectResponse.services.map((service) => service.service_slug)
+    inspectResponse.services.map((service) => service.service_slug),
   )
   const bootstrapServices = manifest.services.flatMap((service) =>
     service.ci.zane && inspectedServiceSlugs.has(service.ci.zane.service_slug)
       ? [getZaneService(manifest, service.id)]
-      : []
+      : [],
   )
   const context = buildContext({
     branchName,
@@ -2167,14 +2167,14 @@ export async function executeBootstrapZaneProjectPlan(
     settings: inspectResponse.settings,
   })
   const serviceSlugById = Object.fromEntries(
-    bootstrapServices.map((service) => [service.id, service.serviceSlug])
+    bootstrapServices.map((service) => [service.id, service.serviceSlug]),
   ) as Record<string, string>
   const plannedServices = buildZaneProjectServices(context, serviceSlugById)
   applySharedEnvServiceTargets({ plannedServices, stackInputs })
   const inspectedServices = Object.fromEntries(
     bootstrapServices.map((service) => {
       const inspected = inspectResponse.services.find(
-        (candidate) => candidate.service_slug === service.serviceSlug
+        (candidate) => candidate.service_slug === service.serviceSlug,
       )
 
       return [
@@ -2184,7 +2184,7 @@ export async function executeBootstrapZaneProjectPlan(
           exists: inspected?.exists ?? false,
         },
       ]
-    })
+    }),
   ) as Record<string, InspectedServiceState>
   const blockingReasons = buildBlockingReasons({
     context,
@@ -2196,7 +2196,7 @@ export async function executeBootstrapZaneProjectPlan(
   const warnings = buildWarningReasons()
   const sharedEnvVariables = buildSharedEnvVariables(
     serviceSlugById,
-    stackInputs
+    stackInputs,
   )
   const resolvedSharedEnv =
     input.phase === "services"
@@ -2230,7 +2230,7 @@ export async function executeBootstrapZaneProjectPlan(
       }
       if (!serviceState) {
         throw new Error(
-          `Missing inspected bootstrap service state for ${service.id}.`
+          `Missing inspected bootstrap service state for ${service.id}.`,
         )
       }
       const managedPublicDomains = servicePlan.urls
@@ -2254,7 +2254,7 @@ export async function executeBootstrapZaneProjectPlan(
         managed_public_domains: managedPublicDomains,
         env_keys: servicePlan.env.map((envVar) => envVar.envVar),
         env_sources: servicePlan.env.map((envVar) =>
-          summarizeSource({ envVar: envVar.envVar, source: envVar.source })
+          summarizeSource({ envVar: envVar.envVar, source: envVar.source }),
         ),
         cleanup_env_keys: servicePlan.cleanupEnvKeys,
         desired_git_source: {
@@ -2286,7 +2286,7 @@ export async function executeBootstrapZaneProjectPlan(
     shared_env: resolvedSharedEnv,
     shared_env_cleanup_keys: [...sharedEnvCleanupKeys],
     shared_env_variables: sharedEnvVariables.map((variable) =>
-      summarizeSource({ key: variable.key, source: variable.source })
+      summarizeSource({ key: variable.key, source: variable.source }),
     ),
     status: blockingReasons.length === 0 ? "ready" : "blocked",
     warnings,

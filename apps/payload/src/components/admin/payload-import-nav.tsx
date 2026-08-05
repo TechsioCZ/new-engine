@@ -112,7 +112,7 @@ export default function PayloadImportNav() {
     try {
       const data = await sendImportRequest(formData)
       setMessage(
-        `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`
+        `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`,
       )
     } catch (error_) {
       setError(getImportFailureMessage(error_))

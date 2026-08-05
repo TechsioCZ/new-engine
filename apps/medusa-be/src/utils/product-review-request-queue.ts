@@ -39,7 +39,7 @@ interface EmailLogDTO {
 type EmailLogService = EmailLogModuleService & {
   listEmailLogs: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<EmailLogDTO[]>
 }
 
@@ -59,7 +59,7 @@ type WorkflowQueueService = WorkflowQueueModuleService & {
   }) => Promise<WorkflowQueueItemDTO>
   listWorkflowQueueItems: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<WorkflowQueueItemDTO[]>
 }
 
@@ -81,7 +81,7 @@ function isReviewRequestOrder(value: unknown): value is ReviewRequestOrder {
 
 async function retrieveOrderForReviewRequest(
   container: MedusaContainer,
-  orderId: string
+  orderId: string,
 ) {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -99,7 +99,7 @@ async function retrieveOrderForReviewRequest(
 
 async function hasReviewRequestEmailLog(
   container: MedusaContainer,
-  orderId: string
+  orderId: string,
 ) {
   const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
   const logs = await emailLogService.listEmailLogs(
@@ -110,7 +110,7 @@ async function hasReviewRequestEmailLog(
     {
       select: ["order_id"],
       take: 1,
-    }
+    },
   )
 
   return logs.length > 0
@@ -118,10 +118,10 @@ async function hasReviewRequestEmailLog(
 
 async function hasQueuedReviewRequest(
   container: MedusaContainer,
-  dedupeKey: string
+  dedupeKey: string,
 ) {
   const workflowQueueService = container.resolve<WorkflowQueueService>(
-    WORKFLOW_QUEUE_MODULE
+    WORKFLOW_QUEUE_MODULE,
   )
   const items = await workflowQueueService.listWorkflowQueueItems(
     {
@@ -131,7 +131,7 @@ async function hasQueuedReviewRequest(
     {
       select: ["id"],
       take: 1,
-    }
+    },
   )
 
   return items.length > 0
@@ -150,14 +150,14 @@ export async function scheduleProductReviewRequestForOrder({
 
   if (!order) {
     logger.warn(
-      `Skipping product review request queueing: order ${orderId} not found`
+      `Skipping product review request queueing: order ${orderId} not found`,
     )
     return null
   }
 
   if (!isPaidOrder(order)) {
     logger.info(
-      `Skipping product review request queueing for order ${getOrderDisplayId(order)}: order is not paid`
+      `Skipping product review request queueing for order ${getOrderDisplayId(order)}: order is not paid`,
     )
     return null
   }
@@ -170,7 +170,7 @@ export async function scheduleProductReviewRequestForOrder({
 
   if (alreadySent || alreadyQueued) {
     logger.info(
-      `Skipping product review request queueing for order ${getOrderDisplayId(order)}: request already ${alreadySent ? "sent" : "queued"}`
+      `Skipping product review request queueing for order ${getOrderDisplayId(order)}: request already ${alreadySent ? "sent" : "queued"}`,
     )
     return null
   }
@@ -180,13 +180,13 @@ export async function scheduleProductReviewRequestForOrder({
 
   if (!(paidAt && runAt)) {
     logger.warn(
-      `Skipping product review request queueing for order ${getOrderDisplayId(order)}: paid date could not be resolved`
+      `Skipping product review request queueing for order ${getOrderDisplayId(order)}: paid date could not be resolved`,
     )
     return null
   }
 
   const workflowQueueService = container.resolve<WorkflowQueueService>(
-    WORKFLOW_QUEUE_MODULE
+    WORKFLOW_QUEUE_MODULE,
   )
 
   const queueItem = await workflowQueueService.createWorkflowQueueItems({
@@ -199,7 +199,7 @@ export async function scheduleProductReviewRequestForOrder({
   })
 
   logger.info(
-    `Queued product review request ${queueItem.id} for order ${getOrderDisplayId(order)} at ${runAt.toISOString()} (paid at ${paidAt.toISOString()})`
+    `Queued product review request ${queueItem.id} for order ${getOrderDisplayId(order)} at ${runAt.toISOString()} (paid at ${paidAt.toISOString()})`,
   )
 
   return queueItem

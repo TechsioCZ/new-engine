@@ -3,7 +3,7 @@ import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { CatalogQueryKeys } from "./types"
 
 export function createCatalogQueryKeys<TListParams>(
-  namespace: QueryNamespace
+  namespace: QueryNamespace,
 ): CatalogQueryKeys<TListParams> {
   return {
     all: () => createQueryKey(namespace, "catalog"),
@@ -12,7 +12,7 @@ export function createCatalogQueryKeys<TListParams>(
         namespace,
         "catalog",
         "list",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
   }
 }

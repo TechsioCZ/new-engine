@@ -18,7 +18,7 @@ const stripShowMoreMarker = (html: string) =>
 
 const resolveLegacyCategoryHref = (
   href: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
 ) => {
   const trimmedHref = href.trim()
   if (!trimmedHref || trimmedHref.startsWith("#")) {
@@ -78,7 +78,7 @@ const resolveLegacyMediaUrl = (value: string) => {
 
   return new URL(
     `${url.pathname.replace(LEADING_SLASHES_PATTERN, "")}${url.search}${url.hash}`,
-    HERBATICA_LEGACY_MEDIA_BASE_URL
+    HERBATICA_LEGACY_MEDIA_BASE_URL,
   ).toString()
 }
 
@@ -86,27 +86,27 @@ const rewriteLegacyMediaUrls = (html: string) =>
   html.replaceAll(
     /\b(src|href)=(["'])(.*?)\2/gi,
     (_match, attribute: string, quote: string, url: string) =>
-      `${attribute}=${quote}${resolveLegacyMediaUrl(url)}${quote}`
+      `${attribute}=${quote}${resolveLegacyMediaUrl(url)}${quote}`,
   )
 
 const rewriteLegacyCategoryLinks = (
   html: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
 ) =>
   html.replaceAll(
     /\bhref=(["'])(.*?)\1/gi,
     (_match, quote: string, href: string) =>
       `href=${quote}${resolveLegacyCategoryHref(
         href,
-        categoryByHandle
-      )}${quote}`
+        categoryByHandle,
+      )}${quote}`,
   )
 
 export const rewriteCategoryMetadataHtml = (
   html: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
 ) =>
   rewriteLegacyCategoryLinks(
     rewriteLegacyMediaUrls(stripShowMoreMarker(html)),
-    categoryByHandle
+    categoryByHandle,
   )

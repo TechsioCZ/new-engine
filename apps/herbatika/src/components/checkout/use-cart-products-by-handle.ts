@@ -6,7 +6,7 @@ import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart
 import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products"
 
 const resolveCartProductHandles = (
-  cartItems: HttpTypes.StoreCartLineItem[]
+  cartItems: HttpTypes.StoreCartLineItem[],
 ) => {
   const seenHandles = new Set<string>()
 
@@ -24,7 +24,7 @@ const resolveCartProductHandles = (
 
 export function useCartProductsByHandle(
   cartItems: HttpTypes.StoreCartLineItem[],
-  fields = PRODUCT_CARD_FIELDS
+  fields = PRODUCT_CARD_FIELDS,
 ) {
   const productHandles = resolveCartProductHandles(cartItems)
   const productsQuery = useProducts({
@@ -37,7 +37,7 @@ export function useCartProductsByHandle(
   const expectedHandles = new Set(productHandles)
   const products = productsQuery.products.filter(
     (product) =>
-      typeof product.handle === "string" && expectedHandles.has(product.handle)
+      typeof product.handle === "string" && expectedHandles.has(product.handle),
   )
 
   const productsByHandle = new Map<string, HttpTypes.StoreProduct>()

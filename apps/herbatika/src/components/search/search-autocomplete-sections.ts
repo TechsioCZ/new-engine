@@ -10,7 +10,7 @@ interface SearchAutocompleteSectionTitles {
 
 export const createSearchAutocompleteSections = (
   data: SearchAutocompleteResponse,
-  titles: SearchAutocompleteSectionTitles
+  titles: SearchAutocompleteSectionTitles,
 ): SearchAutocompletePanelSection[] => [
   { items: data.products, key: "product", title: titles.products },
   { items: data.categories, key: "category", title: titles.categories },
@@ -19,7 +19,7 @@ export const createSearchAutocompleteSections = (
 
 export const clampSearchAutocompleteIndex = (
   index: number,
-  itemCount: number
+  itemCount: number,
 ) => {
   if (itemCount === 0) {
     return -1

@@ -114,7 +114,7 @@ const ProductVariantMeasurementDrawer = ({
   useEffect(() => {
     if (open) {
       setQuantity(
-        data?.variant_measurement?.product_unit_quantity.toString() ?? ""
+        data?.variant_measurement?.product_unit_quantity.toString() ?? "",
       )
     }
   }, [data?.variant_measurement?.product_unit_quantity, open])
@@ -123,7 +123,7 @@ const ProductVariantMeasurementDrawer = ({
     await queryClient.invalidateQueries({
       queryKey: measurementUnitQueryKeys.productVariantMeasurement(
         productId,
-        productVariantId
+        productVariantId,
       ),
     })
     await queryClient.invalidateQueries({
@@ -140,7 +140,7 @@ const ProductVariantMeasurementDrawer = ({
       }),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       )
     },
     onSuccess: async () => {
@@ -155,7 +155,7 @@ const ProductVariantMeasurementDrawer = ({
       deleteProductVariantMeasurement(productId, productVariantId),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.clearFailed")
+        error instanceof Error ? error.message : t("errors.clearFailed"),
       )
     },
     onSuccess: async () => {
@@ -277,7 +277,7 @@ const ProductVariantMeasurementWidget = ({
     },
     queryKey: measurementUnitQueryKeys.productVariantMeasurement(
       productId,
-      productVariantId
+      productVariantId,
     ),
   })
 

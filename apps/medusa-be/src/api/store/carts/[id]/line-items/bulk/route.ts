@@ -10,7 +10,7 @@ import type { StoreAddLineItemsBulkType } from "../../../validators"
 
 export async function POST(
   req: MedusaRequest<StoreAddLineItemsBulkType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const id = requirePathParam(req.params["id"], "Cart id")
   const { line_items } = req.validatedBody
@@ -24,13 +24,13 @@ export async function POST(
       fields: req.queryConfig.fields,
       filters: { id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   if (!cart) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Cart ${id} was not found`
+      `Cart ${id} was not found`,
     )
   }
 
@@ -51,7 +51,7 @@ export async function POST(
       fields: req.queryConfig.fields,
       filters: { id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ cart: upatedCart })

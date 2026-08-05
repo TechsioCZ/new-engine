@@ -66,13 +66,13 @@ export class TrackingBatchClient {
   }
 
   async preload(
-    shipments: TrackingShipmentInput[]
+    shipments: TrackingShipmentInput[],
   ): Promise<TrackingOrderIndex> {
     const { orderIds, displayIds, erpIds } =
       this.mapper.collectOrderLookupKeys(shipments)
     const metadataOrderIds = await this.queryOrderIdsByMetadata(
       "erp_id",
-      erpIds
+      erpIds,
     )
     const [byIdOrders, byDisplayIdOrders, scannedOrders] = await Promise.all([
       this.queryOrders({ id: [...orderIds] }),
@@ -89,14 +89,14 @@ export class TrackingBatchClient {
 
   findExistingOrder(
     shipment: TrackingShipmentInput,
-    index: TrackingOrderIndex
+    index: TrackingOrderIndex,
   ): ExistingOrder | null {
     return this.mapper.findExistingOrder(shipment, index)
   }
 
   resolveItems(
     order: ExistingOrder,
-    requestedItems: TrackingItemInput[] | undefined
+    requestedItems: TrackingItemInput[] | undefined,
   ): ResolvedTrackingItems {
     return this.mapper.resolveItems(order, requestedItems)
   }
@@ -115,7 +115,7 @@ export class TrackingBatchClient {
     const metadata = this.mapper.buildShipmentMetadata(shipment)
     const noNotification = shipment.send_notification === false
     const fulfillment = await createOrderFulfillmentWorkflow(
-      this.container
+      this.container,
     ).run({
       input: {
         order_id: order.id,
@@ -154,7 +154,7 @@ export class TrackingBatchClient {
   }
 
   private async queryOrders(
-    filters: Record<string, string[] | number[]>
+    filters: Record<string, string[] | number[]>,
   ): Promise<ExistingOrder[]> {
     if (Object.values(filters).every((values) => values.length === 0)) {
       return []
@@ -169,7 +169,7 @@ export class TrackingBatchClient {
 
   private async queryOrderIdsByMetadata(
     key: string,
-    values: TrackingOrderLookupKeys["erpIds"]
+    values: TrackingOrderLookupKeys["erpIds"],
   ): Promise<Set<string>> {
     const ids = new Set<string>()
     if (!values.size) {

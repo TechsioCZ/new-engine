@@ -40,7 +40,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -61,7 +61,7 @@ type MockStep = (
     is_admin?: boolean
     spending_limit?: number
   },
-  context: { container: MockContainer }
+  context: { container: MockContainer },
 ) => Promise<{
   compensateInput?: unknown
   payload: unknown
@@ -70,7 +70,7 @@ type MockStep = (
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -132,7 +132,7 @@ describe("updateEmployeesStep", () => {
         is_admin: true,
         spending_limit: 100,
       },
-      { container }
+      { container },
     )
 
     expect(graph).toHaveBeenNthCalledWith(
@@ -145,7 +145,7 @@ describe("updateEmployeesStep", () => {
           id: "emp_1",
         },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
     expect(companyService.updateEmployees).toHaveBeenCalledWith({
       id: "emp_1",
@@ -153,7 +153,7 @@ describe("updateEmployeesStep", () => {
       spending_limit: 100,
     })
     expect(companyService.updateEmployees).not.toHaveBeenCalledWith(
-      expect.objectContaining({ company_id: "comp_1" })
+      expect.objectContaining({ company_id: "comp_1" }),
     )
     expect(graph).toHaveBeenNthCalledWith(
       2,
@@ -165,7 +165,7 @@ describe("updateEmployeesStep", () => {
           id: "emp_1",
         },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
     expect(graph).toHaveBeenCalledTimes(2)
     expect(result.payload).toStrictEqual({
@@ -196,8 +196,8 @@ describe("updateEmployeesStep", () => {
           id: "emp_2",
           is_admin: true,
         },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toMatchObject({
       message: "Employee was not found for the requested company.",
       type: "not_found",

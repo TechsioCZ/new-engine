@@ -5,7 +5,7 @@ import type { AdminGetQuoteParamsType } from "./validators"
 
 export const GET = async (
   req: MedusaRequest<AdminGetQuoteParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 

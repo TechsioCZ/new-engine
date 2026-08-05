@@ -19,7 +19,7 @@ interface SessionResponse {
 
 const resolveToken = (
   payload: Record<string, unknown> | null,
-  fallbackToken: string
+  fallbackToken: string,
 ) => {
   if (
     payload &&
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         message: "Authentication required.",
         token: null,
       },
-      { status: 200 }
+      { status: 200 },
     )
   }
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       const refreshedToken = resolveToken(refreshPayload, token)
       const response = NextResponse.json<SessionResponse>(
         { authenticated: true, token: refreshedToken },
-        { status: 200 }
+        { status: 200 },
       )
       setSessionTokenCookie(response, refreshedToken)
       return response
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
           ...getPublishableHeaders(),
         },
         method: "GET",
-      }
+      },
     )
 
     if (!customerResponse.ok) {
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
           message: "Authentication required.",
           token: null,
         },
-        { status: 200 }
+        { status: 200 },
       )
       clearSessionTokenCookie(unauthorizedResponse)
       return unauthorizedResponse
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json<SessionResponse>(
       { authenticated: true, token },
-      { status: 200 }
+      { status: 200 },
     )
     setSessionTokenCookie(response, token)
     return response

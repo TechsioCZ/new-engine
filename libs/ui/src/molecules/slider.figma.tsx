@@ -29,5 +29,5 @@ figma.connect(
         error: "error",
       }),
     },
-  }
+  },
 )

@@ -27,7 +27,7 @@ interface RemoveCompanyCustomerGroupLinkInput {
 }
 
 const normalizeInput = (
-  input: RemoveCompanyCustomerGroupLinkInput | string
+  input: RemoveCompanyCustomerGroupLinkInput | string,
 ): RemoveCompanyCustomerGroupLinkInput =>
   typeof input === "string" ? { company_id: input } : input
 
@@ -42,14 +42,14 @@ const getCompanyCustomerGroupLink = (companyId: string, groupId: string) => ({
 
 const getCustomerGroupCustomers = (
   employees: EmployeeWithCustomer[] | undefined,
-  groupId: string
+  groupId: string,
 ) =>
   (employees ?? [])
     .filter(
       (
-        employee
+        employee,
       ): employee is EmployeeWithCustomer & { customer: { id: string } } =>
-        Boolean(employee?.customer?.id)
+        Boolean(employee?.customer?.id),
     )
     .map((employee) => ({
       customer_group_id: groupId,
@@ -60,7 +60,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
   "remove-company-customer-group-link",
   async (
     input: RemoveCompanyCustomerGroupLinkInput | string,
-    { container }
+    { container },
   ): Promise<
     StepResponse<undefined, RemoveCompanyCustomerGroupLinkCompensation>
   > => {
@@ -72,7 +72,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
     const {
@@ -88,13 +88,13 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
         ],
         filters: { id: companyId },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!company) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Company ${companyId} was not found`
+        `Company ${companyId} was not found`,
       )
     }
 
@@ -103,7 +103,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
     if (expectedGroupId && groupId !== expectedGroupId) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Company is not linked to the requested customer group."
+        "Company is not linked to the requested customer group.",
       )
     }
 
@@ -117,12 +117,12 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
 
     const customerGroupCustomers = getCustomerGroupCustomers(
       company.employees as EmployeeWithCustomer[] | undefined,
-      groupId
+      groupId,
     )
 
     if (customerGroupCustomers.length) {
       await customerModuleService.removeCustomerFromGroup(
-        customerGroupCustomers
+        customerGroupCustomers,
       )
     }
 
@@ -133,7 +133,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
     return new StepResponse(undefined, {
       company_id: companyId,
       customer_ids: customerGroupCustomers.map(
-        ({ customer_id }) => customer_id
+        ({ customer_id }) => customer_id,
       ),
       group_id: groupId,
       link_removed: !preserveLink,
@@ -141,7 +141,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
   },
   async (
     input: RemoveCompanyCustomerGroupLinkCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (!input?.group_id) {
       return
@@ -150,7 +150,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
     const groupId = input.group_id
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
     if (input.link_removed) {
@@ -162,8 +162,8 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
         input.customer_ids.map((id) => ({
           customer_group_id: groupId,
           customer_id: id,
-        }))
+        })),
       )
     }
-  }
+  },
 )

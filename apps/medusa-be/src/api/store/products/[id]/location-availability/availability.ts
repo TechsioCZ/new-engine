@@ -49,11 +49,11 @@ export function buildProductLocationAvailability({
 }): ProductLocationAvailability {
   const levelsByInventoryItemId = groupBy(
     inventoryLevels,
-    (level) => level.inventory_item_id
+    (level) => level.inventory_item_id,
   )
   const linksByVariantId = groupBy(
     inventoryItemLinks,
-    (link) => link.variant_id
+    (link) => link.variant_id,
   )
 
   return {
@@ -62,7 +62,7 @@ export function buildProductLocationAvailability({
       location_availability: buildVariantLocationAvailability(
         linksByVariantId.get(variantId) ?? [],
         levelsByInventoryItemId,
-        stockLocations
+        stockLocations,
       ),
       variant_id: variantId,
     })),
@@ -72,17 +72,17 @@ export function buildProductLocationAvailability({
 function buildVariantLocationAvailability(
   links: VariantInventoryItemLink[],
   levelsByInventoryItemId: Map<string, InventoryLevel[]>,
-  stockLocations: StockLocationRecord[]
+  stockLocations: StockLocationRecord[],
 ): LocationAvailability[] {
   const quantitiesByLocation = new Map(
-    stockLocations.map((location) => [location.id, [] as number[]] as const)
+    stockLocations.map((location) => [location.id, [] as number[]] as const),
   )
 
   for (const link of links) {
     const availableByLocation = buildAvailableQuantityByLocation(
       link,
       levelsByInventoryItemId.get(link.inventory_item_id) ?? [],
-      stockLocations
+      stockLocations,
     )
 
     for (const location of stockLocations) {
@@ -106,10 +106,10 @@ function buildVariantLocationAvailability(
 function buildAvailableQuantityByLocation(
   link: VariantInventoryItemLink,
   levels: InventoryLevel[],
-  stockLocations: StockLocationRecord[]
+  stockLocations: StockLocationRecord[],
 ): Map<string, number> {
   const availableByLocation = new Map<string, number>(
-    stockLocations.map((location) => [location.id, 0] as const)
+    stockLocations.map((location) => [location.id, 0] as const),
   )
   const allowedLocationIds = new Set(availableByLocation.keys())
 
@@ -124,7 +124,7 @@ function buildAvailableQuantityByLocation(
 
     availableByLocation.set(
       level.location_id,
-      (availableByLocation.get(level.location_id) ?? 0) + availableQuantity
+      (availableByLocation.get(level.location_id) ?? 0) + availableQuantity,
     )
   }
 
@@ -132,8 +132,8 @@ function buildAvailableQuantityByLocation(
     availableByLocation.set(
       location.id,
       Math.floor(
-        (availableByLocation.get(location.id) ?? 0) / link.required_quantity
-      )
+        (availableByLocation.get(location.id) ?? 0) / link.required_quantity,
+      ),
     )
   }
 
@@ -142,7 +142,7 @@ function buildAvailableQuantityByLocation(
 
 function groupBy<T>(
   values: T[],
-  getKey: (value: T) => string
+  getKey: (value: T) => string,
 ): Map<string, T[]> {
   const grouped = new Map<string, T[]>()
 

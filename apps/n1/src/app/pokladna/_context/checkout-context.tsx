@@ -81,7 +81,7 @@ interface InitialCheckoutState {
 
 const resolveInitialCheckoutState = (
   cart: ReturnType<typeof useSuspenseCart>["cart"],
-  customer: ReturnType<typeof useSuspenseAuth>["customer"]
+  customer: ReturnType<typeof useSuspenseAuth>["customer"],
 ): InitialCheckoutState => {
   if (cart?.billing_address?.first_name) {
     const addressData = addressToFormData(cart.billing_address)
@@ -177,7 +177,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
   }
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
-    initialStateRef.current.selectedAddressId
+    initialStateRef.current.selectedAddressId,
   )
   const [error, setError] = useState<string | null>(null)
 
@@ -219,7 +219,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
       if (isPplParcel && selectedAccessPoint) {
         shippingAddress = accessPointToAddress(
           selectedAccessPoint,
-          billingAddress
+          billingAddress,
         )
       } else {
         shippingAddress = billingAddress
@@ -251,7 +251,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (CartServiceError.isCartServiceError(error)) {
           setError(
-            `${COMPLETION_ERROR_PREFIX[error.code] ?? DEFAULT_COMPLETION_ERROR_PREFIX}: ${error.message}`
+            `${COMPLETION_ERROR_PREFIX[error.code] ?? DEFAULT_COMPLETION_ERROR_PREFIX}: ${error.message}`,
           )
         } else if (error instanceof Error) {
           setError(`${DEFAULT_COMPLETION_ERROR_PREFIX}: ${error.message}`)
@@ -272,7 +272,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     ) {
       // Find PPL Private option (doesn't require access point selection)
       const pplPrivate = shipping.shippingOptions.find((opt) =>
-        opt.name.toLowerCase().includes("ppl private")
+        opt.name.toLowerCase().includes("ppl private"),
       )
       if (pplPrivate) {
         shipping.setShipping(pplPrivate.id)

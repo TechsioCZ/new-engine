@@ -17,7 +17,7 @@ interface ZaneEnvVariableServiceState {
 }
 
 function coercePendingEnvVariable(
-  value: Record<string, unknown> | null | undefined
+  value: Record<string, unknown> | null | undefined,
 ): ZaneEnvVariable | null {
   if (
     !value ||
@@ -35,7 +35,7 @@ function coercePendingEnvVariable(
 }
 
 export function computeEffectiveEnvVariables(
-  serviceDetails: ZaneEnvVariableServiceState
+  serviceDetails: ZaneEnvVariableServiceState,
 ): ZaneEnvVariable[] {
   const envVariables = [...(serviceDetails.env_variables ?? [])]
 
@@ -46,7 +46,7 @@ export function computeEffectiveEnvVariables(
 
     if (change.type === "DELETE" && change.item_id) {
       const index = envVariables.findIndex(
-        (envVar) => envVar.id === change.item_id
+        (envVar) => envVar.id === change.item_id,
       )
       if (index !== -1) {
         envVariables.splice(index, 1)
@@ -64,7 +64,7 @@ export function computeEffectiveEnvVariables(
         ? envVariables.findIndex((envVar) => envVar.id === change.item_id)
         : -1
     const existingIndexByKey = envVariables.findIndex(
-      (envVar) => envVar.key === pendingEnvVariable.key
+      (envVar) => envVar.key === pendingEnvVariable.key,
     )
     const targetIndex =
       existingIndexById >= 0 ? existingIndexById : existingIndexByKey

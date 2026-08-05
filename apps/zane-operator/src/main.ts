@@ -32,7 +32,7 @@ if (fileCopyMethod.warning) {
       event: "server.startup.warning",
       file_copy_method: fileCopyMethod.method,
       warning: fileCopyMethod.warning,
-    })
+    }),
   )
 } else {
   console.info(
@@ -40,7 +40,7 @@ if (fileCopyMethod.warning) {
       clone_optimized: fileCopyMethod.cloneOptimized,
       event: "server.startup.file_copy_method",
       file_copy_method: fileCopyMethod.method,
-    })
+    }),
   )
 }
 
@@ -50,7 +50,7 @@ const server = Bun.serve({
       JSON.stringify({
         event: "server.error",
         message: error.message,
-      })
+      }),
     )
     return jsonError(500, "internal_error", "Internal server error")
   },
@@ -84,7 +84,7 @@ const server = Bun.serve({
       return jsonError(
         405,
         "method_not_allowed",
-        "Method not allowed for this endpoint"
+        "Method not allowed for this endpoint",
       )
     }
 
@@ -248,7 +248,7 @@ const server = Bun.serve({
       return jsonError(
         405,
         "method_not_allowed",
-        "Method not allowed for this endpoint"
+        "Method not allowed for this endpoint",
       )
     }
 
@@ -265,7 +265,7 @@ console.info(
   JSON.stringify({
     event: "server.started",
     port: config.port,
-  })
+  }),
 )
 
 let shuttingDown = false
@@ -291,7 +291,7 @@ const handleShutdown = async (signal: string): Promise<void> => {
         error: message,
         event: "server.shutdown.error",
         signal,
-      })
+      }),
     )
   } finally {
     process.exit(exitCode)

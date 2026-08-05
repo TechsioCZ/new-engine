@@ -12,7 +12,7 @@ const JWT_TTL_SECONDS = 24 * 60 * 60
 
 export async function POST(
   req: MedusaRequest<PostSymmyAuthUserEmailPassSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const authModuleService = req.scope.resolve<IAuthModuleService>(Modules.AUTH)
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -27,7 +27,7 @@ export async function POST(
       MedusaError.Types.UNAUTHORIZED,
       typeof result.error === "string"
         ? result.error
-        : "Invalid email or password"
+        : "Invalid email or password",
     )
   }
 
@@ -35,7 +35,7 @@ export async function POST(
   if (!userId) {
     throw new MedusaError(
       MedusaError.Types.UNAUTHORIZED,
-      "Invalid email or password"
+      "Invalid email or password",
     )
   }
 
@@ -43,7 +43,7 @@ export async function POST(
   if (!jwtSecret) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "JWT_SECRET is not configured"
+      "JWT_SECRET is not configured",
     )
   }
 
@@ -71,7 +71,7 @@ async function resolveUserId(
   authIdentity: {
     app_metadata?: Record<string, unknown> | null
     user_metadata?: Record<string, unknown> | null
-  }
+  },
 ) {
   const linkedUserId = authIdentity.app_metadata?.user_id
   if (typeof linkedUserId === "string" && linkedUserId.length > 0) {

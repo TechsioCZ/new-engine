@@ -56,22 +56,22 @@ type MedusaCategoryTransforms<
       transformCategory: (category: HttpTypes.StoreProductCategory) => TCategory
       transformListCategory?: (
         category: HttpTypes.StoreProductCategory,
-        context: MedusaCategoryTransformListContext<TListParams>
+        context: MedusaCategoryTransformListContext<TListParams>,
       ) => TCategory
       transformDetailCategory?: (
         category: HttpTypes.StoreProductCategory,
-        context: MedusaCategoryTransformDetailContext<TDetailParams>
+        context: MedusaCategoryTransformDetailContext<TDetailParams>,
       ) => TCategory
     }
   | {
       transformCategory?: never
       transformListCategory: (
         category: HttpTypes.StoreProductCategory,
-        context: MedusaCategoryTransformListContext<TListParams>
+        context: MedusaCategoryTransformListContext<TListParams>,
       ) => TCategory
       transformDetailCategory: (
         category: HttpTypes.StoreProductCategory,
-        context: MedusaCategoryTransformDetailContext<TDetailParams>
+        context: MedusaCategoryTransformDetailContext<TDetailParams>,
       ) => TCategory
     }
 
@@ -85,7 +85,7 @@ export type MedusaCategoryServiceConfig<
     : MedusaCategoryTransforms<TCategory, TListParams, TDetailParams>)
 
 const stripEnabled = <TQuery extends Record<string, unknown>>(
-  query: TQuery
+  query: TQuery,
 ): Omit<TQuery, "enabled"> => {
   const { enabled: _enabled, ...rest } = query as TQuery & {
     enabled?: unknown
@@ -130,7 +130,7 @@ export function createMedusaCategoryService<
 >(
   sdk: Medusa,
   config?: MedusaCategoryServiceConfigBase<TListParams, TDetailParams> &
-    Partial<MedusaCategoryTransforms<unknown, TListParams, TDetailParams>>
+    Partial<MedusaCategoryTransforms<unknown, TListParams, TDetailParams>>,
 ): CategoryService<unknown, TListParams, TDetailParams> {
   const {
     listPath = "/store/product-categories",
@@ -169,7 +169,7 @@ export function createMedusaCategoryService<
   }
 
   const buildDetailQuery = (
-    params: TDetailParams
+    params: TDetailParams,
   ): MedusaCategoryDetailQuery => {
     const query = normalizeDetailQuery
       ? normalizeDetailQuery(params)
@@ -189,7 +189,7 @@ export function createMedusaCategoryService<
   return {
     async getCategories(
       params: TListParams,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<CategoryListResponse<unknown>> {
       const query = buildListQuery(params)
       const response =
@@ -198,11 +198,11 @@ export function createMedusaCategoryService<
           {
             query,
             signal: signal ?? null,
-          }
+          },
         )
 
       const categories = (response.product_categories ?? []).map((category) =>
-        mapListCategory(category, { params, query, response })
+        mapListCategory(category, { params, query, response }),
       )
 
       return {
@@ -213,7 +213,7 @@ export function createMedusaCategoryService<
 
     async getCategory(
       params: TDetailParams,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<unknown> {
       if (!params.id) {
         return null
@@ -226,7 +226,7 @@ export function createMedusaCategoryService<
           {
             query,
             signal: signal ?? null,
-          }
+          },
         )
 
       const category = response.product_category

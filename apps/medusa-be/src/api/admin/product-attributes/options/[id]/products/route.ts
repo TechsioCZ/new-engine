@@ -14,7 +14,7 @@ export async function GET(
     unknown,
     AdminGetProductAttributeOptionProductsSchemaType
   >,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const optionId = req.params["id"] ?? ""
   await retrieveProductAttributeOptionOrThrow(req.scope, optionId)

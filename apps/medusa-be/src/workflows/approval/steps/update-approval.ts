@@ -23,7 +23,7 @@ function parseApprovalStatus(value: unknown): ApprovalStatusType {
   }
   throw new MedusaError(
     MedusaError.Types.UNEXPECTED_STATE,
-    "Approval has an invalid status"
+    "Approval has an invalid status",
   )
 }
 
@@ -31,7 +31,7 @@ export const updateApprovalStep = createStep(
   "update-approval",
   async (
     input: ModuleUpdateApproval,
-    { container }
+    { container },
   ): Promise<StepResponse<ModuleApproval, ModuleUpdateApproval>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const approvalModule =
@@ -50,7 +50,7 @@ export const updateApprovalStep = createStep(
     if (!approval) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Approval ${input.id} was not found`
+        `Approval ${input.id} was not found`,
       )
     }
 
@@ -98,5 +98,5 @@ export const updateApprovalStep = createStep(
       : [previousData]
 
     await approvalModule.updateApprovals(updateData)
-  }
+  },
 )

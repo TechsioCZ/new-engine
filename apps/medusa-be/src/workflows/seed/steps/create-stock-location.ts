@@ -29,7 +29,7 @@ export const createStockLocationSeedStep = createStep(
 
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const stockLocationService = container.resolve<IStockLocationService>(
-      Modules.STOCK_LOCATION
+      Modules.STOCK_LOCATION,
     )
 
     const existingStockLocations =
@@ -40,12 +40,12 @@ export const createStockLocationSeedStep = createStep(
       })
 
     const missingStockLocations = input.locations.filter(
-      (i) => !existingStockLocations.find((j) => j.name === i.name)
+      (i) => !existingStockLocations.find((j) => j.name === i.name),
     )
     const updateStockLocations = existingStockLocations.flatMap(
       (existingLocation) => {
         const inputLocation = input.locations.find(
-          (loc) => loc.name === existingLocation.name
+          (loc) => loc.name === existingLocation.name,
         )
         if (inputLocation) {
           return [
@@ -56,14 +56,14 @@ export const createStockLocationSeedStep = createStep(
           ]
         }
         return []
-      }
+      },
     )
 
     if (missingStockLocations.length !== 0) {
       logger.info("Creating missing stock locations ...")
 
       const { result: createResult } = await createStockLocationsWorkflow(
-        container
+        container,
       ).run({
         input: {
           locations: missingStockLocations,
@@ -86,7 +86,7 @@ export const createStockLocationSeedStep = createStep(
 
       for (const stockLocationToUpdate of toUpdate) {
         const { result: updateResult } = await updateStockLocationsWorkflow(
-          container
+          container,
         ).run({
           input: stockLocationToUpdate,
         })
@@ -103,5 +103,5 @@ export const createStockLocationSeedStep = createStep(
     return new StepResponse({
       result,
     })
-  }
+  },
 )

@@ -48,7 +48,7 @@ const getRecordIdentity = ({
 
 const validateSeedRow = (
   seedRow: StorefrontTextSeedRow,
-  existing?: StorefrontTextRecord
+  existing?: StorefrontTextRecord,
 ) => {
   const defaultValidation = validateStorefrontTextOverride({
     defaultValue: seedRow.default_value,
@@ -59,7 +59,7 @@ const validateSeedRow = (
   if (!defaultValidation.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `${seedRow.key} (${seedRow.market}/${seedRow.locale}): ${defaultValidation.message}`
+      `${seedRow.key} (${seedRow.market}/${seedRow.locale}): ${defaultValidation.message}`,
     )
   }
 
@@ -80,7 +80,7 @@ const validateSeedRow = (
         overrideValidation.code === "invalid_default"
           ? MedusaError.Types.UNEXPECTED_STATE
           : MedusaError.Types.CONFLICT,
-        `${seedRow.key} (${seedRow.market}/${seedRow.locale}): ${overrideValidation.message}`
+        `${seedRow.key} (${seedRow.market}/${seedRow.locale}): ${overrideValidation.message}`,
       )
     }
   }
@@ -91,7 +91,7 @@ const validateSeedRow = (
 export const synchronizeStorefrontTexts = async (
   service: SynchronizeStorefrontTextsService,
   input: SyncStorefrontTextsWorkflowInput,
-  sharedContext: Context
+  sharedContext: Context,
 ): Promise<{
   compensation: StorefrontTextSyncCompensation
   result: StorefrontTextSyncResult
@@ -100,10 +100,10 @@ export const synchronizeStorefrontTexts = async (
   const existingRecords = await service.listStorefrontTexts(
     input.market ? { market: input.market } : {},
     {},
-    sharedContext
+    sharedContext,
   )
   const existingByIdentity = new Map(
-    existingRecords.map((record) => [getRecordIdentity(record), record])
+    existingRecords.map((record) => [getRecordIdentity(record), record]),
   )
   const createInputs: StorefrontTextSeedRow[] = []
   const updateInputs: (StorefrontTextRestoreRecord & {
@@ -174,7 +174,7 @@ export const synchronizeStorefrontTexts = async (
 export const restoreSynchronizedStorefrontTexts = async (
   service: SynchronizeStorefrontTextsService,
   { createdIds, previousRecords }: StorefrontTextSyncCompensation,
-  sharedContext: Context
+  sharedContext: Context,
 ) => {
   if (previousRecords.length) {
     await service.updateStorefrontTexts(previousRecords, sharedContext)
@@ -189,11 +189,11 @@ export const syncStorefrontTextsStep = createStep(
   "sync-storefront-texts",
   async (input: SyncStorefrontTextsWorkflowInput, { container }) => {
     const service = container.resolve<StorefrontTextModuleService>(
-      STOREFRONT_TEXT_MODULE
+      STOREFRONT_TEXT_MODULE,
     )
     const { compensation, result } = await service.runInTransaction(
       async (sharedContext) =>
-        synchronizeStorefrontTexts(service, input, sharedContext)
+        synchronizeStorefrontTexts(service, input, sharedContext),
     )
 
     return new StepResponse(result, compensation)
@@ -204,11 +204,11 @@ export const syncStorefrontTextsStep = createStep(
     }
 
     const service = container.resolve<StorefrontTextModuleService>(
-      STOREFRONT_TEXT_MODULE
+      STOREFRONT_TEXT_MODULE,
     )
 
     await service.runInTransaction(async (sharedContext) =>
-      restoreSynchronizedStorefrontTexts(service, compensation, sharedContext)
+      restoreSynchronizedStorefrontTexts(service, compensation, sharedContext),
     )
-  }
+  },
 )

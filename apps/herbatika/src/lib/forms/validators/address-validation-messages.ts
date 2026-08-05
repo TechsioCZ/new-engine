@@ -28,7 +28,7 @@ export interface AddressValidationMessages {
 type FormTranslator = ReturnType<typeof useTranslations<"form">>
 
 export const translateAddressValidationMessages = (
-  translate: FormTranslator
+  translate: FormTranslator,
 ): AddressValidationMessages => ({
   addressMinLength: translate("validation.address_min_length"),
   addressRequired: translate("validation.address_required"),

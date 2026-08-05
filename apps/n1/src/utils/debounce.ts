@@ -8,7 +8,7 @@ export function debounce<Args extends unknown[]>(
   delay: number,
   options?: {
     leading?: boolean
-  }
+  },
 ): DebouncedFunction<Args> {
   let timeoutId: ReturnType<typeof setTimeout> | null = null
   let lastArgs: Args | null = null

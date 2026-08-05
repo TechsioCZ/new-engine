@@ -11,7 +11,7 @@ export const normalizeTrimmedString = (value: unknown): string | undefined =>
   hasTrimmedString(value) ? value.trim() : undefined
 
 export const normalizePresentTrimmedString = (
-  value: unknown
+  value: unknown,
 ): string | undefined => (typeof value === "string" ? value.trim() : undefined)
 
 export const slugify = (value: string): string =>

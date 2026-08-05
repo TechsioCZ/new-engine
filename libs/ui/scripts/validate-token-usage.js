@@ -136,7 +136,7 @@ const IGNORE_PATTERNS = [
 
 // Precompute prefix helpers for mapping
 const KNOWN_PREFIXES = [...Object.values(NAMESPACE_MAPPINGS).flat()].sort(
-  (a, b) => b.length - a.length
+  (a, b) => b.length - a.length,
 )
 const PREFIX_TO_NAMESPACES = (() => {
   const map = new Map()
@@ -160,12 +160,12 @@ function extractTailwindClasses(content) {
   const classes = new Set()
   const classContent = content.replaceAll(
     /figma\.enum\(\s*["'][^"']+["']\s*,\s*\{[\s\S]*?\}\s*\)/g,
-    ""
+    "",
   )
 
   // Match className props (string values)
   const classNameMatches = classContent.matchAll(
-    /className\s*=\s*["']([^"']+)["']/g
+    /className\s*=\s*["']([^"']+)["']/g,
   )
   for (const match of classNameMatches) {
     const classString = match[1]
@@ -176,7 +176,7 @@ function extractTailwindClasses(content) {
 
   // Match className arrays: className: ['class1', 'class2'] or className={['class1', 'class2']}
   const classNameArrayMatches = classContent.matchAll(
-    /className\s*[:=]\s*(?:\{)?\s*\[([^\]]+)\]/g
+    /className\s*[:=]\s*(?:\{)?\s*\[([^\]]+)\]/g,
   )
   for (const match of classNameArrayMatches) {
     const arrayContent = match[1]
@@ -219,7 +219,7 @@ function extractTailwindClasses(content) {
 
     // Extract from variant values
     const variantMatches = tvConfig.matchAll(
-      /:\s*\{\s*[^}]*['"`]([^'"`]+)['"`]/g
+      /:\s*\{\s*[^}]*['"`]([^'"`]+)['"`]/g,
     )
     for (const variantMatch of variantMatches) {
       const classString = variantMatch[1]
@@ -244,7 +244,7 @@ function extractTailwindClasses(content) {
 
   // Match any quoted strings that might be CSS classes (broader approach)
   const quotedStringMatches = classContent.matchAll(
-    /['"`]([^'"`]*(?:bg-|text-|border-|p-|m-|w-|h-|flex|grid|rounded)[^'"`]*)['"`]/g
+    /['"`]([^'"`]*(?:bg-|text-|border-|p-|m-|w-|h-|flex|grid|rounded)[^'"`]*)['"`]/g,
   )
   for (const match of quotedStringMatches) {
     const classString = match[1]
@@ -348,7 +348,7 @@ function mapClassToPossibleTokens(className) {
 
   if (
     ["inset", "inset-x", "inset-y", "top", "right", "bottom", "left"].includes(
-      prefix
+      prefix,
     )
   ) {
     possibleTokens.push(`--inset-${value}`, `--spacing-${value}`)
@@ -453,7 +453,7 @@ function validateTokenUsage() {
           "--border-width-badge-dynamic",
         ])
         const tokensNeedingCheck = arbitraryTokens.filter(
-          (t) => !externalAllow.has(t)
+          (t) => !externalAllow.has(t),
         )
 
         const anyDefined = tokensNeedingCheck.some((t) => definedTokens.has(t))
@@ -486,7 +486,7 @@ function validateTokenUsage() {
 
       // Check if ANY of the possible tokens exists
       const hasMatchingToken = possibleTokens.some((token) =>
-        definedTokens.has(token)
+        definedTokens.has(token),
       )
 
       if (!hasMatchingToken) {
@@ -509,7 +509,7 @@ function validateTokenUsage() {
   // Report results
   if (totalErrors === 0) {
     console.log(
-      "✅ All component classes have corresponding token definitions!"
+      "✅ All component classes have corresponding token definitions!",
     )
     return true
   }
@@ -520,7 +520,7 @@ function validateTokenUsage() {
     for (const error of errors) {
       const tokenList = error.expectedTokens.join(" OR ")
       console.log(
-        `  Line ${error.line}: ${error.className} → Missing token: ${tokenList}`
+        `  Line ${error.line}: ${error.className} → Missing token: ${tokenList}`,
       )
     }
     console.log()

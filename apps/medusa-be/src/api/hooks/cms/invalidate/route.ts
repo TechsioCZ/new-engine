@@ -80,12 +80,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     await cmsService.invalidateCache(
       body.collection,
       body.doc?.slug,
-      body.doc?.locale
+      body.doc?.locale,
     )
   } catch (error) {
     logger.error(
       `CMS cache invalidation failed (collection="${body.collection}", slug="${body.doc?.slug ?? "n/a"}", locale="${body.doc?.locale ?? "n/a"}")`,
-      error instanceof Error ? error : new Error(String(error))
+      error instanceof Error ? error : new Error(String(error)),
     )
     return res.status(500).json({
       collection: body.collection,

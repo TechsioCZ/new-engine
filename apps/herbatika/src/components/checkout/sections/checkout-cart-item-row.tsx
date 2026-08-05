@@ -81,7 +81,7 @@ export function CheckoutCartItemRow({
   const itemInventory = resolveLineItemInventory(item)
   const itemMaxQuantity = Math.max(
     baseQuantity,
-    itemInventory ?? FALLBACK_MAX_QUANTITY
+    itemInventory ?? FALLBACK_MAX_QUANTITY,
   )
   const currentLineAmount = resolveLineItemTotalAmount(item)
   const originalLineAmount = resolveOriginalLineItemTotalAmount(item, product)

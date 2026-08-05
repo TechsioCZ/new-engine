@@ -19,7 +19,7 @@ describe("workflow-owned brand GPSR validation", () => {
     expect(
       normalizeBrandWriteInput({
         gpsr_contact_email: "  ",
-      }).gpsr_contact_email
+      }).gpsr_contact_email,
     ).toBeNull()
   })
 
@@ -36,7 +36,7 @@ describe("workflow-owned brand GPSR validation", () => {
       validateBrandGpsrState({
         ...validOutsideEuState,
         [field]: null,
-      })
+      }),
     ).toThrow(field)
   })
 
@@ -48,7 +48,7 @@ describe("workflow-owned brand GPSR validation", () => {
       validateBrandGpsrState({
         ...validOutsideEuState,
         [field]: "invalid",
-      })
+      }),
     ).toThrow(field)
   })
 
@@ -57,7 +57,7 @@ describe("workflow-owned brand GPSR validation", () => {
       validateBrandGpsrState({
         ...validOutsideEuState,
         gpsr_manufactured_outside_eu: false,
-      })
+      }),
     ).toThrow("gpsr_manufactured_outside_eu")
   })
 
@@ -66,7 +66,7 @@ describe("workflow-owned brand GPSR validation", () => {
       validateBrandGpsrState({
         gpsr_european_reseller_contact_email: "eu@example.com",
         gpsr_manufactured_outside_eu: false,
-      })
+      }),
     ).toThrow("all EU representative fields or none")
   })
 
@@ -74,7 +74,7 @@ describe("workflow-owned brand GPSR validation", () => {
     expect(() =>
       validateBrandGpsrState({
         gpsr_manufactured_outside_eu: false,
-      })
+      }),
     ).not.toThrow()
   })
 
@@ -89,15 +89,15 @@ describe("Brand handle collisions", () => {
       getBrandHandleCollisionMessage({
         deleted_at: "2026-07-20",
         handle: "acme",
-      })
+      }),
     ).toBe(
-      'Brand with handle "acme" already exists as a deleted record. Restore it through the explicit restore action.'
+      'Brand with handle "acme" already exists as a deleted record. Restore it through the explicit restore action.',
     )
   })
 
   it("does not describe active collisions as restorable", () => {
     expect(getBrandHandleCollisionMessage({ handle: "acme" })).toBe(
-      'Brand with handle "acme" already exists.'
+      'Brand with handle "acme" already exists.',
     )
   })
 })

@@ -15,7 +15,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -30,21 +30,21 @@ type MockContainer = ReturnType<typeof makeContainer>
 interface MockStep<TInput> {
   (
     input: TInput,
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ): Promise<{
     compensateInput?: unknown
     payload: unknown
   }>
   compensate: (
     input: unknown,
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ) => Promise<void>
 }
 
 const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -53,7 +53,7 @@ const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
     typeof candidate.compensate !== "function"
   ) {
     throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function"
+      "Expected the mocked workflow step to expose a compensate function",
     )
   }
 
@@ -61,7 +61,7 @@ const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
 }
 
 const makeApprovalService = (
-  overrides: Partial<MockApprovalService> = {}
+  overrides: Partial<MockApprovalService> = {},
 ): MockApprovalService => ({
   hasPendingApprovals: vi.fn(),
   updateApprovalStatuses: vi.fn(),
@@ -108,8 +108,8 @@ describe("approval update steps", () => {
         status: "approved"
       }>(updateApprovalStep)(
         { handled_by: "cus_1", id: "appr_missing", status: "approved" },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toMatchObject({
       message: "Approval appr_missing was not found",
       type: MedusaError.Types.NOT_FOUND,
@@ -141,8 +141,8 @@ describe("approval update steps", () => {
           status: "approved",
           type: "admin",
         },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toMatchObject({
       message: "Approval status for cart cart_missing was not found",
       type: MedusaError.Types.NOT_FOUND,

@@ -10,7 +10,7 @@ interface ReadPreviewCommitStateDeps {
 
 export async function handleReadPreviewCommitState(
   request: Request,
-  deps: ReadPreviewCommitStateDeps
+  deps: ReadPreviewCommitStateDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

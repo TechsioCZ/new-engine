@@ -25,7 +25,7 @@ type InventoryDecoratableVariant = HttpTypes.StoreProductVariant & {
 const INCLUDED_FIELD_PREFIX_PATTERN = /^[+*]/
 
 const isInventoryDecoratableVariant = (
-  variant: HttpTypes.StoreProductVariant
+  variant: HttpTypes.StoreProductVariant,
 ): variant is InventoryDecoratableVariant => variant.manage_inventory !== null
 
 const normalizeIncludedField = (field: string) =>
@@ -43,7 +43,7 @@ const includesCategoryField = (fields: string[]) =>
 
 const includesCategoryVisibilityField = (fields: string[]) =>
   fields.some(
-    (field) => normalizeIncludedField(field) === "categories.is_internal"
+    (field) => normalizeIncludedField(field) === "categories.is_internal",
   )
 
 const toStoreProduct = (product: object): HttpTypes.StoreProduct =>
@@ -53,17 +53,17 @@ const toStoreProduct = (product: object): HttpTypes.StoreProduct =>
 
 export const GET = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,
-  res: MedusaResponse<HttpTypes.StoreProductResponse>
+  res: MedusaResponse<HttpTypes.StoreProductResponse>,
 ) => {
   const requestedFields = req.queryConfig.fields
   const measurementDecorationOptions =
     getMeasurementDecorationOptions(requestedFields)
   const withInventoryQuantity = requestedFields.some((field) =>
-    field.includes("variants.inventory_quantity")
+    field.includes("variants.inventory_quantity"),
   )
   const productFieldsBeforeDecoration = withInventoryQuantity
     ? requestedFields.filter(
-        (field) => !field.includes("variants.inventory_quantity")
+        (field) => !field.includes("variants.inventory_quantity"),
       )
     : requestedFields
 
@@ -80,7 +80,7 @@ export const GET = async (
   }
 
   const includesCategoriesField = includesCategoryField(
-    productFieldsBeforeDecoration
+    productFieldsBeforeDecoration,
   )
   const productFieldsWithCategoryVisibility =
     includesCategoriesField &&
@@ -90,7 +90,7 @@ export const GET = async (
 
   const productFields = getMeasurementDecorationQueryFields(
     productFieldsWithCategoryVisibility,
-    measurementDecorationOptions
+    measurementDecorationOptions,
   )
 
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
@@ -102,14 +102,14 @@ export const GET = async (
       fields: productFields,
       filters,
     },
-    req.locale === undefined ? {} : { locale: req.locale }
+    req.locale === undefined ? {} : { locale: req.locale },
   )
   const queriedProduct = products[0]
 
   if (!queriedProduct) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product with id: ${req.params["id"]} was not found`
+      `Product with id: ${req.params["id"]} was not found`,
     )
   }
 
@@ -117,7 +117,7 @@ export const GET = async (
 
   if (withInventoryQuantity) {
     const variants = (product.variants ?? []).filter(
-      isInventoryDecoratableVariant
+      isInventoryDecoratableVariant,
     )
 
     await wrapVariantsWithInventoryQuantityForSalesChannel(req, variants)
@@ -131,7 +131,7 @@ export const GET = async (
   await decorateProductsWithMeasurements(
     req.scope,
     [product],
-    measurementDecorationOptions
+    measurementDecorationOptions,
   )
 
   res.json({ product })

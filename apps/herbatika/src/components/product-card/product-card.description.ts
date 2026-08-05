@@ -28,7 +28,7 @@ const toBulletLines = (value: string): string | null => {
   const sentences = value
     .split(SENTENCE_BOUNDARY_PATTERN)
     .map((sentence) =>
-      sentence.trim().replace(SENTENCE_TRAILING_PUNCTUATION_PATTERN, "")
+      sentence.trim().replace(SENTENCE_TRAILING_PUNCTUATION_PATTERN, ""),
     )
     .filter(Boolean)
 
@@ -52,7 +52,7 @@ const extractListItems = (value: string): string[] => {
 }
 
 export const resolveDescription = (
-  product: HttpTypes.StoreProduct
+  product: HttpTypes.StoreProduct,
 ): string | null => {
   const metadata = asRecord(product.metadata)
   const contentSectionsMap = asRecord(metadata?.content_sections_map)
@@ -75,7 +75,7 @@ export const resolveDescription = (
     shortDescription,
   ].filter(
     (value): value is string =>
-      typeof value === "string" && value.trim().length > 0
+      typeof value === "string" && value.trim().length > 0,
   )
 
   for (const candidate of htmlCandidates) {

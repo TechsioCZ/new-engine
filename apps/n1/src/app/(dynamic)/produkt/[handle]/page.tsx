@@ -47,7 +47,7 @@ export default function ProductPage() {
         ...image,
         imageProps: { fill: true, sizes: "(max-width: 448px) 100vw, 448px" },
       })) ?? [],
-    [detail?.images]
+    [detail?.images],
   )
 
   const title = selectedVariant
@@ -99,12 +99,12 @@ export default function ProductPage() {
     rawProduct.categories?.[0]?.id,
     CATEGORY_MAP_BY_ID,
     rawProduct.title,
-    rawProduct.handle
+    rawProduct.handle,
   )
 
   const breadcrumbPathMobile = buildBreadcrumbs(
     rawProduct.categories?.[0]?.id,
-    CATEGORY_MAP_BY_ID
+    CATEGORY_MAP_BY_ID,
   )
 
   const productTableRows = [

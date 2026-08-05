@@ -59,7 +59,7 @@ export class InvoicesBatchClientMapperHelper {
 
   findExistingOrder(
     invoice: InvoiceInput,
-    index: ExistingOrderIndex
+    index: ExistingOrderIndex,
   ): ExistingOrder | null {
     if (invoice.identifier_type === "order_id" && invoice.order_id) {
       return index.byId.get(invoice.order_id) ?? null
@@ -100,7 +100,7 @@ export class InvoicesBatchClientMapperHelper {
     existingMetadata: Metadata | null | undefined,
     invoice: InvoiceInput,
     invoiceUrl: string,
-    uploaded?: UploadedInvoice | null
+    uploaded?: UploadedInvoice | null,
   ) {
     const current = this.getExistingInvoices(existingMetadata)
     const nextInvoice = {
@@ -111,7 +111,7 @@ export class InvoicesBatchClientMapperHelper {
       url: invoiceUrl,
     }
     const filtered = current.filter(
-      (item) => item.invoice_number !== invoice.invoice_number
+      (item) => item.invoice_number !== invoice.invoice_number,
     )
     return {
       ...existingMetadata,
@@ -132,7 +132,7 @@ export class InvoicesBatchClientMapperHelper {
         typeof invoice === "object" &&
         invoice !== null &&
         "invoice_number" in invoice &&
-        typeof invoice.invoice_number === "string"
+        typeof invoice.invoice_number === "string",
     )
   }
 
@@ -142,7 +142,7 @@ export class InvoicesBatchClientMapperHelper {
 
   private stringMetadataValue(
     metadata: Metadata | null | undefined,
-    key: string
+    key: string,
   ) {
     const value = metadata?.[key]
     return typeof value === "string" && value.length ? value : null

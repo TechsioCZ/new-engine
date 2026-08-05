@@ -63,7 +63,7 @@ type AdminCustomerSearchQueryOptions = Omit<
 
 export const useAdminCustomerGroups = (
   query?: HttpTypes.AdminGetCustomerGroupsParams,
-  options?: AdminCustomerGroupsQueryOptions
+  options?: AdminCustomerGroupsQueryOptions,
 ) =>
   useQuery({
     queryFn: async () =>
@@ -77,7 +77,7 @@ export const useAdminCustomerGroups = (
 
 export const useCustomerGroupCompanyOwners = (
   groupIds: string[],
-  options?: CustomerGroupCompanyOwnersQueryOptions
+  options?: CustomerGroupCompanyOwnersQueryOptions,
 ) => {
   const { enabled, ...queryOptions } = options ?? {}
 
@@ -92,7 +92,7 @@ export const useCustomerGroupCompanyOwners = (
       }
 
       return sdk.client.fetch<CustomerGroupCompanyOwnersResponse>(
-        `/admin/company-customer-group-links?${searchParams.toString()}`
+        `/admin/company-customer-group-links?${searchParams.toString()}`,
       )
     },
     queryKey: customerQueryKey.list({
@@ -104,7 +104,7 @@ export const useCustomerGroupCompanyOwners = (
 
 export const useAdminCustomerSearch = (
   email: string,
-  options?: AdminCustomerSearchQueryOptions
+  options?: AdminCustomerSearchQueryOptions,
 ) => {
   const { enabled, ...queryOptions } = options ?? {}
   const normalizedEmail = email.trim().toLowerCase()
@@ -130,7 +130,7 @@ export const useAdminCreateCustomer = (
     { customer: AdminCustomer },
     FetchError,
     AdminCreateCustomer
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -152,7 +152,7 @@ export const useAdminFindCustomerByEmail = (
     HttpTypes.AdminCustomer | null,
     FetchError,
     string
-  >
+  >,
 ) =>
   useMutation({
     mutationFn: async (email: string) => {
@@ -165,7 +165,7 @@ export const useAdminFindCustomerByEmail = (
 
       return (
         customers.find(
-          (customer) => customer.email?.toLowerCase() === normalizedEmail
+          (customer) => customer.email?.toLowerCase() === normalizedEmail,
         ) ?? null
       )
     },

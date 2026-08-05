@@ -14,5 +14,5 @@ export const createReviewWorkflow = createWorkflow(
     markReviewTokenUsedStep(input)
 
     return new WorkflowResponse(review)
-  }
+  },
 )

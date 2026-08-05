@@ -114,7 +114,7 @@ function useNumericInputContext() {
   const context = useContext(NumericInputContext)
   if (!context) {
     throw new Error(
-      "NumericInput components must be used within NumericInput.Root"
+      "NumericInput components must be used within NumericInput.Root",
     )
   }
   return context
@@ -179,7 +179,7 @@ export function NumericInput({
       return String(inputValue)
     }
     return new Intl.NumberFormat(locale, resolvedFormatOptions).format(
-      inputValue
+      inputValue,
     )
   }
 

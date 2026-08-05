@@ -15,7 +15,7 @@ export const restoreBrandsStep = createStep(
       {
         take: Math.max(input.ids.length, 1),
         withDeleted: true,
-      }
+      },
     )
     const foundIds = new Set(brands.map((brand) => brand.id))
     const missingIds = input.ids.filter((id) => !foundIds.has(id))
@@ -23,7 +23,7 @@ export const restoreBrandsStep = createStep(
     if (missingIds.length) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Brand ids were not found: ${missingIds.join(", ")}`
+        `Brand ids were not found: ${missingIds.join(", ")}`,
       )
     }
 
@@ -38,17 +38,17 @@ export const restoreBrandsStep = createStep(
         {
           take: Math.max(deletedBrands.length * 2, 1),
           withDeleted: false,
-        }
+        },
       )
       const restoringIds = new Set(deletedIds)
       const collision = activeCollisions.find(
-        (brand) => !restoringIds.has(brand.id)
+        (brand) => !restoringIds.has(brand.id),
       )
 
       if (collision) {
         throw new MedusaError(
           MedusaError.Types.DUPLICATE_ERROR,
-          `Cannot restore brand "${collision.handle}" because an active brand already uses that handle.`
+          `Cannot restore brand "${collision.handle}" because an active brand already uses that handle.`,
         )
       }
 
@@ -61,5 +61,5 @@ export const restoreBrandsStep = createStep(
     if (restoredIds?.length) {
       await getBrandService(container).softDeleteBrands(restoredIds)
     }
-  }
+  },
 )

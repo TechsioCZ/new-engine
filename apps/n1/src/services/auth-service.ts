@@ -18,7 +18,7 @@ export interface RegisterData {
 }
 
 export async function login(
-  credentials: LoginCredentials
+  credentials: LoginCredentials,
 ): Promise<string | undefined> {
   try {
     const token = await sdk.auth.login("customer", "emailpass", {
@@ -39,7 +39,7 @@ export async function login(
 }
 
 export async function register(
-  data: RegisterData
+  data: RegisterData,
 ): Promise<string | undefined> {
   try {
     // Step 1: Register creates auth identity (email + password)
@@ -102,7 +102,7 @@ export async function getCustomer(): Promise<StoreCustomer | null> {
     if (customer.addresses?.length) {
       customer.addresses = [...customer.addresses].sort(
         (a, b) =>
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       )
     }
     return customer

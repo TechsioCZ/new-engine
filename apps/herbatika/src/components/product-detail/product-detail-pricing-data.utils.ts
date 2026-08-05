@@ -13,7 +13,7 @@ import { formatUnitPriceLabel } from "@/lib/storefront/unit-price"
 const resolveDisplayOriginalLabel = (
   productPrice: ReturnType<typeof resolvePriceState> | null,
   displayOriginalAmount: number | null,
-  currentCurrencyCode: string
+  currentCurrencyCode: string,
 ) =>
   productPrice && typeof displayOriginalAmount === "number"
     ? formatCurrencyAmount(displayOriginalAmount, currentCurrencyCode)
@@ -39,7 +39,7 @@ export const resolveProductVolumeDiscountOptions = ({
     currentAmount,
     currentCurrencyCode,
     offerState.applyQuantityDiscount || offerState.applyVolumeDiscount,
-    labels
+    labels,
   )
 
   if (availableQuantity === null) {
@@ -47,7 +47,7 @@ export const resolveProductVolumeDiscountOptions = ({
   }
 
   return discountOptions.filter(
-    (option) => option.quantity <= availableQuantity
+    (option) => option.quantity <= availableQuantity,
   )
 }
 
@@ -69,16 +69,16 @@ export const resolveProductPricingLabels = ({
   const displayOriginalLabel = resolveDisplayOriginalLabel(
     productPrice,
     displayOriginalAmount,
-    currentCurrencyCode
+    currentCurrencyCode,
   )
   const discountPercent = resolveDiscountPercent(
     currentAmount,
-    displayOriginalAmount
+    displayOriginalAmount,
   )
   const vipCreditLabel = resolveVipCreditLabel(
     currentAmount,
     currentCurrencyCode,
-    offerState.applyLoyaltyDiscount
+    offerState.applyLoyaltyDiscount,
   )
   const unitPriceLabel = formatUnitPriceLabel(productPrice?.pricePerUnit)
 
@@ -95,16 +95,16 @@ export const resolveProductPricingLabels = ({
 
 export const resolveSelectedVolumeDiscountOption = (
   volumeDiscountOptions: ReturnType<typeof resolveVolumeDiscountOptions>,
-  selectedVolumeDiscountId: string | null
+  selectedVolumeDiscountId: string | null,
 ) =>
   volumeDiscountOptions.find(
-    (option) => option.id === selectedVolumeDiscountId
+    (option) => option.id === selectedVolumeDiscountId,
   ) ??
   volumeDiscountOptions[0] ??
   null
 
 export const resolveFreeShippingThresholdLabel = (
-  currentCurrencyCode: string
+  currentCurrencyCode: string,
 ) => {
   const freeShippingThresholdAmount =
     resolveFreeShippingThresholdAmount(currentCurrencyCode)

@@ -99,7 +99,7 @@ describe(readMedusaConfigEnv, () => {
       readMedusaConfigEnv({
         ...baseEnv,
         FILE_PROVIDER: "minio",
-      })
+      }),
     ).toThrow("FILE_PROVIDER must be one of: local, s3. Received: minio")
   })
 
@@ -108,7 +108,7 @@ describe(readMedusaConfigEnv, () => {
       readMedusaConfigEnv({
         ...baseEnv,
         CACHE_PROVIDER: "redis",
-      })
+      }),
     ).toThrow("REDIS_URL is required")
   })
 
@@ -153,7 +153,7 @@ describe(readMedusaConfigEnv, () => {
     expect(config.databaseSchema).toBe("medusa")
     expect(env["MIKRO_ORM_SCHEMA"]).toBe("public")
     expect(env["MIKRO_ORM_MIGRATIONS_TABLE_NAME"]).toBe(
-      "medusa.mikro_orm_migrations"
+      "medusa.mikro_orm_migrations",
     )
   })
 
@@ -183,7 +183,7 @@ describe(readMedusaConfigEnv, () => {
 
     expect(env["MIKRO_ORM_SCHEMA"]).toBe("public")
     expect(env["MIKRO_ORM_MIGRATIONS_TABLE_NAME"]).toBe(
-      "medusa.mikro_orm_migrations"
+      "medusa.mikro_orm_migrations",
     )
     expect(process.env["MIKRO_ORM_SCHEMA"]).toBeUndefined()
     expect(process.env["MIKRO_ORM_MIGRATIONS_TABLE_NAME"]).toBeUndefined()
@@ -230,7 +230,7 @@ describe(readMedusaConfigEnv, () => {
         expect.objectContaining({
           resolve: "@rokmohar/medusa-plugin-meilisearch",
         }),
-      ])
+      ]),
     )
   })
 
@@ -260,14 +260,14 @@ describe(readMedusaConfigEnv, () => {
           options: {},
           resolve: "medusa-order-dashboard-plugin",
         },
-      ])
+      ]),
     )
     expect(buildModules(env)).toStrictEqual(
       expect.arrayContaining([
         {
           resolve: "./src/modules/product-list",
         },
-      ])
+      ]),
     )
   })
 })

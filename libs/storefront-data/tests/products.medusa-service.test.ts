@@ -16,11 +16,11 @@ interface SdkLike {
 const createProduct = (
   id: string,
   title = "Product",
-  handle = id
+  handle = id,
 ): HttpTypes.StoreProduct => ({ handle, id, title }) as HttpTypes.StoreProduct
 
 function createSdkMock(
-  response?: Partial<HttpTypes.StoreProductListResponse>
+  response?: Partial<HttpTypes.StoreProductListResponse>,
 ): SdkLike {
   return {
     client: {
@@ -50,7 +50,7 @@ describe(createMedusaProductService, () => {
 
     await service.getProducts(
       { country_code: "CZ", limit: 12, offset: 0 },
-      controller.signal
+      controller.signal,
     )
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/products", {

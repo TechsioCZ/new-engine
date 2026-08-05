@@ -14,5 +14,5 @@ export const updateApprovalsWorkflow = createWorkflow(
     updateApprovalStatusStep(updatedApproval)
 
     return new WorkflowResponse(updatedApproval)
-  }
+  },
 )

@@ -17,7 +17,7 @@ import type {
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<AdminGetEmployeeParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
   const employeeId = requirePathParam(req.params["employeeId"], "Employee id")
@@ -31,7 +31,7 @@ export const GET = async (
       fields: req.queryConfig?.fields,
       filters: { ...req.filterableFields, company_id: id, id: employeeId },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ employee })
@@ -39,7 +39,7 @@ export const GET = async (
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<AdminUpdateEmployeeType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const id = requirePathParam(req.params["id"], "Company id")
@@ -63,7 +63,7 @@ export const POST = async (
       fields: req.queryConfig?.fields,
       filters: { ...req.filterableFields, company_id: id, id: employeeId },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ employee })
@@ -71,7 +71,7 @@ export const POST = async (
 
 export const DELETE = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
   const employeeId = requirePathParam(req.params["employeeId"], "Employee id")

@@ -16,7 +16,7 @@ const getMessageKeySegments = (key: string) => {
   if (
     segments.some(
       (segment) =>
-        !segment.trim() || FORBIDDEN_MESSAGE_SEGMENTS.has(segment.trim())
+        !segment.trim() || FORBIDDEN_MESSAGE_SEGMENTS.has(segment.trim()),
     )
   ) {
     throw new Error(`Invalid storefront message key: ${key}`)
@@ -28,7 +28,7 @@ const getMessageKeySegments = (key: string) => {
 const getOrCreateMessageNamespace = (
   target: NestedStorefrontMessages,
   segment: string,
-  key: string
+  key: string,
 ): NestedStorefrontMessages => {
   const existingValue = Object.hasOwn(target, segment)
     ? target[segment]
@@ -48,7 +48,7 @@ const getOrCreateMessageNamespace = (
 }
 
 export const nestStorefrontMessages = (
-  messages: FlatStorefrontMessages
+  messages: FlatStorefrontMessages,
 ): NestedStorefrontMessages => {
   const nestedMessages: NestedStorefrontMessages = {}
 

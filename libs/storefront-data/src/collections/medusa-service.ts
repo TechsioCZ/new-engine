@@ -54,26 +54,26 @@ type MedusaCollectionTransforms<
 > =
   | {
       transformCollection: (
-        collection: HttpTypes.StoreCollection
+        collection: HttpTypes.StoreCollection,
       ) => TCollection
       transformListCollection?: (
         collection: HttpTypes.StoreCollection,
-        context: MedusaCollectionTransformListContext<TListParams>
+        context: MedusaCollectionTransformListContext<TListParams>,
       ) => TCollection
       transformDetailCollection?: (
         collection: HttpTypes.StoreCollection,
-        context: MedusaCollectionTransformDetailContext<TDetailParams>
+        context: MedusaCollectionTransformDetailContext<TDetailParams>,
       ) => TCollection
     }
   | {
       transformCollection?: never
       transformListCollection: (
         collection: HttpTypes.StoreCollection,
-        context: MedusaCollectionTransformListContext<TListParams>
+        context: MedusaCollectionTransformListContext<TListParams>,
       ) => TCollection
       transformDetailCollection: (
         collection: HttpTypes.StoreCollection,
-        context: MedusaCollectionTransformDetailContext<TDetailParams>
+        context: MedusaCollectionTransformDetailContext<TDetailParams>,
       ) => TCollection
     }
 
@@ -89,7 +89,7 @@ export type MedusaCollectionServiceConfig<
     : MedusaCollectionTransforms<TCollection, TListParams, TDetailParams>)
 
 const stripEnabled = <TQuery extends Record<string, unknown>>(
-  query: TQuery
+  query: TQuery,
 ): Omit<TQuery, "enabled"> => {
   const { enabled: _enabled, ...rest } = query as TQuery & {
     enabled?: unknown
@@ -147,7 +147,7 @@ export function createMedusaCollectionService<
 >(
   sdk: Medusa,
   config?: MedusaCollectionServiceConfigBase<TListParams, TDetailParams> &
-    Partial<MedusaCollectionTransforms<unknown, TListParams, TDetailParams>>
+    Partial<MedusaCollectionTransforms<unknown, TListParams, TDetailParams>>,
 ): CollectionService<unknown, TListParams, TDetailParams> {
   const {
     listPath = "/store/collections",
@@ -186,7 +186,7 @@ export function createMedusaCollectionService<
   }
 
   const buildDetailQuery = (
-    params: TDetailParams
+    params: TDetailParams,
   ): MedusaCollectionDetailQuery => {
     const query = normalizeDetailQuery
       ? normalizeDetailQuery(params)
@@ -206,7 +206,7 @@ export function createMedusaCollectionService<
   return {
     async getCollection(
       params: TDetailParams,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<unknown> {
       if (!params.id) {
         return null
@@ -219,7 +219,7 @@ export function createMedusaCollectionService<
           {
             query,
             signal: signal ?? null,
-          }
+          },
         )
 
       const collection = response.collection
@@ -232,7 +232,7 @@ export function createMedusaCollectionService<
 
     async getCollections(
       params: TListParams,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<CollectionListResponse<unknown>> {
       const query = buildListQuery(params)
       const response =
@@ -241,11 +241,11 @@ export function createMedusaCollectionService<
           {
             query,
             signal: signal ?? null,
-          }
+          },
         )
 
       const collections = (response.collections ?? []).map((collection) =>
-        mapListCollection(collection, { params, query, response })
+        mapListCollection(collection, { params, query, response }),
       )
 
       return {

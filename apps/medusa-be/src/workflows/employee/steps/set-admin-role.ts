@@ -19,7 +19,7 @@ export const setAdminRoleStep = createStep(
   "set-admin-role",
   async (
     input: { employeeId: string; customerId: string },
-    { container }
+    { container },
   ): Promise<StepResponse<undefined, SetAdminRoleCompensation>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
@@ -33,13 +33,13 @@ export const setAdminRoleStep = createStep(
           id: input.employeeId,
         },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!employee) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Employee "${input.employeeId}" was not found`
+        `Employee "${input.employeeId}" was not found`,
       )
     }
 
@@ -57,13 +57,13 @@ export const setAdminRoleStep = createStep(
           id: input.customerId,
         },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!customer) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Customer "${input.customerId}" was not found`
+        `Customer "${input.customerId}" was not found`,
       )
     }
 
@@ -83,7 +83,7 @@ export const setAdminRoleStep = createStep(
     })
 
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     if (!providerIdentity) {
@@ -129,7 +129,7 @@ export const setAdminRoleStep = createStep(
     }
 
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     await authModuleService.updateProviderIdentities([
@@ -140,5 +140,5 @@ export const setAdminRoleStep = createStep(
         },
       },
     ])
-  }
+  },
 )

@@ -131,17 +131,17 @@ describe("product-list prefetch hooks", () => {
 
     const { result: freshResult } = renderHook(
       () => usePrefetchProductLists(),
-      { wrapper }
+      { wrapper },
     )
     const { result: anyResult } = renderHook(
       () => usePrefetchProductLists({ skipMode: "any" }),
       {
         wrapper,
-      }
+      },
     )
     const { result: noSkipResult } = renderHook(
       () => usePrefetchProductLists({ skipIfCached: false }),
-      { wrapper }
+      { wrapper },
     )
 
     await act(async () => {
@@ -215,8 +215,8 @@ describe("product-list prefetch hooks", () => {
     expect(fetchCount).toBe(1)
     expect(
       queryClient.getQueryData(
-        queryKeys.detail({ customerId: "cus_1", id: "list_1" })
-      )
+        queryKeys.detail({ customerId: "cus_1", id: "list_1" }),
+      ),
     ).toStrictEqual({ id: "list_1" })
   })
 })

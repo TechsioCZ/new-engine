@@ -22,7 +22,7 @@ export const useUpdateApprovalSettings = (
     AdminApprovalSettings,
     FetchError,
     AdminUpdateApprovalSettings
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -33,7 +33,7 @@ export const useUpdateApprovalSettings = (
         {
           body: payload,
           method: "POST",
-        }
+        },
       )
 
       const approvalSettings = data.approvalSettings[0]
@@ -63,7 +63,7 @@ const approvalQueryKey = queryKeysFactory("approval")
 
 export const useApprovals = (
   query?: Record<string, unknown>,
-  options?: UseQueryOptions<AdminApprovalsResponse, FetchError>
+  options?: UseQueryOptions<AdminApprovalsResponse, FetchError>,
 ) => {
   const fetchApprovals = async () =>
     await sdk.client.fetch<AdminApprovalsResponse>("/admin/approvals", {
@@ -80,7 +80,7 @@ export const useApprovals = (
 
 export const useUpdateApproval = (
   approvalId: string,
-  options?: UseMutationOptions<AdminApproval, FetchError, AdminUpdateApproval>
+  options?: UseMutationOptions<AdminApproval, FetchError, AdminUpdateApproval>,
 ) => {
   const queryClient = useQueryClient()
 

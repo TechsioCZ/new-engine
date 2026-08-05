@@ -84,7 +84,7 @@ export function RegisterForm({
   const password = useStore(form.store, (state) => state.values.password)
   const confirmPassword = useStore(
     form.store,
-    (state) => state.values.confirmPassword
+    (state) => state.values.confirmPassword,
   )
   const passwordsMatch =
     confirmPassword.length > 0 && password === confirmPassword

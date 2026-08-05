@@ -26,5 +26,5 @@ export const reconcileBrandSearchProjectionWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

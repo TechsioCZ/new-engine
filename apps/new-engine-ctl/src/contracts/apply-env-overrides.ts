@@ -51,7 +51,7 @@ export type ApplyEnvOverridesResponse = z.infer<
 
 export async function resolveApplyEnvOverridesInputs(
   targetsJsonPath: string,
-  envOverridesJsonPath: string
+  envOverridesJsonPath: string,
 ): Promise<{
   targets: z.infer<typeof targetsEnvelopeSchema>["services"]
   envOverrides: z.infer<typeof envOverridesEnvelopeSchema>["services"]

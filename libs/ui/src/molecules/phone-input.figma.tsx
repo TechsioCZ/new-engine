@@ -58,5 +58,5 @@ figma.connect(
         readonly: "default",
       }),
     },
-  }
+  },
 )

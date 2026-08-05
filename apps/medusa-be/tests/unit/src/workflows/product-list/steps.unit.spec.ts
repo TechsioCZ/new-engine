@@ -31,7 +31,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -44,7 +44,7 @@ vi.mock(
     findCustomerFavoriteProductList: mockFindCustomerFavoriteProductList,
     findProductListItemForSelection: mockFindProductListItemForSelection,
     getProductListType: mockGetProductListType,
-  })
+  }),
 )
 
 interface MockService {
@@ -61,21 +61,21 @@ interface MockService {
 interface MockStep {
   (
     input: unknown,
-    context: { container: ReturnType<typeof makeContainer> }
+    context: { container: ReturnType<typeof makeContainer> },
   ): Promise<{
     compensateInput: unknown
     payload: unknown
   }>
   compensate: (
     input: unknown,
-    context: { container: ReturnType<typeof makeContainer> }
+    context: { container: ReturnType<typeof makeContainer> },
   ) => Promise<void>
 }
 
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -84,7 +84,7 @@ const asMockStep = (candidate: unknown): MockStep => {
     typeof candidate.compensate !== "function"
   ) {
     throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function"
+      "Expected the mocked workflow step to expose a compensate function",
     )
   }
 
@@ -142,12 +142,12 @@ describe("createCustomerProductListStep", () => {
         data: {},
         type: "favorite",
       },
-      { container }
+      { container },
     )
 
     expect(mockFindCustomerFavoriteProductList).toHaveBeenCalledWith(
       container,
-      "cus_1"
+      "cus_1",
     )
     expect(service.createFavoriteProductList).not.toHaveBeenCalled()
     expect(result).toStrictEqual({
@@ -183,8 +183,8 @@ describe("createCustomerProductListStep", () => {
           },
           type: "custom",
         },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toMatchObject({
       message: "Product list handle already exists: summer-picks",
       type: MedusaError.Types.DUPLICATE_ERROR,
@@ -194,7 +194,7 @@ describe("createCustomerProductListStep", () => {
     expect(mockFindCustomerCustomProductListByHandle).toHaveBeenCalledWith(
       container,
       "cus_1",
-      "summer-picks"
+      "summer-picks",
     )
     expect(service.createCustomProductList).not.toHaveBeenCalled()
   })
@@ -211,14 +211,14 @@ describe("createCustomerProductListStep", () => {
         created: true,
         list_id: "plist_new",
       },
-      { container }
+      { container },
     )
     await step.compensate(
       {
         created: false,
         list_id: "plist_existing",
       },
-      { container }
+      { container },
     )
 
     expect(service.deleteProductLists).toHaveBeenCalledOnce()
@@ -258,7 +258,7 @@ describe("createProductListItemStep", () => {
         product_id: "prod_1",
         quantity: 2,
       },
-      { container }
+      { container },
     )
 
     expect(service.createProductListItemForList).toHaveBeenCalledWith({
@@ -310,19 +310,19 @@ describe("createProductListItemStep", () => {
         product_id: "prod_1",
         sort_order: 4,
       },
-      { container }
+      { container },
     )
 
     expect(mockAssertProductSelectionExists).toHaveBeenCalledWith(
       container,
       "prod_1",
-      undefined
+      undefined,
     )
     expect(mockFindProductListItemForSelection).toHaveBeenCalledWith(
       container,
       "plist_favorite",
       "prod_1",
-      undefined
+      undefined,
     )
     expect(service.createProductListItemForList).toHaveBeenCalledWith({
       list_id: "plist_favorite",
@@ -371,19 +371,19 @@ describe("createProductListItemStep", () => {
         quantity: 3,
         variant_id: "variant_1",
       },
-      { container }
+      { container },
     )
 
     expect(mockAssertProductSelectionExists).toHaveBeenCalledWith(
       container,
       "prod_1",
-      "variant_1"
+      "variant_1",
     )
     expect(mockFindProductListItemForSelection).toHaveBeenCalledWith(
       container,
       "plist_custom",
       "prod_1",
-      "variant_1"
+      "variant_1",
     )
     expect(service.createProductListItemForList).not.toHaveBeenCalled()
     expect(result).toStrictEqual({
@@ -410,14 +410,14 @@ describe("createProductListItemStep", () => {
         created: true,
         item_id: "plitem_new",
       },
-      { container }
+      { container },
     )
     await step.compensate(
       {
         created: false,
         item_id: "plitem_existing",
       },
-      { container }
+      { container },
     )
 
     expect(service.deleteProductListItems).toHaveBeenCalledOnce()
@@ -449,12 +449,12 @@ describe("incrementProductListItemStep", () => {
         previous_quantity: 1,
         quantity: 2,
       },
-      { container }
+      { container },
     )
 
     expect(service.incrementProductListItemQuantity).toHaveBeenCalledWith(
       "plitem_1",
-      2
+      2,
     )
     expect(result).toStrictEqual({
       compensateInput: {
@@ -488,12 +488,12 @@ describe("incrementProductListItemStep", () => {
         previous_quantity: 3,
         quantity: 2,
       },
-      { container }
+      { container },
     )
 
     expect(service.incrementProductListItemQuantity).toHaveBeenCalledWith(
       "plitem_1",
-      2
+      2,
     )
     expect(result).toStrictEqual({
       compensateInput: {
@@ -516,7 +516,7 @@ describe("incrementProductListItemStep", () => {
         item_id: "plitem_1",
         previous_quantity: 3,
       },
-      { container }
+      { container },
     )
     await step.compensate(undefined, { container })
 

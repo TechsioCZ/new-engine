@@ -10,7 +10,7 @@ export const addEmployeeToCustomerGroupStep = createStep(
   "add-employee-to-customer-group",
   async (
     input: { customer_id: string; employee_id: string },
-    { container }
+    { container },
   ) => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
@@ -22,13 +22,13 @@ export const addEmployeeToCustomerGroupStep = createStep(
         fields: ["id", "company.*"],
         filters: { id: input.employee_id },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!employee) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Employee "${input.employee_id}" was not found`
+        `Employee "${input.employee_id}" was not found`,
       )
     }
 
@@ -40,18 +40,18 @@ export const addEmployeeToCustomerGroupStep = createStep(
         fields: ["id", "customer_group.*"],
         filters: { id: employee.company.id },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
 
     if (!company) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Company for employee "${input.employee_id}" was not found`
+        `Company for employee "${input.employee_id}" was not found`,
       )
     }
 
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
     if (!(input.customer_id && company.customer_group?.id)) {
@@ -67,7 +67,7 @@ export const addEmployeeToCustomerGroupStep = createStep(
     })
 
     const customerGroup = await customerModuleService.retrieveCustomerGroup(
-      company.customer_group.id
+      company.customer_group.id,
     )
 
     return new StepResponse(customerGroup, {
@@ -79,19 +79,19 @@ export const addEmployeeToCustomerGroupStep = createStep(
     input:
       | { customer_id: string | undefined; group_id: string | undefined }
       | undefined,
-    { container }
+    { container },
   ) => {
     if (!(input?.customer_id && input.group_id)) {
       return
     }
 
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
     await customerModuleService.removeCustomerFromGroup({
       customer_group_id: input.group_id,
       customer_id: input.customer_id,
     })
-  }
+  },
 )

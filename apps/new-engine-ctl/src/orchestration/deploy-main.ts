@@ -44,7 +44,7 @@ function supportsPrettyLogs(): boolean {
     process.stderr.isTTY &&
     !process.env.GITHUB_ACTIONS &&
     !process.env.NO_COLOR &&
-    process.env.TERM !== "dumb"
+    process.env.TERM !== "dumb",
   )
 }
 
@@ -79,11 +79,11 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
 }
 
 export async function executeDeployMain(
-  input: DeployMainCommandInput
+  input: DeployMainCommandInput,
 ): Promise<DeployMainExecutionResult> {
   const contracts = await loadDeployContracts(
     input.stackManifestPath,
-    input.stackInputsPath
+    input.stackInputsPath,
   )
   const plan = await executePlan({
     lane: "main",
@@ -127,7 +127,7 @@ export async function executeDeployMain(
 
   if (prerequisitePlan.transientServiceIds.length > 0) {
     logDeployProgress(
-      `Adding transient prerequisite services to the main deploy plan: ${prerequisitePlan.transientServiceIds.join(",")}.`
+      `Adding transient prerequisite services to the main deploy plan: ${prerequisitePlan.transientServiceIds.join(",")}.`,
     )
   }
 
@@ -137,12 +137,12 @@ export async function executeDeployMain(
 
   if (downtimeRiskServiceIds.length > 0 && !input.approveDowntimeRisk) {
     throw new Error(
-      `Main deploy includes downtime-risk services: ${downtimeRiskServiceIds.join(",")}. Re-run with --approve-downtime-risk.`
+      `Main deploy includes downtime-risk services: ${downtimeRiskServiceIds.join(",")}. Re-run with --approve-downtime-risk.`,
     )
   }
 
   logDeployProgress(
-    `Resolved main environment ${environment.environment_name} (${environment.environment_id}).`
+    `Resolved main environment ${environment.environment_name} (${environment.environment_id}).`,
   )
   const runtimeProviderNeeds = collectConfiguredRuntimeProviderNeeds({
     lane: "main",
@@ -183,7 +183,7 @@ export async function executeDeployMain(
     }
 
     logDeployProgress(
-      `Starting deploy stage ${stage} for services: ${stageServicesCsv}.`
+      `Starting deploy stage ${stage} for services: ${stageServicesCsv}.`,
     )
     await ensureStageRuntimeProviderOutputs({
       apiToken: input.apiToken,
@@ -210,7 +210,7 @@ export async function executeDeployMain(
     })
 
     logDeployProgress(
-      `Rendering env overrides for stage ${stage}: ${stageServicesCsv}.`
+      `Rendering env overrides for stage ${stage}: ${stageServicesCsv}.`,
     )
     const envOverrides = await executeRenderEnvOverrides({
       lane: "main",
@@ -228,7 +228,7 @@ export async function executeDeployMain(
     })
 
     logDeployProgress(
-      `Resolving deploy targets for stage ${stage}: ${stageServicesCsv}.`
+      `Resolving deploy targets for stage ${stage}: ${stageServicesCsv}.`,
     )
     const resolveTargetsPayload: ResolveTargetsPayload = {
       environment_name: environment.environment_name,
@@ -248,12 +248,12 @@ export async function executeDeployMain(
     const filtered = filterTargetsForGitCommit(
       targets.services,
       envOverrides.services,
-      input.gitCommitSha ?? ""
+      input.gitCommitSha ?? "",
     )
 
     allDeployments = mergeDeployments(
       allDeployments,
-      filtered.adoptedDeployments
+      filtered.adoptedDeployments,
     )
 
     if (filtered.adoptedDeployments.length > 0) {
@@ -261,9 +261,9 @@ export async function executeDeployMain(
         `Reusing active deployments for stage ${stage}: ${filtered.adoptedDeployments
           .map(
             (deployment) =>
-              `${deployment.service_slug}#${deployment.deployment_hash}`
+              `${deployment.service_slug}#${deployment.deployment_hash}`,
           )
-          .join(", ")}.`
+          .join(", ")}.`,
       )
     }
 
@@ -272,11 +272,11 @@ export async function executeDeployMain(
       filtered.adoptedDeployments.length === 0
     ) {
       logDeployProgress(
-        `No trigger required for stage ${stage}; all services were skipped by current-state checks.`
+        `No trigger required for stage ${stage}; all services were skipped by current-state checks.`,
       )
       skippedServicesCsv = mergeCsvValues(
         skippedServicesCsv,
-        filtered.skippedServices.map((service) => service.service_id).join(",")
+        filtered.skippedServices.map((service) => service.service_id).join(","),
       )
       continue
     }
@@ -288,7 +288,7 @@ export async function executeDeployMain(
       logDeployProgress(
         `Applying env overrides for stage ${stage}: ${filtered.services
           .map((service) => service.service_slug)
-          .join(", ")}.`
+          .join(", ")}.`,
       )
       await executeApplyEnvOverridesPayload({
         apiToken: input.apiToken,
@@ -304,7 +304,7 @@ export async function executeDeployMain(
       logDeployProgress(
         `Triggering deploys for stage ${stage}: ${filtered.services
           .map((service) => service.service_slug)
-          .join(", ")}.`
+          .join(", ")}.`,
       )
       const trigger = await executeTriggerPayload({
         apiToken: input.apiToken,
@@ -320,31 +320,31 @@ export async function executeDeployMain(
       stageTriggeredServicesCsv = trigger.triggered_service_ids.join(",")
       triggeredServicesCsv = mergeCsvValues(
         triggeredServicesCsv,
-        stageTriggeredServicesCsv
+        stageTriggeredServicesCsv,
       )
       logDeployProgress(
         `Triggered stage ${stage} deployments: ${trigger.services
           .map(
             (deployment) =>
-              `${deployment.service_slug}#${deployment.deployment_hash}`
+              `${deployment.service_slug}#${deployment.deployment_hash}`,
           )
-          .join(", ")}.`
+          .join(", ")}.`,
       )
     }
 
     skippedServicesCsv = mergeCsvValues(
       skippedServicesCsv,
-      filtered.skippedServices.map((service) => service.service_id).join(",")
+      filtered.skippedServices.map((service) => service.service_id).join(","),
     )
     envOverrideServiceIdsCsv = mergeCsvValues(
       envOverrideServiceIdsCsv,
       filtered.filteredEnvOverrides
         .map((service) => service.service_id)
-        .join(",")
+        .join(","),
     )
 
     logDeployProgress(
-      `Waiting for stage ${stage} deployments to become healthy.`
+      `Waiting for stage ${stage} deployments to become healthy.`,
     )
     await waitForDeployments({
       apiToken: input.apiToken,

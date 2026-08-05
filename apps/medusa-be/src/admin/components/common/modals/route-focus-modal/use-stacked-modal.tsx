@@ -7,7 +7,7 @@ export const useStackedModal = () => {
 
   if (!context) {
     throw new Error(
-      "useStackedModal must be used within a StackedModalProvider"
+      "useStackedModal must be used within a StackedModalProvider",
     )
   }
 

@@ -34,34 +34,34 @@ export interface ICompanyModuleService extends IModuleService {
   /* Entity: Companies */
   createCompanies(
     data: ModuleCreateCompany,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleCompany>
 
   createCompanies(
     data: ModuleCreateCompany[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleCompany[]>
 
   retrieveCompany(
     id: string,
     config?: FindConfig<ModuleCompany>,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleCompany>
 
   updateCompanies(
     data: ModuleUpdateCompany,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleCompany>
 
   updateCompanies(
     data: ModuleUpdateCompany[],
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleCompany[]>
 
   listCompanies(
     filters?: ModuleCompanyFilters,
     config?: FindConfig<ModuleCompany>,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleCompany[]>
 
   deleteCompanies(ids: string[], sharedContext?: Context): Promise<void>
@@ -71,7 +71,7 @@ export interface ICompanyModuleService extends IModuleService {
   restoreCompanies<TReturnableLinkableKeys extends string = string>(
     ids: string[],
     config?: RestoreReturn<TReturnableLinkableKeys>,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<Record<TReturnableLinkableKeys, string[]> | undefined>
 
   /* Entity: Employees */
@@ -79,23 +79,23 @@ export interface ICompanyModuleService extends IModuleService {
   listEmployees(
     filters?: ModuleEmployeeFilters,
     config?: FindConfig<ModuleEmployee>,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleEmployee[]>
 
   retrieveEmployee(
     id: string,
     config?: FindConfig<ModuleEmployee>,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleEmployee>
 
   createEmployees(
     data: ModuleCreateEmployee,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleEmployee>
 
   updateEmployees(
     data: ModuleUpdateEmployee,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ModuleEmployee>
 
   deleteEmployees(ids: string[], sharedContext?: Context): Promise<void>
@@ -105,6 +105,6 @@ export interface ICompanyModuleService extends IModuleService {
   restoreEmployees<TReturnableLinkableKeys extends string = string>(
     ids: string[],
     config?: RestoreReturn<TReturnableLinkableKeys>,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<Record<TReturnableLinkableKeys, string[]> | undefined>
 }

@@ -19,7 +19,7 @@ export type StoreCmsArticleCategoriesSchemaType = z.infer<
 /** Store API handler returning article categories with articles. */
 export async function GET(
   req: MedusaRequest<unknown, StoreCmsArticleCategoriesSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 

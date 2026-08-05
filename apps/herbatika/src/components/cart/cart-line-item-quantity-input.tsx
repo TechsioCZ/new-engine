@@ -65,7 +65,7 @@ export function CartLineItemQuantityInput({
 
     const normalizedQuantity = Math.max(
       1,
-      Math.min(roundedQuantity, maxQuantity)
+      Math.min(roundedQuantity, maxQuantity),
     )
     setLocalQuantity(normalizedQuantity)
     clearPendingUpdate()

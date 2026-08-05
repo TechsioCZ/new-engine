@@ -9,11 +9,11 @@ export interface ApiClient {
   get: <T extends JsonObject = JsonObject>(path: string) => Promise<T>
   post: <T extends JsonObject = JsonObject>(
     path: string,
-    body?: JsonObject
+    body?: JsonObject,
   ) => Promise<T>
   request: <T extends JsonObject = JsonObject>(
     path: string,
-    options?: { body?: JsonObject; method?: string }
+    options?: { body?: JsonObject; method?: string },
   ) => Promise<JsonResponse<T>>
 }
 
@@ -22,7 +22,7 @@ export function resolveRequiredEnv(name: string): string {
 
   if (!value) {
     throw new Error(
-      `Missing required environment variable ${name}. Run the isolated e2e harness or provide it explicitly.`
+      `Missing required environment variable ${name}. Run the isolated e2e harness or provide it explicitly.`,
     )
   }
 
@@ -37,7 +37,7 @@ export async function requestJson<T extends JsonObject = JsonObject>(
     headers?: Record<string, string>
     method?: string
     token?: string
-  }
+  },
 ): Promise<JsonResponse<T>> {
   const response = await fetch(`${baseUrl}${path}`, {
     headers: {
@@ -61,8 +61,8 @@ export function assertOk<T extends JsonObject>(response: JsonResponse<T>): T {
   if (response.status !== 200) {
     throw new Error(
       `Expected HTTP 200, received ${response.status}: ${JSON.stringify(
-        response.data
-      )}`
+        response.data,
+      )}`,
     )
   }
 
@@ -71,25 +71,25 @@ export function assertOk<T extends JsonObject>(response: JsonResponse<T>): T {
 
 export function createClient(
   baseUrl: string,
-  headers: Record<string, string>
+  headers: Record<string, string>,
 ): ApiClient {
   return {
     get: async <T extends JsonObject = JsonObject>(path: string) =>
       assertOk(await requestJson<T>(baseUrl, path, { headers })),
     post: async <T extends JsonObject = JsonObject>(
       path: string,
-      body: JsonObject = {}
+      body: JsonObject = {},
     ) =>
       assertOk(
         await requestJson<T>(baseUrl, path, {
           body,
           headers,
           method: "POST",
-        })
+        }),
       ),
     request: async <T extends JsonObject = JsonObject>(
       path: string,
-      options?: { body?: JsonObject; method?: string }
+      options?: { body?: JsonObject; method?: string },
     ) =>
       await requestJson<T>(baseUrl, path, {
         ...(options?.body ? { body: options.body } : {}),
@@ -109,7 +109,7 @@ export async function authenticateAdmin(baseUrl: string) {
         password: resolveRequiredEnv("MEDUSA_E2E_ADMIN_PASSWORD"),
       },
       method: "POST",
-    }
+    },
   )
 
   if (response.status !== 200 || typeof response.data.token !== "string") {

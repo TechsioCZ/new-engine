@@ -3,20 +3,20 @@ import type { DataTableRowSelectionState } from "@medusajs/ui"
 import type { Brand, BrandProductOption } from "../../lib/brands"
 
 export const toRowSelection = (
-  selectedIds: Iterable<string>
+  selectedIds: Iterable<string>,
 ): DataTableRowSelectionState =>
   Object.fromEntries([...selectedIds].map((id) => [id, true]))
 
 export const fromRowSelection = (selection: DataTableRowSelectionState) =>
   new Set(
     Object.entries(selection).flatMap(([id, selected]) =>
-      selected ? [id] : []
-    )
+      selected ? [id] : [],
+    ),
   )
 
 export const buildProductSelectionDelta = (
   currentProductIds: Iterable<string>,
-  selectedProductIds: Iterable<string>
+  selectedProductIds: Iterable<string>,
 ) => {
   const current = new Set(currentProductIds)
   const selected = new Set(selectedProductIds)
@@ -29,16 +29,16 @@ export const buildProductSelectionDelta = (
 
 export const isProductOptionSelectable = (
   option: BrandProductOption,
-  currentBrandId: string
+  currentBrandId: string,
 ) => !option.assigned_brand || option.assigned_brand.id === currentBrandId
 
 export const isBrandSelectable = (
   brand: Brand,
   selectedId: string | undefined,
-  isPending: boolean
+  isPending: boolean,
 ) => !(brand.deleted_at || isPending || brand.id === selectedId)
 
 export const shouldSubmitProductBrandSelection = (
   currentBrand: Brand | undefined,
-  selectedId: string | undefined
+  selectedId: string | undefined,
 ) => !(currentBrand?.deleted_at && selectedId === undefined)

@@ -30,7 +30,7 @@ export const createEmployeesWorkflow = createWorkflow(
     const employee = createOrRestoreEmployeeStep(input.employeeData)
 
     when(input.employeeData, (employeeData) =>
-      Boolean(employeeData.is_admin)
+      Boolean(employeeData.is_admin),
     ).then(() => {
       setAdminRoleStep({
         customerId: input.customerId,
@@ -44,5 +44,5 @@ export const createEmployeesWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(employee)
-  }
+  },
 )

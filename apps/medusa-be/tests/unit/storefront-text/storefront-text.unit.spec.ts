@@ -51,7 +51,7 @@ describe("storefront text registry", () => {
 
   it("validates a versioned catalog against its target market", () => {
     const messages = nestStorefrontTextMessages(
-      getStorefrontTextDefaultMessages({ market: "cz" })
+      getStorefrontTextDefaultMessages({ market: "cz" }),
     )
 
     expect(
@@ -63,7 +63,7 @@ describe("storefront text registry", () => {
           schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
         },
         targetMarket: "cz",
-      })
+      }),
     ).toMatchObject({
       locale: "cs-CZ",
       market: "cz",
@@ -79,18 +79,18 @@ describe("storefront text registry", () => {
           locale: "cs-CZ",
           market: "cz",
           messages: nestStorefrontTextMessages(
-            getStorefrontTextDefaultMessages({ market: "cz" })
+            getStorefrontTextDefaultMessages({ market: "cz" }),
           ),
           schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
         },
         targetMarket: "sk",
-      })
+      }),
     ).toThrow('Catalog market "cz" does not match target market "sk"')
   })
 
   it("rejects unsupported catalog versions and market-locale pairs", () => {
     const messages = nestStorefrontTextMessages(
-      getStorefrontTextDefaultMessages({ market: "cz" })
+      getStorefrontTextDefaultMessages({ market: "cz" }),
     )
 
     expect(() =>
@@ -102,7 +102,7 @@ describe("storefront text registry", () => {
           schema_version: 2,
         },
         targetMarket: "cz",
-      })
+      }),
     ).toThrow('Unsupported storefront text catalog schema version "2"')
 
     expect(() =>
@@ -114,7 +114,7 @@ describe("storefront text registry", () => {
           schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
         },
         targetMarket: "cz",
-      })
+      }),
     ).toThrow('Locale "sk-SK" does not belong to market "cz"')
   })
 
@@ -126,11 +126,11 @@ describe("storefront text registry", () => {
     expect(() =>
       parseStorefrontTextCatalog({
         cart: { add_to_cart: "Do košíku" },
-      })
+      }),
     ).toThrow("Missing keys")
 
     const catalog = nestStorefrontTextMessages(
-      getStorefrontTextDefaultMessages({ market: "cz" })
+      getStorefrontTextDefaultMessages({ market: "cz" }),
     )
     catalog["unknown"] = "Neznámý text"
 
@@ -139,16 +139,16 @@ describe("storefront text registry", () => {
 
   it("rejects reserved object-path segments in catalogs", () => {
     const catalog = JSON.parse(
-      '{"__proto__":"ignored","cart":{"add_to_cart":"Do košíku"}}'
+      '{"__proto__":"ignored","cart":{"add_to_cart":"Do košíku"}}',
     )
 
     expect(() => flattenStorefrontTextCatalog(catalog)).toThrow(
-      'Invalid storefront text catalog key "__proto__"'
+      'Invalid storefront text catalog key "__proto__"',
     )
     expect(() =>
       nestStorefrontTextMessages({
         "__proto__.polluted": "yes",
-      })
+      }),
     ).toThrow('Invalid storefront text message key "__proto__.polluted"')
   })
 
@@ -162,7 +162,7 @@ describe("storefront text registry", () => {
     }
     for (let index = 0; index < sortedKeys.length - 1; index += 1) {
       expect(
-        sortedKeys[index + 1]?.startsWith(`${sortedKeys[index]}.`)
+        sortedKeys[index + 1]?.startsWith(`${sortedKeys[index]}.`),
       ).toBeFalsy()
     }
   })
@@ -172,14 +172,14 @@ describe("storefront text registry", () => {
 
     for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
       const defaultValue = seedRows.find(
-        (row) => row.key === definition.key && row.market === "sk"
+        (row) => row.key === definition.key && row.market === "sk",
       )?.default_value
 
       expect(defaultValue).toBeTypeOf("string")
 
       for (const market of STOREFRONT_TEXT_MARKETS) {
         const localizedValue = seedRows.find(
-          (row) => row.key === definition.key && row.market === market.market
+          (row) => row.key === definition.key && row.market === market.market,
         )?.default_value
 
         expect(localizedValue).toBeTypeOf("string")
@@ -189,7 +189,7 @@ describe("storefront text registry", () => {
             locale: market.locale,
             overrideValue: localizedValue ?? "",
           }),
-          `${definition.key} (${market.market})`
+          `${definition.key} (${market.market})`,
         ).toStrictEqual({ success: true })
       }
     }
@@ -197,13 +197,13 @@ describe("storefront text registry", () => {
 
   it("creates localized search defaults for every market", () => {
     const searchPlaceholderRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "search.input_placeholder"
+      (row) => row.key === "search.input_placeholder",
     )
 
     expect(
       Object.fromEntries(
-        searchPlaceholderRows.map((row) => [row.market, row.default_value])
-      )
+        searchPlaceholderRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Napište, co hledáte...",
       hu: "Írja be, mit keres...",
@@ -214,13 +214,13 @@ describe("storefront text registry", () => {
 
   it("creates localized catalog defaults for every market", () => {
     const catalogSortRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "catalog.sort.recommended"
+      (row) => row.key === "catalog.sort.recommended",
     )
 
     expect(
       Object.fromEntries(
-        catalogSortRows.map((row) => [row.market, row.default_value])
-      )
+        catalogSortRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Doporučujeme",
       hu: "Ajánlott",
@@ -231,13 +231,13 @@ describe("storefront text registry", () => {
 
   it("creates localized catalog facet defaults for every market", () => {
     const inStockRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "catalog.filters.status.in_stock"
+      (row) => row.key === "catalog.filters.status.in_stock",
     )
 
     expect(
       Object.fromEntries(
-        inStockRows.map((row) => [row.market, row.default_value])
-      )
+        inStockRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Skladem",
       hu: "Raktáron",
@@ -248,13 +248,13 @@ describe("storefront text registry", () => {
 
   it("creates localized pickup-selector defaults for every market", () => {
     const selectPickupPointRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "checkout.select_pickup_point"
+      (row) => row.key === "checkout.select_pickup_point",
     )
 
     expect(
       Object.fromEntries(
-        selectPickupPointRows.map((row) => [row.market, row.default_value])
-      )
+        selectPickupPointRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Vybrat výdejní místo",
       hu: "Átvételi pont kiválasztása",
@@ -265,13 +265,13 @@ describe("storefront text registry", () => {
 
   it("creates localized payment-return defaults for every market", () => {
     const verifyingPaymentRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "checkout.payment_return_verifying_title"
+      (row) => row.key === "checkout.payment_return_verifying_title",
     )
 
     expect(
       Object.fromEntries(
-        verifyingPaymentRows.map((row) => [row.market, row.default_value])
-      )
+        verifyingPaymentRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Ověřujeme platbu",
       hu: "A fizetés ellenőrzése",
@@ -282,13 +282,13 @@ describe("storefront text registry", () => {
 
   it("creates localized payment-provider defaults for every market", () => {
     const cardGatewayRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "checkout.payment_provider_card_gateway"
+      (row) => row.key === "checkout.payment_provider_card_gateway",
     )
 
     expect(
       Object.fromEntries(
-        cardGatewayRows.map((row) => [row.market, row.default_value])
-      )
+        cardGatewayRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Platba kartou online ({providerName})",
       hu: "Online bankkártyás fizetés ({providerName})",
@@ -299,13 +299,13 @@ describe("storefront text registry", () => {
 
   it("creates localized free-shipping defaults for every market", () => {
     const freeShippingRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "checkout.free_shipping_remaining"
+      (row) => row.key === "checkout.free_shipping_remaining",
     )
 
     expect(
       Object.fromEntries(
-        freeShippingRows.map((row) => [row.market, row.default_value])
-      )
+        freeShippingRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Nakupte ještě za {missingAmount} a získejte <strong>dopravu zdarma.</strong>",
       hu: "Vásároljon még {missingAmount} értékben, és kapjon <strong>ingyenes szállítást.</strong>",
@@ -316,13 +316,13 @@ describe("storefront text registry", () => {
 
   it("creates localized completed-order defaults for every market", () => {
     const completedOrderTitleRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "checkout.completed_order_title"
+      (row) => row.key === "checkout.completed_order_title",
     )
 
     expect(
       Object.fromEntries(
-        completedOrderTitleRows.map((row) => [row.market, row.default_value])
-      )
+        completedOrderTitleRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Objednávka dokončena",
       hu: "Rendelés befejezve",
@@ -333,13 +333,13 @@ describe("storefront text registry", () => {
 
   it("creates localized checkout-review defaults for every market", () => {
     const marketingConsentRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "checkout.review_marketing_consent"
+      (row) => row.key === "checkout.review_marketing_consent",
     )
 
     expect(
       Object.fromEntries(
-        marketingConsentRows.map((row) => [row.market, row.default_value])
-      )
+        marketingConsentRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Souhlasím se zasíláním marketingových sdělení",
       hu: "Hozzájárulok marketinginformációk küldéséhez",
@@ -350,11 +350,13 @@ describe("storefront text registry", () => {
 
   it("creates localized navigation defaults for every market", () => {
     const homeRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "navigation.breadcrumbs.home"
+      (row) => row.key === "navigation.breadcrumbs.home",
     )
 
     expect(
-      Object.fromEntries(homeRows.map((row) => [row.market, row.default_value]))
+      Object.fromEntries(
+        homeRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Domů",
       hu: "Főoldal",
@@ -365,13 +367,13 @@ describe("storefront text registry", () => {
 
   it("creates localized search-result defaults for every market", () => {
     const searchResultRows = getStorefrontTextSeedRows().filter(
-      (row) => row.key === "search.results.title"
+      (row) => row.key === "search.results.title",
     )
 
     expect(
       Object.fromEntries(
-        searchResultRows.map((row) => [row.market, row.default_value])
-      )
+        searchResultRows.map((row) => [row.market, row.default_value]),
+      ),
     ).toStrictEqual({
       cz: "Vyhledávání",
       hu: "Keresés",
@@ -388,7 +390,7 @@ describe("storefront text values", () => {
         default_value: "Default",
         override_value: "Override",
         status: "active",
-      })
+      }),
     ).toBe("Override")
   })
 
@@ -398,14 +400,14 @@ describe("storefront text values", () => {
         default_value: "Default",
         override_value: null,
         status: "active",
-      })
+      }),
     ).toBe("Default")
     expect(
       getEffectiveStorefrontTextValue({
         default_value: "Default",
         override_value: "Draft override",
         status: "draft",
-      })
+      }),
     ).toBe("Default")
   })
 
@@ -424,8 +426,8 @@ describe("storefront text values", () => {
             status: "active",
           },
         ],
-        "cs-CZ"
-      )
+        "cs-CZ",
+      ),
     ).toStrictEqual(defaultMessages)
   })
 })
@@ -439,7 +441,7 @@ describe("storefront text ICU validation", () => {
         defaultValue,
         locale: "hu-HU",
         overrideValue: "{count, plural, =0 {Szűrő} other {Szűrő (#)}}",
-      })
+      }),
     ).toStrictEqual({ success: true })
   })
 
@@ -449,7 +451,7 @@ describe("storefront text ICU validation", () => {
         defaultValue,
         locale: "cs-CZ",
         overrideValue: "{count, plural, other {Filtr}",
-      })
+      }),
     ).toMatchObject({ code: "invalid_override", success: false })
   })
 
@@ -459,14 +461,14 @@ describe("storefront text ICU validation", () => {
         defaultValue,
         locale: "cs-CZ",
         overrideValue: "{quantity, plural, =0 {Filtr} other {Filtr (#)}}",
-      })
+      }),
     ).toMatchObject({ code: "incompatible_override", success: false })
     expect(
       validateStorefrontTextOverride({
         defaultValue,
         locale: "cs-CZ",
         overrideValue: "Filtr ({count})",
-      })
+      }),
     ).toMatchObject({ code: "incompatible_override", success: false })
   })
 })
@@ -477,7 +479,7 @@ describe("storefront text admin validation", () => {
       AdminGetStorefrontTextsSchema.safeParse({
         locale: "sk-SK",
         market: "cz",
-      }).success
+      }).success,
     ).toBeFalsy()
   })
 
@@ -485,25 +487,26 @@ describe("storefront text admin validation", () => {
     expect(
       AdminUpdateStorefrontTextSchema.safeParse({
         override_value: "Do košíku",
-      }).success
+      }).success,
     ).toBeTruthy()
     expect(
       AdminUpdateStorefrontTextSchema.safeParse({
         override_value: null,
-      }).success
+      }).success,
     ).toBeTruthy()
   })
 
   it("rejects empty updates and blank overrides", () => {
     expect(AdminUpdateStorefrontTextSchema.safeParse({}).success).toBeFalsy()
     expect(
-      AdminUpdateStorefrontTextSchema.safeParse({ override_value: " " }).success
+      AdminUpdateStorefrontTextSchema.safeParse({ override_value: " " })
+        .success,
     ).toBeFalsy()
   })
 
   it("validates catalog export and import inputs", () => {
     expect(
-      AdminGetStorefrontTextCatalogSchema.safeParse({ market: "cz" }).success
+      AdminGetStorefrontTextCatalogSchema.safeParse({ market: "cz" }).success,
     ).toBeTruthy()
     expect(
       AdminImportStorefrontTextCatalogSchema.safeParse({
@@ -514,7 +517,7 @@ describe("storefront text admin validation", () => {
           schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
         },
         market: "cz",
-      }).success
+      }).success,
     ).toBeTruthy()
     expect(
       AdminImportStorefrontTextCatalogSchema.safeParse({
@@ -526,7 +529,7 @@ describe("storefront text admin validation", () => {
         },
         market: "cz",
         status: "draft",
-      }).success
+      }).success,
     ).toBeFalsy()
     expect(
       AdminImportStorefrontTextCatalogSchema.safeParse({
@@ -537,7 +540,7 @@ describe("storefront text admin validation", () => {
           schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
         },
         market: "cz",
-      }).success
+      }).success,
     ).toBeFalsy()
   })
 
@@ -564,7 +567,7 @@ describe("storefront text admin validation", () => {
     expect(
       parsedMessages !== null &&
         typeof parsedMessages === "object" &&
-        Object.hasOwn(parsedMessages, "__proto__")
+        Object.hasOwn(parsedMessages, "__proto__"),
     ).toBeTruthy()
   })
 })
@@ -618,10 +621,10 @@ describe("storefront text admin catalog", () => {
           }),
         }),
         schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
-      })
+      }),
     )
     expect(
-      response.json.mock.calls[0]?.[0]?.messages?.cart?.retired_key
+      response.json.mock.calls[0]?.[0]?.messages?.cart?.retired_key,
     ).toBeUndefined()
   })
 })
@@ -665,7 +668,7 @@ describe("storefront text admin search", () => {
         ],
         key: expect.arrayContaining(["cart.add_to_cart"]),
       }),
-      expect.objectContaining({ skip: 0, take: 20 })
+      expect.objectContaining({ skip: 0, take: 20 }),
     )
   })
 
@@ -681,7 +684,7 @@ describe("storefront text admin search", () => {
         ]),
         key: expect.arrayContaining(["cart.add_to_cart"]),
       }),
-      expect.objectContaining({ skip: 0, take: 20 })
+      expect.objectContaining({ skip: 0, take: 20 }),
     )
   })
 
@@ -715,7 +718,7 @@ describe("storefront text admin search", () => {
           search_scope: "all",
         },
       } as never,
-      response as never
+      response as never,
     )
 
     expect(response.json).toHaveBeenCalledWith(
@@ -727,7 +730,7 @@ describe("storefront text admin search", () => {
             has_override: true,
           }),
         ],
-      })
+      }),
     )
   })
 })
@@ -744,7 +747,7 @@ describe("storefront text store route", () => {
     }
 
     await expect(
-      GET(request as never, createResponse() as never)
+      GET(request as never, createResponse() as never),
     ).rejects.toThrow('Locale "sk-SK" does not belong to market "cz"')
     expect(resolve).not.toHaveBeenCalled()
   })
@@ -787,7 +790,7 @@ describe("storefront text store route", () => {
           "cart.add_to_cart": "Přidat",
           "cart.adding_to_cart": defaultMessages["cart.adding_to_cart"],
         }),
-      })
+      }),
     )
   })
 })

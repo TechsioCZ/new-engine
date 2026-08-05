@@ -65,7 +65,7 @@ describe("encryption utilities", () => {
       }
 
       expect(() => encryptFields({ value: "secret" }, ["value"])).toThrow(
-        expectedError
+        expectedError,
       )
     })
   })

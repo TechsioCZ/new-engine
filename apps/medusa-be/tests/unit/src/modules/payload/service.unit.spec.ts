@@ -19,7 +19,7 @@ const createCacheService = (): Mocked<PayloadCacheService> => ({
 })
 
 const createDependencies = (
-  cacheService?: PayloadCacheService
+  cacheService?: PayloadCacheService,
 ): PayloadDependencies => ({
   logger,
   ...(cacheService ? { [Modules.CACHING]: cacheService } : {}),
@@ -32,7 +32,7 @@ interface FetchResponseOverrides {
 
 const createFetchResponse = (
   payload: unknown,
-  overrides: FetchResponseOverrides = {}
+  overrides: FetchResponseOverrides = {},
 ) =>
   new Response(JSON.stringify(payload), {
     headers: { "Content-Type": "application/json" },
@@ -44,7 +44,7 @@ const createFetchResponse = (
  */
 const createBulkResponse = <T>(
   docs: T[],
-  options?: { page?: number; limit?: number }
+  options?: { page?: number; limit?: number },
 ) => ({
   docs,
   hasNextPage: false,
@@ -81,7 +81,7 @@ const createServiceWithoutCache = (options?: Partial<PayloadModuleOptions>) =>
 
 const callPrivateStringHelper = (
   service: PayloadModuleService,
-  methodName: "buildParamsQuery" | "buildQuery"
+  methodName: "buildParamsQuery" | "buildQuery",
 ): string => {
   const helper = Reflect.get(service, methodName)
   if (typeof helper !== "function") {
@@ -117,7 +117,7 @@ describe(PayloadModuleService, () => {
           new PayloadModuleService(createDependencies(), {
             apiKey: "test",
             serverUrl: "",
-          })
+          }),
       ).toThrow("Payload serverUrl is required")
     })
 
@@ -127,7 +127,7 @@ describe(PayloadModuleService, () => {
           new PayloadModuleService(createDependencies(), {
             apiKey: "",
             serverUrl: "https://payload.example.com",
-          })
+          }),
       ).toThrow("Payload apiKey is required")
     })
 
@@ -172,7 +172,7 @@ describe(PayloadModuleService, () => {
 
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
-        createFetchResponse(createBulkResponse([page]))
+        createFetchResponse(createBulkResponse([page])),
       )
 
       const result = await service.getPublishedPage("home", "en")
@@ -186,7 +186,7 @@ describe(PayloadModuleService, () => {
       expect(parsedUrl.pathname).toBe("/api/pages")
       expect(parsedUrl.searchParams.get("where[slug][equals]")).toBe("home")
       expect(parsedUrl.searchParams.get("where[status][equals]")).toBe(
-        "published"
+        "published",
       )
       expect(parsedUrl.searchParams.get("limit")).toBe("1")
       expect(parsedUrl.searchParams.get("locale")).toBe("en")
@@ -228,7 +228,7 @@ describe(PayloadModuleService, () => {
 
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
-        createFetchResponse(createBulkResponse([article]))
+        createFetchResponse(createBulkResponse([article])),
       )
 
       const result = await service.getPublishedArticle("news", "en")
@@ -238,7 +238,7 @@ describe(PayloadModuleService, () => {
         expect.objectContaining({
           key: "cms:articles:news:en",
           tags: ["cms", "cms:articles"],
-        })
+        }),
       )
     })
 
@@ -260,7 +260,7 @@ describe(PayloadModuleService, () => {
 
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
-        createFetchResponse(createBulkResponse([article]))
+        createFetchResponse(createBulkResponse([article])),
       )
 
       const result = await service.getPublishedArticle("news", "en")
@@ -283,7 +283,7 @@ describe(PayloadModuleService, () => {
             slug: "news",
             title: "News",
           },
-        })
+        }),
       )
     })
 
@@ -337,7 +337,7 @@ describe(PayloadModuleService, () => {
 
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
-        createFetchResponse(createBulkResponse(carousels))
+        createFetchResponse(createBulkResponse(carousels)),
       )
 
       const options = {
@@ -375,7 +375,7 @@ describe(PayloadModuleService, () => {
             "cms:hero-carousels:locale:en",
           ]),
           ttl: 456,
-        })
+        }),
       )
     })
 
@@ -384,11 +384,11 @@ describe(PayloadModuleService, () => {
 
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
-        createFetchResponse({ message: "Payload unavailable" }, { ok: false })
+        createFetchResponse({ message: "Payload unavailable" }, { ok: false }),
       )
 
       await expect(service.listHeroCarousels()).rejects.toThrow(
-        "Payload unavailable"
+        "Payload unavailable",
       )
     })
 
@@ -398,7 +398,7 @@ describe(PayloadModuleService, () => {
 
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
-        createFetchResponse(createBulkResponse(carousels))
+        createFetchResponse(createBulkResponse(carousels)),
       )
 
       const result = await service.listHeroCarousels()
@@ -415,7 +415,7 @@ describe(PayloadModuleService, () => {
 
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
-        createFetchResponse(createBulkResponse(carousels))
+        createFetchResponse(createBulkResponse(carousels)),
       )
 
       const result = await service.listHeroCarousels({ locale: "en" })
@@ -432,7 +432,7 @@ describe(PayloadModuleService, () => {
 
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
-        createFetchResponse(createBulkResponse(carousels))
+        createFetchResponse(createBulkResponse(carousels)),
       )
 
       const result = await service.listHeroCarousels({ locale: "en", page: 2 })
@@ -454,7 +454,7 @@ describe(PayloadModuleService, () => {
 
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
-        createFetchResponse(createBulkResponse(carousels))
+        createFetchResponse(createBulkResponse(carousels)),
       )
 
       const result = await service.listHeroCarousels({
@@ -479,7 +479,7 @@ describe(PayloadModuleService, () => {
 
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
-        createFetchResponse(createBulkResponse(carousels))
+        createFetchResponse(createBulkResponse(carousels)),
       )
 
       const result = await service.listHeroCarousels({ limit: 5, locale: "en" })
@@ -526,7 +526,7 @@ describe(PayloadModuleService, () => {
             "cms:page-categories",
             "cms:page-categories:locale:en",
           ]),
-        })
+        }),
       )
     })
 
@@ -611,7 +611,7 @@ describe(PayloadModuleService, () => {
             "cms:article-categories",
             "cms:article-categories:locale:en",
           ]),
-        })
+        }),
       )
     })
 
@@ -645,7 +645,7 @@ describe(PayloadModuleService, () => {
       const service = createServiceWithoutCache()
 
       await expect(
-        service.invalidateCache("pages", "home", "en")
+        service.invalidateCache("pages", "home", "en"),
       ).resolves.toBeUndefined()
     })
 

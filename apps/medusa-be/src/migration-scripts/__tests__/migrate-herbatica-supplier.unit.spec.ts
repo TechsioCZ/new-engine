@@ -29,7 +29,7 @@ describe("tracked Herbatica Supplier migration", () => {
 
     expect(result.ambiguousBrandIds).toStrictEqual(new Set())
     expect(result.supplierByBrandId).toStrictEqual(
-      new Map([["brand_1", "Current supplier"]])
+      new Map([["brand_1", "Current supplier"]]),
     )
   })
 
@@ -157,9 +157,9 @@ describe("tracked Herbatica Supplier migration", () => {
 
   it("fails when distinct Supplier labels normalize to the same option key", () => {
     expect(() =>
-      collectSupplierLabelsByKey(["Bio Herba", "Bio-Herba"])
+      collectSupplierLabelsByKey(["Bio Herba", "Bio-Herba"]),
     ).toThrow(
-      'Supplier option key collision from legacy labels "Bio Herba" and "Bio-Herba"'
+      'Supplier option key collision from legacy labels "Bio Herba" and "Bio-Herba"',
     )
   })
 

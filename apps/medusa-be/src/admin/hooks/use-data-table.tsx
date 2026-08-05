@@ -81,7 +81,7 @@ export const useDataTable = <TData,>({
   }, [offset, enablePagination, _pageSize, pageIndex])
 
   const onPaginationChange = (
-    updater: (old: PaginationState) => PaginationState
+    updater: (old: PaginationState) => PaginationState,
   ) => {
     const state = updater(pagination)
     const { pageIndex: nextPageIndex, pageSize: nextPageSize } = state

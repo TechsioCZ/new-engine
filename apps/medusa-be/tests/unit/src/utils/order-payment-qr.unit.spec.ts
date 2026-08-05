@@ -15,10 +15,10 @@ describe("order payment QR", () => {
           id: "order_123",
           total: 555.5,
         },
-        "CZ3301000000000002970297"
-      )
+        "CZ3301000000000002970297",
+      ),
     ).toBe(
-      "SPD*1.0*ACC:CZ3301000000000002970297*AM:555.50*CC:CZK*MSG:OBJEDNAVKA 12345*X-VS:12345"
+      "SPD*1.0*ACC:CZ3301000000000002970297*AM:555.50*CC:CZK*MSG:OBJEDNAVKA 12345*X-VS:12345",
     )
   })
 
@@ -35,8 +35,8 @@ describe("order payment QR", () => {
           },
           total: 999,
         },
-        "CZ9608000000005444195083"
-      )
+        "CZ9608000000005444195083",
+      ),
     ).toContain("*AM:123.45*")
   })
 
@@ -48,7 +48,7 @@ describe("order payment QR", () => {
         iban: "CZ9608000000005444195083",
         message: "OBJEDNAVKA 123456",
         reference: "123456",
-      })
+      }),
     ).toContain("*AM:250.00*")
   })
 
@@ -62,8 +62,8 @@ describe("order payment QR", () => {
           id: "order_123",
           total: "1000",
         },
-        "CZ33 0100 0000 0000 0297 0297"
-      )
+        "CZ33 0100 0000 0000 0297 0297",
+      ),
     ).toContain("*X-VS:20260001")
   })
 
@@ -76,10 +76,10 @@ describe("order payment QR", () => {
           id: "order_23",
           total: 578,
         },
-        "CZ9608000000005444195083"
-      )
+        "CZ9608000000005444195083",
+      ),
     ).toBe(
-      "SPD*1.0*ACC:CZ9608000000005444195083*AM:578.00*CC:CZK*MSG:OBJEDNAVKA 23*X-VS:23"
+      "SPD*1.0*ACC:CZ9608000000005444195083*AM:578.00*CC:CZK*MSG:OBJEDNAVKA 23*X-VS:23",
     )
   })
 
@@ -94,8 +94,8 @@ describe("order payment QR", () => {
             valueOf: () => "1109.90909",
           },
         },
-        "CZ9608000000005444195083"
-      )
+        "CZ9608000000005444195083",
+      ),
     ).toContain("*AM:1109.91*")
   })
 
@@ -108,15 +108,15 @@ describe("order payment QR", () => {
           id: "order_23",
           total: 578,
         },
-        "CZ9608000000005444195083"
-      )
+        "CZ9608000000005444195083",
+      ),
     ).toContain("*CC:CZK*")
   })
 
   it("builds PDF drawing commands from a SPAYD string", () => {
     const commands = orderPaymentQr.buildPdfCommands(
       "SPD*1.0*ACC:CZ3301000000000002970297*AM:42.00*CC:CZK",
-      { size: 86, x: 445, y: 684 }
+      { size: 86, x: 445, y: 684 },
     )
 
     expect(commands.length).toBeGreaterThan(1)
@@ -134,7 +134,7 @@ describe("order payment QR", () => {
         size: 86,
         x: 445,
         y: 684,
-      })
+      }),
     ).toStrictEqual([])
   })
 })

@@ -9,7 +9,7 @@ export const useManageItemsTableQuery = ({
 }) => {
   const raw = useQueryParams(
     ["q", "offset", "order", "created_at", "updated_at"],
-    prefix
+    prefix,
   )
 
   const { offset, created_at, updated_at, ...rest } = raw

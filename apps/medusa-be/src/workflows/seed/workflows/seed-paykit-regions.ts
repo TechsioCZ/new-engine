@@ -28,20 +28,20 @@ export interface SeedPaykitRegionsWorkflowInput {
 }
 
 function seedPaykitRegionsWorkflowComposer(
-  input: SeedPaykitRegionsWorkflowInput
+  input: SeedPaykitRegionsWorkflowInput,
 ) {
   const regionsWithPaykitProviders = transform({ input }, (data) =>
     withPaykitPaymentProviders(
       data.input.regions,
-      data.input.paymentProviderIds
-    )
+      data.input.paymentProviderIds,
+    ),
   )
 
   const missingRegions = transform({ regionsWithPaykitProviders }, (data) =>
     data.regionsWithPaykitProviders.filter(
       (region): region is CreateMissingPaykitRegionsStepInput[number] =>
-        !region.id
-    )
+        !region.id,
+    ),
   )
 
   const existingRegionPaymentProvidersInput = transform(
@@ -55,9 +55,9 @@ function seedPaykitRegionsWorkflowComposer(
                 payment_providers: region.paymentProviders,
               },
             ]
-          : []
+          : [],
       ),
-    })
+    }),
   )
 
   const existingRegionsInput = transform(
@@ -71,8 +71,8 @@ function seedPaykitRegionsWorkflowComposer(
                 id: region.id,
               },
             ]
-          : []
-      )
+          : [],
+      ),
   )
 
   const createMissingPaykitRegionsResult =
@@ -93,7 +93,7 @@ function seedPaykitRegionsWorkflowComposer(
 
 const seedPaykitRegionsWorkflow = createWorkflow(
   SeedPaykitRegionsWorkflowId,
-  seedPaykitRegionsWorkflowComposer
+  seedPaykitRegionsWorkflowComposer,
 )
 
 export default seedPaykitRegionsWorkflow

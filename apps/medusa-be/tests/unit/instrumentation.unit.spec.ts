@@ -70,7 +70,7 @@ describe("instrumentation", () => {
       expect.objectContaining({
         beforeSend: expect.any(Function),
         dsn: process.env["SENTRY_DSN"],
-      })
+      }),
     )
 
     const sentryOptions = sentryInit.mock.calls[0]?.[0]
@@ -81,12 +81,12 @@ describe("instrumentation", () => {
     const { beforeSend } = sentryOptions
     const event = { event_id: "evt_1" }
     expect(
-      beforeSend(event, { originalException: new Error("ignore") })
+      beforeSend(event, { originalException: new Error("ignore") }),
     ).toBeNull()
 
     vi.mocked(shouldCaptureException).mockReturnValue(true)
     expect(beforeSend(event, { originalException: new Error("capture") })).toBe(
-      event
+      event,
     )
 
     expect(sentryPropagatorMock).toHaveBeenCalledOnce()
@@ -120,7 +120,7 @@ describe("instrumentation", () => {
         serviceName: process.env["SENTRY_NAME"] ?? "medusa-default",
         spanProcessors: [spanProcessorResult.value],
         traceExporter: exporterResult.value,
-      })
+      }),
     )
   })
 })

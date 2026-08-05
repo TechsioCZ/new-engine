@@ -43,7 +43,7 @@ const buildListParams = (input: ProductListInputBase): ProductListParams => {
 const trackedClients: QueryClient[] = []
 
 const createTestClient = (
-  config?: ConstructorParameters<typeof QueryClient>[0]
+  config?: ConstructorParameters<typeof QueryClient>[0],
 ) => {
   const client = new QueryClient(config)
   trackedClients.push(client)
@@ -85,7 +85,7 @@ describe("storefront-data network smoke", () => {
         }
 
         return HttpResponse.json(payload)
-      })
+      }),
     )
   })
 
@@ -139,7 +139,7 @@ describe("storefront-data network smoke", () => {
           page: 1,
           region_id: "reg_test",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {

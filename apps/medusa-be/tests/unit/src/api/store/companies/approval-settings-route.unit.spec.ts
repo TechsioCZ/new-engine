@@ -69,13 +69,13 @@ describe("POST /store/companies/:id/approval-settings", () => {
     await POST(req, res)
 
     expect(workflowMocks.ensureApprovalSettingsWorkflow).toHaveBeenCalledWith(
-      req.scope
+      req.scope,
     )
     expect(workflowMocks.ensureApprovalSettingsRun).toHaveBeenCalledWith({
       input: ["comp_1"],
     })
     expect(workflowMocks.updateApprovalSettingsWorkflow).toHaveBeenCalledWith(
-      req.scope
+      req.scope,
     )
     expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
       input: {
@@ -101,7 +101,7 @@ describe("POST /store/companies/:id/approval-settings", () => {
 
     expect(workflowMocks.ensureApprovalSettingsRun).not.toHaveBeenCalled()
     expect(workflowMocks.updateApprovalSettingsWorkflow).toHaveBeenCalledWith(
-      req.scope
+      req.scope,
     )
     expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
       input: {

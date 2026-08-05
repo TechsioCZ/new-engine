@@ -23,7 +23,7 @@ export interface ProductDetailParams {
 
 export async function getProducts(
   params: ProductQueryParams,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<ProductListResponse> {
   const { category_id, region_id, country_code, limit, offset, fields } = params
 
@@ -103,13 +103,13 @@ export async function getProducts(
  * Use for root categories that should complete even after navigation
  */
 export async function getProductsGlobal(
-  params: ProductQueryParams
+  params: ProductQueryParams,
 ): Promise<ProductListResponse> {
   return getProducts(params)
 }
 
 export async function getProductByHandle(
-  params: ProductDetailParams
+  params: ProductDetailParams,
 ): Promise<StoreProduct | null> {
   const { handle, region_id, country_code } = params
 
@@ -127,7 +127,7 @@ export async function getProductByHandle(
     if (process.env.NODE_ENV === "development") {
       console.error(
         "[ProductService] Failed to fetch product by handle:",
-        error
+        error,
       )
     }
     const message = error instanceof Error ? error.message : "Unknown error"

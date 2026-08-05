@@ -49,7 +49,7 @@ export type MedusaOrderDetailHookInput = MedusaOrderDetailInput & {
  */
 export function createMedusaOrderService(
   sdk: Medusa,
-  config?: MedusaOrderServiceConfig
+  config?: MedusaOrderServiceConfig,
 ): OrderService<
   HttpTypes.StoreOrder,
   MedusaOrderListInput,
@@ -69,7 +69,7 @@ export function createMedusaOrderService(
   return {
     async getOrder(
       params: MedusaOrderDetailInput,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<HttpTypes.StoreOrder | null> {
       if (!params.id) {
         return null
@@ -97,7 +97,7 @@ export function createMedusaOrderService(
 
     async getOrders(
       params: MedusaOrderListInput,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<OrderListResponse<HttpTypes.StoreOrder>> {
       const response = await sdk.client.fetch<HttpTypes.StoreOrderListResponse>(
         "/store/orders",
@@ -109,7 +109,7 @@ export function createMedusaOrderService(
             offset: params.offset,
           },
           signal: signal ?? null,
-        }
+        },
       )
       return {
         orders: response.orders ?? [],

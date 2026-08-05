@@ -27,7 +27,7 @@ export default async function priceListPricesUpdateRequestedHandler({
     lockKey: `symmy-price-list-prices-update:${data.job_id}`,
     run: async (input) => {
       const { result } = await updatePriceListPricesBatchWorkflow(
-        container
+        container,
       ).run({
         input,
       })

@@ -27,7 +27,7 @@ export const changeProductListItemQuantityStep = createStep(
     if (quantity < 1) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Quantity cannot be changed below 1"
+        "Quantity cannot be changed below 1",
       )
     }
 
@@ -52,5 +52,5 @@ export const changeProductListItemQuantityStep = createStep(
         id: input.item_id,
         quantity: input.previous_quantity,
       })
-  }
+  },
 )

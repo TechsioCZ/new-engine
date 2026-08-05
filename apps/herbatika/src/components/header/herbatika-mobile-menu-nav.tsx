@@ -36,7 +36,7 @@ type HerbatikaMobileMenuEntry =
   | HerbatikaMobileMenuGroupEntry
 
 const SUBMENU_ROOT_HANDLES = new Set<string>(
-  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle)
+  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle),
 )
 
 const resolveRootHandleFromHref = (href: string) => {
@@ -52,7 +52,7 @@ const resolveMobileChildItems = (
     handle: string
     id: string
     label: string
-  }[]
+  }[],
 ): readonly HerbatikaMobileMenuChildItem[] =>
   featuredItems.map((item) => ({
     href: `/c/${item.handle}`,
@@ -63,7 +63,7 @@ const resolveMobileChildItems = (
 const buildMobileMenuEntries = (
   groupsByRootHandle: ReturnType<
     typeof useHerbatikaHeaderSubmenu
-  >["groupsByRootHandle"]
+  >["groupsByRootHandle"],
 ): readonly HerbatikaMobileMenuEntry[] =>
   PRIMARY_NAV_ITEMS.map((item) => {
     const rootHandle = resolveRootHandleFromHref(item.href)
@@ -89,13 +89,13 @@ const buildMobileMenuEntries = (
 
 const resolveExpandedValues = (
   pathname: string,
-  mobileMenuEntries: readonly HerbatikaMobileMenuEntry[]
+  mobileMenuEntries: readonly HerbatikaMobileMenuEntry[],
 ) => {
   const activeGroup = mobileMenuEntries.find(
     (entry) =>
       entry.type === "group" &&
       (pathname === entry.href ||
-        entry.items.some((item) => item.href === pathname))
+        entry.items.some((item) => item.href === pathname)),
   )
 
   if (!activeGroup || activeGroup.type !== "group") {
@@ -115,19 +115,19 @@ export function HerbatikaMobileMenuNav() {
   const { groupsByRootHandle } = useHerbatikaHeaderSubmenu()
   const mobileMenuEntries = buildMobileMenuEntries(groupsByRootHandle)
   const [expandedValues, setExpandedValues] = useState<string[]>(() =>
-    resolveExpandedValues(pathname, mobileMenuEntries)
+    resolveExpandedValues(pathname, mobileMenuEntries),
   )
 
   useEffect(() => {
     const nextExpandedValues = resolveExpandedValues(
       pathname,
-      mobileMenuEntries
+      mobileMenuEntries,
     )
 
     setExpandedValues((currentExpandedValues) =>
       areExpandedValuesEqual(currentExpandedValues, nextExpandedValues)
         ? currentExpandedValues
-        : nextExpandedValues
+        : nextExpandedValues,
     )
   }, [mobileMenuEntries, pathname])
 
@@ -187,7 +187,7 @@ export function HerbatikaMobileMenuNav() {
                 {entry.label}
               </NextLink>
             </Header.NavItem>
-          )
+          ),
         )}
       </Accordion>
     </Header.Nav>

@@ -5,7 +5,7 @@ import type { FormEvent } from "react"
  */
 export function handleFormSubmit(
   event: FormEvent<HTMLFormElement>,
-  callback: () => void
+  callback: () => void,
 ) {
   event.preventDefault()
   callback()

@@ -54,7 +54,7 @@ describe(PaykitGopayPaymentProvider, () => {
     expect(client.payments.create).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: 1050,
-      })
+      }),
     )
   })
 
@@ -88,7 +88,7 @@ describe(PaykitGopayPaymentProvider, () => {
           return_url: "https://shop.example/pokladna",
           success_url: "https://shop.example/pokladna",
         },
-      })
+      }),
     )
   })
 
@@ -123,7 +123,7 @@ describe(PaykitGopayPaymentProvider, () => {
           return_url: "https://shop.example/return",
           success_url: "https://shop.example/success",
         },
-      })
+      }),
     )
   })
 
@@ -151,7 +151,7 @@ describe(PaykitGopayPaymentProvider, () => {
     expect(client.payments.create).toHaveBeenCalledWith(
       expect.objectContaining({
         provider_metadata: {},
-      })
+      }),
     )
   })
 
@@ -164,7 +164,7 @@ describe(PaykitGopayPaymentProvider, () => {
         goId: "go-id",
         isSandbox: true,
         webhookUrl: "https://shop.example/gopay",
-      })
+      }),
     ).toStrictEqual({
       clientId: "client-id",
       clientSecret: "secret",
@@ -234,7 +234,7 @@ describe(PaykitGopayPaymentProvider, () => {
         },
         headers: {},
         rawData: "",
-      })
+      }),
     ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {

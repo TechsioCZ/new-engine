@@ -91,7 +91,10 @@ export interface AddressValidationOptions {
 // Universal address validation function
 export const validateAddress = (
   address: Partial<AddressData>,
-  options: AddressValidationOptions = { requireEmail: true, requirePhone: true }
+  options: AddressValidationOptions = {
+    requireEmail: true,
+    requirePhone: true,
+  },
 ): Record<string, string> => {
   const errors: Record<string, string> = {}
   const prefix = options.prefix ? options.prefix : ""

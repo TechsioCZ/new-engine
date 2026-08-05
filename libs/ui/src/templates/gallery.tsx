@@ -23,7 +23,7 @@ import type {
 
 function resolveSlides(
   items: GalleryItem[],
-  renderSlide?: (params: { item: GalleryItem; index: number }) => ReactNode
+  renderSlide?: (params: { item: GalleryItem; index: number }) => ReactNode,
 ) {
   if (!renderSlide) {
     return items

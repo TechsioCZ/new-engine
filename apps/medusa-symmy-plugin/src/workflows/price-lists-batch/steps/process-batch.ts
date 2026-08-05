@@ -22,25 +22,25 @@ const toErrorMessage = (error: unknown) =>
 const updatePrices = async (
   client: PriceListsClient,
   priceListId: string,
-  prices: PriceInput[]
+  prices: PriceInput[],
 ): Promise<UpdatePriceListPricesBatchOutput> => {
   const variantMaps = await client.preloadVariants(prices)
   const existingPrices = await client.preloadPrices(
     priceListId,
     prices,
-    variantMaps
+    variantMaps,
   )
   const payload = priceListsClientMapperHelper.buildPriceBatchPayload(
     prices,
     variantMaps,
-    existingPrices
+    existingPrices,
   )
 
   try {
     await client.applyPrices(priceListId, payload.create, payload.update)
     priceListsClientMapperHelper.markPriceBatchSuccess(
       payload.owners,
-      payload.results
+      payload.results,
     )
   } catch (error) {
     const message = toErrorMessage(error)
@@ -57,7 +57,7 @@ const updatePrices = async (
   }
 
   const pricesUpdated = payload.results.filter(
-    (result) => result?.status === "updated"
+    (result) => result?.status === "updated",
   ).length
   const pricesFailed = payload.results.length - pricesUpdated
   return {
@@ -111,7 +111,7 @@ const processPriceListForBatch = async ({
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to upsert price list (${input.code}): ${message}`
+      `[symmy-plugin] Failed to upsert price list (${input.code}): ${message}`,
     )
     return {
       code: input.code,
@@ -126,7 +126,7 @@ export const symmyUpdatePriceListPricesBatchStep = createStep(
   async (input: UpdatePriceListPricesBatchInput, { container }) => {
     const client = new PriceListsClient(container)
     const priceListIndex = await client.preloadPriceListsByCodes(
-      new Set([input.code])
+      new Set([input.code]),
     )
     const priceList = priceListIndex.byCode.get(input.code)
     if (!priceList) {
@@ -145,9 +145,9 @@ export const symmyUpdatePriceListPricesBatchStep = createStep(
       })
     }
     return new StepResponse(
-      await updatePrices(client, priceList.id, input.prices)
+      await updatePrices(client, priceList.id, input.prices),
     )
-  }
+  },
 )
 
 export const symmyUpsertPriceListsBatchStep = createStep(
@@ -169,12 +169,12 @@ export const symmyUpsertPriceListsBatchStep = createStep(
           input: priceList,
           logger,
           priceListIndex,
-        })
+        }),
       )
     }
 
     const processed = results.filter(
-      (result) => result.status !== "failed"
+      (result) => result.status !== "failed",
     ).length
     const failed = results.length - processed
     return new StepResponse<UpsertPriceListsBatchOutput>({
@@ -183,7 +183,7 @@ export const symmyUpsertPriceListsBatchStep = createStep(
       results,
       success: failed === 0,
     })
-  }
+  },
 )
 
 export const symmyListPriceListsStep = createStep(
@@ -197,7 +197,7 @@ export const symmyListPriceListsStep = createStep(
         ...(input.code === undefined ? {} : { code: input.code }),
         limit,
         offset,
-      })
+      }),
     )
-  }
+  },
 )

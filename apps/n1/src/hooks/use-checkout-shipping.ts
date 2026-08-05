@@ -40,7 +40,7 @@ export interface UseCheckoutShippingReturn {
 
 export function useCheckoutShipping(
   cartId?: string,
-  cart?: Cart | null
+  cart?: Cart | null,
 ): UseCheckoutShippingReturn {
   const queryClient = useQueryClient()
   const toast = useCartToast()
@@ -94,13 +94,13 @@ export function useCheckoutShipping(
 
       // Snapshot previous value for rollback
       const previousCart = queryClient.getQueryData<Cart>(
-        queryKeys.cart.active()
+        queryKeys.cart.active(),
       )
 
       // Optimistically update cart with new shipping method
       if (previousCart && shippingOptions) {
         const selectedOption = shippingOptions.find(
-          (opt) => opt.id === optionId
+          (opt) => opt.id === optionId,
         )
 
         if (selectedOption) {
@@ -158,7 +158,7 @@ export function useCheckoutShipping(
 
   // Derive selected option from shippingOptions + selectedShippingMethodId
   const selectedOption = shippingOptions?.find(
-    (opt) => opt.id === selectedShippingMethodId
+    (opt) => opt.id === selectedShippingMethodId,
   )
 
   // Wrapper for easier API - accepts optionId and optional data

@@ -14,7 +14,7 @@ function formatDate(date: Date, options?: DateFormatOptions): string {
 
 export function formatDateString(
   dateString: string,
-  options?: DateFormatOptions
+  options?: DateFormatOptions,
 ): string {
   try {
     return formatDate(new Date(dateString), options)

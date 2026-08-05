@@ -10,7 +10,7 @@ interface TriggerZaneDeployDeps {
 
 export async function handleTriggerZaneDeploy(
   request: Request,
-  deps: TriggerZaneDeployDeps
+  deps: TriggerZaneDeployDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

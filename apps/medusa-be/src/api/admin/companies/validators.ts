@@ -11,7 +11,7 @@ export const AdminGetCompanyParams = createFindParams().merge(
     order_by: z.string().optional(),
     q: z.string().optional(),
     status: z.enum(["active", "deleted", "all"]).optional(),
-  })
+  }),
 )
 
 export type AdminCreateCompanyType = z.infer<typeof AdminCreateCompany>

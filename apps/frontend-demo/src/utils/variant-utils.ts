@@ -3,7 +3,7 @@ import type { ProductVariant } from "@/types/product"
 const SIZE_ORDER = ["xs", "s", "m", "l", "xl", "2x", "3x", "4x"]
 
 export function sortVariantsBySize(
-  variants: ProductVariant[]
+  variants: ProductVariant[],
 ): ProductVariant[] {
   return [...variants].sort((a, b) => {
     const aTitle = a.title ?? ""

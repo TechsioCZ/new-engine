@@ -9,7 +9,7 @@ import type { StoreUpdateApprovalType } from "../validators"
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<StoreUpdateApprovalType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const { customer_id } = req.auth_context.app_metadata as {
     customer_id: string
@@ -19,7 +19,7 @@ export const POST = async (
   const { status } = req.validatedBody
 
   const { result: approval, errors } = await updateApprovalsWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
       handled_by: customer_id,

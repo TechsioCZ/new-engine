@@ -54,17 +54,17 @@ export interface MutationOptions<TData, TVariables, TContext = unknown> {
   onSuccess?: (
     data: TData,
     variables: TVariables,
-    context: TContext | undefined
+    context: TContext | undefined,
   ) => void
   onError?: (
     error: unknown,
     variables: TVariables,
-    context: TContext | undefined
+    context: TContext | undefined,
   ) => void
   onSettled?: (
     data: TData | undefined,
     error: unknown,
     variables: TVariables,
-    context: TContext | undefined
+    context: TContext | undefined,
   ) => void
 }

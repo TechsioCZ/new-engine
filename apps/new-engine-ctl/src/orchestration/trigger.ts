@@ -32,7 +32,7 @@ export async function executeTriggerPayload(input: {
       })
     : await new ZaneOperatorClient(
         input.baseUrl,
-        input.apiToken
+        input.apiToken,
       ).triggerDeploys({
         environment_name: input.environmentName,
         git_commit_sha: input.gitCommitSha,

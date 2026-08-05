@@ -50,7 +50,7 @@ const PRODUCT_DESCRIPTION_EDITOR_MODAL_OPEN_CLASS =
 const setStoredDisplay = (
   element: HTMLElement,
   displayAttribute: string,
-  hiddenAttribute: string
+  hiddenAttribute: string,
 ) => {
   if (!element.hasAttribute(displayAttribute)) {
     element.setAttribute(displayAttribute, element.style.display)
@@ -64,7 +64,7 @@ const setStoredDisplay = (
 const restoreStoredDisplay = (
   selector: string,
   displayAttribute: string,
-  hiddenAttribute: string
+  hiddenAttribute: string,
 ) => {
   const elements = document.querySelectorAll<HTMLElement>(selector)
 
@@ -80,7 +80,7 @@ const restoreProductDescriptionDetailRow = () => {
   restoreStoredDisplay(
     `[${DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE}="true"]`,
     DETAIL_DESCRIPTION_ROW_DISPLAY_ATTRIBUTE,
-    DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE
+    DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE,
   )
 }
 
@@ -91,7 +91,7 @@ const hideProductDescriptionDetailRow = () => {
   }
 
   const rows = document.querySelectorAll<HTMLElement>(
-    PRODUCT_DETAIL_DESCRIPTION_ROW_SELECTOR
+    PRODUCT_DETAIL_DESCRIPTION_ROW_SELECTOR,
   )
 
   for (const row of rows) {
@@ -101,7 +101,7 @@ const hideProductDescriptionDetailRow = () => {
       setStoredDisplay(
         row,
         DETAIL_DESCRIPTION_ROW_DISPLAY_ATTRIBUTE,
-        DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE
+        DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE,
       )
     }
   }
@@ -112,7 +112,7 @@ const restoreNativeProductDescriptionField = () => {
   restoreStoredDisplay(
     `[${NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE}="true"]`,
     NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE,
-    NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE
+    NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE,
   )
 }
 
@@ -125,10 +125,10 @@ const hideNativeProductDescriptionField = () => {
   document.body.classList.add(PRODUCT_DESCRIPTION_EDITOR_MODAL_OPEN_CLASS)
 
   const textarea = document.querySelector<HTMLTextAreaElement>(
-    NATIVE_DESCRIPTION_FIELD_SELECTOR
+    NATIVE_DESCRIPTION_FIELD_SELECTOR,
   )
   const field = textarea?.closest<HTMLElement>(
-    NATIVE_DESCRIPTION_FIELD_WRAPPER_SELECTOR
+    NATIVE_DESCRIPTION_FIELD_WRAPPER_SELECTOR,
   )
 
   if (!(textarea && field)) {
@@ -141,7 +141,7 @@ const hideNativeProductDescriptionField = () => {
   setStoredDisplay(
     field,
     NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE,
-    NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE
+    NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE,
   )
 }
 
@@ -156,7 +156,7 @@ const ProductDescriptionEditor = ({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [savedSectionHtml, setSavedSectionHtml] = useState(() =>
-    getProductSectionHtml(product)
+    getProductSectionHtml(product),
   )
   const sectionHtmlRef = useRef(savedSectionHtml)
   const sectionHtmlDirtyRef = useRef(false)
@@ -231,7 +231,7 @@ const ProductDescriptionEditor = ({
             [CONTENT_SECTIONS_METADATA_KEY]: buildContentSections(sectionsHtml),
             [CONTENT_SECTIONS_MAP_METADATA_KEY]: buildContentSectionsMap(
               product?.metadata,
-              sectionsHtml
+              sectionsHtml,
             ),
           },
         },
@@ -241,7 +241,7 @@ const ProductDescriptionEditor = ({
       toast.error(
         error instanceof Error
           ? error.message
-          : t("productContentSections.errors.saveFailed")
+          : t("productContentSections.errors.saveFailed"),
       )
     },
     onSuccess: async (response, variables) => {
@@ -260,7 +260,7 @@ const ProductDescriptionEditor = ({
 
       const nextSectionHtml = getSavedSectionHtml(
         response.product,
-        variables.sectionsHtml
+        variables.sectionsHtml,
       )
 
       sectionHtmlDirtyRef.current = false
@@ -309,7 +309,7 @@ const ProductDescriptionEditor = ({
             </div>
             <RichHtmlEditor
               ariaLabel={t(
-                `productContentSections.sections.${section.key}.ariaLabel`
+                `productContentSections.sections.${section.key}.ariaLabel`,
               )}
               onChangeHtml={(html) => {
                 sectionHtmlDirtyRef.current = true

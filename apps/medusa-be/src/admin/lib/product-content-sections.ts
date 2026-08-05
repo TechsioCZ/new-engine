@@ -35,18 +35,18 @@ export const CONTENT_SECTIONS_METADATA_KEY = "content_sections"
 export const CONTENT_SECTIONS_MAP_METADATA_KEY = "content_sections_map"
 
 const isProductMetadataRecord = (
-  value: unknown
+  value: unknown,
 ): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
 const getMetadataValue = (
   metadata: AdminProduct["metadata"] | undefined,
-  key: string
+  key: string,
 ) => (isProductMetadataRecord(metadata) ? metadata[key] : undefined)
 
 const getMetadataRecord = (
   metadata: AdminProduct["metadata"] | undefined,
-  key: string
+  key: string,
 ) => {
   const value = getMetadataValue(metadata, key)
 
@@ -55,7 +55,7 @@ const getMetadataRecord = (
 
 const getContentSectionsListHtml = (
   metadata: AdminProduct["metadata"] | undefined,
-  key: ProductContentSectionKey
+  key: ProductContentSectionKey,
 ) => {
   const value = getMetadataValue(metadata, CONTENT_SECTIONS_METADATA_KEY)
 
@@ -80,11 +80,11 @@ const getContentSectionsListHtml = (
 
 const getMetadataSectionHtml = (
   metadata: AdminProduct["metadata"] | undefined,
-  key: ProductContentSectionKey
+  key: ProductContentSectionKey,
 ) => {
   const contentSectionsMap = getMetadataRecord(
     metadata,
-    CONTENT_SECTIONS_MAP_METADATA_KEY
+    CONTENT_SECTIONS_MAP_METADATA_KEY,
   )
   const value = contentSectionsMap?.[key]
 
@@ -128,12 +128,12 @@ export const buildContentSections = (sectionsHtml: ProductContentSectionHtml) =>
 
 export const buildContentSectionsMap = (
   metadata: AdminProduct["metadata"] | undefined,
-  sectionsHtml: ProductContentSectionHtml
+  sectionsHtml: ProductContentSectionHtml,
 ) => {
   const contentSectionsMap: Record<string, string> = {}
   const existingContentSectionsMap = getMetadataRecord(
     metadata,
-    CONTENT_SECTIONS_MAP_METADATA_KEY
+    CONTENT_SECTIONS_MAP_METADATA_KEY,
   )
 
   if (existingContentSectionsMap) {
@@ -153,15 +153,15 @@ export const buildContentSectionsMap = (
 
 export const getSavedSectionHtml = (
   responseProduct: AdminProduct,
-  submittedSectionsHtml: ProductContentSectionHtml
+  submittedSectionsHtml: ProductContentSectionHtml,
 ) => {
   const responseHasContentMetadata =
     getMetadataRecord(
       responseProduct.metadata,
-      CONTENT_SECTIONS_MAP_METADATA_KEY
+      CONTENT_SECTIONS_MAP_METADATA_KEY,
     ) !== null ||
     Array.isArray(
-      getMetadataValue(responseProduct.metadata, CONTENT_SECTIONS_METADATA_KEY)
+      getMetadataValue(responseProduct.metadata, CONTENT_SECTIONS_METADATA_KEY),
     )
 
   if (responseHasContentMetadata) {

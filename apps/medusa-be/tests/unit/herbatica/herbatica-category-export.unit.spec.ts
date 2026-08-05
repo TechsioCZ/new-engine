@@ -14,7 +14,7 @@ import { readXmlSource } from "../../../src/scripts/herbatica-xml-utils"
 describe("Herbatica category export parser", () => {
   const xmlPath = resolve(
     process.cwd(),
-    "src/scripts/seed-files/categories.xml"
+    "src/scripts/seed-files/categories.xml",
   )
   const categories = parseHerbaticaCategoriesXmlFile(xmlPath)
 
@@ -41,13 +41,13 @@ describe("Herbatica category export parser", () => {
       url: "trapi-ma",
     })
     expect(stripHtmlToPlainText(category?.topDescriptionHtml)).toContain(
-      "Človek je neoddeliteľnou súčasťou prírody"
+      "Človek je neoddeliteľnou súčasťou prírody",
     )
     expect(stripHtmlToPlainText(category?.bottomDescriptionHtml)).toContain(
-      "Liečebné smery a prístup k životu"
+      "Liečebné smery a prístup k životu",
     )
     expect(stripHtmlToPlainText(category?.topDescriptionHtml)).toContain(
-      "oslabená imunita"
+      "oslabená imunita",
     )
   })
 
@@ -63,7 +63,7 @@ describe("Herbatica category export parser", () => {
       url: "prirodna-kozmetika",
     })
     expect(stripHtmlToPlainText(category?.topDescriptionHtml)).toContain(
-      "Kľúčom ku zdravej a krásnej pleti"
+      "Kľúčom ku zdravej a krásnej pleti",
     )
   })
 
@@ -80,7 +80,7 @@ describe("Herbatica category export parser", () => {
 
   it("reads XML from a local source path", async () => {
     await expect(readXmlSource(xmlPath)).resolves.toBe(
-      readFileSync(xmlPath, "utf-8")
+      readFileSync(xmlPath, "utf-8"),
     )
   })
 
@@ -90,12 +90,12 @@ describe("Herbatica category export parser", () => {
     vi.stubGlobal("fetch", fetchMock)
 
     const result = await parseHerbaticaCategoriesXmlSource(
-      "https://example.test/categories.xml"
+      "https://example.test/categories.xml",
     )
 
     expect(result).toHaveLength(5)
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://example.test/categories.xml"
+      "https://example.test/categories.xml",
     )
   })
 
@@ -104,14 +104,14 @@ describe("Herbatica category export parser", () => {
       new Response("", {
         status: 404,
         statusText: "Not Found",
-      })
+      }),
     )
     vi.stubGlobal("fetch", fetchMock)
 
     await expect(
-      readXmlSource("https://example.test/missing.xml")
+      readXmlSource("https://example.test/missing.xml"),
     ).rejects.toThrow(
-      "Failed to fetch XML source https://example.test/missing.xml: 404 Not Found"
+      "Failed to fetch XML source https://example.test/missing.xml: 404 Not Found",
     )
   })
 })

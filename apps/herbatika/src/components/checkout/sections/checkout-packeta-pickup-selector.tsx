@@ -32,7 +32,7 @@ const PACKETA_WIDGET_COUNTRIES =
   process.env.NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES?.trim() ??
   DEFAULT_PACKETA_COUNTRY
 const ENABLED_PACKETA_COUNTRIES = resolvePacketaCountries(
-  PACKETA_WIDGET_COUNTRIES
+  PACKETA_WIDGET_COUNTRIES,
 )
 
 export function CheckoutPacketaPickupSelector({
@@ -45,10 +45,10 @@ export function CheckoutPacketaPickupSelector({
   const [failureReason, setFailureReason] =
     useState<CarrierPickupFailureReason | null>(null)
   const [selectedPoint, setSelectedPoint] = useState<PacketaPickupPoint | null>(
-    null
+    null,
   )
   const isMarketEnabled = ENABLED_PACKETA_COUNTRIES.includes(
-    marketContext.countryCode
+    marketContext.countryCode,
   )
   const fallbackPointLabel = tCheckout("pickup_point_fallback")
 
@@ -120,7 +120,7 @@ export function CheckoutPacketaPickupSelector({
             {tCheckout("selected_pickup_point", {
               pickupPointName: resolvePacketaPointLabel(
                 selectedPoint,
-                fallbackPointLabel
+                fallbackPointLabel,
               ),
             })}
           </p>
@@ -161,7 +161,7 @@ export function CheckoutPacketaPickupSelector({
 
 function buildPacketaShippingData(
   point: PacketaPickupPoint,
-  fallbackPointLabel: string
+  fallbackPointLabel: string,
 ) {
   const payload: Record<string, unknown> = {
     access_point_city: point.city,
@@ -174,7 +174,9 @@ function buildPacketaShippingData(
   }
 
   return Object.fromEntries(
-    Object.entries(payload).filter(([, value]) => value != null && value !== "")
+    Object.entries(payload).filter(
+      ([, value]) => value != null && value !== "",
+    ),
   )
 }
 
@@ -189,7 +191,7 @@ function resolvePacketaCountries(value: string) {
 
 function resolvePacketaPointLabel(
   point: PacketaPickupPoint,
-  fallbackPointLabel: string
+  fallbackPointLabel: string,
 ) {
   return point.place || point.name || point.id || fallbackPointLabel
 }

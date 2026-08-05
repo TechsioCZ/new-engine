@@ -51,7 +51,7 @@ export const QuoteTotal = ({
         >
           {formatAmount(
             preview.summary.current_order_total,
-            order.currency_code
+            order.currency_code,
           )}
         </Text>
       </div>

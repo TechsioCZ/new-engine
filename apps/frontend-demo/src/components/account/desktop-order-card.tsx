@@ -89,7 +89,7 @@ export function DesktopOrderCard({ order }: { order: StoreOrder }) {
         <p className="font-semibold text-orders-fg-primary">
           {formatPrice(
             order.summary?.current_order_total || order.total || 0,
-            order.currency_code
+            order.currency_code,
           )}
         </p>
       </div>

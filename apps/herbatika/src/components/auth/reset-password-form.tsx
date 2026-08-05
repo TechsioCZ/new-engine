@@ -50,7 +50,7 @@ export const ResetPasswordForm = ({
         passwordNumber: tAuth("validation.password_number"),
         passwordRequired: tAuth("validation.password_required"),
       }),
-    [tAuth]
+    [tAuth],
   )
 
   const form = useHerbatikaForm({

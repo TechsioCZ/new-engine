@@ -50,7 +50,7 @@ export function RecentlyVisitedProductsSection({
   const resolvedHeadingText =
     headingText ?? tCatalog("product_card.recently_visited_title")
   const recentlyVisitedHandles = useRecentlyVisitedProductHandles(
-    excludeHandle === undefined ? {} : { excludeHandle }
+    excludeHandle === undefined ? {} : { excludeHandle },
   )
   const productHandles = recentlyVisitedHandles.slice(0, visibleCount)
   const [productsWithImageError, setProductsWithImageError] = useState<
@@ -67,7 +67,7 @@ export function RecentlyVisitedProductsSection({
 
   const visibleProducts = orderProductsByHandles(
     recentProductsQuery.products,
-    productHandles
+    productHandles,
   ).filter((product) => {
     if (!product.id) {
       return true
@@ -93,7 +93,7 @@ export function RecentlyVisitedProductsSection({
     setProductsWithImageError((currentProductsWithImageError) =>
       currentProductsWithImageError.includes(product.id)
         ? currentProductsWithImageError
-        : [...currentProductsWithImageError, product.id]
+        : [...currentProductsWithImageError, product.id],
     )
   }
   let content: ReactNode

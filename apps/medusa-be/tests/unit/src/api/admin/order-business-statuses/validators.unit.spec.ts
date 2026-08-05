@@ -8,7 +8,7 @@ describe("order business status validators", () => {
       expect(
         GetAdminOrderBusinessStatusesByIdsSchema.parse({
           ids: "order_1,order_2",
-        })
+        }),
       ).toStrictEqual({
         ids: ["order_1", "order_2"],
       })
@@ -16,7 +16,7 @@ describe("order business status validators", () => {
       expect(
         GetAdminOrderBusinessStatusesByIdsSchema.parse({
           ids: ["order_1,order_2", "order_3"],
-        })
+        }),
       ).toStrictEqual({
         ids: ["order_1", "order_2", "order_3"],
       })
@@ -26,13 +26,13 @@ describe("order business status validators", () => {
       expect(() =>
         GetAdminOrderBusinessStatusesByIdsSchema.parse({
           ids: ["order_1", 123],
-        })
+        }),
       ).toThrow()
 
       expect(() =>
         GetAdminOrderBusinessStatusesByIdsSchema.parse({
           ids: ["order_1", { id: "order_2" }],
-        })
+        }),
       ).toThrow()
     })
   })

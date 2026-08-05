@@ -39,12 +39,12 @@ type SearchTranslator = ReturnType<typeof useTranslations<"search">>
 
 export const getSearchAutocompleteOptionId = (
   panelId: string,
-  item: SearchAutocompleteSuggestion
+  item: SearchAutocompleteSuggestion,
 ) => `${panelId}-${item.type}-${item.id}`
 
 const resolveSearchAutocompleteSubtitle = (
   item: SearchAutocompleteSuggestion,
-  translate: SearchTranslator
+  translate: SearchTranslator,
 ) => {
   if (item.subtitle) {
     return item.subtitle
@@ -114,7 +114,7 @@ function SearchAutocompleteRow({
         aria-selected={isActive}
         className={joinClassNames(
           "flex min-w-0 items-center gap-300 px-300 py-200 text-fg-primary transition-colors",
-          isActive ? "bg-fill-secondary" : "hover:bg-fill-secondary"
+          isActive ? "bg-fill-secondary" : "hover:bg-fill-secondary",
         )}
         href={item.href}
         id={optionId}
@@ -210,7 +210,7 @@ export function SearchAutocompletePanel({
               ))}
             </ul>
           </div>
-        ) : null
+        ) : null,
       )}
     </div>
   )

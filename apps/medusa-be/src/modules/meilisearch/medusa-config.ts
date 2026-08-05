@@ -14,7 +14,7 @@ const MEILISEARCH_TYPO_TOLERANCE_SETTINGS = {
 }
 
 export function buildMeilisearchPlugin(
-  env: MedusaConfigEnv
+  env: MedusaConfigEnv,
 ): MedusaPluginConfig {
   return {
     options: {
@@ -129,8 +129,8 @@ export function buildMeilisearchPlugin(
           transformer: async (
             document: Record<string, unknown>,
             defaultTransformer: (
-              input: Record<string, unknown>
-            ) => Record<string, unknown>
+              input: Record<string, unknown>,
+            ) => Record<string, unknown>,
           ) => {
             const transformedDocument = defaultTransformer(document)
 

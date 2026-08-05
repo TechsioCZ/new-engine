@@ -44,7 +44,7 @@ export function CheckoutShippingSection({
       const requirement = resolveCarrierPickupRequirement(option)
 
       return requirement ? [[option.id, requirement]] : []
-    })
+    }),
   )
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export function CheckoutShippingSection({
               const isAwaitingPickupSelection = Boolean(
                 pickupRequirement &&
                 pendingPickupOptionId === option.id &&
-                selectedShippingMethodId !== option.id
+                selectedShippingMethodId !== option.id,
               )
 
               return {
@@ -103,7 +103,7 @@ export function CheckoutShippingSection({
                           onConfirm={(data) => {
                             onPendingPickupOptionIdChange(null)
                             runDetachedPromise(
-                              onSelectShipping(option.id, data)
+                              onSelectShipping(option.id, data),
                             )
                           }}
                           requirement={pickupRequirement}

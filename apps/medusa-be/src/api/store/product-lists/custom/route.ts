@@ -10,7 +10,7 @@ import type { StoreCreateCustomProductListSchemaType } from "../validators"
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreCreateCustomProductListSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result } = await createCustomerProductListWorkflow(req.scope).run({
     input: {

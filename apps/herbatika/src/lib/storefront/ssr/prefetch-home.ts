@@ -30,7 +30,7 @@ interface HomepageCatalogPrefetchInput {
 
 const buildHomepageCatalogQueryState = (
   sort: CatalogQueryState["sort"],
-  status: string[] = []
+  status: string[] = [],
 ): CatalogQueryState => ({
   brand: [],
   form: [],
@@ -60,7 +60,7 @@ const prefetchHomepageCatalogProducts = async ({
       ...(region.country_code === undefined
         ? {}
         : { countryCode: region.country_code }),
-    })
+    }),
   )
 
 export const prefetchHomePageStorefrontData = async () => {
@@ -72,12 +72,12 @@ export const prefetchHomePageStorefrontData = async () => {
   })
   const categoryResponse = await fetchServerCategories(
     queryClient,
-    categoryListParams
+    categoryListParams,
   )
 
   if (region) {
     const bestsellersCategory = categoryResponse.categories.find(
-      (category) => category.handle === HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE
+      (category) => category.handle === HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE,
     )
     const prefetches = [
       prefetchHomepageCatalogProducts({
@@ -101,7 +101,7 @@ export const prefetchHomePageStorefrontData = async () => {
           queryClient,
           region,
           sort: "recommended",
-        })
+        }),
       )
     }
 

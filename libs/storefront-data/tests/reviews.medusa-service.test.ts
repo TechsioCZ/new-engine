@@ -46,7 +46,7 @@ describe(createMedusaProductReviewService, () => {
       createReviewResponse({
         limit: 10,
         ratings: [5, 5, 5, 2, 5, 5, 5, 5, 5],
-      })
+      }),
     )
     const service = createMedusaProductReviewService(sdk)
 
@@ -71,13 +71,13 @@ describe(createMedusaProductReviewService, () => {
           limit: 3,
           ratings: [5, 5, 5],
           totalCount: 9,
-        })
+        }),
       )
       .mockResolvedValueOnce(
         createReviewResponse({
           limit: 9,
           ratings: [5, 5, 5, 2, 5, 5, 5, 5, 5],
-        })
+        }),
       )
     const service = createMedusaProductReviewService(sdk)
 

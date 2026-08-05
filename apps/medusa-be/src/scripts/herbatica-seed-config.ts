@@ -87,7 +87,7 @@ export const HERBATICA_DEFAULT_TAX_RATES = [
 ] as const
 
 export const HERBATICA_TAX_RATE_COUNTRIES = HERBATICA_DEFAULT_TAX_RATES.map(
-  ({ countryCode }) => countryCode
+  ({ countryCode }) => countryCode,
 )
 
 export const HERBATICA_TAX_RATE_CONFIG = {

@@ -28,13 +28,13 @@ export const createProductListItemStep = createStep(
     await assertProductSelectionExists(
       container,
       input.product_id,
-      input.variant_id
+      input.variant_id,
     )
     const existingItem = await findProductListItemForSelection(
       container,
       input.list_id,
       input.product_id,
-      input.variant_id
+      input.variant_id,
     )
 
     if (existingItem) {
@@ -46,7 +46,7 @@ export const createProductListItemStep = createStep(
         {
           created: false,
           item_id: existingItem.id,
-        }
+        },
       )
     }
 
@@ -69,7 +69,7 @@ export const createProductListItemStep = createStep(
       {
         created: true,
         item_id: item.id,
-      }
+      },
     )
   },
   async (input, { container }) => {
@@ -80,5 +80,5 @@ export const createProductListItemStep = createStep(
     await container
       .resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
       .deleteProductListItems(input.item_id)
-  }
+  },
 )

@@ -31,7 +31,7 @@ interface UseInfiniteProductsReturn {
  * Hook for fetching infinite product lists with "load more" functionality
  */
 export function useInfiniteProducts(
-  params: UseInfiniteProductsParams
+  params: UseInfiniteProductsParams,
 ): UseInfiniteProductsReturn {
   const {
     pageRange,
@@ -66,7 +66,7 @@ export function useInfiniteProducts(
       // subsequent calls are just "load more" beyond the range
       const totalFetched = allPages.reduce(
         (sum, page) => sum + page.products.length,
-        0
+        0,
       )
 
       // Check if there are more products to load

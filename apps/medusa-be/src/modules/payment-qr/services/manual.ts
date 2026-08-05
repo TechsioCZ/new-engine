@@ -51,7 +51,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
 
   constructor(
     container: QrManualPaymentProviderDependencies,
-    options: QrManualPaymentProviderOptions = {}
+    options: QrManualPaymentProviderOptions = {},
   ) {
     super(container, options)
 
@@ -60,7 +60,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   }
 
   async initiatePayment(
-    input: InitiatePaymentInput
+    input: InitiatePaymentInput,
   ): Promise<InitiatePaymentOutput> {
     const reference = this.getPaymentReference(input)
     const iban = await this.getIban()
@@ -78,7 +78,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
     if (!spayd) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "QR payment requires configured IBAN and a positive payment amount"
+        "QR payment requires configured IBAN and a positive payment amount",
       )
     }
 
@@ -108,7 +108,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   }
 
   async authorizePayment(
-    input: AuthorizePaymentInput
+    input: AuthorizePaymentInput,
   ): Promise<AuthorizePaymentOutput> {
     return {
       status: "authorized",
@@ -117,7 +117,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   }
 
   async getPaymentStatus(
-    input: GetPaymentStatusInput
+    input: GetPaymentStatusInput,
   ): Promise<GetPaymentStatusOutput> {
     return {
       status: this.hasQrPaymentData(input.data) ? "authorized" : "pending",
@@ -125,7 +125,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   }
 
   async retrievePayment(
-    input: RetrievePaymentInput
+    input: RetrievePaymentInput,
   ): Promise<RetrievePaymentOutput> {
     return input.data ? { data: input.data } : {}
   }
@@ -135,7 +135,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   }
 
   async capturePayment(
-    input: CapturePaymentInput
+    input: CapturePaymentInput,
   ): Promise<CapturePaymentOutput> {
     return input.data ? { data: input.data } : {}
   }
@@ -153,7 +153,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   }
 
   async getWebhookActionAndData(
-    _payload: ProviderWebhookPayload["payload"]
+    _payload: ProviderWebhookPayload["payload"],
   ): Promise<WebhookActionResult> {
     return {
       action: PaymentActions.NOT_SUPPORTED,
@@ -167,7 +167,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   }
 
   private getPaymentReference(
-    input: Pick<InitiatePaymentInput, "context" | "data">
+    input: Pick<InitiatePaymentInput, "context" | "data">,
   ) {
     const existingQrPayment = getRecord(input.data?.[QR_PAYMENT_DATA_KEY])
     const existingReference = getString(existingQrPayment?.["reference"])
@@ -194,7 +194,7 @@ function normalizeAmount(amount: InitiatePaymentInput["amount"]) {
   if (!Number.isFinite(normalized) || normalized <= 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "QR payment amount must be positive"
+      "QR payment amount must be positive",
     )
   }
 

@@ -27,7 +27,7 @@ describe(createMedusaProductListService, () => {
         offset: 24,
         type: "custom",
       },
-      controller.signal
+      controller.signal,
     )
 
     expect(fetch).toHaveBeenCalledWith("/store/product-lists", {
@@ -73,7 +73,7 @@ describe(createMedusaProductListService, () => {
       expect.objectContaining({
         id: "item_1",
         quantity: 2,
-      })
+      }),
     )
   })
 
@@ -85,7 +85,7 @@ describe(createMedusaProductListService, () => {
       service.changeProductListItemQuantity({
         itemId: "item_1",
         quantity: 0,
-      })
+      }),
     ).rejects.toThrow("Quantity change must be a non-zero integer.")
 
     expect(fetch).not.toHaveBeenCalled()
@@ -112,7 +112,7 @@ describe(createMedusaProductListService, () => {
           quantity: 2,
         },
         method: "POST",
-      }
+      },
     )
   })
 
@@ -136,7 +136,7 @@ describe(createMedusaProductListService, () => {
           quantity: 1,
         },
         method: "POST",
-      }
+      },
     )
   })
 

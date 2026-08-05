@@ -10,11 +10,11 @@ import { executeLocalEnvRuntimeProviderOutputTargets } from "../orchestration/lo
 const repoRoot = resolve(import.meta.dirname, "../../../..")
 const stackManifestPath = join(
   repoRoot,
-  "apps/new-engine-ctl/config/stack-manifest.yaml"
+  "apps/new-engine-ctl/config/stack-manifest.yaml",
 )
 const stackInputsPath = join(
   repoRoot,
-  "apps/new-engine-ctl/config/stack-inputs.yaml"
+  "apps/new-engine-ctl/config/stack-inputs.yaml",
 )
 
 test("local provider aliases include only selected configured consumers", async () => {
@@ -50,7 +50,7 @@ test("local provider aliases are empty for selected non-consumers", async () => 
 test("local provider aliases still reject missing aliases for real consumers", async () => {
   const { stackInputs } = await loadDeployContracts(
     stackManifestPath,
-    stackInputsPath
+    stackInputsPath,
   )
   stackInputs.local_env_aliases.runtime_provider_outputs =
     stackInputs.local_env_aliases.runtime_provider_outputs.filter(
@@ -59,7 +59,7 @@ test("local provider aliases still reject missing aliases for real consumers", a
           alias.provider_id === "meili_api_credentials" &&
           alias.output_id === "frontend_key" &&
           alias.service_id === "n1"
-        )
+        ),
     )
 
   expect(() =>
@@ -67,9 +67,9 @@ test("local provider aliases still reject missing aliases for real consumers", a
       stackInputs,
       "meili_api_credentials",
       "frontend_key",
-      ["n1"]
-    )
+      ["n1"],
+    ),
   ).toThrow(
-    "Missing local env alias for meili_api_credentials.frontend_key consumer service(s): n1."
+    "Missing local env alias for meili_api_credentials.frontend_key consumer service(s): n1.",
   )
 })

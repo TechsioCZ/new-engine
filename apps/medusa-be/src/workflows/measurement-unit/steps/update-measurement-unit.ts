@@ -21,21 +21,21 @@ export const updateMeasurementUnitStep = createStep(
       {
         take: 1,
         withDeleted: true,
-      }
+      },
     )
     const update = { ...input.update }
 
     if (!previous) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Measurement unit with id "${input.id}" was not found`
+        `Measurement unit with id "${input.id}" was not found`,
       )
     }
 
     if (previous.deleted_at) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        `Deleted measurement unit "${input.id}" must be restored before it can be updated.`
+        `Deleted measurement unit "${input.id}" must be restored before it can be updated.`,
       )
     }
 
@@ -46,7 +46,7 @@ export const updateMeasurementUnitStep = createStep(
     ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Measurement unit code, name, and symbol must not be empty."
+        "Measurement unit code, name, and symbol must not be empty.",
       )
     }
 
@@ -64,7 +64,7 @@ export const updateMeasurementUnitStep = createStep(
     ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Measurement unit base quantity must be greater than zero."
+        "Measurement unit base quantity must be greater than zero.",
       )
     }
 
@@ -80,7 +80,7 @@ export const updateMeasurementUnitStep = createStep(
             : normalizeDescription(update.description),
         name: update.name?.trim(),
         symbol: update.symbol?.trim(),
-      })
+      }),
     )
 
     return new StepResponse(updated, previous)
@@ -96,5 +96,5 @@ export const updateMeasurementUnitStep = createStep(
         symbol: previous.symbol,
       })
     }
-  }
+  },
 )

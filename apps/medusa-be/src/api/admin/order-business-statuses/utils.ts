@@ -59,12 +59,12 @@ export async function fetchOrderBusinessStatusOrder(query: Query, id: string) {
 }
 
 export function parseOrderBusinessStatusOrders(
-  value: unknown
+  value: unknown,
 ): OrderBusinessStatusOrder[] {
   if (!Array.isArray(value)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Expected order business status query to return an array"
+      "Expected order business status query to return an array",
     )
   }
 
@@ -72,7 +72,7 @@ export function parseOrderBusinessStatusOrders(
     if (!isOrderBusinessStatusOrder(order)) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        `Expected order business status query result at index ${index} to include a string id`
+        `Expected order business status query result at index ${index} to include a string id`,
       )
     }
 
@@ -81,7 +81,7 @@ export function parseOrderBusinessStatusOrders(
 }
 
 function isOrderBusinessStatusOrder(
-  value: unknown
+  value: unknown,
 ): value is OrderBusinessStatusOrder {
   return (
     typeof value === "object" &&
@@ -92,7 +92,7 @@ function isOrderBusinessStatusOrder(
 }
 
 export function toOrderBusinessStatusSummary(
-  order: OrderBusinessStatusOrder
+  order: OrderBusinessStatusOrder,
 ): OrderBusinessStatusSummary {
   return {
     business_status: resolveOrderBusinessStatus(order),
@@ -111,7 +111,7 @@ export function toOrderBusinessStatusSummary(
 
 export function buildOrderBusinessStatusMetadata(
   metadata: Record<string, unknown> | null | undefined,
-  status: ManualOrderBusinessStatusId | null
+  status: ManualOrderBusinessStatusId | null,
 ) {
   const nextMetadata = { ...metadata }
 

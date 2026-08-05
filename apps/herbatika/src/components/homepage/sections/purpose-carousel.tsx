@@ -41,7 +41,7 @@ const buildResolvedPurposeCarouselItems = (
   rootHandle: PurposeCarouselRootHandle,
   groupsByRootHandle: ReturnType<
     typeof useHerbatikaHeaderSubmenu
-  >["groupsByRootHandle"]
+  >["groupsByRootHandle"],
 ): PurposeCarouselItem[] => {
   const group = groupsByRootHandle.get(rootHandle)
   if (!group) {

@@ -12,5 +12,5 @@ import { updateQuotesStep } from "../steps/update-quotes"
 export const updateQuotesWorkflow = createWorkflow(
   "update-quotes",
   (input: ModuleUpdateQuote[]): WorkflowResponse<ModuleQuote[]> =>
-    new WorkflowResponse(updateQuotesStep(input))
+    new WorkflowResponse(updateQuotesStep(input)),
 )

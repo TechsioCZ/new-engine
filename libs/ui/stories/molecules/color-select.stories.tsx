@@ -9,14 +9,14 @@ import type { ColorItem } from "../../src/molecules/color-select"
 // Custom hook for color selection logic
 const useColorSelection = (
   initialValue: string | string[] = [],
-  mode: "single" | "multiple" = "single"
+  mode: "single" | "multiple" = "single",
 ) => {
   const [selected, setSelected] = useState<string | string[]>(
     mode === "single"
       ? Array.isArray(initialValue)
         ? initialValue[0] || ""
         : initialValue
-      : initialValue
+      : initialValue,
   )
 
   const handleColorClick = (color: string) => {
@@ -136,7 +136,7 @@ export const Playground: Story = {
   render: (args) => {
     const { handleColorClick, isSelected } = useColorSelection(
       [],
-      args.selectionMode
+      args.selectionMode,
     )
 
     const colorsWithSelection = args.colors.map((c: ColorItem) => ({
@@ -204,7 +204,7 @@ export const Layouts: Story = {
 export const Sizes: Story = {
   render: () => {
     const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>(
-      {}
+      {},
     )
 
     const handleSizeClick = (size: string) => (color: string) => {
@@ -339,7 +339,7 @@ export const MultipleSelection: Story = {
   render: () => {
     const { selected, handleColorClick, isSelected, clear } = useColorSelection(
       [],
-      "multiple"
+      "multiple",
     )
 
     const colors = basicColors.map((c) => ({
@@ -396,7 +396,7 @@ export const EcommerceFilter: Story = {
   render: () => {
     const { selected, handleColorClick, isSelected, clear } = useColorSelection(
       [],
-      "multiple"
+      "multiple",
     )
 
     const colors = ecommerceColors.map((c) => ({

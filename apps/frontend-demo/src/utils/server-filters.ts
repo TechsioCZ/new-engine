@@ -24,7 +24,7 @@ export interface MedusaProductQuery {
  */
 export function buildMedusaQuery(
   filters: ProductFilters | undefined,
-  baseQuery: Partial<MedusaProductQuery> = {}
+  baseQuery: Partial<MedusaProductQuery> = {},
 ): MedusaProductQuery {
   const query: MedusaProductQuery = { ...baseQuery }
 

@@ -26,7 +26,7 @@ const baselineLabel = readArg("--baseline-label") ?? "baseline"
 
 if (!inputPath || !outputPath) {
   console.error(
-    "Usage: storybook-a11y-summary.mjs --input <report.json> --output <summary.md> [--baseline <report.json>] [--baseline-label <label>]"
+    "Usage: storybook-a11y-summary.mjs --input <report.json> --output <summary.md> [--baseline <report.json>] [--baseline-label <label>]",
   )
   process.exit(1)
 }
@@ -54,7 +54,7 @@ function loadNdjson(path, label) {
         `Failed to parse NDJSON line ${index + 1} from ${label} file: ${path}`,
         {
           cause: error,
-        }
+        },
       )
     }
   })
@@ -79,7 +79,7 @@ function loadReport(path, label) {
     const ndjsonPath = path.replace(/\.json$/i, ".ndjson")
     if (ndjsonPath !== path && fs.existsSync(ndjsonPath)) {
       console.warn(
-        `JSON parse failed for ${label}; falling back to ${ndjsonPath}.`
+        `JSON parse failed for ${label}; falling back to ${ndjsonPath}.`,
       )
       return loadNdjson(ndjsonPath, label)
     }
@@ -92,7 +92,7 @@ function loadReport(path, label) {
     const ndjsonPath = path.replace(/\.json$/i, ".ndjson")
     if (ndjsonPath !== path && fs.existsSync(ndjsonPath)) {
       console.warn(
-        `Unexpected JSON shape for ${label}; falling back to ${ndjsonPath}.`
+        `Unexpected JSON shape for ${label}; falling back to ${ndjsonPath}.`,
       )
       return loadNdjson(ndjsonPath, label)
     }
@@ -246,25 +246,25 @@ function buildFullSummaryLines(summary, notice) {
   }
   lines.push(
     `- Total stories: ${summary.totalStories}`,
-    `- Stories with violations: ${summary.storiesWithViolations}`
+    `- Stories with violations: ${summary.storiesWithViolations}`,
   )
   lines.push(
     `- Total violations: ${summary.totalViolations}`,
-    `- APCA violations: ${summary.apcaViolations}`
+    `- APCA violations: ${summary.apcaViolations}`,
   )
   lines.push("", "## By group")
   lines.push(
     "",
-    "| Group | Stories | Stories w/ violations | Violations | APCA |"
+    "| Group | Stories | Stories w/ violations | Violations | APCA |",
   )
   lines.push("| --- | --- | --- | --- | --- |")
 
   const sortedGroups = [...summary.groupStats.entries()].sort((a, b) =>
-    a[0].localeCompare(b[0])
+    a[0].localeCompare(b[0]),
   )
   for (const [groupName, stats] of sortedGroups) {
     lines.push(
-      `| ${escapePipes(groupName)} | ${stats.stories} | ${stats.storiesWithViolations} | ${stats.violations} | ${stats.apca} |`
+      `| ${escapePipes(groupName)} | ${stats.stories} | ${stats.storiesWithViolations} | ${stats.violations} | ${stats.apca} |`,
     )
   }
 
@@ -290,7 +290,7 @@ function buildFullSummaryLines(summary, notice) {
     lines.push("| --- | --- | --- |")
     for (const row of violatingRows) {
       lines.push(
-        `| ${escapePipes(row.story)} | ${row.violations} | ${row.apca} |`
+        `| ${escapePipes(row.story)} | ${row.violations} | ${row.apca} |`,
       )
     }
     lines.push("", "</details>")
@@ -310,15 +310,15 @@ function buildDeltaLines(currentReport, baselineReport, label) {
   const baselineEntries = collectViolations(baselineReport)
 
   const baselineMap = new Map(
-    baselineEntries.map((entry) => [entry.key, entry])
+    baselineEntries.map((entry) => [entry.key, entry]),
   )
   const currentMap = new Map(currentEntries.map((entry) => [entry.key, entry]))
 
   const newEntries = currentEntries.filter(
-    (entry) => !baselineMap.has(entry.key)
+    (entry) => !baselineMap.has(entry.key),
   )
   const resolvedEntries = baselineEntries.filter(
-    (entry) => !currentMap.has(entry.key)
+    (entry) => !currentMap.has(entry.key),
   )
 
   const newApca = newEntries.filter((entry) => entry.apca).length
@@ -385,11 +385,11 @@ function buildDeltaLines(currentReport, baselineReport, label) {
   lines.push(`# Storybook A11y Report (Delta vs ${label})`, "")
   lines.push(
     `- New violations: ${newEntries.length} (APCA: ${newApca})`,
-    `- Resolved violations: ${resolvedEntries.length} (APCA: ${resolvedApca})`
+    `- Resolved violations: ${resolvedEntries.length} (APCA: ${resolvedApca})`,
   )
   lines.push(
     `- Net change: ${newEntries.length - resolvedEntries.length} (APCA: ${newApca - resolvedApca})`,
-    ""
+    "",
   )
 
   if (groupStats.size === 0) {
@@ -400,15 +400,15 @@ function buildDeltaLines(currentReport, baselineReport, label) {
   lines.push("## By group", "")
   lines.push(
     "| Group | New | New APCA | Resolved | Resolved APCA |",
-    "| --- | --- | --- | --- | --- |"
+    "| --- | --- | --- | --- | --- |",
   )
 
   const sortedGroups = [...groupStats.entries()].sort((a, b) =>
-    a[0].localeCompare(b[0])
+    a[0].localeCompare(b[0]),
   )
   for (const [groupName, stats] of sortedGroups) {
     lines.push(
-      `| ${escapePipes(groupName)} | ${stats.newCount} | ${stats.newApca} | ${stats.resolvedCount} | ${stats.resolvedApca} |`
+      `| ${escapePipes(groupName)} | ${stats.newCount} | ${stats.newApca} | ${stats.resolvedCount} | ${stats.resolvedApca} |`,
     )
   }
 
@@ -417,13 +417,13 @@ function buildDeltaLines(currentReport, baselineReport, label) {
   if (newStoryRows.length > 0) {
     lines.push(
       "<details>",
-      `<summary>New violations (${newEntries.length})</summary>`
+      `<summary>New violations (${newEntries.length})</summary>`,
     )
     lines.push("", "| Story | Violations | APCA |")
     lines.push("| --- | --- | --- |")
     for (const row of newStoryRows) {
       lines.push(
-        `| ${escapePipes(row.story)} | ${row.violations} | ${row.apca} |`
+        `| ${escapePipes(row.story)} | ${row.violations} | ${row.apca} |`,
       )
     }
     lines.push("", "</details>")
@@ -433,13 +433,13 @@ function buildDeltaLines(currentReport, baselineReport, label) {
   if (resolvedStoryRows.length > 0) {
     lines.push(
       "<details>",
-      `<summary>Resolved violations (${resolvedEntries.length})</summary>`
+      `<summary>Resolved violations (${resolvedEntries.length})</summary>`,
     )
     lines.push("", "| Story | Violations | APCA |")
     lines.push("| --- | --- | --- |")
     for (const row of resolvedStoryRows) {
       lines.push(
-        `| ${escapePipes(row.story)} | ${row.violations} | ${row.apca} |`
+        `| ${escapePipes(row.story)} | ${row.violations} | ${row.apca} |`,
       )
     }
     lines.push("", "</details>")

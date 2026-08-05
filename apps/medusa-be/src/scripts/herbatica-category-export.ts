@@ -85,7 +85,7 @@ export function stripHtmlToPlainText(value?: string): string | undefined {
 
 export function excerptPlainText(
   value?: string,
-  maxLength = 280
+  maxLength = 280,
 ): string | undefined {
   const text = stripHtmlToPlainText(value)
   if (!text) {
@@ -103,7 +103,7 @@ export function excerptPlainText(
 }
 
 export function parseHerbaticaCategoriesXml(
-  xml: string
+  xml: string,
 ): HerbaticaCategoryExport[] {
   const categories: HerbaticaCategoryExport[] = []
 
@@ -116,39 +116,39 @@ export function parseHerbaticaCategoriesXml(
     }
 
     const parentId = normalizeInlineText(
-      extractFirstText(element.inner, "PARENT_ID")
+      extractFirstText(element.inner, "PARENT_ID"),
     )
 
     const guid = normalizeInlineText(extractFirstText(element.inner, "GUID"))
     const resolvedParentId =
       parentId && parentId !== "0" && parentId !== "1" ? parentId : undefined
     const linkText = normalizeInlineText(
-      extractFirstText(element.inner, "LINK_TEXT")
+      extractFirstText(element.inner, "LINK_TEXT"),
     )
     const url = normalizeInlineText(
-      extractFirstText(element.inner, "INDEX_NAME")
+      extractFirstText(element.inner, "INDEX_NAME"),
     )
     const topDescriptionHtml = trimHtmlFragment(
-      extractFirstText(element.inner, "TOP_DESCRIPTION")
+      extractFirstText(element.inner, "TOP_DESCRIPTION"),
     )
     const bottomDescriptionHtml = trimHtmlFragment(
-      extractFirstText(element.inner, "BOTTOM_DESCRIPTION")
+      extractFirstText(element.inner, "BOTTOM_DESCRIPTION"),
     )
     const metaTitle = normalizeInlineText(
-      extractFirstText(element.inner, "META_TITLE")
+      extractFirstText(element.inner, "META_TITLE"),
     )
     const metaDescription = normalizeInlineText(
-      extractFirstText(element.inner, "META_DESCRIPTION")
+      extractFirstText(element.inner, "META_DESCRIPTION"),
     )
     const access = normalizeInlineText(
-      extractFirstText(element.inner, "ACCESS")
+      extractFirstText(element.inner, "ACCESS"),
     )
     const priority = parseInteger(extractFirstText(element.inner, "PRIORITY"))
     const pageType = normalizeInlineText(
-      extractFirstText(element.inner, "PAGE_TYPE")
+      extractFirstText(element.inner, "PAGE_TYPE"),
     )
     const searchPriority = parseInteger(
-      extractFirstText(element.inner, "SEARCH_PRIORITY")
+      extractFirstText(element.inner, "SEARCH_PRIORITY"),
     )
 
     categories.push({
@@ -180,13 +180,13 @@ export function parseHerbaticaCategoriesXml(
 }
 
 export function parseHerbaticaCategoriesXmlFile(
-  path: string
+  path: string,
 ): HerbaticaCategoryExport[] {
   return parseHerbaticaCategoriesXml(readFileSync(path, "utf-8"))
 }
 
 export async function parseHerbaticaCategoriesXmlSource(
-  source: string
+  source: string,
 ): Promise<HerbaticaCategoryExport[]> {
   return parseHerbaticaCategoriesXml(await readXmlSource(source))
 }

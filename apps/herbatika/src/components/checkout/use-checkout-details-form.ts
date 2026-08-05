@@ -78,7 +78,7 @@ const setCheckoutFieldIfChanged = (
   form: CheckoutFormFieldSetter,
   field: CarrierPickupSyncField,
   currentValue: string | boolean,
-  nextValue: string | boolean
+  nextValue: string | boolean,
 ) => {
   if (currentValue !== nextValue) {
     form.setFieldValue(field, nextValue)
@@ -102,61 +102,61 @@ const syncCarrierPickupShippingFields = ({
     form,
     "shipping.address1",
     values.shipping.address1,
-    pickupAddress.address1
+    pickupAddress.address1,
   )
   setCheckoutFieldIfChanged(
     form,
     "shipping.address2",
     values.shipping.address2,
-    pickupAddress.address2
+    pickupAddress.address2,
   )
   setCheckoutFieldIfChanged(
     form,
     "shipping.city",
     values.shipping.city,
-    pickupAddress.city
+    pickupAddress.city,
   )
   setCheckoutFieldIfChanged(
     form,
     "shipping.countryCode",
     values.shipping.countryCode,
-    pickupAddress.countryCode
+    pickupAddress.countryCode,
   )
   setCheckoutFieldIfChanged(
     form,
     "shipping.postalCode",
     values.shipping.postalCode,
-    pickupAddress.postalCode
+    pickupAddress.postalCode,
   )
 }
 
 const syncCarrierPickupBillingFields = (
   form: CheckoutFormFieldSetter,
-  values: CheckoutDetailsValues
+  values: CheckoutDetailsValues,
 ) => {
   setCheckoutFieldIfChanged(
     form,
     "useSameAddress",
     values.useSameAddress,
-    false
+    false,
   )
   setCheckoutFieldIfChanged(
     form,
     "billing.address2",
     values.billing.address2,
-    ""
+    "",
   )
   setCheckoutFieldIfChanged(
     form,
     "billing.firstName",
     values.billing.firstName,
-    values.shipping.firstName
+    values.shipping.firstName,
   )
   setCheckoutFieldIfChanged(
     form,
     "billing.lastName",
     values.billing.lastName,
-    values.shipping.lastName
+    values.shipping.lastName,
   )
 }
 
@@ -191,7 +191,7 @@ const createEmptyCheckoutLocalOnlyAddressValues =
   })
 
 const pickCheckoutLocalOnlyAddressValues = (
-  address: CheckoutAddressValues
+  address: CheckoutAddressValues,
 ): CheckoutLocalOnlyAddressValues => {
   const nextValues = createEmptyCheckoutLocalOnlyAddressValues()
 
@@ -203,7 +203,7 @@ const pickCheckoutLocalOnlyAddressValues = (
 }
 
 const normalizeStoredAddressValues = (
-  value: unknown
+  value: unknown,
 ): CheckoutLocalOnlyAddressValues | undefined => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return
@@ -253,7 +253,7 @@ const createCheckoutToggleStorageKey = (cartId?: string | null) =>
   cartId ? `herbatika.checkout-details.${cartId}` : null
 
 const readStoredCheckoutState = (
-  storageKey: string | null
+  storageKey: string | null,
 ): CheckoutStoredState => {
   if (!storageKey || typeof window === "undefined") {
     return {}
@@ -337,7 +337,7 @@ const resolveCheckoutHydratedValues = ({
         lastName: customer?.last_name ?? "",
       },
       resolvedShippingAddressValues,
-      carrierPickupAddress?.address
+      carrierPickupAddress?.address,
     ),
     ...(marketCountryCode ? { countryCode: marketCountryCode } : {}),
   }
@@ -361,7 +361,7 @@ const resolveCheckoutHydratedValues = ({
               vatId: shippingAddressValues.vatId,
             }),
       },
-      resolvedBillingAddressValues
+      resolvedBillingAddressValues,
     ),
     ...(marketCountryCode ? { countryCode: marketCountryCode } : {}),
   }
@@ -372,7 +372,7 @@ const resolveCheckoutHydratedValues = ({
   } else if (hasHydratedAddress) {
     useSameAddress = resolveAddressFormsMatch(
       shippingAddressValues,
-      billingAddressValues
+      billingAddressValues,
     )
   }
 
@@ -382,7 +382,7 @@ const resolveCheckoutHydratedValues = ({
     heurekaConsent: false,
     isCompanyPurchase: Boolean(
       billingAddress?.company ??
-      (hasCarrierPickupAddress ? undefined : shippingAddress?.company)
+      (hasCarrierPickupAddress ? undefined : shippingAddress?.company),
     ),
     marketingConsent: false,
     shipping: shippingAddressValues,
@@ -423,7 +423,7 @@ const resolveNextStoredCheckoutState = ({
       ? {
           billing: pickCheckoutLocalOnlyAddressValues(effectiveValues.billing),
           shipping: pickCheckoutLocalOnlyAddressValues(
-            effectiveValues.shipping
+            effectiveValues.shipping,
           ),
         }
       : {}),
@@ -520,26 +520,26 @@ export function useCheckoutDetailsForm({
           ? {}
           : { optionId: selectedShippingMethod?.shipping_option_id }),
       }),
-    [cart?.id, selectedShippingMethod?.shipping_option_id]
+    [cart?.id, selectedShippingMethod?.shipping_option_id],
   )
   const carrierPickupAddress = useMemo(
     () =>
       resolveCarrierPickupAddress(
         selectedShippingMethod?.data,
         fallbackCountryCode,
-        fallbackPickupLabel
+        fallbackPickupLabel,
       ) ??
       resolveCarrierPickupAddress(
         storedCarrierPickupSelection?.data,
         fallbackCountryCode,
-        fallbackPickupLabel
+        fallbackPickupLabel,
       ),
     [
       fallbackCountryCode,
       fallbackPickupLabel,
       selectedShippingMethod?.data,
       storedCarrierPickupSelection?.data,
-    ]
+    ],
   )
   const hasCarrierPickupShipping = Boolean(carrierPickupAddress)
   const hydratedValues = useMemo(
@@ -550,14 +550,14 @@ export function useCheckoutDetailsForm({
         customer,
         ...(regionCountryCode === undefined ? {} : { regionCountryCode }),
       }),
-    [carrierPickupAddress, cart, customer, regionCountryCode]
+    [carrierPickupAddress, cart, customer, regionCountryCode],
   )
   const toggleStorageKey = useMemo(
     () => createCheckoutToggleStorageKey(cart?.id),
-    [cart?.id]
+    [cart?.id],
   )
   const [storedState, setStoredState] = useState<CheckoutStoredState>(() =>
-    readStoredCheckoutState(toggleStorageKey)
+    readStoredCheckoutState(toggleStorageKey),
   )
   const hydratedValuesWithTogglePreferences = useMemo(() => {
     const nextValues = resolveHydratedValuesWithStoredState({
@@ -580,7 +580,7 @@ export function useCheckoutDetailsForm({
   const isDirty = useStore(form.store, (state) => state.isDirty)
   const effectiveValues = useMemo(
     () => resolveEffectiveCheckoutAddressDetails(values),
-    [values]
+    [values],
   )
   const lastHydratedKeyRef = useRef<string | null>(null)
 
@@ -646,7 +646,7 @@ export function useCheckoutDetailsForm({
   }
 
   const clearFieldValidationState = (
-    fieldNames: readonly CheckoutScopedFieldName[]
+    fieldNames: readonly CheckoutScopedFieldName[],
   ) => {
     for (const fieldName of fieldNames) {
       form.setFieldMeta(fieldName, (previous) => ({
@@ -706,7 +706,7 @@ export function useCheckoutDetailsForm({
     clearFieldValidationState(
       values.useSameAddress
         ? CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES
-        : CHECKOUT_BILLING_COMPANY_FIELD_NAMES
+        : CHECKOUT_BILLING_COMPANY_FIELD_NAMES,
     )
   }
 

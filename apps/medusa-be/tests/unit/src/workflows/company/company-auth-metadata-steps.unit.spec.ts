@@ -23,7 +23,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -47,21 +47,21 @@ type CompanyAuthMetadataCompensation =
 interface MockStep {
   (
     input: string[],
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ): Promise<{
     compensateInput?: CompanyAuthMetadataCompensation
     payload: unknown
   }>
   compensate: (
     input: CompanyAuthMetadataCompensation | undefined,
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ) => Promise<void>
 }
 
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -70,7 +70,7 @@ const asMockStep = (candidate: unknown): MockStep => {
     typeof candidate.compensate !== "function"
   ) {
     throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function"
+      "Expected the mocked workflow step to expose a compensate function",
     )
   }
 
@@ -78,7 +78,7 @@ const asMockStep = (candidate: unknown): MockStep => {
 }
 
 const makeAuthService = (
-  overrides: Partial<AuthService> = {}
+  overrides: Partial<AuthService> = {},
 ): AuthService => ({
   updateProviderIdentities: vi.fn(),
   ...overrides,
@@ -150,7 +150,7 @@ describe("company admin auth metadata steps", () => {
 
     const result = await asMockStep(clearCompanyAdminAuthMetadataStep)(
       ["comp_1"],
-      { container }
+      { container },
     )
 
     expect(graph).toHaveBeenNthCalledWith(1, {
@@ -211,7 +211,7 @@ describe("company admin auth metadata steps", () => {
 
     const result = await asMockStep(restoreCompanyAdminAuthMetadataStep)(
       ["comp_1"],
-      { container }
+      { container },
     )
 
     expect(graph).toHaveBeenNthCalledWith(1, {
@@ -296,7 +296,7 @@ describe("company admin auth metadata steps", () => {
         company_ids: ["comp_1"],
         provider_identity_ids: ["authpi_1"],
       },
-      { container }
+      { container },
     )
 
     expect(authService.updateProviderIdentities).not.toHaveBeenCalled()

@@ -22,7 +22,7 @@ function getAboutParagraphKey(paragraph: AboutParagraph) {
 
   return paragraph
     .map((part) =>
-      typeof part === "string" ? part : `${part.label}:${part.href}`
+      typeof part === "string" ? part : `${part.label}:${part.href}`,
     )
     .join("|")
 }

@@ -45,7 +45,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -83,7 +83,7 @@ interface MockStep {
           company_id?: string
           id: string | string[]
         },
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ): Promise<{
     compensateInput?: {
       employee_link_delete_input: {
@@ -116,14 +116,14 @@ interface MockStep {
           }>
         }
       | undefined,
-    context: { container: MockContainer }
+    context: { container: MockContainer },
   ) => Promise<void>
 }
 
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -132,7 +132,7 @@ const asMockStep = (candidate: unknown): MockStep => {
     typeof candidate.compensate !== "function"
   ) {
     throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function"
+      "Expected the mocked workflow step to expose a compensate function",
     )
   }
 
@@ -140,7 +140,7 @@ const asMockStep = (candidate: unknown): MockStep => {
 }
 
 const makeCompanyService = (
-  overrides: Partial<CompanyService> = {}
+  overrides: Partial<CompanyService> = {},
 ): CompanyService => ({
   restoreEmployees: vi.fn(),
   softDeleteEmployees: vi.fn(),
@@ -148,14 +148,14 @@ const makeCompanyService = (
 })
 
 const makeAuthService = (
-  overrides: Partial<AuthService> = {}
+  overrides: Partial<AuthService> = {},
 ): AuthService => ({
   updateProviderIdentities: vi.fn(),
   ...overrides,
 })
 
 const makeCustomerService = (
-  overrides: Partial<CustomerService> = {}
+  overrides: Partial<CustomerService> = {},
 ): CustomerService => ({
   addCustomerToGroup: vi.fn(),
   removeCustomerFromGroup: vi.fn(),
@@ -163,7 +163,7 @@ const makeCustomerService = (
 })
 
 const makeLinkService = (
-  overrides: Partial<LinkService> = {}
+  overrides: Partial<LinkService> = {},
 ): LinkService => ({
   delete: vi.fn(),
   restore: vi.fn(),
@@ -266,7 +266,7 @@ describe("deleteEmployeesStep", () => {
         company_id: "comp_1",
         id: ["emp_1", "emp_2"],
       },
-      { container }
+      { container },
     )
 
     expect(graph).toHaveBeenNthCalledWith(
@@ -285,7 +285,7 @@ describe("deleteEmployeesStep", () => {
           id: ["emp_1", "emp_2"],
         },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
     expect(graph).toHaveBeenNthCalledWith(4, {
       entity: "provider_identity",
@@ -399,7 +399,7 @@ describe("deleteEmployeesStep", () => {
         company_id: "comp_1",
         id: "emp_1",
       },
-      { container }
+      { container },
     )
 
     expect(authService.updateProviderIdentities).not.toHaveBeenCalled()
@@ -438,7 +438,7 @@ describe("deleteEmployeesStep", () => {
           },
         ],
       },
-      { container }
+      { container },
     )
 
     expect(companyService.restoreEmployees).toHaveBeenCalledWith(["emp_1"])
@@ -483,8 +483,8 @@ describe("deleteEmployeesStep", () => {
           company_id: "comp_1",
           id: "emp_2",
         },
-        { container }
-      )
+        { container },
+      ),
     ).rejects.toMatchObject({
       message:
         "One or more employees were not found for the requested company.",

@@ -17,7 +17,7 @@ interface StorefrontMessagesResponse {
 
 const isStorefrontMessagesResponse = (
   value: unknown,
-  input: LoadMedusaStorefrontMessagesInput
+  input: LoadMedusaStorefrontMessagesInput,
 ): value is StorefrontMessagesResponse => {
   if (!value || typeof value !== "object") {
     return false
@@ -42,7 +42,7 @@ const isStorefrontMessagesResponse = (
 
 export const loadMedusaStorefrontMessages = async (
   client: Pick<Client, "fetch">,
-  input: LoadMedusaStorefrontMessagesInput
+  input: LoadMedusaStorefrontMessagesInput,
 ): Promise<FlatStorefrontMessages> => {
   const response = await client.fetch<unknown>(
     input.endpoint ?? "/store/storefront-texts",
@@ -52,7 +52,7 @@ export const loadMedusaStorefrontMessages = async (
         locale: input.locale,
         market: input.market,
       },
-    }
+    },
   )
 
   if (!isStorefrontMessagesResponse(response, input)) {

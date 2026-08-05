@@ -68,7 +68,7 @@ export const aboutSections = [
         "Kvalita je pre nás prvoradá. Máme vysoké nároky nielen na kvalitu, ale aj štandardy, v súlade s ktorými pracujeme na vývoji našich produktov. Pre udržanie najvyššej možnej odbornosti v Herbatica spolupracujeme so širokou sieťou ",
         aboutLink(
           "výrobcov, konzultantov, výživových poradcov, fyzioterapeutov a ďalších odborníkov",
-          "/odborne-poradenstvo-a-diagnostika/"
+          "/odborne-poradenstvo-a-diagnostika/",
         ),
         ". Spolu títo odborníci tvoria silnú základňu, na ktorú sa vieme vždy spoľahnúť, či už v otázkach zloženia produktov, kombinácie jednotlivých ",
         aboutLink("účinných látok", "/aktivnelatky/"),
@@ -128,7 +128,7 @@ export const aboutSections = [
         "Budúcnosť vidíme najmä v osobnom kontakte. So snahou byť k vám ešte bližšie a ponúknuť vám viac, plánujeme otvoriť ďalšie predajne, kde vám radi poskytneme ",
         aboutLink(
           "odborné poradenstvo a diagnostiku",
-          "/odborne-poradenstvo-a-diagnostika/"
+          "/odborne-poradenstvo-a-diagnostika/",
         ),
         ". Tieto priestory chceme vybaviť modernými diagnostickými nástrojmi, ako je napríklad biorezonancia, ktoré umožňujú komplexné hodnotenie vášho zdravotného stavu.",
       ],

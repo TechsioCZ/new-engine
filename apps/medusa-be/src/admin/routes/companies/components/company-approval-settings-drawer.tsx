@@ -18,21 +18,21 @@ export function CompanyApprovalSettingsDrawer({
 }) {
   const { t } = useTranslation("companies")
   const [requiresAdminApproval, setRequiresAdminApproval] = useState(
-    company.approval_settings?.requires_admin_approval ?? false
+    company.approval_settings?.requires_admin_approval ?? false,
   )
   const [requiresSalesManagerApproval, setRequiresSalesManagerApproval] =
     useState(
-      company.approval_settings?.requires_sales_manager_approval ?? false
+      company.approval_settings?.requires_sales_manager_approval ?? false,
     )
 
   const { mutateAsync, isPending } = useUpdateApprovalSettings(company.id)
 
   useEffect(() => {
     setRequiresAdminApproval(
-      company.approval_settings?.requires_admin_approval ?? false
+      company.approval_settings?.requires_admin_approval ?? false,
     )
     setRequiresSalesManagerApproval(
-      company.approval_settings?.requires_sales_manager_approval ?? false
+      company.approval_settings?.requires_sales_manager_approval ?? false,
     )
   }, [company.approval_settings])
 
@@ -46,7 +46,7 @@ export function CompanyApprovalSettingsDrawer({
       toast.success(t("toasts.approvalSettingsUpdated"))
     } catch (error) {
       toast.error(
-        `${t("errors.updateApprovalSettingsFailed")}: ${getErrorMessage(error)}`
+        `${t("errors.updateApprovalSettingsFailed")}: ${getErrorMessage(error)}`,
       )
     }
   }
@@ -74,7 +74,7 @@ export function CompanyApprovalSettingsDrawer({
             <CoolSwitch
               checked={requiresSalesManagerApproval}
               description={t(
-                "approvalSettings.salesManagerApprovalDescription"
+                "approvalSettings.salesManagerApprovalDescription",
               )}
               fieldName="requires_sales_manager_approval"
               label={t("approvalSettings.salesManagerApprovalLabel")}

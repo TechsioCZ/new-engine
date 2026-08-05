@@ -15,7 +15,7 @@ export const restoreBrandAttributeTypesWorkflow = createWorkflow(
   "restore-brand-attribute-types",
   (input: RestoreBrandAttributeTypesWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
-      getBrandAttributeTypeLockKeys(workflowInput.ids)
+      getBrandAttributeTypeLockKeys(workflowInput.ids),
     )
 
     acquireLockStep({
@@ -33,5 +33,5 @@ export const restoreBrandAttributeTypesWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

@@ -25,5 +25,5 @@ export const updateOrderWorkflow = createWorkflow(
     updateOrderStep(input)
 
     return new WorkflowResponse(undefined)
-  }
+  },
 )

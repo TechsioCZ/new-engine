@@ -17,7 +17,7 @@ const product = (
     Parameters<
       typeof collectCanonicalProductAttributeDefinitions
     >[0][number]["productAttributes"]
-  >
+  >,
 ) =>
   ({
     handle,
@@ -50,7 +50,7 @@ describe("Herbatica Product Attribute reconciliation", () => {
     ])
 
     expect(definitions.get("supplier")?.options.get("bio-herba")).toBe(
-      "Bio Herba"
+      "Bio Herba",
     )
   })
 
@@ -75,7 +75,7 @@ describe("Herbatica Product Attribute reconciliation", () => {
             option: { label: "Bio-Herba" },
           },
         ]),
-      ])
+      ]),
     ).toThrow(OPTION_COLLISION_PATTERN)
   })
 
@@ -98,7 +98,7 @@ describe("Herbatica Product Attribute reconciliation", () => {
             option: { label: "Elevita" },
           },
         ]),
-      ])
+      ]),
     ).toThrow(DUPLICATE_DEFINITION_PATTERN)
   })
 
@@ -124,7 +124,7 @@ describe("Herbatica Product Attribute reconciliation", () => {
           },
         ],
         brandIds: new Set(["herbatica-brand"]),
-      })
+      }),
     ).toStrictEqual(["herbatica-supplier"])
   })
 
@@ -146,7 +146,7 @@ describe("Herbatica Product Attribute reconciliation", () => {
           },
         ],
         productIds: new Set(["herbatica-product"]),
-      })
+      }),
     ).toStrictEqual(new Set(["herbatica-brand"]))
   })
 })
@@ -163,13 +163,13 @@ describe("Herbatica native visibility mapping", () => {
         resolveHerbaticaProductVisibility({
           topOffer: { visible: true },
           visibility,
-        })
+        }),
       ).toStrictEqual({
         salesChannelNames,
         status,
         storefrontAccessible,
       })
-    }
+    },
   )
 
   it("makes an offer marked invisible draft regardless of source visibility", () => {
@@ -177,7 +177,7 @@ describe("Herbatica native visibility mapping", () => {
       resolveHerbaticaProductVisibility({
         topOffer: { visible: false },
         visibility: "cashDeskOnly",
-      })
+      }),
     ).toStrictEqual({
       salesChannelNames: [],
       status: "draft",

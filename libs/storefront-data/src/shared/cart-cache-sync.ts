@@ -16,7 +16,7 @@ interface CartLike {
 
 export type ActiveCartQueryKeyMatcher = (
   queryKey: QueryKey,
-  cartId: string
+  cartId: string,
 ) => boolean
 
 export interface CartCacheSyncOptions {
@@ -79,7 +79,7 @@ const matchesActiveKeySegment = ({
           cartId,
           cartVariant: cartVariant[index],
           regionVariant: regionVariant[index],
-        })
+        }),
       )
     )
   }
@@ -97,7 +97,7 @@ const matchesActiveKeySegment = ({
         cartId,
         cartVariant: cartVariant[key],
         regionVariant: regionVariant[key],
-      })
+      }),
     )
   }
 
@@ -112,7 +112,7 @@ const matchesActiveKeySegment = ({
 
 const hasCartId = <TCart extends CartLike>(
   value: unknown,
-  cartId?: string
+  cartId?: string,
 ): value is TCart => {
   if (!isPlainRecord(value)) {
     return false
@@ -131,7 +131,7 @@ const hasCartId = <TCart extends CartLike>(
 }
 
 export const createDefaultActiveCartQueryMatcher = (
-  queryKeys: CartQueryKeys
+  queryKeys: CartQueryKeys,
 ): ActiveCartQueryKeyMatcher => {
   const cartPrefix = queryKeys.all()
   const baseActiveKey = queryKeys.active({
@@ -164,7 +164,7 @@ export const createDefaultActiveCartQueryMatcher = (
 
 const resolveActiveCartQueryMatcher = (
   queryKeys: CartQueryKeys,
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions,
 ): ActiveCartQueryKeyMatcher =>
   options?.isActiveCartQueryKey ??
   createDefaultActiveCartQueryMatcher(queryKeys)
@@ -173,7 +173,7 @@ export function syncCartCaches<TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cart: TCart,
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions,
 ): void {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
   const activeKey = queryKeys.active({
@@ -185,7 +185,7 @@ export function syncCartCaches<TCart extends CartLike>(
     {
       predicate: (query) => isActiveCartQueryKey(query.queryKey, cart.id),
     },
-    cart
+    cart,
   )
 
   queryClient.setQueryData(activeKey, cart)
@@ -196,7 +196,7 @@ export async function invalidateCartCaches(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions,
 ): Promise<void> {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
 
@@ -212,7 +212,7 @@ export async function cancelCartCaches(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions,
 ): Promise<void> {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
 
@@ -221,11 +221,11 @@ export async function cancelCartCaches(
       {
         predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
       },
-      { silent: true }
+      { silent: true },
     ),
     queryClient.cancelQueries(
       { queryKey: queryKeys.detail(cartId) },
-      { silent: true }
+      { silent: true },
     ),
   ])
 }
@@ -239,11 +239,11 @@ export function patchCartCaches<TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  params: PatchCartCachesParams<TCart>
+  params: PatchCartCachesParams<TCart>,
 ): void {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(
     queryKeys,
-    params.options
+    params.options,
   )
 
   queryClient.setQueriesData<TCart>(
@@ -251,13 +251,13 @@ export function patchCartCaches<TCart extends CartLike>(
       predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
     },
     (existing) =>
-      hasCartId<TCart>(existing, cartId) ? params.patch(existing) : existing
+      hasCartId<TCart>(existing, cartId) ? params.patch(existing) : existing,
   )
 
   queryClient.setQueryData<TCart | undefined>(
     queryKeys.detail(cartId),
     (existing) =>
-      hasCartId<TCart>(existing, cartId) ? params.patch(existing) : existing
+      hasCartId<TCart>(existing, cartId) ? params.patch(existing) : existing,
   )
 }
 
@@ -265,7 +265,7 @@ export function getCachedCartById<TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions,
 ): TCart | null {
   const detailCart = queryClient.getQueryData<TCart>(queryKeys.detail(cartId))
   if (hasCartId<TCart>(detailCart, cartId)) {

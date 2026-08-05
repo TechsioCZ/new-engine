@@ -43,12 +43,12 @@ export function ProductReviewCreateDialog({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const loginHref = buildAuthRouteHref(
     "/auth/login",
-    `${pathname}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
+    `${pathname}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`,
   )
   const createReviewMutation = useCreateProductReview({
     onError: (error) => {
       setSubmitError(
-        resolveProductReviewSubmitErrorMessage(error, reviewErrorMessages)
+        resolveProductReviewSubmitErrorMessage(error, reviewErrorMessages),
       )
     },
     onSuccess: () => {

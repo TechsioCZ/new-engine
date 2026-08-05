@@ -15,5 +15,5 @@ export const deleteProductListItemsStep = createStep(
       .deleteProductListItems(itemIds)
 
     return new StepResponse({ ids: itemIds })
-  }
+  },
 )

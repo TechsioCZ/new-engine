@@ -15,6 +15,6 @@ export const useRegisterCountryItems = () => {
         locale: marketContext.locale,
         regions: [],
       }),
-    [marketContext.countryCode, marketContext.locale]
+    [marketContext.countryCode, marketContext.locale],
   )
 }

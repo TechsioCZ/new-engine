@@ -14,11 +14,11 @@ type ProductCategoryTreeNode = ProductCategoryDTO & {
 const LEGACY_TRAPI_MA_HANDLE = "trapi-ma-2"
 
 function collectCategoryTreePostOrder(
-  node: ProductCategoryTreeNode
+  node: ProductCategoryTreeNode,
 ): ProductCategoryTreeNode[] {
   const children = node.category_children ?? []
   const result = children.flatMap((child) =>
-    collectCategoryTreePostOrder(child)
+    collectCategoryTreePostOrder(child),
   )
   result.push(node)
   return result
@@ -30,12 +30,12 @@ export default async function herbaticaCleanupLegacyCategories({
 }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const productService = container.resolve<IProductModuleService>(
-    Modules.PRODUCT
+    Modules.PRODUCT,
   )
   const dryRun = args?.includes("--dry-run") ?? false
 
   logger.info(
-    `Looking for legacy Herbatica category subtree rooted at ${LEGACY_TRAPI_MA_HANDLE}...`
+    `Looking for legacy Herbatica category subtree rooted at ${LEGACY_TRAPI_MA_HANDLE}...`,
   )
 
   const categories = (await productService.listProductCategories(
@@ -45,7 +45,7 @@ export default async function herbaticaCleanupLegacyCategories({
     },
     {
       relations: ["category_children"],
-    }
+    },
   )) as ProductCategoryTreeNode[]
 
   const legacyRoot = categories[0]
@@ -56,7 +56,7 @@ export default async function herbaticaCleanupLegacyCategories({
 
   const deleteOrder = collectCategoryTreePostOrder(legacyRoot)
   logger.info(
-    `Resolved ${deleteOrder.length} categories for deletion in child-first order.`
+    `Resolved ${deleteOrder.length} categories for deletion in child-first order.`,
   )
 
   for (const category of deleteOrder) {

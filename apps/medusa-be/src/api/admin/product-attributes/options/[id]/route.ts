@@ -16,26 +16,26 @@ import type { AdminUpdateProductAttributeOptionSchemaType } from "../../validato
 
 export async function GET(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const optionId = req.params["id"] ?? ""
   const option = await retrieveProductAttributeOptionOrThrow(
     req.scope,
     optionId,
-    true
+    true,
   )
   const usageCounts = await getOptionUsageCountMap(req.scope, [option.id])
   res.json({
     option: toProductAttributeOptionResponse(
       option,
-      usageCounts.get(option.id) ?? 0
+      usageCounts.get(option.id) ?? 0,
     ),
   })
 }
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminUpdateProductAttributeOptionSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const optionId = req.params["id"] ?? ""
   const { result } = await updateProductAttributeOptionWorkflow(req.scope).run({
@@ -48,19 +48,19 @@ export async function POST(
   res.json({
     option: toProductAttributeOptionResponse(
       result,
-      usageCounts.get(result.id) ?? 0
+      usageCounts.get(result.id) ?? 0,
     ),
   })
 }
 
 export async function DELETE(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result } = await deleteProductAttributeOptionsWorkflow(req.scope).run(
     {
       input: { ids: [req.params["id"] ?? ""] },
-    }
+    },
   )
   res.json({ option: result[0] ?? null })
 }

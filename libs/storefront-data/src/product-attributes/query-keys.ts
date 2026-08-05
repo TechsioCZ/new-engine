@@ -3,7 +3,7 @@ import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { ProductAttributeQueryKeys } from "./types"
 
 export function createProductAttributeQueryKeys<TParams>(
-  namespace: QueryNamespace
+  namespace: QueryNamespace,
 ): ProductAttributeQueryKeys<TParams> {
   return {
     detail: (params) =>
@@ -11,7 +11,7 @@ export function createProductAttributeQueryKeys<TParams>(
         namespace,
         "product-attributes",
         "detail",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
       ),
   }
 }

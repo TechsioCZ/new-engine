@@ -182,42 +182,42 @@ export interface ProductListService<
 > {
   listProductLists: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<ProductListListResult<TProductList>>
   getProductList: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TProductList | null>
   createFavoriteProductList: (
-    input: CreateFavoriteProductListInput
+    input: CreateFavoriteProductListInput,
   ) => Promise<TProductList | null>
   createCustomProductList: (
-    input: CreateCustomProductListInput
+    input: CreateCustomProductListInput,
   ) => Promise<TProductList | null>
   updateProductList: (
-    input: UpdateProductListInput
+    input: UpdateProductListInput,
   ) => Promise<TProductList | null>
   deleteProductList: (
-    input: DeleteProductListInput
+    input: DeleteProductListInput,
   ) => Promise<ProductListDeleteResponse>
   addProductListItem: (
-    input: AddProductListItemInput
+    input: AddProductListItemInput,
   ) => Promise<TProductListItem | null>
   addFavoriteProductListItem: (
-    input: AddFavoriteProductListItemInput
+    input: AddFavoriteProductListItemInput,
   ) => Promise<TProductListItem | null>
   createProductListCart: (input: CreateProductListCartInput) => Promise<TCart>
   updateProductListItem: (
-    input: UpdateProductListItemInput
+    input: UpdateProductListItemInput,
   ) => Promise<TProductListItem | null>
   changeProductListItemQuantity: (
-    input: ChangeProductListItemQuantityInput
+    input: ChangeProductListItemQuantityInput,
   ) => Promise<TProductListItem | null>
   incrementProductListItem: (
-    input: IncrementProductListItemInput
+    input: IncrementProductListItemInput,
   ) => Promise<TProductListItem | null>
   deleteProductListItem: (
-    input: DeleteProductListItemInput
+    input: DeleteProductListItemInput,
   ) => Promise<ProductListDeleteResponse>
 }
 

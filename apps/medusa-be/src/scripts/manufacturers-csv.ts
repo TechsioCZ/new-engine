@@ -57,7 +57,7 @@ function decodeCsvValue(value: string) {
 function parseBooleanCsvValue(
   value: string,
   field: string,
-  manufacturerIdentity: string
+  manufacturerIdentity: string,
 ) {
   const normalized = value.trim().toLowerCase()
   if (TRUE_BOOLEAN_VALUES.has(normalized)) {
@@ -68,7 +68,7 @@ function parseBooleanCsvValue(
   }
 
   throw new Error(
-    `Manufacturer "${manufacturerIdentity}" has invalid boolean "${value}" in CSV field "${field}"`
+    `Manufacturer "${manufacturerIdentity}" has invalid boolean "${value}" in CSV field "${field}"`,
   )
 }
 
@@ -99,7 +99,7 @@ function pushCsvRow(rows: string[][], state: CsvParserState) {
 function consumeQuotedCsvCharacter(
   source: string,
   index: number,
-  state: CsvParserState
+  state: CsvParserState,
 ) {
   const char = source.charAt(index)
   if (char !== '"') {
@@ -124,18 +124,18 @@ function consumeUnquotedCsvCharacter(
   char: string,
   delimiter: string,
   rows: string[][],
-  state: CsvParserState
+  state: CsvParserState,
 ) {
   if (state.afterClosingQuote && char !== delimiter && char !== "\n") {
     throw new Error(
-      `Malformed manufacturers CSV at line ${state.line}: unexpected character after a closing quote`
+      `Malformed manufacturers CSV at line ${state.line}: unexpected character after a closing quote`,
     )
   }
 
   if (char === '"') {
     if (state.currentField.length > 0) {
       throw new Error(
-        `Malformed manufacturers CSV at line ${state.line}: quote must start at the beginning of a field`
+        `Malformed manufacturers CSV at line ${state.line}: quote must start at the beginning of a field`,
       )
     }
     state.inQuotes = true
@@ -177,13 +177,13 @@ function parseCsvRows(source: string, delimiter = ";") {
       normalizedSource.charAt(index),
       delimiter,
       rows,
-      state
+      state,
     )
   }
 
   if (state.inQuotes) {
     throw new Error(
-      `Malformed manufacturers CSV: unclosed quoted field starting before line ${state.line}`
+      `Malformed manufacturers CSV: unclosed quoted field starting before line ${state.line}`,
     )
   }
 
@@ -206,7 +206,7 @@ function validateHeaders(headers: string[]) {
   const emptyHeaderIndex = headers.findIndex((header) => header.length === 0)
   if (emptyHeaderIndex !== -1) {
     throw new Error(
-      `Manufacturers CSV has an empty header at column ${emptyHeaderIndex + 1}`
+      `Manufacturers CSV has an empty header at column ${emptyHeaderIndex + 1}`,
     )
   }
 
@@ -221,7 +221,7 @@ function validateHeaders(headers: string[]) {
   const missing = REQUIRED_HEADERS.filter((header) => !seen.has(header))
   if (missing.length) {
     throw new Error(
-      `Manufacturers CSV is missing required header(s): ${missing.join(", ")}`
+      `Manufacturers CSV is missing required header(s): ${missing.join(", ")}`,
     )
   }
 }
@@ -229,28 +229,28 @@ function validateHeaders(headers: string[]) {
 function validateEmail(
   value: string | null,
   field: string,
-  manufacturerIdentity: string
+  manufacturerIdentity: string,
 ) {
   if (value && !EMAIL_SCHEMA.safeParse(value).success) {
     throw new Error(
-      `Manufacturer "${manufacturerIdentity}" has invalid email "${value}" in CSV field "${field}"`
+      `Manufacturer "${manufacturerIdentity}" has invalid email "${value}" in CSV field "${field}"`,
     )
   }
 }
 
 function buildManufacturerCsvFields(
   record: Record<string, string>,
-  manufacturerIdentity: string
+  manufacturerIdentity: string,
 ) {
   const gpsr_contact_email = decodeCsvValue(record["contactEmail"] ?? "")
   const gpsr_european_reseller_contact_email = decodeCsvValue(
-    record["europeanResellerContactEmail"] ?? ""
+    record["europeanResellerContactEmail"] ?? "",
   )
   const gpsr_european_reseller_manufacturing_company_name = decodeCsvValue(
-    record["europeanResellerManufacturingCompanyName"] ?? ""
+    record["europeanResellerManufacturingCompanyName"] ?? "",
   )
   const gpsr_european_reseller_postal_address = decodeCsvValue(
-    record["europeanResellerPostalAddress"] ?? ""
+    record["europeanResellerPostalAddress"] ?? "",
   )
   const europeanRepresentativeFields = [
     gpsr_european_reseller_contact_email,
@@ -258,12 +258,12 @@ function buildManufacturerCsvFields(
     gpsr_european_reseller_postal_address,
   ]
   const representativeFieldCount = europeanRepresentativeFields.filter(
-    (value) => value !== null
+    (value) => value !== null,
   ).length
 
   if (representativeFieldCount > 0 && representativeFieldCount < 3) {
     throw new Error(
-      `Manufacturer "${manufacturerIdentity}" must provide all European responsible-person fields or none of them`
+      `Manufacturer "${manufacturerIdentity}" must provide all European responsible-person fields or none of them`,
     )
   }
 
@@ -271,7 +271,7 @@ function buildManufacturerCsvFields(
   validateEmail(
     gpsr_european_reseller_contact_email,
     "europeanResellerContactEmail",
-    manufacturerIdentity
+    manufacturerIdentity,
   )
 
   return {
@@ -282,18 +282,18 @@ function buildManufacturerCsvFields(
     gpsr_european_reseller_postal_address,
     gpsr_manufactured_outside_eu: representativeFieldCount === 3,
     gpsr_manufacturing_company_name: decodeCsvValue(
-      record["manufacturingCompanyName"] ?? ""
+      record["manufacturingCompanyName"] ?? "",
     ),
     gpsr_postal_address: decodeCsvValue(record["postalAddress"] ?? ""),
     inList: parseBooleanCsvValue(
       record["inList"] ?? "",
       "inList",
-      manufacturerIdentity
+      manufacturerIdentity,
     ),
     inMenu: parseBooleanCsvValue(
       record["inMenu"] ?? "",
       "inMenu",
-      manufacturerIdentity
+      manufacturerIdentity,
     ),
     indexName: decodeCsvValue(record["indexName"] ?? ""),
     metaDescription: decodeCsvValue(record["metaDescription"] ?? ""),
@@ -305,23 +305,23 @@ function buildManufacturerCsvFields(
 function toManufacturerCsvRow(
   headers: string[],
   row: string[],
-  sourceRow: number
+  sourceRow: number,
 ): ManufacturerCsvRow {
   if (row.length !== headers.length) {
     throw new Error(
-      `Malformed manufacturers CSV row ${sourceRow}: expected ${headers.length} columns, received ${row.length}`
+      `Malformed manufacturers CSV row ${sourceRow}: expected ${headers.length} columns, received ${row.length}`,
     )
   }
 
   const record = Object.fromEntries(
-    headers.map((header, index) => [header, row[index] ?? ""])
+    headers.map((header, index) => [header, row[index] ?? ""]),
   ) as Record<string, string>
 
   const id = decodeCsvValue(record["id"] ?? "")
   const name = decodeCsvValue(record["name"] ?? "")
   if (!(id && name)) {
     throw new Error(
-      `Malformed manufacturers CSV row ${sourceRow}: both "id" and "name" are required`
+      `Malformed manufacturers CSV row ${sourceRow}: both "id" and "name" are required`,
     )
   }
 
@@ -359,7 +359,7 @@ export function parseManufacturersCsv(source: string): ManufacturerCsvRow[] {
 }
 
 export function buildManufacturersLookup(
-  rows: ManufacturerCsvRow[]
+  rows: ManufacturerCsvRow[],
 ): ManufacturerCsvLookup {
   if (!rows.length) {
     throw new Error("Cannot build manufacturers lookup from zero rows")
@@ -377,14 +377,14 @@ export function buildManufacturersLookup(
       const key = normalizeLookupKey(alias.value)
       if (!key) {
         throw new Error(
-          `Manufacturer "${row.name}" (${row.id}) has unusable ${alias.field} alias "${alias.value}"`
+          `Manufacturer "${row.name}" (${row.id}) has unusable ${alias.field} alias "${alias.value}"`,
         )
       }
 
       const existing = lookup.get(key)
       if (existing && existing !== row) {
         throw new Error(
-          `Manufacturer alias collision for normalized key "${key}": "${existing.name}" (${existing.id}) and "${row.name}" (${row.id})`
+          `Manufacturer alias collision for normalized key "${key}": "${existing.name}" (${existing.id}) and "${row.name}" (${row.id})`,
         )
       }
 
@@ -397,7 +397,7 @@ export function buildManufacturersLookup(
 
 export function findManufacturerCsvRow(
   lookup: ManufacturerCsvLookup,
-  value?: string | null
+  value?: string | null,
 ): ManufacturerCsvRow | undefined {
   if (!value) {
     return
@@ -422,7 +422,7 @@ export async function readCsvSource(source: string): Promise<string> {
     })
     if (!response.ok) {
       throw new Error(
-        `Failed to fetch CSV source ${source}: ${response.status} ${response.statusText}`
+        `Failed to fetch CSV source ${source}: ${response.status} ${response.statusText}`,
       )
     }
 

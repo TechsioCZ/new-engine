@@ -8,7 +8,7 @@ import { StoreDeleteProductListItemParamsSchema } from "../../../validators"
 
 export async function DELETE(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id: listId, item_id: itemId } =
     StoreDeleteProductListItemParamsSchema.parse(req.params)

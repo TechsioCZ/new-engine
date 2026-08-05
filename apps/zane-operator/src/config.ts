@@ -35,7 +35,7 @@ type Environment = Record<string, string | undefined>
 function parsePort(
   rawValue: string | undefined,
   fallback: number,
-  label: string
+  label: string,
 ): number {
   if (!rawValue) {
     return fallback
@@ -71,10 +71,10 @@ function assertSafeIdentifier(value: string, label: string): void {
 
 function parseProtectedDatabaseNames(
   rawValue: string | undefined,
-  requiredNames: string[]
+  requiredNames: string[],
 ): Set<string> {
   const protectedNames = new Set<string>(
-    BASE_PROTECTED_DB_NAMES.map((name) => name.toLowerCase())
+    BASE_PROTECTED_DB_NAMES.map((name) => name.toLowerCase()),
   )
 
   for (const requiredName of requiredNames) {
@@ -136,7 +136,7 @@ export function loadConfig(env: Environment = process.env): AppConfig {
   const apiAuthToken = readRequiredEnv(env, "API_AUTH_TOKEN")
   const previewAppPasswordSecret = readRequiredEnv(
     env,
-    "DB_PREVIEW_APP_PASSWORD_SECRET"
+    "DB_PREVIEW_APP_PASSWORD_SECRET",
   )
   const connectionDatabase = env.PGDATABASE?.trim() || DEFAULT_PG_DATABASE
   const zaneBaseUrl = readOptionalEnv(env, "ZANE_BASE_URL")

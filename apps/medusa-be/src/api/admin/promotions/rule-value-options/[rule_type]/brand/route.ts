@@ -15,14 +15,14 @@ interface BrandRuleValue {
 
 export async function GET(
   req: MedusaRequest<unknown, RuleValueOptionsQuerySchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const ruleType = req.params["rule_type"]
 
   if (!ruleType) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "rule_type parameter is required"
+      "rule_type parameter is required",
     )
   }
 

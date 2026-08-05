@@ -8,7 +8,7 @@ import type { Category } from "@/data/static/type"
  */
 export function getCategoryPath(
   category: Category | undefined,
-  categoryMap: Record<string, Category>
+  categoryMap: Record<string, Category>,
 ): string[] {
   if (!category) {
     return []

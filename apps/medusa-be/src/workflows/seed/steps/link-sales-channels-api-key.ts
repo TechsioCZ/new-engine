@@ -46,7 +46,7 @@ export const linkSalesChannelsApiKeyStep = createStep(
       .map((salesChannel) => salesChannel.id)
     if (desiredIds.length !== new Set(desiredNames).size) {
       throw new Error(
-        `Could not resolve exact publishable-key sales channels: ${desiredNames.join(", ")}`
+        `Could not resolve exact publishable-key sales channels: ${desiredNames.join(", ")}`,
       )
     }
     const { data: existingLinks } = await query.graph({
@@ -55,7 +55,7 @@ export const linkSalesChannelsApiKeyStep = createStep(
       filters: { publishable_key_id: input.publishableApiKey.id },
     })
     const existingIds = existingLinks.flatMap((link) =>
-      typeof link.sales_channel_id === "string" ? [link.sales_channel_id] : []
+      typeof link.sales_channel_id === "string" ? [link.sales_channel_id] : [],
     )
     const { add, remove } = planSalesChannelApiKeyLinks({
       desiredIds,
@@ -75,5 +75,5 @@ export const linkSalesChannelsApiKeyStep = createStep(
     return new StepResponse({
       result: { add, remove },
     })
-  }
+  },
 )

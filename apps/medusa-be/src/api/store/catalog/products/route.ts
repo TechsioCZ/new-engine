@@ -68,7 +68,7 @@ const FACETS_TO_FETCH = [
 ]
 
 const mapStatusFacets = (
-  facetCounts: Map<string, number>
+  facetCounts: Map<string, number>,
 ): FacetCountItem[] => {
   const usedIds = new Set<string>()
 
@@ -89,7 +89,7 @@ const mapStatusFacets = (
         count,
         id,
         label: STATUS_FACET_LABEL_BY_ID.get(id) ?? id,
-      }))
+      })),
   )
 
   return [...result, ...additionalItems]
@@ -115,7 +115,7 @@ const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] => {
         count,
         id,
         label: FORM_FACET_LABEL_BY_ID.get(id) ?? id,
-      }))
+      })),
   )
 
   return [...result, ...additionalItems]
@@ -161,7 +161,7 @@ const getSalesChannelIds = (value: unknown): string[] => {
 
 const buildMeiliOrExpression = (
   field: string,
-  values: string[]
+  values: string[],
 ): string | undefined => {
   const uniqueValues = [...new Set(values.filter(Boolean))]
   if (uniqueValues.length === 0) {
@@ -179,14 +179,14 @@ const buildMeiliOrExpression = (
 }
 
 const buildVisibilityFilterExpressions = (
-  salesChannelIdFilter: unknown
+  salesChannelIdFilter: unknown,
 ): string[] => {
   const expressions = [
     `facet_product_status = "${escapeMeiliFilterValue(ProductStatus.PUBLISHED)}"`,
   ]
   const salesChannelExpression = buildMeiliOrExpression(
     "facet_sales_channel_ids",
-    getSalesChannelIds(salesChannelIdFilter)
+    getSalesChannelIds(salesChannelIdFilter),
   )
 
   if (salesChannelExpression) {
@@ -197,14 +197,14 @@ const buildVisibilityFilterExpressions = (
 }
 const resolveBrandFacetLabels = async (
   queryService: Query,
-  facetIds: string[]
+  facetIds: string[],
 ): Promise<Map<string, string>> => {
   const labelsById = new Map<string, string>()
   const handles = [
     ...new Set(
       facetIds
         .map((id) => extractBrandHandleFromFacetId(id))
-        .filter((handle): handle is string => Boolean(handle))
+        .filter((handle): handle is string => Boolean(handle)),
     ),
   ]
 
@@ -238,7 +238,7 @@ const resolveBrandFacetLabels = async (
 
     labelsById.set(
       facetId,
-      brandTitleByHandle.get(handle) ?? humanizeFacetHandle(handle)
+      brandTitleByHandle.get(handle) ?? humanizeFacetHandle(handle),
     )
   }
 
@@ -247,14 +247,14 @@ const resolveBrandFacetLabels = async (
 
 const resolveIngredientFacetLabels = async (
   queryService: Query,
-  facetIds: string[]
+  facetIds: string[],
 ): Promise<Map<string, string>> => {
   const labelsById = new Map<string, string>()
   const handles = [
     ...new Set(
       facetIds
         .map((id) => extractIngredientHandleFromFacetId(id))
-        .filter((handle): handle is string => Boolean(handle))
+        .filter((handle): handle is string => Boolean(handle)),
     ),
   ]
 
@@ -288,7 +288,7 @@ const resolveIngredientFacetLabels = async (
 
     labelsById.set(
       facetId,
-      categoryNameByHandle.get(handle) ?? humanizeFacetHandle(handle)
+      categoryNameByHandle.get(handle) ?? humanizeFacetHandle(handle),
     )
   }
 
@@ -297,19 +297,19 @@ const resolveIngredientFacetLabels = async (
 
 const mapDynamicFacets = (
   facetCounts: Map<string, number>,
-  labelsById: Map<string, string>
+  labelsById: Map<string, string>,
 ): FacetCountItem[] =>
   sortFacetCountItems(
     [...facetCounts.entries()].map(([id, count]) => ({
       count,
       id,
       label: labelsById.get(id) ?? humanizeFacetHandle(id),
-    }))
+    })),
   )
 
 export async function GET(
   req: RequestWithContext<unknown, StoreCatalogProductsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   if (!isMeilisearchEnabled()) {
     res.status(503).json({
@@ -320,7 +320,7 @@ export async function GET(
 
   const { validatedQuery } = req
   const measurementDecorationOptions = getMeasurementDecorationOptions(
-    req.queryConfig.fields
+    req.queryConfig.fields,
   )
   const queryService = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
@@ -371,7 +371,7 @@ export async function GET(
         facets: FACETS_TO_FETCH,
         ...(sort ? { sort } : {}),
       },
-    }
+    },
   )
 
   const productIds = Array.isArray(searchResult.hits)
@@ -405,7 +405,7 @@ export async function GET(
                 },
                 sales_channel_id: req.filterableFields.sales_channel_id,
                 status: ProductStatus.PUBLISHED,
-              }
+              },
             ),
             ...((pricingContext
               ? {
@@ -424,7 +424,7 @@ export async function GET(
                       }
                     : undefined,
                 }),
-          })
+          }),
         )
 
   const productOrder = new Map(productIds.map((id, index) => [id, index]))
@@ -438,23 +438,23 @@ export async function GET(
 
   const statusFacetCounts = getFacetDistribution(
     searchResult.facetDistribution,
-    "facet_status"
+    "facet_status",
   )
   const formFacetCounts = getFacetDistribution(
     searchResult.facetDistribution,
-    "facet_form"
+    "facet_form",
   )
   const brandFacetCounts = getFacetDistribution(
     searchResult.facetDistribution,
-    "facet_brand"
+    "facet_brand",
   )
   const ingredientFacetCounts = getFacetDistribution(
     searchResult.facetDistribution,
-    "facet_ingredient"
+    "facet_ingredient",
   )
   const priceFacetStats = getNumericFacetStats(
     searchResult.facetStats,
-    "facet_price"
+    "facet_price",
   )
 
   const [brandLabelsById, ingredientLabelsById] = await Promise.all([
@@ -471,12 +471,12 @@ export async function GET(
   const totalPages = count > 0 ? Math.ceil(count / limit) : 0
   await wrapProductsWithTaxPrices(
     req,
-    orderedProducts as Parameters<typeof wrapProductsWithTaxPrices>[1]
+    orderedProducts as Parameters<typeof wrapProductsWithTaxPrices>[1],
   )
   await decorateProductsWithMeasurements(
     req.scope,
     orderedProducts as Parameters<typeof decorateProductsWithMeasurements>[1],
-    measurementDecorationOptions
+    measurementDecorationOptions,
   )
 
   res.json({

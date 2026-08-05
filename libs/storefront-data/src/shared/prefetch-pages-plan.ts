@@ -19,7 +19,7 @@ export interface PrefetchPagesPlan {
 const pushPageIfValid = (
   pages: number[],
   page: number | null,
-  input: CreatePrefetchPagesPlanInput
+  input: CreatePrefetchPagesPlanInput,
 ) => {
   if (page == null) {
     return
@@ -31,7 +31,7 @@ const pushPageIfValid = (
 }
 
 const createSimplePrefetchPagesPlan = (
-  input: CreatePrefetchPagesPlanInput
+  input: CreatePrefetchPagesPlanInput,
 ): PrefetchPagesPlan => {
   const pagesToPrefetch: number[] = []
 
@@ -39,27 +39,27 @@ const createSimplePrefetchPagesPlan = (
   pushPageIfValid(
     pagesToPrefetch,
     input.hasPrevPage ? input.currentPage - 1 : null,
-    input
+    input,
   )
   pushPageIfValid(
     pagesToPrefetch,
     input.hasPrevPage ? input.currentPage - 2 : null,
-    input
+    input,
   )
   pushPageIfValid(
     pagesToPrefetch,
     input.hasNextPage ? input.currentPage + 1 : null,
-    input
+    input,
   )
   pushPageIfValid(
     pagesToPrefetch,
     input.hasNextPage ? input.currentPage + 2 : null,
-    input
+    input,
   )
   pushPageIfValid(
     pagesToPrefetch,
     input.currentPage === input.totalPages ? null : input.totalPages,
-    input
+    input,
   )
 
   return {
@@ -70,7 +70,7 @@ const createSimplePrefetchPagesPlan = (
 }
 
 const createPriorityPrefetchPagesPlan = (
-  input: CreatePrefetchPagesPlanInput
+  input: CreatePrefetchPagesPlanInput,
 ): PrefetchPagesPlan => {
   const high = input.hasNextPage ? [input.currentPage + 1] : []
   const medium =
@@ -90,7 +90,7 @@ const createPriorityPrefetchPagesPlan = (
   const mediumPages = unique(medium).filter((page) => !immediateSet.has(page))
   const mediumSet = new Set(mediumPages)
   const lowPages = unique(lowCandidates).filter(
-    (page) => !(immediateSet.has(page) || mediumSet.has(page))
+    (page) => !(immediateSet.has(page) || mediumSet.has(page)),
   )
 
   return {
@@ -107,7 +107,7 @@ const createPriorityPrefetchPagesPlan = (
  * - `simple`: all candidate pages in one immediate queue
  */
 export const createPrefetchPagesPlan = (
-  input: CreatePrefetchPagesPlanInput
+  input: CreatePrefetchPagesPlanInput,
 ): PrefetchPagesPlan => {
   const mode = input.mode ?? "priority"
   if (mode === "simple") {

@@ -82,7 +82,7 @@ export class ZaneOperatorClient {
   async #requestJson<T>(
     path: string,
     init: RequestInit,
-    parseResponse: (value: unknown) => T
+    parseResponse: (value: unknown) => T,
   ): Promise<{
     httpCode: number
     body: T
@@ -100,7 +100,7 @@ export class ZaneOperatorClient {
       })
     } catch {
       throw new Error(
-        "zane-operator request failed before a successful HTTP response"
+        "zane-operator request failed before a successful HTTP response",
       )
     }
 
@@ -112,7 +112,7 @@ export class ZaneOperatorClient {
         responseBody = JSON.parse(responseText)
       } catch {
         throw new Error(
-          `zane-operator returned non-JSON response (HTTP ${response.status})`
+          `zane-operator returned non-JSON response (HTTP ${response.status})`,
         )
       }
     }
@@ -122,7 +122,7 @@ export class ZaneOperatorClient {
       throw new Error(
         operatorMessage
           ? `zane-operator request returned HTTP ${response.status}: ${operatorMessage}`
-          : `zane-operator request returned HTTP ${response.status}`
+          : `zane-operator request returned HTTP ${response.status}`,
       )
     }
 
@@ -135,7 +135,7 @@ export class ZaneOperatorClient {
   async #postJson<T>(
     path: string,
     payload: unknown,
-    parseResponse: (value: unknown) => T
+    parseResponse: (value: unknown) => T,
   ): Promise<T> {
     const response = await this.#requestJson(
       path,
@@ -146,7 +146,7 @@ export class ZaneOperatorClient {
         },
         method: "POST",
       },
-      parseResponse
+      parseResponse,
     )
 
     return response.body
@@ -182,7 +182,7 @@ export class ZaneOperatorClient {
     }[]
   }): Promise<ResolveEnvironmentResponse> {
     return this.#postJson("/v1/zane/environments/resolve", payload, (value) =>
-      resolveEnvironmentResponseSchema.parse(value)
+      resolveEnvironmentResponseSchema.parse(value),
     )
   }
 
@@ -193,7 +193,7 @@ export class ZaneOperatorClient {
     return this.#postJson(
       "/v1/zane/preview-commit-state/read",
       payload,
-      (value) => previewCommitStateResponseSchema.parse(value)
+      (value) => previewCommitStateResponseSchema.parse(value),
     )
   }
 
@@ -207,7 +207,7 @@ export class ZaneOperatorClient {
     return this.#postJson(
       "/v1/zane/preview-commit-state/write",
       payload,
-      (value) => previewCommitStateResponseSchema.parse(value)
+      (value) => previewCommitStateResponseSchema.parse(value),
     )
   }
 
@@ -228,7 +228,7 @@ export class ZaneOperatorClient {
     return this.#postJson(
       "/v1/zane/preview-random-once-secrets/sync",
       payload,
-      (value) => previewRandomOnceSecretsResponseSchema.parse(value)
+      (value) => previewRandomOnceSecretsResponseSchema.parse(value),
     )
   }
 
@@ -240,7 +240,7 @@ export class ZaneOperatorClient {
     return this.#postJson(
       "/v1/zane/preview-shared-env/sync",
       payload,
-      (value) => previewSharedEnvSyncResponseSchema.parse(value)
+      (value) => previewSharedEnvSyncResponseSchema.parse(value),
     )
   }
 
@@ -259,25 +259,25 @@ export class ZaneOperatorClient {
     return this.#postJson(
       "/v1/zane/preview-service-env/sync",
       payload,
-      (value) => applyEnvOverridesResponseSchema.parse(value)
+      (value) => applyEnvOverridesResponseSchema.parse(value),
     )
   }
 
   async resolveTargets(
-    payload: ResolveTargetsPayload
+    payload: ResolveTargetsPayload,
   ): Promise<ResolveTargetsResponse> {
     return this.#postJson("/v1/zane/deploy/resolve-targets", payload, (value) =>
-      resolveTargetsResponseSchema.parse(value)
+      resolveTargetsResponseSchema.parse(value),
     )
   }
 
   async applyEnvOverrides(
-    payload: ApplyEnvOverridesPayload
+    payload: ApplyEnvOverridesPayload,
   ): Promise<ApplyEnvOverridesResponse> {
     return this.#postJson(
       "/v1/zane/deploy/apply-env-overrides",
       payload,
-      (value) => applyEnvOverridesResponseSchema.parse(value)
+      (value) => applyEnvOverridesResponseSchema.parse(value),
     )
   }
 
@@ -288,7 +288,7 @@ export class ZaneOperatorClient {
     git_commit_sha?: string | undefined
   }): Promise<TriggerResponse> {
     return this.#postJson("/v1/zane/deploy/trigger", payload, (value) =>
-      triggerResponseSchema.parse(value)
+      triggerResponseSchema.parse(value),
     )
   }
 
@@ -302,16 +302,16 @@ export class ZaneOperatorClient {
   }
 
   async runRuntimeProvider(
-    payload: RuntimeProviderRunPayload
+    payload: RuntimeProviderRunPayload,
   ): Promise<RuntimeProviderRunResponse> {
     return this.#postJson("/v1/zane/runtime-providers/run", payload, (value) =>
-      runtimeProviderRunResponseSchema.parse(value)
+      runtimeProviderRunResponseSchema.parse(value),
     )
   }
 
   async verifyDeploy(payload: VerifyDeployPayload): Promise<VerifyResponse> {
     return this.#postJson("/v1/zane/deploy/verify", payload, (value) =>
-      verifyResponseSchema.parse(value)
+      verifyResponseSchema.parse(value),
     )
   }
 
@@ -328,7 +328,7 @@ export class ZaneOperatorClient {
         },
         method: "POST",
       },
-      (value) => ensurePreviewDbResponseSchema.parse(value)
+      (value) => ensurePreviewDbResponseSchema.parse(value),
     )
   }
 
@@ -344,7 +344,7 @@ export class ZaneOperatorClient {
         },
         method: "DELETE",
       },
-      (value) => teardownPreviewDbResponseSchema.parse(value)
+      (value) => teardownPreviewDbResponseSchema.parse(value),
     )
   }
 
@@ -364,7 +364,7 @@ export class ZaneOperatorClient {
         },
         method: "POST",
       },
-      (value) => archiveEnvironmentResponseSchema.parse(value)
+      (value) => archiveEnvironmentResponseSchema.parse(value),
     )
   }
 }

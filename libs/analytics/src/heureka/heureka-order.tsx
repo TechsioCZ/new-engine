@@ -67,7 +67,7 @@ export function HeurekaOrder({
       '[HeurekaOrder] Invalid country provided, defaulting to "cz"',
       {
         country: rawCountry,
-      }
+      },
     )
   }
   const domain = safeCountry === "sk" ? "heureka.sk" : "heureka.cz"
@@ -106,7 +106,7 @@ export function HeurekaOrder({
         if (retries > MAX_POLL_RETRIES) {
           if (debug) {
             console.warn(
-              "[HeurekaOrder] SDK failed to load after 5s, giving up"
+              "[HeurekaOrder] SDK failed to load after 5s, giving up",
             )
           }
           return
@@ -145,7 +145,7 @@ export function HeurekaOrder({
           product.id,
           product.name,
           String(product.priceWithVat),
-          String(product.quantity)
+          String(product.quantity),
         )
       }
 
@@ -199,7 +199,7 @@ export function HeurekaOrder({
             g.parentNode.insertBefore(n, g);
           })(window, document, 'script',
              ${JSON.stringify(
-               `https://${domain}/ocm/sdk.js?version=2&page=thank_you`
+               `https://${domain}/ocm/sdk.js?version=2&page=thank_you`,
              )},
              'heureka', ${JSON.stringify(safeCountry)});
         `,

@@ -175,7 +175,7 @@ export function PplWidget({
             navigator.geolocation.getCurrentPosition(
               handleSuccess,
               handleError,
-              geoOptions
+              geoOptions,
             )
           } else {
             // Permission not granted (prompt/denied) - skip geolocation
@@ -191,7 +191,7 @@ export function PplWidget({
       navigator.geolocation.getCurrentPosition(
         handleSuccess,
         handleError,
-        geoOptions
+        geoOptions,
       )
     }
 
@@ -203,7 +203,7 @@ export function PplWidget({
   // Load CSS once
   useEffect(() => {
     const existingLink = document.head.querySelector<HTMLLinkElement>(
-      `link[href="${PPL_CSS_URL}"]`
+      `link[href="${PPL_CSS_URL}"]`,
     )
     if (existingLink) {
       return
@@ -254,7 +254,7 @@ export function PplWidget({
 
     // Remove any existing PPL script to force reinitialization
     const existingScript = document.querySelector(
-      `script[src="${PPL_SCRIPT_URL}"]`
+      `script[src="${PPL_SCRIPT_URL}"]`,
     )
     if (existingScript) {
       existingScript.remove()

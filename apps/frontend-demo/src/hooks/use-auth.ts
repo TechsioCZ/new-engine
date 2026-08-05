@@ -172,7 +172,7 @@ export function useAuth() {
       email: string,
       password: string,
       firstName?: string,
-      lastName?: string
+      lastName?: string,
     ) => {
       loginMutation.mutate({
         email,
@@ -185,7 +185,7 @@ export function useAuth() {
       email: string,
       password: string,
       firstName?: string,
-      lastName?: string
+      lastName?: string,
     ) => {
       registerMutation.mutate({
         email,

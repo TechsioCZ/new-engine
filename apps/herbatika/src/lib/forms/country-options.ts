@@ -13,7 +13,7 @@ export interface CountryRegionInput {
 }
 
 export const normalizeCountryCode = (
-  countryCode: string | null | undefined
+  countryCode: string | null | undefined,
 ) => {
   const normalized = countryCode?.trim().toUpperCase()
   return normalized && COUNTRY_CODE_PATTERN.test(normalized) ? normalized : null
@@ -33,7 +33,7 @@ const getCountryDisplayNames = (locale: string) => {
 
 export const resolveCountryDisplayName = (
   countryCode: string,
-  locale: string
+  locale: string,
 ) => {
   const normalizedCountryCode = normalizeCountryCode(countryCode)
 
@@ -63,7 +63,7 @@ const resolveRegionCountryCodes = (region: HttpTypes.StoreRegion | null) =>
     region?.countries
       ?.map((country) => normalizeCountryCode(country.iso_2))
       .filter((countryCode): countryCode is string => Boolean(countryCode)) ??
-      []
+      [],
   )
 
 const resolveCountryCodes = ({
@@ -72,7 +72,7 @@ const resolveCountryCodes = ({
   regions,
 }: Pick<CountryRegionInput, "activeCountryCode" | "regionId" | "regions">) => {
   const regionCountryCodes = resolveRegionCountryCodes(
-    findRegion({ ...(regionId === undefined ? {} : { regionId }), regions })
+    findRegion({ ...(regionId === undefined ? {} : { regionId }), regions }),
   )
   const normalizedActiveCountryCode = normalizeCountryCode(activeCountryCode)
 

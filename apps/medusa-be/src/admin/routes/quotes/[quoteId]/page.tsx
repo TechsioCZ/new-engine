@@ -45,7 +45,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
       query: {
         fields: "id",
       },
-    }
+    },
   )
 }
 
@@ -67,13 +67,13 @@ const QuoteDetails = () => {
       fields:
         "*draft_order.customer,*draft_order.customer.employee,*draft_order.customer.employee.company",
     },
-    { enabled: Boolean(quoteId) }
+    { enabled: Boolean(quoteId) },
   )
 
   const { order: preview, isLoading: isPreviewLoading } = useOrderPreview(
     quote?.draft_order_id ?? "",
     {},
-    { enabled: Boolean(quote?.draft_order_id) }
+    { enabled: Boolean(quote?.draft_order_id) },
   )
 
   const { mutateAsync: sendQuote, isPending: isSendingQuote } =
@@ -92,7 +92,7 @@ const QuoteDetails = () => {
 
     if (
       ["customer_rejected", "merchant_rejected", "accepted"].includes(
-        quote?.status ?? ""
+        quote?.status ?? "",
       )
     ) {
       setShowRejectQuote(false)
@@ -252,7 +252,7 @@ const QuoteDetails = () => {
                   quoteEmployee?.spending_limit ?? 0,
                   quoteCompany?.currency_code ||
                     quote.draft_order?.currency_code ||
-                    "USD"
+                    "USD",
                 )}
               </Text>
             </div>

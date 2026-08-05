@@ -116,7 +116,7 @@ export function CartPreview() {
                 <p className="font-cart-preview-item text-cart-preview-fg text-cart-preview-item-size">
                   {formatPrice(
                     price * item.quantity,
-                    cart?.region?.currency_code
+                    cart?.region?.currency_code,
                   )}
                 </p>
               </div>

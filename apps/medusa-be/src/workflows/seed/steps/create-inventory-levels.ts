@@ -37,12 +37,12 @@ type ResolvedInventoryItemInput =
 
 function buildInventoryLevelsForItem(
   inventoryItem: ResolvedInventoryItemInput,
-  stockLocations: StockLocationDTO[]
+  stockLocations: StockLocationDTO[],
 ): CreateInventoryLevelInput[] {
   if (inventoryItem.id === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Inventory item with sku ${inventoryItem.sku} not found.`
+      `Inventory item with sku ${inventoryItem.sku} not found.`,
     )
   }
   const inventoryItemId = inventoryItem.id
@@ -50,12 +50,12 @@ function buildInventoryLevelsForItem(
   if (inventoryItem.locations?.length) {
     return inventoryItem.locations.map((locationQuantity) => {
       const stockLocation = stockLocations.find(
-        (location) => location.name === locationQuantity.stockLocationName
+        (location) => location.name === locationQuantity.stockLocationName,
       )
       if (!stockLocation) {
         throw new MedusaError(
           MedusaError.Types.NOT_FOUND,
-          `Stock location "${locationQuantity.stockLocationName}" not found for SKU ${inventoryItem.sku}.`
+          `Stock location "${locationQuantity.stockLocationName}" not found for SKU ${inventoryItem.sku}.`,
         )
       }
 
@@ -87,7 +87,7 @@ export const createInventoryLevelsStep = createStep(
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const inventoryLevelService = container.resolve<IInventoryService>(
-      Modules.INVENTORY
+      Modules.INVENTORY,
     )
 
     logger.info("Creating inventory levels...")
@@ -110,7 +110,7 @@ export const createInventoryLevelsStep = createStep(
     const inventoryLevels: CreateInventoryLevelInput[] = []
     for (const inventoryItem of inventoryItemsMap) {
       inventoryLevels.push(
-        ...buildInventoryLevelsForItem(inventoryItem, input.stockLocations)
+        ...buildInventoryLevelsForItem(inventoryItem, input.stockLocations),
       )
     }
 
@@ -127,15 +127,15 @@ export const createInventoryLevelsStep = createStep(
         !existingInventoryLevels.find(
           (eil) =>
             eil.inventory_item_id === il.inventory_item_id &&
-            eil.location_id === il.location_id
-        )
+            eil.location_id === il.location_id,
+        ),
     )
     const updateInventoryLevels: UpdateInventoryLevelInput[] =
       existingInventoryLevels.flatMap((eil) => {
         const inputInventoryLevel = inventoryLevels.find(
           (il) =>
             eil.inventory_item_id === il.inventory_item_id &&
-            eil.location_id === il.location_id
+            eil.location_id === il.location_id,
         )
         if (inputInventoryLevel?.stocked_quantity !== undefined) {
           return [
@@ -154,7 +154,7 @@ export const createInventoryLevelsStep = createStep(
 
     if (missingInventoryLevels.length !== 0) {
       logger.info(
-        `Creating ${missingInventoryLevels.length} missing inventory levels...`
+        `Creating ${missingInventoryLevels.length} missing inventory levels...`,
       )
 
       for (let i = 0; i < missingInventoryLevels.length; i += CHUNK_SIZE) {
@@ -163,7 +163,7 @@ export const createInventoryLevelsStep = createStep(
             input: {
               inventory_levels: missingInventoryLevels.slice(i, i + CHUNK_SIZE),
             },
-          }
+          },
         )
         for (const resultElement of createResult.result) {
           result.push(resultElement)
@@ -173,7 +173,7 @@ export const createInventoryLevelsStep = createStep(
 
     if (updateInventoryLevels.length !== 0) {
       logger.info(
-        `Updating ${updateInventoryLevels.length} existing inventory levels...`
+        `Updating ${updateInventoryLevels.length} existing inventory levels...`,
       )
 
       for (let i = 0; i < updateInventoryLevels.length; i += CHUNK_SIZE) {
@@ -182,7 +182,7 @@ export const createInventoryLevelsStep = createStep(
             input: {
               updates: updateInventoryLevels.slice(i, i + CHUNK_SIZE),
             },
-          }
+          },
         )
 
         for (const resultElement of updateResult.result) {
@@ -194,5 +194,5 @@ export const createInventoryLevelsStep = createStep(
     return new StepResponse({
       result,
     })
-  }
+  },
 )

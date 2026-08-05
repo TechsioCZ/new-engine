@@ -107,17 +107,17 @@ export class PriceListsClient {
     this.container = container
     this.customerGroupCodeService =
       container.resolve<SymmyCustomerGroupCodeModuleService>(
-        SYMMY_CUSTOMER_GROUP_CODE_MODULE
+        SYMMY_CUSTOMER_GROUP_CODE_MODULE,
       )
     this.priceListCodeService =
       container.resolve<SymmyPriceListCodeModuleService>(
-        SYMMY_PRICE_LIST_CODE_MODULE
+        SYMMY_PRICE_LIST_CODE_MODULE,
       )
     this.query = getQuery(container)
   }
 
   async preloadPriceLists(
-    priceLists?: PriceListInput[]
+    priceLists?: PriceListInput[],
   ): Promise<ExistingPriceListIndex> {
     if (!priceLists) {
       return { byCode: new Map() }
@@ -125,16 +125,16 @@ export class PriceListsClient {
 
     return this.mapper.buildPriceListIndex(
       await this.queryPriceListsByCodes(
-        this.mapper.collectPriceListCodes(priceLists)
-      )
+        this.mapper.collectPriceListCodes(priceLists),
+      ),
     )
   }
 
   async preloadPriceListsByCodes(
-    codes: Set<string>
+    codes: Set<string>,
   ): Promise<ExistingPriceListIndex> {
     return this.mapper.buildPriceListIndex(
-      await this.queryPriceListsByCodes(codes)
+      await this.queryPriceListsByCodes(codes),
     )
   }
 
@@ -153,7 +153,7 @@ export class PriceListsClient {
       offset,
     })
     const priceListsById = await this.queryPriceListsByIds(
-      new Set(mappings.map((mapping) => mapping.price_list_id))
+      new Set(mappings.map((mapping) => mapping.price_list_id)),
     )
     const price_lists = mappings
       .flatMap((mapping) => {
@@ -171,7 +171,7 @@ export class PriceListsClient {
   }
 
   async preloadCustomerGroups(
-    priceLists: PriceListInput[]
+    priceLists: PriceListInput[],
   ): Promise<PriceListCustomerGroupIndex> {
     const codes = this.mapper.collectCustomerGroupCodes(priceLists)
     if (!codes.size) {
@@ -189,13 +189,13 @@ export class PriceListsClient {
         ...nameGroups,
         ...this.mapper.applyCustomerGroupCodeMappings(codeGroups, codeMappings),
       ],
-      codes
+      codes,
     )
   }
 
   async createPriceList(
     input: PriceListInput,
-    groupIndex: PriceListCustomerGroupIndex
+    groupIndex: PriceListCustomerGroupIndex,
   ): Promise<ExistingPriceList> {
     const { result } = await createPriceListsWorkflow(this.container).run({
       input: {
@@ -208,7 +208,7 @@ export class PriceListsClient {
     if (!created) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "createPriceListsWorkflow returned empty result"
+        "createPriceListsWorkflow returned empty result",
       )
     }
     await this.priceListCodeService.upsertCode({
@@ -225,7 +225,7 @@ export class PriceListsClient {
   async updatePriceList(
     id: string,
     input: PriceListInput,
-    groupIndex: PriceListCustomerGroupIndex
+    groupIndex: PriceListCustomerGroupIndex,
   ): Promise<void> {
     await updatePriceListsWorkflow(this.container).run({
       input: {
@@ -265,7 +265,7 @@ export class PriceListsClient {
   async preloadPrices(
     priceListId: string,
     prices: PriceInput[],
-    variantMaps: VariantLookupMaps
+    variantMaps: VariantLookupMaps,
   ) {
     const priceSetIds = new Set<string>()
     const currencyCodes = new Set<string>()
@@ -301,7 +301,7 @@ export class PriceListsClient {
   async applyPrices(
     priceListId: string,
     create: Record<string, unknown>[],
-    update: Record<string, unknown>[]
+    update: Record<string, unknown>[],
   ): Promise<PriceBatchApplyResult> {
     if (!(create.length || update.length)) {
       return { created: [], updated: [] }
@@ -323,7 +323,7 @@ export class PriceListsClient {
   }
 
   private async queryPriceListsByIds(
-    ids: Set<string>
+    ids: Set<string>,
   ): Promise<Map<string, ExistingPriceList>> {
     if (!ids.size) {
       return new Map()
@@ -337,12 +337,12 @@ export class PriceListsClient {
       ((data ?? []) as ExistingPriceList[]).map((priceList) => [
         priceList.id,
         priceList,
-      ])
+      ]),
     )
   }
 
   private async queryPriceListsByCodes(
-    codes: Set<string>
+    codes: Set<string>,
   ): Promise<ExistingPriceList[]> {
     if (!codes.size) {
       return []
@@ -350,14 +350,14 @@ export class PriceListsClient {
 
     const mappings = await this.priceListCodeService.listByErpCodes(codes)
     const priceListsById = await this.queryPriceListsByIds(
-      new Set(mappings.map((mapping) => mapping.price_list_id))
+      new Set(mappings.map((mapping) => mapping.price_list_id)),
     )
     return this.mapper.applyCodeMappings([...priceListsById.values()], mappings)
   }
 
   private async queryVariants(
     field: "sku" | "ean" | "id",
-    identifiers: PriceIdentifierSets
+    identifiers: PriceIdentifierSets,
   ): Promise<VariantQueryResult> {
     let values: Set<string>
     if (field === "sku") {
@@ -383,7 +383,7 @@ export class PriceListsClient {
   }
 
   private buildVariantPriceSetMap(
-    variants: Record<string, unknown>[]
+    variants: Record<string, unknown>[],
   ): Map<string, string> {
     const map = new Map<string, string>()
     for (const variant of variants) {
@@ -402,7 +402,7 @@ export class PriceListsClient {
 
   private resolvePriceVariantId(
     price: PriceInput,
-    variantMaps: VariantLookupMaps
+    variantMaps: VariantLookupMaps,
   ) {
     if (price.identifier_type === "sku" && price.sku) {
       return variantMaps.bySku.get(price.sku)

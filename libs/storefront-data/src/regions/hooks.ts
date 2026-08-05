@@ -93,7 +93,7 @@ export function createRegionHooks<
 
   function useRegions(
     input: TListInput,
-    options?: { queryOptions?: ReadQueryOptions<RegionListResponse<TRegion>> }
+    options?: { queryOptions?: ReadQueryOptions<RegionListResponse<TRegion>> },
   ): UseRegionsResult<TRegion> {
     const { items, ...result } = simpleHooks.useList(input, options)
     return {
@@ -106,7 +106,7 @@ export function createRegionHooks<
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<RegionListResponse<TRegion>>
-    }
+    },
   ): UseSuspenseRegionsResult<TRegion> {
     const { items, ...result } = simpleHooks.useSuspenseList(input, options)
     return {
@@ -117,7 +117,7 @@ export function createRegionHooks<
 
   function useRegion(
     input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TRegion | null> }
+    options?: { queryOptions?: ReadQueryOptions<TRegion | null> },
   ): UseRegionResult<TRegion> {
     const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
@@ -128,7 +128,7 @@ export function createRegionHooks<
 
   function useSuspenseRegion(
     input: TDetailInput,
-    options?: { queryOptions?: SuspenseQueryOptions<TRegion | null> }
+    options?: { queryOptions?: SuspenseQueryOptions<TRegion | null> },
   ): UseSuspenseRegionResult<TRegion> {
     const { item, ...result } = simpleHooks.useSuspenseDetail(input, options)
     return {

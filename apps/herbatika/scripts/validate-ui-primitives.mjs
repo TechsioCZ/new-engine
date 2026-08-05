@@ -91,7 +91,7 @@ function parseRuleConfig(config) {
       enabled: Boolean(bannedJsxTags.enabled),
       suggestions: bannedJsxTags.suggestions ?? {},
       tags: new Set(
-        (bannedJsxTags.tags ?? []).map((tag) => String(tag).toLowerCase())
+        (bannedJsxTags.tags ?? []).map((tag) => String(tag).toLowerCase()),
       ),
     },
   }
@@ -129,7 +129,7 @@ function isTagAllowedForFile(relativeFilePath, tagName, allowByFile) {
   return allowByFile.some(
     (item) =>
       item.tag === tagName &&
-      item.fileRegex.test(normalizePath(relativeFilePath))
+      item.fileRegex.test(normalizePath(relativeFilePath)),
   )
 }
 
@@ -146,7 +146,7 @@ function resolveBannedImportFinding(node, content, rulesConfig) {
 
   const moduleName = node.source.value
   const isBannedModule = rulesConfig.bannedImports.modulePatterns.some(
-    (pattern) => pattern.test(moduleName)
+    (pattern) => pattern.test(moduleName),
   )
 
   if (!isBannedModule) {
@@ -168,7 +168,7 @@ function resolveBannedJsxTagFinding(
   node,
   content,
   relativeFilePath,
-  rulesConfig
+  rulesConfig,
 ) {
   if (
     !(rulesConfig.bannedJsxTags.enabled && node.type === "JSXOpeningElement")
@@ -186,7 +186,7 @@ function resolveBannedJsxTagFinding(
   const isAllowed = isTagAllowedForFile(
     relativeFilePath,
     tagName,
-    rulesConfig.bannedJsxTags.allowByFile
+    rulesConfig.bannedJsxTags.allowByFile,
   )
 
   if (!(isBannedTag && !isAllowed)) {
@@ -235,7 +235,7 @@ function collectFileFindings(relativeFilePath, content, rulesConfig) {
       node,
       content,
       relativeFilePath,
-      rulesConfig
+      rulesConfig,
     )
     if (jsxTagFinding) {
       pushFinding(jsxTagFinding)
@@ -272,7 +272,7 @@ function printSummary(findings, scannedFileCount) {
 
   console.log(`Total violations: ${findings.length}`)
   for (const [rule, count] of [...byRule.entries()].sort((a, b) =>
-    a[0].localeCompare(b[0])
+    a[0].localeCompare(b[0]),
   )) {
     console.log(`- ${rule}: ${count}`)
   }
@@ -286,7 +286,7 @@ function printSummary(findings, scannedFileCount) {
   }
 
   for (const [file, fileFindings] of [...groupedByFile.entries()].sort((a, b) =>
-    a[0].localeCompare(b[0])
+    a[0].localeCompare(b[0]),
   )) {
     console.log(`\n${file}`)
     for (const finding of fileFindings) {
@@ -322,7 +322,7 @@ async function main() {
     const fileFindings = collectFileFindings(
       relativeFilePath,
       content,
-      rulesConfig
+      rulesConfig,
     )
 
     for (const finding of fileFindings) {
@@ -342,8 +342,8 @@ async function main() {
           violationCount: findings.length,
         },
         null,
-        2
-      )
+        2,
+      ),
     )
   } else {
     printSummary(findings, sourceFiles.length)

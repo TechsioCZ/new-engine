@@ -41,14 +41,14 @@ export interface RegionQueryOptionsFactory<
     options?: {
       queryOptions?: ReadQueryOptions<RegionListResponse<TRegion>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<RegionListResponse<TRegion>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TRegion | null>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TRegion | null>
 }
 
@@ -86,6 +86,6 @@ export function createRegionQueryOptionsFactory<
       getList: service.getRegions,
       missingDetailErrorMessage: "Region id is required for region queries",
       queryKeys: resolvedQueryKeys,
-    })
+    }),
   )
 }

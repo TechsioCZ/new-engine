@@ -209,7 +209,7 @@ export const IndeterminateExample: Story = {
 
     const handleChildChange = (id: number, checked: boolean) => {
       setItems((prevItems) =>
-        prevItems.map((item) => (item.id === id ? { ...item, checked } : item))
+        prevItems.map((item) => (item.id === id ? { ...item, checked } : item)),
       )
     }
 

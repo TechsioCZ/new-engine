@@ -75,7 +75,7 @@ describe("GET /admin/company-customer-group-links", () => {
       {
         select: ["id", "name", "deleted_at"],
         withDeleted: true,
-      }
+      },
     )
     expect(res.json).toHaveBeenCalledWith({
       customer_group_links: [

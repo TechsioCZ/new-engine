@@ -40,7 +40,7 @@ const toConfigResponse = (config: SymmyWebhookConfigDTO) => ({
  */
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const webhookService = req.scope.resolve<SymmyWebhookConfigModuleService>(
-    SYMMY_WEBHOOK_CONFIG_MODULE
+    SYMMY_WEBHOOK_CONFIG_MODULE,
   )
 
   const config = await webhookService.getConfig()
@@ -79,10 +79,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
  */
 export async function POST(
   req: MedusaRequest<PostAdminSymmyWebhookConfigSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result: config } = await symmyUpdateWebhookConfigWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: req.validatedBody,
   })

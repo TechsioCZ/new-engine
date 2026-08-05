@@ -3,7 +3,7 @@ export type AccountTab = (typeof ACCOUNT_TABS)[number]
 
 export const resolveTab = (
   tabParam: string | null,
-  pathname: string
+  pathname: string,
 ): AccountTab => {
   if (tabParam && ACCOUNT_TABS.includes(tabParam as AccountTab)) {
     return tabParam as AccountTab

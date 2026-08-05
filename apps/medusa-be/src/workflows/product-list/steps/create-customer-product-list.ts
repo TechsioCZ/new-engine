@@ -44,7 +44,7 @@ export const createCustomerProductListStep = createStep(
         {
           created: false,
           list_id: existingFavorite.id,
-        }
+        },
       )
     }
 
@@ -53,13 +53,13 @@ export const createCustomerProductListStep = createStep(
       const existingCustomList = await findCustomerCustomProductListByHandle(
         container,
         input.customer_id,
-        handle
+        handle,
       )
 
       if (existingCustomList) {
         throw new MedusaError(
           MedusaError.Types.DUPLICATE_ERROR,
-          `Product list handle already exists: ${handle}`
+          `Product list handle already exists: ${handle}`,
         )
       }
     }
@@ -77,7 +77,7 @@ export const createCustomerProductListStep = createStep(
       {
         created: true,
         list_id: productList.id,
-      }
+      },
     )
   },
   async (input, { container }) => {
@@ -88,5 +88,5 @@ export const createCustomerProductListStep = createStep(
     await container
       .resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
       .deleteProductLists(input.list_id)
-  }
+  },
 )

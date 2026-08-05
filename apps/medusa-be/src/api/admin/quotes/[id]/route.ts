@@ -11,7 +11,7 @@ import type { AdminGetQuoteParamsType } from "../validators"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<AdminGetQuoteParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
@@ -19,7 +19,7 @@ export const GET = async (
   if (!id) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "The id path parameter is required"
+      "The id path parameter is required",
     )
   }
 
@@ -31,7 +31,7 @@ export const GET = async (
       fields: req.queryConfig.fields,
       filters: { id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ quote })

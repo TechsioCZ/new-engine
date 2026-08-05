@@ -35,7 +35,7 @@ function resolvePublicBackendUrl(options = {}) {
   } catch {
     if (isProduction) {
       throw new Error(
-        `Invalid ${envVarName}: expected an absolute URL, received "${configuredUrl}".`
+        `Invalid ${envVarName}: expected an absolute URL, received "${configuredUrl}".`,
       )
     }
 

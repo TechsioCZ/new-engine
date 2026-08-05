@@ -54,7 +54,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     (name: string, handler: (...args: unknown[]) => unknown) => {
       workflowSdkMock.steps.set(name, handler)
       return handler
-    }
+    },
   ),
   createWorkflow: vi.fn((_name: string, handler: unknown) => handler),
 }))
@@ -122,7 +122,7 @@ describe("send order payment reminder workflow", () => {
     await import("../send-order-payment-reminder")
 
     const step = workflowSdkMock.steps.get(
-      "build-order-payment-reminder-notification"
+      "build-order-payment-reminder-notification",
     )
 
     expect(step).toBeDefined()
@@ -145,14 +145,14 @@ describe("send order payment reminder workflow", () => {
         store_name: "Store",
         total: "stale input total",
       },
-      { container }
+      { container },
     )) as { output: Notification[] }
 
     expect(result.output[0]?.data?.["total"]).toBe(
       new Intl.NumberFormat("cs-CZ", {
         currency: "CZK",
         style: "currency",
-      }).format(1234.56)
+      }).format(1234.56),
     )
     expect(result.output[0]?.data?.["total"]).not.toBe("stale input total")
     expect(result.output[0]?.data?.["total"]).not.toBe(1999)
@@ -161,7 +161,7 @@ describe("send order payment reminder workflow", () => {
         entity: "order",
         fields: expect.arrayContaining(["summary.*", "total", "currency_code"]),
         filters: { id: "order_123" },
-      })
+      }),
     )
   })
 
@@ -208,7 +208,7 @@ describe("send order payment reminder workflow", () => {
       await import("../send-order-payment-reminder")
 
       const step = workflowSdkMock.steps.get(
-        "build-order-payment-reminder-notification"
+        "build-order-payment-reminder-notification",
       )
       expect(step).toBeDefined()
 
@@ -224,10 +224,10 @@ describe("send order payment reminder workflow", () => {
           store_name: "Store",
           total: inputTotal,
         },
-        { container }
+        { container },
       )) as { output: Notification[] }
 
       expect(result.output[0]?.data?.["total"]).toBe(expectedTotal)
-    }
+    },
   )
 })

@@ -14,7 +14,7 @@ import type { StoreCreateProductListItemSchemaType } from "../../validators"
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreCreateProductListItemSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result: item } = await createProductListItemWorkflow(req.scope).run({

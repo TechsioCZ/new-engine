@@ -57,7 +57,7 @@ medusaIntegrationTestRunner({
       await api.post(
         `/admin/api-keys/${publishableKey.id}/sales-channels`,
         { add: [salesChannel.id] },
-        adminHeaders
+        adminHeaders,
       )
 
       cart = await cartSeeder({
@@ -76,7 +76,7 @@ medusaIntegrationTestRunner({
         const response = await api.post(
           "/store/quotes",
           { cart_id: cart.id },
-          storeHeaders
+          storeHeaders,
         )
 
         expect(response.status).toEqual(200)
@@ -106,7 +106,7 @@ medusaIntegrationTestRunner({
             order_change: expect.objectContaining({
               actions: [],
             }),
-          })
+          }),
         )
       })
     })
@@ -130,7 +130,7 @@ medusaIntegrationTestRunner({
             draft_order: expect.objectContaining({
               id: newQuote.draft_order_id,
             }),
-          })
+          }),
         )
       })
 
@@ -196,7 +196,7 @@ medusaIntegrationTestRunner({
                 id: quote2.draft_order_id,
               }),
             }),
-          ])
+          ]),
         )
       })
     })
@@ -220,7 +220,7 @@ medusaIntegrationTestRunner({
         } = await api.post(
           `/store/quotes/${quote1.id}/accept?fields=+draft_order.is_draft_order,+draft_order.status`,
           {},
-          storeHeaders
+          storeHeaders,
         )
 
         expect(quote).toEqual(
@@ -239,7 +239,7 @@ medusaIntegrationTestRunner({
                 }),
               ],
             }),
-          })
+          }),
         )
       })
 
@@ -278,14 +278,14 @@ medusaIntegrationTestRunner({
         } = await api.post(
           `/store/quotes/${quote1.id}/reject?fields=+draft_order.status`,
           {},
-          storeHeaders
+          storeHeaders,
         )
 
         expect(quote).toEqual(
           expect.objectContaining({
             id: quote1.id,
             status: "customer_rejected",
-          })
+          }),
         )
       })
     })

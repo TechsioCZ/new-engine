@@ -268,7 +268,7 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     expect(
-      queryClient.getQueryCache().findAll({ queryKey: authQueryKeys.all() })
+      queryClient.getQueryCache().findAll({ queryKey: authQueryKeys.all() }),
     ).toHaveLength(0)
   })
 
@@ -349,7 +349,7 @@ describe("storefront-data missing hook coverage", () => {
         result.current.mutateAsync({
           email: "qa@example.com",
           password: "bad-password",
-        })
+        }),
       ).rejects.toThrow("Invalid email or password")
     })
 
@@ -430,7 +430,7 @@ describe("storefront-data missing hook coverage", () => {
           cart,
           cartId: cart.id,
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -452,7 +452,7 @@ describe("storefront-data missing hook coverage", () => {
 
     await waitFor(() => {
       const cached = queryClient.getQueryData(
-        cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" })
+        cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" }),
       )
       expect(cached).toStrictEqual({
         id: cart.id,
@@ -462,7 +462,7 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     expect(
-      queryClient.getQueryData(cartQueryKeys.detail(cart.id))
+      queryClient.getQueryData(cartQueryKeys.detail(cart.id)),
     ).toStrictEqual({
       id: cart.id,
       region_id: "reg_1",
@@ -532,7 +532,7 @@ describe("storefront-data missing hook coverage", () => {
     }
     queryClient.setQueryData(
       cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" }),
-      cart
+      cart,
     )
     queryClient.setQueryData(cartQueryKeys.detail(cart.id), cart)
 
@@ -543,7 +543,7 @@ describe("storefront-data missing hook coverage", () => {
           cartId: cart.id,
           regionId: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -559,14 +559,14 @@ describe("storefront-data missing hook coverage", () => {
     await waitFor(() => {
       expect(
         queryClient.getQueryData<Cart>(
-          cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" })
-        )
+          cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" }),
+        ),
       ).toStrictEqual({
         ...cart,
         payment_collection: { id: "pay_col_1" },
       })
       expect(
-        queryClient.getQueryData<Cart>(cartQueryKeys.detail(cart.id))
+        queryClient.getQueryData<Cart>(cartQueryKeys.detail(cart.id)),
       ).toStrictEqual({
         ...cart,
         payment_collection: { id: "pay_col_1" },
@@ -611,7 +611,7 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     const cartQueryKeys = createCartQueryKeys(
-      "test-checkout-payment-cached-cart"
+      "test-checkout-payment-cached-cart",
     )
     const { useCheckoutPayment } = createCheckoutHooks<
       Cart,
@@ -643,7 +643,7 @@ describe("storefront-data missing hook coverage", () => {
         },
         region_id: "reg_1",
         shipping_methods: [{ shipping_option_id: "opt_fixed" }],
-      } satisfies Cart
+      } satisfies Cart,
     )
 
     const { result } = renderHook(
@@ -652,7 +652,7 @@ describe("storefront-data missing hook coverage", () => {
           cartId: "cart_1",
           regionId: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -696,7 +696,7 @@ describe("storefront-data missing hook coverage", () => {
       initiatePaymentSession: async (
         _cartId: string,
         _providerId: string,
-        cart?: Cart | null
+        cart?: Cart | null,
       ) => {
         receivedCart = cart
         return { id: "pay_col_1" }
@@ -738,7 +738,7 @@ describe("storefront-data missing hook coverage", () => {
           cartId: staleRenderCart.id,
           regionId: "reg_1",
         }),
-      { wrapper }
+      { wrapper },
     )
 
     await waitFor(() => {
@@ -785,7 +785,7 @@ describe("storefront-data missing hook coverage", () => {
 
     const queryKeyNamespace = "test-prefetch-categories"
     const queryKeys = createCategoryQueryKeys<ListParams, DetailParams>(
-      queryKeyNamespace
+      queryKeyNamespace,
     )
     const { usePrefetchCategories } = createCategoryHooks({
       buildListParams,
@@ -815,11 +815,11 @@ describe("storefront-data missing hook coverage", () => {
       () => usePrefetchCategories({ skipMode: "any" }),
       {
         wrapper,
-      }
+      },
     )
     const { result: noSkipResult } = renderHook(
       () => usePrefetchCategories({ skipIfCached: false }),
-      { wrapper }
+      { wrapper },
     )
 
     await act(async () => {
@@ -871,7 +871,7 @@ describe("storefront-data missing hook coverage", () => {
 
     const queryKeyNamespace = "test-prefetch-collections"
     const queryKeys = createCollectionQueryKeys<ListParams, DetailParams>(
-      queryKeyNamespace
+      queryKeyNamespace,
     )
     const { usePrefetchCollections } = createCollectionHooks({
       buildListParams,
@@ -901,11 +901,11 @@ describe("storefront-data missing hook coverage", () => {
       () => usePrefetchCollections({ skipMode: "any" }),
       {
         wrapper,
-      }
+      },
     )
     const { result: noSkipResult } = renderHook(
       () => usePrefetchCollections({ skipIfCached: false }),
-      { wrapper }
+      { wrapper },
     )
 
     await act(async () => {
@@ -941,7 +941,7 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     const buildListParams = (
-      input: ProductListInputBase
+      input: ProductListInputBase,
     ): ProductListParams => {
       const limit = input.limit ?? 20
       const page = input.page ?? 1
@@ -1064,7 +1064,7 @@ describe("storefront-data missing hook coverage", () => {
         queryKey,
         skipIfCached: true,
         skipMode: "fresh",
-      })
+      }),
     ).toBeTruthy()
 
     expect(
@@ -1074,7 +1074,7 @@ describe("storefront-data missing hook coverage", () => {
         queryKey,
         skipIfCached: true,
         skipMode: "any",
-      })
+      }),
     ).toBeTruthy()
 
     resolveFetch?.()

@@ -65,7 +65,7 @@ const ensureSessionProxyToken = async (): Promise<string | null> => {
 
 export const authService = {
   async getCustomer(
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<HttpTypes.StoreCustomer | null> {
     if (!isSessionProxyAuthMode) {
       if (!getStoredToken()) {
@@ -132,7 +132,7 @@ export const authService = {
   async updateCustomer(input: AuthUpdateInput) {
     if (!authServiceBase.updateCustomer) {
       return Promise.reject(
-        new Error("updateCustomer service is not configured")
+        new Error("updateCustomer service is not configured"),
       )
     }
 

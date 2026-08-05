@@ -40,7 +40,7 @@ export default async function Page() {
       region_id: "reg_123",
       country_code: "cz",
       limit: 24,
-    })
+    }),
   )
 
   return (
@@ -75,7 +75,7 @@ export default async function Page({
       handle,
       region_id: "reg_123",
       country_code: "cz",
-    })
+    }),
   )
 
   return (
@@ -101,7 +101,7 @@ export async function loadSitemapProducts() {
       region_id: "reg_123",
       country_code: "cz",
       limit: 100,
-    })
+    }),
   )
 
   return queryClient.getQueryData(
@@ -109,7 +109,7 @@ export async function loadSitemapProducts() {
       region_id: "reg_123",
       country_code: "cz",
       limit: 100,
-    })
+    }),
   )
 }
 ```
@@ -181,7 +181,7 @@ Correct:
 
 ```ts
 await queryClient.prefetchQuery(
-  storefront.hooks.products.getListQueryOptions(params)
+  storefront.hooks.products.getListQueryOptions(params),
 )
 ```
 
@@ -197,7 +197,7 @@ Wrong:
 await queryClient.prefetchQuery(
   storefront.hooks.products.getListQueryOptions({
     limit: 24,
-  })
+  }),
 )
 ```
 
@@ -209,7 +209,7 @@ await queryClient.prefetchQuery(
     region_id: "reg_123",
     country_code: "cz",
     limit: 24,
-  })
+  }),
 )
 ```
 

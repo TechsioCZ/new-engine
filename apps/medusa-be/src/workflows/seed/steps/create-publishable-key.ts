@@ -19,7 +19,7 @@ export const createPublishableKeyStep = createStep(
   async (input: CreatePublishableKeyStepInput, { container }) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const apiKeyService = container.resolve<IApiKeyModuleService>(
-      Modules.API_KEY
+      Modules.API_KEY,
     )
     const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
@@ -32,12 +32,12 @@ export const createPublishableKeyStep = createStep(
     logger.info(
       result.created
         ? "Created publishable API key for seed workflow"
-        : "Using existing publishable API key for seed workflow"
+        : "Using existing publishable API key for seed workflow",
     )
 
     return new StepResponse({
       publishableApiKey: result.apiKey,
       result: [result.apiKey],
     })
-  }
+  },
 )

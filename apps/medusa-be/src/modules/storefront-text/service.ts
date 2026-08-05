@@ -15,7 +15,7 @@ interface TransactionRepository {
       enableNestedTransactions?: boolean
       isolationLevel?: string
       transaction?: unknown
-    }
+    },
   ) => Promise<Result>
 }
 
@@ -29,7 +29,7 @@ class StorefrontTextModuleService extends MedusaService({
   private readonly transactionRepository_: TransactionRepository
 
   constructor(
-    dependencies: StorefrontTextModuleDependencies & Record<string, unknown>
+    dependencies: StorefrontTextModuleDependencies & Record<string, unknown>,
   ) {
     super(dependencies)
     this.transactionRepository_ = dependencies.baseRepository
@@ -38,7 +38,7 @@ class StorefrontTextModuleService extends MedusaService({
   @InjectManager()
   async runInTransaction<Result>(
     taskWithContext: (context: Context) => Promise<Result>,
-    @MedusaContext() sharedContext: Context = {}
+    @MedusaContext() sharedContext: Context = {},
   ): Promise<Result> {
     if (sharedContext.transactionManager) {
       return await taskWithContext(sharedContext)
@@ -57,7 +57,7 @@ class StorefrontTextModuleService extends MedusaService({
           ? {}
           : { isolationLevel: sharedContext.isolationLevel }),
         transaction: sharedContext.transactionManager,
-      }
+      },
     )
   }
 }

@@ -22,7 +22,7 @@ export const formatPrice = ({
 export const formatAmount = (
   amount?: number | null,
   useGrouping = true,
-  currency = DEFAULT_CURRENCY
+  currency = DEFAULT_CURRENCY,
 ) => {
   if (!amount) {
     return `0 ${CURRENCY_SYMBOL}`
@@ -59,7 +59,7 @@ export const formatToTaxIncluded = ({
 }
 
 export const formatVariants = (
-  variants?: StoreProduct["variants"]
+  variants?: StoreProduct["variants"],
 ): string[] => {
   if (!variants || variants.length < 2) {
     return []

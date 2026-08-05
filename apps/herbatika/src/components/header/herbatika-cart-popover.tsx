@@ -110,16 +110,16 @@ export function HerbatikaCartPopover({
   const t = useTranslations("cart")
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
+    null,
   )
   const cartIdForActions = cart?.id
   const lineItemActions = useCartLineItemActions(
-    cartIdForActions === undefined ? {} : { cartId: cartIdForActions }
+    cartIdForActions === undefined ? {} : { cartId: cartIdForActions },
   )
   const cartItems = cart?.items ?? []
   const cartItemsTotalLabel = formatCurrencyAmount(
     resolveCartItemsSubtotalAmount(cart),
-    currencyCode
+    currencyCode,
   )
   const shippingAmount =
     asFiniteNumber(cart?.shipping_total) === null
@@ -163,7 +163,7 @@ export function HerbatikaCartPopover({
         clearTimeout(hoverCloseTimeoutRef.current)
       }
     },
-    []
+    [],
   )
 
   return (

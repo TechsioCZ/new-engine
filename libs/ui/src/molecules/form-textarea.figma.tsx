@@ -41,5 +41,5 @@ figma.connect(
         disabled: "default",
       }),
     },
-  }
+  },
 )

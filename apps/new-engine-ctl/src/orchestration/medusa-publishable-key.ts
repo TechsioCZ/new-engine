@@ -13,14 +13,14 @@ import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
 function requireRuntimeProviderOutput(
   response: RuntimeProviderRunResponse,
-  outputId: string
+  outputId: string,
 ) {
   const output = response.outputs.find(
-    (candidate) => candidate.output_id === outputId
+    (candidate) => candidate.output_id === outputId,
   )
   if (!output) {
     throw new Error(
-      `Runtime provider ${response.provider_id} did not return output ${outputId}.`
+      `Runtime provider ${response.provider_id} did not return output ${outputId}.`,
     )
   }
 
@@ -38,7 +38,7 @@ function resolveSharedPersistedValue(input: {
 
   const values = input.serviceIds.map((serviceId) => {
     const target = input.targets.find(
-      (candidate) => candidate.service_id === serviceId
+      (candidate) => candidate.service_id === serviceId,
     )
     return target?.current_production_deployment?.env?.[input.envVar] ?? ""
   })
@@ -53,18 +53,18 @@ function resolveSharedPersistedValue(input: {
 export function getMedusaPublishableKeyProviderSourceService(
   manifest: StackManifest,
   stackInputs: StackInputs,
-  providerId: string
+  providerId: string,
 ): {
   serviceId: string
   serviceSlug: string
 } {
   const serviceId = getRuntimeProviderSourceServiceId(stackInputs, providerId)
   const service = listDeployableServices(manifest).find(
-    (candidate) => candidate.id === serviceId
+    (candidate) => candidate.id === serviceId,
   )
   if (!service) {
     throw new Error(
-      `Missing service_slug for provider source service ${serviceId}.`
+      `Missing service_slug for provider source service ${serviceId}.`,
     )
   }
 
@@ -86,7 +86,7 @@ export function reusePersistedMedusaPublishableKeyFromTargets(input: {
   const frontendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
-    "frontend_key"
+    "frontend_key",
   )
 
   return {
@@ -122,21 +122,21 @@ export async function provisionMedusaPublishableKey(input: {
   const frontendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
-    "frontend_key"
+    "frontend_key",
   )
   const readinessPath = getRuntimeProviderReadinessPath(
     input.stackInputs,
-    input.providerId
+    input.providerId,
   )
   const frontendPolicy = getRuntimeProviderOutputPolicy(
     input.stackInputs,
     input.providerId,
-    "frontend_key"
+    "frontend_key",
   )
 
   if (!input.needFrontendKey) {
     throw new Error(
-      "Medusa publishable key provisioning requested with no required outputs."
+      "Medusa publishable key provisioning requested with no required outputs.",
     )
   }
 
@@ -155,7 +155,7 @@ export async function provisionMedusaPublishableKey(input: {
 
   const response = await new ZaneOperatorClient(
     input.baseUrl,
-    input.apiToken
+    input.apiToken,
   ).runRuntimeProvider({
     environment_name: input.environmentName,
     outputs: [
@@ -191,16 +191,16 @@ export async function provisionMedusaPublishableKey(input: {
 function resolveOutputEnvVar(
   stackInputs: StackInputs,
   providerId: string,
-  outputId: string
+  outputId: string,
 ): string {
   const target = listRuntimeProviderOutputTargets(
     stackInputs,
     providerId,
-    outputId
+    outputId,
   )[0]
   if (!target?.env_var) {
     throw new Error(
-      `Missing target env var for runtime provider ${providerId} output ${outputId}.`
+      `Missing target env var for runtime provider ${providerId} output ${outputId}.`,
     )
   }
 

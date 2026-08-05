@@ -14,7 +14,7 @@ const symmyUpsertCustomersBatchWorkflow = createWorkflow(
   (input: UpsertCustomersBatchInput) => {
     const result = symmyProcessCustomersBatchStep(input)
     return new WorkflowResponse<UpsertCustomersBatchOutput>(result)
-  }
+  },
 )
 
 export { symmyUpsertCustomersBatchWorkflow as upsertCustomersBatchWorkflow }

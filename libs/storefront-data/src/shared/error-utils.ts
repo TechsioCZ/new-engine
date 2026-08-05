@@ -10,7 +10,7 @@ const hasStringMessage = (error: unknown): error is { message: string } =>
     error &&
     typeof error === "object" &&
     "message" in error &&
-    typeof (error as ErrorLikeMessage).message === "string"
+    typeof (error as ErrorLikeMessage).message === "string",
   )
 
 const hasStringCode = (error: unknown): error is { code: string } =>
@@ -18,7 +18,7 @@ const hasStringCode = (error: unknown): error is { code: string } =>
     error &&
     typeof error === "object" &&
     "code" in error &&
-    typeof (error as ErrorLikeCode).code === "string"
+    typeof (error as ErrorLikeCode).code === "string",
   )
 
 export const toErrorMessage = (error: unknown): string | null => {
@@ -51,12 +51,12 @@ export const toErrorMessage = (error: unknown): string | null => {
 
 export const toErrorMessageWithFallback = (
   error: unknown,
-  fallback: string
+  fallback: string,
 ): string => toErrorMessage(error) ?? fallback
 
 export const toErrorWithCode = (
   error: unknown,
-  fallback: string
+  fallback: string,
 ): { message: string; code?: string } => {
   const message = toErrorMessage(error)
   if (hasStringCode(error)) {
@@ -78,7 +78,7 @@ export interface ErrorWithStage<TStage extends string> {
 export const createErrorWithStage = <TStage extends string>(
   stage: TStage,
   fallback: string,
-  cause?: unknown
+  cause?: unknown,
 ): ErrorWithStage<TStage> => ({
   cause,
   message: toErrorMessageWithFallback(cause, fallback),

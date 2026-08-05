@@ -56,7 +56,7 @@ export const createShippingOptionsStep = createStep(
 
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const fulfillmentService = container.resolve<IFulfillmentModuleService>(
-      Modules.FULFILLMENT
+      Modules.FULFILLMENT,
     )
 
     const optionNames = input.map((i) => i.name)
@@ -68,15 +68,15 @@ export const createShippingOptionsStep = createStep(
       },
       {
         relations: ["type"],
-      }
+      },
     )
 
     const missingOptions = input.filter(
-      (i) => !existingOptions.find((j) => j.name === i.name)
+      (i) => !existingOptions.find((j) => j.name === i.name),
     )
     const updateOptions = input.flatMap((inputOption) => {
       const existingOption = existingOptions.find(
-        (existing) => existing.name === inputOption.name
+        (existing) => existing.name === inputOption.name,
       )
       if (existingOption) {
         return [
@@ -101,7 +101,7 @@ export const createShippingOptionsStep = createStep(
             ...option.prices.flatMap((price) =>
               price.currencyCode
                 ? [{ currency_code: price.currencyCode, amount: price.amount }]
-                : []
+                : [],
             ),
             ...option.regions.map((region) => ({
               region_id: region.id,
@@ -128,7 +128,7 @@ export const createShippingOptionsStep = createStep(
       })
 
       const { result: createResult } = await createShippingOptionsWorkflow(
-        container
+        container,
       ).run({
         input: workflowInput,
       })
@@ -162,7 +162,7 @@ export const createShippingOptionsStep = createStep(
                         amount: price.amount,
                       },
                     ]
-                  : []
+                  : [],
               ),
               ...inputOption.regions.map((region) => ({
                 region_id: region.id,
@@ -199,11 +199,11 @@ export const createShippingOptionsStep = createStep(
               label: inputOption.type.label,
             },
           }
-        }
+        },
       )
 
       const { result: updateResult } = await updateShippingOptionsWorkflow(
-        container
+        container,
       ).run({
         input: updateInputs,
       })
@@ -215,13 +215,13 @@ export const createShippingOptionsStep = createStep(
       // Update existing types where code matched with new values from input
       const typesToUpdate = updateOptions.filter(
         ({ existing, input: inputOption }) =>
-          existing.type?.code === inputOption.type.code && existing.type
+          existing.type?.code === inputOption.type.code && existing.type,
       )
 
       if (typesToUpdate.length > 0) {
         for (const { existing, input: inputOption } of typesToUpdate) {
           logger.info(
-            `Updating existing shipping option type: ${inputOption.type.code}`
+            `Updating existing shipping option type: ${inputOption.type.code}`,
           )
           await updateShippingOptionTypesWorkflow(container).run({
             input: {
@@ -240,5 +240,5 @@ export const createShippingOptionsStep = createStep(
     return new StepResponse({
       result,
     })
-  }
+  },
 )

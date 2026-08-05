@@ -5,13 +5,13 @@ export const getProductBrandLockKeys = (productIds: string[]) =>
 
 export const getBrandProductsLockKeys = (
   brandId: string,
-  productIds: string[]
+  productIds: string[],
 ) => [`brand-products:${brandId}`, ...getProductBrandLockKeys(productIds)]
 
 export const ensureProductsAssignableToBrand = async (
   scope: { links?: { brand_id: string; product_id: string }[] },
   brandId: string,
-  productIds: string[]
+  productIds: string[],
 ) => {
   const conflictingProducts = (scope.links ?? [])
     .filter((link) => productIds.includes(link.product_id))
@@ -20,7 +20,7 @@ export const ensureProductsAssignableToBrand = async (
 
   if (conflictingProducts.length) {
     throw new Error(
-      `Products are already linked to another brand: ${conflictingProducts.join(", ")}`
+      `Products are already linked to another brand: ${conflictingProducts.join(", ")}`,
     )
   }
 }

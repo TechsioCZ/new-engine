@@ -42,7 +42,7 @@ if (
   requestedPort > 65_535
 ) {
   console.error(
-    "Usage: storybook-a11y-server.mjs --root <dir> --index <index.json> --ready-file <file> [--port <port>]"
+    "Usage: storybook-a11y-server.mjs --root <dir> --index <index.json> --ready-file <file> [--port <port>]",
   )
   process.exit(1)
 }
@@ -140,7 +140,7 @@ server.listen(requestedPort, "127.0.0.1", () => {
   writeFileSync(temporaryReadyFile, `${address.port}\n`, "utf-8")
   renameSync(temporaryReadyFile, readyFile)
   console.log(
-    `Storybook static server listening on http://127.0.0.1:${address.port}`
+    `Storybook static server listening on http://127.0.0.1:${address.port}`,
   )
 })
 

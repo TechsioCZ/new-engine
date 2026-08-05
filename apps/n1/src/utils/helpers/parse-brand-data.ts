@@ -9,7 +9,7 @@ const DISTRIBUTOR_PREFIX_REGEX = /^.*Distributor do ČR:\s*/i
 const getSectionEndIndex = (
   primaryIndex: number,
   secondaryIndex: number,
-  total: number
+  total: number,
 ): number => {
   if (primaryIndex > -1) {
     return primaryIndex
@@ -24,7 +24,7 @@ const parseSection = (
   paragraphs: Element[],
   startIndex: number,
   endIndex: number,
-  parser: (sectionParagraphs: Element[]) => BrandEntity | undefined
+  parser: (sectionParagraphs: Element[]) => BrandEntity | undefined,
 ): BrandEntity | undefined => {
   if (startIndex < 0) {
     return
@@ -34,7 +34,7 @@ const parseSection = (
 
 const extractDistributorAtIndex = (
   paragraphs: Element[],
-  index: number
+  index: number,
 ): string | undefined => {
   if (index < 0) {
     return
@@ -46,14 +46,14 @@ const extractDistributorAtIndex = (
 }
 
 export const parseBrandData = (
-  attributes?: Brand["attributes"]
+  attributes?: Brand["attributes"],
 ): ParsedBrandInfo | null => {
   if (!attributes || attributes.length === 0) {
     return null
   }
 
   const sizingAttr = attributes.find(
-    (attr) => attr.attributeType?.name === "sizing_info"
+    (attr) => attr.attributeType?.name === "sizing_info",
   )
 
   if (!sizingAttr?.value) {
@@ -75,39 +75,39 @@ export const parseBrandData = (
     const sizingGuideUrl = firstLink?.href || undefined
     const paragraphs = [...doc.querySelectorAll("p")]
     const manufacturerIndex = paragraphs.findIndex((p) =>
-      p.textContent?.includes("Výrobce:")
+      p.textContent?.includes("Výrobce:"),
     )
 
     const responsibleIndex = paragraphs.findIndex((p) =>
-      p.textContent?.includes("Osoba zodpovědná")
+      p.textContent?.includes("Osoba zodpovědná"),
     )
 
     const distributorIndex = paragraphs.findIndex((p) =>
-      p.textContent?.includes("Distributor do ČR:")
+      p.textContent?.includes("Distributor do ČR:"),
     )
 
     const manufacturerEndIndex = getSectionEndIndex(
       responsibleIndex,
       distributorIndex,
-      paragraphs.length
+      paragraphs.length,
     )
     const manufacturer = parseSection(
       paragraphs,
       manufacturerIndex,
       manufacturerEndIndex,
-      parseManufacturerSection
+      parseManufacturerSection,
     )
 
     const responsibleEndIndex = getSectionEndIndex(
       distributorIndex,
       -1,
-      paragraphs.length
+      paragraphs.length,
     )
     const responsiblePerson = parseSection(
       paragraphs,
       responsibleIndex,
       responsibleEndIndex,
-      parseResponsibleSection
+      parseResponsibleSection,
     )
 
     const distributor = extractDistributorAtIndex(paragraphs, distributorIndex)
@@ -147,7 +147,7 @@ function findPhone(paragraphs: Element[]): string | undefined {
 }
 
 function parseManufacturerSection(
-  paragraphs: Element[]
+  paragraphs: Element[],
 ): BrandEntity | undefined {
   if (paragraphs.length === 0) {
     return
@@ -182,7 +182,7 @@ function parseManufacturerSection(
 }
 
 function parseResponsibleSection(
-  paragraphs: Element[]
+  paragraphs: Element[],
 ): BrandEntity | undefined {
   if (paragraphs.length < 2) {
     return

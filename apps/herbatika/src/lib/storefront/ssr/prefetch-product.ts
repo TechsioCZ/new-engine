@@ -19,7 +19,7 @@ import {
 import type { ProductDetailParams } from "./types"
 
 export const prefetchProductDetailPageStorefrontData = async (
-  handle: string
+  handle: string,
 ) => {
   const { queryClient, region } = await getRegionServerContext()
 

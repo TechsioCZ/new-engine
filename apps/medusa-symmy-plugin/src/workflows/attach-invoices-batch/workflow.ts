@@ -14,7 +14,7 @@ const symmyAttachInvoicesBatchWorkflow = createWorkflow(
   (input: AttachInvoicesBatchInput) => {
     const result = symmyProcessInvoicesBatchStep(input)
     return new WorkflowResponse<AttachInvoicesBatchOutput>(result)
-  }
+  },
 )
 
 export { symmyAttachInvoicesBatchWorkflow as attachInvoicesBatchWorkflow }

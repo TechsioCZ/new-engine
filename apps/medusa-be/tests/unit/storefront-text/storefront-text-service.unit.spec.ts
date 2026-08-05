@@ -8,7 +8,7 @@ describe("StorefrontTextModuleService transactions", () => {
     const transactionManager = { id: "transaction-manager" }
     const getFreshManager = vi.fn(() => manager)
     const transaction = vi.fn(async (transactionTask) =>
-      transactionTask(transactionManager)
+      transactionTask(transactionManager),
     )
     const service = new StorefrontTextModuleService({
       baseRepository: { getFreshManager, transaction },
@@ -53,7 +53,7 @@ describe("StorefrontTextModuleService transactions", () => {
         manager,
         requestId: "request_02",
         transactionManager,
-      })
+      }),
     )
   })
 })

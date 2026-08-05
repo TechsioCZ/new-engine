@@ -27,12 +27,14 @@ const patchStorageMethod = <
 >(
   storage: Storage,
   methodName: TMethodName,
-  createFallback: (originalMethod: Storage[TMethodName]) => Storage[TMethodName]
+  createFallback: (
+    originalMethod: Storage[TMethodName],
+  ) => Storage[TMethodName],
 ): (() => void) => {
   const storagePrototype = Object.getPrototypeOf(storage) as Storage
   const prototypeDescriptor = Object.getOwnPropertyDescriptor(
     storagePrototype,
-    methodName
+    methodName,
   )
   const ownDescriptor = Object.getOwnPropertyDescriptor(storage, methodName)
   const originalMethod = storage[methodName] ?? storagePrototype[methodName]
@@ -111,7 +113,7 @@ const createSafeStorage = (storage: Storage): Storage => {
 // Some browsers expose localStorage but still throw on access, so we
 // temporarily patch those methods just for the constructor call.
 const withSafeLocalStorageMethods = <TValue>(
-  callback: () => TValue
+  callback: () => TValue,
 ): TValue => {
   if (typeof window === "undefined") {
     return callback()
@@ -126,7 +128,7 @@ const withSafeLocalStorageMethods = <TValue>(
 
   const localStorageDescriptor = Object.getOwnPropertyDescriptor(
     window,
-    "localStorage"
+    "localStorage",
   )
   let replacedWindowLocalStorage = false
   try {
@@ -163,7 +165,7 @@ const withSafeLocalStorageMethods = <TValue>(
         } catch {
           return null
         }
-      }
+      },
   )
 
   const restoreSetItem = patchStorageMethod(
@@ -176,7 +178,7 @@ const withSafeLocalStorageMethods = <TValue>(
         } catch {
           return
         }
-      }
+      },
   )
 
   const restoreRemoveItem = patchStorageMethod(
@@ -189,7 +191,7 @@ const withSafeLocalStorageMethods = <TValue>(
         } catch {
           return
         }
-      }
+      },
   )
 
   try {
@@ -234,7 +236,7 @@ const patchClientLocaleStorage = (sdk: MedusaSdk): MedusaSdk => {
 
 export function createMedusaSdk(
   config: MedusaClientConfig,
-  options: CreateMedusaSdkOptions = {}
+  options: CreateMedusaSdkOptions = {},
 ): MedusaSdk {
   const { disableAuthOnServer = true } = options
   if (disableAuthOnServer && typeof window === "undefined" && config.auth) {
@@ -242,6 +244,6 @@ export function createMedusaSdk(
   }
 
   return patchClientLocaleStorage(
-    withSafeLocalStorageMethods(() => new Medusa(config))
+    withSafeLocalStorageMethods(() => new Medusa(config)),
   )
 }

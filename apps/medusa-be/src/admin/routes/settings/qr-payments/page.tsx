@@ -34,7 +34,7 @@ const QrPaymentsSettingsPage = () => {
   const { data, error, isLoading } = useQuery({
     queryFn: async () =>
       sdk.client.fetch<{ config: QrPaymentConfigResponse }>(
-        "/admin/qr-payment-config"
+        "/admin/qr-payment-config",
       ),
     queryKey: ["qr-payment-config"],
   })

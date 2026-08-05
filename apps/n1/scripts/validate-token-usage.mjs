@@ -477,7 +477,7 @@ function extractTailwindClassesWithLines(content, _filePath) {
 
     // Match className props
     const classNameMatches = line.matchAll(
-      /className\s*=\s*["'`]([^"'`]+)["'`]/g
+      /className\s*=\s*["'`]([^"'`]+)["'`]/g,
     )
     for (const match of classNameMatches) {
       const classString = match[1]
@@ -501,7 +501,7 @@ function extractTailwindClassesWithLines(content, _filePath) {
 
     // Match tv() variant strings
     const tvMatches = line.matchAll(
-      /['"`]([^'"`]*(?:bg-|text-|border-|p-|m-|gap-|rounded-|w-|h-)[^'"`]*)['"`]/g
+      /['"`]([^'"`]*(?:bg-|text-|border-|p-|m-|gap-|rounded-|w-|h-)[^'"`]*)['"`]/g,
     )
     for (const match of tvMatches) {
       const classString = match[1]
@@ -606,7 +606,7 @@ function mapClassToPossibleTokens(className) {
 
   if (
     ["inset", "inset-x", "inset-y", "top", "right", "bottom", "left"].includes(
-      prefix
+      prefix,
     )
   ) {
     possibleTokens.push(`--inset-${value}`, `--spacing-${value}`)
@@ -989,7 +989,7 @@ function validateTokenUsage() {
       const arbitraryTokens = extractTokensFromArbitraryUtility(className)
       if (arbitraryTokens.length > 0) {
         const missingTokens = arbitraryTokens.filter(
-          (t) => !definedTokens.has(t)
+          (t) => !definedTokens.has(t),
         )
         if (missingTokens.length > 0) {
           fileErrors.push({
@@ -1015,7 +1015,7 @@ function validateTokenUsage() {
 
       // 6. Check if any matching token exists
       const hasMatchingToken = possibleTokens.some((token) =>
-        definedTokens.has(token)
+        definedTokens.has(token),
       )
 
       if (!hasMatchingToken) {
@@ -1037,7 +1037,7 @@ function validateTokenUsage() {
   // Report results
   if (totalErrors === 0) {
     console.log(
-      "✅ All component classes have corresponding token definitions!"
+      "✅ All component classes have corresponding token definitions!",
     )
     return true
   }
@@ -1090,7 +1090,7 @@ function validateTokenUsage() {
       }
       const message = error.expectedTokens.join(" OR ")
       console.log(
-        `  ${icon} Line ${error.line}: ${error.className} → ${message}`
+        `  ${icon} Line ${error.line}: ${error.className} → ${message}`,
       )
     }
     console.log()

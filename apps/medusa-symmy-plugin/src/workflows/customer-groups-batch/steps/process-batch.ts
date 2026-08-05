@@ -17,7 +17,7 @@ const toErrorMessage = (error: unknown) =>
 
 const buildFailedResult = (
   group: CustomerGroupInput,
-  error: string
+  error: string,
 ): UpsertCustomerGroupsBatchResult => ({
   ...customerGroupsBatchClientMapperHelper.buildResultEcho(group),
   error,
@@ -59,7 +59,7 @@ const processCustomerGroupForBatch = async ({
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to upsert customer group (${group.identifier_type}): ${message}`
+      `[symmy-plugin] Failed to upsert customer group (${group.identifier_type}): ${message}`,
     )
     return buildFailedResult(group, message)
   }
@@ -81,7 +81,7 @@ export const symmyProcessCustomerGroupsBatchStep = createStep(
           customerGroupIndex,
           group,
           logger,
-        })
+        }),
       )
     }
 
@@ -95,5 +95,5 @@ export const symmyProcessCustomerGroupsBatchStep = createStep(
       success: failed === 0,
     }
     return new StepResponse(output)
-  }
+  },
 )

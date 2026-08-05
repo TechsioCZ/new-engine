@@ -24,7 +24,7 @@ export const resolveSafeRedirectHref = (value?: string): AppHref | null => {
 
 export const buildAuthRouteHref = (
   path: "/auth/login" | "/auth/register",
-  next?: string
+  next?: string,
 ) => {
   if (!next) {
     return path
@@ -35,7 +35,7 @@ export const buildAuthRouteHref = (
 
 export const resolveAfterAuthHref = (
   value?: string | string[],
-  fallback: AppHref = appHref("/account")
+  fallback: AppHref = appHref("/account"),
 ) => {
   const nextValue = typeof value === "string" ? value : undefined
   return resolveSafeRedirectHref(nextValue) ?? fallback

@@ -17,7 +17,7 @@ export const createMockContainer = (): PaykitInjectedDependencies => ({
 })
 
 export const createMockPaykitClient = (
-  overrides: MockPaykitClientOverrides = {}
+  overrides: MockPaykitClientOverrides = {},
 ): PaykitPaymentClient => ({
   customers: {
     create: vi.fn().mockResolvedValue({

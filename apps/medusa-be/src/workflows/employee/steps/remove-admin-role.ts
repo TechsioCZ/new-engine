@@ -12,10 +12,10 @@ export const removeAdminRoleStep = createStep(
       email: string
       excluded_employee_ids?: string[]
     },
-    { container }
+    { container },
   ): Promise<StepResponse<undefined, string[]>> => {
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -43,7 +43,7 @@ export const removeAdminRoleStep = createStep(
         user_metadata: {
           role: null,
         },
-      }))
+      })),
     )
 
     return new StepResponse(undefined, providerIdentityIds)
@@ -54,7 +54,7 @@ export const removeAdminRoleStep = createStep(
     }
 
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     await authModuleService.updateProviderIdentities(
@@ -63,7 +63,7 @@ export const removeAdminRoleStep = createStep(
         user_metadata: {
           role: "company_admin",
         },
-      }))
+      })),
     )
-  }
+  },
 )

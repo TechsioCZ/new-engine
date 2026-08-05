@@ -52,7 +52,7 @@ interface ImportPageResult {
  */
 async function importProductPage(
   page: number,
-  step = 10
+  step = 10,
 ): Promise<ProductRecord[]> {
   // Query products with pagination
   return await sqlRaw<ProductRecord>(sql`
@@ -111,7 +111,7 @@ function sanitizeHandle(handle: string): string {
 function convertToMedusaProducts(
   products: ProductRecord[],
   defaultSalesChannelId: string,
-  categoryMap: Record<string, string>
+  categoryMap: Record<string, string>,
 ) {
   return products.map((product) => {
     const safeHandle = sanitizeHandle(product.product_name)
@@ -166,7 +166,7 @@ function convertToMedusaProducts(
  */
 async function checkExistingCategories(
   container: MedusaContainer,
-  categoryHandles: string[]
+  categoryHandles: string[],
 ): Promise<Record<string, string>> {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -193,7 +193,7 @@ async function checkExistingCategories(
  */
 async function checkExistingCollections(
   container: MedusaContainer,
-  collectionHandles: string[]
+  collectionHandles: string[],
 ): Promise<Record<string, string>> {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -220,7 +220,7 @@ async function checkExistingCollections(
  */
 async function checkExistingProducts(
   container: MedusaContainer,
-  productHandles: string[]
+  productHandles: string[],
 ): Promise<Record<string, string>> {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -291,19 +291,19 @@ function extractCollections(products: ProductRecord[]): {
 
 async function getDefaultSalesChannelId(
   container: MedusaContainer,
-  logger: Logger
+  logger: Logger,
 ): Promise<string> {
   const salesChannelModuleService = container.resolve(Modules.SALES_CHANNEL)
   const defaultSalesChannel = await salesChannelModuleService.listSalesChannels(
     {
       name: "Default Sales Channel",
-    }
+    },
   )
 
   if (!defaultSalesChannel || defaultSalesChannel.length === 0) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      "Default Sales Channel not found. Please run the seed script first."
+      "Default Sales Channel not found. Please run the seed script first.",
     )
   }
 
@@ -319,7 +319,7 @@ async function loadSampleProducts(logger: Logger): Promise<ProductRecord[]> {
   if (!sampleProducts || sampleProducts.length === 0) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      "No products found in the database"
+      "No products found in the database",
     )
   }
 
@@ -328,7 +328,7 @@ async function loadSampleProducts(logger: Logger): Promise<ProductRecord[]> {
 
 function buildCategoryMap(
   existingCategoryMap: Record<string, string>,
-  categoryResult: ProductCategoryDTO[]
+  categoryResult: ProductCategoryDTO[],
 ): Record<string, string> {
   const categoryMap: Record<string, string> = { ...existingCategoryMap }
   for (const category of categoryResult) {
@@ -342,7 +342,7 @@ function buildCategoryMap(
 async function ensureCategoryMap(
   container: MedusaContainer,
   logger: Logger,
-  sampleProducts: ProductRecord[]
+  sampleProducts: ProductRecord[],
 ): Promise<Record<string, string>> {
   logger.info("Extracting categories from product data...")
   const categories = extractCategories(sampleProducts)
@@ -352,14 +352,14 @@ async function ensureCategoryMap(
   logger.info("Checking for existing categories...")
   const existingCategoryMap = await checkExistingCategories(
     container,
-    categoryHandles
+    categoryHandles,
   )
 
   const newCategories = categories.filter(
-    (category) => !existingCategoryMap[category.slug]
+    (category) => !existingCategoryMap[category.slug],
   )
   logger.info(
-    `Found ${Object.keys(existingCategoryMap).length} existing categories, creating ${newCategories.length} new categories`
+    `Found ${Object.keys(existingCategoryMap).length} existing categories, creating ${newCategories.length} new categories`,
   )
 
   const productCategories = newCategories.map((category) => ({
@@ -392,7 +392,7 @@ async function ensureCategoryMap(
 async function ensureCollections(
   container: MedusaContainer,
   logger: Logger,
-  sampleProducts: ProductRecord[]
+  sampleProducts: ProductRecord[],
 ) {
   logger.info("Extracting collections from product data...")
   const collections = extractCollections(sampleProducts)
@@ -402,14 +402,14 @@ async function ensureCollections(
   logger.info("Checking for existing collections...")
   const existingCollectionMap = await checkExistingCollections(
     container,
-    collectionHandles
+    collectionHandles,
   )
 
   const newCollections = collections.filter(
-    (collection) => !existingCollectionMap[collection.handle]
+    (collection) => !existingCollectionMap[collection.handle],
   )
   logger.info(
-    `Found ${Object.keys(existingCollectionMap).length} existing collections, creating ${newCollections.length} new collections`
+    `Found ${Object.keys(existingCollectionMap).length} existing collections, creating ${newCollections.length} new collections`,
   )
 
   let collectionResult: { handle: string; id: string }[] = []
@@ -422,7 +422,7 @@ async function ensureCollections(
     })
     collectionResult = result
     logger.info(
-      `Successfully created ${collectionResult.length} new collections`
+      `Successfully created ${collectionResult.length} new collections`,
     )
   } else {
     logger.info("No new collections to create, using existing ones")
@@ -431,7 +431,7 @@ async function ensureCollections(
 
 async function ensureDefaultStockLocation(
   container: MedusaContainer,
-  logger: Logger
+  logger: Logger,
 ): Promise<string> {
   const stockLocationService = container.resolve(Modules.STOCK_LOCATION)
   const existingStockLocations = await stockLocationService.listStockLocations({
@@ -445,7 +445,7 @@ async function ensureDefaultStockLocation(
   }
 
   const { result: stockLocationResult } = await createStockLocationsWorkflow(
-    container
+    container,
   ).run({
     input: {
       locations: [
@@ -463,7 +463,7 @@ async function ensureDefaultStockLocation(
   if (!stockLocationResult[0]) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Failed to create stock location"
+      "Failed to create stock location",
     )
   }
   const stockLocationId = stockLocationResult[0].id
@@ -472,7 +472,7 @@ async function ensureDefaultStockLocation(
 }
 
 function getProductHandles(
-  products: CreateProductWorkflowInputDTO[]
+  products: CreateProductWorkflowInputDTO[],
 ): string[] {
   return products.map((product) => product.handle as string)
 }
@@ -480,21 +480,21 @@ function getProductHandles(
 async function selectNewProducts(
   container: MedusaContainer,
   logger: Logger,
-  products: CreateProductWorkflowInputDTO[]
+  products: CreateProductWorkflowInputDTO[],
 ): Promise<CreateProductWorkflowInputDTO[]> {
   const productHandles = getProductHandles(products)
   logger.info(
-    `Checking for existing products with ${productHandles.length} handles...`
+    `Checking for existing products with ${productHandles.length} handles...`,
   )
   const existingProductMap = await checkExistingProducts(
     container,
-    productHandles
+    productHandles,
   )
   const newProducts = products.filter(
-    (product) => !existingProductMap[product.handle as string]
+    (product) => !existingProductMap[product.handle as string],
   )
   logger.info(
-    `Found ${Object.keys(existingProductMap).length} existing products, creating ${newProducts.length} new products`
+    `Found ${Object.keys(existingProductMap).length} existing products, creating ${newProducts.length} new products`,
   )
   return newProducts
 }
@@ -502,7 +502,7 @@ async function selectNewProducts(
 async function setInventoryLevelsForLocation(
   container: MedusaContainer,
   logger: Logger,
-  stockLocationId: string
+  stockLocationId: string,
 ) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const { data: inventoryItems } = await query.graph({
@@ -564,7 +564,7 @@ async function importProductBatch({
   const medusaProducts = convertToMedusaProducts(
     productRecords,
     defaultSalesChannelId,
-    categoryMap
+    categoryMap,
   )
   const newProducts = await selectNewProducts(container, logger, medusaProducts)
 
@@ -578,7 +578,7 @@ async function importProductBatch({
 
   logger.info(`Importing ${newProducts.length} products (batch ${page + 1})...`)
   const { result: createdProducts } = await createProductsWorkflow(
-    container
+    container,
   ).run({
     input: {
       products: newProducts,
@@ -598,7 +598,7 @@ function logImportError(error: unknown, logger: Logger, page: number): string {
   const errorStack = error instanceof Error ? error.stack : undefined
 
   logger.error(
-    `Error importing products at page ${page}: ${errorMessage}\n${errorStack || ""}`
+    `Error importing products at page ${page}: ${errorMessage}\n${errorStack || ""}`,
   )
   return errorMessage
 }
@@ -644,7 +644,7 @@ async function importProductPages({
       if (page > 3 && totalImported === 0) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
-          `Failed to import products after multiple attempts: ${errorMessage}`
+          `Failed to import products after multiple attempts: ${errorMessage}`,
         )
       }
     }
@@ -660,7 +660,7 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
 
   const defaultSalesChannelId = await getDefaultSalesChannelId(
     container,
-    logger
+    logger,
   )
   const sampleProducts = await loadSampleProducts(logger)
   const categoryMap = await ensureCategoryMap(container, logger, sampleProducts)
@@ -675,6 +675,6 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
   })
 
   logger.info(
-    `Product import completed. Total products imported: ${totalImported}`
+    `Product import completed. Total products imported: ${totalImported}`,
   )
 }

@@ -101,7 +101,7 @@ const ProductAssignmentDrawer = ({
   const [q, setQ] = useState("")
   const debouncedQ = useDebouncedValue(q)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(currentProductIds)
+    () => new Set(currentProductIds),
   )
 
   useEffect(() => {
@@ -127,11 +127,11 @@ const ProductAssignmentDrawer = ({
     mutationFn: async () =>
       updateBrandProducts(
         brandId,
-        buildProductSelectionDelta(currentProductIds, selectedIds)
+        buildProductSelectionDelta(currentProductIds, selectedIds),
       ),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveProductsFailed")
+        error instanceof Error ? error.message : t("errors.saveProductsFailed"),
       )
     },
     onSuccess: async () => {
@@ -199,21 +199,21 @@ const ProductAssignmentDrawer = ({
         },
         header: t("columns.product"),
         id: "product",
-      }
+      },
     ),
     productOptionColumnHelper.accessor(
       (option) => option.product.handle ?? "-",
       {
         header: t("columns.handle"),
         id: "handle",
-      }
+      },
     ),
     productOptionColumnHelper.accessor(
       (option) => option.product.status ?? "-",
       {
         header: t("columns.status"),
         id: "status",
-      }
+      },
     ),
   ]
 
@@ -607,7 +607,7 @@ const BrandDetailContent = ({
               <div>
                 <Text className="text-ui-fg-subtle" size="small">
                   {t(
-                    "fields.gpsr_european_reseller_manufacturing_company_name"
+                    "fields.gpsr_european_reseller_manufacturing_company_name",
                   )}
                 </Text>
                 <Text size="small">
@@ -761,7 +761,7 @@ const BrandDetailPage = () => {
     mutationFn: restoreBrand,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.restoreBrandFailed")
+        error instanceof Error ? error.message : t("errors.restoreBrandFailed"),
       )
     },
     onSuccess: async () => {
@@ -786,7 +786,9 @@ const BrandDetailPage = () => {
       }),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.removeProductFailed")
+        error instanceof Error
+          ? error.message
+          : t("errors.removeProductFailed"),
       )
     },
     onSuccess: async (_response, productId) => {

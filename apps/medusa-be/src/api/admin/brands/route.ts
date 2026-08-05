@@ -35,12 +35,12 @@ const parseOrder = (value: string = "title") => {
 
 export async function GET(
   req: AuthenticatedMedusaRequest<unknown, AdminGetBrandsSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const service = getBrandService(req.scope)
   const { handle, include_deleted, limit, offset, q } = req.validatedQuery
   const order = parseOrder(
-    req.validatedQuery.order_by ?? req.validatedQuery.order
+    req.validatedQuery.order_by ?? req.validatedQuery.order,
   )
   const escapedQuery = q ? escapeLikePattern(q) : undefined
   let filters = {}
@@ -65,12 +65,12 @@ export async function GET(
   })
   const activeProductCounts = await getBrandActiveProductCounts(
     req.scope,
-    brands.map((brand) => brand.id)
+    brands.map((brand) => brand.id),
   )
 
   res.json({
     brands: brands.map((brand) =>
-      toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0)
+      toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0),
     ),
     count,
     limit,
@@ -80,7 +80,7 @@ export async function GET(
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminCreateBrandSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const input: BrandInput = {
     attributes: req.validatedBody.attributes,
@@ -110,7 +110,7 @@ export async function POST(
   if (!created?.id) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Brand creation failed: missing id"
+      "Brand creation failed: missing id",
     )
   }
 

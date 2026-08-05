@@ -69,7 +69,7 @@ const processShipmentForBatch = async ({
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to add tracking (${shipment.identifier_type}:${orderIdentifier}): ${message}`
+      `[symmy-plugin] Failed to add tracking (${shipment.identifier_type}:${orderIdentifier}): ${message}`,
     )
     return {
       error: message,
@@ -95,7 +95,7 @@ export const symmyProcessTrackingBatchStep = createStep(
           logger,
           orderIndex,
           shipment,
-        })
+        }),
       )
     }
 
@@ -109,5 +109,5 @@ export const symmyProcessTrackingBatchStep = createStep(
       success: failed === 0,
     }
     return new StepResponse(output)
-  }
+  },
 )

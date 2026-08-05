@@ -14,7 +14,7 @@ import type {
 
 const resolveProductPrice = (
   hit: RawSearchAutocompleteProductHit,
-  expectedCurrencyCode: HerbatikaCurrencyCode
+  expectedCurrencyCode: HerbatikaCurrencyCode,
 ) => {
   const calculatedPrice = hit.variants?.[0]?.calculated_price
   const topOffer = resolveProductTopOffer(hit)
@@ -34,7 +34,7 @@ const resolveProductInStock = (hit: RawSearchAutocompleteProductHit) => {
 
 const createProductSuggestion = (
   hit: RawSearchAutocompleteProductHit,
-  currencyCode: HerbatikaCurrencyCode
+  currencyCode: HerbatikaCurrencyCode,
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(hit.id)
   const title = normalizeString(hit.title)
@@ -46,7 +46,7 @@ const createProductSuggestion = (
 
   const brandTitle = normalizeString(hit.brand?.title)
   const firstCategory = hit.categories?.find((category) =>
-    Boolean(normalizeString(category.name))
+    Boolean(normalizeString(category.name)),
   )
   const categoryName = normalizeString(firstCategory?.name)
   const price = resolveProductPrice(hit, currencyCode)
@@ -68,7 +68,7 @@ const createProductSuggestion = (
 export const createProductSuggestions = (
   hits: RawSearchAutocompleteProductHit[],
   currencyCode: HerbatikaCurrencyCode,
-  limit: number
+  limit: number,
 ) =>
   hits
     .map((hit) => createProductSuggestion(hit, currencyCode))

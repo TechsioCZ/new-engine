@@ -21,6 +21,6 @@ describe("package exports", () => {
 
       expect(importedModule).toBeTypeOf("object")
       expect(requiredModule).toBeTypeOf("object")
-    }
+    },
   )
 })

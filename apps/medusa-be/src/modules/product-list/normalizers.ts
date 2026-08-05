@@ -25,7 +25,7 @@ const formatInvalidValue = (value: unknown): string => {
 }
 
 const isProductListAccessType = (
-  value: unknown
+  value: unknown,
 ): value is ProductListAccessType =>
   typeof value === "string" &&
   PRODUCT_LIST_ACCESS_TYPES.includes(value as ProductListAccessType)
@@ -41,7 +41,7 @@ export const normalizeProductListAccessType = (value: unknown) => {
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `Unsupported product list access type: ${formatInvalidValue(value)}`
+    `Unsupported product list access type: ${formatInvalidValue(value)}`,
   )
 }
 
@@ -49,7 +49,7 @@ export const normalizeProductListType = (value: unknown): ProductListType => {
   if (typeof value !== "string") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported product list type: ${formatInvalidValue(value)}`
+      `Unsupported product list type: ${formatInvalidValue(value)}`,
     )
   }
 
@@ -59,14 +59,14 @@ export const normalizeProductListType = (value: unknown): ProductListType => {
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `Unsupported product list type: ${value}`
+    `Unsupported product list type: ${value}`,
   )
 }
 
 export const normalizePositiveInteger = (
   field: string,
   value: unknown,
-  defaultValue = 1
+  defaultValue = 1,
 ) => {
   if (value === undefined) {
     return defaultValue
@@ -78,14 +78,14 @@ export const normalizePositiveInteger = (
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `${field} must be a positive integer`
+    `${field} must be a positive integer`,
   )
 }
 
 export const normalizeNonNegativeInteger = (
   field: string,
   value: unknown,
-  defaultValue = 0
+  defaultValue = 0,
 ) => {
   if (value === undefined) {
     return defaultValue
@@ -97,6 +97,6 @@ export const normalizeNonNegativeInteger = (
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `${field} must be a non-negative integer`
+    `${field} must be a non-negative integer`,
   )
 }

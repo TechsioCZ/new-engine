@@ -7,7 +7,7 @@ import { DEFAULT_MARKET_CONTEXT } from "./market-context"
 import type { HerbatikaMarketContext } from "./market-context"
 
 const MarketContext = createContext<HerbatikaMarketContext>(
-  DEFAULT_MARKET_CONTEXT
+  DEFAULT_MARKET_CONTEXT,
 )
 
 type MarketProviderProps = PropsWithChildren<{

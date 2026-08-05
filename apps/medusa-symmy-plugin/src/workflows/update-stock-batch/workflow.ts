@@ -11,7 +11,7 @@ const symmyUpdateStockBatchWorkflow = createWorkflow(
   (input: UpdateStockBatchInput) => {
     const result = symmyProcessStockBatchStep(input)
     return new WorkflowResponse<UpdateStockBatchOutput>(result)
-  }
+  },
 )
 
 export { symmyUpdateStockBatchWorkflow as updateStockBatchWorkflow }

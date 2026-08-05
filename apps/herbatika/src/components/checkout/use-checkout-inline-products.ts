@@ -20,7 +20,7 @@ const CHECKOUT_INLINE_PRODUCTS_LIMIT = 10
 const CHECKOUT_INLINE_PRODUCTS_CANDIDATE_LIMIT = 32
 
 export function useCheckoutInlineProducts(
-  cartItems: HttpTypes.StoreCartLineItem[]
+  cartItems: HttpTypes.StoreCartLineItem[],
 ) {
   const { isLoading: isCartProductsLoading, products: cartProducts } =
     useCartProductsByHandle(cartItems, PRODUCT_DETAIL_FIELDS)
@@ -54,17 +54,17 @@ export function useCheckoutInlineProducts(
   const cartProductIds = new Set(
     cartProducts
       .map((product) => asStorefrontString(product.id))
-      .filter((productId): productId is string => Boolean(productId))
+      .filter((productId): productId is string => Boolean(productId)),
   )
   const cartProductHandlesSet = new Set(
     cartProducts
       .map((product) => asStorefrontString(product.handle))
       .filter((productHandle): productHandle is string =>
-        Boolean(productHandle)
-      )
+        Boolean(productHandle),
+      ),
   )
   const cartFamilyKeys = new Set(
-    cartProducts.map((product) => resolveRecommendedProductFamilyKey(product))
+    cartProducts.map((product) => resolveRecommendedProductFamilyKey(product)),
   )
 
   const filteredProducts = relatedProductsQuery.products.filter((product) => {
@@ -84,7 +84,7 @@ export function useCheckoutInlineProducts(
 
   const relatedProducts = selectRecommendedProductRepresentatives(
     filteredProducts,
-    CHECKOUT_INLINE_PRODUCTS_LIMIT
+    CHECKOUT_INLINE_PRODUCTS_LIMIT,
   )
 
   const isLoading = isCartProductsLoading || relatedProductsQuery.isLoading

@@ -11,12 +11,12 @@ import type { RejectQuoteType } from "../../validators"
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<RejectQuoteType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Quote id")
 
   const query = req.scope.resolve<RemoteQueryFunction>(
-    ContainerRegistrationKeys.QUERY
+    ContainerRegistrationKeys.QUERY,
   )
 
   await customerRejectQuoteWorkflow(req.scope).run({
@@ -35,7 +35,7 @@ export const POST = async (
       fields: req.queryConfig.fields,
       filters: { customer_id: req.auth_context.actor_id, id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   return res.json({ quote })

@@ -33,7 +33,7 @@ export const StringFilter = ({
   const query = selectedParams.get()
 
   const [previousValue, setPreviousValue] = useState<string | undefined>(
-    query?.[0]
+    query?.[0],
   )
 
   const debouncedOnChange = useMemo(
@@ -45,14 +45,14 @@ export const StringFilter = ({
           selectedParams.delete()
         }
       }, 500),
-    [selectedParams]
+    [selectedParams],
   )
 
   useEffect(
     () => () => {
       debouncedOnChange.cancel()
     },
-    [debouncedOnChange]
+    [debouncedOnChange],
   )
 
   let timeoutId: ReturnType<typeof setTimeout> | null = null
@@ -92,7 +92,7 @@ export const StringFilter = ({
           <PopoverContent
             align="start"
             className={clx(
-              "z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none"
+              "z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none",
             )}
             collisionPadding={8}
             hideWhenDetached

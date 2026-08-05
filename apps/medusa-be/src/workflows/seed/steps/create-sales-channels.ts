@@ -13,7 +13,7 @@ export type CreateSalesChannelsStepInput = {
 }[]
 
 export function validateSalesChannelSeedInput(
-  input: CreateSalesChannelsStepInput
+  input: CreateSalesChannelsStepInput,
 ) {
   const names = input.map(({ name }) => name.trim())
   if (new Set(names).size !== names.length) {
@@ -47,7 +47,7 @@ export const createSalesChannelsStep = createStep(
     let createdSalesChannels: SalesChannelDTO[] = []
     if (missingSalesChannels.length !== 0) {
       const { result: salesChannelResult } = await createSalesChannelsWorkflow(
-        container
+        container,
       ).run({
         input: {
           salesChannelsData: missingSalesChannels,
@@ -61,7 +61,7 @@ export const createSalesChannelsStep = createStep(
       [...existingSalesChannels, ...createdSalesChannels].map((channel) => [
         channel.name,
         channel,
-      ])
+      ]),
     )
     const defaultIndex = input.findIndex(({ default: isDefault }) => isDefault)
     const defaultName = salesChannels[defaultIndex]
@@ -73,7 +73,7 @@ export const createSalesChannelsStep = createStep(
       return { ...channel, isDefault: input[index]?.default ?? false }
     })
     const defaultSalesChannel = result.find(
-      (channel) => channel.name === defaultName
+      (channel) => channel.name === defaultName,
     )
     if (!defaultSalesChannel) {
       throw new Error("Could not find default sales channel")
@@ -84,5 +84,5 @@ export const createSalesChannelsStep = createStep(
       defaultSalesChannel,
       result,
     })
-  }
+  },
 )

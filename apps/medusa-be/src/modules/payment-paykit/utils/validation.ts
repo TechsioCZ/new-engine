@@ -3,7 +3,7 @@ import { MedusaError } from "@medusajs/framework/utils"
 export const requirePaykitOptions = (
   label: string,
   options: Record<string, unknown>,
-  keys: string[]
+  keys: string[],
 ): void => {
   const missing = keys.filter((key) => {
     const value = options[key]
@@ -14,7 +14,7 @@ export const requirePaykitOptions = (
   if (missing.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `${label} missing required option(s): ${missing.join(", ")}`
+      `${label} missing required option(s): ${missing.join(", ")}`,
     )
   }
 }

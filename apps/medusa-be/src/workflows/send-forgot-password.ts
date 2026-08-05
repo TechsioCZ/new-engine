@@ -31,5 +31,5 @@ export const sendForgotPasswordWorkflow = createWorkflow(
     return new WorkflowResponse({
       notification,
     })
-  }
+  },
 )

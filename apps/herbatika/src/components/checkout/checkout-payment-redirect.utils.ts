@@ -14,7 +14,7 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
 const resolvePaymentUrlFromRecord = (
-  record: Record<string, unknown>
+  record: Record<string, unknown>,
 ): string | null => {
   for (const key of PAYMENT_URL_KEYS) {
     const value = record[key]
@@ -35,11 +35,11 @@ const resolveSelectedSession = (sessions: unknown[]) =>
   sessions.find(
     (session) =>
       isObject(session) &&
-      (session.is_selected === true || session.selected === true)
+      (session.is_selected === true || session.selected === true),
   ) ?? sessions[0]
 
 const resolvePaymentUrlFromSessions = (
-  paymentSessions: unknown
+  paymentSessions: unknown,
 ): string | null => {
   if (!(Array.isArray(paymentSessions) && paymentSessions.length > 0)) {
     return null
@@ -81,7 +81,7 @@ export const resolvePaymentRedirectUrl = (value: unknown): string | null => {
   }
 
   const sessionPaymentUrl = resolvePaymentUrlFromSessions(
-    value.payment_sessions
+    value.payment_sessions,
   )
   if (sessionPaymentUrl) {
     return sessionPaymentUrl

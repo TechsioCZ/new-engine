@@ -33,11 +33,11 @@ const createListMock = () =>
 
 const createWriteMock = () =>
   vi.fn<ProductAttributeDeletionService["restoreProductAttributes"]>(
-    async () => {}
+    async () => {},
   )
 
 const createService = (
-  listProductAttributes: ProductAttributeDeletionService["listProductAttributes"]
+  listProductAttributes: ProductAttributeDeletionService["listProductAttributes"],
 ) => {
   const restoreProductAttributes = createWriteMock()
   const softDeleteProductAttributes = createWriteMock()
@@ -70,7 +70,7 @@ describe("Product Attribute Product deletion cleanup", () => {
       ])
       .mockResolvedValueOnce([])
     const { service, softDeleteProductAttributes } = createService(
-      listProductAttributes
+      listProductAttributes,
     )
 
     await expect(
@@ -78,7 +78,7 @@ describe("Product Attribute Product deletion cleanup", () => {
         lockingModule,
         productIds: ["prod_b", "prod_a", "prod_a"],
         service,
-      })
+      }),
     ).resolves.toStrictEqual({
       assignment_ids: ["pat_active"],
       product_ids: ["prod_b", "prod_a", "prod_a"],
@@ -87,7 +87,7 @@ describe("Product Attribute Product deletion cleanup", () => {
     expect(execute).toHaveBeenCalledWith(
       ["product-attribute-product:prod_a", "product-attribute-product:prod_b"],
       expect.any(Function),
-      { timeout: 5 }
+      { timeout: 5 },
     )
     expect(softDeleteProductAttributes).toHaveBeenCalledWith(["pat_active"])
     expect(listProductAttributes).toHaveBeenNthCalledWith(
@@ -98,7 +98,7 @@ describe("Product Attribute Product deletion cleanup", () => {
         skip: 0,
         take: 100,
         withDeleted: true,
-      }
+      },
     )
     expect(listProductAttributes).toHaveBeenNthCalledWith(
       2,
@@ -108,7 +108,7 @@ describe("Product Attribute Product deletion cleanup", () => {
         skip: 2,
         take: 100,
         withDeleted: true,
-      }
+      },
     )
   })
 
@@ -118,7 +118,7 @@ describe("Product Attribute Product deletion cleanup", () => {
       .mockResolvedValueOnce([activeAssignment("pat_active")])
       .mockRejectedValueOnce(new Error("read failed"))
     const { restoreProductAttributes, service } = createService(
-      listProductAttributes
+      listProductAttributes,
     )
 
     await expect(
@@ -126,7 +126,7 @@ describe("Product Attribute Product deletion cleanup", () => {
         lockingModule,
         productIds: ["prod_1"],
         service,
-      })
+      }),
     ).rejects.toThrow("read failed")
 
     expect(restoreProductAttributes).toHaveBeenCalledWith(["pat_active"])
@@ -148,7 +148,7 @@ describe("Product Attribute Product deletion cleanup", () => {
     expect(execute).toHaveBeenCalledWith(
       ["product-attribute-product:prod_a", "product-attribute-product:prod_b"],
       expect.any(Function),
-      { timeout: 5 }
+      { timeout: 5 },
     )
     expect(restoreProductAttributes).toHaveBeenCalledWith(["pat_1"])
   })

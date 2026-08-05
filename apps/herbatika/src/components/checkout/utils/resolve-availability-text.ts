@@ -15,7 +15,7 @@ import {
 
 const resolveLineItemTopOffer = (
   item: HttpTypes.StoreCartLineItem,
-  product?: HttpTypes.StoreProduct | null
+  product?: HttpTypes.StoreProduct | null,
 ) => {
   const itemRecord = asStorefrontRecord(item)
   const metadata = asStorefrontRecord(itemRecord?.metadata)
@@ -31,7 +31,7 @@ const resolveLineItemTopOffer = (
 
 export const resolveOriginalLineItemTotalAmount = (
   item: HttpTypes.StoreCartLineItem,
-  product?: HttpTypes.StoreProduct | null
+  product?: HttpTypes.StoreProduct | null,
 ) => {
   const itemRecord = asStorefrontRecord(item)
   const topOffer = resolveLineItemTopOffer(item, product)
@@ -51,7 +51,7 @@ export const resolveOriginalLineItemTotalAmount = (
 
 export const resolveAvailabilityText = (
   item: HttpTypes.StoreCartLineItem,
-  product?: HttpTypes.StoreProduct | null
+  product?: HttpTypes.StoreProduct | null,
 ) => {
   const topOffer = resolveLineItemTopOffer(item, product)
   const stock = asStorefrontRecord(topOffer?.stock)

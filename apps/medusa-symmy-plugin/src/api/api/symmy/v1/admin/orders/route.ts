@@ -22,7 +22,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   if (Array.isArray(result)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Unexpected orders workflow result"
+      "Unexpected orders workflow result",
     )
   }
 

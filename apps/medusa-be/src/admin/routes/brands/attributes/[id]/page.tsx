@@ -116,7 +116,7 @@ const BrandAttributeDetailPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : t("errors.restoreAttributeFailed")
+          : t("errors.restoreAttributeFailed"),
       )
     },
     onSuccess: async () => {

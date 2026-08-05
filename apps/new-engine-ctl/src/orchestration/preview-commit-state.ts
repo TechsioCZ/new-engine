@@ -9,7 +9,7 @@ import { previewCommitStateResponseSchema } from "../contracts/preview-commit-st
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
 function buildPreviewEnvironmentName(
-  input: PreviewCommitStateCommandInput
+  input: PreviewCommitStateCommandInput,
 ): string {
   if (input.environmentName) {
     return input.environmentName
@@ -24,7 +24,7 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
 }
 
 export async function executePreviewCommitState(
-  input: PreviewCommitStateCommandInput
+  input: PreviewCommitStateCommandInput,
 ): Promise<PreviewCommitStateResponse> {
   const environmentName = buildPreviewEnvironmentName(input)
 
@@ -39,7 +39,7 @@ export async function executePreviewCommitState(
       })
     : await new ZaneOperatorClient(
         input.baseUrl,
-        input.apiToken
+        input.apiToken,
       ).readPreviewCommitState({
         environment_name: environmentName,
         project_slug: input.projectSlug,

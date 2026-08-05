@@ -10,7 +10,7 @@ interface ApplyZaneEnvOverridesDeps {
 
 export async function handleApplyZaneEnvOverrides(
   request: Request,
-  deps: ApplyZaneEnvOverridesDeps
+  deps: ApplyZaneEnvOverridesDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

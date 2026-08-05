@@ -54,7 +54,7 @@ const findRouteCompany = async (req: AuthenticatedMedusaRequest) => {
 export const ensureCompanyMember = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-  next: MedusaNextFunction
+  next: MedusaNextFunction,
 ) => {
   const customerId = getCustomerId(req)
 
@@ -64,7 +64,7 @@ export const ensureCompanyMember = async (
 
   const company = await findRouteCompany(req)
   const isCompanyMember = company?.employees?.some(
-    (employee) => employee.customer?.id === customerId
+    (employee) => employee.customer?.id === customerId,
   )
 
   if (isCompanyMember) {
@@ -80,7 +80,7 @@ export const ensureRole =
   async (
     req: AuthenticatedMedusaRequest,
     res: MedusaResponse,
-    next: MedusaNextFunction
+    next: MedusaNextFunction,
   ) => {
     if (role !== "company_admin") {
       return res.status(403).json({ message: "Forbidden" })
@@ -114,7 +114,7 @@ export const ensureRole =
 
     const company = await findRouteCompany(req)
     const isCompanyAdmin = company?.employees?.some(
-      (employee) => employee.is_admin && employee.customer?.id === customerId
+      (employee) => employee.is_admin && employee.customer?.id === customerId,
     )
 
     if (isCompanyAdmin) {

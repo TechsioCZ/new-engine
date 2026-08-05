@@ -11,7 +11,7 @@ const A4_LABELS_PER_PAGE = A4_LABEL_COLUMNS * A4_LABEL_ROWS
 export async function composePacketaLabelsOnA4(
   labelPdfs: Buffer[],
   labelOffset: number,
-  labelFormat: PacketaLabelFormat | undefined
+  labelFormat: PacketaLabelFormat | undefined,
 ): Promise<Uint8Array> {
   const mergedPdf = await PDFDocument.create()
   const cellWidth = A4_WIDTH / A4_LABEL_COLUMNS
@@ -43,7 +43,7 @@ export async function composePacketaLabelsOnA4(
       : sourceHeight
     const scale = Math.min(
       cellWidth / sourceLabelWidth,
-      cellHeight / sourceLabelHeight
+      cellHeight / sourceLabelHeight,
     )
     const width = sourceLabelWidth * scale
     const height = sourceLabelHeight * scale
@@ -68,7 +68,7 @@ export async function composePacketaLabelsOnA4(
 function getSourceLabelBox(
   sourceWidth: number,
   sourceHeight: number,
-  labelFormat: PacketaLabelFormat | undefined
+  labelFormat: PacketaLabelFormat | undefined,
 ) {
   if (labelFormat !== "A7" || !isA4LikePage(sourceWidth, sourceHeight)) {
     return

@@ -29,7 +29,7 @@ export const deleteProductVariantMeasurementWorkflow = createWorkflow(
 
     const plan = prepareDeleteProductVariantMeasurementStep(input)
     const currentRecords = transform({ plan }, ({ plan: current }) =>
-      current.current ? [current.current] : []
+      current.current ? [current.current] : [],
     )
     const links = findActiveProductVariantMeasurementLinksStep(currentRecords)
 
@@ -39,5 +39,5 @@ export const deleteProductVariantMeasurementWorkflow = createWorkflow(
     releaseLockStep(releaseInput)
 
     return new WorkflowResponse(plan.current)
-  }
+  },
 )

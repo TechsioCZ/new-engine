@@ -35,7 +35,7 @@ const assertDefined = (value: string | undefined, message: string): string => {
 const adminEmail = readEnv("MEDUSA_ADMIN_E2E_EMAIL", "DC_SUPERADMIN_EMAIL")
 const adminPassword = readEnv(
   "MEDUSA_ADMIN_E2E_PASSWORD",
-  "DC_SUPERADMIN_PASSWORD"
+  "DC_SUPERADMIN_PASSWORD",
 )
 const skipAuthenticatedAdmin = process.env["MEDUSA_ADMIN_E2E_SKIP_AUTH"] === "1"
 
@@ -65,7 +65,7 @@ const captureBrowserErrors = (page: Page) => {
 
 const expectNoBrowserErrors = (errors: string[]) => {
   expect(errors, "admin rendered with browser console/runtime errors").toEqual(
-    []
+    [],
   )
 }
 
@@ -87,7 +87,7 @@ const submitLoginForm = async (page: Page) => {
 
   if (authResult === "invalid_credentials") {
     throw new Error(
-      `Medusa admin smoke login failed for ${adminEmail}: invalid email or password. Set MEDUSA_ADMIN_E2E_EMAIL and MEDUSA_ADMIN_E2E_PASSWORD for this deployed environment.`
+      `Medusa admin smoke login failed for ${adminEmail}: invalid email or password. Set MEDUSA_ADMIN_E2E_EMAIL and MEDUSA_ADMIN_E2E_PASSWORD for this deployed environment.`,
     )
   }
 }
@@ -102,10 +102,10 @@ test("renders the Medusa admin login without browser errors", async ({
   expectNoBrowserErrors(browserErrors)
 
   await expect(
-    page.getByRole("heading", { name: WELCOME_HEADING_NAME })
+    page.getByRole("heading", { name: WELCOME_HEADING_NAME }),
   ).toBeVisible()
   await expect(
-    page.getByRole("button", { name: CONTINUE_WITH_EMAIL_NAME })
+    page.getByRole("button", { name: CONTINUE_WITH_EMAIL_NAME }),
   ).toBeVisible()
 
   const interactiveElements = await page
@@ -123,7 +123,7 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
 }) => {
   test.skip(
     skipAuthenticatedAdmin || !(adminEmail && adminPassword),
-    "Set MEDUSA_ADMIN_E2E_EMAIL/MEDUSA_ADMIN_E2E_PASSWORD or DC_SUPERADMIN_EMAIL/DC_SUPERADMIN_PASSWORD to smoke-test the authenticated admin shell."
+    "Set MEDUSA_ADMIN_E2E_EMAIL/MEDUSA_ADMIN_E2E_PASSWORD or DC_SUPERADMIN_EMAIL/DC_SUPERADMIN_PASSWORD to smoke-test the authenticated admin shell.",
   )
 
   const browserErrors = captureBrowserErrors(page)
@@ -138,8 +138,8 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
     .fill(
       assertDefined(
         adminEmail,
-        "adminEmail is required to submit the login form"
-      )
+        "adminEmail is required to submit the login form",
+      ),
     )
   await page
     .locator('input[name="password"], input[type="password"]')
@@ -147,8 +147,8 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
     .fill(
       assertDefined(
         adminPassword,
-        "adminPassword is required to submit the login form"
-      )
+        "adminPassword is required to submit the login form",
+      ),
     )
 
   await submitLoginForm(page)
@@ -156,10 +156,10 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
   expectNoBrowserErrors(browserErrors)
 
   await expect(
-    page.getByRole("button", { name: MEDUSA_STORE_NAME })
+    page.getByRole("button", { name: MEDUSA_STORE_NAME }),
   ).toBeVisible()
   await expect(
-    page.getByRole("link", { name: PRODUCTS_LINK_NAME })
+    page.getByRole("link", { name: PRODUCTS_LINK_NAME }),
   ).toBeVisible()
   await expect(page.getByRole("link", { name: ORDERS_LINK_NAME })).toBeVisible()
 })

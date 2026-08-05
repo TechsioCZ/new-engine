@@ -54,7 +54,7 @@ function persistedOwner(params: {
 
 function resolvedEan(
   products: ProductInput[],
-  productHandle: string
+  productHandle: string,
 ): null | string | undefined {
   return products.find((item) => item.handle === productHandle)?.variants?.[0]
     ?.ean

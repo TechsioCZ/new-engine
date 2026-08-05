@@ -9,5 +9,5 @@ export const ProductMeasurementLink = defineLink(
     deleteCascade: true,
     filterable: ["id", "measurement_unit_id"],
     linkable: MeasurementUnitModule.linkable.productMeasurement,
-  }
+  },
 )

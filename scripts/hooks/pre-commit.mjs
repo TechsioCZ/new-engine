@@ -37,7 +37,7 @@ if (fixableFiles.length > 0) {
     ["diff", "--name-only", "--", ...fixableFiles],
     {
       capture: true,
-    }
+    },
   )
     .split("\n")
     .filter(Boolean)
@@ -47,7 +47,7 @@ if (fixableFiles.length > 0) {
       `pre-commit: these files have both staged and unstaged changes, so the ` +
         `formatter cannot restage them without committing the unstaged hunks:\n${partiallyStaged
           .map((file) => `  ${file}`)
-          .join("\n")}\nStage or stash the remaining changes and commit again.`
+          .join("\n")}\nStage or stash the remaining changes and commit again.`,
     )
     process.exit(1)
   }

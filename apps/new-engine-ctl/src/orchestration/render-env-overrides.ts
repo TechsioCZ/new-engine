@@ -18,11 +18,11 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
 }
 
 export async function executeRenderEnvOverrides(
-  input: RenderEnvOverridesCommandInput
+  input: RenderEnvOverridesCommandInput,
 ): Promise<RenderEnvOverridesResponse> {
   const contracts = await loadDeployContracts(
     input.stackManifestPath,
-    input.stackInputsPath
+    input.stackInputsPath,
   )
   const deployServiceIds = normalizeCsvToArray(input.servicesCsv)
   const response = renderEnvOverridesResponseSchema.parse({

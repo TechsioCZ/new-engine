@@ -25,7 +25,7 @@ interface ProductListItemRecord {
 const addItemQuantitiesByVariantId = (
   items: ProductListItemRecord[],
   variantIdsByItemId: Map<string, string>,
-  quantitiesByVariantId: Map<string, number>
+  quantitiesByVariantId: Map<string, number>,
 ) => {
   for (const item of items) {
     const variantId = variantIdsByItemId.get(item.id)
@@ -33,13 +33,13 @@ const addItemQuantitiesByVariantId = (
     if (!variantId) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Product list item ${item.id} has no variant selected`
+        `Product list item ${item.id} has no variant selected`,
       )
     }
 
     quantitiesByVariantId.set(
       variantId,
-      (quantitiesByVariantId.get(variantId) ?? 0) + item.quantity
+      (quantitiesByVariantId.get(variantId) ?? 0) + item.quantity,
     )
   }
 }
@@ -62,13 +62,13 @@ export const getProductListCartItemsStep = createStep(
           order: { created_at: "ASC", sort_order: "ASC" },
           skip,
           take: PRODUCT_LIST_CART_ITEMS_LOOKUP_CHUNK_SIZE,
-        }
+        },
       )
 
       if (!items.length && skip === 0) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          `Product list ${listId} has no items to order`
+          `Product list ${listId} has no items to order`,
         )
       }
 
@@ -89,14 +89,14 @@ export const getProductListCartItemsStep = createStep(
           toProductListItemVariantLinks(variantLinks).flatMap((link) =>
             link.product_list_item_id && link.product_variant_id
               ? [[link.product_list_item_id, link.product_variant_id]]
-              : []
-          )
+              : [],
+          ),
         )
 
         addItemQuantitiesByVariantId(
           items,
           variantIdsByItemId,
-          quantitiesByVariantId
+          quantitiesByVariantId,
         )
       }
 
@@ -115,5 +115,5 @@ export const getProductListCartItemsStep = createStep(
     }))
 
     return new StepResponse(cartItems)
-  }
+  },
 )

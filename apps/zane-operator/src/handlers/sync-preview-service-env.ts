@@ -10,7 +10,7 @@ interface SyncPreviewServiceEnvDeps {
 
 export async function handleSyncPreviewServiceEnv(
   request: Request,
-  deps: SyncPreviewServiceEnvDeps
+  deps: SyncPreviewServiceEnvDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

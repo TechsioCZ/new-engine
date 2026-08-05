@@ -19,5 +19,5 @@ export const removeCompanyFromCustomerGroupWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(input)
-  }
+  },
 )

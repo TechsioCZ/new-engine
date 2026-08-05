@@ -773,12 +773,12 @@ export const ExpandVsSelectionTest: Story = {
                 expandOnClick={false}
                 onExpandedChange={(details) => {
                   addLog(
-                    `🔽 EXPANDED: ${details.expandedValue.join(", ") || "none"}`
+                    `🔽 EXPANDED: ${details.expandedValue.join(", ") || "none"}`,
                   )
                 }}
                 onSelectionChange={(details) => {
                   addLog(
-                    `✅ SELECTED: ${details.selectedValue.join(", ") || "none"}`
+                    `✅ SELECTED: ${details.selectedValue.join(", ") || "none"}`,
                   )
                 }}
                 className="w-full"
@@ -803,12 +803,12 @@ export const ExpandVsSelectionTest: Story = {
                 expandOnClick={true}
                 onExpandedChange={(details) => {
                   addLog(
-                    `🔽 EXPANDED: ${details.expandedValue.join(", ") || "none"}`
+                    `🔽 EXPANDED: ${details.expandedValue.join(", ") || "none"}`,
                   )
                 }}
                 onSelectionChange={(details) => {
                   addLog(
-                    `✅ SELECTED: ${details.selectedValue.join(", ") || "none"}`
+                    `✅ SELECTED: ${details.selectedValue.join(", ") || "none"}`,
                   )
                 }}
                 className="w-full"
@@ -931,7 +931,7 @@ export const WithHoverEvents: Story = {
 
     const handleNodeHover = (node: any, indexPath: number[]) => {
       addLog(
-        `🎯 HOVER: ${node.name} (handle: ${node.handle}) at path [${indexPath.join(", ")}]`
+        `🎯 HOVER: ${node.name} (handle: ${node.handle}) at path [${indexPath.join(", ")}]`,
       )
     }
 

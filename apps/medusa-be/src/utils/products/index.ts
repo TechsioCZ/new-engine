@@ -5,7 +5,7 @@ import type * as Steps from "../../workflows/seed/steps"
 function safeJsonParse<T>(
   json: string,
   fieldName: string,
-  productHandle: string
+  productHandle: string,
 ): T | null {
   try {
     const parsed = JSON.parse(json)
@@ -14,7 +14,7 @@ function safeJsonParse<T>(
     const errorMessage = error instanceof Error ? error.message : String(error)
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Invalid JSON in ${fieldName} for product "${productHandle}": ${errorMessage}`
+      `Invalid JSON in ${fieldName} for product "${productHandle}": ${errorMessage}`,
     )
   }
 }
@@ -66,33 +66,33 @@ interface RawBrand {
 }
 
 export function toCreateProductsStepInput(
-  products: RawProductFromDb[]
+  products: RawProductFromDb[],
 ): Steps.CreateProductsStepInput {
   return products.map((raw) => {
     const parsedImages = safeJsonParse<{ url?: string }[]>(
       raw.images,
       "images",
-      raw.handle
+      raw.handle,
     )
     const parsedVariants = safeJsonParse<RawVariant[]>(
       raw.variants,
       "variants",
-      raw.handle
+      raw.handle,
     )
     const parsedOptions = safeJsonParse<RawOption[]>(
       raw.options,
       "options",
-      raw.handle
+      raw.handle,
     )
     const parsedCategories = safeJsonParse<{ handle: string }[]>(
       raw.categories,
       "categories",
-      raw.handle
+      raw.handle,
     )
     const parsedBrand = safeJsonParse<RawBrand | null>(
       raw.brand,
       "brand",
-      raw.handle
+      raw.handle,
     )
 
     const options = (parsedOptions ?? []).map((o) => ({
@@ -113,13 +113,13 @@ export function toCreateProductsStepInput(
                 Object.entries(v.options).map(([key, value]) => [
                   key,
                   value ?? "Default",
-                ])
+                ]),
               ),
             }
           : {}),
         ...(v.prices ? { prices: v.prices } : {}),
         images: (v.images ?? []).filter(
-          (im): im is { url: string } => im.url != null
+          (im): im is { url: string } => im.url != null,
         ),
         ...(v.thumbnail ? { thumbnail: v.thumbnail } : {}),
         ...(v.metadata ? { metadata: v.metadata } : {}),
@@ -135,7 +135,7 @@ export function toCreateProductsStepInput(
       shippingProfileName: "Default Shipping Profile",
       ...(raw.thumbnail ? { thumbnail: raw.thumbnail } : {}),
       images: (parsedImages ?? []).filter(
-        (im): im is { url: string } => im.url != null
+        (im): im is { url: string } => im.url != null,
       ),
       ...(options.length === 0 ? {} : { options }),
       brand: parsedBrand,

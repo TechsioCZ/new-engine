@@ -42,7 +42,7 @@ export class CustomerGroupsBatchClientMapperHelper {
   }
 
   buildCustomerGroupIndex(
-    groups: ExistingCustomerGroup[]
+    groups: ExistingCustomerGroup[],
   ): ExistingCustomerGroupIndex {
     const index: ExistingCustomerGroupIndex = {
       byCode: new Map(),
@@ -61,7 +61,7 @@ export class CustomerGroupsBatchClientMapperHelper {
   addCreatedCustomerGroupToIndex(
     index: ExistingCustomerGroupIndex,
     input: CustomerGroupInput,
-    groupId: string
+    groupId: string,
   ): void {
     this.addCustomerGroupToIndex(index, {
       code: input.code ?? null,
@@ -74,7 +74,7 @@ export class CustomerGroupsBatchClientMapperHelper {
 
   findExistingCustomerGroup(
     group: CustomerGroupInput,
-    index: ExistingCustomerGroupIndex
+    index: ExistingCustomerGroupIndex,
   ): ExistingCustomerGroup | null {
     if (
       group.identifier_type === "customer_group_id" &&
@@ -104,7 +104,7 @@ export class CustomerGroupsBatchClientMapperHelper {
 
   buildUpdatePayload(
     existing: ExistingCustomerGroup,
-    group: CustomerGroupInput
+    group: CustomerGroupInput,
   ) {
     return {
       metadata: this.buildMetadata(existing.metadata, group),
@@ -124,7 +124,7 @@ export class CustomerGroupsBatchClientMapperHelper {
 
   private addCustomerGroupToIndex(
     index: ExistingCustomerGroupIndex,
-    group: ExistingCustomerGroup
+    group: ExistingCustomerGroup,
   ): void {
     index.byId.set(group.id, group)
     index.byName.set(group.name, group)
@@ -140,7 +140,7 @@ export class CustomerGroupsBatchClientMapperHelper {
 
   private buildMetadata(
     existingMetadata: Metadata | null | undefined,
-    group: CustomerGroupInput
+    group: CustomerGroupInput,
   ) {
     const {
       code: _code,
@@ -161,10 +161,10 @@ export class CustomerGroupsBatchClientMapperHelper {
       code: string | null
       erp_code: string | null
       customer_group_id: string
-    }[]
+    }[],
   ): ExistingCustomerGroup[] {
     const mappingsByGroupId = new Map(
-      mappings.map((mapping) => [mapping.customer_group_id, mapping])
+      mappings.map((mapping) => [mapping.customer_group_id, mapping]),
     )
 
     return groups.map((group) => {

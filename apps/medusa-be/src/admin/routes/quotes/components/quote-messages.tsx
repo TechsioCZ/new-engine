@@ -36,10 +36,10 @@ const createQuoteMessageResolver: Resolver<
   }
 
   const textIssue = result.error.issues.find(
-    (issue) => issue.path[0] === "text"
+    (issue) => issue.path[0] === "text",
   )
   const itemIdIssue = result.error.issues.find(
-    (issue) => issue.path[0] === "item_id"
+    (issue) => issue.path[0] === "item_id",
   )
 
   return {
@@ -85,10 +85,10 @@ export function QuoteMessages({
     useCreateQuoteMessage(quoteId)
 
   const originalItemsMap = new Map(
-    quote?.draft_order?.items?.map((item) => [item.id, item])
+    quote?.draft_order?.items?.map((item) => [item.id, item]),
   )
   const previewItemsMap = new Map(
-    preview?.items?.map((item) => [item.id, item])
+    preview?.items?.map((item) => [item.id, item]),
   )
 
   const handleSubmit = form.handleSubmit(async (data) => {
@@ -103,7 +103,7 @@ export function QuoteMessages({
           form.reset()
           toast.success(t("toasts.messageSent"))
         },
-      }
+      },
     )
   })
 

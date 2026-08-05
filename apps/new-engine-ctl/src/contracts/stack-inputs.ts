@@ -293,10 +293,10 @@ export interface RuntimeProviderMeiliKeyPolicy {
 
 function getRuntimeProvider(
   inputs: StackInputs,
-  providerId: string
+  providerId: string,
 ): StackInputs["runtime_providers"]["providers"][number] {
   const provider = inputs.runtime_providers.providers.find(
-    (candidate) => candidate.provider_id === providerId
+    (candidate) => candidate.provider_id === providerId,
   )
   if (!provider) {
     throw new Error(`Missing runtime provider ${providerId}.`)
@@ -306,10 +306,11 @@ function getRuntimeProvider(
 }
 
 export function getPreviewRandomOnceSecretDefinitions(
-  inputs: StackInputs
+  inputs: StackInputs,
 ): PreviewRandomOnceSecretDefinition[] {
   return inputs.secret_materialization.secrets.filter(
-    (secret) => secret.scope === "preview" && secret.lifecycle === "random_once"
+    (secret) =>
+      secret.scope === "preview" && secret.lifecycle === "random_once",
   )
 }
 
@@ -320,31 +321,31 @@ export function previewRandomOnceSecretPersistsToZaneEnv(secret: {
 }
 
 export function getPreviewSharedEnvDefinitions(
-  inputs: StackInputs
+  inputs: StackInputs,
 ): PreviewSharedEnvDefinition[] {
   return inputs.preview_runtime_reconciliation.shared_env
 }
 
 export function getPreviewServiceEnvDefinitions(
-  inputs: StackInputs
+  inputs: StackInputs,
 ): PreviewServiceEnvDefinition[] {
   return inputs.preview_runtime_reconciliation.service_env
 }
 
 export function getPreviewForbiddenServiceEnvDefinitions(
-  inputs: StackInputs
+  inputs: StackInputs,
 ): PreviewForbiddenServiceEnvDefinition[] {
   return inputs.preview_verification.forbidden_service_env
 }
 
 export function getBootstrapZaneProjectSharedEnvDefinitions(
-  inputs: StackInputs
+  inputs: StackInputs,
 ): BootstrapSharedEnvDefinition[] {
   return inputs.bootstrap_zane_project.shared_env
 }
 
 export function getServiceReconciliationDefinitions(
-  inputs: StackInputs
+  inputs: StackInputs,
 ): ServiceReconciliationDefinition[] {
   return inputs.service_reconciliation.services
 }
@@ -353,18 +354,18 @@ export function getRuntimeProviderTargetEnvVar(
   inputs: StackInputs,
   providerId: string,
   outputId: string,
-  serviceId: string
+  serviceId: string,
 ): string {
   const provider = getRuntimeProvider(inputs, providerId)
   const output = provider?.outputs.find(
-    (candidate) => candidate.output_id === outputId
+    (candidate) => candidate.output_id === outputId,
   )
   const target = output?.target_envs.find(
-    (candidate) => candidate.service_id === serviceId
+    (candidate) => candidate.service_id === serviceId,
   )
   if (!target) {
     throw new Error(
-      `Missing ${outputId} target env var for provider ${providerId}.`
+      `Missing ${outputId} target env var for provider ${providerId}.`,
     )
   }
 
@@ -373,7 +374,7 @@ export function getRuntimeProviderTargetEnvVar(
 
 export function getRuntimeProviderSourceServiceId(
   inputs: StackInputs,
-  providerId: string
+  providerId: string,
 ): string {
   const provider = getRuntimeProvider(inputs, providerId)
   const sourceServiceId = provider?.source_service_id
@@ -386,7 +387,7 @@ export function getRuntimeProviderSourceServiceId(
 
 export function getRuntimeProviderReadinessPath(
   inputs: StackInputs,
-  providerId: string
+  providerId: string,
 ): string {
   const provider = getRuntimeProvider(inputs, providerId)
   const readinessPath = provider?.readiness?.path
@@ -400,26 +401,26 @@ export function getRuntimeProviderReadinessPath(
 export function getRuntimeProviderLaneBehavior(
   inputs: StackInputs,
   providerId: string,
-  lane: "preview" | "main"
+  lane: "preview" | "main",
 ): RuntimeProviderLaneBehavior {
   const provider = getRuntimeProvider(inputs, providerId)
   return runtimeProviderLaneBehaviorSchema.parse(
-    provider.orchestration?.lanes?.[lane] ?? {}
+    provider.orchestration?.lanes?.[lane] ?? {},
   )
 }
 
 export function getRuntimeProviderOutputPolicy(
   inputs: StackInputs,
   providerId: string,
-  outputId: string
+  outputId: string,
 ): RuntimeProviderPolicy {
   const provider = getRuntimeProvider(inputs, providerId)
   const output = provider?.outputs.find(
-    (candidate) => candidate.output_id === outputId
+    (candidate) => candidate.output_id === outputId,
   )
   if (!output?.policy) {
     throw new Error(
-      `Missing policy for provider ${providerId} output ${outputId}.`
+      `Missing policy for provider ${providerId} output ${outputId}.`,
     )
   }
 
@@ -429,12 +430,12 @@ export function getRuntimeProviderOutputPolicy(
 export function getRuntimeProviderMeiliKeyPolicy(
   inputs: StackInputs,
   providerId: string,
-  outputId: string
+  outputId: string,
 ): RuntimeProviderMeiliKeyPolicy {
   const policy = getRuntimeProviderOutputPolicy(inputs, providerId, outputId)
   if (!(policy.uid && policy.description)) {
     throw new Error(
-      `Missing meili policy uid/description for provider ${providerId} output ${outputId}.`
+      `Missing meili policy uid/description for provider ${providerId} output ${outputId}.`,
     )
   }
 
@@ -448,15 +449,15 @@ export function getRuntimeProviderMeiliKeyPolicy(
 
 function listRuntimeProviderConsumerServiceIds(
   inputs: StackInputs,
-  providerId: string
+  providerId: string,
 ): string[] {
   const provider = getRuntimeProvider(inputs, providerId)
 
   return [
     ...new Set(
       provider.outputs.flatMap((output) =>
-        output.target_envs.map((target) => target.service_id)
-      )
+        output.target_envs.map((target) => target.service_id),
+      ),
     ),
   ]
 }
@@ -464,15 +465,15 @@ function listRuntimeProviderConsumerServiceIds(
 export function listRuntimeProviderOutputTargets(
   inputs: StackInputs,
   providerId: string,
-  outputId: string
+  outputId: string,
 ): RuntimeProviderOutputTarget[] {
   const provider = getRuntimeProvider(inputs, providerId)
   const output = provider.outputs.find(
-    (candidate) => candidate.output_id === outputId
+    (candidate) => candidate.output_id === outputId,
   )
   if (!output) {
     throw new Error(
-      `Missing output ${outputId} for runtime provider ${providerId}.`
+      `Missing output ${outputId} for runtime provider ${providerId}.`,
     )
   }
 
@@ -483,14 +484,14 @@ export function listLocalRuntimeProviderOutputAliases(
   inputs: StackInputs,
   providerId: string,
   outputId: string,
-  serviceIds: string[] = []
+  serviceIds: string[] = [],
 ): LocalRuntimeProviderOutputAlias[] {
   const serviceIdSet = serviceIds.length > 0 ? new Set(serviceIds) : null
   const aliases = inputs.local_env_aliases.runtime_provider_outputs.filter(
     (alias) =>
       alias.provider_id === providerId &&
       alias.output_id === outputId &&
-      (!serviceIdSet || serviceIdSet.has(alias.service_id))
+      (!serviceIdSet || serviceIdSet.has(alias.service_id)),
   )
 
   for (const alias of aliases) {
@@ -498,11 +499,11 @@ export function listLocalRuntimeProviderOutputAliases(
       inputs,
       providerId,
       outputId,
-      alias.service_id
+      alias.service_id,
     )
     if (runtimeEnvVar !== alias.env_var) {
       throw new Error(
-        `Local env alias mismatch for ${providerId}.${outputId}.${alias.service_id}: target_envs uses ${runtimeEnvVar}, local alias references ${alias.env_var}.`
+        `Local env alias mismatch for ${providerId}.${outputId}.${alias.service_id}: target_envs uses ${runtimeEnvVar}, local alias references ${alias.env_var}.`,
       )
     }
   }
@@ -510,17 +511,17 @@ export function listLocalRuntimeProviderOutputAliases(
   if (serviceIds.length > 0) {
     const targetServiceIds = new Set(
       listRuntimeProviderOutputTargets(inputs, providerId, outputId).map(
-        (target) => target.service_id
-      )
+        (target) => target.service_id,
+      ),
     )
     const matchedServiceIds = new Set(aliases.map((alias) => alias.service_id))
     const missingConsumerAliases = serviceIds.filter(
       (serviceId) =>
-        targetServiceIds.has(serviceId) && !matchedServiceIds.has(serviceId)
+        targetServiceIds.has(serviceId) && !matchedServiceIds.has(serviceId),
     )
     if (missingConsumerAliases.length > 0) {
       throw new Error(
-        `Missing local env alias for ${providerId}.${outputId} consumer service(s): ${missingConsumerAliases.join(",")}.`
+        `Missing local env alias for ${providerId}.${outputId} consumer service(s): ${missingConsumerAliases.join(",")}.`,
       )
     }
   }
@@ -530,16 +531,16 @@ export function listLocalRuntimeProviderOutputAliases(
 
 export function listRuntimeProviderOutputIds(
   inputs: StackInputs,
-  providerId: string
+  providerId: string,
 ): string[] {
   return getRuntimeProvider(inputs, providerId).outputs.map(
-    (output) => output.output_id
+    (output) => output.output_id,
   )
 }
 
 function listRuntimeProviderTargetsForService(
   inputs: StackInputs,
-  serviceId: string
+  serviceId: string,
 ): {
   provider_id: string
   output_id: string
@@ -556,16 +557,16 @@ function listRuntimeProviderTargetsForService(
                 provider_id: provider.provider_id,
               },
             ]
-          : []
-      )
-    )
+          : [],
+      ),
+    ),
   )
 }
 
 export function listRuntimeProviderTargetsForServiceInLane(
   inputs: StackInputs,
   lane: "preview" | "main",
-  serviceId: string
+  serviceId: string,
 ): {
   provider_id: string
   output_id: string
@@ -573,13 +574,13 @@ export function listRuntimeProviderTargetsForServiceInLane(
 }[] {
   return listRuntimeProviderTargetsForService(inputs, serviceId).filter(
     (target) =>
-      getRuntimeProviderLaneBehavior(inputs, target.provider_id, lane).enabled
+      getRuntimeProviderLaneBehavior(inputs, target.provider_id, lane).enabled,
   )
 }
 
 export function listRuntimeProviderServiceIds(
   inputs: StackInputs,
-  providerId: string
+  providerId: string,
 ): string[] {
   const sourceServiceId = getRuntimeProviderSourceServiceId(inputs, providerId)
   return [
@@ -598,10 +599,10 @@ function listActiveRuntimeProviderIds(inputs: StackInputs): string[] {
 
 export function listActiveRuntimeProviderIdsForLane(
   inputs: StackInputs,
-  lane: "preview" | "main"
+  lane: "preview" | "main",
 ): string[] {
   return listActiveRuntimeProviderIds(inputs).filter(
     (providerId) =>
-      getRuntimeProviderLaneBehavior(inputs, providerId, lane).enabled
+      getRuntimeProviderLaneBehavior(inputs, providerId, lane).enabled,
   )
 }

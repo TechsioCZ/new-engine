@@ -29,7 +29,7 @@ const mockPplClient = {
 const createService = () =>
   new PplFulfillmentProviderService(
     { logger: mockLogger, ppl_client: mockPplClient } as any,
-    {} as any
+    {} as any,
   )
 
 const baseShippingAddress = {
@@ -46,7 +46,7 @@ const baseShippingAddress = {
 }
 
 const createOrder = (
-  overrides: Partial<FulfillmentOrderDTO> = {}
+  overrides: Partial<FulfillmentOrderDTO> = {},
 ): Partial<FulfillmentOrderDTO> => ({
   currency_code: "CZK",
   display_id: 1001,
@@ -91,7 +91,7 @@ describe(PplFulfillmentProviderService, () => {
       await expect(
         createService().createFulfillment(createShippingData(), [], undefined, {
           id: "ful_1",
-        })
+        }),
       ).rejects.toThrow("PPL: Order is required for fulfillment")
     })
 
@@ -100,7 +100,7 @@ describe(PplFulfillmentProviderService, () => {
       await expect(
         createService().createFulfillment(createShippingData(), [], order, {
           id: "ful_1",
-        })
+        }),
       ).rejects.toThrow("PPL: Shipping address is required")
     })
 
@@ -114,7 +114,7 @@ describe(PplFulfillmentProviderService, () => {
       await expect(
         createService().createFulfillment(createShippingData(), [], order, {
           id: "ful_1",
-        })
+        }),
       ).rejects.toThrow("PPL: Shipping address must include country_code")
     })
 
@@ -123,7 +123,7 @@ describe(PplFulfillmentProviderService, () => {
         createShippingData(),
         [],
         createOrder(),
-        { id: "ful_1" }
+        { id: "ful_1" },
       )
 
       expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith([
@@ -166,7 +166,7 @@ describe(PplFulfillmentProviderService, () => {
         createShippingData({ supports_cod: true }),
         [],
         createOrder(),
-        { id: "ful_1" }
+        { id: "ful_1" },
       )
 
       expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith([
@@ -189,8 +189,8 @@ describe(PplFulfillmentProviderService, () => {
           createShippingData({ supports_cod: true }),
           [],
           order,
-          { id: "ful_1" }
-        )
+          { id: "ful_1" },
+        ),
       ).rejects.toThrow("PPL: Currency USD is not supported for COD")
     })
 
@@ -204,8 +204,8 @@ describe(PplFulfillmentProviderService, () => {
           createShippingData({ supports_cod: true }),
           [],
           createOrder(),
-          { id: "ful_1" }
-        )
+          { id: "ful_1" },
+        ),
       ).rejects.toThrow("PPL: COD is not allowed for country CZ")
     })
 
@@ -224,7 +224,7 @@ describe(PplFulfillmentProviderService, () => {
         createShippingData({ supports_cod: true }),
         [],
         createOrder(),
-        { id: "ful_1" }
+        { id: "ful_1" },
       )
 
       expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith([
@@ -245,7 +245,7 @@ describe(PplFulfillmentProviderService, () => {
         createShippingData({ access_point_id: "AP123", product_type: "SMAR" }),
         [],
         createOrder(),
-        { id: "ful_1" }
+        { id: "ful_1" },
       )
 
       expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith([
@@ -264,8 +264,8 @@ describe(PplFulfillmentProviderService, () => {
         createService().validateFulfillmentData(
           { product_type: "PRIV", requires_access_point: false },
           {},
-          {} as any
-        )
+          {} as any,
+        ),
       ).rejects.toThrow("PPL shipping is currently unavailable")
     })
 
@@ -274,8 +274,8 @@ describe(PplFulfillmentProviderService, () => {
         createService().validateFulfillmentData(
           { product_type: "SMAR", requires_access_point: true },
           { access_point_id: undefined },
-          {} as any
-        )
+          {} as any,
+        ),
       ).rejects.toThrow("PPL: Access point (pickup location) is required")
     })
 
@@ -291,7 +291,7 @@ describe(PplFulfillmentProviderService, () => {
           access_point_name: "Test Shop",
           access_point_type: "ParcelShop",
         },
-        {} as any
+        {} as any,
       )
 
       expect(result).toStrictEqual({
@@ -312,7 +312,7 @@ describe(PplFulfillmentProviderService, () => {
           supports_cod: true,
         },
         {},
-        {} as any
+        {} as any,
       )
 
       expect(result).toStrictEqual({
@@ -402,22 +402,22 @@ describe(PplFulfillmentProviderService, () => {
   describe("validateOption", () => {
     it("returns true for valid product types", async () => {
       await expect(
-        createService().validateOption({ product_type: "SMAR" })
+        createService().validateOption({ product_type: "SMAR" }),
       ).resolves.toBeTruthy()
       await expect(
-        createService().validateOption({ product_type: "SMAD" })
+        createService().validateOption({ product_type: "SMAD" }),
       ).resolves.toBeTruthy()
       await expect(
-        createService().validateOption({ product_type: "PRIV" })
+        createService().validateOption({ product_type: "PRIV" }),
       ).resolves.toBeTruthy()
       await expect(
-        createService().validateOption({ product_type: "PRID" })
+        createService().validateOption({ product_type: "PRID" }),
       ).resolves.toBeTruthy()
     })
 
     it("returns false for invalid product type", async () => {
       await expect(
-        createService().validateOption({ product_type: "INVALID" })
+        createService().validateOption({ product_type: "INVALID" }),
       ).resolves.toBeFalsy()
     })
   })

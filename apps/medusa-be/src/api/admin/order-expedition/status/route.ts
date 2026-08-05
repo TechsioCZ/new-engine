@@ -33,14 +33,14 @@ interface StatusChangedOrder {
 }
 
 function isOrderExpeditionQueryOrder<T>(
-  order: T
+  order: T,
 ): order is T & OrderExpeditionRawOrder {
   return isOrderExpeditionRawOrder(order)
 }
 
 export async function POST(
   req: MedusaRequest<PostAdminOrderExpeditionStatusSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ): Promise<void> {
   const { order_ids: requestedOrderIds, target_status: targetStatus } =
     req.validatedBody
@@ -53,7 +53,7 @@ export async function POST(
   const blockingOrders = collectBlockingOrders(
     missingOrderIds,
     expeditionOrders,
-    targetStatus
+    targetStatus,
   )
 
   if (blockingOrders.length) {
@@ -71,7 +71,7 @@ export async function POST(
   const { orders: changedOrders } =
     await fetchOrderedOrderExpeditionOrdersByIds(query, orderIds)
   const changedExpeditionOrders = changedOrders.filter(
-    isOrderExpeditionQueryOrder
+    isOrderExpeditionQueryOrder,
   )
 
   await clearOrderExpeditionSummaryCache(req.scope)
@@ -86,14 +86,14 @@ export async function POST(
 function collectBlockingOrders(
   missingOrderIds: string[],
   orders: OrderExpeditionRawOrder[],
-  targetStatus: OrderExpeditionTargetStatus
+  targetStatus: OrderExpeditionTargetStatus,
 ) {
   const blockers: OrderExpeditionBlockingOrder[] = missingOrderIds.map(
     (orderId) => ({
       id: orderId,
       order_display_id: orderId,
       reason: "Order was not found",
-    })
+    }),
   )
 
   for (const order of orders) {
@@ -110,7 +110,7 @@ function collectBlockingOrders(
 async function runStatusWorkflow(
   scope: MedusaRequest["scope"],
   orderIds: string[],
-  targetStatus: OrderExpeditionTargetStatus
+  targetStatus: OrderExpeditionTargetStatus,
 ) {
   if (targetStatus === "completed") {
     await completeOrderWorkflow(scope).run({ input: { orderIds } })

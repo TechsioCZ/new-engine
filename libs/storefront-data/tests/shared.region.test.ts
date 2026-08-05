@@ -15,7 +15,7 @@ describe(applyRegion, () => {
       {
         country_code: "sk",
         region_id: "reg_sk",
-      }
+      },
     )
 
     expect(result).toStrictEqual({
@@ -43,7 +43,7 @@ describe(applyRegion, () => {
         q: "kretin",
         region_id: "reg_cz",
       },
-      { country_code: "sk", region_id: "reg_sk" }
+      { country_code: "sk", region_id: "reg_sk" },
     )
 
     expect(result.region_id).toBe("reg_cz")

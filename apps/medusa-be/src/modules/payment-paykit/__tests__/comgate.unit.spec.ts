@@ -57,13 +57,13 @@ describe(PaykitComgatePaymentProvider, () => {
           email: "customer@example.com",
           paymentLabel: "Order from Eshop",
         },
-      })
+      }),
     )
     expect(result.data).toStrictEqual(
       expect.objectContaining({
         id: "comgate-payment-1",
         payment_url: "https://payments.comgate.example/redirect",
-      })
+      }),
     )
   })
 
@@ -91,7 +91,7 @@ describe(PaykitComgatePaymentProvider, () => {
         provider_metadata: expect.objectContaining({
           email: "customer@example.com",
         }),
-      })
+      }),
     )
   })
 
@@ -118,7 +118,7 @@ describe(PaykitComgatePaymentProvider, () => {
         provider_metadata: expect.objectContaining({
           email: "customer@example.com",
         }),
-      })
+      }),
     )
   })
 
@@ -138,7 +138,7 @@ describe(PaykitComgatePaymentProvider, () => {
           item_id: "cart_123",
           session_id: "payses_123",
         },
-      })
+      }),
     ).rejects.toThrow("PayKit Comgate requires a customer email")
   })
 
@@ -188,7 +188,7 @@ describe(PaykitComgatePaymentProvider, () => {
         provider_metadata: expect.objectContaining({
           paymentLabel: "Herbatica order",
         }),
-      })
+      }),
     )
     expect(client.payments.create).toHaveBeenNthCalledWith(
       2,
@@ -196,7 +196,7 @@ describe(PaykitComgatePaymentProvider, () => {
         provider_metadata: expect.objectContaining({
           paymentLabel: "Herbatica order",
         }),
-      })
+      }),
     )
   })
 
@@ -244,7 +244,7 @@ describe(PaykitComgatePaymentProvider, () => {
         data: {},
         headers: {},
         rawData: "",
-      })
+      }),
     ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {

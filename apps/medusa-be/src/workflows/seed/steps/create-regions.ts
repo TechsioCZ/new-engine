@@ -26,7 +26,7 @@ export const createRegionsStep = createStep(
 
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const regionService = container.resolve<IRegionModuleService>(
-      Modules.REGION
+      Modules.REGION,
     )
 
     const regionNames = input.map((i) => i.name)
@@ -36,11 +36,11 @@ export const createRegionsStep = createStep(
     })
 
     const missingRegions = input.filter(
-      (i) => !existingRegions.find((j) => j.name === i.name)
+      (i) => !existingRegions.find((j) => j.name === i.name),
     )
     const updateRegions = input.flatMap((inputRegion) => {
       const existingRegion = existingRegions.find(
-        (existing) => existing.name === inputRegion.name
+        (existing) => existing.name === inputRegion.name,
       )
       if (existingRegion) {
         return [
@@ -60,7 +60,7 @@ export const createRegionsStep = createStep(
       logger.info("Creating missing region data...")
 
       const { result: createRegionsResult } = await createRegionsWorkflow(
-        container
+        container,
       ).run({
         input: {
           regions: missingRegions.map((i) => ({
@@ -91,7 +91,7 @@ export const createRegionsStep = createStep(
 
       for (const regionToUpdate of toUpdate) {
         const { result: updateResult } = await updateRegionsWorkflow(
-          container
+          container,
         ).run({
           input: regionToUpdate,
         })
@@ -103,5 +103,5 @@ export const createRegionsStep = createStep(
     return new StepResponse({
       result,
     })
-  }
+  },
 )

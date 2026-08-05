@@ -18,7 +18,7 @@ describe("PayKit runtime helpers", () => {
         goId: "goid",
         isSandbox: false,
         webhookUrl: "https://example.com/hooks/gopay",
-      })
+      }),
     ).toStrictEqual({
       clientId: "client",
       clientSecret: "secret",
@@ -36,7 +36,7 @@ describe("PayKit runtime helpers", () => {
         clientSecret: "secret",
         goId: "goid",
         webhookUrl: "https://example.com/hooks/gopay",
-      })
+      }),
     ).toStrictEqual({
       clientId: "client",
       clientSecret: "secret",
@@ -54,7 +54,7 @@ describe("PayKit runtime helpers", () => {
         debug: true,
         isSandbox: false,
         webhookSecret: "whsec_123",
-      })
+      }),
     ).toStrictEqual({
       apiKey: "sk_test_123",
       apiVersion: "2026-06-24.dahlia",
@@ -66,7 +66,7 @@ describe("PayKit runtime helpers", () => {
     expect(
       getStripeProviderOptions({
         apiKey: "sk_test_123",
-      })
+      }),
     ).toStrictEqual({
       apiKey: "sk_test_123",
       apiVersion: "2026-06-24.dahlia",
@@ -79,7 +79,7 @@ describe("PayKit runtime helpers", () => {
       getStripeWebhookOptions({
         apiKey: "sk_test_123",
         webhookSecret: "whsec_123",
-      })
+      }),
     ).toStrictEqual({
       webhookSecret: "whsec_123",
     })
@@ -107,7 +107,7 @@ describe("PayKit runtime helpers", () => {
       },
       {
         webhookSecret: "whsec_123",
-      }
+      },
     )
 
     expect(provider.handleWebhook).toHaveBeenCalledWith(
@@ -121,7 +121,7 @@ describe("PayKit runtime helpers", () => {
           "x-forwarded-proto": "https",
         },
       },
-      "whsec_123"
+      "whsec_123",
     )
   })
 
@@ -138,7 +138,7 @@ describe("PayKit runtime helpers", () => {
 
     expect(provider.handleWebhook).toHaveBeenCalledWith(
       expect.any(Object),
-      null
+      null,
     )
   })
 
@@ -148,7 +148,7 @@ describe("PayKit runtime helpers", () => {
         isSandbox: false,
         merchant: "merchant",
         secret: "secret",
-      })
+      }),
     ).toStrictEqual({
       debug: false,
       isSandbox: false,
@@ -160,23 +160,23 @@ describe("PayKit runtime helpers", () => {
   it("describes missing PayKit packages as install issues", () => {
     const error = Object.assign(
       new Error(
-        "Cannot find package '@paykit-sdk/gopay' imported from /app/src/modules/payment-paykit/runtime.js"
+        "Cannot find package '@paykit-sdk/gopay' imported from /app/src/modules/payment-paykit/runtime.js",
       ),
-      { code: "ERR_MODULE_NOT_FOUND" }
+      { code: "ERR_MODULE_NOT_FOUND" },
     )
 
     expect(getPaykitPackageLoadErrorMessage("@paykit-sdk/gopay", error)).toBe(
-      "PayKit package \"@paykit-sdk/gopay\" is not installed. Install it before enabling this provider. Original error: Cannot find package '@paykit-sdk/gopay' imported from /app/src/modules/payment-paykit/runtime.js"
+      "PayKit package \"@paykit-sdk/gopay\" is not installed. Install it before enabling this provider. Original error: Cannot find package '@paykit-sdk/gopay' imported from /app/src/modules/payment-paykit/runtime.js",
     )
   })
 
   it("describes PayKit package import failures as SDK/package issues", () => {
     const error = new SyntaxError(
-      "The requested module '@paykit-sdk/core' does not provide an export named 'OAuth2TokenManager'"
+      "The requested module '@paykit-sdk/core' does not provide an export named 'OAuth2TokenManager'",
     )
 
     expect(getPaykitPackageLoadErrorMessage("@paykit-sdk/gopay", error)).toBe(
-      "PayKit package \"@paykit-sdk/gopay\" failed to load. The package is installed, but Node could not import it. This usually means the PayKit SDK packages are version-incompatible or the package build is invalid. Original error: The requested module '@paykit-sdk/core' does not provide an export named 'OAuth2TokenManager'"
+      "PayKit package \"@paykit-sdk/gopay\" failed to load. The package is installed, but Node could not import it. This usually means the PayKit SDK packages are version-incompatible or the package build is invalid. Original error: The requested module '@paykit-sdk/core' does not provide an export named 'OAuth2TokenManager'",
     )
   })
 })

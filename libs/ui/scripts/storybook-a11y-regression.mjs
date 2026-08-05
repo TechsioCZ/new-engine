@@ -49,7 +49,7 @@ function findThemeReport(root, theme) {
   visit(root)
   if (matches.length !== 1) {
     throw new Error(
-      `Expected exactly one ${theme}/report.json below ${root}; found ${matches.length}.`
+      `Expected exactly one ${theme}/report.json below ${root}; found ${matches.length}.`,
     )
   }
   return matches[0]
@@ -79,7 +79,7 @@ function collectTheme(report, theme) {
     const storyViolations = story?.results?.violations ?? []
     if (!Array.isArray(storyViolations)) {
       throw new TypeError(
-        `${theme} report contains invalid violations for ${storyName}.`
+        `${theme} report contains invalid violations for ${storyName}.`,
       )
     }
 
@@ -112,7 +112,7 @@ function collectTheme(report, theme) {
       ? left.id === right.id
         ? left.target.localeCompare(right.target)
         : left.id.localeCompare(right.id)
-      : left.story.localeCompare(right.story)
+      : left.story.localeCompare(right.story),
   )
 
   return {
@@ -131,7 +131,7 @@ function loadReports(reportRoot) {
         theme,
         collectTheme(loadJson(reportPath, `${theme} report`), theme),
       ]
-    })
+    }),
   )
 }
 
@@ -149,7 +149,7 @@ function writeBaseline(baselinePath, themes) {
 
 function entryKey(entry) {
   return [String(entry.storyId), String(entry.id), String(entry.target)].join(
-    KEY_SEPARATOR
+    KEY_SEPARATOR,
   )
 }
 
@@ -163,13 +163,13 @@ function compareTheme(current, baseline, theme) {
   }
 
   const baselineCounts = new Map(
-    baseline.entries.map((entry) => [entryKey(entry), Number(entry.count)])
+    baseline.entries.map((entry) => [entryKey(entry), Number(entry.count)]),
   )
   const currentEntries = new Map(
-    current.entries.map((entry) => [entryKey(entry), entry])
+    current.entries.map((entry) => [entryKey(entry), entry]),
   )
   const baselineEntries = new Map(
-    baseline.entries.map((entry) => [entryKey(entry), entry])
+    baseline.entries.map((entry) => [entryKey(entry), entry]),
   )
   const keys = new Set([...baselineCounts.keys(), ...currentEntries.keys()])
   const newEntries = []
@@ -195,7 +195,7 @@ function compareTheme(current, baseline, theme) {
 
   const currentStoryIds = new Set(current.storyIds)
   const missingStoryIds = baseline.storyIds.filter(
-    (storyId) => !currentStoryIds.has(String(storyId))
+    (storyId) => !currentStoryIds.has(String(storyId)),
   )
   const countEntries = (entries) =>
     entries.reduce((total, entry) => total + entry.count, 0)
@@ -221,11 +221,11 @@ function formatDetails(entries) {
         ? left.id === right.id
           ? left.target.localeCompare(right.target)
           : left.id.localeCompare(right.id)
-        : left.story.localeCompare(right.story)
+        : left.story.localeCompare(right.story),
     )
     .map(
       (entry) =>
-        `  - ${entry.story}: ${entry.id} at ${entry.target}${entry.count > 1 ? ` x${entry.count}` : ""}`
+        `  - ${entry.story}: ${entry.id} at ${entry.target}${entry.count > 1 ? ` x${entry.count}` : ""}`,
     )
 }
 
@@ -234,26 +234,26 @@ function buildSummary(results) {
   for (const result of results) {
     lines.push(
       `### ${result.theme[0].toUpperCase()}${result.theme.slice(1)}`,
-      `- Current stories: ${result.currentStories}`
+      `- Current stories: ${result.currentStories}`,
     )
     lines.push(
       `- Current violation nodes: ${result.currentViolations} (committed baseline: ${result.baselineViolations})`,
-      `- New violation nodes: ${result.newViolations}`
+      `- New violation nodes: ${result.newViolations}`,
     )
     lines.push(
       `- Resolved violation nodes: ${result.resolvedViolations}`,
-      `- Missing baseline stories: ${result.missingStoryIds.length}`
+      `- Missing baseline stories: ${result.missingStoryIds.length}`,
     )
     if (result.newEntries.length > 0) {
       lines.push(
         "- New violation node fingerprints:",
-        ...formatDetails(result.newEntries)
+        ...formatDetails(result.newEntries),
       )
     }
     if (result.missingStoryIds.length > 0) {
       lines.push(
         "- Missing story IDs:",
-        ...result.missingStoryIds.map((storyId) => `  - ${storyId}`)
+        ...result.missingStoryIds.map((storyId) => `  - ${storyId}`),
       )
     }
     lines.push("")
@@ -268,7 +268,7 @@ const failOnNew = hasFlag("--fail-on-new")
 
 if (!reportRoot || !baselinePath) {
   console.error(
-    "Usage: storybook-a11y-regression.mjs --report-root <dir> --baseline <file> [--update-baseline | --fail-on-new]"
+    "Usage: storybook-a11y-regression.mjs --report-root <dir> --baseline <file> [--update-baseline | --fail-on-new]",
   )
   process.exit(1)
 }
@@ -287,7 +287,7 @@ try {
   }
 
   const results = THEMES.map((theme) =>
-    compareTheme(themes[theme], baseline.themes[theme], theme)
+    compareTheme(themes[theme], baseline.themes[theme], theme),
   )
   const summary = buildSummary(results)
   process.stdout.write(summary)
@@ -300,7 +300,7 @@ try {
   if (
     failOnNew &&
     results.some(
-      (result) => result.newViolations > 0 || result.missingStoryIds.length > 0
+      (result) => result.newViolations > 0 || result.missingStoryIds.length > 0,
     )
   ) {
     process.exit(1)

@@ -41,14 +41,14 @@ export interface CollectionQueryOptionsFactory<
     options?: {
       queryOptions?: ReadQueryOptions<CollectionListResponse<TCollection>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<CollectionListResponse<TCollection>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TCollection | null>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TCollection | null>
 }
 
@@ -87,6 +87,6 @@ export function createCollectionQueryOptionsFactory<
       missingDetailErrorMessage:
         "Collection id is required for collection queries",
       queryKeys: resolvedQueryKeys,
-    })
+    }),
   )
 }

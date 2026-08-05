@@ -18,14 +18,14 @@ describe("catalog products filter utils", () => {
     ])
 
     expect(
-      normalizeFormParam(["form-capsules", "form-tablets,form-tablets"])
+      normalizeFormParam(["form-capsules", "form-tablets,form-tablets"]),
     ).toStrictEqual(["form-capsules", "form-tablets"])
 
     expect(normalizeBrandParam("brand-natura,invalid")).toStrictEqual([
       "brand-natura",
     ])
     expect(
-      normalizeIngredientParam(["ingredient-horcik", "other"])
+      normalizeIngredientParam(["ingredient-horcik", "other"]),
     ).toStrictEqual(["ingredient-horcik"])
     expect(normalizeCategoryIdsParam("pcat_01,pcat_02")).toStrictEqual([
       "pcat_01",

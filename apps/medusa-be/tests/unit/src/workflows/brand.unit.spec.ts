@@ -12,7 +12,7 @@ describe("brand workflow helpers", () => {
   describe("product brand lock keys", () => {
     it("uses one stable product-level lock namespace for both relation workflows", () => {
       expect(
-        getProductBrandLockKeys(["prod_2", "prod_1", "prod_2"])
+        getProductBrandLockKeys(["prod_2", "prod_1", "prod_2"]),
       ).toStrictEqual(["product-brand:prod_1", "product-brand:prod_2"])
       expect(getBrandProductsLockKeys("brand_1", ["prod_2"])).toStrictEqual([
         "brand-products:brand_1",
@@ -29,12 +29,12 @@ describe("brand workflow helpers", () => {
         getProductBrandIdsToReplace(
           ["brand_deleted", "brand_active"],
           activeBrandIds,
-          ["brand_next"]
-        )
+          ["brand_next"],
+        ),
       ).toStrictEqual(["brand_deleted", "brand_active"])
 
       expect(
-        getProductBrandIdsToReplace(["brand_deleted"], activeBrandIds, [])
+        getProductBrandIdsToReplace(["brand_deleted"], activeBrandIds, []),
       ).toStrictEqual([])
     })
   })
@@ -51,7 +51,7 @@ describe("brand workflow helpers", () => {
       })
 
       await expect(
-        ensureProductsAssignableToBrand(scope, "brand_1", ["prod_1", "prod_2"])
+        ensureProductsAssignableToBrand(scope, "brand_1", ["prod_1", "prod_2"]),
       ).resolves.toBeUndefined()
     })
 
@@ -66,7 +66,7 @@ describe("brand workflow helpers", () => {
       })
 
       await expect(
-        ensureProductsAssignableToBrand(scope, "brand_1", ["prod_1"])
+        ensureProductsAssignableToBrand(scope, "brand_1", ["prod_1"]),
       ).rejects.toThrow("prod_1")
     })
   })

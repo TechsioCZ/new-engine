@@ -156,7 +156,7 @@ export const MultipleSelection: Story = {
     const [selectedValues, setSelectedValues] = useState<string[]>([])
 
     const selectedCountries = countries.filter((c) =>
-      selectedValues.includes(c.value)
+      selectedValues.includes(c.value),
     )
 
     const removeCountry = (valueToRemove: string) => {

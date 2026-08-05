@@ -212,7 +212,7 @@ export function createPaginationGetPageUrl({
 }
 
 function hasHref(
-  triggerProps: PaginationTriggerProps
+  triggerProps: PaginationTriggerProps,
 ): triggerProps is PaginationTriggerProps & { href: unknown } {
   return triggerProps.href != null
 }
@@ -273,7 +273,7 @@ export function Pagination<T extends ElementType = "a">({
 
   const getTriggerButtonProps = (
     triggerProps: PaginationTriggerProps,
-    overrides: Record<string, unknown> = {}
+    overrides: Record<string, unknown> = {},
   ) => {
     const isNavigable = hasHref(triggerProps)
     const baseTriggerProps = mergeProps(triggerProps, {
@@ -293,7 +293,7 @@ export function Pagination<T extends ElementType = "a">({
           : {
               disabled: true,
             }),
-      }
+      },
     ) as LinkButtonProps<T>
   }
 

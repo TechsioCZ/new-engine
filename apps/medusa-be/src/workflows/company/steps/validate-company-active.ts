@@ -20,7 +20,7 @@ export const validateCompanyActiveStep = createStep(
           {
             select: ["id", "deleted_at"],
             withDeleted: true,
-          }
+          },
         )
       : [
           await companyModuleService.retrieveCompany(companyId, {
@@ -33,10 +33,10 @@ export const validateCompanyActiveStep = createStep(
     if (deletedCompany) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Cannot mutate a deleted company."
+        "Cannot mutate a deleted company.",
       )
     }
 
     return new StepResponse(companyIds)
-  }
+  },
 )

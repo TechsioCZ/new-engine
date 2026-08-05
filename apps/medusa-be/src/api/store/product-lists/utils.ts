@@ -66,7 +66,7 @@ export const toProductListItemResponse = (item: ProductListItemRecord) => ({
 
 export const withProductListItemSelections = async (
   container: MedusaContainer,
-  items: ProductListItemRecord[]
+  items: ProductListItemRecord[],
 ) => {
   const itemIds = items.map((item) => item.id)
 
@@ -99,15 +99,15 @@ export const withProductListItemSelections = async (
     toProductListItemProductLinks(productLinks).flatMap((link) =>
       link.product_list_item_id && link.product_id
         ? [[link.product_list_item_id, link.product_id]]
-        : []
-    )
+        : [],
+    ),
   )
   const variantIdsByItemId = new Map(
     toProductListItemVariantLinks(variantLinks).flatMap((link) =>
       link.product_list_item_id && link.product_variant_id
         ? [[link.product_list_item_id, link.product_variant_id]]
-        : []
-    )
+        : [],
+    ),
   )
 
   return items.map((item) => ({
@@ -120,7 +120,7 @@ export const withProductListItemSelections = async (
 export const withProductListItems = async (
   container: MedusaContainer,
   lists: ProductListRecord[],
-  options: { previewLimit?: number } = {}
+  options: { previewLimit?: number } = {},
 ) => {
   const listIds = lists.map((list) => list.id)
 
@@ -140,7 +140,7 @@ export const withProductListItems = async (
           {
             list_id: { $in: listIds },
           },
-          config
+          config,
         )
       : (
           await Promise.all(
@@ -152,9 +152,9 @@ export const withProductListItems = async (
                 {
                   ...config,
                   take: options.previewLimit,
-                }
-              )
-            )
+                },
+              ),
+            ),
           )
         ).flat()
   const enrichedItems = await withProductListItemSelections(container, items)

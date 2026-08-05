@@ -6,7 +6,7 @@ import tailwind from "eslint-plugin-tailwindcss"
 
 const tokensCssAbsolutePath = path.resolve(
   import.meta.dirname,
-  "src/tokens/index.css"
+  "src/tokens/index.css",
 )
 
 export default [

@@ -10,7 +10,7 @@ export function createPlanCommand(): Command {
 
   command
     .description(
-      "Resolve requested and coupled deploy services from the manifest"
+      "Resolve requested and coupled deploy services from the manifest",
     )
     .requiredOption("--lane <preview|main>")
     .option("--services-csv <csv>", "", "")
@@ -19,7 +19,7 @@ export function createPlanCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .action(async (options) => {
       const parsedPrNumber =
@@ -37,23 +37,23 @@ export function createPlanCommand(): Command {
       const result = await executePlan(input)
       await appendGitHubOutput(
         "requested_services_csv",
-        result.requested_services_csv
+        result.requested_services_csv,
       )
       await appendGitHubOutput(
         "deploy_services_csv",
-        result.deploy_services_csv
+        result.deploy_services_csv,
       )
       await appendGitHubOutput(
         "preview_environment_name",
-        result.preview_environment_name
+        result.preview_environment_name,
       )
       await appendGitHubOutput(
         "preview_cloned_service_ids_csv",
-        result.preview_cloned_service_ids_csv
+        result.preview_cloned_service_ids_csv,
       )
       await appendGitHubOutput(
         "preview_excluded_service_ids_csv",
-        result.preview_excluded_service_ids_csv
+        result.preview_excluded_service_ids_csv,
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
     })

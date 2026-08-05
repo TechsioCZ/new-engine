@@ -149,7 +149,7 @@ export function CheckoutPickupPointDetailsSection({
                   <checkoutDetailsForm.form.AppField
                     name={resolveCheckoutAddressFieldName(
                       "billing",
-                      "companyId"
+                      "companyId",
                     )}
                     validators={fieldValidators.billing.companyId}
                   >
@@ -255,7 +255,7 @@ export function CheckoutPickupPointDetailsSection({
               <checkoutDetailsForm.form.AppField
                 name={resolveCheckoutAddressFieldName(
                   "shipping",
-                  "customerNote"
+                  "customerNote",
                 )}
               >
                 {(field) => (

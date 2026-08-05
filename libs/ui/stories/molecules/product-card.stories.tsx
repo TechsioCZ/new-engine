@@ -50,7 +50,7 @@ type Story = StoryObj<typeof meta>
 
 // Image options for select control
 const imageOptions = Object.keys(
-  productImages
+  productImages,
 ) as (keyof typeof productImages)[]
 
 // Custom args type for Playground (compound component pattern)

@@ -24,8 +24,8 @@ interface SdkLike {
 function createSdkMock(
   fetchImpl?: (
     path: string,
-    init?: { query?: HttpTypes.SelectParams; signal?: AbortSignal }
-  ) => Promise<{ cart?: HttpTypes.StoreCart | null }>
+    init?: { query?: HttpTypes.SelectParams; signal?: AbortSignal },
+  ) => Promise<{ cart?: HttpTypes.StoreCart | null }>,
 ): SdkLike {
   return {
     client: {
@@ -36,7 +36,7 @@ function createSdkMock(
               cart: {
                 id: path.replace("/store/carts/", ""),
               } as HttpTypes.StoreCart,
-            }))
+            })),
       ),
     },
     store: {
@@ -176,17 +176,17 @@ describe(createMedusaCartService, () => {
       id: "cart_updated",
     })
     await expect(
-      service.addLineItem("cart_1", {} as never)
+      service.addLineItem("cart_1", {} as never),
     ).resolves.toStrictEqual({
       id: "cart_with_item",
     })
     await expect(
-      service.updateLineItem("cart_1", "item_1", {} as never)
+      service.updateLineItem("cart_1", "item_1", {} as never),
     ).resolves.toStrictEqual({
       id: "cart_item_updated",
     })
     await expect(
-      service.removeLineItem("cart_1", "item_1")
+      service.removeLineItem("cart_1", "item_1"),
     ).resolves.toStrictEqual({
       id: "cart_item_removed",
     })
@@ -201,11 +201,11 @@ describe(createMedusaCartService, () => {
     expect(sdk.store.cart.updateLineItem).toHaveBeenCalledWith(
       "cart_1",
       "item_1",
-      {}
+      {},
     )
     expect(sdk.store.cart.deleteLineItem).toHaveBeenCalledWith(
       "cart_1",
-      "item_1"
+      "item_1",
     )
     expect(sdk.store.cart.transferCart).toHaveBeenCalledWith("cart_1")
     expect(sdk.store.cart.complete).toHaveBeenCalledWith("cart_1")
@@ -255,18 +255,18 @@ describe(createMedusaCartService, () => {
     expect(sdk.store.cart.createLineItem).toHaveBeenCalledWith(
       "cart_1",
       {},
-      query
+      query,
     )
     expect(sdk.store.cart.updateLineItem).toHaveBeenCalledWith(
       "cart_1",
       "item_1",
       {},
-      query
+      query,
     )
     expect(sdk.store.cart.deleteLineItem).toHaveBeenCalledWith(
       "cart_1",
       "item_1",
-      query
+      query,
     )
     expect(sdk.store.cart.transferCart).toHaveBeenCalledWith("cart_1", query)
   })
@@ -315,22 +315,22 @@ describe(createMedusaCartService, () => {
     const service = createMedusaCartService(sdk as never)
 
     await expect(service.createCart({})).rejects.toThrow(
-      "Failed to create cart"
+      "Failed to create cart",
     )
     await expect(service.updateCart("cart_1", {})).rejects.toThrow(
-      "Failed to update cart"
+      "Failed to update cart",
     )
     await expect(service.addLineItem("cart_1", {} as never)).rejects.toThrow(
-      "Failed to add item to cart"
+      "Failed to add item to cart",
     )
     await expect(
-      service.updateLineItem("cart_1", "item_1", {} as never)
+      service.updateLineItem("cart_1", "item_1", {} as never),
     ).rejects.toThrow("Failed to update line item")
     await expect(service.removeLineItem("cart_1", "item_1")).rejects.toThrow(
-      "Failed to remove line item"
+      "Failed to remove line item",
     )
     await expect(service.transferCart("cart_1")).rejects.toThrow(
-      "Failed to transfer cart"
+      "Failed to transfer cart",
     )
   })
 

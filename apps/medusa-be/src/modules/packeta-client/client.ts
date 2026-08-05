@@ -83,7 +83,7 @@ export class PacketaClient {
    * Create a packet (synchronous — returns packet ID + barcode immediately).
    */
   async createPacket(
-    attributes: PacketaPacketAttributes
+    attributes: PacketaPacketAttributes,
   ): Promise<PacketaCreatePacketResult> {
     const params = {
       packetAttributes: {
@@ -94,13 +94,13 @@ export class PacketaClient {
 
     const result = await this.request<PacketaCreatePacketResult>(
       "createPacket",
-      { params }
+      { params },
     )
 
     if (!(result?.id && result?.barcode)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: createPacket returned no id/barcode"
+        "Packeta: createPacket returned no id/barcode",
       )
     }
     return result
@@ -152,7 +152,7 @@ export class PacketaClient {
   async downloadLabelPdf(
     packetId: number,
     format: "A6" | "A7" = this.options.default_label_format,
-    offset: number = this.options.default_label_offset
+    offset: number = this.options.default_label_offset,
   ): Promise<Buffer> {
     const apiFormat = format === "A6" ? "A6 on A6" : "A7 on A4"
     const result = await this.request<string>("packetLabelPdf", {
@@ -162,7 +162,7 @@ export class PacketaClient {
     if (!result || typeof result !== "string") {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Packeta: packetLabelPdf returned no PDF data for packet ${packetId}`
+        `Packeta: packetLabelPdf returned no PDF data for packet ${packetId}`,
       )
     }
     return Buffer.from(result, "base64")
@@ -181,8 +181,8 @@ export class PacketaClient {
       "{apiKey}",
       encodeURIComponent(
         process.env["PACKETA_PICKUP_POINTS_API_KEY"] ??
-          this.options.api_password
-      )
+          this.options.api_password,
+      ),
     )
 
     const payload = await this.withRetry(
@@ -191,7 +191,7 @@ export class PacketaClient {
         if (!response.ok) {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `Packeta branch feed failed: ${response.status}`
+            `Packeta branch feed failed: ${response.status}`,
           )
         }
         const text = await response.text()
@@ -202,7 +202,7 @@ export class PacketaClient {
             }
           | PacketaBranch[]
       },
-      `Packeta GET ${url}`
+      `Packeta GET ${url}`,
     )
 
     if (Array.isArray(payload)) {
@@ -227,7 +227,7 @@ export class PacketaClient {
    */
   private async request<T>(
     methodName: string,
-    options: RequestOptions = {}
+    options: RequestOptions = {},
   ): Promise<T> {
     const { params = {} } = options
 
@@ -252,7 +252,7 @@ export class PacketaClient {
         if (!response.ok) {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `Packeta request failed: ${response.status} - ${await response.text()}`
+            `Packeta request failed: ${response.status} - ${await response.text()}`,
           )
         }
 
@@ -260,7 +260,7 @@ export class PacketaClient {
         if (!text) {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `Packeta: empty response body from ${methodName}`
+            `Packeta: empty response body from ${methodName}`,
           )
         }
 
@@ -271,7 +271,7 @@ export class PacketaClient {
         if (!envelope) {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `Packeta ${methodName}: missing <response> element`
+            `Packeta ${methodName}: missing <response> element`,
           )
         }
 
@@ -282,19 +282,19 @@ export class PacketaClient {
         if (envelope.status !== "ok") {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `Packeta ${methodName}: unexpected status ${JSON.stringify(envelope.status)}`
+            `Packeta ${methodName}: unexpected status ${JSON.stringify(envelope.status)}`,
           )
         }
 
         return envelope.result as T
       },
-      `Packeta ${methodName}`
+      `Packeta ${methodName}`,
     )
   }
 
   private faultToError(
     envelope: PacketaResponseEnvelope<unknown>,
-    methodName: string
+    methodName: string,
   ): MedusaError {
     const message = envelope.string ?? envelope.fault ?? "unknown fault"
     const detailSuffix = envelope.detail
@@ -302,7 +302,7 @@ export class PacketaClient {
       : ""
     return new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Packeta ${methodName} fault (${envelope.fault}): ${message}${detailSuffix}`
+      `Packeta ${methodName} fault (${envelope.fault}): ${message}${detailSuffix}`,
     )
   }
 
@@ -317,7 +317,7 @@ export class PacketaClient {
   private async fetchWithTimeout(
     url: string,
     init: RequestInit,
-    timeoutMs: number = this.REQUEST_TIMEOUT_MS
+    timeoutMs: number = this.REQUEST_TIMEOUT_MS,
   ): Promise<Response> {
     const timeoutController = new AbortController()
     const controller = new AbortController()
@@ -354,7 +354,7 @@ export class PacketaClient {
         timeoutController.signal.aborted
       ) {
         const abortError = new Error(
-          `Packeta request timed out after ${timeoutMs}ms: ${url}`
+          `Packeta request timed out after ${timeoutMs}ms: ${url}`,
         )
         abortError.name = "AbortError"
         throw abortError
@@ -370,7 +370,7 @@ export class PacketaClient {
   private async withRetry<T>(
     operation: () => Promise<Response>,
     handleResponse: (response: Response) => Promise<T>,
-    errorContext: string
+    errorContext: string,
   ): Promise<T> {
     let lastError: Error | null = null
 
@@ -381,7 +381,7 @@ export class PacketaClient {
         const result = await this.runRetryAttempt(
           operation,
           handleResponse,
-          attempt
+          attempt,
         )
         if (result.retry) {
           lastError = result.error
@@ -397,7 +397,7 @@ export class PacketaClient {
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `${errorContext}: ${lastError?.message || "Unknown error"}`
+      `${errorContext}: ${lastError?.message || "Unknown error"}`,
     )
   }
 
@@ -412,7 +412,7 @@ export class PacketaClient {
   private async runRetryAttempt<T>(
     operation: () => Promise<Response>,
     handleResponse: (response: Response) => Promise<T>,
-    attempt: number
+    attempt: number,
   ): Promise<RetryAttemptResult<T>> {
     const response = await operation()
 
@@ -440,7 +440,7 @@ export class PacketaClient {
   private throwIfFinalAttempt(
     attempt: number,
     errorContext: string,
-    lastError: Error
+    lastError: Error,
   ): void {
     if (attempt !== this.MAX_RETRIES) {
       return
@@ -448,7 +448,7 @@ export class PacketaClient {
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `${errorContext} after ${this.MAX_RETRIES + 1} attempts: ${lastError.message}`
+      `${errorContext} after ${this.MAX_RETRIES + 1} attempts: ${lastError.message}`,
     )
   }
 }

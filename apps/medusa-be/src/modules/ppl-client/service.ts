@@ -121,7 +121,7 @@ const toPplConfigDTO = (value: unknown): PplConfigDTO => {
   ) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "PPL: Stored configuration has an invalid shape"
+      "PPL: Stored configuration has an invalid shape",
     )
   }
 
@@ -168,7 +168,7 @@ class RateLimitLockTimeoutError extends MedusaError {
   constructor() {
     super(
       MedusaError.Types.CONFLICT,
-      "PPL: Timed out acquiring the rate limit lock"
+      "PPL: Timed out acquiring the rate limit lock",
     )
   }
 }
@@ -214,21 +214,21 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
 
     this.cacheService_ = safeResolve<ICachingModuleService>(
       container,
-      Modules.CACHING
+      Modules.CACHING,
     )
     this.lockingService_ = safeResolve<ILockingModule>(
       container,
-      Modules.LOCKING
+      Modules.LOCKING,
     )
 
     if (!(this.cacheService_ && this.lockingService_)) {
       this.logger_.warn(
-        "PPL: Cache or locking service not available. Using local-only mode (not suitable for multi-container)."
+        "PPL: Cache or locking service not available. Using local-only mode (not suitable for multi-container).",
       )
     }
 
     this.logger_.info(
-      `PPL: Module service initialized (${this.environment_} environment)`
+      `PPL: Module service initialized (${this.environment_} environment)`,
     )
   }
 
@@ -242,7 +242,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   async getConfig(): Promise<PplConfigDTO | null> {
     const configs = await this.listPplConfigs(
       { environment: this.environment_ },
-      { take: 1 }
+      { take: 1 },
     )
     const config = configs[0]
     if (!config) {
@@ -322,10 +322,10 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   }
 
   private isConfigUsable(
-    config: PplConfigDTO | null | undefined
+    config: PplConfigDTO | null | undefined,
   ): config is UsablePplConfig {
     return Boolean(
-      config?.is_enabled && config.client_id && config.client_secret
+      config?.is_enabled && config.client_id && config.client_secret,
     )
   }
 
@@ -396,7 +396,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "PPL is disabled or not configured. Enable it in Settings → PPL."
+        "PPL is disabled or not configured. Enable it in Settings → PPL.",
       )
     }
 
@@ -429,7 +429,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       // Store in Redis
       const ttlSeconds = Math.max(
         1,
-        Math.floor((expiresAt - Date.now()) / 1000) - 60
+        Math.floor((expiresAt - Date.now()) / 1000) - 60,
       )
       await this.cacheService_.set({
         data: { accessToken, expiresAt } satisfies CachedToken,
@@ -471,11 +471,11 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     } catch (error) {
       this.logger_.error(
         "PPL auth failed",
-        error instanceof Error ? error : new Error(String(error))
+        error instanceof Error ? error : new Error(String(error)),
       )
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `PPL authentication failed: ${error instanceof Error ? error.message : String(error)}`
+        `PPL authentication failed: ${error instanceof Error ? error.message : String(error)}`,
       )
     }
   }
@@ -512,7 +512,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
             ttl: CACHE_TTL.RATE_LIMIT,
           })
         },
-        { timeout: LOCK_STALL_TIMEOUT_SECONDS }
+        { timeout: LOCK_STALL_TIMEOUT_SECONDS },
       )
 
       let acquisitionTimer: NodeJS.Timeout | undefined
@@ -531,7 +531,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
           // Abandon the lock wait; the provider backstop timeout settles it.
           lockExecution.catch(() => {})
           this.logger_.warn(
-            "PPL: Rate limit lock timed out, using local fallback"
+            "PPL: Rate limit lock timed out, using local fallback",
           )
           return this.acquireLocalRateLimitSlot()
         }
@@ -570,7 +570,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     key: string,
     fetcher: () => Promise<T>,
     ttl: number,
-    tags: string[]
+    tags: string[],
   ): Promise<T> {
     if (this.cacheService_) {
       const cached = (await this.cacheService_.get({ key })) as T | null
@@ -636,7 +636,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       labelSettings?: PplLabelSettings
       returnChannel?: PplReturnChannel
       shipmentsOrderBy?: string
-    }
+    },
   ): Promise<string> {
     await this.acquireRateLimitSlot()
     const token = await this.getToken()
@@ -683,7 +683,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   // ============================================
 
   async getAccessPoints(
-    query: PplAccessPointsQuery = {}
+    query: PplAccessPointsQuery = {},
   ): Promise<PplAccessPoint[]> {
     await this.acquireRateLimitSlot()
     const token = await this.getToken()
@@ -705,7 +705,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         return await client.getCodelistCountries(token)
       },
       CACHE_TTL.CODELISTS,
-      [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS]
+      [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS],
     )
   }
 
@@ -719,7 +719,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         return await client.getCodelistCurrencies(token)
       },
       CACHE_TTL.CODELISTS,
-      [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS]
+      [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS],
     )
   }
 
@@ -733,7 +733,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         return await client.getCodelistProducts(token)
       },
       CACHE_TTL.CODELISTS,
-      [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS]
+      [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS],
     )
   }
 
@@ -747,7 +747,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         return await client.getCodelistServices(token)
       },
       CACHE_TTL.CODELISTS,
-      [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS]
+      [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS],
     )
   }
 
@@ -761,7 +761,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         return await client.getCodelistStatuses(token)
       },
       CACHE_TTL.CODELISTS,
-      [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS]
+      [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS],
     )
   }
 
@@ -776,7 +776,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     const result = await client.getCustomerInfo(token)
     if (!result) {
       this.logger_.warn(
-        "PPL: No customer profile configured for these credentials"
+        "PPL: No customer profile configured for these credentials",
       )
     }
     return result

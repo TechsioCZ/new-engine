@@ -12,10 +12,10 @@ const CUSTOMER_MAX_WIDTH = RIGHT - CUSTOMER_X
 function linesFitWithinCustomerWidth(
   lines: string[],
   size = 10,
-  font: "F1" | "F2" = "F1"
+  font: "F1" | "F2" = "F1",
 ) {
   return lines.every(
-    (line) => estimateTextWidth(line, size, font) <= CUSTOMER_MAX_WIDTH
+    (line) => estimateTextWidth(line, size, font) <= CUSTOMER_MAX_WIDTH,
   )
 }
 
@@ -24,12 +24,12 @@ describe("order receipt helpers", () => {
     const lines = wrapToEstimatedWidth(
       "Extremely Long Street Name With Building Complex And Several Descriptive Parts 12345/678",
       CUSTOMER_MAX_WIDTH,
-      10
+      10,
     )
 
     expect(lines.length).toBeGreaterThan(1)
     expect(lines.join(" ")).toBe(
-      "Extremely Long Street Name With Building Complex And Several Descriptive Parts 12345/678"
+      "Extremely Long Street Name With Building Complex And Several Descriptive Parts 12345/678",
     )
     expect(linesFitWithinCustomerWidth(lines)).toBeTruthy()
   })
@@ -49,7 +49,7 @@ describe("order receipt helpers", () => {
       "WWWWMMMMWWWWMMMMWWWWMMMM SPOL S R O",
       CUSTOMER_MAX_WIDTH,
       12,
-      "F2"
+      "F2",
     )
 
     expect(lines.length).toBeGreaterThan(1)
@@ -58,7 +58,7 @@ describe("order receipt helpers", () => {
 
   it("keeps text unchanged when it already fits", () => {
     expect(
-      wrapToEstimatedWidth("Customer Name", CUSTOMER_MAX_WIDTH, 10)
+      wrapToEstimatedWidth("Customer Name", CUSTOMER_MAX_WIDTH, 10),
     ).toStrictEqual(["Customer Name"])
   })
 })

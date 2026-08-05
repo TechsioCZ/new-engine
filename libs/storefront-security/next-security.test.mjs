@@ -19,7 +19,7 @@ await test("resolvePublicBackendOrigin falls back to localhost in development", 
       isProduction: false,
       publicBackendUrl: undefined,
     }),
-    "http://localhost:9000"
+    "http://localhost:9000",
   )
 })
 
@@ -30,7 +30,7 @@ await test("resolvePublicBackendOrigin fails fast in production when missing", (
         isProduction: true,
         publicBackendUrl: undefined,
       }),
-    MISSING_BACKEND_URL_PATTERN
+    MISSING_BACKEND_URL_PATTERN,
   )
 })
 
@@ -41,7 +41,7 @@ await test("resolvePublicBackendOrigin fails fast in production when invalid", (
         isProduction: true,
         publicBackendUrl: "not-a-url",
       }),
-    INVALID_BACKEND_URL_PATTERN
+    INVALID_BACKEND_URL_PATTERN,
   )
 })
 
@@ -59,7 +59,7 @@ await test("resolvePublicBackendOrigin honors envVarName overrides", () => {
         isProduction: false,
         publicBackendUrl: undefined,
       }),
-      "https://custom.example.com"
+      "https://custom.example.com",
     )
   } finally {
     if (originalBackendUrl === undefined) {
@@ -132,7 +132,7 @@ await test("unknown preset fails fast", () => {
         preset: /** @type {never} */ ("unknown"),
         publicBackendOrigin: "https://demo-medusa.example.com",
       }),
-    UNKNOWN_PRESET_PATTERN
+    UNKNOWN_PRESET_PATTERN,
   )
 })
 
@@ -156,24 +156,24 @@ await test("createStorefrontSecurityConfig supports preset + extend + replace", 
   const headerGroups = securityConfig.headers()
   const responseHeaders = headerGroups[0].headers
   const cspHeader = responseHeaders.find(
-    (header) => header.key === "Content-Security-Policy"
+    (header) => header.key === "Content-Security-Policy",
   )
   const permissionsHeader = responseHeaders.find(
-    (header) => header.key === "Permissions-Policy"
+    (header) => header.key === "Permissions-Policy",
   )
   const cacheControlHeader = responseHeaders.find(
-    (header) => header.key === "Cache-Control"
+    (header) => header.key === "Cache-Control",
   )
 
   assert.equal(headerGroups[0].source, "/:path*")
   assert.equal(securityConfig.poweredByHeader, false)
   assert.match(
     cspHeader?.value ?? "",
-    /script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\/\/www\.googletagmanager\.com/
+    /script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\/\/www\.googletagmanager\.com/,
   )
   assert.match(
     cspHeader?.value ?? "",
-    /frame-src 'self' https:\/\/www\.ppl\.cz/
+    /frame-src 'self' https:\/\/www\.ppl\.cz/,
   )
   assert.equal(permissionsHeader?.value, "camera=(), microphone=()")
   assert.equal(cacheControlHeader?.value, "public, max-age=60")
@@ -225,7 +225,7 @@ await test("suppressing the CSP does not require a production backend URL", () =
 
   assert.equal(
     headers.find((header) => header.key === "Content-Security-Policy"),
-    undefined
+    undefined,
   )
   assert.ok(headers.some((header) => header.key === "Permissions-Policy"))
 })

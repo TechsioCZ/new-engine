@@ -26,11 +26,11 @@ export interface CollectionListResponse<TCollection> {
 export interface CollectionService<TCollection, TListParams, TDetailParams> {
   getCollections: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<CollectionListResponse<TCollection>>
   getCollection: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TCollection | null>
 }
 

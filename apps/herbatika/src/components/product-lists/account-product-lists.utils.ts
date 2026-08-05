@@ -45,7 +45,7 @@ export interface ProductListAvailabilitySummary {
 
 export const sortProductLists = (
   lists: StoreProductList[],
-  labels: { favorite: string; untitled: string }
+  labels: { favorite: string; untitled: string },
 ) =>
   [...lists].sort((first, second) => {
     if (isFavoriteProductList(first)) {
@@ -57,7 +57,7 @@ export const sortProductLists = (
     }
 
     return getProductListTitle(first, labels).localeCompare(
-      getProductListTitle(second, labels)
+      getProductListTitle(second, labels),
     )
   })
 
@@ -65,13 +65,13 @@ export const uniqueProductIds = (items: StoreProductListItem[]) => [
   ...new Set(
     items
       .map((item) => item.product_id ?? item.product?.id)
-      .filter((id): id is string => Boolean(id))
+      .filter((id): id is string => Boolean(id)),
   ),
 ]
 
 export const buildProductMap = (
   items: StoreProductListItem[],
-  products: HttpTypes.StoreProduct[]
+  products: HttpTypes.StoreProduct[],
 ) => {
   const map = new Map<string, HttpTypes.StoreProduct>()
 
@@ -95,7 +95,7 @@ export const resolveProductListItemQuantity = (item: StoreProductListItem) =>
 
 const resolveProductListItemProduct = (
   item: StoreProductListItem,
-  productsById: Map<string, HttpTypes.StoreProduct>
+  productsById: Map<string, HttpTypes.StoreProduct>,
 ) => {
   const productId = item.product_id ?? item.product?.id
 
@@ -106,7 +106,7 @@ const resolveProductListItemProduct = (
 
 const resolveProductListItemVariant = (
   item: StoreProductListItem,
-  product: HttpTypes.StoreProduct
+  product: HttpTypes.StoreProduct,
 ) => {
   const variants = product.variants ?? []
   const variantId = item.variant_id ?? item.variant?.id ?? null
@@ -120,7 +120,7 @@ const resolveProductListItemVariant = (
 
 export const resolveProductListItemAvailability = (
   item: StoreProductListItem,
-  product: HttpTypes.StoreProduct | null
+  product: HttpTypes.StoreProduct | null,
 ): ProductListItemAvailability => {
   if (!product) {
     return {

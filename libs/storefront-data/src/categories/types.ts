@@ -26,11 +26,11 @@ export interface CategoryListResponse<TCategory> {
 export interface CategoryService<TCategory, TListParams, TDetailParams> {
   getCategories: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<CategoryListResponse<TCategory>>
   getCategory: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TCategory | null>
 }
 

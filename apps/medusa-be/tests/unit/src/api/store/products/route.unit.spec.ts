@@ -29,7 +29,7 @@ vi.mock(
   import("@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"),
   () => ({
     default: wrapVariantsWithInventoryQuantityForSalesChannel,
-  })
+  }),
 )
 
 vi.mock(import("../../../../../../src/utils/measurement-units"), () => ({
@@ -57,7 +57,7 @@ const createHarness = (fields: string[]) => {
           variants: [],
         },
       ],
-    })
+    }),
   )
   const json = vi.fn()
   const req = {
@@ -97,7 +97,7 @@ describe("store product detail field projection", () => {
       expect.objectContaining({
         fields: ["id", "title", "variants.id"],
       }),
-      { locale: undefined }
+      { locale: undefined },
     )
     expect(filterOutInternalProductCategories).not.toHaveBeenCalled()
     expect(json).toHaveBeenCalledWith({
@@ -117,7 +117,7 @@ describe("store product detail field projection", () => {
       expect.objectContaining({
         fields: ["id", "*categories", "categories.is_internal"],
       }),
-      { locale: undefined }
+      { locale: undefined },
     )
     expect(filterOutInternalProductCategories).toHaveBeenCalledOnce()
   })

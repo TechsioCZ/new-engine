@@ -5,5 +5,5 @@ import CompanyModule from "../modules/company"
 
 export default defineLink(
   OrderModule.linkable["order"],
-  CompanyModule.linkable.company
+  CompanyModule.linkable.company,
 )

@@ -78,7 +78,7 @@ export function useContactForm({ onSuccess }: UseContactFormProps = {}) {
 
   const updateField = <K extends keyof ContactFormData>(
     field: K,
-    value: ContactFormData[K]
+    value: ContactFormData[K],
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }

@@ -114,7 +114,7 @@ describe("cart cache sync helpers", () => {
           ["custom", "cart"],
           "active",
           cartId ?? null,
-          regionId ?? null
+          regionId ?? null,
         ),
       all: () => createQueryKey(["custom", "cart"]),
       detail: (cartId) => createQueryKey(["custom", "cart"], "detail", cartId),
@@ -136,7 +136,7 @@ describe("cart cache sync helpers", () => {
           queryKey[1] === "cart" &&
           queryKey[2] === "active" &&
           queryKey[3] === cartId,
-      }
+      },
     )
     expect(cached).toStrictEqual({ id: "cart_custom" })
   })

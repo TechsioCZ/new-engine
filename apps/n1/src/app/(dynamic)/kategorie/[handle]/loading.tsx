@@ -4,7 +4,7 @@ import { ProductCardSkeleton } from "@/components/skeletons/product-card-skeleto
 
 const SKELETON_KEYS = Array.from(
   { length: 24 },
-  (_, index) => `skeleton-${index}`
+  (_, index) => `skeleton-${index}`,
 )
 
 export default function Loading() {

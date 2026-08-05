@@ -2,8 +2,8 @@ import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-import { GLS_CLIENT_MODULE } from '../../../modules/gls-client';
-import type { GLSClientModuleService } from '../../../modules/gls-client';
+import { GLS_CLIENT_MODULE } from "../../../modules/gls-client"
+import type { GLSClientModuleService } from "../../../modules/gls-client"
 import {
   buildGLSLabelsFilename,
   collectPrintableGLSLabels,

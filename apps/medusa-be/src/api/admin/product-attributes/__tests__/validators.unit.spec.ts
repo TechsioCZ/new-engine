@@ -9,7 +9,7 @@ import {
 describe("Product Attribute Admin request validation", () => {
   it("supports active, deleted, and all status filters", () => {
     expect(
-      AdminGetProductAttributeDefinitionsSchema.parse({ status: "all" })
+      AdminGetProductAttributeDefinitionsSchema.parse({ status: "all" }),
     ).toMatchObject({
       limit: 50,
       offset: 0,
@@ -28,20 +28,20 @@ describe("Product Attribute Admin request validation", () => {
             text_value: "invalid",
           },
         ],
-      }).success
+      }).success,
     ).toBeFalsy()
   })
 
   it("bounds option Product usage pagination", () => {
     expect(
-      AdminGetProductAttributeOptionProductsSchema.parse({})
+      AdminGetProductAttributeOptionProductsSchema.parse({}),
     ).toStrictEqual({
       limit: 20,
       offset: 0,
     })
     expect(
       AdminGetProductAttributeOptionProductsSchema.safeParse({ limit: 101 })
-        .success
+        .success,
     ).toBeFalsy()
   })
 })

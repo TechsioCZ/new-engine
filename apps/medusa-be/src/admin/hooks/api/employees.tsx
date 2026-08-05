@@ -27,7 +27,7 @@ export const useEmployees = (
     AdminEmployeesResponse,
     FetchError,
     AdminEmployeesResponse
-  >
+  >,
 ) => {
   const filterQuery = new URLSearchParams(query).toString()
 
@@ -38,7 +38,7 @@ export const useEmployees = (
       }`,
       {
         method: "GET",
-      }
+      },
     )
 
   return useQuery({
@@ -54,7 +54,7 @@ export const useCreateEmployee = (
     AdminEmployeeResponse,
     FetchError,
     AdminCreateEmployeeBody
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -68,7 +68,7 @@ export const useCreateEmployee = (
             "Content-Type": "application/json",
           },
           method: "POST",
-        }
+        },
       ),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
@@ -93,7 +93,7 @@ export const useUpdateEmployee = (
     AdminEmployeeResponse,
     FetchError,
     AdminUpdateEmployee
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -107,7 +107,7 @@ export const useUpdateEmployee = (
             "Content-Type": "application/json",
           },
           method: "POST",
-        }
+        },
       ),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
@@ -130,7 +130,7 @@ export const useUpdateEmployee = (
 
 export const useDeleteEmployee = (
   companyId: string,
-  options?: UseMutationOptions<void, FetchError, string>
+  options?: UseMutationOptions<void, FetchError, string>,
 ) => {
   const queryClient = useQueryClient()
 
@@ -140,7 +140,7 @@ export const useDeleteEmployee = (
         `/admin/companies/${companyId}/employees/${employeeId}`,
         {
           method: "DELETE",
-        }
+        },
       ),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({

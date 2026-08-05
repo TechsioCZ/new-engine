@@ -16,7 +16,7 @@ export type StoreCmsArticleSchemaType = z.infer<typeof StoreCmsArticleSchema>
 /** Store API handler for returning a published CMS article by slug. */
 export async function GET(
   req: MedusaRequest<unknown, StoreCmsArticleSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { slug } = req.params
   if (!slug) {

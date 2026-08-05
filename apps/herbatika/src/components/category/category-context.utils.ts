@@ -33,7 +33,7 @@ const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
 
     return normalizeCategoryName(left.name).localeCompare(
       normalizeCategoryName(right.name),
-      "sk"
+      "sk",
     )
   })
 
@@ -99,8 +99,8 @@ export const resolveCategoryContextImageTiles = ({
     categories.filter(
       (category) =>
         category.parent_category_id === activeCategory.id &&
-        Boolean(category.handle)
-    )
+        Boolean(category.handle),
+    ),
   ).map((category) => ({
     handle: category.handle,
     href: `/c/${category.handle}`,
@@ -125,7 +125,7 @@ export const resolveCategoryContextImageTiles = ({
         }
 
         return category.id !== activeCategory.id
-      })
+      }),
   )
     .slice(0, 8)
     .map((category) => ({

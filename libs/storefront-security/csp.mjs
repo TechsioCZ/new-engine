@@ -218,7 +218,7 @@ export function buildStorefrontContentSecurityPolicy(options) {
       }
 
       return `${headerName} ${values.join(" ")}`
-    }
+    },
   )
 
   if (csp.upgradeInsecureRequests) {

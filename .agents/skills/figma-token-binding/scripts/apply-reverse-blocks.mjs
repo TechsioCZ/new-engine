@@ -53,7 +53,7 @@ function assertSafeComponentName(name) {
   if (!COMPONENT_NAME_RE.test(name)) {
     throw new Error(
       `Refusing unsafe component name: ${JSON.stringify(name)}. ` +
-        "Expected lowercase kebab-case (e.g., 'button', 'numeric-input')."
+        "Expected lowercase kebab-case (e.g., 'button', 'numeric-input').",
     )
   }
 }
@@ -89,7 +89,7 @@ function processComponent(component) {
   }
 
   const fragText = stripFragmentHeader(
-    readFileSync(darkFragPath, "utf-8")
+    readFileSync(darkFragPath, "utf-8"),
   ).trim()
 
   let comp = readFileSync(compFile, "utf-8")

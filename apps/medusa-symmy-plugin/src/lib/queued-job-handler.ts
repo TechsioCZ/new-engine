@@ -23,10 +23,10 @@ export const getIdempotencyKey = (req: MedusaRequest) => {
 export const enqueueImportJob = async (
   req: MedusaRequest,
   res: MedusaResponse,
-  { payload, requestedEvent, total, type }: EnqueueImportJobInput
+  { payload, requestedEvent, total, type }: EnqueueImportJobInput,
 ) => {
   const importJobService = req.scope.resolve<SymmyImportJobModuleService>(
-    SYMMY_IMPORT_JOB_MODULE
+    SYMMY_IMPORT_JOB_MODULE,
   )
   const eventBus = req.scope.resolve<IEventBusModuleService>(Modules.EVENT_BUS)
 

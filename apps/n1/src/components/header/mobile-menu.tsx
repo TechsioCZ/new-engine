@@ -47,7 +47,7 @@ export const MobileMenu = () => {
             <Accordion className="w-full" variant="borderless">
               {links.map((link) => {
                 const subMenu = submenuItems.find(
-                  (item) => item.name === link.label
+                  (item) => item.name === link.label,
                 )
                 const isActive = pathname === link.href
                 if (subMenu && subMenu.items.length > 0) {

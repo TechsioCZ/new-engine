@@ -102,7 +102,7 @@ const resolvedProduct = (input: ProductInput, variantIds = ["variant-1"]) => {
         input.variants?.[index] as NonNullable<
           ProductInput["variants"]
         >[number],
-      ])
+      ]),
     ),
   }
 }
@@ -127,7 +127,7 @@ describe("seed Measurement Unit identity", () => {
 
     expect([...canonical.keys()].sort()).toStrictEqual(["g:1", "g:100"])
     expect(
-      getSeedMeasurementUnitSemanticKey({ base_quantity: 100, symbol: "G" })
+      getSeedMeasurementUnitSemanticKey({ base_quantity: 100, symbol: "G" }),
     ).toBe("g:100")
   })
 
@@ -158,11 +158,11 @@ describe("seed Measurement Unit identity", () => {
 
     expect(
       collectCanonicalSeedMeasurementUnits([first, second]).get("g:100")?.source
-        .code
+        .code,
     ).toBe("a")
     expect(
       collectCanonicalSeedMeasurementUnits([second, first]).get("g:100")?.source
-        .code
+        .code,
     ).toBe("a")
   })
 
@@ -180,7 +180,7 @@ describe("seed Measurement Unit identity", () => {
         code: "g_100",
         name: "g",
         symbol: "g",
-      })?.id
+      })?.id,
     ).toBe("manual-grams")
   })
 
@@ -206,19 +206,19 @@ describe("seed Measurement Unit identity", () => {
     }
 
     expect(findReusableSeedMeasurementUnit([deletedMatch], desired)?.id).toBe(
-      "deleted-match"
+      "deleted-match",
     )
     expect(
       findReusableSeedMeasurementUnit(
         [deletedMatch, conflictingActiveCode],
-        desired
-      )
+        desired,
+      ),
     ).toBeUndefined()
     expect(
       resolveAvailableSeedMeasurementUnitCode(
         "g_100",
-        new Set(["g_100", "g_100_2"])
-      )
+        new Set(["g_100", "g_100_2"]),
+      ),
     ).toBe("g_100_3")
   })
 })
@@ -283,7 +283,7 @@ describe("seed Product measurement planning", () => {
       >[0],
       [activeProduct],
       [activeVariant],
-      new Map()
+      new Map(),
     )
 
     expect([...plan.productIdsToSoftDelete]).toStrictEqual(["pm-active"])
@@ -318,7 +318,7 @@ describe("seed Product measurement planning", () => {
       >[0],
       [activeProduct, deletedTarget],
       [oldVariant],
-      new Map([["g:100", grams]])
+      new Map([["g:100", grams]]),
     )
 
     expect([...plan.productIdsToSoftDelete]).toStrictEqual(["pm-old"])
@@ -356,7 +356,7 @@ describe("seed Product measurement planning", () => {
       resolved,
       [activeProduct, targetProduct],
       [previousVariant],
-      new Map([["g:100", grams]])
+      new Map([["g:100", grams]]),
     )
     const variantPlan = buildVariantRecordMutationPlan(resolved, {
       productMeasurements: [activeProduct, targetProduct],
@@ -460,7 +460,7 @@ describe("seed measurement link planning", () => {
         },
       ],
       [],
-      targets
+      targets,
     )
     expect(repair.productLinksToDismiss).toHaveLength(1)
     expect(repair.productMeasurementIdsToRestore).toStrictEqual(["pm-target"])
@@ -479,7 +479,7 @@ describe("seed measurement link planning", () => {
           product_variant_measurement_id: "vm-target",
         },
       ],
-      targets
+      targets,
     )
     expect(converged).toStrictEqual({
       productLinksToCreate: [],

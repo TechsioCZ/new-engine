@@ -49,10 +49,10 @@ function createMeiliFetch(initialKey: StoredKey) {
 
   const handleRequest = (
     input: Parameters<typeof fetch>[0],
-    init?: Parameters<typeof fetch>[1]
+    init?: Parameters<typeof fetch>[1],
   ): Response => {
     const url = new URL(
-      typeof input === "string" || input instanceof URL ? input : input.url
+      typeof input === "string" || input instanceof URL ? input : input.url,
     )
     const method = init?.method ?? "GET"
     const body =
@@ -109,8 +109,8 @@ function createMeiliFetch(initialKey: StoredKey) {
     fetchMock: vi.fn(
       async (
         input: Parameters<typeof fetch>[0],
-        init?: Parameters<typeof fetch>[1]
-      ) => Promise.resolve(handleRequest(input, init))
+        init?: Parameters<typeof fetch>[1],
+      ) => Promise.resolve(handleRequest(input, init)),
     ),
     getStoredKey: () => storedKey,
     requests,

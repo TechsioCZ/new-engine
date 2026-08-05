@@ -8,7 +8,7 @@ interface BulkUpdateOrderStatusesWorkflowInput {
 }
 
 const asMockedWorkflowComposer = <TInput>(
-  workflow: unknown
+  workflow: unknown,
 ): ((input: TInput) => void) => {
   if (typeof workflow !== "function") {
     throw new TypeError("mocked workflow composer must be a function")
@@ -55,7 +55,7 @@ describe("bulkUpdateOrderStatusesWorkflow", () => {
       await import("../../../../../src/workflows/order-expedition/bulk-update-order-statuses")
 
     asMockedWorkflowComposer<BulkUpdateOrderStatusesWorkflowInput>(
-      bulkUpdateOrderStatusesWorkflow
+      bulkUpdateOrderStatusesWorkflow,
     )({
       order_ids: ["order_1", "order_2"],
       target_status: "draft",
@@ -81,7 +81,7 @@ describe("bulkUpdateOrderStatusesWorkflow", () => {
       await import("../../../../../src/workflows/order-expedition/bulk-update-order-statuses")
 
     asMockedWorkflowComposer<BulkUpdateOrderStatusesWorkflowInput>(
-      bulkUpdateOrderStatusesWorkflow
+      bulkUpdateOrderStatusesWorkflow,
     )({
       order_ids: ["order_1"],
       target_status: "requires_action",
@@ -93,7 +93,7 @@ describe("bulkUpdateOrderStatusesWorkflow", () => {
           is_draft_order: false,
           status: "requires_action",
         },
-      })
+      }),
     )
   })
 })

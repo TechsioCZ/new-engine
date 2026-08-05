@@ -69,7 +69,7 @@ vi.mock(import("pdf-lib"), () => ({
  */
 function assertMockShape<T>(
   candidate: unknown,
-  requiredKeys: readonly string[]
+  requiredKeys: readonly string[],
 ): asserts candidate is T {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
@@ -98,7 +98,7 @@ const createMockResponse = (): MockPdfResponse => {
 
 const createMockRequest = (
   validatedBody: Record<string, unknown>,
-  graph: ReturnType<typeof vi.fn>
+  graph: ReturnType<typeof vi.fn>,
 ): MedusaRequest<PostAdminOrderExpeditionPdfSchemaType> => {
   const candidate: unknown = {
     scope: {
@@ -108,7 +108,7 @@ const createMockRequest = (
   }
   assertMockShape<MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>>(
     candidate,
-    ["scope", "validatedBody"]
+    ["scope", "validatedBody"],
   )
   return candidate
 }
@@ -129,12 +129,12 @@ describe("POST /admin/order-expedition/pdf", () => {
       {
         order_ids: ["order_1", "order_missing"],
       },
-      graph
+      graph,
     )
     const res = createMockResponse()
 
     await expect(POST(req, res)).rejects.toThrow(
-      "Orders not found: order_missing"
+      "Orders not found: order_missing",
     )
     expect(mockSave).not.toHaveBeenCalled()
     expect(res.send).not.toHaveBeenCalled()
@@ -164,7 +164,7 @@ describe("POST /admin/order-expedition/pdf", () => {
       expect.objectContaining({
         "Content-Disposition": 'attachment; filename="expedition-1001.pdf"',
         "Content-Type": "application/pdf",
-      })
+      }),
     )
     expect(res.send).toHaveBeenCalledWith(Buffer.from([1, 2, 3]))
     expect(mockDrawText).toHaveBeenCalledWith()
@@ -200,10 +200,10 @@ describe("POST /admin/order-expedition/pdf", () => {
     const drawnTexts = mockDrawText.mock.calls.map(([text]) => text as string)
 
     expect(
-      drawnTexts.some((text) => text.includes("Lukasz Oster ?"))
+      drawnTexts.some((text) => text.includes("Lukasz Oster ?")),
     ).toBeTruthy()
     expect(
-      drawnTexts.some((text) => text.includes("Dlouha - ulice"))
+      drawnTexts.some((text) => text.includes("Dlouha - ulice")),
     ).toBeTruthy()
     expect(drawnTexts.some((text) => text.includes("Kava Lodz ?"))).toBeTruthy()
     expect(drawnTexts.some((text) => text.includes("2 ks"))).toBeTruthy()
@@ -212,8 +212,8 @@ describe("POST /admin/order-expedition/pdf", () => {
         [...text].every((char) => {
           const code = char.codePointAt(0)
           return code >= 32 && code <= 126
-        })
-      )
+        }),
+      ),
     ).toBeTruthy()
   })
 })

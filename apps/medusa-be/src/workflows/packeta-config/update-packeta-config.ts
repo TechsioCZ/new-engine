@@ -13,15 +13,15 @@ const updatePacketaConfigStep = createStep(
   "update-packeta-config",
   async (input: UpdatePacketaConfigInput, { container }) => {
     const service = container.resolve<PacketaClientModuleService>(
-      PACKETA_CLIENT_MODULE
+      PACKETA_CLIENT_MODULE,
     )
 
     return new StepResponse(await service.updateConfig(input))
-  }
+  },
 )
 
 export const updatePacketaConfigWorkflow = createWorkflow(
   "update-packeta-config",
   (input: UpdatePacketaConfigInput) =>
-    new WorkflowResponse(updatePacketaConfigStep(input))
+    new WorkflowResponse(updatePacketaConfigStep(input)),
 )

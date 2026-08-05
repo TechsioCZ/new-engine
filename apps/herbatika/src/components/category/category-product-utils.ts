@@ -11,7 +11,7 @@ export const normalizeCategoryName = (value?: string | null) => {
 }
 
 export const resolveCategoryRank = (
-  category: HttpTypes.StoreProductCategory
+  category: HttpTypes.StoreProductCategory,
 ) => {
   if (typeof category.rank === "number") {
     return category.rank

@@ -41,7 +41,7 @@ function formatJUnit(entries) {
     return `  <testcase classname="${escapeXml(entry.title)}" name="${escapeXml(storyName)}">\n    <failure message="${violationCount} accessibility violation(s)" />\n  </testcase>`
   })
   const failures = entries.filter(
-    (entry) => entry.results.violations.length > 0
+    (entry) => entry.results.violations.length > 0,
   ).length
   return `${[
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -57,7 +57,7 @@ const theme = readArg("--theme")
 
 if (!indexPath || !reportDir || !["light", "dark"].includes(theme ?? "")) {
   console.error(
-    "Usage: storybook-a11y-finalize.mjs --index <index.json> --report-dir <dir> --theme <light|dark>"
+    "Usage: storybook-a11y-finalize.mjs --index <index.json> --report-dir <dir> --theme <light|dark>",
   )
   process.exit(1)
 }
@@ -69,7 +69,7 @@ try {
       (entry) =>
         entry?.type === "story" &&
         Array.isArray(entry.tags) &&
-        entry.tags.includes("test")
+        entry.tags.includes("test"),
     )
     .sort((left, right) => String(left.id).localeCompare(String(right.id)))
   const expectedIds = new Set(expectedEntries.map((entry) => String(entry.id)))
@@ -85,7 +85,7 @@ try {
   for (const entryFile of entryFiles) {
     const entry = loadJson(
       path.join(entriesDir, entryFile),
-      `${theme} accessibility entry`
+      `${theme} accessibility entry`,
     )
     const storyId = String(entry?.storyId ?? "")
     if (!expectedIds.has(storyId)) {
@@ -96,7 +96,7 @@ try {
     }
     if (!entry?.results || !Array.isArray(entry.results.violations)) {
       throw new Error(
-        `${theme} report has no completed results for: ${storyId}`
+        `${theme} report has no completed results for: ${storyId}`,
       )
     }
 
@@ -108,7 +108,7 @@ try {
       ?.slice("mode:".length)
     if (selectedMode !== theme) {
       throw new Error(
-        `${theme} report captured ${storyId} without the expected mode global.`
+        `${theme} report captured ${storyId} without the expected mode global.`,
       )
     }
     byId.set(storyId, entry)
@@ -119,12 +119,12 @@ try {
     .filter((storyId) => !byId.has(storyId))
   if (missingIds.length > 0) {
     throw new Error(
-      `${theme} report is incomplete: expected ${expectedEntries.length}, found ${byId.size}; missing ${missingIds.slice(0, 5).join(", ")}${missingIds.length > 5 ? ", ..." : ""}`
+      `${theme} report is incomplete: expected ${expectedEntries.length}, found ${byId.size}; missing ${missingIds.slice(0, 5).join(", ")}${missingIds.length > 5 ? ", ..." : ""}`,
     )
   }
 
   const sortedReport = expectedEntries.map((entry) =>
-    byId.get(String(entry.id))
+    byId.get(String(entry.id)),
   )
   const fingerprints = sortedReport.flatMap((entry) =>
     entry.results.violations
@@ -132,7 +132,7 @@ try {
         id: String(violation?.id ?? "unknown"),
         story: `${String(entry.title)} / ${String(entry.name)}`,
       }))
-      .sort((left, right) => left.id.localeCompare(right.id))
+      .sort((left, right) => left.id.localeCompare(right.id)),
   )
   const canonicalFingerprint = JSON.stringify({
     stories: sortedReport.map((entry) => String(entry.storyId)),
@@ -148,20 +148,20 @@ try {
 
   writeAtomic(
     path.join(reportDir, "report.json"),
-    `${JSON.stringify(sortedReport, null, 2)}\n`
+    `${JSON.stringify(sortedReport, null, 2)}\n`,
   )
   writeAtomic(
     path.join(reportDir, "report.ndjson"),
-    `${sortedReport.map((entry) => JSON.stringify(entry)).join("\n")}\n`
+    `${sortedReport.map((entry) => JSON.stringify(entry)).join("\n")}\n`,
   )
   writeAtomic(path.join(reportDir, "junit.xml"), formatJUnit(sortedReport))
   writeAtomic(
     path.join(reportDir, "fingerprint.json"),
-    `${JSON.stringify(fingerprint, null, 2)}\n`
+    `${JSON.stringify(fingerprint, null, 2)}\n`,
   )
   fs.rmSync(entriesDir, { force: true, recursive: true })
   console.log(
-    `${theme}: ${fingerprint.stories} stories, ${fingerprint.violations} violations, ${fingerprint.sha256}`
+    `${theme}: ${fingerprint.stories} stories, ${fingerprint.violations} violations, ${fingerprint.sha256}`,
   )
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error))

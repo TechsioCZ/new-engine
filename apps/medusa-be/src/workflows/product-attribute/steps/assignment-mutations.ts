@@ -49,13 +49,13 @@ export type ProductAttributeAssignmentMutation =
 const prepareProductAttributeOperation = (
   operation: SetProductAttributeOperation,
   definitionById: Map<string, ProductAttributeDefinitionRecord>,
-  optionById: Map<string, ProductAttributeOptionRecord>
+  optionById: Map<string, ProductAttributeOptionRecord>,
 ): PreparedSetOperation => {
   const definition = definitionById.get(operation.definition_id)
   if (!definition || definition.deleted_at) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Active Product Attribute definition "${operation.definition_id}" was not found.`
+      `Active Product Attribute definition "${operation.definition_id}" was not found.`,
     )
   }
 
@@ -72,7 +72,7 @@ const prepareProductAttributeOperation = (
     if (!(textValue && !operation.option_id)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Text definition "${definition.key}" requires a non-empty text_value and no option_id.`
+        `Text definition "${definition.key}" requires a non-empty text_value and no option_id.`,
       )
     }
 
@@ -87,7 +87,7 @@ const prepareProductAttributeOperation = (
   if (!operation.option_id || operation.text_value !== undefined) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Select definition "${definition.key}" requires option_id and no text_value.`
+      `Select definition "${definition.key}" requires option_id and no text_value.`,
     )
   }
 
@@ -95,7 +95,7 @@ const prepareProductAttributeOperation = (
   if (!option || option.deleted_at || option.definition_id !== definition.id) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Option "${operation.option_id}" is not an active option of definition "${definition.key}".`
+      `Option "${operation.option_id}" is not an active option of definition "${definition.key}".`,
     )
   }
 
@@ -118,7 +118,7 @@ export const validateProductAttributeOperations = ({
   options: ProductAttributeOptionRecord[]
 }): PreparedSetOperation[] => {
   const definitionById = new Map(
-    definitions.map((definition) => [definition.id, definition])
+    definitions.map((definition) => [definition.id, definition]),
   )
   const optionById = new Map(options.map((option) => [option.id, option]))
   const seenDefinitionIds = new Set<string>()
@@ -127,7 +127,7 @@ export const validateProductAttributeOperations = ({
     if (seenDefinitionIds.has(operation.definition_id)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Product Attribute definition "${operation.definition_id}" occurs more than once in the request.`
+        `Product Attribute definition "${operation.definition_id}" occurs more than once in the request.`,
       )
     }
     seenDefinitionIds.add(operation.definition_id)
@@ -135,7 +135,7 @@ export const validateProductAttributeOperations = ({
     return prepareProductAttributeOperation(
       operation,
       definitionById,
-      optionById
+      optionById,
     )
   })
 }
@@ -188,7 +188,7 @@ export const planProductAttributeAssignmentMutations = ({
 }
 
 export const prepareProductAttributeAssignmentCompensation = (
-  mutations: ProductAttributeAssignmentMutation[]
+  mutations: ProductAttributeAssignmentMutation[],
 ): AssignmentCompensation => ({
   created_ids: [],
   previous: mutations.flatMap((mutation) => {
@@ -204,7 +204,7 @@ export const prepareProductAttributeAssignmentCompensation = (
 
 const ensureProductExists = async (
   productId: string,
-  container: Parameters<typeof getProductAttributeService>[0]
+  container: Parameters<typeof getProductAttributeService>[0],
 ) => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data: products } = await query.graph({
@@ -217,7 +217,7 @@ const ensureProductExists = async (
   if (!products[0]) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product "${productId}" was not found.`
+      `Product "${productId}" was not found.`,
     )
   }
 }
@@ -226,7 +226,7 @@ const applyProductAttributeMutation = async (
   service: ReturnType<typeof getProductAttributeService>,
   context: Context<SqlEntityManager>,
   productId: string,
-  mutation: ProductAttributeAssignmentMutation
+  mutation: ProductAttributeAssignmentMutation,
 ) => {
   const { existing } = mutation
 
@@ -246,7 +246,7 @@ const applyProductAttributeMutation = async (
         id: existing.id,
         ...mutation.values,
       },
-      context
+      context,
     )
     return
   }
@@ -257,7 +257,7 @@ const applyProductAttributeMutation = async (
       product_id: productId,
       ...mutation.values,
     },
-    context
+    context,
   )
 }
 
@@ -271,12 +271,12 @@ export const setProductAttributesStep = createStep(
       service,
       async (context) => {
         const definitionIds = input.operations.map(
-          (operation) => operation.definition_id
+          (operation) => operation.definition_id,
         )
         const optionIds = input.operations.flatMap((operation) =>
           operation.action === "set" && operation.option_id
             ? [operation.option_id]
-            : []
+            : [],
         )
         const [definitions, options, existingAssignments] = await Promise.all([
           service.listProductAttributeDefinitions(
@@ -285,7 +285,7 @@ export const setProductAttributesStep = createStep(
               take: Math.max(definitionIds.length, 1),
               withDeleted: true,
             },
-            context
+            context,
           ),
           optionIds.length
             ? service.listProductAttributeOptions(
@@ -294,7 +294,7 @@ export const setProductAttributesStep = createStep(
                   take: optionIds.length,
                   withDeleted: true,
                 },
-                context
+                context,
               )
             : Promise.resolve([]),
           service.listProductAttributes(
@@ -307,7 +307,7 @@ export const setProductAttributesStep = createStep(
               take: undefined,
               withDeleted: true,
             },
-            context
+            context,
           ),
         ])
         const operations = validateProductAttributeOperations({
@@ -328,7 +328,7 @@ export const setProductAttributesStep = createStep(
             service,
             context,
             input.product_id,
-            mutation
+            mutation,
           )
           if (created) {
             createdIds.push(created.id)
@@ -344,7 +344,7 @@ export const setProductAttributesStep = createStep(
             relations: ["definition", "option"],
             take: Math.max(definitionIds.length, 1),
           },
-          context
+          context,
         )
 
         return {
@@ -354,7 +354,7 @@ export const setProductAttributesStep = createStep(
             previous: compensation.previous,
           } satisfies AssignmentCompensation,
         }
-      }
+      },
     )
 
     return new StepResponse(result.assignments, result.compensation)
@@ -377,7 +377,7 @@ export const setProductAttributesStep = createStep(
             option_id: previous.option_id ?? null,
             text_value: previous.text_value ?? null,
           },
-          context
+          context,
         )
 
         if (previous.deleted_at) {
@@ -387,5 +387,5 @@ export const setProductAttributesStep = createStep(
         }
       }
     })
-  }
+  },
 )

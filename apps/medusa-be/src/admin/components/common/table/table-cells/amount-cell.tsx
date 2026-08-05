@@ -39,7 +39,7 @@ export const AmountCell = ({
           "justify-end text-right": align === "right",
           "justify-start text-left": align === "left",
         },
-        className
+        className,
       )}
     >
       {shouldShowAmountDiff ? (

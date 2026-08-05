@@ -51,7 +51,7 @@ const toAddressSummary = (value: unknown): OrderAddressSummary | null => {
   const postalCode = readFromRecord(value, ["postal_code", "postalCode", "zip"])
   const province = readFromRecord(value, ["province", "state"])
   const countryCode = formatCountry(
-    readFromRecord(value, ["country_code", "countryCode", "country"])
+    readFromRecord(value, ["country_code", "countryCode", "country"]),
   )
   const phone = readFromRecord(value, ["phone"])
 
@@ -135,20 +135,20 @@ const readMetadataValue = (metadata: unknown, keys: string[]) => {
 
 export const resolveOrderContactEmail = (
   order: HttpTypes.StoreOrder,
-  fallbackEmail?: string | null
+  fallbackEmail?: string | null,
 ) => readString(order.email) ?? readString(fallbackEmail) ?? "-"
 
 export const resolveOrderAddresses = (order: HttpTypes.StoreOrder) => ({
   billing: toAddressSummary(
-    (order as { billing_address?: unknown }).billing_address
+    (order as { billing_address?: unknown }).billing_address,
   ),
   shipping: toAddressSummary(
-    (order as { shipping_address?: unknown }).shipping_address
+    (order as { shipping_address?: unknown }).shipping_address,
   ),
 })
 
 export const resolveOrderShippingMethodLabel = (
-  order: HttpTypes.StoreOrder
+  order: HttpTypes.StoreOrder,
 ) => {
   const shippingMethods = (order as { shipping_methods?: unknown })
     .shipping_methods

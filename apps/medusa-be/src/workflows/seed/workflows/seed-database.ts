@@ -44,10 +44,10 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     (data) => ({
       currencies: data.input.currencies,
       defaultSalesChannelId: data.salesChannelsResult.defaultSalesChannel.id,
-    })
+    }),
   )
   const updateStoreCurrenciesResult = Steps.updateStoreCurrenciesStep(
-    updateStoreCurrenciesStepInput
+    updateStoreCurrenciesStepInput,
   )
 
   const createRegionsResult = Steps.createRegionsStep(input.regions)
@@ -62,17 +62,17 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         currencyCodes: data.input.currencies.map((currency) => currency.code),
         isTaxInclusive: true,
         regionIds: data.createRegionsResult.result.map((region) => region.id),
-      })
+      }),
     )
 
   const ensurePricePreferencesResult = Steps.ensurePricePreferencesStep(
-    ensurePricePreferencesStepInput
+    ensurePricePreferencesStepInput,
   )
 
   const createTaxRegionsResult = Steps.createTaxRegionsStep(input.taxRegions)
 
   const createStockLocationResult = Steps.createStockLocationSeedStep(
-    input.stockLocations
+    input.stockLocations,
   )
 
   // link stock locations to fulfillment providers (derived from shipping options)
@@ -88,24 +88,24 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
             data.input.shippingOptions.map(
               (opt) =>
                 opt.providerId ??
-                data.input.workflowDefaults.fulfillmentProviderId
-            )
+                data.input.workflowDefaults.fulfillmentProviderId,
+            ),
           ),
         ],
         stockLocations: data.createStockLocationResult.result,
-      })
+      }),
     )
 
   const linkStockLocationsFulfillmentProviderResult =
     Steps.linkStockLocationFulfillmentProviderSeedStep(
-      linkStockLocationsFulfillmentProviderInput
+      linkStockLocationsFulfillmentProviderInput,
     )
 
   const createDefaultShippingProfileResult =
     Steps.createDefaultShippingProfileStep(input.defaultShippingProfile)
 
   const createFulfillmentSetsResult = Steps.createFulfillmentSetStep(
-    input.fulfillmentSets
+    input.fulfillmentSets,
   )
 
   const linkStockLocationsFulfillmentSetInput: Steps.LinkStockLocationFulfillmentSetStepInput =
@@ -118,12 +118,12 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       (data) => ({
         fulfillmentSet: data.createFulfillmentSetsResult.fulfillmentSet,
         stockLocations: data.createStockLocationResult.result,
-      })
+      }),
     )
 
   const linkStockLocationsFulfillmentSetResult =
     Steps.linkStockLocationFulfillmentSetStep(
-      linkStockLocationsFulfillmentSetInput
+      linkStockLocationsFulfillmentSetInput,
     )
 
   const createShippingOptionsInput: Steps.CreateShippingOptionsStepInput =
@@ -148,7 +148,7 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
                 option.prices.find(
                   (p) =>
                     p.currencyCode?.toLowerCase() ===
-                    region.currency_code?.toLowerCase()
+                    region.currency_code?.toLowerCase(),
                 )?.amount ??
                 data.input.workflowDefaults.shippingOptionPriceAmount,
             })),
@@ -162,11 +162,11 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
             shippingOption.data = option.data
           }
           return shippingOption
-        })
+        }),
     )
 
   const createShippingOptionsResult = Steps.createShippingOptionsStep(
-    createShippingOptionsInput
+    createShippingOptionsInput,
   )
 
   const linkSalesChannelsToStockLocationInput: Steps.LinkSalesChannelsStockLocationStepInput =
@@ -179,16 +179,16 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       (data) => ({
         salesChannels: data.salesChannelsResult.result,
         stockLocations: data.createStockLocationResult.result,
-      })
+      }),
     )
 
   const linkSalesChannelsToStockLocationResult =
     Steps.linkSalesChannelsStockLocationStep(
-      linkSalesChannelsToStockLocationInput
+      linkSalesChannelsToStockLocationInput,
     )
 
   const createPublishableKeyResult = Steps.createPublishableKeyStep(
-    input.publishableKey
+    input.publishableKey,
   )
 
   const linkSalesChannelsApiKeyStepInput: Steps.LinkSalesChannelsApiKeyStepInput =
@@ -206,14 +206,14 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
           : {
               salesChannelNames: data.input.publishableKey.salesChannelNames,
             }),
-      })
+      }),
     )
 
   const linkSalesChannelsApiKeyStepInputResult =
     Steps.linkSalesChannelsApiKeyStep(linkSalesChannelsApiKeyStepInput)
 
   const createProductCategoriesResult = Steps.createProductCategoriesStep(
-    input.productCategories
+    input.productCategories,
   )
 
   const productSeedInput: Steps.CreateProductsStepInput = transform(
@@ -223,14 +223,14 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       input,
       salesChannelsResult,
     },
-    (data) => data.input.products
+    (data) => data.input.products,
   )
 
   const reconcileProductVariantEansResult =
     Steps.reconcileProductVariantEansStep(productSeedInput)
   const createProductsStepInput: Steps.CreateProductsStepInput = transform(
     { reconcileProductVariantEansResult },
-    (data) => data.reconcileProductVariantEansResult.products
+    (data) => data.reconcileProductVariantEansResult.products,
   )
   const createProductsResult = Steps.createProductsStep(createProductsStepInput)
   const reconcileProductAttributesInput: Steps.CreateProductsStepInput =
@@ -239,10 +239,10 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         createProductsResult,
         createProductsStepInput,
       },
-      (data) => data.createProductsStepInput
+      (data) => data.createProductsStepInput,
     )
   const reconcileProductAttributesResult = Steps.reconcileProductAttributesStep(
-    reconcileProductAttributesInput
+    reconcileProductAttributesInput,
   )
   const reconcileProductMeasurementsResult =
     Steps.reconcileProductMeasurementsStep(reconcileProductAttributesInput)
@@ -257,7 +257,7 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
           ? {}
           : { attributeNames: data.input.legacyBrandAttributeNames }),
         productIds: data.createProductsResult.result,
-      })
+      }),
     )
   const cleanupProductBrandAttributesResult =
     Steps.cleanupProductBrandAttributesStep(cleanupProductBrandAttributesInput)
@@ -273,14 +273,14 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         ? {}
         : { priceLists: data.input.priceLists }),
       config: data.input.priceListSync,
-    })
+    }),
   )
 
   const syncPriceListsResult = Steps.syncPriceListsStep(syncPriceListsInput)
 
   const createTaxRatesResult = when(
     { input },
-    ({ input: workflowInput }) => !!workflowInput.taxRates
+    ({ input: workflowInput }) => !!workflowInput.taxRates,
   ).then(() => {
     const createTaxRatesStepInput: Steps.CreateTaxRatesStepInput = transform(
       {
@@ -295,7 +295,7 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
           : { countries: data.input.taxRates?.countries }),
         config: data.input.taxRates?.config,
         productIds: data.createProductsResult.result,
-      })
+      }),
     )
 
     return Steps.createTaxRatesStep(createTaxRatesStepInput)
@@ -311,11 +311,11 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       (data) => ({
         inventoryItems: buildInventoryItemsInput(data.input.products),
         stockLocations: data.createStockLocationResult.result,
-      })
+      }),
     )
 
   const createInventoryLevelsResult = Steps.createInventoryLevelsStep(
-    createInventoryLevelsInput
+    createInventoryLevelsInput,
   )
 
   return new WorkflowResponse({
@@ -347,7 +347,7 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
 
 const seedDatabaseWorkflow = createWorkflow(
   SeedDatabaseWorkflowId,
-  seedDatabaseWorkflowComposer
+  seedDatabaseWorkflowComposer,
 )
 
 export default seedDatabaseWorkflow

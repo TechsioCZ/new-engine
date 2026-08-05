@@ -61,12 +61,12 @@ export const setProductMeasurementWorkflow = createWorkflow(
       ({ transition: current }) =>
         current.previous && !current.source_target_same
           ? [current.previous]
-          : []
+          : [],
     )
     const previousVariantMeasurements = transform(
       { transition },
       ({ transition: current }) =>
-        current.source_target_same ? [] : current.previous_variant_measurements
+        current.source_target_same ? [] : current.previous_variant_measurements,
     )
 
     softDeleteProductVariantMeasurementsStep(previousVariantMeasurements)
@@ -89,7 +89,7 @@ export const setProductMeasurementWorkflow = createWorkflow(
       updates: variantMigration.updates,
     })
     const createdVariants = createProductVariantMeasurementsStep(
-      variantMigration.creates
+      variantMigration.creates,
     )
     const targetVariants = transform(
       {
@@ -101,7 +101,7 @@ export const setProductMeasurementWorkflow = createWorkflow(
         ...data.unchangedRecords,
         ...data.updatedVariants,
         ...data.createdVariants,
-      ]
+      ],
     )
 
     const productLinkPlan = prepareProductMeasurementLinkPlanStep({
@@ -114,8 +114,8 @@ export const setProductMeasurementWorkflow = createWorkflow(
       productLinkPlan.links_to_create,
       (links) =>
         links.map((link) =>
-          productMeasurementLink(link.product_id, link.product_measurement_id)
-        )
+          productMeasurementLink(link.product_id, link.product_measurement_id),
+        ),
     )
     createRemoteLinkStep(productLinksToCreate).config({
       name: "create-product-measurement-link",
@@ -131,9 +131,9 @@ export const setProductMeasurementWorkflow = createWorkflow(
         links.map((link) =>
           productVariantMeasurementLink(
             link.product_variant_id,
-            link.product_variant_measurement_id
-          )
-        )
+            link.product_variant_measurement_id,
+          ),
+        ),
     )
     createRemoteLinkStep(variantLinksToCreate).config({
       name: "create-product-variant-measurement-links",
@@ -142,5 +142,5 @@ export const setProductMeasurementWorkflow = createWorkflow(
     releaseLockStep(releaseInput)
 
     return new WorkflowResponse(target)
-  }
+  },
 )

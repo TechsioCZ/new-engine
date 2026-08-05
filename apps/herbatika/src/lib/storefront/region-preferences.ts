@@ -39,7 +39,7 @@ const normalizeRegionId = (value: string | null | undefined): string | null => {
 }
 
 const normalizeCountryCode = (
-  value: string | null | undefined
+  value: string | null | undefined,
 ): string | null => {
   if (typeof value !== "string") {
     return null
@@ -104,7 +104,7 @@ export const getStoredRegionPreference = (): RegionInfo | null => {
 
   const regionId = normalizeRegionId(getLocalStorageItem(REGION_STORAGE_KEY))
   const countryCode = normalizeCountryCode(
-    getLocalStorageItem(REGION_COUNTRY_CODE_STORAGE_KEY)
+    getLocalStorageItem(REGION_COUNTRY_CODE_STORAGE_KEY),
   )
 
   if (!(regionId && countryCode)) {
@@ -119,7 +119,7 @@ export const getStoredRegionPreference = (): RegionInfo | null => {
 
 export const resolveRegionInfoFromCookieValues = (
   regionIdRaw: string | null | undefined,
-  countryCodeRaw: string | null | undefined
+  countryCodeRaw: string | null | undefined,
 ): RegionInfo | null => {
   const regionId = normalizeRegionId(regionIdRaw)
   const countryCode = normalizeCountryCode(countryCodeRaw)

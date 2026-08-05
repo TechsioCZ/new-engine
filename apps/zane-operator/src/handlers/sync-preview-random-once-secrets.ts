@@ -10,7 +10,7 @@ interface SyncPreviewRandomOnceSecretsDeps {
 
 export async function handleSyncPreviewRandomOnceSecrets(
   request: Request,
-  deps: SyncPreviewRandomOnceSecretsDeps
+  deps: SyncPreviewRandomOnceSecretsDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

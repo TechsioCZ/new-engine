@@ -20,7 +20,7 @@ export const storeCartsMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(StoreAddLineItemsBulk),
       validateAndTransformQuery(
         GetCartLineItemsBulkParams,
-        retrieveCartTransformQueryConfig
+        retrieveCartTransformQueryConfig,
       ),
     ],
   },

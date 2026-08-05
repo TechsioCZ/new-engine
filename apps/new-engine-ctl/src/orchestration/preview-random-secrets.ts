@@ -15,7 +15,7 @@ function unsupportedSecretGenerator(value: unknown): never {
 }
 
 function generateSecretValue(
-  definition: PreviewRandomOnceSecretDefinition
+  definition: PreviewRandomOnceSecretDefinition,
 ): string {
   const { kind } = definition.generator
 
@@ -50,12 +50,12 @@ function generateSecretValue(
 }
 
 export function generatePreviewRandomOnceSecrets(
-  stackInputs: StackInputs
+  stackInputs: StackInputs,
 ): PreviewRandomOnceSecretInput[] {
   return getPreviewRandomOnceSecretDefinitions(stackInputs).map(
     (definition) => ({
       ...definition,
       value: generateSecretValue(definition),
-    })
+    }),
   )
 }

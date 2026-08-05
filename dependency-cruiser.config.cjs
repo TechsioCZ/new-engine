@@ -63,7 +63,7 @@ function readProjects() {
 
       if (!tags?.length) {
         throw new Error(
-          `${projectRoot} needs Nx tags or a dependency-cruiser fallback classification`
+          `${projectRoot} needs Nx tags or a dependency-cruiser fallback classification`,
         )
       }
 

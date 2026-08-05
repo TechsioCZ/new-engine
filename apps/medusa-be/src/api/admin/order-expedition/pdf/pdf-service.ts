@@ -85,14 +85,14 @@ interface FulfillmentLabel {
 }
 
 function isOrderExpeditionQueryOrder<T>(
-  order: T
+  order: T,
 ): order is T & OrderExpeditionRawOrder {
   return isOrderExpeditionRawOrder(order)
 }
 
 export async function createOrderExpeditionPdfResponse(
   req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
-  orderIds: string[]
+  orderIds: string[],
 ) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { missingOrderIds, orders } =
@@ -101,27 +101,27 @@ export async function createOrderExpeditionPdfResponse(
   if (missingOrderIds.length > 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Orders not found: ${missingOrderIds.join(", ")}`
+      `Orders not found: ${missingOrderIds.join(", ")}`,
     )
   }
 
   const expeditionOrders = orders.filter(isOrderExpeditionQueryOrder)
   const stockQuantitiesByVariantId = await fetchStockQuantitiesByVariantId(
     query,
-    expeditionOrders
+    expeditionOrders,
   )
   const packetaBarcodesByOrderId = await fetchPacketaBarcodesByOrderId(
     query,
-    expeditionOrders
+    expeditionOrders,
   )
   const orderedDtos = expeditionOrders.map((order) =>
     withPacketaBarcode(
       withStockQuantities(
         toOrderExpeditionDto(order),
-        stockQuantitiesByVariantId
+        stockQuantitiesByVariantId,
       ),
-      packetaBarcodesByOrderId.get(order.id)
-    )
+      packetaBarcodesByOrderId.get(order.id),
+    ),
   )
   const pdfBytes = await generateExpeditionPdf(orderedDtos, req)
 
@@ -132,14 +132,14 @@ export async function createOrderExpeditionPdfResponse(
 }
 async function fetchStockQuantitiesByVariantId(
   query: Query,
-  orders: OrderExpeditionRawOrder[]
+  orders: OrderExpeditionRawOrder[],
 ) {
   const variantIds = [
     ...new Set(
       orders
         .flatMap((order) => order.items ?? [])
         .map((item) => item.variant_id)
-        .filter((variantId): variantId is string => Boolean(variantId))
+        .filter((variantId): variantId is string => Boolean(variantId)),
     ),
   ]
 
@@ -176,7 +176,7 @@ async function fetchStockQuantitiesByVariantId(
       level.inventory_item_id,
       current +
         toNumber(level.stocked_quantity) -
-        toNumber(level.reserved_quantity)
+        toNumber(level.reserved_quantity),
     )
   }
 
@@ -188,7 +188,7 @@ async function fetchStockQuantitiesByVariantId(
       availableByInventoryItemId.get(link.inventory_item_id) ?? 0
     stockByVariantId.set(
       link.variant_id,
-      current + Math.floor(available / requiredQuantity)
+      current + Math.floor(available / requiredQuantity),
     )
   }
 
@@ -217,7 +217,7 @@ function isInventoryLevel(value: unknown): value is InventoryLevel {
 
 async function fetchPacketaBarcodesByOrderId(
   query: Query,
-  orders: OrderExpeditionRawOrder[]
+  orders: OrderExpeditionRawOrder[],
 ) {
   const packetaFulfillments = orders.flatMap((order) =>
     (order.fulfillments ?? [])
@@ -225,9 +225,9 @@ async function fetchPacketaBarcodesByOrderId(
         (fulfillment) =>
           !fulfillment.canceled_at &&
           fulfillment.id &&
-          fulfillment.provider_id?.toLowerCase().includes("packeta")
+          fulfillment.provider_id?.toLowerCase().includes("packeta"),
       )
-      .map((fulfillment) => ({ fulfillment, orderId: order.id }))
+      .map((fulfillment) => ({ fulfillment, orderId: order.id })),
   )
 
   const barcodeByOrderId = new Map<string, string>()
@@ -256,7 +256,7 @@ async function fetchPacketaBarcodesByOrderId(
   const trackingByFulfillmentId = new Map(
     labels
       .filter((label) => label.tracking_number)
-      .map((label) => [label.fulfillment_id, label.tracking_number])
+      .map((label) => [label.fulfillment_id, label.tracking_number]),
   )
 
   for (const { fulfillment, orderId } of packetaFulfillments) {
@@ -307,7 +307,7 @@ function isFulfillmentLabel(value: unknown): value is FulfillmentLabel {
 
 function withPacketaBarcode(
   order: OrderExpeditionOrderDto,
-  packetaBarcode?: string
+  packetaBarcode?: string,
 ): OrderExpeditionOrderDto {
   return {
     ...order,
@@ -319,7 +319,7 @@ function withPacketaBarcode(
 
 function withStockQuantities(
   order: OrderExpeditionOrderDto,
-  stockQuantitiesByVariantId: Map<string, number>
+  stockQuantitiesByVariantId: Map<string, number>,
 ): OrderExpeditionOrderDto {
   return {
     ...order,
@@ -339,7 +339,7 @@ function toNumber(value: number | string | null | undefined) {
 
 async function generateExpeditionPdf(
   orders: OrderExpeditionOrderDto[],
-  req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>
+  req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
 ) {
   const { document, state } = await createExpeditionPdfContext(req)
 
@@ -353,7 +353,7 @@ async function generateExpeditionPdf(
 
 async function drawOrdersByCarrier(
   state: DrawState,
-  orders: OrderExpeditionOrderDto[]
+  orders: OrderExpeditionOrderDto[],
 ) {
   const groups = groupOrdersByCarrier(orders)
 
@@ -367,7 +367,7 @@ async function drawOrdersByCarrier(
       {
         font: state.boldFont,
         size: HEADING_SIZE,
-      }
+      },
     )
     state.y -= 18
 
@@ -388,7 +388,7 @@ async function drawOrder(state: DrawState, order: OrderExpeditionOrderDto) {
     {
       font: state.boldFont,
       size: HEADING_SIZE,
-    }
+    },
   )
 
   const address = buildOrderAddressLine(order)
@@ -424,7 +424,7 @@ async function drawOrder(state: DrawState, order: OrderExpeditionOrderDto) {
         font: state.regularFont,
         lineHeight: LINE_HEIGHT,
         size: BODY_SIZE,
-      }
+      },
     )
   }
 }
@@ -479,24 +479,24 @@ function drawOrderTableHeader(state: DrawState) {
 async function drawOrderItemRow(
   state: DrawState,
   item: OrderExpeditionItemDto,
-  currencyCode?: string | null
+  currencyCode?: string | null,
 ) {
   const description = buildItemDescription(item)
   const descriptionLines = wrapText(
     toPdfSafeText(description),
     state.regularFont,
     BODY_SIZE,
-    ORDER_COLUMNS.description.width - 4
+    ORDER_COLUMNS.description.width - 4,
   )
   const skuLines = wrapText(
     toPdfSafeText(item.sku ?? "-"),
     state.regularFont,
     SMALL_SIZE,
-    ORDER_COLUMNS.sku.width - 4
+    ORDER_COLUMNS.sku.width - 4,
   )
   const rowHeight = Math.max(
     42,
-    Math.max(descriptionLines.length, skuLines.length) * LINE_HEIGHT + 10
+    Math.max(descriptionLines.length, skuLines.length) * LINE_HEIGHT + 10,
   )
   ensureSpace(state, rowHeight + 8)
 
@@ -514,7 +514,7 @@ async function drawOrderItemRow(
       {
         font: state.regularFont,
         size: SMALL_SIZE,
-      }
+      },
     )
   })
 
@@ -537,7 +537,7 @@ async function drawOrderItemRow(
       {
         font: state.regularFont,
         size: BODY_SIZE,
-      }
+      },
     )
   })
   drawText(
@@ -548,7 +548,7 @@ async function drawOrderItemRow(
     {
       font: state.regularFont,
       size: BODY_SIZE,
-    }
+    },
   )
   drawText(
     state,
@@ -558,14 +558,14 @@ async function drawOrderItemRow(
     {
       font: state.regularFont,
       size: BODY_SIZE,
-    }
+    },
   )
   drawRightText(
     state,
     formatMoney(item.unit_price, currencyCode),
     ORDER_COLUMNS.price.x + ORDER_COLUMNS.price.width - 3,
     startY,
-    { font: state.regularFont, size: SMALL_SIZE }
+    { font: state.regularFont, size: SMALL_SIZE },
   )
   drawCheckbox(state, ORDER_COLUMNS.complete.x + 8, startY - 2)
   state.y = bottomY - 6
@@ -573,7 +573,7 @@ async function drawOrderItemRow(
 
 async function drawSummary(
   state: DrawState,
-  orders: OrderExpeditionOrderDto[]
+  orders: OrderExpeditionOrderDto[],
 ) {
   addPage(state)
   drawText(state, "Položky objednávek", PAGE_MARGIN, state.y, {
@@ -641,17 +641,17 @@ function drawSummaryItemRow(state: DrawState, item: SummaryItem) {
     toPdfSafeText(description),
     state.regularFont,
     BODY_SIZE,
-    SUMMARY_COLUMNS.description.width - 4
+    SUMMARY_COLUMNS.description.width - 4,
   )
   const skuLines = wrapText(
     toPdfSafeText(item.sku || "-"),
     state.regularFont,
     SMALL_SIZE,
-    SUMMARY_COLUMNS.sku.width - 4
+    SUMMARY_COLUMNS.sku.width - 4,
   )
   const rowHeight = Math.max(
     24,
-    Math.max(descriptionLines.length, skuLines.length) * LINE_HEIGHT + 10
+    Math.max(descriptionLines.length, skuLines.length) * LINE_HEIGHT + 10,
   )
   ensureSpace(state, rowHeight + 8)
 
@@ -669,7 +669,7 @@ function drawSummaryItemRow(state: DrawState, item: SummaryItem) {
       {
         font: state.regularFont,
         size: SMALL_SIZE,
-      }
+      },
     )
   })
   descriptionLines.forEach((line, index) => {
@@ -681,7 +681,7 @@ function drawSummaryItemRow(state: DrawState, item: SummaryItem) {
       {
         font: state.regularFont,
         size: BODY_SIZE,
-      }
+      },
     )
   })
   drawCenteredText(
@@ -693,7 +693,7 @@ function drawSummaryItemRow(state: DrawState, item: SummaryItem) {
     {
       font: state.regularFont,
       size: BODY_SIZE,
-    }
+    },
   )
   drawCenteredText(
     state,
@@ -704,7 +704,7 @@ function drawSummaryItemRow(state: DrawState, item: SummaryItem) {
     {
       font: state.regularFont,
       size: BODY_SIZE,
-    }
+    },
   )
   drawCenteredText(
     state,
@@ -715,7 +715,7 @@ function drawSummaryItemRow(state: DrawState, item: SummaryItem) {
     {
       font: state.regularFont,
       size: BODY_SIZE,
-    }
+    },
   )
   drawCenteredText(
     state,
@@ -726,7 +726,7 @@ function drawSummaryItemRow(state: DrawState, item: SummaryItem) {
     {
       font: state.regularFont,
       size: BODY_SIZE,
-    }
+    },
   )
   state.y = bottomY - 6
 }
@@ -794,7 +794,8 @@ function buildSummaryItems(orders: OrderExpeditionOrderDto[]) {
 
   return [...itemsByKey.values()].sort(
     (left, right) =>
-      left.sku.localeCompare(right.sku) || left.title.localeCompare(right.title)
+      left.sku.localeCompare(right.sku) ||
+      left.title.localeCompare(right.title),
   )
 }
 
@@ -807,14 +808,14 @@ function buildOrderAddressLine(order: OrderExpeditionOrderDto) {
 }
 
 function buildItemDescription(
-  item: Pick<OrderExpeditionItemDto, "title" | "variant">
+  item: Pick<OrderExpeditionItemDto, "title" | "variant">,
 ) {
   return item.variant ? `${item.title}\nVarianta: ${item.variant}` : item.title
 }
 
 function formatMoney(
   value: number | string | null | undefined,
-  currencyCode?: string | null
+  currencyCode?: string | null,
 ) {
   const amount = Number(value)
   if (!Number.isFinite(amount)) {
@@ -911,7 +912,7 @@ function drawTableFrame(state: DrawState, topY: number, bottomY: number) {
 function drawSummaryTableFrame(
   state: DrawState,
   topY: number,
-  bottomY: number
+  bottomY: number,
 ) {
   drawFrame(state, topY, bottomY, [
     PAGE_MARGIN,
@@ -928,7 +929,7 @@ function drawFrame(
   state: DrawState,
   topY: number,
   bottomY: number,
-  verticalLines: number[]
+  verticalLines: number[],
 ) {
   for (const x of verticalLines) {
     state.page.drawLine({
@@ -951,7 +952,7 @@ function drawFrame(
 
 async function getEmbeddedImage(
   state: DrawState,
-  imageUrl: null | string | undefined
+  imageUrl: null | string | undefined,
 ) {
   if (!imageUrl) {
     return null
@@ -1056,13 +1057,13 @@ function drawWrappedRight(
   x: number,
   y: number,
   maxWidth: number,
-  options: { font: DrawState["regularFont"]; lineHeight: number; size: number }
+  options: { font: DrawState["regularFont"]; lineHeight: number; size: number },
 ) {
   const lines = wrapText(
     toPdfSafeText(text),
     options.font,
     options.size,
-    maxWidth
+    maxWidth,
   )
   lines.forEach((line, index) => {
     drawRightText(
@@ -1070,7 +1071,7 @@ function drawWrappedRight(
       line,
       x + maxWidth,
       y - index * options.lineHeight,
-      options
+      options,
     )
   })
 }
@@ -1081,7 +1082,7 @@ function drawWrappedText(
   x: number,
   y: number,
   maxWidth: number,
-  options: { font: DrawState["regularFont"]; lineHeight: number; size: number }
+  options: { font: DrawState["regularFont"]; lineHeight: number; size: number },
 ) {
   const lines = toPdfSafeText(text)
     .split("\n")
@@ -1099,7 +1100,7 @@ function drawText(
   text: string,
   x: number,
   y: number,
-  options: { font: DrawState["regularFont"]; size: number }
+  options: { font: DrawState["regularFont"]; size: number },
 ) {
   drawPageText(state.page, text, x, y, options)
 }
@@ -1109,7 +1110,7 @@ function drawRightText(
   text: string,
   rightX: number,
   y: number,
-  options: { font: DrawState["regularFont"]; size: number }
+  options: { font: DrawState["regularFont"]; size: number },
 ) {
   drawPageRightText(state.page, text, rightX, y, options)
 }
@@ -1120,7 +1121,7 @@ function drawCenteredText(
   x: number,
   width: number,
   y: number,
-  options: { font: DrawState["regularFont"]; size: number }
+  options: { font: DrawState["regularFont"]; size: number },
 ) {
   drawPageCenteredText(state.page, text, x, width, y, options)
 }
@@ -1130,7 +1131,7 @@ function drawPageText(
   text: string,
   x: number,
   y: number,
-  options: { font: DrawState["regularFont"]; size: number }
+  options: { font: DrawState["regularFont"]; size: number },
 ) {
   page.drawText(toPdfSafeText(text), {
     color: rgb(0, 0, 0),
@@ -1146,7 +1147,7 @@ function drawPageRightText(
   text: string,
   rightX: number,
   y: number,
-  options: { font: DrawState["regularFont"]; size: number }
+  options: { font: DrawState["regularFont"]; size: number },
 ) {
   const safeText = toPdfSafeText(text)
   page.drawText(safeText, {
@@ -1164,7 +1165,7 @@ function drawPageCenteredText(
   x: number,
   width: number,
   y: number,
-  options: { font: DrawState["regularFont"]; size: number }
+  options: { font: DrawState["regularFont"]; size: number },
 ) {
   const safeText = toPdfSafeText(text)
   page.drawText(safeText, {
@@ -1180,7 +1181,7 @@ function wrapText(
   text: string,
   font: DrawState["regularFont"],
   size: number,
-  maxWidth: number
+  maxWidth: number,
 ) {
   return text
     .split("\n")
@@ -1191,7 +1192,7 @@ function wrapTextLine(
   text: string,
   font: DrawState["regularFont"],
   size: number,
-  maxWidth: number
+  maxWidth: number,
 ) {
   const words = text.split(WHITESPACE_REGEX)
   const lines: string[] = []
@@ -1231,7 +1232,7 @@ function splitLongWord(
   word: string,
   font: DrawState["regularFont"],
   size: number,
-  maxWidth: number
+  maxWidth: number,
 ) {
   const chunks: string[] = []
   let chunk = ""

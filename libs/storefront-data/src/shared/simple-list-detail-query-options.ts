@@ -29,11 +29,11 @@ export interface SimpleListDetailQueryOptionsFactory<
 > {
   getListQueryOptions: (
     input: TListInput,
-    options?: SimpleReadOptions<TListResponse>
+    options?: SimpleReadOptions<TListResponse>,
   ) => QueryFactoryOptions<TListResponse>
   getDetailQueryOptions: (
     input: TDetailInput,
-    options?: SimpleReadOptions<TDetailResult>
+    options?: SimpleReadOptions<TDetailResult>,
   ) => QueryFactoryOptions<TDetailResult>
 }
 
@@ -48,7 +48,7 @@ export interface CreateSimpleListDetailQueryOptionsFactoryConfig<
   getList: (params: TListParams, signal?: AbortSignal) => Promise<TListResponse>
   getDetail: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TDetailResult>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -105,7 +105,7 @@ export function createSimpleListDetailQueryOptionsFactory<
   return {
     getDetailQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<TDetailResult> => {
       const detailParams = buildDetail(stripEnabled(input))
       const cacheStrategy = options?.cacheStrategy ?? defaultCacheStrategy
@@ -125,7 +125,7 @@ export function createSimpleListDetailQueryOptionsFactory<
     },
     getListQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<TListResponse> => {
       const listParams = buildList(stripEnabled(input))
       const cacheStrategy = options?.cacheStrategy ?? defaultCacheStrategy

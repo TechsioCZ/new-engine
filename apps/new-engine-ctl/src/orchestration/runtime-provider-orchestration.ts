@@ -96,7 +96,7 @@ function setRuntimeProviderOutput(input: {
 function getRuntimeProviderOutputValue(
   state: RuntimeProviderState,
   providerId: string,
-  outputId: string
+  outputId: string,
 ): string {
   return state.outputValues[outputStateKey(providerId, outputId)] ?? ""
 }
@@ -104,21 +104,21 @@ function getRuntimeProviderOutputValue(
 function getRuntimeProviderOutputEnvVar(
   state: RuntimeProviderState,
   providerId: string,
-  outputId: string
+  outputId: string,
 ): string {
   return state.outputEnvVars[outputStateKey(providerId, outputId)] ?? ""
 }
 
 function missingOutputIds(
   need: RuntimeProviderNeed,
-  state: RuntimeProviderState
+  state: RuntimeProviderState,
 ): string[] {
   return Object.entries(need.outputConsumerIds)
     .filter(([, consumerIds]) => consumerIds.length > 0)
     .map(([outputId]) => outputId)
     .filter(
       (outputId) =>
-        !getRuntimeProviderOutputValue(state, need.providerId, outputId)
+        !getRuntimeProviderOutputValue(state, need.providerId, outputId),
     )
 }
 
@@ -129,7 +129,9 @@ function missingStageOutputIds(input: {
 }): string[] {
   return Object.entries(input.need.outputConsumerIds)
     .filter(([, consumerIds]) =>
-      consumerIds.some((serviceId) => input.stageServiceIds.includes(serviceId))
+      consumerIds.some((serviceId) =>
+        input.stageServiceIds.includes(serviceId),
+      ),
     )
     .map(([outputId]) => outputId)
     .filter(
@@ -137,8 +139,8 @@ function missingStageOutputIds(input: {
         !getRuntimeProviderOutputValue(
           input.state,
           input.need.providerId,
-          outputId
-        )
+          outputId,
+        ),
     )
 }
 
@@ -147,12 +149,12 @@ function stageNeedsProvider(input: {
   stageServiceIds: string[]
 }): boolean {
   return Object.values(input.need.outputConsumerIds).some((consumerIds) =>
-    consumerIds.some((serviceId) => input.stageServiceIds.includes(serviceId))
+    consumerIds.some((serviceId) => input.stageServiceIds.includes(serviceId)),
   )
 }
 
 function buildRuntimeProviderAdapters(
-  meiliApiCredentialsProviderId: string
+  meiliApiCredentialsProviderId: string,
 ): RuntimeProviderAdapter[] {
   return [
     {
@@ -209,7 +211,7 @@ function buildRuntimeProviderAdapters(
         getMeiliApiCredentialsProviderSourceService(
           manifest,
           stackInputs,
-          meiliApiCredentialsProviderId
+          meiliApiCredentialsProviderId,
         ),
       reusePersisted: ({ need, stackInputs, targets, state }) => {
         const reused = reusePersistedMeiliKeysFromTargets({
@@ -228,7 +230,7 @@ function buildRuntimeProviderAdapters(
             getRuntimeProviderOutputEnvVar(
               state,
               need.providerId,
-              "backend_key"
+              "backend_key",
             ) || "MEILISEARCH_API_KEY",
         })
         setRuntimeProviderOutput({
@@ -279,7 +281,7 @@ function buildRuntimeProviderAdapters(
         getMedusaPublishableKeyProviderSourceService(
           manifest,
           stackInputs,
-          "medusa_publishable_key"
+          "medusa_publishable_key",
         ),
       reusePersisted: ({ need, stackInputs, targets, state }) => {
         const reused = reusePersistedMedusaPublishableKeyFromTargets({
@@ -310,8 +312,8 @@ function resolveRuntimeProviderNeeds(input: {
 }): RuntimeProviderNeed[] {
   const adaptersById = new Map(
     buildRuntimeProviderAdapters(input.meiliApiCredentialsProviderId).map(
-      (adapter) => [adapter.providerId, adapter]
-    )
+      (adapter) => [adapter.providerId, adapter],
+    ),
   )
 
   return input.providerIds.flatMap((providerId) => {
@@ -327,15 +329,15 @@ function resolveRuntimeProviderNeeds(input: {
           listRuntimeProviderOutputTargets(
             input.stackInputs,
             providerId,
-            outputId
+            outputId,
           )
             .filter((target) => input.serviceIds.includes(target.service_id))
             .map((target) => target.service_id),
         ])
         .filter(
           (entry): entry is [string, string[]] =>
-            Array.isArray(entry[1]) && entry[1].length > 0
-        )
+            Array.isArray(entry[1]) && entry[1].length > 0,
+        ),
     ) as Record<string, string[]>
 
     if (Object.keys(outputConsumerIds).length === 0) {
@@ -349,7 +351,7 @@ function resolveRuntimeProviderNeeds(input: {
     const laneBehavior = getRuntimeProviderLaneBehavior(
       input.stackInputs,
       providerId,
-      input.lane
+      input.lane,
     )
 
     return [
@@ -366,7 +368,7 @@ function resolveRuntimeProviderNeeds(input: {
 }
 
 export function createRuntimeProviderState(
-  outputs: RuntimeProviderOutputs
+  outputs: RuntimeProviderOutputs,
 ): RuntimeProviderState {
   const state: RuntimeProviderState = {
     meili: {
@@ -389,7 +391,7 @@ export function createRuntimeProviderState(
 }
 
 function buildRuntimeProviderOutputs(
-  state: RuntimeProviderState
+  state: RuntimeProviderState,
 ): RuntimeProviderOutputs {
   return Object.fromEntries(
     Object.keys(state.outputValues).map((key) => [
@@ -398,7 +400,7 @@ function buildRuntimeProviderOutputs(
         env_var: state.outputEnvVars[key] ?? "",
         value: state.outputValues[key] ?? "",
       },
-    ])
+    ]),
   )
 }
 
@@ -421,7 +423,7 @@ export function collectConfiguredRuntimeProviderNeeds(input: {
     meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
     providerIds: listActiveRuntimeProviderIdsForLane(
       input.stackInputs,
-      input.lane
+      input.lane,
     ),
     serviceIds: input.services.map((service) => service.id),
     stackInputs: input.stackInputs,
@@ -444,8 +446,8 @@ export async function reuseRuntimeProviderOutputs(input: {
 }): Promise<void> {
   const adaptersById = new Map(
     buildRuntimeProviderAdapters(input.meiliApiCredentialsProviderId).map(
-      (adapter) => [adapter.providerId, adapter]
-    )
+      (adapter) => [adapter.providerId, adapter],
+    ),
   )
 
   for (const need of input.needs) {
@@ -455,7 +457,7 @@ export async function reuseRuntimeProviderOutputs(input: {
     }
 
     const sourceInPlan = input.planServices.some(
-      (service) => service.id === need.sourceServiceId
+      (service) => service.id === need.sourceServiceId,
     )
     if (sourceInPlan || input.dryRun) {
       continue
@@ -493,7 +495,7 @@ export async function reuseRuntimeProviderOutputs(input: {
 
     if (missingOutputIds(need, input.state).length === 0) {
       input.onProgress(
-        `Reusing persisted ${need.label} from current healthy ${input.lane} consumer deployments.`
+        `Reusing persisted ${need.label} from current healthy ${input.lane} consumer deployments.`,
       )
       continue
     }
@@ -503,7 +505,7 @@ export async function reuseRuntimeProviderOutputs(input: {
     }
 
     input.onProgress(
-      `${need.label} source service ${need.sourceServiceId} is not in this deploy plan and persisted consumer envs are incomplete; reconciling required outputs before deploy stages.`
+      `${need.label} source service ${need.sourceServiceId} is not in this deploy plan and persisted consumer envs are incomplete; reconciling required outputs before deploy stages.`,
     )
     await adapter.provision({
       apiToken: input.apiToken,
@@ -542,8 +544,8 @@ export async function ensureStageRuntimeProviderOutputs(input: {
 }): Promise<void> {
   const adaptersById = new Map(
     buildRuntimeProviderAdapters(input.meiliApiCredentialsProviderId).map(
-      (adapter) => [adapter.providerId, adapter]
-    )
+      (adapter) => [adapter.providerId, adapter],
+    ),
   )
 
   for (const need of input.needs) {
@@ -571,7 +573,7 @@ export async function ensureStageRuntimeProviderOutputs(input: {
     }
 
     const sourceStage = input.fullPlanServices.find(
-      (service) => service.id === need.sourceServiceId
+      (service) => service.id === need.sourceServiceId,
     )?.deploy_stage
     if (
       sourceStage !== null &&
@@ -579,12 +581,12 @@ export async function ensureStageRuntimeProviderOutputs(input: {
       sourceStage >= input.stage
     ) {
       throw new Error(
-        `${need.label} source service ${need.sourceServiceId} must be healthy before consumer stage ${input.stage}.`
+        `${need.label} source service ${need.sourceServiceId} must be healthy before consumer stage ${input.stage}.`,
       )
     }
 
     input.onProgress(
-      `Stage ${input.stage} consumes ${need.label}; reconciling only the required outputs before env overrides.`
+      `Stage ${input.stage} consumes ${need.label}; reconciling only the required outputs before env overrides.`,
     )
     await adapter.provision({
       apiToken: input.apiToken,

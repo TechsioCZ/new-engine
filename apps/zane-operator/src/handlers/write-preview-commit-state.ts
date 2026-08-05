@@ -10,7 +10,7 @@ interface WritePreviewCommitStateDeps {
 
 export async function handleWritePreviewCommitState(
   request: Request,
-  deps: WritePreviewCommitStateDeps
+  deps: WritePreviewCommitStateDeps,
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

@@ -18,5 +18,5 @@ figma.connect(
         full: "full",
       }),
     },
-  }
+  },
 )

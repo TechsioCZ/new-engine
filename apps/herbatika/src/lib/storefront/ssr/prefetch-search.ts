@@ -8,7 +8,7 @@ import { prefetchServerCatalogProducts } from "../storefront-server"
 import { getRegionServerContext } from "./context"
 
 export const prefetchSearchPageStorefrontData = async (
-  queryState: PlpQueryState
+  queryState: PlpQueryState,
 ) => {
   const { queryClient, region } = await getRegionServerContext()
   const query = queryState.q.trim()
@@ -47,7 +47,7 @@ export const prefetchSearchPageStorefrontData = async (
           ...(region.country_code === undefined
             ? {}
             : { countryCode: region.country_code }),
-        })
+        }),
       ),
     ])
   }

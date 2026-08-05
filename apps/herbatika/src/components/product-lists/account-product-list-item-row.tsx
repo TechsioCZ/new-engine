@@ -27,7 +27,7 @@ interface AccountProductListItemRowProps {
   item: StoreProductListItem
   onAddToCart: (
     item: StoreProductListItem,
-    product: HttpTypes.StoreProduct
+    product: HttpTypes.StoreProduct,
   ) => void
   onDelete: (item: StoreProductListItem) => void
   onQuantitySet: (item: StoreProductListItem, quantity: number) => void
@@ -38,7 +38,7 @@ type AuthTranslator = ReturnType<typeof useTranslations<"auth">>
 
 const resolveAvailabilityLabel = (
   availability: ReturnType<typeof resolveProductListItemAvailability>,
-  translate: AuthTranslator
+  translate: AuthTranslator,
 ) => {
   if (availability.status === "product_unavailable") {
     return translate("product_lists.availability.product_unavailable")
@@ -83,7 +83,7 @@ export function AccountProductListItemRow({
     ? resolvePriceState(
         itemProduct,
         undefined,
-        tCatalog("product_card.price_on_request")
+        tCatalog("product_card.price_on_request"),
       )
     : null
   const quantity = resolveProductListItemQuantity(item)

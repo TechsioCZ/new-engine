@@ -15,13 +15,13 @@ import {
 import { loadManifest, normalizeCsvToArray } from "./deploy-inputs.js"
 
 export async function executeManifestComposeServices(
-  input: ManifestComposeServicesCommandInput
+  input: ManifestComposeServicesCommandInput,
 ): Promise<ManifestComposeServicesResponse> {
   const manifest = await loadManifest(input.stackManifestPath)
   const composeServices = listComposeServicesForPhase(
     manifest,
     input.phase,
-    input.defaultOnly
+    input.defaultOnly,
   )
 
   return manifestComposeServicesResponseSchema.parse({
@@ -33,7 +33,7 @@ export async function executeManifestComposeServices(
 }
 
 export async function executeManifestServiceSlugs(
-  input: ManifestServiceSlugsCommandInput
+  input: ManifestServiceSlugsCommandInput,
 ): Promise<ManifestServiceSlugsResponse> {
   const manifest = await loadManifest(input.stackManifestPath)
   const serviceIds = normalizeCsvToArray(input.serviceIdsCsv)

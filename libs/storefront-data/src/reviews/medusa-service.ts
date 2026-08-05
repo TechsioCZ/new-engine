@@ -40,7 +40,7 @@ export type MedusaProductReviewServiceConfig<TReview> =
       : { transformReview: (review: ReviewBase) => TReview })
 
 const stripListInput = (
-  input: MedusaProductReviewListInput
+  input: MedusaProductReviewListInput,
 ): StoreProductReviewsQuery => {
   const {
     enabled: _enabled,
@@ -69,11 +69,11 @@ const calculateReviewSummary = (reviews: ReviewBase[]) => {
 }
 
 const hasCompleteReviewSet = (
-  response: StoreProductReviewsResponse<ReviewBase>
+  response: StoreProductReviewsResponse<ReviewBase>,
 ) => response.count === response.reviews.length
 
 const hasInconsistentSummary = (
-  response: StoreProductReviewsResponse<ReviewBase>
+  response: StoreProductReviewsResponse<ReviewBase>,
 ) => response.summary.count !== response.count
 
 type MedusaProductReviewServiceArgs<TReview> =
@@ -89,14 +89,14 @@ export function createMedusaProductReviewService(
   sdk: Medusa,
   config?: MedusaProductReviewServiceConfigBase & {
     transformReview?: (review: ReviewBase) => unknown
-  }
+  },
 ): ProductReviewService<unknown, MedusaProductReviewListInput> {
   const { listPath = "/store/products", transformReview } = config ?? {}
   const mapReview = transformReview ?? ((review: ReviewBase) => review)
 
   return {
     async createProductReview(
-      input: MedusaCreateProductReviewInput
+      input: MedusaCreateProductReviewInput,
     ): Promise<unknown> {
       const response = await sdk.client.fetch<
         StoreCreateProductReviewResponse<ReviewBase>
@@ -110,7 +110,7 @@ export function createMedusaProductReviewService(
 
     async listProductReviews(
       params: MedusaProductReviewListInput,
-      signal?: AbortSignal
+      signal?: AbortSignal,
     ): Promise<ProductReviewListResponse<unknown>> {
       if (!params.productId) {
         return {

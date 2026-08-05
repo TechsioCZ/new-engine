@@ -52,7 +52,7 @@ export function ProductReviewTokenPage({
   const createReviewMutation = useCreateProductReview({
     onError: (error) => {
       setSubmitError(
-        resolveProductReviewSubmitErrorMessage(error, reviewErrorMessages)
+        resolveProductReviewSubmitErrorMessage(error, reviewErrorMessages),
       )
     },
     onSuccess: () => {

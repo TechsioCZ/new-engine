@@ -45,7 +45,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   if (!config) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      "PPL configuration not found. Please restart the server to initialize."
+      "PPL configuration not found. Please restart the server to initialize.",
     )
   }
 
@@ -60,7 +60,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
  */
 export async function POST(
   req: MedusaRequest<PostAdminPplConfigSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { result: updated } = await updatePplConfigWorkflow(req.scope).run({
     input: definedProperties(req.validatedBody),

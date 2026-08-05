@@ -26,11 +26,11 @@ export interface RegionListResponse<TRegion> {
 export interface RegionService<TRegion, TListParams, TDetailParams> {
   getRegions: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<RegionListResponse<TRegion>>
   getRegion: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TRegion | null>
 }
 

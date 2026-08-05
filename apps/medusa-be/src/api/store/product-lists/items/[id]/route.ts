@@ -15,7 +15,7 @@ import type { StoreUpdateProductListItemSchemaType } from "../../validators"
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreUpdateProductListItemSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id: itemId } = StoreProductListItemParamsSchema.parse(req.params)
   const { result: item } = await updateProductListItemWorkflow(req.scope).run({
@@ -34,7 +34,7 @@ export async function POST(
 
 export async function DELETE(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id: itemId } = StoreProductListItemParamsSchema.parse(req.params)
   await deleteProductListItemWorkflow(req.scope).run({

@@ -16,7 +16,7 @@ import type { AdminUpdateBrandSchemaType } from "../validators"
 
 export async function GET(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const brandId = req.params["id"] ?? ""
   const brand = await retrieveBrandOrThrow(req.scope, brandId, {
@@ -33,7 +33,7 @@ export async function GET(
 
 export async function POST(
   req: AuthenticatedMedusaRequest<AdminUpdateBrandSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const brandId = req.params["id"] ?? ""
 
@@ -59,7 +59,7 @@ export async function POST(
 
 export async function DELETE(
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const id = req.params["id"] ?? ""
 

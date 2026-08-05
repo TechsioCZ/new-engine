@@ -26,7 +26,7 @@ export interface PublishableKeyResult {
 interface ApiKeyServiceDependency {
   createApiKeys: (
     data: CreateApiKeyDTO,
-    sharedContext?: Context
+    sharedContext?: Context,
   ) => Promise<ApiKeyDTO>
   listApiKeys: IApiKeyModuleService["listApiKeys"]
 }
@@ -52,7 +52,7 @@ export function resolvePublishableKeyTitle(title?: string | null): string {
 
 async function findActivePublishableKey(
   apiKeyService: ApiKeyServiceDependency,
-  title: string
+  title: string,
 ): Promise<ListedApiKey | null> {
   const existingKeys = await apiKeyService.listApiKeys({
     title,
@@ -95,7 +95,7 @@ export async function provisionPublishableKey({
   const getOrCreatePublishableKey = async (): Promise<PublishableKeyResult> => {
     const existingApiKey = await findActivePublishableKey(
       apiKeyService,
-      resolvedTitle
+      resolvedTitle,
     )
 
     if (existingApiKey) {
@@ -126,6 +126,6 @@ export async function provisionPublishableKey({
   return await lockingModule.execute(
     buildProvisionLockKey(resolvedTitle),
     getOrCreatePublishableKey,
-    { timeout: PUBLISHABLE_KEY_LOCK_TIMEOUT_SECONDS }
+    { timeout: PUBLISHABLE_KEY_LOCK_TIMEOUT_SECONDS },
   )
 }

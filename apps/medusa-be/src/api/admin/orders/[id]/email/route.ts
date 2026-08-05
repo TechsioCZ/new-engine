@@ -22,7 +22,7 @@ import type { PostAdminOrderEmailSchemaType } from "./validators"
 
 export async function POST(
   req: MedusaRequest<PostAdminOrderEmailSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const { id } = req.params
   const { template: templateName } = req.validatedBody
@@ -34,7 +34,7 @@ export async function POST(
   if (!isOrderEmailTemplate(templateName)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order email template is not supported"
+      "Order email template is not supported",
     )
   }
 
@@ -48,7 +48,7 @@ export async function POST(
   if (!order.email) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order has no customer email"
+      "Order has no customer email",
     )
   }
 
@@ -57,7 +57,7 @@ export async function POST(
   if (!template) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order email template is not supported"
+      "Order email template is not supported",
     )
   }
 
@@ -79,7 +79,7 @@ export async function POST(
     default: {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Order email template is not supported"
+        "Order email template is not supported",
       )
     }
   }

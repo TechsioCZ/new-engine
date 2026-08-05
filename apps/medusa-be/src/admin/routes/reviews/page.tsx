@@ -165,7 +165,7 @@ const ReviewsPage = () => {
   const pageCount = Math.max(1, Math.ceil(count / PAGE_SIZE))
   const selectedCount = selectedIds.size
   const selectedReviewsOnPage = reviews.filter((review) =>
-    selectedIds.has(review.id)
+    selectedIds.has(review.id),
   )
   const allOnPageSelected =
     reviews.length > 0 && selectedReviewsOnPage.length === reviews.length

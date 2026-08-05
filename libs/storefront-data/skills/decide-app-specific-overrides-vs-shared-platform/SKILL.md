@@ -84,7 +84,7 @@ export const checkoutCartAddressAdapter: CheckoutCartAddressAdapter<FormValues> 
 // apps/n1/src/lib/checkout.ts
 export function useCheckoutWithSharedPaymentRule(
   cartId: string,
-  regionId: string
+  regionId: string,
 ) {
   return storefront.flows.checkout.useCompleteCheckout({
     cartId,

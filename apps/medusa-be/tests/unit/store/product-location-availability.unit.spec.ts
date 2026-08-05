@@ -25,7 +25,7 @@ const STOCK_LOCATIONS = [
 const link = (
   variantId: string,
   inventoryItemId: string,
-  requiredQuantity = 1
+  requiredQuantity = 1,
 ): VariantInventoryItemLink => ({
   inventory_item_id: inventoryItemId,
   required_quantity: requiredQuantity,
@@ -35,7 +35,7 @@ const link = (
 const level = (
   inventoryItemId: string,
   stockLocationId: string,
-  availableQuantity: number
+  availableQuantity: number,
 ): InventoryLevel => ({
   available_quantity: availableQuantity,
   inventory_item_id: inventoryItemId,
@@ -45,7 +45,7 @@ const level = (
 })
 
 const firstVariant = (
-  response: ReturnType<typeof buildProductLocationAvailability>
+  response: ReturnType<typeof buildProductLocationAvailability>,
 ) => {
   const variant = response.variants[0]
   if (!variant) {
@@ -56,7 +56,7 @@ const firstVariant = (
 }
 
 const warehouseAvailability = (
-  response: ReturnType<typeof buildProductLocationAvailability>
+  response: ReturnType<typeof buildProductLocationAvailability>,
 ) => {
   const entry = firstVariant(response).location_availability[1]
   if (!entry) {
@@ -75,7 +75,7 @@ describe(buildProductLocationAvailability, () => {
         productId: "prod_1",
         stockLocations: STOCK_LOCATIONS,
         variantIds: ["variant_1", "variant_2"],
-      })
+      }),
     ).toStrictEqual({
       product_id: "prod_1",
       variants: [

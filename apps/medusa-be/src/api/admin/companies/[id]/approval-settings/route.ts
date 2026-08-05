@@ -17,7 +17,7 @@ import type { AdminUpdateApprovalSettingsType } from "../../validators"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const id = requirePathParam(req.params["id"], "Company id")
@@ -44,7 +44,7 @@ export const GET = async (
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<AdminUpdateApprovalSettingsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const id = requirePathParam(req.params["id"], "Company id")
@@ -72,7 +72,7 @@ export const POST = async (
     if (!currentApprovalSettingsId) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Approval settings for company ${id} were not found`
+        `Approval settings for company ${id} were not found`,
       )
     }
   }
@@ -80,7 +80,7 @@ export const POST = async (
   if (!currentApprovalSettingsId) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Approval settings for company ${id} were not found`
+      `Approval settings for company ${id} were not found`,
     )
   }
 
@@ -102,7 +102,7 @@ export const POST = async (
         id: updatedApprovalSettings.id,
       },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ approvalSettings })

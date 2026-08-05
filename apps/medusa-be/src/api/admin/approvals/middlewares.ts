@@ -20,7 +20,7 @@ export const adminApprovalsMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       validateAndTransformQuery(
         AdminGetApprovals,
-        approvalTransformQueryConfig
+        approvalTransformQueryConfig,
       ),
     ],
   },

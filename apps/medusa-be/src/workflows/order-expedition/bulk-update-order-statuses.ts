@@ -23,10 +23,10 @@ interface BulkUpdateOrderStatusesWorkflowInput {
 }
 
 export function isOrderExpeditionDirectUpdateStatus(
-  status: OrderExpeditionTargetStatus
+  status: OrderExpeditionTargetStatus,
 ): status is OrderExpeditionDirectUpdateStatus {
   return ORDER_EXPEDITION_DIRECT_UPDATE_STATUSES.some(
-    (directStatus) => directStatus === status
+    (directStatus) => directStatus === status,
   )
 }
 
@@ -38,7 +38,7 @@ export const bulkUpdateOrderStatusesWorkflow = createWorkflow(
       ({ workflowInput: currentInput }) => ({
         is_draft_order: currentInput.target_status === "draft",
         status: currentInput.target_status,
-      })
+      }),
     )
     const updatedOrders = updateOrdersStep({
       selector: {
@@ -49,7 +49,7 @@ export const bulkUpdateOrderStatusesWorkflow = createWorkflow(
     const eventData = transform(
       { workflowInput },
       ({ workflowInput: currentInput }) =>
-        currentInput.order_ids.map((id) => ({ id }))
+        currentInput.order_ids.map((id) => ({ id })),
     )
 
     emitEventStep({
@@ -60,5 +60,5 @@ export const bulkUpdateOrderStatusesWorkflow = createWorkflow(
     return new WorkflowResponse({
       orders: updatedOrders,
     })
-  }
+  },
 )

@@ -95,7 +95,7 @@ export function createCollectionHooks<
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<CollectionListResponse<TCollection>>
-    }
+    },
   ): UseCollectionsResult<TCollection> {
     const { items, ...result } = simpleHooks.useList(input, options)
     return {
@@ -108,7 +108,7 @@ export function createCollectionHooks<
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<CollectionListResponse<TCollection>>
-    }
+    },
   ): UseSuspenseCollectionsResult<TCollection> {
     const { items, ...result } = simpleHooks.useSuspenseList(input, options)
     return {
@@ -119,7 +119,7 @@ export function createCollectionHooks<
 
   function useCollection(
     input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TCollection | null> }
+    options?: { queryOptions?: ReadQueryOptions<TCollection | null> },
   ): UseCollectionResult<TCollection> {
     const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
@@ -130,7 +130,7 @@ export function createCollectionHooks<
 
   function useSuspenseCollection(
     input: TDetailInput,
-    options?: { queryOptions?: SuspenseQueryOptions<TCollection | null> }
+    options?: { queryOptions?: SuspenseQueryOptions<TCollection | null> },
   ): UseSuspenseCollectionResult<TCollection> {
     const { item, ...result } = simpleHooks.useSuspenseDetail(input, options)
     return {

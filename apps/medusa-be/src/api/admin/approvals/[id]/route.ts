@@ -9,7 +9,7 @@ import { updateApprovalsWorkflow } from "../../../../workflows/approval/workflow
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<AdminUpdateApproval>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const { user_id } = req.auth_context.app_metadata as {
     user_id: string
@@ -19,7 +19,7 @@ export const POST = async (
   const { status } = req.validatedBody
 
   const { result: approval, errors } = await updateApprovalsWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
       handled_by: user_id,

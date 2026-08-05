@@ -14,7 +14,7 @@ const normalizeParam = (value: string | null): string | undefined => {
 /** Read a string query param from a Payload request URL. */
 export const getQueryParam = (
   req: PayloadRequest,
-  key: string
+  key: string,
 ): string | undefined => {
   try {
     const url = new URL(req.url ?? "", "http://localhost")
@@ -46,7 +46,7 @@ export const getLocaleFromRequest = (req: PayloadRequest): LocaleValue => {
 /** Build a JSON response with Payload CORS headers applied. */
 export const buildJsonResponse = (
   req: PayloadRequest,
-  data: unknown
+  data: unknown,
 ): Response => {
   const headers = headersWithCors({
     headers: new Headers({ "Content-Type": "application/json" }),

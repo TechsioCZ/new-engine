@@ -76,7 +76,7 @@ function getPacketaLabels(order: AdminOrder): OrderFulfillment[] {
     (fulfillment) =>
       fulfillment.provider_id === "packeta_packeta" &&
       !fulfillment.canceled_at &&
-      typeof fulfillment.data?.packet_id === "number"
+      typeof fulfillment.data?.packet_id === "number",
   )
 }
 
@@ -127,7 +127,7 @@ const PacketaLabelsPage = () => {
   const [offset, setOffset] = useState(0)
   const [labelFormat, setLabelFormat] = useState<LabelFormat>("A6")
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   )
   const [isPrinting, setIsPrinting] = useState(false)
 
@@ -146,7 +146,7 @@ const PacketaLabelsPage = () => {
 
   const orders = data?.orders ?? []
   const printableOrders = orders.filter(
-    (order) => getPacketaLabels(order).length > 0
+    (order) => getPacketaLabels(order).length > 0,
   )
   const selectedPrintableOrderIds = printableOrders
     .map((order) => order.id)
@@ -201,7 +201,7 @@ const PacketaLabelsPage = () => {
       toast.success("Packeta labels generated")
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to print labels"
+        error instanceof Error ? error.message : "Failed to print labels",
       )
     } finally {
       setIsPrinting(false)

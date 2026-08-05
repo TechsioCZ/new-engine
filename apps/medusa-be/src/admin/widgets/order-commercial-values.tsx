@@ -88,7 +88,7 @@ function isDraftDiscountType(value: string): value is DraftDiscountType {
 
 async function invalidateMedusaAdminOrderQueries(
   queryClient: QueryClient,
-  orderId: string
+  orderId: string,
 ) {
   const orderDetailQueryKey = ["orders", "detail", orderId] as const
 
@@ -105,7 +105,7 @@ function getIntlLocale(language?: string) {
 function formatMoney(
   value: number | undefined,
   currencyCode: string,
-  locale: string
+  locale: string,
 ) {
   if (value === undefined || !Number.isFinite(value)) {
     return "-"
@@ -125,7 +125,7 @@ function formatQuantity(value: number, locale: string) {
 
 function getItemDisplayName(
   item: CommercialValuesSnapshot["items"][number],
-  fallbackName: string
+  fallbackName: string,
 ) {
   const variantTitle =
     item.variant_title && item.product_title !== item.variant_title
@@ -142,14 +142,14 @@ function getItemDisplayName(
 
 function getItemMetadata(
   item: CommercialValuesSnapshot["items"][number],
-  skuLabel: string | null
+  skuLabel: string | null,
 ) {
   return [item.subtitle, skuLabel].filter(Boolean).join(" · ")
 }
 
 function getItemInitials(
   item: CommercialValuesSnapshot["items"][number],
-  fallbackName: string
+  fallbackName: string,
 ) {
   const initials = getItemDisplayName(item, fallbackName)
     .split(ITEM_INITIALS_SEPARATOR)
@@ -163,7 +163,7 @@ function getItemInitials(
 
 function getEditBlockerMessage(
   blocker: CommercialValuesSnapshot["edit_blockers"][number] | string,
-  t: TFunction
+  t: TFunction,
 ) {
   if (typeof blocker === "string") {
     return blocker
@@ -194,7 +194,7 @@ function getManualAdjustmentAmount(
   target: {
     existing_adjustments: CommercialValuesSnapshot["items"][number]["existing_adjustments"]
   },
-  code: string
+  code: string,
 ) {
   return target.existing_adjustments
     .filter((adjustment) => adjustment.code === code)
@@ -205,13 +205,13 @@ function getManualDiscount(
   target: {
     existing_adjustments: CommercialValuesSnapshot["items"][number]["existing_adjustments"]
   },
-  code: string
+  code: string,
 ): CommercialDiscountIntent | null {
   const adjustments = target.existing_adjustments.filter(
-    (adjustment) => adjustment.code === code
+    (adjustment) => adjustment.code === code,
   )
   const intent = adjustments.find(
-    (adjustment) => adjustment.discount_intent
+    (adjustment) => adjustment.discount_intent,
   )?.discount_intent
 
   if (intent) {
@@ -220,7 +220,7 @@ function getManualDiscount(
 
   const amount = adjustments.reduce(
     (total, adjustment) => total + adjustment.amount,
-    0
+    0,
   )
 
   return amount > 0 ? { amount, type: "amount" } : null
@@ -230,17 +230,17 @@ function getSnapshotOrderDiscount(snapshot: CommercialValuesSnapshot) {
   const orderAdjustments = [
     ...snapshot.items.flatMap((item) =>
       item.existing_adjustments.filter(
-        (adjustment) => adjustment.code === MANUAL_ORDER_DISCOUNT_CODE
-      )
+        (adjustment) => adjustment.code === MANUAL_ORDER_DISCOUNT_CODE,
+      ),
     ),
     ...snapshot.shipping_methods.flatMap((shippingMethod) =>
       shippingMethod.existing_adjustments.filter(
-        (adjustment) => adjustment.code === MANUAL_ORDER_DISCOUNT_CODE
-      )
+        (adjustment) => adjustment.code === MANUAL_ORDER_DISCOUNT_CODE,
+      ),
     ),
   ]
   const intent = orderAdjustments.find(
-    (adjustment) => adjustment.discount_intent
+    (adjustment) => adjustment.discount_intent,
   )?.discount_intent
 
   if (intent) {
@@ -250,13 +250,13 @@ function getSnapshotOrderDiscount(snapshot: CommercialValuesSnapshot) {
   const itemAmount = snapshot.items.reduce(
     (total, item) =>
       total + getManualAdjustmentAmount(item, MANUAL_ORDER_DISCOUNT_CODE),
-    0
+    0,
   )
   const shippingAmount = snapshot.shipping_methods.reduce(
     (total, shippingMethod) =>
       total +
       getManualAdjustmentAmount(shippingMethod, MANUAL_ORDER_DISCOUNT_CODE),
-    0
+    0,
   )
   const amount = itemAmount + shippingAmount
 
@@ -305,7 +305,7 @@ function createDraft(snapshot: CommercialValuesSnapshot): DraftState {
     shipping_methods: snapshot.shipping_methods.map((shippingMethod) => {
       const shippingDiscount = getManualDiscount(
         shippingMethod,
-        MANUAL_SHIPPING_DISCOUNT_CODE
+        MANUAL_SHIPPING_DISCOUNT_CODE,
       )
       const draftDiscount = toDraftDiscount(shippingDiscount)
 
@@ -336,7 +336,7 @@ function parseAmount(value: string) {
 
 function parseDiscount(
   type: DraftDiscountType,
-  value: string
+  value: string,
 ): CommercialDiscountIntent | null | undefined {
   if (type === "none") {
     return null
@@ -367,7 +367,7 @@ function parseDiscount(
 function buildPayload(
   draft: DraftState,
   snapshot: CommercialValuesSnapshot,
-  confirmationMode?: "confirm" | "request"
+  confirmationMode?: "confirm" | "request",
 ) {
   const parsedItems = draft.items.map((item) => ({
     discount: parseDiscount(item.discount_type, item.discount_value),
@@ -381,7 +381,7 @@ function buildPayload(
         item.unit_price === undefined ||
         item.discount === undefined ||
         (draft.items[index]?.discount_type !== "none" &&
-          draft.items[index]?.discount_value.trim() === "")
+          draft.items[index]?.discount_value.trim() === ""),
     )
   ) {
     return
@@ -389,12 +389,12 @@ function buildPayload(
 
   const validParsedItems = parsedItems.filter(
     (
-      item
+      item,
     ): item is {
       discount: CommercialDiscountIntent | null
       item_id: string
       unit_price: number
-    } => item.discount !== undefined && item.unit_price !== undefined
+    } => item.discount !== undefined && item.unit_price !== undefined,
   )
 
   if (validParsedItems.length !== parsedItems.length) {
@@ -404,10 +404,10 @@ function buildPayload(
     (shippingMethod) => ({
       discount: parseDiscount(
         shippingMethod.discount_type,
-        shippingMethod.discount_value
+        shippingMethod.discount_value,
       ),
       shipping_method_id: shippingMethod.shipping_method_id,
-    })
+    }),
   )
 
   if (
@@ -415,7 +415,7 @@ function buildPayload(
       (shippingMethod, index) =>
         shippingMethod.discount === undefined ||
         (draft.shipping_methods[index]?.discount_type !== "none" &&
-          draft.shipping_methods[index]?.discount_value.trim() === "")
+          draft.shipping_methods[index]?.discount_value.trim() === ""),
     )
   ) {
     return
@@ -423,11 +423,11 @@ function buildPayload(
 
   const validParsedShippingMethods = parsedShippingMethods.filter(
     (
-      shippingMethod
+      shippingMethod,
     ): shippingMethod is {
       discount: CommercialDiscountIntent | null
       shipping_method_id: string
-    } => shippingMethod.discount !== undefined
+    } => shippingMethod.discount !== undefined,
   )
 
   if (validParsedShippingMethods.length !== parsedShippingMethods.length) {
@@ -445,7 +445,7 @@ function buildPayload(
   }))
   const orderDiscount = parseDiscount(
     draft.order_discount_type,
-    draft.order_discount_value
+    draft.order_discount_value,
   )
   if (
     orderDiscount === undefined ||
@@ -471,17 +471,17 @@ function buildPayload(
 
 function getItemPreview(
   preview: CommercialValuesPreview | undefined,
-  itemId: string
+  itemId: string,
 ) {
   return preview?.items.find((item) => item.item_id === itemId)
 }
 
 function getShippingMethodPreview(
   preview: CommercialValuesPreview | undefined,
-  shippingMethodId: string
+  shippingMethodId: string,
 ) {
   return preview?.shipping_methods.find(
-    (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId
+    (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId,
   )
 }
 
@@ -490,7 +490,7 @@ function getPreviewPayloadKey(payload: CommercialValuesPayload) {
 }
 
 function toPreviewPayload(
-  payload: CommercialValuesPayload
+  payload: CommercialValuesPayload,
 ): CommercialValuesPreviewPayload {
   const {
     confirmation_mode: _confirmationMode,
@@ -516,7 +516,7 @@ function toStableJsonValue(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value)
         .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, entry]) => [key, toStableJsonValue(entry)])
+        .map(([key, entry]) => [key, toStableJsonValue(entry)]),
     )
   }
 
@@ -611,20 +611,20 @@ const CommercialValuesDrawer = ({
     onDraftChange({
       ...draft,
       items: draft.items.map((item) =>
-        item.item_id === itemId ? { ...item, ...patch } : item
+        item.item_id === itemId ? { ...item, ...patch } : item,
       ),
     })
   }
   const updateShippingMethod = (
     shippingMethodId: string,
-    patch: Partial<DraftShippingMethod>
+    patch: Partial<DraftShippingMethod>,
   ) => {
     onDraftChange({
       ...draft,
       shipping_methods: draft.shipping_methods.map((shippingMethod) =>
         shippingMethod.shipping_method_id === shippingMethodId
           ? { ...shippingMethod, ...patch }
-          : shippingMethod
+          : shippingMethod,
       ),
     })
   }
@@ -645,7 +645,7 @@ const CommercialValuesDrawer = ({
                 {formatMoney(
                   snapshot.totals.original_total,
                   snapshot.currency_code,
-                  locale
+                  locale,
                 )}
               </Text>
             </div>
@@ -657,7 +657,7 @@ const CommercialValuesDrawer = ({
                 {formatMoney(
                   preview?.new_total ?? snapshot.totals.current_total,
                   snapshot.currency_code,
-                  locale
+                  locale,
                 )}
               </Text>
             </div>
@@ -676,7 +676,7 @@ const CommercialValuesDrawer = ({
                 {formatMoney(
                   preview?.delta ?? 0,
                   snapshot.currency_code,
-                  locale
+                  locale,
                 )}
               </Text>
             </div>
@@ -703,7 +703,7 @@ const CommercialValuesDrawer = ({
           <div className="flex flex-col gap-3">
             {snapshot.items.map((item) => {
               const draftItem = draft.items.find(
-                (candidate) => candidate.item_id === item.item_id
+                (candidate) => candidate.item_id === item.item_id,
               )
               const itemPreview = getItemPreview(preview, item.item_id)
               const fallbackName = t("orderCommercialValues.item.fallbackName")
@@ -713,7 +713,7 @@ const CommercialValuesDrawer = ({
                   ? t("orderCommercialValues.item.sku", {
                       sku: item.variant_sku,
                     })
-                  : null
+                  : null,
               )
 
               if (!draftItem) {
@@ -768,7 +768,7 @@ const CommercialValuesDrawer = ({
                             itemPreview?.final_line_total ??
                               getDraftLineTotal(draftItem, item.quantity),
                             snapshot.currency_code,
-                            locale
+                            locale,
                           )}
                         </Text>
                       </div>
@@ -833,11 +833,11 @@ const CommercialValuesDrawer = ({
                 const draftShippingMethod = draft.shipping_methods.find(
                   (candidate) =>
                     candidate.shipping_method_id ===
-                    shippingMethod.shipping_method_id
+                    shippingMethod.shipping_method_id,
                 )
                 const shippingMethodPreview = getShippingMethodPreview(
                   preview,
-                  shippingMethod.shipping_method_id
+                  shippingMethod.shipping_method_id,
                 )
 
                 if (!draftShippingMethod) {
@@ -872,7 +872,7 @@ const CommercialValuesDrawer = ({
                               shippingMethod.current_subtotal +
                                 shippingMethod.current_tax_total,
                             snapshot.currency_code,
-                            locale
+                            locale,
                           )}
                         </Text>
                       </div>
@@ -894,7 +894,7 @@ const CommercialValuesDrawer = ({
                                   discountType === "none"
                                     ? ""
                                     : draftShippingMethod.discount_value,
-                              }
+                              },
                             )
                           }}
                           onValueChange={(discountValue) => {
@@ -902,7 +902,7 @@ const CommercialValuesDrawer = ({
                               shippingMethod.shipping_method_id,
                               {
                                 discount_value: discountValue,
-                              }
+                              },
                             )
                           }}
                           type={draftShippingMethod.discount_type}
@@ -950,7 +950,7 @@ const CommercialValuesDrawer = ({
                 {formatMoney(
                   preview?.order_discount_total ?? 0,
                   snapshot.currency_code,
-                  locale
+                  locale,
                 )}
               </Text>
             </div>
@@ -1009,7 +1009,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
     enabled: !!order?.id,
     queryFn: async () =>
       sdk.client.fetch<CommercialValuesSnapshotResponse>(
-        `/admin/orders/${order?.id}/commercial-values`
+        `/admin/orders/${order?.id}/commercial-values`,
       ),
     queryKey,
   })
@@ -1031,7 +1031,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
         {
           body: payload,
           method: "POST",
-        }
+        },
       ),
     onError: (err, variables) => {
       if (latestPreviewKey.current !== variables.key) {
@@ -1041,7 +1041,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
       toast.error(
         err instanceof Error
           ? err.message
-          : t("orderCommercialValues.errors.recalculateFailed")
+          : t("orderCommercialValues.errors.recalculateFailed"),
       )
     },
     onSuccess: (response, variables) => {
@@ -1060,20 +1060,20 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
         {
           body: payload,
           method: "POST",
-        }
+        },
       ),
     onError: (err) => {
       toast.error(
         err instanceof Error
           ? err.message
-          : t("orderCommercialValues.errors.saveFailed")
+          : t("orderCommercialValues.errors.saveFailed"),
       )
     },
     onSuccess: async (response) => {
       toast.success(
         response.commercial_values.mode === "requested"
           ? t("orderCommercialValues.status.requested")
-          : t("orderCommercialValues.status.confirmed")
+          : t("orderCommercialValues.status.confirmed"),
       )
       setIsOpen(false)
       setPreview(undefined)
@@ -1149,7 +1149,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
               ? formatMoney(
                   snapshot.totals.current_total,
                   snapshot.currency_code,
-                  locale
+                  locale,
                 )
               : t("orderCommercialValues.status.loading")}
           </Text>

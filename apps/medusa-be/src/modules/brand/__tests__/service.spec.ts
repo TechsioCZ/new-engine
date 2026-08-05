@@ -32,17 +32,17 @@ moduleIntegrationTestRunner<BrandModuleService>({
 
         expect(persisted.gpsr_contact_email).toBe("contact@example.com")
         expect(persisted.gpsr_european_reseller_contact_email).toBe(
-          "reseller@example.com"
+          "reseller@example.com",
         )
         expect(
-          persisted.gpsr_european_reseller_manufacturing_company_name
+          persisted.gpsr_european_reseller_manufacturing_company_name,
         ).toBe("Reseller Co")
         expect(persisted.gpsr_european_reseller_postal_address).toBe(
-          "Reseller Street 1"
+          "Reseller Street 1",
         )
         expect(persisted.gpsr_manufactured_outside_eu).toBe(true)
         expect(persisted.gpsr_manufacturing_company_name).toBe(
-          "Manufacturer Co"
+          "Manufacturer Co",
         )
         expect(persisted.gpsr_postal_address).toBe("Main Street 1")
       })
@@ -64,20 +64,20 @@ moduleIntegrationTestRunner<BrandModuleService>({
 
         const attributes = await service.listBrandAttributes(
           { brand_id: brand.id },
-          { relations: ["attributeType"] }
+          { relations: ["attributeType"] },
         )
         const values = new Map(
           attributes.map((attribute) => [
             attribute.attributeType.name,
             attribute.value,
-          ])
+          ]),
         )
 
         expect(values).toEqual(
           new Map([
             ["Country", "SK"],
             ["Founded", "2020"],
-          ])
+          ]),
         )
       })
 
@@ -103,7 +103,7 @@ moduleIntegrationTestRunner<BrandModuleService>({
         await service.setBrandAttributes(brand.id, [])
         const [deleted] = await service.listBrandAttributes(
           { brand_id: brand.id },
-          { withDeleted: true }
+          { withDeleted: true },
         )
 
         expect(deleted).toBeDefined()
@@ -121,7 +121,7 @@ moduleIntegrationTestRunner<BrandModuleService>({
 
         const [restored] = await service.listBrandAttributes(
           { brand_id: brand.id },
-          { relations: ["attributeType"] }
+          { relations: ["attributeType"] },
         )
 
         expect(restored).toBeDefined()
@@ -146,10 +146,10 @@ moduleIntegrationTestRunner<BrandModuleService>({
         ])
         const originalAttributes = await service.listBrandAttributes(
           { brand_id: brand.id },
-          { relations: ["attributeType"] }
+          { relations: ["attributeType"] },
         )
         const legacyAttribute = originalAttributes.find(
-          (attribute) => attribute.attributeType.name === "Legacy"
+          (attribute) => attribute.attributeType.name === "Legacy",
         )
 
         expect(legacyAttribute).toBeDefined()
@@ -159,7 +159,7 @@ moduleIntegrationTestRunner<BrandModuleService>({
         }
 
         await service.softDeleteBrandAttributeTypes(
-          legacyAttribute.attributeType.id
+          legacyAttribute.attributeType.id,
         )
         await service.setBrandAttributes(brand.id, [
           { name: "Country", value: "SK" },
@@ -170,13 +170,13 @@ moduleIntegrationTestRunner<BrandModuleService>({
           {
             relations: ["attributeType"],
             withDeleted: true,
-          }
+          },
         )
         const preservedLegacyAttribute = attributes.find(
-          (attribute) => attribute.id === legacyAttribute.id
+          (attribute) => attribute.id === legacyAttribute.id,
         )
         const countryAttribute = attributes.find(
-          (attribute) => attribute.attributeType.name === "Country"
+          (attribute) => attribute.attributeType.name === "Country",
         )
 
         expect(preservedLegacyAttribute?.deleted_at).toBeNull()

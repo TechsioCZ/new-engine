@@ -15,11 +15,11 @@ interface DeleteEmployeesWorkflowInput {
 export const deleteEmployeesWorkflow = createWorkflow(
   "delete-employees",
   (
-    input: WorkflowData<DeleteEmployeesWorkflowInput>
+    input: WorkflowData<DeleteEmployeesWorkflowInput>,
   ): WorkflowResponse<string> => {
     validateCompanyActiveStep(input.company_id)
     deleteEmployeesStep(input)
 
     return new WorkflowResponse("Company customers deleted")
-  }
+  },
 )

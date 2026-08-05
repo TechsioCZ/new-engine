@@ -30,5 +30,5 @@ figma.connect(
         lg: "lg",
       }),
     },
-  }
+  },
 )

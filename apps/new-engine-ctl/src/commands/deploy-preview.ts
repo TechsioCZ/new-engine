@@ -49,13 +49,13 @@ function buildDeployPreviewInput(options: Record<string, unknown>) {
 }
 
 async function writeDeployPreviewOutputs(
-  result: Awaited<ReturnType<typeof executeDeployPreview>>
+  result: Awaited<ReturnType<typeof executeDeployPreview>>,
 ): Promise<void> {
   const deploymentsJson = JSON.stringify({
     services: result.response.deployments,
   })
   const runtimeProviderOutputsJson = JSON.stringify(
-    result.runtimeProviderOutputs
+    result.runtimeProviderOutputs,
   )
 
   maskGitHubValue(result.previewRandomOnceSecretsJson)
@@ -71,59 +71,59 @@ async function writeDeployPreviewOutputs(
   await appendGitHubOutput("environment_id", result.response.environment_id)
   await appendGitHubOutput(
     "environment_created",
-    String(result.response.environment_created)
+    String(result.response.environment_created),
   )
   await appendGitHubOutput(
     "environment_ready",
-    String(result.response.environment_ready)
+    String(result.response.environment_ready),
   )
   await appendGitHubOutput(
     "environment_warning_count",
-    `${result.response.environment_warnings.length}`
+    `${result.response.environment_warnings.length}`,
   )
   await appendGitHubOutput(
     "requested_services_csv",
-    result.response.requested_services_csv
+    result.response.requested_services_csv,
   )
   await appendGitHubOutput(
     "deploy_services_csv",
-    result.response.deploy_services_csv
+    result.response.deploy_services_csv,
   )
   await appendGitHubOutput(
     "target_commit_sha",
-    result.response.target_commit_sha ?? ""
+    result.response.target_commit_sha ?? "",
   )
   await appendGitHubOutput(
     "last_deployed_commit_sha",
-    result.response.last_deployed_commit_sha ?? ""
+    result.response.last_deployed_commit_sha ?? "",
   )
   await appendGitHubOutput(
     "preview_cloned_service_ids_csv",
-    result.response.preview_cloned_service_ids_csv
+    result.response.preview_cloned_service_ids_csv,
   )
   await appendGitHubOutput(
     "preview_excluded_service_ids_csv",
-    result.response.preview_excluded_service_ids_csv
+    result.response.preview_excluded_service_ids_csv,
   )
   await appendGitHubOutput(
     "env_override_service_ids_csv",
-    result.response.env_override_service_ids_csv
+    result.response.env_override_service_ids_csv,
   )
   await appendGitHubOutput(
     "triggered_services_csv",
-    result.response.triggered_services_csv
+    result.response.triggered_services_csv,
   )
   await appendGitHubOutput(
     "preview_random_once_secrets_json",
-    result.previewRandomOnceSecretsJson
+    result.previewRandomOnceSecretsJson,
   )
   await appendGitHubOutput(
     "runtime_provider_output_keys_csv",
-    Object.keys(result.runtimeProviderOutputs).join(",")
+    Object.keys(result.runtimeProviderOutputs).join(","),
   )
   await appendGitHubOutput(
     "runtime_provider_outputs_json",
-    runtimeProviderOutputsJson
+    runtimeProviderOutputsJson,
   )
   await appendGitHubOutput("deployments_json", deploymentsJson)
 }
@@ -151,12 +151,12 @@ export function createDeployPreviewCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
     .action(async (options) => {
       const input = buildDeployPreviewInput(options)

@@ -14,7 +14,7 @@ export const readAccountSetupRequested = (metadata: unknown): boolean => {
 
 export const buildAccountSetupRequestedMetadata = (
   metadata: unknown,
-  requested: boolean
+  requested: boolean,
 ): Record<string, unknown> => ({
   ...(isRecord(metadata) ? metadata : {}),
   [ACCOUNT_SETUP_REQUESTED_METADATA_KEY]: requested,

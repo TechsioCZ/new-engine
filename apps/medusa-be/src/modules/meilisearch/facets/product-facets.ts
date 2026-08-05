@@ -43,17 +43,17 @@ export const FORM_FACET_DEFINITIONS: FormFacetDefinition[] = [
 ]
 
 export const STATUS_FACET_IDS = new Set(
-  STATUS_FACET_DEFINITIONS.map((item) => item.id)
+  STATUS_FACET_DEFINITIONS.map((item) => item.id),
 )
 export const FORM_FACET_IDS = new Set(
-  FORM_FACET_DEFINITIONS.map((item) => item.id)
+  FORM_FACET_DEFINITIONS.map((item) => item.id),
 )
 
 export const STATUS_FACET_LABEL_BY_ID = new Map(
-  STATUS_FACET_DEFINITIONS.map((item) => [item.id, item.label])
+  STATUS_FACET_DEFINITIONS.map((item) => [item.id, item.label]),
 )
 export const FORM_FACET_LABEL_BY_ID = new Map(
-  FORM_FACET_DEFINITIONS.map((item) => [item.id, item.label])
+  FORM_FACET_DEFINITIONS.map((item) => [item.id, item.label]),
 )
 
 export interface ProductFacetDocument {
@@ -86,7 +86,7 @@ const asArray = (value: unknown): unknown[] => {
 
 const getStringField = (
   value: UnknownRecord | null,
-  field: string
+  field: string,
 ): string | undefined => {
   const rawValue = value?.[field]
   return typeof rawValue === "string" && rawValue.trim() ? rawValue : undefined
@@ -127,7 +127,7 @@ const resolveCategoryPaths = (document: UnknownRecord): string[] => {
   const categoryPaths = asArray(metadata?.["category_paths"])
 
   return categoryPaths.filter(
-    (value): value is string => typeof value === "string"
+    (value): value is string => typeof value === "string",
   )
 }
 
@@ -190,7 +190,7 @@ const resolveActiveFlagCodes = (document: UnknownRecord): string[] => {
 
 const resolveStatusKeywordCodes = (document: UnknownRecord): string[] => {
   const searchableText = normalizeForMatch(
-    `${typeof document["title"] === "string" ? document["title"] : ""} ${resolveCategoryPaths(document).join(" ")}`
+    `${typeof document["title"] === "string" ? document["title"] : ""} ${resolveCategoryPaths(document).join(" ")}`,
   )
   const codes: string[] = []
 
@@ -213,7 +213,7 @@ const resolveStatusFacetIds = (document: UnknownRecord): string[] => {
 
   ids.push(
     ...resolveActiveFlagCodes(document),
-    ...resolveStatusKeywordCodes(document)
+    ...resolveStatusKeywordCodes(document),
   )
 
   return dedupe(ids)
@@ -221,7 +221,7 @@ const resolveStatusFacetIds = (document: UnknownRecord): string[] => {
 
 const resolveFormFacetIds = (document: UnknownRecord): string[] => {
   const searchableText = normalizeForMatch(
-    `${typeof document["title"] === "string" ? document["title"] : ""} ${resolveCategoryPaths(document).join(" ")}`
+    `${typeof document["title"] === "string" ? document["title"] : ""} ${resolveCategoryPaths(document).join(" ")}`,
   )
 
   const ids: string[] = []
@@ -366,7 +366,7 @@ const parsePositiveFacetPrice = (value: unknown): number | undefined => {
 }
 
 const resolveTopOfferFacetPrice = (
-  topOffer: UnknownRecord | null
+  topOffer: UnknownRecord | null,
 ): number | undefined =>
   [
     topOffer?.["current_price"],
@@ -377,7 +377,7 @@ const resolveTopOfferFacetPrice = (
     .find((price) => price !== undefined)
 
 const resolveVariantMinFacetPrice = (
-  variants: unknown[]
+  variants: unknown[],
 ): number | undefined => {
   let minPrice: number | undefined
 
@@ -409,7 +409,7 @@ const resolveVariantMinFacetPrice = (
 const resolveFacetPrice = (document: UnknownRecord): number | undefined => {
   const metadata = asRecord(document["metadata"])
   const topOfferPrice = resolveTopOfferFacetPrice(
-    asRecord(metadata?.["top_offer"])
+    asRecord(metadata?.["top_offer"]),
   )
 
   return (
@@ -418,7 +418,7 @@ const resolveFacetPrice = (document: UnknownRecord): number | undefined => {
 }
 
 export const buildProductFacetDocument = (
-  document: unknown
+  document: unknown,
 ): ProductFacetDocument => {
   const product = asRecord(document) ?? {}
 
@@ -439,7 +439,7 @@ export const isBrandFacetId = (id: string): boolean =>
   id.startsWith(BRAND_FACET_PREFIX)
 
 export const extractBrandHandleFromFacetId = (
-  id: string
+  id: string,
 ): string | undefined => {
   if (!isBrandFacetId(id)) {
     return
@@ -452,7 +452,7 @@ export const isIngredientFacetId = (id: string): boolean =>
   id.startsWith(INGREDIENT_FACET_PREFIX)
 
 export const extractIngredientHandleFromFacetId = (
-  id: string
+  id: string,
 ): string | undefined => {
   if (!isIngredientFacetId(id)) {
     return

@@ -23,13 +23,13 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     toProductVariantMeasurementDetailResponse({
       measurement,
       productVariantId,
-    })
+    }),
   )
 }
 
 export async function POST(
   req: MedusaRequest<AdminSetProductVariantMeasurementSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) {
   const productId = req.params["id"] ?? ""
   const productVariantId = req.params["variant_id"] ?? ""
@@ -48,7 +48,7 @@ export async function POST(
     toProductVariantMeasurementDetailResponse({
       measurement,
       productVariantId,
-    })
+    }),
   )
 }
 

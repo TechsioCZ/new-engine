@@ -31,13 +31,13 @@ export const symmyProcessStockBatchStep = createStep(
         payload.createOwners,
         created,
         existingLevels,
-        results
+        results,
       )
       mapper.fillResultsFromLevels(
         payload.updateOwners,
         updated,
         existingLevels,
-        results
+        results,
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error"
@@ -63,5 +63,5 @@ export const symmyProcessStockBatchStep = createStep(
       updated: updatedCount,
     }
     return new StepResponse(output)
-  }
+  },
 )

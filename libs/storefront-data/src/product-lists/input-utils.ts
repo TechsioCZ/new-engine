@@ -7,7 +7,7 @@ import type {
 } from "./types"
 
 export const stripListInput = <TInput extends ProductListListInputBase>(
-  input: TInput
+  input: TInput,
 ) => {
   const {
     enabled: _enabled,
@@ -20,7 +20,7 @@ export const stripListInput = <TInput extends ProductListListInputBase>(
 }
 
 export const stripDetailInput = <TInput extends ProductListDetailInputBase>(
-  input: TInput
+  input: TInput,
 ) => {
   const { enabled: _enabled, customerId: _customerId, ...params } = input
 
@@ -31,7 +31,7 @@ export const createDefaultListParams = <
   TInput extends ProductListListInputBase,
 >(
   input: TInput,
-  defaultPageSize: number
+  defaultPageSize: number,
 ) => {
   const params = stripListInput(input) as Record<string, unknown>
 
@@ -45,7 +45,7 @@ export const createDefaultListParams = <
       offset: input.offset,
       page: input.page,
     }),
-    defaultPageSize
+    defaultPageSize,
   )
 
   return compactRecord({
@@ -60,7 +60,7 @@ export const withCustomerScope = <
   TInput extends { customerId?: string | null },
 >(
   params: TParams,
-  input: TInput
+  input: TInput,
 ) => ({
   ...(params as object),
   customerId: input.customerId ?? null,

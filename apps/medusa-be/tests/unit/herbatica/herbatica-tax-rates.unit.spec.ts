@@ -33,14 +33,14 @@ describe("Herbatica tax-rate seed policy", () => {
         },
       ],
       ["sk", "cz", "hu"],
-      HERBATICA_TAX_RATE_CONFIG
+      HERBATICA_TAX_RATE_CONFIG,
     )
 
     expect(
       HERBATICA_DEFAULT_TAX_RATES.map(({ countryCode, rate }) => [
         countryCode,
         rate,
-      ])
+      ]),
     ).toStrictEqual([
       ["sk", 23],
       ["cz", 19],
@@ -103,7 +103,7 @@ describe("Herbatica tax-rate seed policy", () => {
         },
       ],
       ["sk", "cz"],
-      HERBATICA_TAX_RATE_CONFIG
+      HERBATICA_TAX_RATE_CONFIG,
     )
 
     expect(mapEntries(targets.productRateGroupsByCountry)).toStrictEqual([
@@ -121,13 +121,13 @@ describe("Herbatica tax-rate seed policy", () => {
 
   it("names grouped product override rates by country and VAT rate", () => {
     expect(
-      buildProductTaxRateIdentity("sk", 19, HERBATICA_TAX_RATE_CONFIG)
+      buildProductTaxRateIdentity("sk", 19, HERBATICA_TAX_RATE_CONFIG),
     ).toStrictEqual({
       code: "vat_sk_product_19",
       name: "VAT SK Product 19%",
     })
     expect(
-      buildProductTaxRateIdentity("sk", 5, HERBATICA_TAX_RATE_CONFIG)
+      buildProductTaxRateIdentity("sk", 5, HERBATICA_TAX_RATE_CONFIG),
     ).toStrictEqual({
       code: "vat_sk_product_5",
       name: "VAT SK Product 5%",
@@ -147,7 +147,7 @@ describe("Herbatica tax-rate seed policy", () => {
         },
       ],
       ["cz"],
-      HERBATICA_TAX_RATE_CONFIG
+      HERBATICA_TAX_RATE_CONFIG,
     )
 
     expect(mapEntries(targets.defaultRatesByCountry)).toStrictEqual([

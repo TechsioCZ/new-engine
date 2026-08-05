@@ -214,7 +214,7 @@ Footer.Title = function FooterTitle({ children, className }: FooterTitleProps) {
 
 function FooterLink(props: FooterNativeLinkProps): ReactNode
 function FooterLink<T extends ElementType>(
-  props: FooterCustomLinkProps<T>
+  props: FooterCustomLinkProps<T>,
 ): ReactNode
 function FooterLink<T extends ElementType = "a">({
   children,

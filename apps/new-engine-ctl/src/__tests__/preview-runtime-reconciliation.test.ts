@@ -70,7 +70,7 @@ test("service reconciliation rejects local-only payload service", () => {
       previewGitBranch: "ci/pipeline-smoke-20260428",
       serviceIds: ["payload"],
       stackInputs,
-    })
+    }),
   ).toThrow("Service is not deployable or missing Zane metadata: payload")
 })
 
@@ -100,7 +100,7 @@ test("preview shared env sync rejects empty literal values before operator calls
       deployServiceIds: ["medusa-be"],
       manifest,
       stackInputs: inputs,
-    })
+    }),
   ).toThrow("preview shared env MEDUSA_APP_DB_PASSWORD")
 })
 

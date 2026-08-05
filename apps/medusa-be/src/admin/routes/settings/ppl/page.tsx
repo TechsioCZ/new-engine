@@ -85,7 +85,7 @@ interface FieldConfig {
 
 const getPlaceholder = (
   isCleared: boolean | undefined,
-  fieldConfig: FieldConfig
+  fieldConfig: FieldConfig,
 ): string => {
   if (isCleared) {
     return "Value will be cleared"
@@ -210,7 +210,7 @@ const PplSettingsPage = () => {
 
   const updateField = (
     field: keyof PplConfigInput,
-    value: string | boolean
+    value: string | boolean,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     // If user types in a cleared field, unmark it

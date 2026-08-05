@@ -17,7 +17,7 @@ import { resolveVariantInventoryState } from "@/lib/storefront/product-availabil
 export type HerbatikaProductCardProps = HerbatikaProductCardBaseProps & {
   isAdding: boolean
   onAddToCart: (
-    product: HerbatikaProductCardBaseProps["product"]
+    product: HerbatikaProductCardBaseProps["product"],
   ) => Promise<void> | void
   descriptionOverride?: string | null
 }

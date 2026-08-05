@@ -25,7 +25,7 @@ moduleIntegrationTestRunner<ProductListModuleService>({
             access_type: "private",
             description: null,
             metadata: null,
-          })
+          }),
         )
       })
     })
@@ -44,7 +44,7 @@ moduleIntegrationTestRunner<ProductListModuleService>({
             access_type: "private",
             description: null,
             metadata: null,
-          })
+          }),
         )
       })
 
@@ -65,7 +65,7 @@ moduleIntegrationTestRunner<ProductListModuleService>({
             access_type: "public",
             description: "Visible product list",
             metadata: { source: "test" },
-          })
+          }),
         )
       })
 
@@ -83,7 +83,7 @@ moduleIntegrationTestRunner<ProductListModuleService>({
           service.createCustomProductList({
             title: "Shared Shelf",
             access_type: "shared" as never,
-          })
+          }),
         ).rejects.toMatchObject({
           type: MedusaError.Types.INVALID_DATA,
           message: "Unsupported product list access type: shared",
@@ -111,7 +111,7 @@ moduleIntegrationTestRunner<ProductListModuleService>({
             sort_order: 3,
             note: "Already owned",
             metadata: { source: "favorite-test" },
-          })
+          }),
         )
       })
 
@@ -136,12 +136,12 @@ moduleIntegrationTestRunner<ProductListModuleService>({
             sort_order: 4,
             note: "Compare later",
             metadata: { source: "custom-test" },
-          })
+          }),
         )
 
         const incremented = await service.incrementProductListItemQuantity(
           item.id,
-          3
+          3,
         )
         const stored = await service.retrieveProductListItem(item.id)
 
@@ -166,7 +166,7 @@ moduleIntegrationTestRunner<ProductListModuleService>({
             sort_order: 0,
             note: null,
             metadata: null,
-          })
+          }),
         )
       })
 
@@ -180,7 +180,7 @@ moduleIntegrationTestRunner<ProductListModuleService>({
             list_id: list.id,
             list_type: "custom",
             quantity: 0,
-          })
+          }),
         ).rejects.toMatchObject({
           type: MedusaError.Types.INVALID_DATA,
           message: "quantity must be a positive integer",
@@ -198,7 +198,7 @@ moduleIntegrationTestRunner<ProductListModuleService>({
             list_type: "custom",
             quantity: 1,
             sort_order: -1,
-          })
+          }),
         ).rejects.toMatchObject({
           type: MedusaError.Types.INVALID_DATA,
           message: "sort_order must be a non-negative integer",

@@ -4,7 +4,7 @@ import type {
 } from "../steps"
 
 export function buildInventoryItemsInput(
-  products: CreateProductsStepInput
+  products: CreateProductsStepInput,
 ): CreateInventoryLevelsStepInput["inventoryItems"] {
   const inventoryItems: CreateInventoryLevelsStepInput["inventoryItems"] = []
 

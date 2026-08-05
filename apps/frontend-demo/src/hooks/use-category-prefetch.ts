@@ -63,7 +63,7 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
   const delayedPrefetch = (
     categoryIds: string[],
     delay = 800,
-    prefetchId?: string
+    prefetchId?: string,
   ) => {
     const id = prefetchId || `prefetch_${Date.now()}_${Math.random()}`
 

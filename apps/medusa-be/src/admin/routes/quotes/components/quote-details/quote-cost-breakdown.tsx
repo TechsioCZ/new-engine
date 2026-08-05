@@ -21,7 +21,7 @@ export const CostBreakdown = ({ order }: { order: AdminOrder }) => {
       />
       {(order.shipping_methods || [])
         .sort((m1, m2) =>
-          (m1.created_at as string).localeCompare(m2.created_at as string)
+          (m1.created_at as string).localeCompare(m2.created_at as string),
         )
         .map((sm) => (
           <div key={sm.id}>

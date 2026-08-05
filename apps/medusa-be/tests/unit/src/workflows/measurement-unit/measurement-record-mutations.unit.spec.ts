@@ -24,7 +24,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
     }
   },
   createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
+    Object.assign(invoke, { compensate }),
   ),
 }))
 
@@ -35,21 +35,21 @@ vi.mock(import("../../../../../src/utils/measurement-units"), () => ({
 interface MockStep {
   (
     input: unknown,
-    stepContext: { container: Record<string, never> }
+    stepContext: { container: Record<string, never> },
   ): Promise<{
     compensateInput: unknown
     payload: unknown
   }>
   compensate: (
     input: unknown,
-    stepContext: { container: Record<string, never> }
+    stepContext: { container: Record<string, never> },
   ) => Promise<void>
 }
 
 const asMockStep = (candidate: unknown): MockStep => {
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function"
+      "Expected the imported workflow step to be a mocked function",
     )
   }
 
@@ -77,7 +77,7 @@ describe("measurement record mutation compensation", () => {
         measurement_unit_id: "unit_1",
         product_id: "prod_1",
       },
-      context
+      context,
     )
 
     expect(result.compensateInput).toStrictEqual({
@@ -108,7 +108,7 @@ describe("measurement record mutation compensation", () => {
         measurement_unit_id: "unit_1",
         product_id: "prod_1",
       },
-      context
+      context,
     )
 
     await step.compensate(result.compensateInput, context)
@@ -133,7 +133,7 @@ describe("measurement record mutation compensation", () => {
         measurement_unit_id: "unit_1",
         product_id: "prod_1",
       },
-      context
+      context,
     )
 
     expect(service.restoreProductMeasurements).toHaveBeenCalledWith([
@@ -168,7 +168,7 @@ describe("measurement record mutation compensation", () => {
           product_variant_id: "variant_2",
         },
       ],
-      context
+      context,
     )
 
     await step.compensate(result.compensateInput, context)

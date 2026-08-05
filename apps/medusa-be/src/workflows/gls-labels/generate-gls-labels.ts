@@ -3,8 +3,8 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 
-import { generateGLSLabelPdfStep } from './steps/generate-gls-label-pdf';
-import type { GenerateGLSLabelPdfStepOutput } from './steps/generate-gls-label-pdf';
+import { generateGLSLabelPdfStep } from "./steps/generate-gls-label-pdf"
+import type { GenerateGLSLabelPdfStepOutput } from "./steps/generate-gls-label-pdf"
 
 export interface GenerateGLSLabelsWorkflowInput {
   order_ids: string[]

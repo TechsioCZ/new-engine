@@ -20,7 +20,7 @@ export interface CreateAddressData {
 }
 
 export async function createAddress(
-  data: CreateAddressData
+  data: CreateAddressData,
 ): Promise<StoreCustomerAddress> {
   try {
     const response = await sdk.store.customer.createAddress(data)
@@ -44,7 +44,7 @@ export async function createAddress(
 
 export async function updateAddress(
   addressId: string,
-  data: Partial<CreateAddressData>
+  data: Partial<CreateAddressData>,
 ): Promise<StoreCustomerAddress> {
   try {
     const response = await sdk.store.customer.updateAddress(addressId, data)
@@ -54,7 +54,7 @@ export async function updateAddress(
     }
 
     const updatedAddress = response.customer.addresses.find(
-      (addr) => addr.id === addressId
+      (addr) => addr.id === addressId,
     )
 
     if (!updatedAddress) {
@@ -86,7 +86,7 @@ export interface UpdateCustomerData {
 }
 
 export async function updateCustomer(
-  data: UpdateCustomerData
+  data: UpdateCustomerData,
 ): Promise<StoreCustomer> {
   try {
     const response = await sdk.store.customer.update(data)

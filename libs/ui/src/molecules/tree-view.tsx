@@ -168,7 +168,7 @@ function useTreeViewNodeContext() {
   const context = useContext(TreeViewNodeContext)
   if (!context) {
     throw new Error(
-      "TreeView node components must be used within a node provider"
+      "TreeView node components must be used within a node provider",
     )
   }
   return context

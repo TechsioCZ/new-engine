@@ -18,7 +18,7 @@ interface EnsureApprovalSettingsCompensation {
 
 const getLatestSetting = (
   current: ModuleApprovalSettings | undefined,
-  candidate: ModuleApprovalSettings
+  candidate: ModuleApprovalSettings,
 ) => {
   if (!current) {
     return candidate
@@ -31,7 +31,7 @@ export const ensureApprovalSettingsStep = createStep(
   "ensure-approval-settings",
   async (
     companyIds: string[],
-    { container }
+    { container },
   ): Promise<
     StepResponse<
       EnsureApprovalSettingsStepResult,
@@ -47,7 +47,7 @@ export const ensureApprovalSettingsStep = createStep(
         {
           created_ids: [],
           restored_ids: [],
-        }
+        },
       )
     }
 
@@ -59,7 +59,7 @@ export const ensureApprovalSettingsStep = createStep(
       },
       {
         withDeleted: true,
-      }
+      },
     )
     const activeSettingsByCompanyId = new Map<string, ModuleApprovalSettings>()
     const deletedSettingsByCompanyId = new Map<string, ModuleApprovalSettings>()
@@ -70,8 +70,8 @@ export const ensureApprovalSettingsStep = createStep(
           setting.company_id,
           getLatestSetting(
             deletedSettingsByCompanyId.get(setting.company_id),
-            setting
-          )
+            setting,
+          ),
         )
         continue
       }
@@ -80,8 +80,8 @@ export const ensureApprovalSettingsStep = createStep(
         setting.company_id,
         getLatestSetting(
           activeSettingsByCompanyId.get(setting.company_id),
-          setting
-        )
+          setting,
+        ),
       )
     }
 
@@ -105,7 +105,7 @@ export const ensureApprovalSettingsStep = createStep(
         !(
           activeSettingsByCompanyId.has(companyId) ||
           deletedSettingsByCompanyId.has(companyId)
-        )
+        ),
     )
     const createdSettings = missingCompanyIds.length
       ? await approvalModuleService.createApprovalSettings(
@@ -113,7 +113,7 @@ export const ensureApprovalSettingsStep = createStep(
             company_id: companyId,
             requires_admin_approval: false,
             requires_sales_manager_approval: false,
-          }))
+          })),
         )
       : []
 
@@ -125,12 +125,12 @@ export const ensureApprovalSettingsStep = createStep(
       {
         created_ids: createdSettings.map((setting) => setting.id),
         restored_ids: restoredSettingIds,
-      }
+      },
     )
   },
   async (
     input: EnsureApprovalSettingsCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (!(input?.created_ids.length || input?.restored_ids.length)) {
       return
@@ -146,5 +146,5 @@ export const ensureApprovalSettingsStep = createStep(
     if (input.restored_ids.length) {
       await approvalModuleService.softDeleteApprovalSettings(input.restored_ids)
     }
-  }
+  },
 )

@@ -15,5 +15,5 @@ export const ProductProductAttributeLink = defineLink(
   {
     isList: true,
     readOnly: true,
-  }
+  },
 )

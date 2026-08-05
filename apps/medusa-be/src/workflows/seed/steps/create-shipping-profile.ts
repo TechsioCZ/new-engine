@@ -72,5 +72,5 @@ export const createDefaultShippingProfileStep = createStep(
       result: [finalShippingProfile],
       shippingProfile: finalShippingProfile,
     })
-  }
+  },
 )

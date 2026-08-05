@@ -44,5 +44,5 @@ figma.connect(
         danger: "danger",
       }),
     },
-  }
+  },
 )

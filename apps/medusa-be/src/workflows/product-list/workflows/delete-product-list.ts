@@ -33,7 +33,7 @@ export const deleteProductListWorkflow = createWorkflow(
     })
     const listId = transform(
       { input },
-      ({ input: workflowInput }) => workflowInput.list_id
+      ({ input: workflowInput }) => workflowInput.list_id,
     )
     const currentList = retrieveProductListStep(listId)
     const ownershipInput = transform({ input }, ({ input: workflowInput }) => ({
@@ -51,7 +51,7 @@ export const deleteProductListWorkflow = createWorkflow(
           [PRODUCT_LIST_MODULE]: {
             product_list_item_id: itemId,
           },
-        }))
+        })),
     )
 
     removeRemoteLinkStep(itemLinkDeleteInput).config({
@@ -65,7 +65,7 @@ export const deleteProductListWorkflow = createWorkflow(
         [PRODUCT_LIST_MODULE]: {
           product_list_id: workflowInput.list_id,
         },
-      })
+      }),
     )
 
     removeRemoteLinkStep(customerLinkDeleteInput).config({
@@ -79,5 +79,5 @@ export const deleteProductListWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(deleted)
-  }
+  },
 )

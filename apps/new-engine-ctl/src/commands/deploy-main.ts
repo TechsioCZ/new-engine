@@ -24,12 +24,12 @@ export function createDeployMainCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
     .action(async (options) => {
       const input = deployMainCommandInputSchema.parse({
@@ -63,7 +63,7 @@ export function createDeployMainCommand(): Command {
         services: result.response.deployments,
       })
       const runtimeProviderOutputsJson = JSON.stringify(
-        result.runtimeProviderOutputs
+        result.runtimeProviderOutputs,
       )
 
       for (const output of Object.values(result.runtimeProviderOutputs)) {
@@ -76,40 +76,40 @@ export function createDeployMainCommand(): Command {
       await appendGitHubOutput("lane", "main")
       await appendGitHubOutput(
         "environment_name",
-        result.response.environment_name
+        result.response.environment_name,
       )
       await appendGitHubOutput("environment_id", result.response.environment_id)
       await appendGitHubOutput(
         "environment_created",
-        String(result.response.environment_created)
+        String(result.response.environment_created),
       )
       await appendGitHubOutput(
         "requested_services_csv",
-        result.response.requested_services_csv
+        result.response.requested_services_csv,
       )
       await appendGitHubOutput(
         "deploy_services_csv",
-        result.response.deploy_services_csv
+        result.response.deploy_services_csv,
       )
       await appendGitHubOutput(
         "env_override_service_ids_csv",
-        result.response.env_override_service_ids_csv
+        result.response.env_override_service_ids_csv,
       )
       await appendGitHubOutput(
         "triggered_services_csv",
-        result.response.triggered_services_csv
+        result.response.triggered_services_csv,
       )
       await appendGitHubOutput(
         "skipped_services_csv",
-        result.response.skipped_services_csv
+        result.response.skipped_services_csv,
       )
       await appendGitHubOutput(
         "runtime_provider_output_keys_csv",
-        Object.keys(result.runtimeProviderOutputs).join(",")
+        Object.keys(result.runtimeProviderOutputs).join(","),
       )
       await appendGitHubOutput(
         "runtime_provider_outputs_json",
-        runtimeProviderOutputsJson
+        runtimeProviderOutputsJson,
       )
       await appendGitHubOutput("deployments_json", deploymentsJson)
 

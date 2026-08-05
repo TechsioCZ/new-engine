@@ -21,7 +21,7 @@ const brand = (id: string, deletedAt?: string): Brand => ({
 
 const option = (
   productId: string,
-  assignedBrand?: Brand
+  assignedBrand?: Brand,
 ): BrandProductOption => ({
   ...(assignedBrand === undefined ? {} : { assigned_brand: assignedBrand }),
   product: {
@@ -38,7 +38,7 @@ describe("Brand DataTable state", () => {
       product_99: true,
     })
     expect(fromRowSelection(selection)).toStrictEqual(
-      new Set(["product_1", "product_99"])
+      new Set(["product_1", "product_99"]),
     )
   })
 
@@ -46,17 +46,17 @@ describe("Brand DataTable state", () => {
     expect(
       isProductOptionSelectable(
         option("product_1", brand("brand_1")),
-        "brand_1"
-      )
+        "brand_1",
+      ),
     ).toBeTruthy()
     expect(
       isProductOptionSelectable(
         option("product_2", brand("brand_2")),
-        "brand_1"
-      )
+        "brand_1",
+      ),
     ).toBeFalsy()
     expect(
-      isProductOptionSelectable(option("product_3"), "brand_1")
+      isProductOptionSelectable(option("product_3"), "brand_1"),
     ).toBeTruthy()
   })
 
@@ -64,7 +64,7 @@ describe("Brand DataTable state", () => {
     expect(isBrandSelectable(brand("brand_1"), undefined, false)).toBeTruthy()
     expect(isBrandSelectable(brand("brand_1"), "brand_1", false)).toBeFalsy()
     expect(
-      isBrandSelectable(brand("brand_1", "2026-07-20"), undefined, false)
+      isBrandSelectable(brand("brand_1", "2026-07-20"), undefined, false),
     ).toBeFalsy()
     expect(isBrandSelectable(brand("brand_1"), undefined, true)).toBeFalsy()
   })
@@ -74,7 +74,7 @@ describe("Brand DataTable state", () => {
 
     expect(shouldSubmitProductBrandSelection(inactiveBrand)).toBeFalsy()
     expect(
-      shouldSubmitProductBrandSelection(inactiveBrand, "brand_2")
+      shouldSubmitProductBrandSelection(inactiveBrand, "brand_2"),
     ).toBeTruthy()
     expect(shouldSubmitProductBrandSelection(brand("brand_1"))).toBeTruthy()
   })
@@ -83,8 +83,8 @@ describe("Brand DataTable state", () => {
     expect(
       buildProductSelectionDelta(
         ["prod_keep", "prod_remove"],
-        ["prod_keep", "prod_add", "prod_add"]
-      )
+        ["prod_keep", "prod_add", "prod_add"],
+      ),
     ).toStrictEqual({
       add: ["prod_add"],
       remove: ["prod_remove"],

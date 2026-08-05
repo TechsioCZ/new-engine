@@ -166,7 +166,7 @@ describe("POST /admin/companies/:id/approval-settings", () => {
       filters: { company_id: "comp_1" },
     })
     expect(workflowMocks.updateApprovalSettingsWorkflow).toHaveBeenCalledWith(
-      req.scope
+      req.scope,
     )
     expect(workflowMocks.ensureApprovalSettingsRun).not.toHaveBeenCalled()
     expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
@@ -180,7 +180,7 @@ describe("POST /admin/companies/:id/approval-settings", () => {
     expect(workflowMocks.updateApprovalSettingsRun).not.toHaveBeenCalledWith(
       expect.objectContaining({
         input: expect.objectContaining({ id: "apprset_from_body" }),
-      })
+      }),
     )
     expect(res.json).toHaveBeenCalledWith({
       approvalSettings: [
@@ -225,10 +225,10 @@ describe("POST /admin/companies/:id/approval-settings", () => {
       input: ["comp_1"],
     })
     expect(workflowMocks.ensureApprovalSettingsWorkflow).toHaveBeenCalledWith(
-      req.scope
+      req.scope,
     )
     expect(workflowMocks.updateApprovalSettingsWorkflow).toHaveBeenCalledWith(
-      req.scope
+      req.scope,
     )
     expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
       input: {

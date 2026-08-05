@@ -9,5 +9,5 @@ import { symmyUpdateWebhookConfigStep } from "./steps/update-webhook-config"
 export const symmyUpdateWebhookConfigWorkflow = createWorkflow(
   "symmy-update-webhook-config",
   (input: UpdateSymmyWebhookConfigInput) =>
-    new WorkflowResponse(symmyUpdateWebhookConfigStep(input))
+    new WorkflowResponse(symmyUpdateWebhookConfigStep(input)),
 )
