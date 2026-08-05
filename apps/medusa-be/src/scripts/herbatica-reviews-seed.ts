@@ -15,7 +15,7 @@ import {
 
 const REVIEW_SOURCE_PREFIX = "herbatica-review"
 const REVIEW_BATCH_SIZE = 100
-const VARIANT_ID_QUERY_REGEX = /[?&]variantId=([^&#]+)/
+const VARIANT_ID_QUERY_REGEX = /[?&]variantId=(?<variantId>[^&#]+)/u
 
 interface ParsedReviewProduct {
   gtins: string[]
@@ -64,9 +64,9 @@ const isReviewRecord = (value: unknown): value is ReviewRecord =>
   typeof value["id"] === "string" &&
   typeof value["product_id"] === "string"
 
-const toValidDate = (value?: string) => {
-  if (!value) {
-    return
+const toValidDate = (value?: string): Date | undefined => {
+  if (value === undefined || value.length === 0) {
+    return undefined
   }
 
   const date = new Date(value)
@@ -80,22 +80,24 @@ const parseRating = (value?: string) => {
     : undefined
 }
 
-const getUrlVariantId = (url?: string) => {
-  if (!url) {
-    return
+const getUrlVariantId = (url?: string): string | undefined => {
+  if (url === undefined || url.length === 0) {
+    return undefined
   }
 
   try {
     const parsedUrl = new URL(url)
     return normalizeInlineText(parsedUrl.searchParams.get("variantId") ?? "")
   } catch {
-    return normalizeInlineText(VARIANT_ID_QUERY_REGEX.exec(url)?.[1])
+    return normalizeInlineText(
+      VARIANT_ID_QUERY_REGEX.exec(url)?.groups?.["variantId"],
+    )
   }
 }
 
 const parseReviewProducts = (source: string): ParsedReviewProduct[] => {
   const productsSource = extractFirstElementContent(source, "products")
-  if (!productsSource) {
+  if (productsSource === undefined || productsSource.length === 0) {
     return []
   }
 
@@ -109,11 +111,15 @@ const parseReviewProducts = (source: string): ParsedReviewProduct[] => {
     return {
       gtins: extractElements(product.inner, "gtin")
         .map((gtin) => normalizeInlineText(gtin.inner))
-        .filter((gtin): gtin is string => Boolean(gtin)),
+        .filter(
+          (gtin): gtin is string => gtin !== undefined && gtin.length > 0,
+        ),
       skus: extractElements(product.inner, "sku")
         .map((sku) => normalizeInlineText(sku.inner))
-        .filter((sku): sku is string => Boolean(sku)),
-      ...(variantId ? { variantId } : {}),
+        .filter((sku): sku is string => sku !== undefined && sku.length > 0),
+      ...(variantId === undefined || variantId.length === 0
+        ? {}
+        : { variantId }),
     }
   })
 }
@@ -126,7 +132,12 @@ const parseHerbaticaReviewsXml = (xml: string): ParsedReview[] => {
     const content = normalizeText(extractFirstText(review.inner, "content"))
     const rating = parseRating(extractFirstText(review.inner, "overall"))
 
-    if (!(id && content && rating)) {
+    if (
+      id === undefined ||
+      id.length === 0 ||
+      content.length === 0 ||
+      rating === undefined
+    ) {
       continue
     }
 
@@ -145,8 +156,12 @@ const parseHerbaticaReviewsXml = (xml: string): ParsedReview[] => {
       id,
       products: parseReviewProducts(review.inner),
       rating,
-      ...(reviewerName ? { reviewerName } : {}),
-      ...(timestamp ? { timestamp } : {}),
+      ...(reviewerName === undefined || reviewerName.length === 0
+        ? {}
+        : { reviewerName }),
+      ...(timestamp === undefined || timestamp.length === 0
+        ? {}
+        : { timestamp }),
     })
   }
 
@@ -167,7 +182,11 @@ const addMapValue = (
   productId: null | string | undefined,
 ) => {
   const normalizedKey = normalizeInlineText(key ?? undefined)
-  if (!(normalizedKey && productId)) {
+  const hasNormalizedKey =
+    normalizedKey !== undefined && normalizedKey.length > 0
+  const hasProductId =
+    productId !== null && productId !== undefined && productId.length > 0
+  if (!(hasNormalizedKey && hasProductId)) {
     return
   }
 
@@ -222,7 +241,7 @@ const addMatchedProducts = (
 ) => {
   for (const value of values) {
     const normalized = normalizeInlineText(value)
-    if (!normalized) {
+    if (normalized === undefined || normalized.length === 0) {
       continue
     }
 
@@ -249,12 +268,12 @@ const resolveReviewProductIds = (
 
 const resolveReviewsXmlPath = (args?: string[]) => {
   const argPath = normalizeInlineText(args?.[0])
-  if (argPath) {
+  if (argPath !== undefined && argPath.length > 0) {
     return argPath
   }
 
   const envPath = normalizeInlineText(process.env[HERBATICA_REVIEWS_XML_ENV])
-  if (envPath) {
+  if (envPath !== undefined && envPath.length > 0) {
     return envPath
   }
 
@@ -275,7 +294,11 @@ const getReviewCustomerId = (reviewId: string) =>
   `${REVIEW_SOURCE_PREFIX}:${reviewId}`
 
 const getReviewerFirstName = (reviewerName?: string) => {
-  if (!reviewerName || reviewerName.toLowerCase() === "anonym") {
+  if (
+    reviewerName === undefined ||
+    reviewerName.length === 0 ||
+    reviewerName.toLowerCase() === "anonym"
+  ) {
     return null
   }
 
@@ -294,23 +317,23 @@ export const importHerbaticaReviews = async ({
   logger.info("Starting Herbatica reviews import from XML feed...")
   logger.info(`Using reviews XML feed: ${xmlPath}`)
 
-  const reviews = parseHerbaticaReviewsXml(await readXmlSource(xmlPath))
+  const xml = await readXmlSource(xmlPath)
+  const reviews = parseHerbaticaReviewsXml(xml)
   const indexes = await buildVariantProductIndexes(container)
   const reviewService = container.resolve<ProductReviewModuleService>(
     PRODUCT_REVIEW_MODULE,
   )
-  const existingReviews = (
-    await reviewService.listReviews(
-      {
-        customer_id: {
-          $like: `${REVIEW_SOURCE_PREFIX}:%`,
-        },
+  const listedReviews = await reviewService.listReviews(
+    {
+      customer_id: {
+        $like: `${REVIEW_SOURCE_PREFIX}:%`,
       },
-      {
-        select: ["id", "customer_id", "product_id"],
-      },
-    )
-  ).filter(isReviewRecord)
+    },
+    {
+      select: ["id", "customer_id", "product_id"],
+    },
+  )
+  const existingReviews = listedReviews.filter(isReviewRecord)
   const existingKeys = new Set(
     existingReviews.map(
       (review) => `${review.customer_id}:${review.product_id}`,
@@ -354,12 +377,11 @@ export const importHerbaticaReviews = async ({
     }
   }
 
-  for (const reviewBatch of chunkReviewBatches(
-    pendingReviews,
-    REVIEW_BATCH_SIZE,
-  )) {
-    await reviewService.createReviews(reviewBatch)
-  }
+  await Promise.all(
+    chunkReviewBatches(pendingReviews, REVIEW_BATCH_SIZE).map(
+      async (reviewBatch) => await reviewService.createReviews(reviewBatch),
+    ),
+  )
 
   logger.info(
     `Herbatica reviews import completed: parsed=${reviews.length}, matched=${matchedReviews}, unmatched=${unmatchedReviews}, created=${pendingReviews.length}, skipped_existing=${skippedExisting}`,

@@ -42,32 +42,41 @@ import type {
 } from "../contracts/verify.js"
 import { verifyResponseSchema } from "../contracts/verify.js"
 
-const trailingSlashesPattern = /\/+$/
+const trailingSlashesPattern = /\/+$/u
 
-function extractOperatorMessage(body: unknown): string | undefined {
-  if (!body || typeof body !== "object") {
-    return
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const normalizeMessage = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined
   }
 
-  const record = body as Record<string, unknown>
-  const directMessage = record.message
-  if (typeof directMessage === "string" && directMessage.trim()) {
-    return directMessage.trim()
+  const message = value.trim()
+  return message.length > 0 ? message : undefined
+}
+
+const extractOperatorMessage = (body: unknown): string | undefined => {
+  if (!isRecord(body)) {
+    return undefined
   }
 
-  const errorField = record.error
-  if (typeof errorField === "string" && errorField.trim()) {
-    return errorField.trim()
+  const directMessage = normalizeMessage(body.message)
+  if (directMessage !== undefined) {
+    return directMessage
   }
 
-  if (errorField && typeof errorField === "object") {
-    const nestedMessage = (errorField as Record<string, unknown>).message
-    if (typeof nestedMessage === "string" && nestedMessage.trim()) {
-      return nestedMessage.trim()
-    }
+  const errorField = body.error
+  const errorMessage = normalizeMessage(errorField)
+  if (errorMessage !== undefined) {
+    return errorMessage
   }
 
-  return
+  if (isRecord(errorField)) {
+    return normalizeMessage(errorField.message)
+  }
+
+  return undefined
 }
 
 export class ZaneOperatorClient {
@@ -120,9 +129,9 @@ export class ZaneOperatorClient {
     if (!response.ok) {
       const operatorMessage = extractOperatorMessage(responseBody)
       throw new Error(
-        operatorMessage
-          ? `zane-operator request returned HTTP ${response.status}: ${operatorMessage}`
-          : `zane-operator request returned HTTP ${response.status}`,
+        operatorMessage === undefined
+          ? `zane-operator request returned HTTP ${response.status}`
+          : `zane-operator request returned HTTP ${response.status}: ${operatorMessage}`,
       )
     }
 
@@ -181,8 +190,10 @@ export class ZaneOperatorClient {
       }
     }[]
   }): Promise<ResolveEnvironmentResponse> {
-    return this.#postJson("/v1/zane/environments/resolve", payload, (value) =>
-      resolveEnvironmentResponseSchema.parse(value),
+    return await this.#postJson(
+      "/v1/zane/environments/resolve",
+      payload,
+      (value) => resolveEnvironmentResponseSchema.parse(value),
     )
   }
 
@@ -190,7 +201,7 @@ export class ZaneOperatorClient {
     project_slug: string
     environment_name: string
   }): Promise<PreviewCommitStateResponse> {
-    return this.#postJson(
+    return await this.#postJson(
       "/v1/zane/preview-commit-state/read",
       payload,
       (value) => previewCommitStateResponseSchema.parse(value),
@@ -204,7 +215,7 @@ export class ZaneOperatorClient {
     last_deployed_commit_sha?: string | undefined
     baseline_complete?: boolean
   }): Promise<PreviewCommitStateResponse> {
-    return this.#postJson(
+    return await this.#postJson(
       "/v1/zane/preview-commit-state/write",
       payload,
       (value) => previewCommitStateResponseSchema.parse(value),
@@ -219,13 +230,13 @@ export class ZaneOperatorClient {
       value?: string | undefined
       persist_to?: string | undefined
       persisted_env_var?: string | undefined
-      targets: Array<{
+      targets: {
         service_slug: string
         env_var: string
-      }>
+      }[]
     }[]
   }): Promise<PreviewRandomOnceSecretsResponse> {
-    return this.#postJson(
+    return await this.#postJson(
       "/v1/zane/preview-random-once-secrets/sync",
       payload,
       (value) => previewRandomOnceSecretsResponseSchema.parse(value),
@@ -237,7 +248,7 @@ export class ZaneOperatorClient {
     environment_name: string
     variables: PreviewSharedEnvVariableInput[]
   }): Promise<PreviewSharedEnvSyncResponse> {
-    return this.#postJson(
+    return await this.#postJson(
       "/v1/zane/preview-shared-env/sync",
       payload,
       (value) => previewSharedEnvSyncResponseSchema.parse(value),
@@ -250,13 +261,13 @@ export class ZaneOperatorClient {
     services: {
       service_id: string
       service_slug: string
-      env: Array<{
+      env: {
         env_var: string
         source: PreviewSharedEnvVariableInput["source"]
-      }>
+      }[]
     }[]
   }): Promise<ApplyEnvOverridesResponse> {
-    return this.#postJson(
+    return await this.#postJson(
       "/v1/zane/preview-service-env/sync",
       payload,
       (value) => applyEnvOverridesResponseSchema.parse(value),
@@ -266,15 +277,17 @@ export class ZaneOperatorClient {
   async resolveTargets(
     payload: ResolveTargetsPayload,
   ): Promise<ResolveTargetsResponse> {
-    return this.#postJson("/v1/zane/deploy/resolve-targets", payload, (value) =>
-      resolveTargetsResponseSchema.parse(value),
+    return await this.#postJson(
+      "/v1/zane/deploy/resolve-targets",
+      payload,
+      (value) => resolveTargetsResponseSchema.parse(value),
     )
   }
 
   async applyEnvOverrides(
     payload: ApplyEnvOverridesPayload,
   ): Promise<ApplyEnvOverridesResponse> {
-    return this.#postJson(
+    return await this.#postJson(
       "/v1/zane/deploy/apply-env-overrides",
       payload,
       (value) => applyEnvOverridesResponseSchema.parse(value),
@@ -287,7 +300,7 @@ export class ZaneOperatorClient {
     targets: ResolveTargetsResponse["services"]
     git_commit_sha?: string | undefined
   }): Promise<TriggerResponse> {
-    return this.#postJson("/v1/zane/deploy/trigger", payload, (value) =>
+    return await this.#postJson("/v1/zane/deploy/trigger", payload, (value) =>
       triggerResponseSchema.parse(value),
     )
   }
@@ -304,13 +317,15 @@ export class ZaneOperatorClient {
   async runRuntimeProvider(
     payload: RuntimeProviderRunPayload,
   ): Promise<RuntimeProviderRunResponse> {
-    return this.#postJson("/v1/zane/runtime-providers/run", payload, (value) =>
-      runtimeProviderRunResponseSchema.parse(value),
+    return await this.#postJson(
+      "/v1/zane/runtime-providers/run",
+      payload,
+      (value) => runtimeProviderRunResponseSchema.parse(value),
     )
   }
 
   async verifyDeploy(payload: VerifyDeployPayload): Promise<VerifyResponse> {
-    return this.#postJson("/v1/zane/deploy/verify", payload, (value) =>
+    return await this.#postJson("/v1/zane/deploy/verify", payload, (value) =>
       verifyResponseSchema.parse(value),
     )
   }
