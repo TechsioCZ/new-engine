@@ -28,7 +28,10 @@
         "^@rslib/core$",
         "^@typescript-eslint/(parser|typescript-estree)$",
         "^client-only$",
+        "^eslint-plugin-github$",
         "^eslint-plugin-react-hooks$",
+        "^eslint-plugin-sonarjs$",
+        "^oxlint-plugin-react-doctor$",
         "^server-only$",
         "^yaml$"
       ]

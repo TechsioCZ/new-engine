@@ -3,7 +3,6 @@ import {
   Alert,
   Button,
   Container,
-  createDataTableColumnHelper,
   Heading,
   IconButton,
   Input,
@@ -83,28 +82,37 @@ const formatDate = (date: string | undefined, locale?: string) => {
   }).format(new Date(date))
 }
 
-const brandColumnHelper = createDataTableColumnHelper<BrandAttributeTypeBrand>()
-
 const getBrandColumns = (
   t: TFunction<"brands">,
   locale: string,
 ): DataTableColumnDef<BrandAttributeTypeBrand>[] => [
-  brandColumnHelper.accessor("title", {
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown => brand.title,
     cell: ({ row }) => (
       <Link to={`/brands/${row.original.id}`}>{row.original.title}</Link>
     ),
     header: t("columns.brand"),
-  }),
-  brandColumnHelper.accessor("handle", {
+    id: "title",
+  },
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown => brand.handle,
     header: t("columns.handle"),
-  }),
-  brandColumnHelper.accessor("attribute_value", {
+    id: "handle",
+  },
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown =>
+      brand.attribute_value,
     header: t("columns.value"),
-  }),
-  brandColumnHelper.accessor("active_product_count", {
+    id: "attribute_value",
+  },
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown =>
+      brand.active_product_count,
     header: t("columns.products"),
-  }),
-  brandColumnHelper.accessor("deleted_at", {
+    id: "active_product_count",
+  },
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown => brand.deleted_at,
     cell: ({ row }) => {
       const deleted = isDeleted(row.original.deleted_at)
       return (
@@ -114,11 +122,14 @@ const getBrandColumns = (
       )
     },
     header: t("columns.status"),
-  }),
-  brandColumnHelper.accessor("updated_at", {
+    id: "deleted_at",
+  },
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown => brand.updated_at,
     cell: ({ row }) => formatDate(row.original.updated_at, locale),
     header: t("columns.updated"),
-  }),
+    id: "updated_at",
+  },
 ]
 
 const BrandAttributeDetailPage = () => {

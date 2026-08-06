@@ -305,7 +305,8 @@ const buildBrandColumns = ({
   selectedId: string | undefined
   t: TranslateKey
 }): DataTableColumnDef<Brand>[] => [
-  brandColumnHelper.accessor("title", {
+  {
+    accessorFn: (brand: Brand): unknown => brand.title,
     cell: ({ row }) => (
       <span
         className={
@@ -318,10 +319,13 @@ const buildBrandColumns = ({
       </span>
     ),
     header: t("columns.brand"),
-  }),
-  brandColumnHelper.accessor("handle", {
+    id: "title",
+  },
+  {
+    accessorFn: (brand: Brand): unknown => brand.handle,
     header: t("columns.handle"),
-  }),
+    id: "handle",
+  },
   brandColumnHelper.display({
     cell: ({ row }) =>
       row.original.id === selectedId ? (

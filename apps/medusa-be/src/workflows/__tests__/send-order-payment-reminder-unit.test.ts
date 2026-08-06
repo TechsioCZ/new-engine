@@ -3,12 +3,9 @@ import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
 vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) => {
-  const workflowsSdk = await importOriginal()
-
-  return {
-    ...workflowsSdk,
-    createStep: vi.fn<typeof workflowsSdk.createStep>(workflowsSdk.createStep),
-  }
+  const workflowsSdk = { ...(await importOriginal()) }
+  vi.spyOn(workflowsSdk, "createStep")
+  return workflowsSdk
 })
 
 const orderReceiptMock = vi.hoisted(() =>
