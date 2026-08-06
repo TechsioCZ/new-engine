@@ -1,31 +1,95 @@
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const workflowMocks = vi.hoisted(() => ({
-  ensureApprovalSettingsRun: vi.fn(),
-  ensureApprovalSettingsWorkflow: vi.fn(),
-  updateApprovalSettingsRun: vi.fn(),
-  updateApprovalSettingsWorkflow: vi.fn(),
-}))
+import type { StoreUpdateApprovalSettingsType } from "../../../../../../src/api/store/companies/validators"
+
+const workflowMocks = vi.hoisted(() => {
+  const ensureApprovalSettingsRun = vi.fn<() => Promise<unknown>>()
+  const updateApprovalSettingsRun = vi.fn<() => Promise<unknown>>()
+
+  return {
+    ensureApprovalSettingsRun,
+    ensureApprovalSettingsWorkflow:
+      vi.fn<(scope: unknown) => { run: typeof ensureApprovalSettingsRun }>(),
+    updateApprovalSettingsRun,
+    updateApprovalSettingsWorkflow:
+      vi.fn<(scope: unknown) => { run: typeof updateApprovalSettingsRun }>(),
+  }
+})
 
 vi.mock(import("../../../../../../src/workflows/approval/workflows"), () => ({
   ensureApprovalSettingsWorkflow: workflowMocks.ensureApprovalSettingsWorkflow,
   updateApprovalSettingsWorkflow: workflowMocks.updateApprovalSettingsWorkflow,
 }))
 
-const createMockRequest = ({
-  graph,
-  params = { id: "comp_1" },
-  validatedBody = { requires_admin_approval: true },
-}: {
-  graph: ReturnType<typeof vi.fn>
-  params?: Record<string, string>
-  validatedBody?: Record<string, unknown>
-}) =>
-  ({
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock as `unknown` first (instead of
+ * the target type) avoids requiring every property of the huge Node
+ * request/response interfaces while still validating the shape the route
+ * handler actually reads from at runtime.
+ */
+const assertMockShape: <T>(
+  candidate: unknown,
+  requiredKeys: readonly (keyof T)[],
+) => asserts candidate is T = (candidate, requiredKeys) => {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${String(key)}`)
+    }
+  }
+}
+
+const REQUEST_KEYS = ["params", "scope", "validatedBody"] as const
+
+const createGraphMock = () =>
+  vi.fn<
+    (args: Record<string, unknown>) => Promise<{
+      data: Record<string, unknown>[]
+    }>
+  >()
+
+type MockSendResponse = MedusaResponse & {
+  send: ReturnType<typeof vi.fn>
+  status: ReturnType<typeof vi.fn>
+}
+
+const createMockResponse = (): MockSendResponse => {
+  const candidate: unknown = {
+    send: vi.fn<() => unknown>().mockReturnThis(),
+    status: vi.fn<(code: number) => unknown>().mockReturnThis(),
+  }
+
+  assertMockShape<MockSendResponse>(candidate, ["send", "status"])
+  return candidate
+}
+
+const createMockRequest = <T>(
+  options: {
+    graph: ReturnType<typeof createGraphMock>
+    params?: Record<string, string>
+    validatedBody?: Record<string, unknown>
+  },
+  requiredKeys: readonly (keyof T)[],
+): T => {
+  const {
+    graph,
+    params = { id: "comp_1" },
+    validatedBody = { requires_admin_approval: true },
+  } = options
+
+  const candidate: unknown = {
     params,
     scope: {
-      resolve: vi.fn((key: string) => {
+      resolve: vi.fn<(key: string) => unknown>((key) => {
         if (key === ContainerRegistrationKeys.QUERY) {
           return { graph }
         }
@@ -34,13 +98,11 @@ const createMockRequest = ({
       }),
     },
     validatedBody,
-  }) as any
+  }
 
-const createMockResponse = () =>
-  ({
-    send: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  }) as any
+  assertMockShape<T>(candidate, requiredKeys)
+  return candidate
+}
 
 describe("POST /store/companies/:id/approval-settings", () => {
   beforeEach(() => {
@@ -59,11 +121,13 @@ describe("POST /store/companies/:id/approval-settings", () => {
   it("creates missing approval settings before applying the update", async () => {
     const { POST } =
       await import("../../../../../../src/api/store/companies/[id]/approval-settings/route")
-    const graph = vi.fn().mockResolvedValue({ data: [] })
+    const graph = createGraphMock().mockResolvedValue({ data: [] })
     workflowMocks.ensureApprovalSettingsRun.mockResolvedValue({
       result: [{ company_id: "comp_1", id: "apprset_created" }],
     })
-    const req = createMockRequest({ graph })
+    const req = createMockRequest<
+      AuthenticatedMedusaRequest<StoreUpdateApprovalSettingsType>
+    >({ graph }, REQUEST_KEYS)
     const res = createMockResponse()
 
     await POST(req, res)
@@ -77,6 +141,22 @@ describe("POST /store/companies/:id/approval-settings", () => {
     expect(workflowMocks.updateApprovalSettingsWorkflow).toHaveBeenCalledWith(
       req.scope,
     )
+  })
+
+  it("applies the update using the newly created approval settings id", async () => {
+    const { POST } =
+      await import("../../../../../../src/api/store/companies/[id]/approval-settings/route")
+    const graph = createGraphMock().mockResolvedValue({ data: [] })
+    workflowMocks.ensureApprovalSettingsRun.mockResolvedValue({
+      result: [{ company_id: "comp_1", id: "apprset_created" }],
+    })
+    const req = createMockRequest<
+      AuthenticatedMedusaRequest<StoreUpdateApprovalSettingsType>
+    >({ graph }, REQUEST_KEYS)
+    const res = createMockResponse()
+
+    await POST(req, res)
+
     expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
       input: {
         company_id: "comp_1",
@@ -91,10 +171,12 @@ describe("POST /store/companies/:id/approval-settings", () => {
   it("updates the existing approval settings record", async () => {
     const { POST } =
       await import("../../../../../../src/api/store/companies/[id]/approval-settings/route")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = createGraphMock().mockResolvedValue({
       data: [{ company_id: "comp_1", id: "apprset_1" }],
     })
-    const req = createMockRequest({ graph })
+    const req = createMockRequest<
+      AuthenticatedMedusaRequest<StoreUpdateApprovalSettingsType>
+    >({ graph }, REQUEST_KEYS)
     const res = createMockResponse()
 
     await POST(req, res)
