@@ -27,7 +27,7 @@ if (isIntegration) {
 
 const unitTestPatterns = [
   "tests/unit/**/*.{spec,test}.ts",
-  "src/api/**/__tests__/**/*.unit.{spec,test}.ts",
+  "src/api/**/__tests__/**/*.{unit.spec,test}.ts",
   "src/migration-scripts/**/__tests__/**/*.unit.{spec,test}.ts",
   "src/modules/**/__tests__/**/*.unit.{spec,test}.ts",
   "src/workflows/**/__tests__/**/*.unit.{spec,test}.ts",
