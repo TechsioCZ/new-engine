@@ -17,9 +17,9 @@ export const generateMetadata =  async ({
   params,
   searchParams,
 }: Args): Promise<Metadata> =>
-  generatePageMetadata({ config, params, searchParams })
+  await generatePageMetadata({ config, params, searchParams })
 
-const NotFound =  async ({ params, searchParams }: Args) =>
-  NotFoundPage({ config, importMap, params, searchParams })
+const notFound =  async ({ params, searchParams }: Args) =>
+  await NotFoundPage({ config, importMap, params, searchParams })
 
-export default NotFound
+export default notFound

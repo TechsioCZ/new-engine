@@ -10,18 +10,16 @@ interface Args {
   params: Promise<{
     segments: string[]
   }>
-  searchParams: Promise<{
-    [key: string]: string | string[]
-  }>
+  searchParams: Promise<Record<string, string | string[]>>
 }
 
 export const generateMetadata =  async ({
   params,
   searchParams,
 }: Args): Promise<Metadata> =>
-  generatePageMetadata({ config, params, searchParams })
+  await generatePageMetadata({ config, params, searchParams })
 
-const Page =  async ({ params, searchParams }: Args) =>
-  RootPage({ config, importMap, params, searchParams })
+const page =  async ({ params, searchParams }: Args) =>
+  await RootPage({ config, importMap, params, searchParams })
 
-export default Page
+export default page

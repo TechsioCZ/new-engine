@@ -1,7 +1,7 @@
+import { isRecord } from "@techsio/std/object"
 import type { Endpoint } from "payload"
 
 import { getCategoryDoc } from "../utils/doc-selectors"
-import type { CategoryDoc } from "../utils/doc-selectors"
 import {
   buildJsonResponse,
   getLocaleFromRequest,
@@ -12,9 +12,30 @@ const DEFAULT_MAX_PAGES = 500
 
 /** Minimal page record used to group by category. */
 interface PageDoc {
+  category?: unknown
+  slug: string | null | undefined
   title: string | null
-  slug?: string | null
-  category?: number | CategoryDoc | null
+}
+
+const isNullableString = (value: unknown): value is string | null =>
+  value === null || typeof value === "string"
+
+const isOptionalNullableString = (
+  value: unknown,
+): value is string | null | undefined =>
+  value === undefined || isNullableString(value)
+
+const parsePageDoc = (value: unknown): PageDoc | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const { category, slug, title } = value
+  if (!isNullableString(title) || !isOptionalNullableString(slug)) {
+    return null
+  }
+
+  return { category, slug, title }
 }
 
 /** Endpoint returning page categories grouped with their pages. */
@@ -26,23 +47,23 @@ export const pageCategoriesWithPagesEndpoint: Endpoint = {
     const pagesResult = await req.payload.find({
       collection: "pages",
       depth: 1,
-      pagination: false,
       limit: DEFAULT_MAX_PAGES,
-      ...(locale ? { locale } : {}),
+      ...(locale === undefined ? {} : { locale }),
+      pagination: false,
+      req,
+      select: {
+        category: true,
+        slug: true,
+        title: true,
+      },
       where: {
         status: { equals: "published" },
-        ...(categorySlug
-          ? {
+        ...(categorySlug === undefined
+          ? {}
+          : {
               "category.slug": { equals: categorySlug },
-            }
-          : {}),
+            }),
       },
-      select: {
-        title: true,
-        slug: true,
-        category: true,
-      },
-      req,
     })
 
     const categoriesById = new Map<
@@ -54,24 +75,33 @@ export const pageCategoriesWithPagesEndpoint: Endpoint = {
         pages: { title: string | null; slug?: string | null }[]
       }
     >()
-    for (const page of pagesResult.docs as PageDoc[]) {
-      const category = getCategoryDoc(page.category)
-      if (!category) {
-        continue
+    const pageDocs: unknown = pagesResult.docs
+    if (!Array.isArray(pageDocs)) {
+      throw new TypeError(
+        "Payload pages response did not contain a document list",
+      )
+    }
+
+    for (const value of pageDocs) {
+      const page = parsePageDoc(value)
+      if (page !== null) {
+        const category = getCategoryDoc(page.category)
+        if (category !== null) {
+          const entry = categoriesById.get(category.id) ?? {
+            ...category,
+            pages: [],
+          }
+          entry.pages.push({
+            title: page.title,
+            ...(page.slug === undefined ? {} : { slug: page.slug }),
+          })
+          categoriesById.set(category.id, entry)
+        }
       }
-      const entry = categoriesById.get(category.id) ?? {
-        ...category,
-        pages: [],
-      }
-      entry.pages.push({
-        title: page.title,
-        ...(page.slug !== undefined ? { slug: page.slug } : {}),
-      })
-      categoriesById.set(category.id, entry)
     }
 
     return buildJsonResponse(req, {
-      categories: Array.from(categoriesById.values()),
+      categories: [...categoriesById.values()],
     })
   },
   method: "get",

@@ -6,7 +6,7 @@
   "compilerOptions": {
     "composite": false,
     "incremental": false,
-    "moduleSuffixes": [".strict", ""],
+    "moduleSuffixes": ["-strict", ""],
     "noEmit": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

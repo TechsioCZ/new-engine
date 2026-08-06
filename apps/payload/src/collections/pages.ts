@@ -1,4 +1,5 @@
 import { lexicalHTMLField } from "@payloadcms/richtext-lexical"
+import { isRecord } from "@techsio/std/object"
 import type { CollectionConfig } from "payload"
 
 import { requireAuth } from "../lib/access/require-auth"
@@ -79,30 +80,40 @@ export const Pages: CollectionConfig = {
     afterDelete: [invalidatePagesCache],
     afterRead: [
       ({ doc, req }) => {
-        if (!shouldReturnHtmlForRequest(req)) {
-          return doc
+        const sourceDoc: unknown = doc
+        if (!shouldReturnHtmlForRequest(req) || !isRecord(sourceDoc)) {
+          return sourceDoc
         }
 
-        if (doc.contentHTML !== undefined) {
-          const { contentHTML, ...rest } = doc
-          return {
-            ...rest,
-            content: contentHTML,
-          }
-        }
-
-        return doc
+        const { contentHTML, ...rest } = sourceDoc
+        return contentHTML === undefined
+          ? sourceDoc
+          : {
+              ...rest,
+              content: contentHTML,
+            }
       },
     ],
     beforeValidate: [
       ({ data, req }) => {
-        if (data?.title && !data?.slug) {
+        if (!isRecord(data)) {
+          return data
+        }
+
+        const { slug: existingSlug, title } = data
+        if (
+          title !== undefined &&
+          (typeof existingSlug === "string"
+            ? existingSlug === ""
+            : !isRecord(existingSlug))
+        ) {
+          const { locale } = req
           const slug = generateSlugFromTitle(
-            data.title,
-            req?.locale ? { locale: req.locale } : {},
+            title,
+            locale === undefined || locale === "all" ? {} : { locale },
           )
-          if (slug) {
-            data.slug = slug
+          if (slug !== "") {
+            Reflect.set(data, "slug", slug)
           }
         }
 

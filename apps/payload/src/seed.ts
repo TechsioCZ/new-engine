@@ -2,32 +2,36 @@ import { createHash } from "node:crypto"
 
 import { getPayload } from "payload"
 
+import { getEnv } from "./lib/utils/env"
 import type { Article } from "./payload-types"
 import config from "./payload.config"
 
 type SeedPayload = Awaited<ReturnType<typeof getPayload>>
-type PayloadId = number
 type SeedRichText = Article["content"]
 
-const requireEnv = (name: string): string => {
-  const value = process.env[name]
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`)
-  }
+const SEED_ADMIN_EMAIL = getEnv("PAYLOAD_SSO_USER_EMAIL", true)
+const SEED_ADMIN_API_KEY = getEnv("PAYLOAD_API_KEY", true)
+const SSO_PRIVATE_KEY = getEnv("PAYLOAD_SSO_PRIVATE_KEY", true)
 
-  return value
-}
-
-const SEED_ADMIN_EMAIL = requireEnv("PAYLOAD_SSO_USER_EMAIL")
-const SEED_ADMIN_API_KEY = requireEnv("PAYLOAD_API_KEY")
-const SSO_PRIVATE_KEY = requireEnv("PAYLOAD_SSO_PRIVATE_KEY")
-
-const normalizeKey = (value: string) => value.replaceAll(/\\n/g, "\n").trim()
+const normalizeKey = (value: string) => value.replaceAll("\\n", "\n").trim()
 
 const deriveSeedPassword = (privateKey: string) =>
   createHash("sha256").update(normalizeKey(privateKey)).digest("hex")
 
 const SEED_ADMIN_PASSWORD = deriveSeedPassword(SSO_PRIVATE_KEY)
+
+const ARTICLES_COLLECTION = "articles"
+const ARTICLE_CATEGORIES_COLLECTION = "article-categories"
+const HERO_CAROUSELS_COLLECTION = "hero-carousels"
+const MEDIA_COLLECTION = "media"
+const PAGES_COLLECTION = "pages"
+const PAGE_CATEGORIES_COLLECTION = "page-categories"
+
+const {
+  FEATURE_PAYLOAD_ARTICLES_ENABLED,
+  FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED,
+  FEATURE_PAYLOAD_PAGES_ENABLED,
+} = process.env
 
 const ONE_PIXEL_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lNnJYQAAAABJRU5ErkJggg==",
@@ -42,23 +46,23 @@ const paragraph = (text: string): SeedRichText => ({
   root: {
     children: [
       {
-        type: "paragraph",
-        format: "",
-        indent: 0,
-        version: 1,
-        textFormat: 0,
-        textStyle: "",
         children: [
           {
-            type: "text",
             detail: 0,
             format: 0,
             mode: "normal",
             style: "",
             text,
+            type: "text",
             version: 1,
           },
         ],
+        format: "",
+        indent: 0,
+        textFormat: 0,
+        textStyle: "",
+        type: "paragraph",
+        version: 1,
       },
     ],
     direction: "ltr",
@@ -69,9 +73,12 @@ const paragraph = (text: string): SeedRichText => ({
   },
 })
 
-const hasDocs = async (payload: SeedPayload, collection: string) => {
+const hasDocs = async (
+  payload: SeedPayload,
+  collection: Parameters<SeedPayload["count"]>[0]["collection"],
+): Promise<boolean> => {
   const result = await payload.count({
-    collection: collection as never,
+    collection,
     overrideAccess: true,
   })
 
@@ -91,12 +98,12 @@ const findUserByEmail = async (payload: SeedPayload, email: string) => {
     },
   })
 
-  return result.docs[0]
+  return result.docs.at(0)
 }
 
 const createSeedUser = async (payload: SeedPayload) => {
   const existingUser = await findUserByEmail(payload, SEED_ADMIN_EMAIL)
-  if (existingUser) {
+  if (existingUser !== undefined) {
     payload.logger.info(`Seed admin user already exists: ${SEED_ADMIN_EMAIL}`)
     await payload.update({
       collection: "users",
@@ -127,15 +134,15 @@ const createSeedUser = async (payload: SeedPayload) => {
 }
 
 const createSeedMedia = async (payload: SeedPayload) => {
-  if (await hasDocs(payload, "media")) {
+  if (await hasDocs(payload, MEDIA_COLLECTION)) {
     const result = await payload.find({
-      collection: "media",
+      collection: MEDIA_COLLECTION,
       limit: 1,
       overrideAccess: true,
       pagination: false,
     })
-    const existingMedia = result.docs[0]
-    if (!existingMedia) {
+    const existingMedia = result.docs.at(0)
+    if (existingMedia === undefined) {
       throw new Error("Seed media lookup returned no documents")
     }
     payload.logger.info("Seed media already exists")
@@ -144,7 +151,7 @@ const createSeedMedia = async (payload: SeedPayload) => {
 
   payload.logger.info("Creating seed media")
   return await payload.create({
-    collection: "media",
+    collection: MEDIA_COLLECTION,
     data: {
       alt: "Seed placeholder image",
     },
@@ -160,23 +167,23 @@ const createSeedMedia = async (payload: SeedPayload) => {
 
 const createArticleSeed = async (
   payload: SeedPayload,
-  userId: PayloadId,
-  mediaId: PayloadId,
+  userId: number,
+  mediaId: number,
 ) => {
-  if (!isEnabled(process.env.FEATURE_PAYLOAD_ARTICLES_ENABLED)) {
+  if (!isEnabled(FEATURE_PAYLOAD_ARTICLES_ENABLED)) {
     return
   }
 
-  let categoryId: PayloadId
-  if (await hasDocs(payload, "article-categories")) {
+  let categoryId: number
+  if (await hasDocs(payload, ARTICLE_CATEGORIES_COLLECTION)) {
     const result = await payload.find({
-      collection: "article-categories",
+      collection: ARTICLE_CATEGORIES_COLLECTION,
       limit: 1,
       overrideAccess: true,
       pagination: false,
     })
-    const category = result.docs[0]
-    if (!category) {
+    const category = result.docs.at(0)
+    if (category === undefined) {
       throw new Error(
         "Article category count is non-zero but no document was returned",
       )
@@ -186,7 +193,7 @@ const createArticleSeed = async (
   } else {
     payload.logger.info("Creating seed article category")
     const category = await payload.create({
-      collection: "article-categories",
+      collection: ARTICLE_CATEGORIES_COLLECTION,
       data: {
         slug: "news",
         title: "News",
@@ -197,14 +204,14 @@ const createArticleSeed = async (
     categoryId = category.id
   }
 
-  if (await hasDocs(payload, "articles")) {
+  if (await hasDocs(payload, ARTICLES_COLLECTION)) {
     payload.logger.info("Seed article already exists")
     return
   }
 
   payload.logger.info("Creating seed article")
   await payload.create({
-    collection: "articles",
+    collection: ARTICLES_COLLECTION,
     data: {
       author: userId,
       category: categoryId,
@@ -225,20 +232,20 @@ const createArticleSeed = async (
 }
 
 const createPageSeed = async (payload: SeedPayload) => {
-  if (!isEnabled(process.env.FEATURE_PAYLOAD_PAGES_ENABLED)) {
+  if (!isEnabled(FEATURE_PAYLOAD_PAGES_ENABLED)) {
     return
   }
 
-  let categoryId: PayloadId
-  if (await hasDocs(payload, "page-categories")) {
+  let categoryId: number
+  if (await hasDocs(payload, PAGE_CATEGORIES_COLLECTION)) {
     const result = await payload.find({
-      collection: "page-categories",
+      collection: PAGE_CATEGORIES_COLLECTION,
       limit: 1,
       overrideAccess: true,
       pagination: false,
     })
-    const category = result.docs[0]
-    if (!category) {
+    const category = result.docs.at(0)
+    if (category === undefined) {
       throw new Error(
         "Page category count is non-zero but no document was returned",
       )
@@ -248,7 +255,7 @@ const createPageSeed = async (payload: SeedPayload) => {
   } else {
     payload.logger.info("Creating seed page category")
     const category = await payload.create({
-      collection: "page-categories",
+      collection: PAGE_CATEGORIES_COLLECTION,
       data: {
         slug: "information",
         title: "Information",
@@ -259,14 +266,14 @@ const createPageSeed = async (payload: SeedPayload) => {
     categoryId = category.id
   }
 
-  if (await hasDocs(payload, "pages")) {
+  if (await hasDocs(payload, PAGES_COLLECTION)) {
     payload.logger.info("Seed page already exists")
     return
   }
 
   payload.logger.info("Creating seed page")
   await payload.create({
-    collection: "pages",
+    collection: PAGES_COLLECTION,
     data: {
       category: categoryId,
       content: paragraph(
@@ -285,20 +292,20 @@ const createPageSeed = async (payload: SeedPayload) => {
 
 const createHeroCarouselSeed = async (
   payload: SeedPayload,
-  mediaId: PayloadId,
+  mediaId: number,
 ) => {
-  if (!isEnabled(process.env.FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED)) {
+  if (!isEnabled(FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED)) {
     return
   }
 
-  if (await hasDocs(payload, "hero-carousels")) {
+  if (await hasDocs(payload, HERO_CAROUSELS_COLLECTION)) {
     payload.logger.info("Seed hero carousel already exists")
     return
   }
 
   payload.logger.info("Creating seed hero carousel")
   await payload.create({
-    collection: "hero-carousels",
+    collection: HERO_CAROUSELS_COLLECTION,
     data: {
       button: "Browse products",
       buttonHref: "/",

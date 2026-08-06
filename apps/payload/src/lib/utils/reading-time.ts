@@ -2,7 +2,7 @@ import type { SerializedEditorState } from "@payloadcms/richtext-lexical/lexical
 import { convertLexicalToPlaintext } from "@payloadcms/richtext-lexical/plaintext"
 
 const DEFAULT_WORDS_PER_MINUTE = 200
-const WHITESPACE_REGEX = /\s+/
+const WHITESPACE_REGEX = /\s+/u
 
 /** Estimate reading time in minutes for Lexical editor content. */
 export const estimateReadingTime = (

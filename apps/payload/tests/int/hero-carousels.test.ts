@@ -1,18 +1,17 @@
-import type { CollectionBeforeValidateHook } from "payload"
+import { isRecord } from "@techsio/std/object"
 import { describe, expect, it } from "vitest"
 
 import { HeroCarousels } from "@/collections/hero-carousels"
 
-const beforeValidate = HeroCarousels.hooks
-  ?.beforeValidate?.[0] as CollectionBeforeValidateHook
+const beforeValidate: unknown = HeroCarousels.hooks?.beforeValidate?.at(0)
 
-type BeforeValidateArgs = Parameters<CollectionBeforeValidateHook>[0]
-type TestBeforeValidateArgs = Omit<Partial<BeforeValidateArgs>, "req"> & {
-  req?: { locale?: string }
+const runBeforeValidate = async (args: unknown): Promise<unknown> => {
+  if (typeof beforeValidate !== "function") {
+    throw new TypeError("Hero carousel beforeValidate hook is unavailable")
+  }
+
+  return await Reflect.apply(beforeValidate, undefined, [args])
 }
-
-const runBeforeValidate = async (args: TestBeforeValidateArgs) =>
-  beforeValidate(args as unknown as BeforeValidateArgs)
 
 describe("hero carousel internal title", () => {
   it("derives an internal title when creating a document without one", async () => {
@@ -62,6 +61,10 @@ describe("hero carousel internal title", () => {
       req: { locale: "en" },
     })
 
-    expect(result?.internalTitle).toBe("Updated campaign")
+    if (!isRecord(result)) {
+      throw new TypeError("Hero carousel hook returned an invalid document")
+    }
+    const { internalTitle } = result
+    expect(internalTitle).toBe("Updated campaign")
   })
 })

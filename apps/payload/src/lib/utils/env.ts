@@ -3,7 +3,7 @@ export function getEnv(envVar: string): string | undefined
 export function getEnv(envVar: string, required: true): string
 export function getEnv(envVar: string, required = false): string | undefined {
   const value = process.env[envVar]
-  if (required && (!value || value.trim() === "")) {
+  if (required && (value === undefined || value.trim() === "")) {
     throw new Error(`Missing required environment variable: ${envVar}`)
   }
 
@@ -13,7 +13,12 @@ export function getEnv(envVar: string, required = false): string | undefined {
 /** Read an environment variable value, treating "null"/"undefined" as unset. */
 export const getEnvString = (envVar: string): string | null => {
   const value = getEnv(envVar)
-  if (!value || value === "null" || value === "undefined") {
+  if (
+    value === undefined ||
+    value === "" ||
+    value === "null" ||
+    value === "undefined"
+  ) {
     return null
   }
   return value
@@ -35,12 +40,12 @@ export const isEnabled = (envVar: string, defaultValue = true): boolean => {
 /** Parse a comma-delimited environment variable into a list. */
 const parseEnvList = (envVar: string): string[] => {
   const raw = getEnv(envVar)
-  return raw
-    ? raw
+  return raw === undefined
+    ? []
+    : raw
         .split(",")
         .map((item) => item.trim())
         .filter(Boolean)
-    : []
 }
 
 export const resolveEnvLocales = (

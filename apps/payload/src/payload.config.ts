@@ -1,5 +1,4 @@
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 
 import { postgresAdapter } from "@payloadcms/db-postgres"
 import { seoPlugin } from "@payloadcms/plugin-seo"
@@ -16,6 +15,7 @@ import { ro } from "@payloadcms/translations/languages/ro"
 import { sk } from "@payloadcms/translations/languages/sk"
 import { sl } from "@payloadcms/translations/languages/sl"
 import { autoTranslate } from "@pigment/auto-translate"
+import { isRecord } from "@techsio/std/object"
 import { buildConfig } from "payload"
 import sharp from "sharp"
 
@@ -39,13 +39,12 @@ import {
 } from "./lib/utils/env"
 import { migrations } from "./migrations"
 
-const filename = import.meta.filename
-const dirname = import.meta.dirname
+const { dirname } = import.meta
 
 const isProductionBuild = getEnv("PAYLOAD_PRODUCTION_BUILD") === "1"
 const getRuntimeEnv = (name: string, buildFallback: string): string => {
   const value = getEnv(name)
-  if (value?.trim()) {
+  if (value !== undefined && value.trim() !== "") {
     return value
   }
   if (isProductionBuild) {
@@ -79,6 +78,9 @@ const s3SecretAccessKey = getRuntimeEnv(
   "payload-build-secret",
 )
 
+const getSeoField = (doc: unknown, field: string): string =>
+  isRecord(doc) ? getDocString(doc[field]) : ""
+
 /** Payload CMS configuration for the Medusa integration. */
 export default buildConfig({
   admin: {
@@ -106,11 +108,11 @@ export default buildConfig({
     pool: {
       connectionString: databaseUrl,
     },
-    ...(process.env.PAYLOAD_SCHEMA_NAME
-      ? { schemaName: process.env.PAYLOAD_SCHEMA_NAME }
-      : {}),
-    push: false,
     prodMigrations: migrations,
+    push: false,
+    ...(getEnv("PAYLOAD_SCHEMA_NAME") === undefined
+      ? {}
+      : { schemaName: getEnv("PAYLOAD_SCHEMA_NAME", true) }),
   }),
   editor: lexicalEditor(),
   endpoints: [
@@ -134,13 +136,24 @@ export default buildConfig({
         ...(isArticlesEnabled ? ["articles"] : []),
         ...(isPagesEnabled ? ["pages"] : []),
       ],
-      uploadsCollection: "media",
+      generateDescription: ({ doc }) => {
+        const excerpt = getSeoField(doc, "excerpt")
+        return excerpt === "" ? getSeoField(doc, "description") : excerpt
+      },
+      generateTitle: ({ doc }) => getSeoField(doc, "title"),
       tabbedUI: true,
-      generateTitle: ({ doc }) => getDocString(doc?.title),
-      generateDescription: ({ doc }) =>
-        getDocString(doc?.excerpt) || getDocString(doc?.description),
+      uploadsCollection: "media",
     }),
     autoTranslate({
+      collections: {
+        "article-categories": isArticlesEnabled,
+        articles: isArticlesEnabled,
+        "hero-carousels": isHeroCarouselsEnabled,
+        "page-categories": isPagesEnabled,
+        pages: isPagesEnabled,
+      },
+      enableExclusions: true,
+      enableTranslationSyncByDefault: isAutoTranslateConfigured,
       excludeFields: [
         "id",
         "_id",
@@ -153,30 +166,21 @@ export default buildConfig({
         "analytics",
         "image",
       ],
-      collections: {
-        articles: isArticlesEnabled,
-        pages: isPagesEnabled,
-        "article-categories": isArticlesEnabled,
-        "page-categories": isPagesEnabled,
-        "hero-carousels": isHeroCarouselsEnabled,
-      },
-      enableTranslationSyncByDefault: isAutoTranslateConfigured,
       translationExclusionsSlug: "translation-exclusions",
-      enableExclusions: true,
     }),
     s3Storage({
+      bucket: s3Bucket,
       collections: {
         media: true,
       },
-      bucket: s3Bucket,
       config: {
-        endpoint: s3Endpoint,
-        region: s3Region,
         credentials: {
           accessKeyId: s3AccessKeyId,
           secretAccessKey: s3SecretAccessKey,
         },
+        endpoint: s3Endpoint,
         forcePathStyle: true,
+        region: s3Region,
       },
     }),
   ],

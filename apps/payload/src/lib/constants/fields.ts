@@ -6,9 +6,6 @@ import { statusOptions } from "./status-options"
 /** Locale-aware label shape for Payload admin fields. */
 type LocalizedLabel = Record<string, string>
 
-/** Description text for localized fields. */
-type Description = LocalizedLabel
-
 /** Options for creating a standardized title field. */
 interface TextFieldOptions {
   label?: LocalizedLabel
@@ -20,7 +17,7 @@ interface TextFieldOptions {
 /** Options for creating a standardized slug field. */
 interface SlugFieldOptions {
   label?: LocalizedLabel
-  description: Description
+  description: LocalizedLabel
   localized?: boolean
 }
 
@@ -37,12 +34,14 @@ interface ContentFieldOptions {
 export const createTitleField = (
   options: TextFieldOptions = {},
 ): TextField => ({
-  name: "title",
-  type: "text",
-  required: options.required ?? true,
-  localized: options.localized ?? true,
-  ...(options.maxLength ? { maxLength: options.maxLength } : {}),
   label: options.label ?? fieldLabels.title,
+  localized: options.localized ?? true,
+  ...(options.maxLength === undefined || options.maxLength === 0
+    ? {}
+    : { maxLength: options.maxLength }),
+  name: "title",
+  required: options.required ?? true,
+  type: "text",
 })
 
 /** Build a localized slug field definition with a description. */
@@ -62,13 +61,13 @@ export const createSlugField = (options: SlugFieldOptions): TextField => ({
 export const createContentField = (
   options: ContentFieldOptions,
 ): RichTextField => ({
-  name: "content",
-  type: "richText",
-  ...(options.editor ? { editor: options.editor } : {}),
-  localized: options.localized ?? true,
-  required: options.required ?? true,
-  ...(options.admin ? { admin: options.admin } : {}),
+  ...(options.admin === undefined ? {} : { admin: options.admin }),
+  ...(options.editor === undefined ? {} : { editor: options.editor }),
   label: options.label ?? fieldLabels.content,
+  localized: options.localized ?? true,
+  name: "content",
+  required: options.required ?? true,
+  type: "richText",
 })
 
 /** Build a shared status select field definition. */

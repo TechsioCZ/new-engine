@@ -1,4 +1,4 @@
-import { join } from "node:path"
+import path from "node:path"
 
 import { withPayload } from "@payloadcms/next/withPayload"
 
@@ -8,7 +8,7 @@ const nextConfig = {
     turbopackRustReactCompiler: true,
   },
   output: "standalone",
-  outputFileTracingRoot: join(import.meta.dirname, "../../"),
+  outputFileTracingRoot: path.join(import.meta.dirname, "../../"),
   reactCompiler: true,
   typedRoutes: true,
 }

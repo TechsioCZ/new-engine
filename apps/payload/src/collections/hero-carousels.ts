@@ -15,8 +15,11 @@ const COLLECTION_SLUG = "hero-carousels"
 const invalidateHeroCarouselsCache = createMedusaCacheHook(COLLECTION_SLUG)
 const DEFAULT_INTERNAL_TITLE = "Hero banner"
 
-const cleanString = (value: unknown) =>
+const cleanString = (value: unknown): string =>
   typeof value === "string" ? value.trim() : ""
+
+const firstNonEmptyString = (values: unknown[]): string =>
+  values.map(cleanString).find((value) => value !== "") ?? ""
 
 const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
   if (typeof value === "string") {
@@ -27,24 +30,29 @@ const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
     return ""
   }
 
-  return (
-    cleanString(locale ? value[locale] : undefined) ||
-    cleanString(value.en) ||
-    cleanString(value.sk) ||
-    cleanString(value.cs) ||
-    cleanString(Object.values(value).find((entry) => cleanString(entry)))
-  )
+  const { cs, en, sk } = value
+  return firstNonEmptyString([
+    locale === undefined ? undefined : value[locale],
+    en,
+    sk,
+    cs,
+    ...Object.values(value),
+  ])
 }
 
 const resolveInternalTitle = (
   data: Record<string, unknown>,
   locale: string | undefined,
-) =>
-  cleanString(data.internalTitle) ||
-  resolveLocalizedString(data.heading, locale) ||
-  resolveLocalizedString(data.button, locale) ||
-  cleanString(data.buttonHref) ||
-  DEFAULT_INTERNAL_TITLE
+): string => {
+  const { button, buttonHref, heading, internalTitle } = data
+  return firstNonEmptyString([
+    internalTitle,
+    resolveLocalizedString(heading, locale),
+    resolveLocalizedString(button, locale),
+    buttonHref,
+    DEFAULT_INTERNAL_TITLE,
+  ])
+}
 
 /** Payload collection config for hero carousels. */
 export const HeroCarousels: CollectionConfig = {
@@ -61,44 +69,44 @@ export const HeroCarousels: CollectionConfig = {
   },
   fields: [
     {
-      name: "internalTitle",
       label: fieldLabels.internalTitle,
-      type: "text",
+      name: "internalTitle",
       required: true,
+      type: "text",
     },
     {
-      name: "image",
       label: fieldLabels.image,
-      type: "upload",
+      name: "image",
       relationTo: "media",
       required: true,
+      type: "upload",
     },
     {
-      name: "heading",
       label: fieldLabels.heading,
-      type: "text",
-      required: false,
       localized: true,
+      name: "heading",
+      required: false,
+      type: "text",
     },
     {
-      name: "subheading",
       label: fieldLabels.subheading,
-      type: "text",
-      required: false,
       localized: true,
+      name: "subheading",
+      required: false,
+      type: "text",
     },
     {
-      name: "button",
       label: fieldLabels.buttonText,
-      type: "text",
-      required: false,
       localized: true,
+      name: "button",
+      required: false,
+      type: "text",
     },
     {
-      name: "buttonHref",
       label: fieldLabels.buttonUrl,
-      type: "text",
+      name: "buttonHref",
       required: false,
+      type: "text",
     },
   ],
   hooks: {
@@ -106,19 +114,24 @@ export const HeroCarousels: CollectionConfig = {
     afterDelete: [invalidateHeroCarouselsCache],
     beforeValidate: [
       ({ data, operation, originalDoc, req }) => {
-        if (!data) {
+        if (!isRecord(data)) {
           return data
         }
 
-        if (operation === "update" && data.internalTitle === undefined) {
+        const { internalTitle } = data
+        if (operation === "update" && internalTitle === undefined) {
           return data
         }
 
-        data.internalTitle = resolveInternalTitle(
-          operation === "update" && originalDoc
+        const source =
+          operation === "update" && isRecord(originalDoc)
             ? { ...originalDoc, ...data }
-            : data,
-          req?.locale,
+            : data
+        const { locale } = req
+        Reflect.set(
+          data,
+          "internalTitle",
+          resolveInternalTitle(source, locale === "all" ? undefined : locale),
         )
 
         return data

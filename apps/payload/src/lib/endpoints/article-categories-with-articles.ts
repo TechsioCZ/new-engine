@@ -1,7 +1,7 @@
+import { isRecord } from "@techsio/std/object"
 import type { Endpoint } from "payload"
 
 import { getCategoryDoc, getMediaUrl } from "../utils/doc-selectors"
-import type { CategoryDoc } from "../utils/doc-selectors"
 import {
   buildJsonResponse,
   getLocaleFromRequest,
@@ -10,18 +10,22 @@ import {
 
 const MAX_ARTICLES = 500
 
-/** Minimal media record needed for article listing. */
-interface MediaDoc {
-  url?: string | null
-}
-
 /** Minimal article record used to group by category. */
 interface ArticleDoc {
-  title: unknown
-  slug?: unknown
+  category?: unknown
   excerpt?: unknown
-  featuredImage?: number | MediaDoc | null
-  category?: number | CategoryDoc | null
+  featuredImage?: unknown
+  slug?: unknown
+  title: unknown
+}
+
+const parseArticleDoc = (value: unknown): ArticleDoc | null => {
+  if (!isRecord(value) || !("title" in value)) {
+    return null
+  }
+
+  const { category, excerpt, featuredImage, slug, title } = value
+  return { category, excerpt, featuredImage, slug, title }
 }
 
 /** Endpoint returning article categories grouped with their articles. */
@@ -33,25 +37,25 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
     const articlesResult = await req.payload.find({
       collection: "articles",
       depth: 1,
-      pagination: true,
       limit: MAX_ARTICLES,
-      ...(locale ? { locale } : {}),
-      where: {
-        status: { equals: "published" },
-        ...(categorySlug
-          ? {
-              "category.slug": { equals: categorySlug },
-            }
-          : {}),
-      },
+      ...(locale === undefined ? {} : { locale }),
+      pagination: true,
+      req,
       select: {
-        title: true,
-        slug: true,
+        category: true,
         excerpt: true,
         featuredImage: true,
-        category: true,
+        slug: true,
+        title: true,
       },
-      req,
+      where: {
+        status: { equals: "published" },
+        ...(categorySlug === undefined
+          ? {}
+          : {
+              "category.slug": { equals: categorySlug },
+            }),
+      },
     })
 
     const categoriesById = new Map<
@@ -68,26 +72,35 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
         }[]
       }
     >()
-    for (const article of articlesResult.docs as ArticleDoc[]) {
-      const category = getCategoryDoc(article.category)
-      if (!category) {
-        continue
+    const articleDocs: unknown = articlesResult.docs
+    if (!Array.isArray(articleDocs)) {
+      throw new TypeError(
+        "Payload articles response did not contain a document list",
+      )
+    }
+
+    for (const value of articleDocs) {
+      const article = parseArticleDoc(value)
+      if (article !== null) {
+        const category = getCategoryDoc(article.category)
+        if (category !== null) {
+          const entry = categoriesById.get(category.id) ?? {
+            ...category,
+            articles: [],
+          }
+          entry.articles.push({
+            excerpt: article.excerpt,
+            featuredImage: getMediaUrl(article.featuredImage),
+            slug: article.slug,
+            title: article.title,
+          })
+          categoriesById.set(category.id, entry)
+        }
       }
-      const entry = categoriesById.get(category.id) ?? {
-        ...category,
-        articles: [],
-      }
-      entry.articles.push({
-        title: article.title,
-        slug: article.slug,
-        excerpt: article.excerpt,
-        featuredImage: getMediaUrl(article.featuredImage),
-      })
-      categoriesById.set(category.id, entry)
     }
 
     return buildJsonResponse(req, {
-      categories: Array.from(categoriesById.values()),
+      categories: [...categoriesById.values()],
     })
   },
   method: "get",

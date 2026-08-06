@@ -18,14 +18,14 @@ export const Users: CollectionConfig = {
   fields: [
     // Email added by default
     {
+      label: fieldLabels.firstName,
       name: "firstName",
       type: "text",
-      label: fieldLabels.firstName,
     },
     {
+      label: fieldLabels.lastName,
       name: "lastName",
       type: "text",
-      label: fieldLabels.lastName,
     },
   ],
   labels: collectionLabels.users,

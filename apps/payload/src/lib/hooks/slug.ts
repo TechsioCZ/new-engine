@@ -1,13 +1,15 @@
+import { isRecord } from "@techsio/std/object"
+
 /** Convert a string into a URL-friendly slug. */
 const generateSlug = (value: string): string =>
   value
     .toLowerCase()
     .normalize("NFKD")
-    .replaceAll(/[\u0300-\u036F]/g, "")
-    .replaceAll(/[^\w\s-]/g, "")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
+    .replaceAll(/[^\w\s-]/gu, "")
     .trim()
-    .replaceAll(/\s+/g, "-")
-    .replaceAll(/-+/g, "-")
+    .replaceAll(/\s+/gu, "-")
+    .replaceAll(/-+/gu, "-")
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0
@@ -16,11 +18,17 @@ const resolveTitleFromMap = (
   titleMap: Record<string, unknown>,
   locale?: string | null,
 ): string | undefined => {
-  if (locale && isNonEmptyString(titleMap[locale])) {
-    return titleMap[locale]
+  if (locale !== undefined && locale !== null) {
+    const localizedTitle = titleMap[locale]
+    if (isNonEmptyString(localizedTitle)) {
+      return localizedTitle
+    }
   }
 
-  return Object.values(titleMap).find(isNonEmptyString)
+  const { en: englishTitle } = titleMap
+  return isNonEmptyString(englishTitle)
+    ? englishTitle
+    : Object.values(titleMap).find(isNonEmptyString)
 }
 
 /** Generate a slug from a title or return the fallback value. */
@@ -34,14 +42,11 @@ export const generateSlugFromTitle = (
 
   if (typeof title === "string") {
     resolvedTitle = title
-  } else if (title && typeof title === "object") {
-    resolvedTitle = resolveTitleFromMap(
-      title as Record<string, unknown>,
-      options.locale,
-    )
+  } else if (isRecord(title)) {
+    resolvedTitle = resolveTitleFromMap(title, options.locale)
   }
 
-  if (resolvedTitle && resolvedTitle.trim().length > 0) {
+  if (resolvedTitle !== undefined && resolvedTitle.trim().length > 0) {
     return generateSlug(resolvedTitle)
   }
 
