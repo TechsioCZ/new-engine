@@ -1,4 +1,4 @@
-/**
+/*
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
@@ -13,6 +13,9 @@ import { createContext, useContext } from "react"
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 
 import { tv } from "../utils"
+
+const SKELETON_BG_PRIMARY = "bg-skeleton-bg-primary"
+const SKELETON_BG_SECONDARY = "bg-skeleton-bg-secondary"
 
 const skeletonVariants = tv({
   defaultVariants: {
@@ -59,45 +62,52 @@ const skeletonVariants = tv({
     },
     variant: {
       primary: {
-        circle: "bg-skeleton-bg-primary",
-        rectangle: "bg-skeleton-bg-primary",
+        circle: SKELETON_BG_PRIMARY,
+        rectangle: SKELETON_BG_PRIMARY,
         root: "",
-        textLine: "bg-skeleton-bg-primary",
+        textLine: SKELETON_BG_PRIMARY,
       },
       secondary: {
-        circle: "bg-skeleton-bg-secondary",
-        rectangle: "bg-skeleton-bg-secondary",
+        circle: SKELETON_BG_SECONDARY,
+        rectangle: SKELETON_BG_SECONDARY,
         root: "",
-        textLine: "bg-skeleton-bg-secondary",
+        textLine: SKELETON_BG_SECONDARY,
       },
     },
   },
 })
 
-interface SkeletonContextValue {
-  isLoaded: boolean
-  variant?: "primary" | "secondary" | undefined
-  speed?: "slow" | "normal" | "fast" | undefined
-}
+type SkeletonVariant = "primary" | "secondary"
+type SkeletonSpeed = "slow" | "normal" | "fast"
+type SkeletonSize = "sm" | "md" | "lg" | "xl"
 
-const SkeletonContext = createContext<SkeletonContextValue | null>(null)
-
-const useSkeletonContext = () => useContext(SkeletonContext)
+/*
+ * Every inherited value lives in its own context so the root never has to build a
+ * context value object during render.
+ */
+const SkeletonIsLoadedContext = createContext<boolean | undefined>(undefined)
+const SkeletonSpeedContext = createContext<SkeletonSpeed | undefined>(undefined)
+const SkeletonVariantContext = createContext<SkeletonVariant | undefined>(
+  undefined,
+)
 
 /**
  * Resolves skeleton props with context fallback.
  * Local props override context values.
  */
-function useResolvedSkeletonProps(props: {
+const useResolvedSkeletonProps = (props: {
   isLoaded?: boolean | undefined
-  variant?: "primary" | "secondary" | undefined
-  speed?: "slow" | "normal" | "fast" | undefined
-}) {
-  const context = useSkeletonContext()
+  variant?: SkeletonVariant | undefined
+  speed?: SkeletonSpeed | undefined
+}) => {
+  const contextIsLoaded = useContext(SkeletonIsLoadedContext)
+  const contextSpeed = useContext(SkeletonSpeedContext)
+  const contextVariant = useContext(SkeletonVariantContext)
+
   return {
-    isLoaded: props.isLoaded ?? context?.isLoaded ?? false,
-    speed: props.speed ?? context?.speed,
-    variant: props.variant ?? context?.variant,
+    isLoaded: props.isLoaded ?? contextIsLoaded ?? false,
+    speed: props.speed ?? contextSpeed,
+    variant: props.variant ?? contextVariant,
   }
 }
 
@@ -106,13 +116,13 @@ interface SkeletonRootProps extends Omit<
   "children"
 > {
   isLoaded?: boolean | undefined
-  variant?: "primary" | "secondary" | undefined
-  speed?: "slow" | "normal" | "fast" | undefined
+  variant?: SkeletonVariant | undefined
+  speed?: SkeletonSpeed | undefined
   children?: ReactNode | undefined
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-export function Skeleton({
+export const Skeleton = ({
   isLoaded = false,
   variant,
   children,
@@ -120,25 +130,28 @@ export function Skeleton({
   className,
   ref,
   ...props
-}: SkeletonRootProps) {
+}: SkeletonRootProps): ReactNode => {
   const styles = skeletonVariants({ speed, variant })
 
   return (
-    <SkeletonContext.Provider value={{ isLoaded, speed, variant }}>
-      {isLoaded ? (
-        <>{children}</>
-      ) : (
-        <div
-          aria-busy="true"
-          aria-label="Loading content"
-          className={styles.root({ className })}
-          ref={ref}
-          {...props}
-        >
-          {children}
-        </div>
-      )}
-    </SkeletonContext.Provider>
+    <SkeletonIsLoadedContext.Provider value={isLoaded}>
+      <SkeletonSpeedContext.Provider value={speed}>
+        <SkeletonVariantContext.Provider value={variant}>
+          {isLoaded ? (
+            children
+          ) : (
+            <div
+              aria-busy="true"
+              className={styles.root({ className })}
+              ref={ref}
+              {...props}
+            >
+              {children}
+            </div>
+          )}
+        </SkeletonVariantContext.Provider>
+      </SkeletonSpeedContext.Provider>
+    </SkeletonIsLoadedContext.Provider>
   )
 }
 
@@ -146,15 +159,15 @@ interface SkeletonCircleProps extends Omit<
   ComponentPropsWithoutRef<"div">,
   "children"
 > {
-  size?: "sm" | "md" | "lg" | "xl" | undefined
-  speed?: "slow" | "normal" | "fast" | undefined
+  size?: SkeletonSize | undefined
+  speed?: SkeletonSpeed | undefined
   isLoaded?: boolean | undefined
-  variant?: "primary" | "secondary" | undefined
+  variant?: SkeletonVariant | undefined
   children?: ReactNode | undefined
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Skeleton.Circle = function SkeletonCircle({
+const SkeletonCircle = ({
   size = "md",
   speed,
   isLoaded,
@@ -163,7 +176,7 @@ Skeleton.Circle = function SkeletonCircle({
   className,
   ref,
   ...props
-}: SkeletonCircleProps) {
+}: SkeletonCircleProps): ReactNode => {
   const resolved = useResolvedSkeletonProps({ isLoaded, speed, variant })
 
   const styles = skeletonVariants({
@@ -173,13 +186,12 @@ Skeleton.Circle = function SkeletonCircle({
   })
 
   if (resolved.isLoaded) {
-    return <>{children}</>
+    return children
   }
 
   return (
     <div
       aria-busy="true"
-      aria-label="Loading content"
       className={styles.root({
         className: styles.circle({ className }),
       })}
@@ -194,17 +206,17 @@ interface SkeletonTextProps extends Omit<
   "children"
 > {
   noOfLines?: number | undefined
-  size?: "sm" | "md" | "lg" | "xl" | undefined
-  speed?: "slow" | "normal" | "fast" | undefined
+  size?: SkeletonSize | undefined
+  speed?: SkeletonSpeed | undefined
   lastLineWidth?: string | undefined
   isLoaded?: boolean | undefined
-  variant?: "primary" | "secondary" | undefined
+  variant?: SkeletonVariant | undefined
   children?: ReactNode | undefined
   containerClassName?: string | undefined
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Skeleton.Text = function SkeletonText({
+const SkeletonText = ({
   noOfLines = 3,
   size = "md",
   speed,
@@ -216,7 +228,7 @@ Skeleton.Text = function SkeletonText({
   className,
   ref,
   ...props
-}: SkeletonTextProps) {
+}: SkeletonTextProps): ReactNode => {
   const resolved = useResolvedSkeletonProps({ isLoaded, speed, variant })
 
   const styles = skeletonVariants({
@@ -226,7 +238,7 @@ Skeleton.Text = function SkeletonText({
   })
 
   if (resolved.isLoaded) {
-    return <>{children}</>
+    return children
   }
 
   // Guard against invalid values (negative, NaN, Infinity)
@@ -235,7 +247,6 @@ Skeleton.Text = function SkeletonText({
   return (
     <div
       aria-busy="true"
-      aria-label="Loading content"
       className={styles.textContainer({ className: containerClassName })}
       ref={ref}
       {...props}
@@ -262,14 +273,14 @@ interface SkeletonRectangleProps extends Omit<
   ComponentPropsWithoutRef<"div">,
   "children"
 > {
-  speed?: "slow" | "normal" | "fast" | undefined
+  speed?: SkeletonSpeed | undefined
   isLoaded?: boolean | undefined
-  variant?: "primary" | "secondary" | undefined
+  variant?: SkeletonVariant | undefined
   children?: ReactNode | undefined
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Skeleton.Rectangle = function SkeletonRectangle({
+const SkeletonRectangle = ({
   speed,
   isLoaded,
   variant,
@@ -277,7 +288,7 @@ Skeleton.Rectangle = function SkeletonRectangle({
   className,
   ref,
   ...props
-}: SkeletonRectangleProps) {
+}: SkeletonRectangleProps): ReactNode => {
   const resolved = useResolvedSkeletonProps({ isLoaded, speed, variant })
 
   const styles = skeletonVariants({
@@ -286,13 +297,12 @@ Skeleton.Rectangle = function SkeletonRectangle({
   })
 
   if (resolved.isLoaded) {
-    return <>{children}</>
+    return children
   }
 
   return (
     <div
       aria-busy="true"
-      aria-label="Loading content"
       className={styles.root({ className: styles.rectangle({ className }) })}
       ref={ref}
       {...props}
@@ -301,3 +311,7 @@ Skeleton.Rectangle = function SkeletonRectangle({
     </div>
   )
 }
+
+Skeleton.Circle = SkeletonCircle
+Skeleton.Text = SkeletonText
+Skeleton.Rectangle = SkeletonRectangle
