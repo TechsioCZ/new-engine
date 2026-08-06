@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process"
 import process from "node:process"
+import { fileURLToPath } from "node:url"
 
 const targets = process.argv.slice(2)
 const args = [
@@ -10,7 +11,10 @@ const args = [
   "--deny=react/rules-of-hooks",
   "--warn=react/exhaustive-deps",
 ]
-const result = spawnSync("pnpm", ["exec", "oxlint", ...args], {
+const oxlintCli = fileURLToPath(
+  new URL("../../node_modules/oxlint/bin/oxlint", import.meta.url),
+)
+const result = spawnSync(process.execPath, [oxlintCli, ...args], {
   stdio: "inherit",
 })
 
