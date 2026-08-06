@@ -66,25 +66,23 @@ Use BreadcrumbTemplate for the ready-to-use data-driven default.
 export default meta
 type Story = StoryObj<typeof Breadcrumb>
 
-function DemoBreadcrumb(props: BreadcrumbRootProps) {
-  return (
-    <Breadcrumb {...props}>
-      <Breadcrumb.List>
-        <Breadcrumb.Item>
-          <Breadcrumb.Link href="#">Docs</Breadcrumb.Link>
-        </Breadcrumb.Item>
-        <Breadcrumb.Separator />
-        <Breadcrumb.Item>
-          <Breadcrumb.Link href="#">Components</Breadcrumb.Link>
-        </Breadcrumb.Item>
-        <Breadcrumb.Separator />
-        <Breadcrumb.Item>
-          <Breadcrumb.CurrentLink>Breadcrumb</Breadcrumb.CurrentLink>
-        </Breadcrumb.Item>
-      </Breadcrumb.List>
-    </Breadcrumb>
-  )
-}
+const DemoBreadcrumb = (props: BreadcrumbRootProps) => (
+  <Breadcrumb {...props}>
+    <Breadcrumb.List>
+      <Breadcrumb.Item>
+        <Breadcrumb.Link href="#">Docs</Breadcrumb.Link>
+      </Breadcrumb.Item>
+      <Breadcrumb.Separator />
+      <Breadcrumb.Item>
+        <Breadcrumb.Link href="#">Components</Breadcrumb.Link>
+      </Breadcrumb.Item>
+      <Breadcrumb.Separator />
+      <Breadcrumb.Item>
+        <Breadcrumb.CurrentLink>Breadcrumb</Breadcrumb.CurrentLink>
+      </Breadcrumb.Item>
+    </Breadcrumb.List>
+  </Breadcrumb>
+)
 
 export const Playground: Story = {
   render: (args) => <DemoBreadcrumb {...args} />,

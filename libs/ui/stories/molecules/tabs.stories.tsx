@@ -326,37 +326,37 @@ export const VerticalOrientation: Story = {
 }
 
 // Controlled state
-export const Controlled: Story = {
-  render: () => {
-    const [selectedTab, setSelectedTab] = useState("tab2")
+const ControlledStory = () => {
+  const [selectedTab, setSelectedTab] = useState("tab2")
 
-    return (
-      <div className="w-full max-w-2xl flex flex-col gap-200">
-        <div className="flex items-center gap-200 bg-overlay p-200 rounded-md">
-          <span className="text-sm font-medium">
-            Current tab: {selectedTab}
-          </span>
-        </div>
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} variant="line">
-          <Tabs.List>
-            <Tabs.Trigger value="tab1">Tab 1</Tabs.Trigger>
-            <Tabs.Trigger value="tab2">Tab 2</Tabs.Trigger>
-            <Tabs.Trigger value="tab3">Tab 3</Tabs.Trigger>
-            <Tabs.Indicator />
-          </Tabs.List>
-          <Tabs.Content value="tab1">
-            <div className="p-200">First tab content</div>
-          </Tabs.Content>
-          <Tabs.Content value="tab2">
-            <div className="p-200">Second tab content</div>
-          </Tabs.Content>
-          <Tabs.Content value="tab3">
-            <div className="p-200">Third tab content</div>
-          </Tabs.Content>
-        </Tabs>
+  return (
+    <div className="w-full max-w-2xl flex flex-col gap-200">
+      <div className="flex items-center gap-200 bg-overlay p-200 rounded-md">
+        <span className="text-sm font-medium">Current tab: {selectedTab}</span>
       </div>
-    )
-  },
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} variant="line">
+        <Tabs.List>
+          <Tabs.Trigger value="tab1">Tab 1</Tabs.Trigger>
+          <Tabs.Trigger value="tab2">Tab 2</Tabs.Trigger>
+          <Tabs.Trigger value="tab3">Tab 3</Tabs.Trigger>
+          <Tabs.Indicator />
+        </Tabs.List>
+        <Tabs.Content value="tab1">
+          <div className="p-200">First tab content</div>
+        </Tabs.Content>
+        <Tabs.Content value="tab2">
+          <div className="p-200">Second tab content</div>
+        </Tabs.Content>
+        <Tabs.Content value="tab3">
+          <div className="p-200">Third tab content</div>
+        </Tabs.Content>
+      </Tabs>
+    </div>
+  )
+}
+
+export const Controlled: Story = {
+  render: ControlledStory,
 }
 
 // Fitted tabs

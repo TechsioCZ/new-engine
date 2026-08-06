@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import type { ComponentProps } from "react"
 import { useState } from "react"
 
 import { VariantContainer } from "../../.storybook/decorator"
@@ -22,12 +23,50 @@ const countries: ComboboxItem[] = [
 
 const meta: Meta<typeof Combobox> = {
   argTypes: {
-    // Text inputs
-    label: { control: "text", description: "Label text" },
-    placeholder: { control: "text", description: "Placeholder text" },
+    clearable: {
+      control: "boolean",
+      description: "Show clear button",
+      table: { defaultValue: { summary: "true" } },
+    },
+    closeOnSelect: {
+      control: "boolean",
+      description: "Close dropdown on selection",
+      table: { defaultValue: { summary: "true" } },
+    },
+    disabled: {
+      control: "boolean",
+      description: "Disable the combobox",
+      table: { defaultValue: { summary: "false" } },
+    },
     helpText: { control: "text", description: "Help text below combobox" },
-
-    // Size and appearance
+    label: { control: "text", description: "Label text" },
+    multiple: {
+      control: "boolean",
+      description: "Allow multiple selection",
+      table: { defaultValue: { summary: "false" } },
+    },
+    placeholder: { control: "text", description: "Placeholder text" },
+    readOnly: {
+      control: "boolean",
+      description: "Make combobox read-only",
+      table: { defaultValue: { summary: "false" } },
+    },
+    required: {
+      control: "boolean",
+      description: "Mark as required field",
+      table: { defaultValue: { summary: "false" } },
+    },
+    selectionBehavior: {
+      control: "select",
+      description: "Selection behavior mode",
+      options: ["replace", "clear", "preserve"],
+      table: { defaultValue: { summary: "replace" } },
+    },
+    showHelpTextIcon: {
+      control: "boolean",
+      description: "Show icon with help text",
+      table: { defaultValue: { summary: "true" } },
+    },
     size: {
       control: "select",
       description: "Size variant",
@@ -39,51 +78,6 @@ const meta: Meta<typeof Combobox> = {
       description: "Validation status",
       options: ["default", "error", "success", "warning"],
       table: { defaultValue: { summary: "default" } },
-    },
-    showHelpTextIcon: {
-      control: "boolean",
-      description: "Show icon with help text",
-      table: { defaultValue: { summary: "true" } },
-    },
-
-    // States
-    disabled: {
-      control: "boolean",
-      description: "Disable the combobox",
-      table: { defaultValue: { summary: "false" } },
-    },
-    readOnly: {
-      control: "boolean",
-      description: "Make combobox read-only",
-      table: { defaultValue: { summary: "false" } },
-    },
-    required: {
-      control: "boolean",
-      description: "Mark as required field",
-      table: { defaultValue: { summary: "false" } },
-    },
-
-    // Behavior
-    multiple: {
-      control: "boolean",
-      description: "Allow multiple selection",
-      table: { defaultValue: { summary: "false" } },
-    },
-    clearable: {
-      control: "boolean",
-      description: "Show clear button",
-      table: { defaultValue: { summary: "true" } },
-    },
-    closeOnSelect: {
-      control: "boolean",
-      description: "Close dropdown on selection",
-      table: { defaultValue: { summary: "true" } },
-    },
-    selectionBehavior: {
-      control: "select",
-      description: "Selection behavior mode",
-      options: ["replace", "clear", "preserve"],
-      table: { defaultValue: { summary: "replace" } },
     },
   },
   component: Combobox,
@@ -151,59 +145,61 @@ export const ValidationStates: Story = {
   ),
 }
 
-export const MultipleSelection: Story = {
-  render: () => {
-    const [selectedValues, setSelectedValues] = useState<string[]>([])
+const MultipleSelectionStory = () => {
+  const [selectedValues, setSelectedValues] = useState<string[]>([])
 
-    const selectedCountries = countries.filter((c) =>
-      selectedValues.includes(c.value),
-    )
+  const selectedCountries = countries.filter((c) =>
+    selectedValues.includes(c.value),
+  )
 
-    const removeCountry = (valueToRemove: string) => {
-      setSelectedValues((prev) => prev.filter((v) => v !== valueToRemove))
-    }
+  const removeCountry = (valueToRemove: string) => {
+    setSelectedValues((prev) => prev.filter((v) => v !== valueToRemove))
+  }
 
-    return (
-      <div className="w-80 space-y-4">
-        {selectedCountries.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {selectedCountries.map((country) => (
-              <span
-                key={country.value}
-                className="inline-flex items-center gap-50 rounded-full bg-surface p-150 py-50 text-sm"
+  return (
+    <div className="w-80 space-y-4">
+      {selectedCountries.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selectedCountries.map((country) => (
+            <span
+              key={country.value}
+              className="inline-flex items-center gap-50 rounded-full bg-surface p-150 py-50 text-sm"
+            >
+              {country.label}
+              <Button
+                type="button"
+                size="current"
+                theme="unstyled"
+                onClick={() => {
+                  removeCountry(country.value)
+                }}
+                className="bg-surface"
+                aria-label={`Remove ${country.label}`}
               >
-                {country.label}
-                <Button
-                  type="button"
-                  size="current"
-                  theme="unstyled"
-                  onClick={() => {
-                    removeCountry(country.value)
-                  }}
-                  className="bg-surface"
-                  aria-label={`Remove ${country.label}`}
-                >
-                  <Icon icon="icon-[mdi--close]" />
-                </Button>
-              </span>
-            ))}
-          </div>
-        )}
-        <Combobox
-          label="Select Countries"
-          placeholder="Choose countries..."
-          items={countries}
-          value={selectedValues}
-          multiple
-          selectionBehavior="clear"
-          closeOnSelect={false}
-          onChange={(value) => {
-            setSelectedValues(Array.isArray(value) ? value : [value])
-          }}
-        />
-      </div>
-    )
-  },
+                <Icon icon="icon-[mdi--close]" />
+              </Button>
+            </span>
+          ))}
+        </div>
+      )}
+      <Combobox
+        label="Select Countries"
+        placeholder="Choose countries..."
+        items={countries}
+        value={selectedValues}
+        multiple
+        selectionBehavior="clear"
+        closeOnSelect={false}
+        onChange={(value) => {
+          setSelectedValues(Array.isArray(value) ? value : [value])
+        }}
+      />
+    </div>
+  )
+}
+
+export const MultipleSelection: Story = {
+  render: MultipleSelectionStory,
 }
 
 export const Sizes: Story = {
@@ -234,52 +230,52 @@ export const Sizes: Story = {
   ),
 }
 
-export const ComplexStory: Story = {
-  render: () => {
-    const [selectedCountryValue, setSelectedCountryValue] = useState<
-      string | null
-    >(null)
+const ComplexStoryStory = () => {
+  const [selectedCountryValue, setSelectedCountryValue] = useState<
+    string | null
+  >(null)
 
-    const validateStatus =
-      selectedCountryValue === "us"
-        ? "error"
-        : selectedCountryValue === "sk"
-          ? "warning"
-          : selectedCountryValue === "cz"
-            ? "success"
-            : "default"
+  let validateStatus: NonNullable<
+    ComponentProps<typeof Combobox>["validateStatus"]
+  > = "default"
+  let dynamicHelpText = "Select your country of residence"
 
-    const dynamicHelpText =
-      validateStatus === "error"
-        ? "USA is currently unavailable"
-        : validateStatus === "warning"
-          ? "Slovakia requires additional identity verification"
-          : validateStatus === "success"
-            ? "Country successfully selected"
-            : "Select your country of residence"
+  if (selectedCountryValue === "us") {
+    validateStatus = "error"
+    dynamicHelpText = "USA is currently unavailable"
+  } else if (selectedCountryValue === "sk") {
+    validateStatus = "warning"
+    dynamicHelpText = "Slovakia requires additional identity verification"
+  } else if (selectedCountryValue === "cz") {
+    validateStatus = "success"
+    dynamicHelpText = "Country successfully selected"
+  }
 
-    return (
-      <div className="w-72 space-y-8">
-        <Combobox
-          label="Select Country (Dynamic Validation)"
-          placeholder="Choose a country..."
-          items={countries}
-          onChange={(value) => {
-            const singleValue = Array.isArray(value) ? value[0] : value
-            setSelectedCountryValue(singleValue ?? null)
-          }}
-          validateStatus={validateStatus}
-          helpText={dynamicHelpText}
-        />
-        <div className="text-sm ">
-          Try selecting different countries to see validation states change:
-          <ul className="mt-2 ml-5 list-disc">
-            <li>USA - error</li>
-            <li>Slovakia - warning</li>
-            <li>Czech Republic - success</li>
-          </ul>
-        </div>
+  return (
+    <div className="w-72 space-y-8">
+      <Combobox
+        label="Select Country (Dynamic Validation)"
+        placeholder="Choose a country..."
+        items={countries}
+        onChange={(value) => {
+          const singleValue = Array.isArray(value) ? value[0] : value
+          setSelectedCountryValue(singleValue ?? null)
+        }}
+        validateStatus={validateStatus}
+        helpText={dynamicHelpText}
+      />
+      <div className="text-sm ">
+        Try selecting different countries to see validation states change:
+        <ul className="mt-2 ml-5 list-disc">
+          <li>USA - error</li>
+          <li>Slovakia - warning</li>
+          <li>Czech Republic - success</li>
+        </ul>
       </div>
-    )
-  },
+    </div>
+  )
+}
+
+export const ComplexStory: Story = {
+  render: ComplexStoryStory,
 }

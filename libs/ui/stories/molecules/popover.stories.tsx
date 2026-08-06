@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
@@ -10,9 +10,7 @@ import type { PopoverTemplateProps } from "../../src/templates/popover"
 
 type PopoverStoryArgs = PopoverTemplateProps
 
-function PopoverStory(args: PopoverStoryArgs) {
-  return <PopoverTemplate {...args} />
-}
+const PopoverStory = (args: PopoverStoryArgs) => <PopoverTemplate {...args} />
 
 const meta = {
   argTypes: {
@@ -253,61 +251,63 @@ export const Variants: Story = {
   ),
 }
 
-export const Controlled: Story = {
-  args: {},
-  render: () => {
-    const [open, setOpen] = useState(false)
+const ControlledStory = () => {
+  const [open, setOpen] = useState(false)
 
-    return (
-      <div className="flex flex-col items-center gap-200">
-        <div className="flex gap-100">
+  return (
+    <div className="flex flex-col items-center gap-200">
+      <div className="flex gap-100">
+        <Button
+          onClick={() => {
+            setOpen(true)
+          }}
+          size="sm"
+          variant="secondary"
+        >
+          Open Popover
+        </Button>
+        <Button
+          onClick={() => {
+            setOpen(false)
+          }}
+          size="sm"
+          variant="secondary"
+        >
+          Close Popover
+        </Button>
+      </div>
+
+      <PopoverTemplate
+        description="This popover is controlled by external state"
+        id="controlled-popover"
+        onOpenChange={(details) => {
+          setOpen(details.open)
+        }}
+        open={open}
+        title="Controlled Popover"
+        trigger="Controlled Popover"
+      >
+        <div className="mt-200">
+          <p>The popover is {open ? "open" : "closed"}.</p>
           <Button
-            onClick={() => {
-              setOpen(true)
-            }}
-            size="sm"
-            variant="secondary"
-          >
-            Open Popover
-          </Button>
-          <Button
+            className="mt-100"
             onClick={() => {
               setOpen(false)
             }}
             size="sm"
             variant="secondary"
           >
-            Close Popover
+            Close from inside
           </Button>
         </div>
+      </PopoverTemplate>
+    </div>
+  )
+}
 
-        <PopoverTemplate
-          description="This popover is controlled by external state"
-          id="controlled-popover"
-          onOpenChange={(details) => {
-            setOpen(details.open)
-          }}
-          open={open}
-          title="Controlled Popover"
-          trigger="Controlled Popover"
-        >
-          <div className="mt-200">
-            <p>The popover is {open ? "open" : "closed"}.</p>
-            <Button
-              className="mt-100"
-              onClick={() => {
-                setOpen(false)
-              }}
-              size="sm"
-              variant="secondary"
-            >
-              Close from inside
-            </Button>
-          </div>
-        </PopoverTemplate>
-      </div>
-    )
-  },
+export const Controlled: Story = {
+  args: {},
+  render: ControlledStory,
 }
 
 export const WithForm: Story = {
@@ -380,7 +380,7 @@ export const Modal: Story = {
   args: {
     children: (
       <div className="mt-200">
-        <p>Try clicking outside - it won't close!</p>
+        <p>Try clicking outside - it won&apos;t close!</p>
         <p className="mt-100 text-sm">
           Press Escape or use the close button to dismiss.
         </p>
@@ -397,59 +397,74 @@ export const Modal: Story = {
   },
 }
 
-export const AsyncContent: Story = {
-  args: {},
-  render: () => {
-    const [loading, setLoading] = useState(false)
-    const [data, setData] = useState<string | null>(null)
+const AsyncContentStory = () => {
+  const [loading, setLoading] = useState(false)
+  const [data, setData] = useState<string | null>(null)
 
-    const loadData = async () => {
-      setLoading(true)
-      setData(null)
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
 
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      setData("Data loaded successfully!")
-      setLoading(false)
+    if (loading) {
+      timeoutId = setTimeout(() => {
+        setData("Data loaded successfully!")
+        setLoading(false)
+      }, 1500)
     }
 
-    return (
-      <PopoverTemplate
-        id="async-popover"
-        onOpenChange={(details) => {
-          if (details.open) {
-            void loadData()
-          }
-        }}
-        trigger="Load Async Content"
-      >
-        <div className="flex min-h-24 w-3xs items-center justify-center">
-          {loading ? (
-            <div className="flex items-center gap-100">
-              <Icon
-                className="animate-spin"
-                icon="token-icon-spinner"
-                size="sm"
-              />
-              <span>Loading...</span>
-            </div>
-          ) : data ? (
-            <div className="text-center">
-              <Icon
-                className="mx-auto mb-100"
-                color="success"
-                icon="token-icon-check"
-                size="lg"
-              />
-              <p>{data}</p>
-            </div>
-          ) : (
-            <p>Waiting to load...</p>
-          )}
-        </div>
-      </PopoverTemplate>
+    return () => {
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [loading])
+
+  const loadData = () => {
+    setLoading(true)
+    setData(null)
+  }
+
+  let content = <p>Waiting to load...</p>
+  if (loading) {
+    content = (
+      <div className="flex items-center gap-100">
+        <Icon className="animate-spin" icon="token-icon-spinner" size="sm" />
+        <span>Loading...</span>
+      </div>
     )
-  },
+  } else if (data !== null) {
+    content = (
+      <div className="text-center">
+        <Icon
+          className="mx-auto mb-100"
+          color="success"
+          icon="token-icon-check"
+          size="lg"
+        />
+        <p>{data}</p>
+      </div>
+    )
+  }
+
+  return (
+    <PopoverTemplate
+      id="async-popover"
+      onOpenChange={(details) => {
+        if (details.open) {
+          loadData()
+        }
+      }}
+      trigger="Load Async Content"
+    >
+      <div className="flex min-h-24 w-3xs items-center justify-center">
+        {content}
+      </div>
+    </PopoverTemplate>
+  )
+}
+
+export const AsyncContent: Story = {
+  args: {},
+  render: AsyncContentStory,
 }
 
 export const PositioningBehaviors: Story = {
@@ -465,8 +480,8 @@ export const PositioningBehaviors: Story = {
         trigger="Flip Demo"
       >
         <p>
-          This popover opens on the left but will flip to right if there's no
-          space.
+          This popover opens on the left but will flip to right if there&apos;s
+          no space.
         </p>
       </PopoverTemplate>
       <div className="space-y-100">

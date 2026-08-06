@@ -12,12 +12,20 @@ import { Tooltip } from "@/atoms/tooltip"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { iconLabels, iconOptions } from "../helpers/icon-options"
 
+const outlineNavigationItems = [
+  { icon: "icon-[mdi--home]", label: "Dashboard" },
+  { icon: "icon-[mdi--chart-line]", label: "Analytics" },
+  { icon: "icon-[mdi--users]", label: "Team Members" },
+  { icon: "icon-[mdi--settings]", label: "Settings" },
+  { icon: "icon-[mdi--help-circle]", label: "Help & Support" },
+] satisfies readonly { icon: IconType; label: string }[]
+
 type PlaygroundArgs = ComponentPropsWithoutRef<typeof Tooltip> & {
   triggerType?: "button" | "icon"
   triggerLabel?: string
   triggerIcon?: IconType
-  triggerVariant?: "primary" | "secondary" | "tertiary" | "danger" | "warning"
-  triggerSize?: "sm" | "md" | "lg"
+  triggerVariant?: ComponentPropsWithoutRef<typeof Button>["variant"]
+  triggerSize?: ComponentPropsWithoutRef<typeof Button>["size"]
 }
 
 const meta: Meta<typeof Tooltip> = {
@@ -418,54 +426,56 @@ export const CloseBehaviors: Story = {
   ),
 }
 
-export const ControlledTooltip: Story = {
-  render: () => {
-    const [isOpen, setIsOpen] = useState(false)
+const ControlledTooltipStory = () => {
+  const [isOpen, setIsOpen] = useState(false)
 
-    return (
-      <VariantContainer>
-        <VariantGroup title="External State Control" fullWidth>
-          <div className="w-full space-y-400">
-            <div className="flex justify-center gap-400">
-              <Button
-                onClick={() => {
-                  setIsOpen(!isOpen)
-                }}
-              >
-                {isOpen ? "Close" : "Open"} Tooltip
-              </Button>
-              <Button
-                onClick={() => {
-                  setIsOpen(false)
-                }}
-                variant="secondary"
-                disabled={!isOpen}
-              >
-                Force Close
-              </Button>
-            </div>
-
-            <div className="flex justify-center">
-              <Tooltip
-                content="This tooltip is controlled externally"
-                open={isOpen}
-                onOpenChange={(details) => {
-                  setIsOpen(details.open)
-                }}
-                interactive={true}
-              >
-                <Button variant="primary">Controlled Tooltip</Button>
-              </Tooltip>
-            </div>
-
-            <div className="text-center text-sm">
-              Tooltip state: {isOpen ? "Open" : "Closed"}
-            </div>
+  return (
+    <VariantContainer>
+      <VariantGroup title="External State Control" fullWidth>
+        <div className="w-full space-y-400">
+          <div className="flex justify-center gap-400">
+            <Button
+              onClick={() => {
+                setIsOpen(!isOpen)
+              }}
+            >
+              {isOpen ? "Close" : "Open"} Tooltip
+            </Button>
+            <Button
+              onClick={() => {
+                setIsOpen(false)
+              }}
+              variant="secondary"
+              disabled={!isOpen}
+            >
+              Force Close
+            </Button>
           </div>
-        </VariantGroup>
-      </VariantContainer>
-    )
-  },
+
+          <div className="flex justify-center">
+            <Tooltip
+              content="This tooltip is controlled externally"
+              open={isOpen}
+              onOpenChange={(details) => {
+                setIsOpen(details.open)
+              }}
+              interactive={true}
+            >
+              <Button variant="primary">Controlled Tooltip</Button>
+            </Tooltip>
+          </div>
+
+          <div className="text-center text-sm">
+            Tooltip state: {isOpen ? "Open" : "Closed"}
+          </div>
+        </div>
+      </VariantGroup>
+    </VariantContainer>
+  )
+}
+
+export const ControlledTooltip: Story = {
+  render: ControlledTooltipStory,
 }
 
 export const LongContent: Story = {
@@ -543,13 +553,7 @@ export const OutlineVariant: Story = {
     <VariantContainer>
       <VariantGroup title="Navigation Bar">
         <div className="flex gap-100 rounded-lg p-200">
-          {[
-            { icon: "icon-[mdi--home]", label: "Dashboard" },
-            { icon: "icon-[mdi--chart-line]", label: "Analytics" },
-            { icon: "icon-[mdi--users]", label: "Team Members" },
-            { icon: "icon-[mdi--settings]", label: "Settings" },
-            { icon: "icon-[mdi--help-circle]", label: "Help & Support" },
-          ].map(({ icon, label }) => (
+          {outlineNavigationItems.map(({ icon, label }) => (
             <Tooltip
               key={label}
               content={label}
@@ -559,7 +563,7 @@ export const OutlineVariant: Story = {
               <Button
                 aria-label={label}
                 className="rounded p-200 transition-colors"
-                icon={icon as IconType}
+                icon={icon}
                 theme="unstyled"
               />
             </Tooltip>

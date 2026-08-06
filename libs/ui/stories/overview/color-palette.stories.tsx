@@ -56,19 +56,16 @@ export const Default: Story = {
                     <div className="grid grid-cols-4 gap-4">
                       {stateVariants.map(({ state }) => {
                         const baseColorVar = `--color-${color}${suffix}`
-                        const computedColor =
-                          state === "disabled"
-                            ? `var(--color-${color}${suffix}-disabled)`
-                            : state !== ""
-                              ? `oklch(from var(${baseColorVar}) calc(l + var(--state-${state})) c h)`
-                              : `var(${baseColorVar})`
+                        let computedColor = `var(${baseColorVar})`
+                        let colorTokenName = `--color-${color}${suffix}`
 
-                        const colorTokenName =
-                          state === "disabled"
-                            ? `--color-${color}${suffix}-disabled`
-                            : state !== ""
-                              ? `--color-${color}${suffix}-${state}`
-                              : `--color-${color}${suffix}`
+                        if (state === "disabled") {
+                          computedColor = `var(--color-${color}${suffix}-disabled)`
+                          colorTokenName = `--color-${color}${suffix}-disabled`
+                        } else if (state !== "") {
+                          computedColor = `oklch(from var(${baseColorVar}) calc(l + var(--state-${state})) c h)`
+                          colorTokenName = `--color-${color}${suffix}-${state}`
+                        }
 
                         return (
                           <div

@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import type { ComponentProps } from "react"
 import { fn } from "storybook/test"
 
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { iconLabels, iconOptions } from "../helpers/icon-options"
+
+const handleClick = fn<NonNullable<ComponentProps<typeof Button>["onClick"]>>()
 
 const meta: Meta<typeof Button> = {
   argTypes: {
@@ -103,7 +106,7 @@ const meta: Meta<typeof Button> = {
     iconPosition: "left",
     isLoading: false,
     loadingText: "Loading...",
-    onClick: fn(),
+    onClick: handleClick,
     size: "md",
     theme: "solid",
     type: "button",

@@ -87,21 +87,17 @@ interface StoryFrameProps {
   mobile?: boolean
 }
 
-function StoryFrame({ children, mobile = false }: StoryFrameProps) {
-  return (
-    <div className="w-full bg-base p-400">
-      <div
-        className={
-          mobile ? "mx-auto w-full max-w-sm" : "mx-auto w-full max-w-lg"
-        }
-      >
-        <div className="rounded-lg border border-border-primary bg-surface p-250">
-          {children}
-        </div>
+const StoryFrame = ({ children, mobile = false }: StoryFrameProps) => (
+  <div className="w-full bg-base p-400">
+    <div
+      className={mobile ? "mx-auto w-full max-w-sm" : "mx-auto w-full max-w-lg"}
+    >
+      <div className="rounded-lg border border-border-primary bg-surface p-250">
+        {children}
       </div>
     </div>
-  )
-}
+  </div>
+)
 
 interface StoryHeaderProps {
   label: string
@@ -109,19 +105,17 @@ interface StoryHeaderProps {
   note: string
 }
 
-function StoryHeader({ label, title, note }: StoryHeaderProps) {
-  return (
-    <div className="mb-250 flex flex-col gap-100">
-      <div className="flex flex-wrap items-center gap-100">
-        <Badge variant="outline">{label}</Badge>
-        <StatusText size="sm" status="default">
-          {note}
-        </StatusText>
-      </div>
-      <div className="text-md font-semibold text-fg-primary">{title}</div>
+const StoryHeader = ({ label, title, note }: StoryHeaderProps) => (
+  <div className="mb-250 flex flex-col gap-100">
+    <div className="flex flex-wrap items-center gap-100">
+      <Badge variant="outline">{label}</Badge>
+      <StatusText size="sm" status="default">
+        {note}
+      </StatusText>
     </div>
-  )
-}
+    <div className="text-md font-semibold text-fg-primary">{title}</div>
+  </div>
+)
 
 const meta = {
   argTypes: {

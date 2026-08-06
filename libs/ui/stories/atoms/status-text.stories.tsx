@@ -95,7 +95,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
   },
   render: (args) => {
     const { children, useLongText, ...statusArgs } = args
-    const content = useLongText ? LONG_TEXT : children
+    const content = useLongText === true ? LONG_TEXT : children
 
     return (
       <div className="w-md">
@@ -252,7 +252,7 @@ export const FormValidationContext: Story = {
           type="tel"
         />
         <StatusText status="default" showIcon={false}>
-          We'll use this for account recovery
+          We&apos;ll use this for account recovery
         </StatusText>
       </div>
     </div>
@@ -273,7 +273,7 @@ export const LongText: Story = {
 
         <VariantGroup title="Long Success Message">
           <StatusText align="start" status="success" showIcon>
-            Your account has been successfully created! We've sent a
+            Your account has been successfully created! We&apos;ve sent a
             confirmation email to your address. Please check your inbox and
             click the verification link.
           </StatusText>

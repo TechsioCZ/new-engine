@@ -4,11 +4,13 @@ import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
 import type { BreadcrumbTemplateItem } from "../../src/templates/breadcrumb"
 
+const electronicsHref = "/products/electronics"
+
 const defaultItems: BreadcrumbTemplateItem[] = [
   { href: "/", icon: "token-icon-home", label: "Home" },
   { href: "/products", icon: "token-icon-shopping-bag", label: "Products" },
   {
-    href: "/products/electronics",
+    href: electronicsHref,
     icon: "token-icon-cpu",
     label: "Electronics",
   },
@@ -18,7 +20,7 @@ const defaultItems: BreadcrumbTemplateItem[] = [
 const longItems: BreadcrumbTemplateItem[] = [
   { href: "/", label: "Home" },
   { href: "/products", label: "Products" },
-  { href: "/products/electronics", label: "Electronics" },
+  { href: electronicsHref, label: "Electronics" },
   { href: "/products/electronics/computers", label: "Computers" },
   { href: "/products/electronics/computers/laptops", label: "Laptops" },
   { href: "/products/electronics/computers/laptops/gaming", label: "Gaming" },
@@ -157,7 +159,7 @@ export const ExplicitCurrent: Story = {
     items: [
       { href: "/", label: "Home" },
       { href: "/products", isCurrent: true, label: "Products" },
-      { href: "/products/electronics", label: "Electronics" },
+      { href: electronicsHref, label: "Electronics" },
     ],
   },
 }

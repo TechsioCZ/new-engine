@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import type { ComponentProps } from "react"
 import { useState } from "react"
+import { fn } from "storybook/test"
 
 import { VariantContainer } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
@@ -67,7 +69,7 @@ const sampleProducts = [
     category: "Furniture",
     id: 3,
     name: "Desk Chair",
-    price: 150.0,
+    price: 150,
     stock: 30,
   },
   {
@@ -85,6 +87,17 @@ const sampleProducts = [
     stock: 200,
   },
 ]
+
+type SampleProduct = (typeof sampleProducts)[number]
+
+const onInteractiveRowClick = fn<(product: SampleProduct) => void>()
+
+const toggleSelectedId = (selectedIds: number[], id: number) =>
+  selectedIds.includes(id)
+    ? selectedIds.filter((selectedId) => selectedId !== id)
+    : [...selectedIds, id]
+
+type TableStoryArgs = ComponentProps<typeof Table>
 
 // === BASIC VARIANTS ===
 
@@ -170,7 +183,7 @@ export const Interactive: Story = {
           <Table.Row
             key={product.id}
             onClick={() => {
-              alert(`Selected: ${product.name}`)
+              onInteractiveRowClick(product)
             }}
           >
             <Table.Cell>{product.name}</Table.Cell>
@@ -316,8 +329,8 @@ export const StickyHeader: Story = {
       category: ["Electronics", "Furniture", "Accessories"][i % 3],
       id: i + 1,
       name: `Product ${i + 1}`,
-      price: Math.random() * 1000,
-      stock: Math.floor(Math.random() * 200),
+      price: ((i + 1) * 137) % 1000,
+      stock: ((i + 1) * 37) % 200,
     }))
 
     return (
@@ -553,89 +566,186 @@ export const WithStickyColumn: Story = {
 
 // === SELECTION EXAMPLES ===
 
+const WithSelectionStory = (args: TableStoryArgs) => {
+  const [selection, setSelection] = useState<number[]>([])
+
+  const handleSelectAll = () => {
+    if (selection.length === sampleProducts.length) {
+      setSelection([])
+    } else {
+      setSelection(sampleProducts.map((p) => p.id))
+    }
+  }
+
+  const allSelected =
+    selection.length === sampleProducts.length && sampleProducts.length > 0
+  const someSelected =
+    selection.length > 0 && selection.length < sampleProducts.length
+
+  return (
+    <div>
+      <Table {...args}>
+        <Table.Caption>
+          {selection.length > 0
+            ? `${selection.length} item(s) selected`
+            : "Select items using checkboxes"}
+        </Table.Caption>
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeader>
+              <Checkbox
+                checked={allSelected}
+                indeterminate={someSelected}
+                onChange={handleSelectAll}
+                aria-label="Select all products"
+              />
+            </Table.ColumnHeader>
+            <Table.ColumnHeader>Product</Table.ColumnHeader>
+            <Table.ColumnHeader>Category</Table.ColumnHeader>
+            <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
+            <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {sampleProducts.map((product) => {
+            const isSelected = selection.includes(product.id)
+            return (
+              <Table.Row key={product.id} selected={isSelected}>
+                <Table.Cell>
+                  <Checkbox
+                    checked={isSelected}
+                    onChange={() => {
+                      setSelection((selectedIds) =>
+                        toggleSelectedId(selectedIds, product.id),
+                      )
+                    }}
+                    aria-label={`Select ${product.name}`}
+                  />
+                </Table.Cell>
+                <Table.Cell>{product.name}</Table.Cell>
+                <Table.Cell>{product.category}</Table.Cell>
+                <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                <Table.Cell numeric>{product.stock}</Table.Cell>
+              </Table.Row>
+            )
+          })}
+        </Table.Body>
+      </Table>
+
+      {selection.length > 0 && (
+        <div>
+          <strong>Selected IDs:</strong> {selection.join(", ")}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export const WithSelection: Story = {
   args: {
     size: "md",
     variant: "line",
   },
-  render: (args) => {
-    const [selection, setSelection] = useState<number[]>([])
+  render: WithSelectionStory,
+}
 
-    const handleSelectAll = () => {
-      if (selection.length === sampleProducts.length) {
-        setSelection([])
-      } else {
-        setSelection(sampleProducts.map((p) => p.id))
-      }
+const WithSelectionAndActionsStory = (args: TableStoryArgs) => {
+  const [selection, setSelection] = useState<number[]>([])
+  const [products, setProducts] = useState(sampleProducts)
+
+  const handleSelectAll = () => {
+    if (selection.length === products.length) {
+      setSelection([])
+    } else {
+      setSelection(products.map((p) => p.id))
     }
+  }
 
-    const handleSelectRow = (id: number) => {
-      setSelection((prev) =>
-        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-      )
-    }
+  const handleDelete = () => {
+    setProducts((prev) => prev.filter((p) => !selection.includes(p.id)))
+    setSelection([])
+  }
 
-    const allSelected =
-      selection.length === sampleProducts.length && sampleProducts.length > 0
-    const someSelected =
-      selection.length > 0 && selection.length < sampleProducts.length
+  const allSelected =
+    selection.length === products.length && products.length > 0
+  const someSelected =
+    selection.length > 0 && selection.length < products.length
 
-    return (
-      <div>
-        <Table {...args}>
-          <Table.Caption>
-            {selection.length > 0
-              ? `${selection.length} item(s) selected`
-              : "Select items using checkboxes"}
-          </Table.Caption>
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>
-                <Checkbox
-                  checked={allSelected}
-                  indeterminate={someSelected}
-                  onChange={handleSelectAll}
-                  aria-label="Select all products"
-                />
-              </Table.ColumnHeader>
-              <Table.ColumnHeader>Product</Table.ColumnHeader>
-              <Table.ColumnHeader>Category</Table.ColumnHeader>
-              <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
-              <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {sampleProducts.map((product) => {
-              const isSelected = selection.includes(product.id)
-              return (
-                <Table.Row key={product.id} selected={isSelected}>
-                  <Table.Cell>
-                    <Checkbox
-                      checked={isSelected}
-                      onChange={() => {
-                        handleSelectRow(product.id)
-                      }}
-                      aria-label={`Select ${product.name}`}
-                    />
-                  </Table.Cell>
-                  <Table.Cell>{product.name}</Table.Cell>
-                  <Table.Cell>{product.category}</Table.Cell>
-                  <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
-                  <Table.Cell numeric>{product.stock}</Table.Cell>
-                </Table.Row>
-              )
-            })}
-          </Table.Body>
-        </Table>
-
-        {selection.length > 0 && (
-          <div>
-            <strong>Selected IDs:</strong> {selection.join(", ")}
+  return (
+    <div>
+      {selection.length > 0 && (
+        <div className="mb-200 p-200 bg-surface rounded-md flex justify-between items-center">
+          <span>
+            <strong>{selection.length}</strong> item(s) selected
+          </span>
+          <div className="flex gap-200">
+            <Button
+              variant="danger"
+              theme="solid"
+              size="sm"
+              onClick={handleDelete}
+            >
+              Delete Selected
+            </Button>
+            <Button
+              variant="secondary"
+              theme="outlined"
+              size="sm"
+              onClick={() => {
+                setSelection([])
+              }}
+            >
+              Clear Selection
+            </Button>
           </div>
-        )}
-      </div>
-    )
-  },
+        </div>
+      )}
+
+      <Table {...args} interactive={true}>
+        <Table.Caption>Product Inventory Management</Table.Caption>
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeader>
+              <Checkbox
+                checked={allSelected}
+                indeterminate={someSelected}
+                onChange={handleSelectAll}
+                aria-label="Select all products"
+              />
+            </Table.ColumnHeader>
+            <Table.ColumnHeader>Product</Table.ColumnHeader>
+            <Table.ColumnHeader>Category</Table.ColumnHeader>
+            <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
+            <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {products.map((product) => {
+            const isSelected = selection.includes(product.id)
+            return (
+              <Table.Row key={product.id} selected={isSelected}>
+                <Table.Cell>
+                  <Checkbox
+                    checked={isSelected}
+                    onChange={() => {
+                      setSelection((selectedIds) =>
+                        toggleSelectedId(selectedIds, product.id),
+                      )
+                    }}
+                    aria-label={`Select ${product.name}`}
+                  />
+                </Table.Cell>
+                <Table.Cell>{product.name}</Table.Cell>
+                <Table.Cell>{product.category}</Table.Cell>
+                <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                <Table.Cell numeric>{product.stock}</Table.Cell>
+              </Table.Row>
+            )
+          })}
+        </Table.Body>
+      </Table>
+    </div>
+  )
 }
 
 export const WithSelectionAndActions: Story = {
@@ -643,106 +753,5 @@ export const WithSelectionAndActions: Story = {
     size: "md",
     variant: "line",
   },
-  render: (args) => {
-    const [selection, setSelection] = useState<number[]>([])
-    const [products, setProducts] = useState(sampleProducts)
-
-    const handleSelectAll = () => {
-      if (selection.length === products.length) {
-        setSelection([])
-      } else {
-        setSelection(products.map((p) => p.id))
-      }
-    }
-
-    const handleSelectRow = (id: number) => {
-      setSelection((prev) =>
-        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-      )
-    }
-
-    const handleDelete = () => {
-      setProducts((prev) => prev.filter((p) => !selection.includes(p.id)))
-      setSelection([])
-    }
-
-    const allSelected =
-      selection.length === products.length && products.length > 0
-    const someSelected =
-      selection.length > 0 && selection.length < products.length
-
-    return (
-      <div>
-        {selection.length > 0 && (
-          <div className="mb-200 p-200 bg-surface rounded-md flex justify-between items-center">
-            <span>
-              <strong>{selection.length}</strong> item(s) selected
-            </span>
-            <div className="flex gap-200">
-              <Button
-                variant="danger"
-                theme="solid"
-                size="sm"
-                onClick={handleDelete}
-              >
-                Delete Selected
-              </Button>
-              <Button
-                variant="secondary"
-                theme="outlined"
-                size="sm"
-                onClick={() => {
-                  setSelection([])
-                }}
-              >
-                Clear Selection
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <Table {...args} interactive={true}>
-          <Table.Caption>Product Inventory Management</Table.Caption>
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>
-                <Checkbox
-                  checked={allSelected}
-                  indeterminate={someSelected}
-                  onChange={handleSelectAll}
-                  aria-label="Select all products"
-                />
-              </Table.ColumnHeader>
-              <Table.ColumnHeader>Product</Table.ColumnHeader>
-              <Table.ColumnHeader>Category</Table.ColumnHeader>
-              <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
-              <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {products.map((product) => {
-              const isSelected = selection.includes(product.id)
-              return (
-                <Table.Row key={product.id} selected={isSelected}>
-                  <Table.Cell>
-                    <Checkbox
-                      checked={isSelected}
-                      onChange={() => {
-                        handleSelectRow(product.id)
-                      }}
-                      aria-label={`Select ${product.name}`}
-                    />
-                  </Table.Cell>
-                  <Table.Cell>{product.name}</Table.Cell>
-                  <Table.Cell>{product.category}</Table.Cell>
-                  <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
-                  <Table.Cell numeric>{product.stock}</Table.Cell>
-                </Table.Row>
-              )
-            })}
-          </Table.Body>
-        </Table>
-      </div>
-    )
-  },
+  render: WithSelectionAndActionsStory,
 }

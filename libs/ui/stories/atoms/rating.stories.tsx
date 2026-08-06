@@ -76,44 +76,48 @@ export const Sizes: Story = {
   ),
 }
 
-export const Controlled: Story = {
-  render: () => {
-    const [value, setValue] = useState(3)
-    const [hoverValue, setHoverValue] = useState<number>(0)
+const ControlledStory = () => {
+  const [value, setValue] = useState(3)
+  const [hoverValue, setHoverValue] = useState<number>(0)
 
-    return (
-      <div className="flex flex-col gap-4">
-        <Rating
-          value={value}
-          onChange={setValue}
-          onHoverChange={setHoverValue}
-          allowHalf
-        />
-        <div className="space-y-1 text-sm">
-          <p>Current value: {value}</p>
-          <p>Hover value: {hoverValue}</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setValue(0)
-            }}
-            className="rounded border px-3 py-1 text-sm hover:bg-gray-100/20"
-          >
-            Clear
-          </button>
-          <button
-            onClick={() => {
-              setValue(5)
-            }}
-            className="rounded border px-3 py-1 text-sm hover:bg-gray-100/20"
-          >
-            Max
-          </button>
-        </div>
+  return (
+    <div className="flex flex-col gap-4">
+      <Rating
+        value={value}
+        onChange={setValue}
+        onHoverChange={setHoverValue}
+        allowHalf
+      />
+      <div className="space-y-1 text-sm">
+        <p>Current value: {value}</p>
+        <p>Hover value: {hoverValue}</p>
       </div>
-    )
-  },
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setValue(0)
+          }}
+          className="rounded border px-3 py-1 text-sm hover:bg-gray-100/20"
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setValue(5)
+          }}
+          className="rounded border px-3 py-1 text-sm hover:bg-gray-100/20"
+        >
+          Max
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export const Controlled: Story = {
+  render: ControlledStory,
 }
 
 export const States: Story = {
