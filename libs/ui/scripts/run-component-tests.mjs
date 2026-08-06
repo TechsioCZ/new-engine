@@ -42,7 +42,7 @@ const dockerProjects = dockerProjectsEnv
   .filter(Boolean)
 const storybookDir = path.resolve(uiRoot, "storybook-static")
 const storybookIframe = path.resolve(storybookDir, "iframe.html")
-const snapshotsDir = path.resolve(uiRoot, "test/visual.spec.ts-snapshots")
+const snapshotsDir = path.resolve(uiRoot, "test/visual.test.ts-snapshots")
 const containerName = `pw-visual-${Date.now()}`
 const rebuildStorybook =
   (process.env.PLAYWRIGHT_STORYBOOK_REBUILD ?? "1") !== "0"
@@ -349,7 +349,7 @@ try {
   const resultsDir = path.resolve(uiRoot, "test-results")
   copyArtifact(
     "snapshots",
-    "/app/test/visual.spec.ts-snapshots/.",
+    "/app/test/visual.test.ts-snapshots/.",
     snapshotsDir,
   )
   copyArtifact("HTML report", "/app/playwright-report/.", reportDir)

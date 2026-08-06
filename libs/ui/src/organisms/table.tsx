@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -153,7 +153,7 @@ const useTableContextValue = ({
 })
 
 // Root component
-interface TableProps
+export interface TableProps
   extends
     VariantProps<typeof tableVariants>,
     ComponentPropsWithoutRef<"table"> {
@@ -194,7 +194,7 @@ export const Table = ({
 }
 
 // Caption component
-interface TableCaptionProps extends ComponentPropsWithoutRef<"caption"> {
+export interface TableCaptionProps extends ComponentPropsWithoutRef<"caption"> {
   ref?: RefObject<HTMLTableCaptionElement> | undefined
 }
 
@@ -214,7 +214,7 @@ const TableCaption = ({
 }
 
 // Header component
-interface TableHeaderProps extends ComponentPropsWithoutRef<"thead"> {
+export interface TableHeaderProps extends ComponentPropsWithoutRef<"thead"> {
   ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
@@ -234,7 +234,7 @@ const TableHeader = ({
 }
 
 // Body component
-interface TableBodyProps extends ComponentPropsWithoutRef<"tbody"> {
+export interface TableBodyProps extends ComponentPropsWithoutRef<"tbody"> {
   ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
@@ -249,7 +249,7 @@ const TableBody = ({ children, ref, className, ...props }: TableBodyProps) => {
 }
 
 // Footer component
-interface TableFooterProps extends ComponentPropsWithoutRef<"tfoot"> {
+export interface TableFooterProps extends ComponentPropsWithoutRef<"tfoot"> {
   ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
@@ -269,7 +269,7 @@ const TableFooter = ({
 }
 
 // Row component
-interface TableRowProps extends ComponentPropsWithoutRef<"tr"> {
+export interface TableRowProps extends ComponentPropsWithoutRef<"tr"> {
   ref?: RefObject<HTMLTableRowElement> | undefined
   selected?: boolean | undefined
 }
@@ -296,7 +296,7 @@ const TableRow = ({
 }
 
 // ColumnHeader component
-interface TableColumnHeaderProps extends ComponentPropsWithoutRef<"th"> {
+export interface TableColumnHeaderProps extends ComponentPropsWithoutRef<"th"> {
   ref?: RefObject<HTMLTableCellElement> | undefined
   numeric?: boolean | undefined
 }
@@ -324,7 +324,7 @@ const TableColumnHeader = ({
 }
 
 // Cell component
-interface TableCellProps extends ComponentPropsWithoutRef<"td"> {
+export interface TableCellProps extends ComponentPropsWithoutRef<"td"> {
   ref?: RefObject<HTMLTableCellElement> | undefined
   numeric?: boolean | undefined
 }

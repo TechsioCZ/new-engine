@@ -102,8 +102,8 @@ const CHANGELOG = `
 ### RadioCard v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
 
-### RadioGroup v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### RadioGroup v1.0.2
+- Added an explicit React-normalized Zag API context type so generated declarations remain portable while preserving the component’s public behavior and accessibility contract.
 
 ### Rating v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
@@ -129,8 +129,8 @@ const CHANGELOG = `
 ### Switch v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
 
-### Table v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### Table v1.0.2
+- Exported the existing compound component prop interfaces so generated Storybook and package declarations can name the public Table type surface without changing runtime behavior.
 
 ### Tabs v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.

@@ -1,12 +1,36 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { isRecord } from "@techsio/std/object"
 import { useState } from "react"
 
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import type { IconType } from "../../src/atoms/icon"
+import { Image } from "../../src/atoms/image"
 import { Select } from "../../src/molecules/select"
 import type { SelectItem } from "../../src/molecules/select"
+
+type LanguageWithIcon = SelectItem & { icon: IconType }
+type TeamMember = SelectItem & { avatar: string; label: string; role: string }
+type Plan = SelectItem & { features: string; label: string; price: string }
+
+const formatItemLabels = (items: SelectItem[], fallback = ""): string => {
+  const labels: string[] = []
+  for (const item of items) {
+    if (typeof item.label === "string") {
+      labels.push(item.label)
+    }
+  }
+  return labels.length > 0 ? labels.join(", ") : fallback
+}
+
+const findItemLabel = (
+  items: SelectItem[],
+  value: string | undefined,
+): string | undefined => {
+  const label = items.find((item) => item.value === value)?.label
+  return typeof label === "string" ? label : undefined
+}
 
 // Mock data
 const countries: SelectItem[] = [
@@ -40,7 +64,7 @@ const languages: SelectItem[] = [
   { label: "Chinese", value: "zh" },
 ]
 
-const teamMembers: SelectItem[] = [
+const teamMembers: TeamMember[] = [
   {
     avatar: "https://i.pravatar.cc/150?u=jessica",
     label: "Jessica Jones",
@@ -110,14 +134,17 @@ const meta: Meta<typeof Select> = {
   component: Select,
   decorators: [
     (Story, context) => {
-      const { title, description } = context.parameters
+      const parameters: unknown = context.parameters
+      const { description, title } = isRecord(parameters) ? parameters : {}
 
       return (
         <div className="flex w-80 flex-col gap-6 p-4">
-          {title && <h3 className="font-medium text-lg">{title}</h3>}
-          {description && (
+          {typeof title === "string" && title.length > 0 ? (
+            <h3 className="font-medium text-lg">{title}</h3>
+          ) : null}
+          {typeof description === "string" && description.length > 0 ? (
             <p className="mb-2 text-gray-600 text-sm">{description}</p>
-          )}
+          ) : null}
           <div className="space-y-4">
             <Story />
           </div>
@@ -484,7 +511,7 @@ export const ValidationStates: Story = {
 export const WithIcons: Story = {
   name: "With Icons (Compound Benefit)",
   render: () => {
-    const languagesWithIcons: SelectItem[] = [
+    const languagesWithIcons: LanguageWithIcon[] = [
       { icon: "icon-[cif--gb]", label: "English", value: "en" },
       { icon: "icon-[cif--es]", label: "Spanish", value: "es" },
       { icon: "icon-[cif--fr]", label: "French", value: "fr" },
@@ -497,12 +524,17 @@ export const WithIcons: Story = {
         <Select.Control>
           <Select.Trigger>
             <Select.ValueText placeholder="Choose a language">
-              {(items) => (
-                <span className="flex items-center gap-2">
-                  <Icon icon={items[0]?.icon as IconType} size="sm" />
-                  {items[0]?.label}
-                </span>
-              )}
+              {(items) => {
+                const language = languagesWithIcons.find(
+                  (item) => item.value === items[0]?.value,
+                )
+                return (
+                  <span className="flex items-center gap-2">
+                    {language ? <Icon icon={language.icon} size="sm" /> : null}
+                    {items[0]?.label}
+                  </span>
+                )
+              }}
             </Select.ValueText>
           </Select.Trigger>
         </Select.Control>
@@ -511,7 +543,7 @@ export const WithIcons: Story = {
             {languagesWithIcons.map((item) => (
               <Select.Item key={item.value} item={item}>
                 <span className="flex items-center gap-2">
-                  <Icon icon={item.icon as IconType} size="sm" />
+                  <Icon icon={item.icon} size="sm" />
                   <Select.ItemText />
                 </span>
                 <Select.ItemIndicator />
@@ -532,16 +564,23 @@ export const WithAvatars: Story = {
       <Select.Control>
         <Select.Trigger>
           <Select.ValueText placeholder="Choose a member">
-            {(items) => (
-              <span className="flex items-center gap-2">
-                <img
-                  src={items[0]?.avatar as string}
-                  alt={items[0]?.label as string}
-                  className="rounded-full object-cover size-6"
-                />
-                <span>{items[0]?.label}</span>
-              </span>
-            )}
+            {(items) => {
+              const teamMember = teamMembers.find(
+                (item) => item.value === items[0]?.value,
+              )
+              return (
+                <span className="flex items-center gap-2">
+                  {teamMember ? (
+                    <Image
+                      src={teamMember.avatar}
+                      alt={teamMember.label}
+                      className="rounded-full object-cover size-6"
+                    />
+                  ) : null}
+                  <span>{items[0]?.label}</span>
+                </span>
+              )
+            }}
           </Select.ValueText>
         </Select.Trigger>
         <Select.ClearTrigger />
@@ -551,16 +590,14 @@ export const WithAvatars: Story = {
           {teamMembers.map((item) => (
             <Select.Item key={item.value} item={item}>
               <span className="flex items-center gap-2">
-                <img
-                  src={item.avatar as string}
-                  alt={item.label as string}
+                <Image
+                  src={item.avatar}
+                  alt={item.label}
                   className="rounded-full object-cover size-6"
                 />
                 <span className="flex flex-col">
                   <Select.ItemText />
-                  <span className="text-xs text-gray-500">
-                    {item.role as string}
-                  </span>
+                  <span className="text-xs text-gray-500">{item.role}</span>
                 </span>
               </span>
               <Select.ItemIndicator />
@@ -638,7 +675,7 @@ export const WithItemGroups: Story = {
 export const CustomItemContent: Story = {
   name: "Custom Item Content (Compound Benefit)",
   render: () => {
-    const plans: SelectItem[] = [
+    const plans: Plan[] = [
       {
         features: "5 projects, 1GB storage",
         label: "Free",
@@ -665,14 +702,17 @@ export const CustomItemContent: Story = {
         <Select.Control>
           <Select.Trigger>
             <Select.ValueText placeholder="Choose a plan">
-              {(items) => (
-                <span className="flex items-center justify-between w-full">
-                  <span>{items[0]?.label}</span>
-                  <span className="text-sm text-gray-500">
-                    {items[0]?.price as string}
+              {(items) => {
+                const plan = plans.find(
+                  (item) => item.value === items[0]?.value,
+                )
+                return (
+                  <span className="flex items-center justify-between w-full">
+                    <span>{items[0]?.label}</span>
+                    <span className="text-sm text-gray-500">{plan?.price}</span>
                   </span>
-                </span>
-              )}
+                )
+              }}
             </Select.ValueText>
           </Select.Trigger>
         </Select.Control>
@@ -684,14 +724,10 @@ export const CustomItemContent: Story = {
                   <span className="flex items-center gap-2">
                     <Select.ItemText />
                   </span>
-                  <span className="text-xs text-gray-500">
-                    {item.features as string}
-                  </span>
+                  <span className="text-xs text-gray-500">{item.features}</span>
                 </span>
                 <span className="flex items-center gap-2">
-                  <span className="text-sm font-medium">
-                    {item.price as string}
-                  </span>
+                  <span className="text-sm font-medium">{item.price}</span>
                   <Select.ItemIndicator />
                 </span>
               </Select.Item>
@@ -703,64 +739,66 @@ export const CustomItemContent: Story = {
   },
 }
 
-export const Controlled: Story = {
-  render: () => {
-    const [value, setValue] = useState<string[]>(["fr"])
+const ControlledRender: NonNullable<Story["render"]> = () => {
+  const [value, setValue] = useState<string[]>(["fr"])
 
-    return (
-      <>
-        <Select
-          items={languages}
-          value={value}
-          onValueChange={(details) => {
-            setValue(details.value)
+  return (
+    <>
+      <Select
+        items={languages}
+        value={value}
+        onValueChange={(details) => {
+          setValue(details.value)
+        }}
+      >
+        <Select.Label>Select a language</Select.Label>
+        <Select.Control>
+          <Select.Trigger>
+            <Select.ValueText placeholder="Choose a language" />
+          </Select.Trigger>
+          <Select.ClearTrigger />
+        </Select.Control>
+        <Select.Positioner>
+          <Select.Content>
+            {languages.map((item) => (
+              <Select.Item key={item.value} item={item}>
+                <Select.ItemText />
+                <Select.ItemIndicator />
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Positioner>
+      </Select>
+
+      <div className="text-sm">
+        <strong>Selected:</strong> {value.join(", ") || "None"}
+      </div>
+
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          onClick={() => {
+            setValue(["en"])
           }}
         >
-          <Select.Label>Select a language</Select.Label>
-          <Select.Control>
-            <Select.Trigger>
-              <Select.ValueText placeholder="Choose a language" />
-            </Select.Trigger>
-            <Select.ClearTrigger />
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {languages.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  <Select.ItemText />
-                  <Select.ItemIndicator />
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select>
+          Set to English
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setValue([])
+          }}
+        >
+          Clear
+        </Button>
+      </div>
+    </>
+  )
+}
 
-        <div className="text-sm">
-          <strong>Selected:</strong> {value.join(", ") || "None"}
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            onClick={() => {
-              setValue(["en"])
-            }}
-          >
-            Set to English
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => {
-              setValue([])
-            }}
-          >
-            Clear
-          </Button>
-        </div>
-      </>
-    )
-  },
+export const Controlled: Story = {
+  render: ControlledRender,
 }
 
 export const Multiple: Story = {
@@ -772,15 +810,7 @@ export const Multiple: Story = {
           <Select.ValueText placeholder="Choose languages">
             {(items) =>
               items.length > 0 ? (
-                <span>
-                  {items
-                    .filter(
-                      (i): i is SelectItem & { label: string } =>
-                        typeof i.label === "string",
-                    )
-                    .map((i) => i.label)
-                    .join(", ")}
-                </span>
+                <span>{formatItemLabels(items)}</span>
               ) : (
                 "Choose languages"
               )
@@ -803,195 +833,193 @@ export const Multiple: Story = {
   ),
 }
 
-export const WithinForm: Story = {
-  render: () => {
-    const [formState, setFormState] = useState({
-      country: [] as string[],
-      language: [] as string[],
-    })
-    const [submittedData, setSubmittedData] = useState<null | typeof formState>(
-      null,
-    )
+const WithinFormRender: NonNullable<Story["render"]> = () => {
+  const [formState, setFormState] = useState<{
+    country: string[]
+    language: string[]
+  }>({
+    country: [],
+    language: [],
+  })
+  const [submittedData, setSubmittedData] = useState<null | typeof formState>(
+    null,
+  )
 
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault()
-      setSubmittedData(formState)
-    }
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setSubmittedData(formState)
+  }
 
-    return (
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Select
-          items={countries}
-          required
-          validateStatus={formState.country.length === 0 ? "error" : "default"}
-          value={formState.country}
-          onValueChange={(details) => {
-            setFormState((prev) => ({ ...prev, country: details.value }))
-          }}
-        >
-          <Select.Label>Country</Select.Label>
-          <Select.Control>
-            <Select.Trigger>
-              <Select.ValueText placeholder="Select a country" />
-            </Select.Trigger>
-            <Select.ClearTrigger />
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {countries.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  <Select.ItemText />
-                  <Select.ItemIndicator />
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-          {formState.country.length === 0 && (
-            <Select.StatusText>Please select a country</Select.StatusText>
-          )}
-        </Select>
-
-        <Select
-          items={languages}
-          multiple
-          closeOnSelect={false}
-          value={formState.language}
-          onValueChange={(details) => {
-            setFormState((prev) => ({ ...prev, language: details.value }))
-          }}
-        >
-          <Select.Label>Languages</Select.Label>
-          <Select.Control>
-            <Select.Trigger>
-              <Select.ValueText placeholder="Select languages">
-                {(items) =>
-                  items.length > 0
-                    ? items
-                        .filter(
-                          (i): i is SelectItem & { label: string } =>
-                            typeof i.label === "string",
-                        )
-                        .map((i) => i.label)
-                        .join(", ")
-                    : "Select languages"
-                }
-              </Select.ValueText>
-            </Select.Trigger>
-            <Select.ClearTrigger />
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {languages.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  <Select.ItemText />
-                  <Select.ItemIndicator />
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-          <Select.StatusText>
-            You can select multiple languages
-          </Select.StatusText>
-        </Select>
-
-        <Button type="submit" variant="primary">
-          Submit Form
-        </Button>
-
-        {submittedData && (
-          <div className="mt-4 rounded-md border border-green-200 bg-green-50/10 p-4">
-            <h4 className="mb-2 font-medium">Form Submitted:</h4>
-            <p>
-              <strong>Country:</strong>{" "}
-              {countries.find((c) => c.value === submittedData.country[0])
-                ?.label || "None"}
-            </p>
-            <p>
-              <strong>Languages:</strong>{" "}
-              {submittedData.language
-                .map((l) => languages.find((lang) => lang.value === l)?.label)
-                .filter((label): label is string => typeof label === "string")
-                .join(", ") || "None"}
-            </p>
-          </div>
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Select
+        items={countries}
+        required
+        validateStatus={formState.country.length === 0 ? "error" : "default"}
+        value={formState.country}
+        onValueChange={(details) => {
+          setFormState((prev) => ({ ...prev, country: details.value }))
+        }}
+      >
+        <Select.Label>Country</Select.Label>
+        <Select.Control>
+          <Select.Trigger>
+            <Select.ValueText placeholder="Select a country" />
+          </Select.Trigger>
+          <Select.ClearTrigger />
+        </Select.Control>
+        <Select.Positioner>
+          <Select.Content>
+            {countries.map((item) => (
+              <Select.Item key={item.value} item={item}>
+                <Select.ItemText />
+                <Select.ItemIndicator />
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Positioner>
+        {formState.country.length === 0 && (
+          <Select.StatusText>Please select a country</Select.StatusText>
         )}
-      </form>
-    )
-  },
+      </Select>
+
+      <Select
+        items={languages}
+        multiple
+        closeOnSelect={false}
+        value={formState.language}
+        onValueChange={(details) => {
+          setFormState((prev) => ({ ...prev, language: details.value }))
+        }}
+      >
+        <Select.Label>Languages</Select.Label>
+        <Select.Control>
+          <Select.Trigger>
+            <Select.ValueText placeholder="Select languages">
+              {(items) =>
+                items.length > 0 ? formatItemLabels(items) : "Select languages"
+              }
+            </Select.ValueText>
+          </Select.Trigger>
+          <Select.ClearTrigger />
+        </Select.Control>
+        <Select.Positioner>
+          <Select.Content>
+            {languages.map((item) => (
+              <Select.Item key={item.value} item={item}>
+                <Select.ItemText />
+                <Select.ItemIndicator />
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Positioner>
+        <Select.StatusText>You can select multiple languages</Select.StatusText>
+      </Select>
+
+      <Button type="submit" variant="primary">
+        Submit Form
+      </Button>
+
+      {submittedData === null ? null : (
+        <div className="mt-4 rounded-md border border-green-200 bg-green-50/10 p-4">
+          <h4 className="mb-2 font-medium">Form Submitted:</h4>
+          <p>
+            <strong>Country:</strong>{" "}
+            {findItemLabel(countries, submittedData.country[0]) ?? "None"}
+          </p>
+          <p>
+            <strong>Languages:</strong>{" "}
+            {formatItemLabels(
+              languages.filter((language) =>
+                submittedData.language.includes(language.value),
+              ),
+              "None",
+            )}
+          </p>
+        </div>
+      )}
+    </form>
+  )
 }
 
-export const ConditionalRendering: Story = {
-  name: "Conditional Rendering (Compound Benefit)",
-  render: () => {
-    const [showPremium, setShowPremium] = useState(false)
+export const WithinForm: Story = {
+  render: WithinFormRender,
+}
 
-    const basicItems: SelectItem[] = [
-      { label: "Free Plan", value: "free" },
-      { label: "Basic Plan", value: "basic" },
-    ]
+const ConditionalRenderingRender: NonNullable<Story["render"]> = () => {
+  const [showPremium, setShowPremium] = useState(false)
 
-    const premiumItems: SelectItem[] = [
-      { label: "Pro Plan", value: "pro" },
-      { label: "Enterprise Plan", value: "enterprise" },
-    ]
+  const basicItems: SelectItem[] = [
+    { label: "Free Plan", value: "free" },
+    { label: "Basic Plan", value: "basic" },
+  ]
 
-    const allItems = [...basicItems, ...(showPremium ? premiumItems : [])]
+  const premiumItems: SelectItem[] = [
+    { label: "Pro Plan", value: "pro" },
+    { label: "Enterprise Plan", value: "enterprise" },
+  ]
 
-    return (
-      <>
-        <div className="mb-4">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => {
-              setShowPremium(!showPremium)
-            }}
-          >
-            {showPremium ? "Hide" : "Show"} Premium Plans
-          </Button>
-        </div>
+  const allItems = [...basicItems, ...(showPremium ? premiumItems : [])]
 
-        <Select items={allItems}>
-          <Select.Label>Select a plan</Select.Label>
-          <Select.Control>
-            <Select.Trigger>
-              <Select.ValueText placeholder="Choose a plan" />
-            </Select.Trigger>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              <Select.ItemGroup id="basic-plans">
-                <Select.ItemGroupLabel htmlFor="basic-plans">
-                  Basic Plans
+  return (
+    <>
+      <div className="mb-4">
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setShowPremium(!showPremium)
+          }}
+        >
+          {showPremium ? "Hide" : "Show"} Premium Plans
+        </Button>
+      </div>
+
+      <Select items={allItems}>
+        <Select.Label>Select a plan</Select.Label>
+        <Select.Control>
+          <Select.Trigger>
+            <Select.ValueText placeholder="Choose a plan" />
+          </Select.Trigger>
+        </Select.Control>
+        <Select.Positioner>
+          <Select.Content>
+            <Select.ItemGroup id="basic-plans">
+              <Select.ItemGroupLabel htmlFor="basic-plans">
+                Basic Plans
+              </Select.ItemGroupLabel>
+              {basicItems.map((item) => (
+                <Select.Item key={item.value} item={item}>
+                  <Select.ItemText />
+                  <Select.ItemIndicator />
+                </Select.Item>
+              ))}
+            </Select.ItemGroup>
+
+            {showPremium && (
+              <Select.ItemGroup id="premium-plans">
+                <Select.ItemGroupLabel htmlFor="premium-plans">
+                  Premium Plans
                 </Select.ItemGroupLabel>
-                {basicItems.map((item) => (
+                {premiumItems.map((item) => (
                   <Select.Item key={item.value} item={item}>
-                    <Select.ItemText />
+                    <span className="flex items-center gap-2">
+                      <Select.ItemText />
+                      <Badge variant="warning">Premium</Badge>
+                    </span>
                     <Select.ItemIndicator />
                   </Select.Item>
                 ))}
               </Select.ItemGroup>
+            )}
+          </Select.Content>
+        </Select.Positioner>
+      </Select>
+    </>
+  )
+}
 
-              {showPremium && (
-                <Select.ItemGroup id="premium-plans">
-                  <Select.ItemGroupLabel htmlFor="premium-plans">
-                    Premium Plans
-                  </Select.ItemGroupLabel>
-                  {premiumItems.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      <span className="flex items-center gap-2">
-                        <Select.ItemText />
-                        <Badge variant="warning">Premium</Badge>
-                      </span>
-                      <Select.ItemIndicator />
-                    </Select.Item>
-                  ))}
-                </Select.ItemGroup>
-              )}
-            </Select.Content>
-          </Select.Positioner>
-        </Select>
-      </>
-    )
-  },
+export const ConditionalRendering: Story = {
+  name: "Conditional Rendering (Compound Benefit)",
+  render: ConditionalRenderingRender,
 }

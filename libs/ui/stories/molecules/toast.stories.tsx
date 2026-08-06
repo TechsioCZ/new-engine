@@ -195,8 +195,11 @@ const RemoveVsDismissRender: NonNullable<Story["render"]> = () => {
                 size="sm"
                 variant="danger"
                 onClick={() => {
-                  toaster.remove(toastIds.instant)
-                  setToastIds((prev) => ({ ...prev, instant: null }))
+                  const toastId = toastIds.instant
+                  if (isNonEmptyString(toastId)) {
+                    toaster.remove(toastId)
+                    setToastIds((prev) => ({ ...prev, instant: null }))
+                  }
                 }}
               >
                 Remove Toast (Instant)
@@ -226,8 +229,11 @@ const RemoveVsDismissRender: NonNullable<Story["render"]> = () => {
                 size="sm"
                 variant="warning"
                 onClick={() => {
-                  toaster.dismiss(toastIds.animated)
-                  setToastIds((prev) => ({ ...prev, animated: null }))
+                  const toastId = toastIds.animated
+                  if (isNonEmptyString(toastId)) {
+                    toaster.dismiss(toastId)
+                    setToastIds((prev) => ({ ...prev, animated: null }))
+                  }
                 }}
               >
                 Dismiss Toast (Animated)
@@ -306,7 +312,11 @@ export const PauseResumeExample: Story = {
   render: PauseResumeExampleRender,
 }
 
-const BATCH_TOAST_TYPES = ["success", "info", "warning"] as const
+const BATCH_TOAST_TYPES: readonly ["success", "info", "warning"] = [
+  "success",
+  "info",
+  "warning",
+]
 
 const BatchOperationsRender: NonNullable<Story["render"]> = () => {
   const toaster = useToast()

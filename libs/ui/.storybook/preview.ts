@@ -1,13 +1,17 @@
 import type { Decorator, Preview } from "@storybook/react"
+import { isRecord } from "@techsio/std/object"
 import { createElement, useEffect } from "react"
 
 import {
   brandAttr,
   brandKeys,
   brandSupportsDark,
+  DEFAULT_BRAND,
+  DEFAULT_MODE,
   getBrand,
+  isBrandKey,
 } from "../src/theme/theme-config"
-import type { BrandKey, ModeSetting } from "../src/theme/theme-config"
+import type { ModeSetting } from "../src/theme/theme-config"
 
 import "../src/tokens/index.css"
 
@@ -28,9 +32,19 @@ const modeItems: { value: ModeSetting; title: string }[] = [
  *   - brand → `data-theme="<attr>"` (base brand sets no attribute)
  * Light-only brands are forced to light regardless of the Mode toolbar.
  */
-const withTheme: Decorator = (Story, context) => {
-  const brand = context.globals.brand as BrandKey
-  const modeSetting = context.globals.mode as ModeSetting
+const isModeSetting = (value: unknown): value is ModeSetting =>
+  value === "light" || value === "dark" || value === "system"
+
+const useWithTheme: Decorator = (Story, context) => {
+  const globals: unknown = context.globals
+  const { brand: brandValue, mode: modeValue } = isRecord(globals)
+    ? globals
+    : {}
+  const brand =
+    typeof brandValue === "string" && isBrandKey(brandValue)
+      ? brandValue
+      : DEFAULT_BRAND
+  const modeSetting = isModeSetting(modeValue) ? modeValue : DEFAULT_MODE
 
   useEffect(() => {
     const root = document.documentElement
@@ -42,10 +56,10 @@ const withTheme: Decorator = (Story, context) => {
     }
 
     const attr = brandAttr(brand)
-    if (attr) {
-      root.dataset.theme = attr
+    if (typeof attr === "string" && attr.length > 0) {
+      Object.assign(root.dataset, { theme: attr })
     } else {
-      delete root.dataset.theme
+      Reflect.deleteProperty(root.dataset, "theme")
     }
   }, [brand, modeSetting])
 
@@ -53,7 +67,7 @@ const withTheme: Decorator = (Story, context) => {
 }
 
 const preview: Preview = {
-  decorators: [withTheme],
+  decorators: [useWithTheme],
   globalTypes: {
     brand: {
       description: "Brand theme",
@@ -85,15 +99,15 @@ const preview: Preview = {
         useCase: "body",
       },
       config: {
-        rules: [{ id: "color-contrast-enhanced", enabled: true }],
+        rules: [{ enabled: true, id: "color-contrast-enhanced" }],
       },
       test: "error",
     },
     backgrounds: { disable: true },
     controls: {
       matchers: {
-        color: /(background|color)$/i,
-        date: /Date$/i,
+        color: /(?<property>background|color)$/iu,
+        date: /Date$/u,
       },
     },
     options: {

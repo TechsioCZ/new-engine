@@ -11,13 +11,11 @@ const useColorSelection = (
   initialValue: string | string[] = [],
   mode: "single" | "multiple" = "single",
 ) => {
-  const [selected, setSelected] = useState<string | string[]>(
-    mode === "single"
-      ? Array.isArray(initialValue)
-        ? initialValue[0] || ""
-        : initialValue
-      : initialValue,
-  )
+  let initialSelection: string | string[] = initialValue
+  if (mode === "single" && Array.isArray(initialValue)) {
+    initialSelection = initialValue[0] ?? ""
+  }
+  const [selected, setSelected] = useState<string | string[]>(initialSelection)
 
   const handleColorClick = (color: string) => {
     if (mode === "single") {
@@ -122,6 +120,26 @@ const ecommerceColors = [
   { color: "#16a34a", count: 10, label: "Green" },
 ]
 
+const PlaygroundRender: NonNullable<Story["render"]> = (args) => {
+  const { handleColorClick, isSelected } = useColorSelection(
+    [],
+    args.selectionMode,
+  )
+
+  const colorsWithSelection = args.colors.map((c: ColorItem) => ({
+    ...c,
+    selected: isSelected(c.color),
+  }))
+
+  return (
+    <ColorSelect
+      {...args}
+      colors={colorsWithSelection}
+      onColorClick={handleColorClick}
+    />
+  )
+}
+
 export const Playground: Story = {
   args: {
     colors: basicColors,
@@ -133,198 +151,242 @@ export const Playground: Story = {
     selectionMode: "single",
     size: "md",
   },
-  render: (args) => {
-    const { handleColorClick, isSelected } = useColorSelection(
-      [],
-      args.selectionMode,
-    )
-
-    const colorsWithSelection = args.colors.map((c: ColorItem) => ({
-      ...c,
-      selected: isSelected(c.color),
-    }))
-
-    return (
-      <ColorSelect
-        {...args}
-        colors={colorsWithSelection}
-        onColorClick={handleColorClick}
-      />
-    )
-  },
+  render: PlaygroundRender,
 }
 
-export const Layouts: Story = {
-  render: () => {
-    const [selectedLayout, setSelectedLayout] = useState<
-      Record<string, string>
-    >({})
+const LayoutsRender: NonNullable<Story["render"]> = () => {
+  const [selectedLayout, setSelectedLayout] = useState<{
+    col4?: string
+    list?: string
+  }>({})
 
-    const handleLayoutClick = (layoutKey: string) => (color: string) => {
+  const handleLayoutClick =
+    (layoutKey: keyof typeof selectedLayout) => (color: string) => {
       setSelectedLayout((prev) => ({
         ...prev,
         [layoutKey]: prev[layoutKey] === color ? "" : color,
       }))
     }
 
-    return (
-      <VariantContainer>
-        <VariantGroup title="List Layout">
-          <div className="max-w-xs">
-            <ColorSelect
-              colors={basicColors.slice(0, 4).map((c) => ({
-                ...c,
-                selected: selectedLayout.list === c.color,
-              }))}
-              layout="list"
-              size="md"
-              onColorClick={handleLayoutClick("list")}
-            />
-          </div>
-        </VariantGroup>
+  return (
+    <VariantContainer>
+      <VariantGroup title="List Layout">
+        <div className="max-w-xs">
+          <ColorSelect
+            colors={basicColors.slice(0, 4).map((c) => ({
+              ...c,
+              selected: selectedLayout.list === c.color,
+            }))}
+            layout="list"
+            size="md"
+            onColorClick={handleLayoutClick("list")}
+          />
+        </div>
+      </VariantGroup>
 
-        <VariantGroup title="4 Columns">
-          <div className="max-w-lg">
-            <ColorSelect
-              colors={basicColors.map((c) => ({
-                ...c,
-                selected: selectedLayout.col4 === c.color,
-              }))}
-              layout="grid"
-              size="md"
-              onColorClick={handleLayoutClick("col4")}
-            />
-          </div>
-        </VariantGroup>
-      </VariantContainer>
-    )
-  },
+      <VariantGroup title="4 Columns">
+        <div className="max-w-lg">
+          <ColorSelect
+            colors={basicColors.map((c) => ({
+              ...c,
+              selected: selectedLayout.col4 === c.color,
+            }))}
+            layout="grid"
+            size="md"
+            onColorClick={handleLayoutClick("col4")}
+          />
+        </div>
+      </VariantGroup>
+    </VariantContainer>
+  )
 }
 
-export const Sizes: Story = {
-  render: () => {
-    const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>(
-      {},
-    )
+export const Layouts: Story = {
+  render: LayoutsRender,
+}
 
-    const handleSizeClick = (size: string) => (color: string) => {
+const SizesRender: NonNullable<Story["render"]> = () => {
+  const [selectedSizes, setSelectedSizes] = useState<{
+    lg?: string
+    md?: string
+    sm?: string
+  }>({})
+
+  const handleSizeClick =
+    (size: keyof typeof selectedSizes) => (color: string) => {
       setSelectedSizes((prev) => ({
         ...prev,
         [size]: prev[size] === color ? "" : color,
       }))
     }
 
-    return (
-      <VariantContainer>
-        <VariantGroup title="Small">
-          <ColorSelect
-            colors={basicColors.slice(0, 4).map((c) => ({
-              ...c,
-              selected: selectedSizes.sm === c.color,
-            }))}
-            size="sm"
-            layout="grid"
-            onColorClick={handleSizeClick("sm")}
-          />
-        </VariantGroup>
+  return (
+    <VariantContainer>
+      <VariantGroup title="Small">
+        <ColorSelect
+          colors={basicColors.slice(0, 4).map((c) => ({
+            ...c,
+            selected: selectedSizes.sm === c.color,
+          }))}
+          size="sm"
+          layout="grid"
+          onColorClick={handleSizeClick("sm")}
+        />
+      </VariantGroup>
 
-        <VariantGroup title="Medium">
-          <ColorSelect
-            colors={basicColors.slice(0, 4).map((c) => ({
-              ...c,
-              selected: selectedSizes.md === c.color,
-            }))}
-            size="md"
-            layout="grid"
-            onColorClick={handleSizeClick("md")}
-          />
-        </VariantGroup>
+      <VariantGroup title="Medium">
+        <ColorSelect
+          colors={basicColors.slice(0, 4).map((c) => ({
+            ...c,
+            selected: selectedSizes.md === c.color,
+          }))}
+          size="md"
+          layout="grid"
+          onColorClick={handleSizeClick("md")}
+        />
+      </VariantGroup>
 
-        <VariantGroup title="Large">
-          <ColorSelect
-            colors={basicColors.slice(0, 4).map((c) => ({
-              ...c,
-              selected: selectedSizes.lg === c.color,
-            }))}
-            size="lg"
-            layout="grid"
-            onColorClick={handleSizeClick("lg")}
-          />
-        </VariantGroup>
-      </VariantContainer>
-    )
-  },
+      <VariantGroup title="Large">
+        <ColorSelect
+          colors={basicColors.slice(0, 4).map((c) => ({
+            ...c,
+            selected: selectedSizes.lg === c.color,
+          }))}
+          size="lg"
+          layout="grid"
+          onColorClick={handleSizeClick("lg")}
+        />
+      </VariantGroup>
+    </VariantContainer>
+  )
 }
 
-export const Radius: Story = {
-  render: () => {
-    const [selectedRadius, setSelectedRadius] = useState<
-      Record<string, string>
-    >({})
+export const Sizes: Story = {
+  render: SizesRender,
+}
 
-    const handleRadiusClick = (radius: string) => (color: string) => {
+const RadiusRender: NonNullable<Story["render"]> = () => {
+  const [selectedRadius, setSelectedRadius] = useState<{
+    full?: string
+    lg?: string
+    md?: string
+    sm?: string
+  }>({})
+
+  const handleRadiusClick =
+    (radius: keyof typeof selectedRadius) => (color: string) => {
       setSelectedRadius((prev) => ({
         ...prev,
         [radius]: prev[radius] === color ? "" : color,
       }))
     }
 
-    return (
-      <VariantContainer>
-        <VariantGroup title="Square (sm)">
-          <ColorSelect
-            colors={basicColors.slice(0, 4).map((c) => ({
-              ...c,
-              selected: selectedRadius.sm === c.color,
-            }))}
-            radius="sm"
-            size="lg"
-            layout="grid"
-            onColorClick={handleRadiusClick("sm")}
-          />
-        </VariantGroup>
+  return (
+    <VariantContainer>
+      <VariantGroup title="Square (sm)">
+        <ColorSelect
+          colors={basicColors.slice(0, 4).map((c) => ({
+            ...c,
+            selected: selectedRadius.sm === c.color,
+          }))}
+          radius="sm"
+          size="lg"
+          layout="grid"
+          onColorClick={handleRadiusClick("sm")}
+        />
+      </VariantGroup>
 
-        <VariantGroup title="Rounded (md)">
-          <ColorSelect
-            colors={basicColors.slice(0, 4).map((c) => ({
-              ...c,
-              selected: selectedRadius.md === c.color,
-            }))}
-            radius="md"
-            size="lg"
-            layout="grid"
-            onColorClick={handleRadiusClick("md")}
-          />
-        </VariantGroup>
+      <VariantGroup title="Rounded (md)">
+        <ColorSelect
+          colors={basicColors.slice(0, 4).map((c) => ({
+            ...c,
+            selected: selectedRadius.md === c.color,
+          }))}
+          radius="md"
+          size="lg"
+          layout="grid"
+          onColorClick={handleRadiusClick("md")}
+        />
+      </VariantGroup>
 
-        <VariantGroup title="More Rounded (lg)">
-          <ColorSelect
-            colors={basicColors.slice(0, 4).map((c) => ({
-              ...c,
-              selected: selectedRadius.lg === c.color,
-            }))}
-            radius="lg"
-            size="lg"
-            layout="grid"
-            onColorClick={handleRadiusClick("lg")}
-          />
-        </VariantGroup>
+      <VariantGroup title="More Rounded (lg)">
+        <ColorSelect
+          colors={basicColors.slice(0, 4).map((c) => ({
+            ...c,
+            selected: selectedRadius.lg === c.color,
+          }))}
+          radius="lg"
+          size="lg"
+          layout="grid"
+          onColorClick={handleRadiusClick("lg")}
+        />
+      </VariantGroup>
 
-        <VariantGroup title="Circle (full)">
+      <VariantGroup title="Circle (full)">
+        <ColorSelect
+          colors={basicColors.slice(0, 4).map((c) => ({
+            ...c,
+            selected: selectedRadius.full === c.color,
+          }))}
+          radius="full"
+          size="lg"
+          layout="grid"
+          onColorClick={handleRadiusClick("full")}
+        />
+      </VariantGroup>
+    </VariantContainer>
+  )
+}
+
+export const Radius: Story = {
+  render: RadiusRender,
+}
+
+const MultipleSelectionRender: NonNullable<Story["render"]> = () => {
+  const { selected, handleColorClick, isSelected, clear } = useColorSelection(
+    [],
+    "multiple",
+  )
+
+  const colors = basicColors.map((c) => ({
+    ...c,
+    selected: isSelected(c.color),
+  }))
+
+  return (
+    <VariantContainer>
+      <VariantGroup title="Multiple Selection Mode">
+        <div className="max-w-lg">
+          <div className="flex justify-between items-center mb-100">
+            <span className="font-medium">Select Colors</span>
+            {Array.isArray(selected) && selected.length > 0 && (
+              <Button
+                onClick={clear}
+                variant="primary"
+                theme="borderless"
+                size="sm"
+              >
+                Clear all
+              </Button>
+            )}
+          </div>
           <ColorSelect
-            colors={basicColors.slice(0, 4).map((c) => ({
-              ...c,
-              selected: selectedRadius.full === c.color,
-            }))}
-            radius="full"
-            size="lg"
+            colors={colors}
+            onColorClick={handleColorClick}
             layout="grid"
-            onColorClick={handleRadiusClick("full")}
+            size="lg"
+            selectionMode="multiple"
           />
-        </VariantGroup>
-      </VariantContainer>
-    )
-  },
+          <p className="mt-200 text-sm text-fg-secondary">
+            Selected:{" "}
+            {Array.isArray(selected) && selected.length > 0
+              ? selected.join(", ")
+              : "None"}
+          </p>
+        </div>
+      </VariantGroup>
+    </VariantContainer>
+  )
 }
 
 export const MultipleSelection: Story = {
@@ -336,52 +398,47 @@ export const MultipleSelection: Story = {
       },
     },
   },
-  render: () => {
-    const { selected, handleColorClick, isSelected, clear } = useColorSelection(
-      [],
-      "multiple",
-    )
+  render: MultipleSelectionRender,
+}
 
-    const colors = basicColors.map((c) => ({
-      ...c,
-      selected: isSelected(c.color),
-    }))
+const EcommerceExampleRender: NonNullable<Story["render"]> = () => {
+  const { selected, handleColorClick, isSelected, clear } = useColorSelection(
+    [],
+    "multiple",
+  )
 
-    return (
-      <VariantContainer>
-        <VariantGroup title="Multiple Selection Mode">
-          <div className="max-w-lg">
-            <div className="flex justify-between items-center mb-100">
-              <span className="font-medium">Select Colors</span>
-              {Array.isArray(selected) && selected.length > 0 && (
-                <Button
-                  onClick={clear}
-                  variant="primary"
-                  theme="borderless"
-                  size="sm"
-                >
-                  Clear all
-                </Button>
-              )}
-            </div>
-            <ColorSelect
-              colors={colors}
-              onColorClick={handleColorClick}
-              layout="grid"
-              size="lg"
-              selectionMode="multiple"
-            />
-            <p className="mt-200 text-sm text-fg-secondary">
-              Selected:{" "}
-              {Array.isArray(selected) && selected.length > 0
-                ? selected.join(", ")
-                : "None"}
-            </p>
-          </div>
-        </VariantGroup>
-      </VariantContainer>
-    )
-  },
+  const colors = ecommerceColors.map((c) => ({
+    ...c,
+    selected: isSelected(c.color),
+  }))
+
+  const selectedCount = Array.isArray(selected) ? selected.length : 0
+
+  return (
+    <div className="max-w-lg p-200 bg-surface rounded-lg border border-border-primary">
+      <div className="flex justify-between items-center mb-150">
+        <h3 className="font-semibold text-fg-primary">Color</h3>
+        {selectedCount > 0 && (
+          <Button onClick={clear} theme="borderless" size="sm">
+            Clear all
+          </Button>
+        )}
+      </div>
+      <ColorSelect
+        colors={colors}
+        onColorClick={handleColorClick}
+        layout="grid"
+        size="md"
+        radius="md"
+        selectionMode="multiple"
+      />
+      {selectedCount > 0 && (
+        <div className="mt-200 p-100 bg-primary rounded text-sm text-fg-light">
+          Filtering by {selectedCount} color{selectedCount > 1 ? "s" : ""}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export const EcommerceFilter: Story = {
@@ -393,43 +450,5 @@ export const EcommerceFilter: Story = {
       },
     },
   },
-  render: () => {
-    const { selected, handleColorClick, isSelected, clear } = useColorSelection(
-      [],
-      "multiple",
-    )
-
-    const colors = ecommerceColors.map((c) => ({
-      ...c,
-      selected: isSelected(c.color),
-    }))
-
-    const selectedCount = Array.isArray(selected) ? selected.length : 0
-
-    return (
-      <div className="max-w-lg p-200 bg-surface rounded-lg border border-border-primary">
-        <div className="flex justify-between items-center mb-150">
-          <h3 className="font-semibold text-fg-primary">Color</h3>
-          {selectedCount > 0 && (
-            <Button onClick={clear} theme="borderless" size="sm">
-              Clear all
-            </Button>
-          )}
-        </div>
-        <ColorSelect
-          colors={colors}
-          onColorClick={handleColorClick}
-          layout="grid"
-          size="md"
-          radius="md"
-          selectionMode="multiple"
-        />
-        {selectedCount > 0 && (
-          <div className="mt-200 p-100 bg-primary rounded text-sm text-fg-light">
-            Filtering by {selectedCount} color{selectedCount > 1 ? "s" : ""}
-          </div>
-        )}
-      </div>
-    )
-  },
+  render: EcommerceExampleRender,
 }

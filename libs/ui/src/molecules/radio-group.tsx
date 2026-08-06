@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,11 +11,13 @@
  */
 import { connect, machine } from "@zag-js/radio-group"
 import type {
+  Api as RadioGroupApi,
   ItemProps,
   Props as RadioGroupMachineConfiguration,
   ValueChangeDetails,
 } from "@zag-js/radio-group"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
+import type { PropTypes as ReactPropTypes } from "@zag-js/react"
 import { createContext, useContext, useId } from "react"
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -36,9 +38,18 @@ type RadioGroupSize = NonNullable<
 
 type RadioGroupValidateStatus = "default" | "error" | "success" | "warning"
 
-const RadioGroupApiContext = createContext<ReturnType<typeof connect> | null>(
-  null,
-)
+interface RadioGroupContextValue {
+  api: RadioGroupApi<ReactPropTypes>
+  disabled: boolean
+  orientation: "horizontal" | "vertical"
+  required: boolean
+  size: RadioGroupSize
+  validateStatus: RadioGroupValidateStatus
+  variant: RadioGroupVariant
+}
+
+const RadioGroupApiContext =
+  createContext<RadioGroupApi<ReactPropTypes> | null>(null)
 const RadioGroupVariantContext = createContext<RadioGroupVariant>("outline")
 const RadioGroupSizeContext = createContext<RadioGroupSize>("md")
 const RadioGroupOrientationContext = createContext<"horizontal" | "vertical">(
@@ -49,7 +60,7 @@ const RadioGroupRequiredContext = createContext(false)
 const RadioGroupValidateStatusContext =
   createContext<RadioGroupValidateStatus>("default")
 
-const useRadioGroupContext = () => {
+const useRadioGroupContext = (): RadioGroupContextValue => {
   const api = useContext(RadioGroupApiContext)
   const variant = useContext(RadioGroupVariantContext)
   const size = useContext(RadioGroupSizeContext)

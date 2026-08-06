@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.1"
+component_version: "1.0.2"
 name: table-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Table for semantic tabular data with caption, header, body, footer, rows, column headers, numeric cells, selected rows, variants, interactive rows, sticky header/first column, column borders, and size props.

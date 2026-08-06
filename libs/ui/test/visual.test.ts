@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 
-import { expect, test as base } from "@playwright/test"
+import {
+  expect as playwrightExpect,
+  test as playwrightBase,
+} from "@playwright/test"
 import type { BrowserContextOptions, Locator, Page } from "@playwright/test"
-import { expect } from "vitest"
+import { isRecord } from "@techsio/std/object"
 
 interface StorybookEntry {
   id: string
@@ -13,13 +15,33 @@ interface StorybookEntry {
   type: string
 }
 
-interface StorybookIndex {
-  entries: Record<string, StorybookEntry>
+const isStorybookEntry = (value: unknown): value is StorybookEntry => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const { id, name, title, type } = value
+  return [id, name, title, type].every((field) => typeof field === "string")
 }
 
-const __dirname = import.meta.dirname
-const indexPath = path.resolve(__dirname, "../storybook-static/index.json")
-const galleryDir = path.resolve(__dirname, "../assets/gallery")
+const parseStorybookEntries = (raw: string): StorybookEntry[] => {
+  const parsed: unknown = JSON.parse(raw)
+  if (!isRecord(parsed)) {
+    throw new Error("Storybook index.json has an invalid entries object.")
+  }
+  const { entries: entriesValue } = parsed
+  if (!isRecord(entriesValue)) {
+    throw new Error("Storybook index.json has an invalid entries object.")
+  }
+  const entries = Object.values(entriesValue)
+  if (!entries.every(isStorybookEntry)) {
+    throw new Error("Storybook index.json contains an invalid story entry.")
+  }
+  return entries
+}
+
+const moduleDir = import.meta.dirname
+const indexPath = path.resolve(moduleDir, "../storybook-static/index.json")
+const galleryDir = path.resolve(moduleDir, "../assets/gallery")
 
 // Remote image hosts are non-deterministic (network, CDN re-encodes). Serve a
 // stable local asset per URL instead so screenshots are hermetic.
@@ -44,12 +66,19 @@ const placeholderPng = Buffer.from(
   "base64",
 )
 
-function stableGalleryBuffer(url: string): Buffer {
+const stableGalleryBuffer = (url: string): Buffer => {
   let hash = 0
   for (let i = 0; i < url.length; i += 1) {
-    hash = (hash * 31 + url.codePointAt(i)) >>> 0
+    const codePoint = url.codePointAt(i)
+    if (codePoint !== undefined) {
+      hash = (hash * 31 + codePoint) % 4_294_967_296
+    }
   }
-  return galleryBuffers[hash % galleryBuffers.length] as Buffer
+  const buffer = galleryBuffers.at(hash % galleryBuffers.length)
+  if (!buffer) {
+    throw new Error("No local gallery image is available.")
+  }
+  return buffer
 }
 
 // Chromium's expectScreenshot capture loop deterministically breaks on these
@@ -61,11 +90,11 @@ const rawCaptureStories = new Set([
   "molecules-steps--variants:mobile",
 ])
 
-const storybookHostname = new URL(
-  process.env.TEST_BASE_URL ?? "http://127.0.0.1:6006",
-).hostname
+const { TEST_BASE_URL: testBaseUrl } = process.env
+const storybookHostname = new URL(testBaseUrl ?? "http://127.0.0.1:6006")
+  .hostname
 
-async function installHermeticImageRoutes(page: Page): Promise<void> {
+const installHermeticImageRoutes = async (page: Page): Promise<void> => {
   await page.route(
     (url) =>
       url.hostname !== storybookHostname &&
@@ -90,23 +119,23 @@ async function installHermeticImageRoutes(page: Page): Promise<void> {
     },
   )
 }
-const resetEnv = (process.env.PLAYWRIGHT_PAGE_RESET ?? "").toLowerCase()
+const { PLAYWRIGHT_PAGE_RESET: playwrightPageReset } = process.env
+const resetEnv = (playwrightPageReset ?? "").toLowerCase()
 const shouldResetBetweenTests =
   resetEnv === ""
     ? true
     : resetEnv === "1" || resetEnv === "true" || resetEnv === "yes"
 
-let storybookIndex: StorybookIndex
+let stories: StorybookEntry[]
 
-function definedContextOptions(
+const definedContextOptions = (
   options: Record<string, unknown>,
-): BrowserContextOptions {
-  return Object.fromEntries(
+): BrowserContextOptions =>
+  Object.fromEntries(
     Object.entries(options).filter(([, value]) => value !== undefined),
   )
-}
 
-const test = base.extend<{}, { workerPage: Page }>({
+const test = playwrightBase.extend<Record<never, never>, { workerPage: Page }>({
   workerPage: [
     async ({ browser }, use, testInfo) => {
       const context = await browser.newContext(
@@ -123,22 +152,22 @@ const test = base.extend<{}, { workerPage: Page }>({
 
 try {
   const raw = readFileSync(indexPath, "utf-8")
-  storybookIndex = JSON.parse(raw) as StorybookIndex
+  stories = parseStorybookEntries(raw).filter((entry) => entry.type === "story")
 } catch (error) {
-  if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-    throw new Error(
-      "Storybook index.json not found. Run 'pnpm build:storybook' first.",
-      { cause: error },
-    )
+  if (isRecord(error)) {
+    const { code } = error
+    if (code === "ENOENT") {
+      throw new Error(
+        "Storybook index.json not found. Run 'pnpm build:storybook' first.",
+        { cause: error },
+      )
+    }
   }
   throw error
 }
 
-const stories = Object.values(storybookIndex.entries).filter(
-  (entry) => entry.type === "story",
-)
-
-const storyFilter = (process.env.TEST_STORIES ?? "")
+const { TEST_STORIES: testStories } = process.env
+const storyFilter = (testStories ?? "")
   .split(",")
   .map((storyId) => storyId.trim())
   .filter(Boolean)
@@ -152,51 +181,157 @@ if (storyFilter.length > 0 && selectedStories.length === 0) {
   throw new Error(`No stories matched TEST_STORIES=${storyFilter.join(",")}`)
 }
 
+const isRecoverableError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false
+  }
+  const recoverableMessages = [
+    "Target page, context or browser has been closed",
+    "Page crashed",
+    "net::ERR_ABORTED",
+    "frame was detached",
+    "hermetic images failed to settle",
+    "read requests waitng on finished stream",
+    "read requests waiting on finished stream",
+  ]
+  return recoverableMessages.some((message) => error.message.includes(message))
+}
+
+const waitForDocumentFonts = async (): Promise<void> => {
+  if (!("fonts" in document)) {
+    return
+  }
+  const { promise, resolve } = Promise.withResolvers<null>()
+  setTimeout(() => {
+    resolve(null)
+  }, 2000)
+  try {
+    await Promise.race([document.fonts.ready, promise])
+  } catch {
+    // Font readiness is best-effort in browser engines without a stable FontFaceSet.
+  }
+}
+
+const waitUntilStable = async (
+  element: HTMLElement,
+  previous: number,
+  remaining: number,
+): Promise<void> => {
+  if (remaining === 0) {
+    return
+  }
+  const { promise, resolve } = Promise.withResolvers<null>()
+  requestAnimationFrame(() => {
+    resolve(null)
+  })
+  await promise
+  const current = element.scrollLeft + element.scrollTop
+  if (Math.abs(current - previous) >= 1) {
+    await waitUntilStable(element, current, remaining - 1)
+  }
+}
+
+const waitForCarouselScroll = async (): Promise<void> => {
+  const groups = [
+    ...document.querySelectorAll<HTMLElement>(
+      '[data-scope="carousel"][data-part="item-group"]',
+    ),
+  ]
+  for (const group of groups) {
+    group.style.scrollBehavior = "auto"
+  }
+  await Promise.all(
+    groups.map(async (group) => {
+      await waitUntilStable(group, group.scrollLeft + group.scrollTop, 10)
+    }),
+  )
+}
+
+const waitForTwoAnimationFrames = async (): Promise<void> => {
+  const { promise, resolve } = Promise.withResolvers<null>()
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      resolve(null)
+    })
+  })
+  await promise
+}
+
+const storyRootHasContent = (): boolean => {
+  const root = document.querySelector("#storybook-root")
+  return root !== null && root.children.length > 0
+}
+
+const stylesheetsAreLoaded = (): boolean =>
+  [
+    ...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+  ].every((link) => link.sheet !== null)
+
+const prepareStoryImages = async (): Promise<void> => {
+  const root = document.querySelector("#storybook-root")
+  if (root === null) {
+    return
+  }
+  const images = [...root.querySelectorAll("img")]
+  await Promise.all(
+    images.map(async (image) => {
+      if (image.src.length === 0) {
+        return
+      }
+      if (image.loading === "lazy") {
+        image.loading = "eager"
+      }
+      try {
+        await image.decode()
+      } catch {
+        // Decode failures fall through to the completeness wait.
+      }
+    }),
+  )
+}
+
+const storyImagesAreComplete = (): boolean => {
+  const root = document.querySelector("#storybook-root")
+  if (root === null) {
+    return false
+  }
+  const images = [...root.querySelectorAll("img")]
+  return images.every(
+    (image) =>
+      image.src.length === 0 || (image.complete && image.naturalWidth > 0),
+  )
+}
+
 test.describe.parallel("storybook visual", () => {
-  for (const story of selectedStories) {
+  selectedStories.map((story) => {
     test(`${story.title} ${story.name} should not have visual regressions`, async ({
       workerPage,
       browser,
     }, testInfo) => {
       let page = workerPage
-      let ownedContext: {
-        close: () => Promise<void>
-        newPage: () => Promise<Page>
-      } | null = null
+      const ownedContext: {
+        current: {
+          close: () => Promise<void>
+          newPage: () => Promise<Page>
+        } | null
+      } = { current: null }
 
       const createIsolatedPage = async () => {
-        if (ownedContext) {
-          await ownedContext.close()
+        if (ownedContext.current) {
+          await ownedContext.current.close()
         }
-        ownedContext = await browser.newContext(
+        ownedContext.current = await browser.newContext(
           definedContextOptions(testInfo.project.use),
         )
-        page = await ownedContext.newPage()
+        page = await ownedContext.current.newPage()
         await installHermeticImageRoutes(page)
       }
 
-      const isRecoverableError = (error: unknown) => {
-        if (!error || typeof error !== "object") {
-          return false
-        }
-        const message = String((error as Error).message || "")
-        return (
-          message.includes("Target page, context or browser has been closed") ||
-          message.includes("Page crashed") ||
-          message.includes("net::ERR_ABORTED") ||
-          message.includes("frame was detached") ||
-          // Chromium screenshot-capture bug on oversized elements.
-          message.includes("hermetic images failed to settle") ||
-          message.includes("read requests waitng on finished stream") ||
-          message.includes("read requests waiting on finished stream")
-        )
-      }
-
-      const defaultCaptureMode = rawCaptureStories.has(
+      const defaultCaptureMode: "expect" | "raw" = rawCaptureStories.has(
         `${story.id}:${testInfo.project.name}`,
       )
-        ? ("raw" as const)
-        : ("expect" as const)
+        ? "raw"
+        : "expect"
 
       const run = async (
         captureMode: "expect" | "raw" = defaultCaptureMode,
@@ -256,81 +391,21 @@ test.describe.parallel("storybook visual", () => {
         })
 
         // Avoid networkidle here; Storybook keeps background activity that can stall tests.
-        await page.waitForFunction(
-          () => {
-            const root = document.querySelector("#storybook-root")
-            return root && root.children.length > 0
-          },
-          { timeout: 30_000 },
-        )
+        await page.waitForFunction(storyRootHasContent, { timeout: 30_000 })
         // Story CSS is injected as stylesheet links by dynamically imported
         // chunks; capturing before every sheet applies yields unstyled layout.
-        await page.waitForFunction(
-          () =>
-            [
-              ...document.querySelectorAll<HTMLLinkElement>(
-                'link[rel="stylesheet"]',
-              ),
-            ].every((link) => link.sheet !== null),
-          { timeout: 30_000 },
-        )
-        await page.evaluate(async () => {
-          if (!("fonts" in document)) {
-            return
-          }
-          try {
-            await Promise.race([
-              document.fonts.ready,
-              new Promise((resolve) => setTimeout(resolve, 2000)),
-            ])
-          } catch {
-            // ignore font readiness failures
-          }
-        })
+        await page.waitForFunction(stylesheetsAreLoaded, { timeout: 30_000 })
+        await page.evaluate(waitForDocumentFonts)
 
         // Force lazy images to load eagerly so layout is deterministic, then
         // wait for every sourced image to finish loading and decoding. Images
         // are hermetic (local assets or fulfilled routes), so this must
         // succeed; failing loudly beats capturing a pre-load layout.
-        await page.evaluate(async () => {
-          const root = document.querySelector("#storybook-root")
-          if (!root) {
-            return
-          }
-          const images = [...root.querySelectorAll("img")]
-          await Promise.all(
-            images.map(async (img) => {
-              if (!img.src) {
-                return
-              }
-              if (img.loading === "lazy") {
-                img.loading = "eager"
-              }
-              try {
-                await img.decode()
-              } catch {
-                // decode failures fall through to the completeness wait
-              }
-            }),
-          )
-        })
+        await page.evaluate(prepareStoryImages)
         try {
-          await page.waitForFunction(
-            () => {
-              const root = document.querySelector("#storybook-root")
-              if (!root) {
-                return false
-              }
-              const images = root.querySelectorAll("img")
-              if (images.length === 0) {
-                return true
-              }
-              return [...images].every(
-                (img) => !img.src || (img.complete && img.naturalWidth > 0),
-              )
-            },
-            { timeout: 30_000 },
-          )
+          await page.waitForFunction(storyImagesAreComplete, {
+            timeout: 30_000,
+          })
         } catch {
           throw new Error("hermetic images failed to settle")
         }
@@ -354,54 +429,23 @@ test.describe.parallel("storybook visual", () => {
           const firstIndicators = page.locator(
             '[data-scope="carousel"][data-part="indicator"][data-index="0"]',
           )
-          for (
-            let index = 0;
-            index < (await firstIndicators.count());
-            index += 1
-          ) {
-            await firstIndicators.nth(index).click()
-          }
+          const indicatorCount = await firstIndicators.count()
+          await Promise.all(
+            Array.from({ length: indicatorCount }, async (_, index) => {
+              await firstIndicators.nth(index).click()
+            }),
+          )
 
-          await page.evaluate(async () => {
-            const groups = [
-              ...document.querySelectorAll<HTMLElement>(
-                '[data-scope="carousel"][data-part="item-group"]',
-              ),
-            ]
-
-            for (const group of groups) {
-              group.style.scrollBehavior = "auto"
-            }
-
-            const waitForStableScroll = async (el: HTMLElement) => {
-              let last = el.scrollLeft + el.scrollTop
-              for (let i = 0; i < 10; i += 1) {
-                await new Promise<void>((resolve) =>
-                  requestAnimationFrame(() => {
-                    resolve()
-                  }),
-                )
-                const current = el.scrollLeft + el.scrollTop
-                if (Math.abs(current - last) < 1) {
-                  return
-                }
-                last = current
-              }
-            }
-
-            await Promise.all(
-              groups.map(async (group) => waitForStableScroll(group)),
-            )
-          })
+          await page.evaluate(waitForCarouselScroll)
         }
 
         if (story.id.includes("carousel--autoplay")) {
           const autoplayTrigger = page.locator(
             '[data-scope="carousel"][data-part="autoplay-trigger"]',
           )
-          if (await autoplayTrigger.count()) {
+          if ((await autoplayTrigger.count()) > 0) {
             const label = await autoplayTrigger.getAttribute("aria-label")
-            if (label && label.toLowerCase().includes("stop")) {
+            if (label?.toLowerCase().includes("stop") === true) {
               await autoplayTrigger.click()
             }
           }
@@ -425,40 +469,30 @@ test.describe.parallel("storybook visual", () => {
           })
           await page.evaluate(() => {
             const trees = document.querySelectorAll('[data-scope="tree-view"]')
-            trees.forEach((tree) => {
-              tree
-                .querySelectorAll(
-                  "[data-selected], [data-highlighted], [data-focused]",
-                )
-                .forEach((el) => {
-                  delete el.dataset.selected
-                  delete el.dataset.highlighted
-                  delete el.dataset.focused
-                })
-              tree
-                .querySelectorAll("[aria-selected], [aria-current]")
-                .forEach((el) => {
-                  el.removeAttribute("aria-selected")
-                  el.removeAttribute("aria-current")
-                })
-            })
-            const active = document.activeElement
-            if (active instanceof HTMLElement) {
-              active.blur()
+            for (const tree of trees) {
+              const statefulElements = tree.querySelectorAll<HTMLElement>(
+                "[data-selected], [data-highlighted], [data-focused]",
+              )
+              for (const element of statefulElements) {
+                Reflect.deleteProperty(element.dataset, "selected")
+                Reflect.deleteProperty(element.dataset, "highlighted")
+                Reflect.deleteProperty(element.dataset, "focused")
+              }
+              const selectedElements = tree.querySelectorAll(
+                "[aria-selected], [aria-current]",
+              )
+              for (const element of selectedElements) {
+                element.removeAttribute("aria-selected")
+                element.removeAttribute("aria-current")
+              }
             }
+            document.body.tabIndex = -1
+            document.body.focus({ preventScroll: true })
+            document.body.removeAttribute("tabindex")
           })
         }
 
-        await page.evaluate(
-          async () =>
-            new Promise<void>((resolve) =>
-              requestAnimationFrame(() =>
-                requestAnimationFrame(() => {
-                  resolve()
-                }),
-              ),
-            ),
-        )
+        await page.evaluate(waitForTwoAnimationFrames)
 
         if (story.id === "atoms-button--states") {
           mask.push(page.locator(".icon-\\[svg-spinners--ring-resize\\]"))
@@ -498,10 +532,10 @@ test.describe.parallel("storybook visual", () => {
             type: "jpeg",
             ...(mask.length > 0 ? { mask } : {}),
           })
-          expect(capture).toMatchSnapshot(`${story.id}.jpg`)
+          playwrightExpect(capture).toMatchSnapshot(`${story.id}.jpg`)
           return
         }
-        await expect(root).toHaveScreenshot(`${story.id}.png`, {
+        await playwrightExpect(root).toHaveScreenshot(`${story.id}.png`, {
           animations: "disabled",
           ...(mask.length > 0 ? { mask } : {}),
         })
@@ -520,11 +554,9 @@ test.describe.parallel("storybook visual", () => {
         await createIsolatedPage()
         await run()
       } finally {
-        const contextToClose = ownedContext as {
-          close: () => Promise<void>
-        } | null
-        await contextToClose?.close()
+        await ownedContext.current?.close()
       }
     })
-  }
+    return story.id
+  })
 })
