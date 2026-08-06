@@ -106,11 +106,7 @@ export const MobileMenu = ({
               ) : (
                 <Link
                   className="block rounded-mobile-menu-item px-mobile-menu-item-x py-mobile-menu-item-y font-mobile-menu-item-weight text-mobile-menu-item-size text-mobile-menu-text transition-colors hover:bg-mobile-menu-item-hover-bg"
-                  href={
-                    item.href === undefined || item.href === ""
-                      ? "#"
-                      : item.href
-                  }
+                  href={item.href ?? "#"}
                   onClick={onClose}
                 >
                   {item.title}

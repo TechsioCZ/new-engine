@@ -21,6 +21,9 @@ const CHANGELOG = `
 ### SearchForm v1.1.0
 - Composed external machine input and clear handlers before SearchForm context updates so headless widgets retain one controlled value and all keyboard/pointer behavior.
 
+### FormNumericInput v1.0.2
+- Replaced bigint literal syntax in falsy help-text detection with an equivalent target-compatible constructor call so ES2017 consumers compile without changing rendering behavior.
+
 ### Accordion v1.0.2
 - Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
