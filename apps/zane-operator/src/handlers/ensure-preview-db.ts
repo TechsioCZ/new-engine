@@ -32,7 +32,7 @@ const parsePayload = (rawPayload: unknown): EnsurePreviewDbPayload => {
   }
 
   return {
-    pr_number: payload.pr_number,
+    pr_number: payload["pr_number"],
   }
 }
 

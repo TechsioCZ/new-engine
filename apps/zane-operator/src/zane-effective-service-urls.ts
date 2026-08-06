@@ -6,23 +6,23 @@ const coercePendingUrl = (
   if (
     value === null ||
     value === undefined ||
-    typeof value.domain !== "string"
+    typeof value["domain"] !== "string"
   ) {
     return null
   }
 
-  const associatedPort = value.associated_port
-  const basePath = value.base_path
+  const associatedPort = value["associated_port"]
+  const basePath = value["base_path"]
   const { id } = value
-  const redirectTo = value.redirect_to
-  const stripPrefix = value.strip_prefix
+  const redirectTo = value["redirect_to"]
+  const stripPrefix = value["strip_prefix"]
 
   return {
     ...(typeof id === "string" ? { id } : {}),
     associated_port: typeof associatedPort === "number" ? associatedPort : null,
     base_path:
       typeof basePath === "string" && basePath.trim() !== "" ? basePath : "/",
-    domain: value.domain,
+    domain: value["domain"],
     redirect_to: typeof redirectTo === "string" ? redirectTo : null,
     strip_prefix: typeof stripPrefix === "boolean" ? stripPrefix : true,
   }

@@ -215,11 +215,15 @@ const meiliKeyPermissionsMatch = (
   actions: string[],
   indexes: string[],
 ): boolean => {
-  const keyActions = Array.isArray(keyObj.actions)
-    ? keyObj.actions.filter((item): item is string => typeof item === "string")
+  const keyActions = Array.isArray(keyObj["actions"])
+    ? keyObj["actions"].filter(
+        (item): item is string => typeof item === "string",
+      )
     : []
-  const keyIndexes = Array.isArray(keyObj.indexes)
-    ? keyObj.indexes.filter((item): item is string => typeof item === "string")
+  const keyIndexes = Array.isArray(keyObj["indexes"])
+    ? keyObj["indexes"].filter(
+        (item): item is string => typeof item === "string",
+      )
     : []
 
   return (
@@ -232,7 +236,7 @@ const meiliKeyPermissionsMatch = (
 const meiliKeyDescriptionMatches = (
   keyObj: Record<string, unknown>,
   description: string,
-): boolean => keyObj.description === description
+): boolean => keyObj["description"] === description
 
 const resolveMeiliUrl = (meiliUrl: string, path: string): string => {
   const baseUrl = new URL(meiliUrl)
@@ -396,7 +400,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
     }
 
     const key =
-      typeof result.keyObject.key === "string" ? result.keyObject.key : ""
+      typeof result.keyObject["key"] === "string" ? result.keyObject["key"] : ""
     if (!key) {
       throw new UpstreamHttpError(
         502,

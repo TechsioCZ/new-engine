@@ -444,14 +444,14 @@ export class ZaneMedusaPublishableKeyProvisioner {
       )
     }
 
-    const apiKey = payload.api_key
+    const apiKey = payload["api_key"]
     if (!isRecord(apiKey)) {
       throw new BadRequestError(
         "medusa publishable key response missing api_key object",
       )
     }
 
-    const tokenValue = apiKey.token
+    const tokenValue = apiKey["token"]
     if (typeof tokenValue !== "string" || !tokenValue.trim()) {
       throw new BadRequestError(
         "medusa publishable key response missing api_key.token",
@@ -462,7 +462,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
       api_key: {
         token: tokenValue.trim(),
       },
-      created: payload.created === true,
+      created: payload["created"] === true,
     }
   }
 }

@@ -22,16 +22,16 @@ const coercePendingEnvVariable = (
   if (
     value === null ||
     value === undefined ||
-    typeof value.key !== "string" ||
-    typeof value.value !== "string"
+    typeof value["key"] !== "string" ||
+    typeof value["value"] !== "string"
   ) {
     return null
   }
 
   return {
-    id: typeof value.id === "string" ? value.id : "",
-    key: value.key,
-    value: value.value,
+    id: typeof value["id"] === "string" ? value["id"] : "",
+    key: value["key"],
+    value: value["value"],
   }
 }
 

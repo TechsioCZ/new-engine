@@ -89,12 +89,12 @@ export const parseErrorMessage = (
   if (Array.isArray(errors)) {
     const firstError: unknown = errors.at(0)
     if (isRecord(firstError)) {
-      const firstDetail = firstError.detail
+      const firstDetail = firstError["detail"]
       if (typeof firstDetail === "string" && firstDetail.trim() !== "") {
         return firstDetail
       }
 
-      const firstMessage = firstError.message
+      const firstMessage = firstError["message"]
       if (typeof firstMessage === "string" && firstMessage.trim() !== "") {
         return firstMessage
       }
@@ -172,7 +172,7 @@ export class ZaneUpstreamClient {
     if (session !== undefined) {
       const cookieHeader = buildCookieHeader(session.cookies)
       if (cookieHeader !== "") {
-        headers.Cookie = cookieHeader
+        headers["Cookie"] = cookieHeader
       }
     }
 
@@ -181,7 +181,7 @@ export class ZaneUpstreamClient {
     }
 
     if (this.#connectHostHeader !== null && this.#connectHostHeader !== "") {
-      headers.Host = this.#connectHostHeader
+      headers["Host"] = this.#connectHostHeader
     }
 
     return headers

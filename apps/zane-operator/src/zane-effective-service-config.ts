@@ -47,11 +47,11 @@ const normalizeHealthcheck = (
     return null
   }
 
-  const type = normalizeString(value.type)
-  const path = normalizeString(value.value)
-  const timeoutValue = value.timeout_seconds
-  const intervalValue = value.interval_seconds
-  const associatedPortValue = value.associated_port
+  const type = normalizeString(value["type"])
+  const path = normalizeString(value["value"])
+  const timeoutValue = value["timeout_seconds"]
+  const intervalValue = value["interval_seconds"]
+  const associatedPortValue = value["associated_port"]
   const timeoutSeconds = typeof timeoutValue === "number" ? timeoutValue : null
   const intervalSeconds =
     typeof intervalValue === "number" ? intervalValue : null
@@ -119,10 +119,10 @@ export const computeEffectiveGitSource = (
 
   if (pendingValue !== undefined && pendingValue !== null) {
     return {
-      branch_name: normalizeString(pendingValue.branch_name),
-      commit_sha: normalizeString(pendingValue.commit_sha),
-      git_app_id: normalizeString(pendingValue.git_app_id),
-      repository_url: normalizeString(pendingValue.repository_url),
+      branch_name: normalizeString(pendingValue["branch_name"]),
+      commit_sha: normalizeString(pendingValue["commit_sha"]),
+      git_app_id: normalizeString(pendingValue["git_app_id"]),
+      repository_url: normalizeString(pendingValue["repository_url"]),
     }
   }
 
@@ -145,10 +145,10 @@ export const computeEffectiveBuilder = (
 
   if (pendingValue !== undefined && pendingValue !== null) {
     return {
-      build_context_dir: normalizeString(pendingValue.build_context_dir),
-      build_stage_target: normalizeString(pendingValue.build_stage_target),
-      builder: normalizeString(pendingValue.builder),
-      dockerfile_path: normalizeString(pendingValue.dockerfile_path),
+      build_context_dir: normalizeString(pendingValue["build_context_dir"]),
+      build_stage_target: normalizeString(pendingValue["build_stage_target"]),
+      builder: normalizeString(pendingValue["builder"]),
+      dockerfile_path: normalizeString(pendingValue["dockerfile_path"]),
     }
   }
 

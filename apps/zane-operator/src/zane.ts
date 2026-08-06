@@ -181,12 +181,12 @@ const toMeiliProvisionOutputInput = (
     envVar: output.envVar,
     policy: {
       actions: assertStringArrayInput(
-        output.policy.actions,
+        output.policy["actions"],
         `${label}.policy.actions`,
       ),
       description: description.trim(),
       indexes: assertStringArrayInput(
-        output.policy.indexes,
+        output.policy["indexes"],
         `${label}.policy.indexes`,
       ),
       uid: uid.trim(),
@@ -234,10 +234,12 @@ const normalizeServiceCards = (payload: unknown): ZaneServiceCard[] => {
   return payload.map((item, index) => {
     const object = assertObject(item, `service_list[${index}]`)
     return {
-      id: assertString(object.id, `service_list[${index}].id`),
-      slug: assertString(object.slug, `service_list[${index}].slug`),
-      type: assertServiceType(object.type, `service_list[${index}].type`),
-      ...(typeof object.status === "string" ? { status: object.status } : {}),
+      id: assertString(object["id"], `service_list[${index}].id`),
+      slug: assertString(object["slug"], `service_list[${index}].slug`),
+      type: assertServiceType(object["type"], `service_list[${index}].type`),
+      ...(typeof object["status"] === "string"
+        ? { status: object["status"] }
+        : {}),
     }
   })
 }
@@ -252,17 +254,17 @@ const normalizeDockerfileBuilderOptions = (
   }
 
   return {
-    ...(typeof value.dockerfile_path === "string" ||
-    value.dockerfile_path === null
-      ? { dockerfile_path: value.dockerfile_path }
+    ...(typeof value["dockerfile_path"] === "string" ||
+    value["dockerfile_path"] === null
+      ? { dockerfile_path: value["dockerfile_path"] }
       : {}),
-    ...(typeof value.build_context_dir === "string" ||
-    value.build_context_dir === null
-      ? { build_context_dir: value.build_context_dir }
+    ...(typeof value["build_context_dir"] === "string" ||
+    value["build_context_dir"] === null
+      ? { build_context_dir: value["build_context_dir"] }
       : {}),
-    ...(typeof value.build_stage_target === "string" ||
-    value.build_stage_target === null
-      ? { build_stage_target: value.build_stage_target }
+    ...(typeof value["build_stage_target"] === "string" ||
+    value["build_stage_target"] === null
+      ? { build_stage_target: value["build_stage_target"] }
       : {}),
   }
 }
@@ -278,14 +280,14 @@ const normalizeEnvVariables = (
   for (const entry of value) {
     if (
       isRecord(entry) &&
-      typeof entry.id === "string" &&
-      typeof entry.key === "string" &&
-      typeof entry.value === "string"
+      typeof entry["id"] === "string" &&
+      typeof entry["key"] === "string" &&
+      typeof entry["value"] === "string"
     ) {
       variables.push({
-        id: entry.id,
-        key: entry.key,
-        value: entry.value,
+        id: entry["id"],
+        key: entry["key"],
+        value: entry["value"],
       })
     }
   }
@@ -300,26 +302,27 @@ const normalizeServiceUrls = (value: unknown): ZaneServiceDetails["urls"] => {
   return value.flatMap((entry) => {
     if (
       !isRecord(entry) ||
-      typeof entry.domain !== "string" ||
-      typeof entry.base_path !== "string"
+      typeof entry["domain"] !== "string" ||
+      typeof entry["base_path"] !== "string"
     ) {
       return []
     }
 
     return [
       {
-        base_path: entry.base_path,
-        domain: entry.domain,
-        ...(typeof entry.id === "string" ? { id: entry.id } : {}),
-        ...(typeof entry.strip_prefix === "boolean"
-          ? { strip_prefix: entry.strip_prefix }
+        base_path: entry["base_path"],
+        domain: entry["domain"],
+        ...(typeof entry["id"] === "string" ? { id: entry["id"] } : {}),
+        ...(typeof entry["strip_prefix"] === "boolean"
+          ? { strip_prefix: entry["strip_prefix"] }
           : {}),
-        ...(typeof entry.redirect_to === "string" || entry.redirect_to === null
-          ? { redirect_to: entry.redirect_to }
+        ...(typeof entry["redirect_to"] === "string" ||
+        entry["redirect_to"] === null
+          ? { redirect_to: entry["redirect_to"] }
           : {}),
-        ...(typeof entry.associated_port === "number" ||
-        entry.associated_port === null
-          ? { associated_port: entry.associated_port }
+        ...(typeof entry["associated_port"] === "number" ||
+        entry["associated_port"] === null
+          ? { associated_port: entry["associated_port"] }
           : {}),
       },
     ]
@@ -336,21 +339,22 @@ const normalizeServiceVolumes = (
   return value.flatMap((entry) => {
     if (
       !isRecord(entry) ||
-      typeof entry.name !== "string" ||
-      typeof entry.container_path !== "string" ||
-      typeof entry.mode !== "string"
+      typeof entry["name"] !== "string" ||
+      typeof entry["container_path"] !== "string" ||
+      typeof entry["mode"] !== "string"
     ) {
       return []
     }
 
     return [
       {
-        container_path: entry.container_path,
-        mode: entry.mode,
-        name: entry.name,
-        ...(typeof entry.id === "string" ? { id: entry.id } : {}),
-        ...(typeof entry.host_path === "string" || entry.host_path === null
-          ? { host_path: entry.host_path }
+        container_path: entry["container_path"],
+        mode: entry["mode"],
+        name: entry["name"],
+        ...(typeof entry["id"] === "string" ? { id: entry["id"] } : {}),
+        ...(typeof entry["host_path"] === "string" ||
+        entry["host_path"] === null
+          ? { host_path: entry["host_path"] }
           : {}),
       },
     ]
@@ -365,23 +369,25 @@ const normalizeUnappliedChanges = (
   }
 
   return value.flatMap((entry) => {
-    if (!isRecord(entry) || typeof entry.id !== "string") {
+    if (!isRecord(entry) || typeof entry["id"] !== "string") {
       return []
     }
 
     return [
       {
-        id: entry.id,
-        ...(typeof entry.type === "string" ? { type: entry.type } : {}),
-        ...(typeof entry.field === "string" ? { field: entry.field } : {}),
-        ...(typeof entry.item_id === "string" || entry.item_id === null
-          ? { item_id: entry.item_id }
+        id: entry["id"],
+        ...(typeof entry["type"] === "string" ? { type: entry["type"] } : {}),
+        ...(typeof entry["field"] === "string"
+          ? { field: entry["field"] }
           : {}),
-        ...(isRecord(entry.new_value) || entry.new_value === null
-          ? { new_value: entry.new_value }
+        ...(typeof entry["item_id"] === "string" || entry["item_id"] === null
+          ? { item_id: entry["item_id"] }
           : {}),
-        ...(isRecord(entry.old_value) || entry.old_value === null
-          ? { old_value: entry.old_value }
+        ...(isRecord(entry["new_value"]) || entry["new_value"] === null
+          ? { new_value: entry["new_value"] }
+          : {}),
+        ...(isRecord(entry["old_value"]) || entry["old_value"] === null
+          ? { old_value: entry["old_value"] }
           : {}),
       },
     ]
@@ -400,16 +406,16 @@ const normalizeEnvironmentReference = (
 
   if (
     !isRecord(value) ||
-    typeof value.id !== "string" ||
-    typeof value.name !== "string"
+    typeof value["id"] !== "string" ||
+    typeof value["name"] !== "string"
   ) {
     return undefined
   }
 
-  const variables = normalizeEnvVariables(value.variables)
+  const variables = normalizeEnvVariables(value["variables"])
   return {
-    id: value.id,
-    name: value.name,
+    id: value["id"],
+    name: value["name"],
     ...(variables === undefined ? {} : { variables }),
   }
 }
@@ -421,8 +427,8 @@ const normalizeGitAppRef = (
     return null
   }
 
-  return isRecord(value) && typeof value.id === "string"
-    ? { id: value.id }
+  return isRecord(value) && typeof value["id"] === "string"
+    ? { id: value["id"] }
     : undefined
 }
 
@@ -435,24 +441,24 @@ const normalizeHealthcheck = (
   if (!isRecord(value)) {
     return undefined
   }
-  if (typeof value.type !== "string" || typeof value.value !== "string") {
+  if (typeof value["type"] !== "string" || typeof value["value"] !== "string") {
     return undefined
   }
   if (
-    typeof value.timeout_seconds !== "number" ||
-    typeof value.interval_seconds !== "number"
+    typeof value["timeout_seconds"] !== "number" ||
+    typeof value["interval_seconds"] !== "number"
   ) {
     return undefined
   }
 
   return {
-    interval_seconds: value.interval_seconds,
-    timeout_seconds: value.timeout_seconds,
-    type: value.type,
-    value: value.value,
-    ...(typeof value.associated_port === "number" ||
-    value.associated_port === null
-      ? { associated_port: value.associated_port }
+    interval_seconds: value["interval_seconds"],
+    timeout_seconds: value["timeout_seconds"],
+    type: value["type"],
+    value: value["value"],
+    ...(typeof value["associated_port"] === "number" ||
+    value["associated_port"] === null
+      ? { associated_port: value["associated_port"] }
       : {}),
   }
 }
@@ -473,18 +479,19 @@ const normalizeResourceLimits = (
     normalizedMemory = null
   } else if (isRecord(memory)) {
     normalizedMemory = {
-      ...(typeof memory.unit === "string" ? { unit: memory.unit } : {}),
-      ...(typeof memory.value === "number" || typeof memory.value === "string"
-        ? { value: memory.value }
+      ...(typeof memory["unit"] === "string" ? { unit: memory["unit"] } : {}),
+      ...(typeof memory["value"] === "number" ||
+      typeof memory["value"] === "string"
+        ? { value: memory["value"] }
         : {}),
     }
   }
 
   return {
-    ...(typeof value.cpus === "number" ||
-    typeof value.cpus === "string" ||
-    value.cpus === null
-      ? { cpus: value.cpus }
+    ...(typeof value["cpus"] === "number" ||
+    typeof value["cpus"] === "string" ||
+    value["cpus"] === null
+      ? { cpus: value["cpus"] }
       : {}),
     ...(normalizedMemory === undefined ? {} : { memory: normalizedMemory }),
   }
@@ -496,41 +503,49 @@ const normalizeServiceDetails = (
 ): ZaneServiceDetails => {
   const object = assertObject(payload, label)
   const dockerfileBuilderOptions = normalizeDockerfileBuilderOptions(
-    object.dockerfile_builder_options,
+    object["dockerfile_builder_options"],
   )
-  const environment = normalizeEnvironmentReference(object.environment)
-  const gitApp = normalizeGitAppRef(object.git_app)
-  const healthcheck = normalizeHealthcheck(object.healthcheck)
-  const resourceLimits = normalizeResourceLimits(object.resource_limits)
-  const systemEnvVariables = normalizeEnvVariables(object.system_env_variables)
-  const unappliedChanges = normalizeUnappliedChanges(object.unapplied_changes)
-  const volumes = normalizeServiceVolumes(object.volumes)
+  const environment = normalizeEnvironmentReference(object["environment"])
+  const gitApp = normalizeGitAppRef(object["git_app"])
+  const healthcheck = normalizeHealthcheck(object["healthcheck"])
+  const resourceLimits = normalizeResourceLimits(object["resource_limits"])
+  const systemEnvVariables = normalizeEnvVariables(
+    object["system_env_variables"],
+  )
+  const unappliedChanges = normalizeUnappliedChanges(
+    object["unapplied_changes"],
+  )
+  const volumes = normalizeServiceVolumes(object["volumes"])
 
   return {
-    deploy_token: assertString(object.deploy_token, `${label}.deploy_token`),
-    env_variables: normalizeEnvVariables(object.env_variables) ?? [],
+    deploy_token: assertString(object["deploy_token"], `${label}.deploy_token`),
+    env_variables: normalizeEnvVariables(object["env_variables"]) ?? [],
     global_network_alias:
-      typeof object.global_network_alias === "string"
-        ? object.global_network_alias
+      typeof object["global_network_alias"] === "string"
+        ? object["global_network_alias"]
         : null,
-    id: assertString(object.id, `${label}.id`),
-    slug: assertString(object.slug, `${label}.slug`),
-    type: assertServiceType(object.type, `${label}.type`),
-    urls: normalizeServiceUrls(object.urls),
-    ...(typeof object.network_alias === "string"
-      ? { network_alias: object.network_alias }
+    id: assertString(object["id"], `${label}.id`),
+    slug: assertString(object["slug"], `${label}.slug`),
+    type: assertServiceType(object["type"], `${label}.type`),
+    urls: normalizeServiceUrls(object["urls"]),
+    ...(typeof object["network_alias"] === "string"
+      ? { network_alias: object["network_alias"] }
       : {}),
-    ...(typeof object.commit_sha === "string"
-      ? { commit_sha: object.commit_sha }
+    ...(typeof object["commit_sha"] === "string"
+      ? { commit_sha: object["commit_sha"] }
       : {}),
-    ...(typeof object.repository_url === "string"
-      ? { repository_url: object.repository_url }
+    ...(typeof object["repository_url"] === "string"
+      ? { repository_url: object["repository_url"] }
       : {}),
-    ...(typeof object.branch_name === "string"
-      ? { branch_name: object.branch_name }
+    ...(typeof object["branch_name"] === "string"
+      ? { branch_name: object["branch_name"] }
       : {}),
-    ...(typeof object.builder === "string" ? { builder: object.builder } : {}),
-    ...(typeof object.command === "string" ? { command: object.command } : {}),
+    ...(typeof object["builder"] === "string"
+      ? { builder: object["builder"] }
+      : {}),
+    ...(typeof object["command"] === "string"
+      ? { command: object["command"] }
+      : {}),
     ...(environment === undefined ? {} : { environment }),
     ...(systemEnvVariables === undefined
       ? {}

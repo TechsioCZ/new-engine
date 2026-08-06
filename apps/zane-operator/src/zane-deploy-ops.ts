@@ -144,15 +144,15 @@ const coercePendingEnvVariable = (
 ): { key: string; value: string } | null => {
   if (
     !value ||
-    typeof value.key !== "string" ||
-    typeof value.value !== "string"
+    typeof value["key"] !== "string" ||
+    typeof value["value"] !== "string"
   ) {
     return null
   }
 
   return {
-    key: value.key,
-    value: value.value,
+    key: value["key"],
+    value: value["value"],
   }
 }
 
@@ -554,7 +554,7 @@ export class ZaneDeployOps {
     }
 
     if (persistedCurrent?.id !== undefined && persistedCurrent.id !== "") {
-      requestBody.item_id = persistedCurrent.id
+      requestBody["item_id"] = persistedCurrent.id
     }
 
     await this.#deps.request(
