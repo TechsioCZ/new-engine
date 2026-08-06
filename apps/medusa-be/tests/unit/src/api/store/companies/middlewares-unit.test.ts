@@ -1,13 +1,8 @@
-import type { MiddlewareRoute } from "@medusajs/framework"
+import type { MiddlewareRoute, MiddlewareVerb } from "@medusajs/framework"
 import { describe, expect, it } from "vitest"
 
-const supportsMethod = (route: MiddlewareRoute, method: string) => {
-  const configuredMethods: unknown = Reflect.get(route, "method")
-  return (
-    configuredMethods === "ALL" ||
-    (Array.isArray(configuredMethods) && configuredMethods.includes(method))
-  )
-}
+const supportsMethod = (route: MiddlewareRoute, method: MiddlewareVerb) =>
+  route.methods?.includes(method) ?? false
 
 describe("store company middlewares", () => {
   it("requires route company membership for company and employee read routes", async () => {
@@ -30,12 +25,13 @@ describe("store company middlewares", () => {
       )
 
       expect(route).toBeDefined()
-      expect(route?.middlewares).toContain(ensureCompanyMember)
+      expect(route?.methods).toStrictEqual(["GET"])
+      expect(route?.middlewares?.[0]).toBe(ensureCompanyMember)
     }
   })
 
-  it("requires company admin authorization for employee delete routes", async () => {
-    const { storeCompaniesMiddlewares } =
+  it("requires company admin authorization for the employee delete route", async () => {
+    const { ensureCompanyAdmin, storeCompaniesMiddlewares } =
       await import("../../../../../../src/api/store/companies/middlewares")
 
     const deleteEmployeeRoute = storeCompaniesMiddlewares.find(
@@ -44,8 +40,10 @@ describe("store company middlewares", () => {
         route.matcher === "/store/companies/:id/employees/:employee_id",
     )
 
-    expect(deleteEmployeeRoute).toBeDefined()
-    expect(deleteEmployeeRoute?.middlewares).toHaveLength(1)
-    expect(deleteEmployeeRoute?.middlewares?.[0]).toBeTypeOf("function")
+    expect(deleteEmployeeRoute).toStrictEqual({
+      matcher: "/store/companies/:id/employees/:employee_id",
+      methods: ["DELETE"],
+      middlewares: [ensureCompanyAdmin],
+    })
   })
 })

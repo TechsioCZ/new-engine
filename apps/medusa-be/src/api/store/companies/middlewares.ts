@@ -23,6 +23,8 @@ import {
 const COMPANY_MATCHER = "/store/companies/:id"
 const EMPLOYEE_MATCHER = "/store/companies/:id/employees/:employee_id"
 
+export const ensureCompanyAdmin = ensureRole("company_admin")
+
 export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
   /* Company middlewares */
   {
@@ -66,7 +68,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     matcher: COMPANY_MATCHER,
     methods: ["POST"],
     middlewares: [
-      ensureRole("company_admin"),
+      ensureCompanyAdmin,
       validateAndTransformBody(StoreUpdateCompany),
       validateAndTransformQuery(
         StoreGetCompanyParams,
@@ -77,7 +79,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
   {
     matcher: COMPANY_MATCHER,
     methods: ["DELETE"],
-    middlewares: [ensureRole("company_admin")],
+    middlewares: [ensureCompanyAdmin],
   },
 
   /* Employee middlewares */
@@ -96,7 +98,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     matcher: "/store/companies/:id/employees",
     methods: ["POST"],
     middlewares: [
-      ensureRole("company_admin"),
+      ensureCompanyAdmin,
       validateAndTransformBody(StoreCreateEmployee),
       validateAndTransformQuery(
         StoreGetEmployeeParams,
@@ -119,7 +121,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     matcher: EMPLOYEE_MATCHER,
     methods: ["POST"],
     middlewares: [
-      ensureRole("company_admin"),
+      ensureCompanyAdmin,
       validateAndTransformBody(StoreUpdateEmployee),
       validateAndTransformQuery(
         StoreGetEmployeeParams,
@@ -130,13 +132,13 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
   {
     matcher: EMPLOYEE_MATCHER,
     methods: ["DELETE"],
-    middlewares: [ensureRole("company_admin")],
+    middlewares: [ensureCompanyAdmin],
   },
   {
     matcher: "/store/companies/:id/approval-settings",
     methods: ["POST"],
     middlewares: [
-      ensureRole("company_admin"),
+      ensureCompanyAdmin,
       validateAndTransformBody(StoreUpdateApprovalSettings),
     ],
   },
