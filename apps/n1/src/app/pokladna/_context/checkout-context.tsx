@@ -2,7 +2,13 @@
 
 import { useForm } from "@tanstack/react-form"
 import { useRouter } from "next/navigation"
-import { createContext, useContext, useEffect, useRef, useState } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useState,
+} from "react"
 import type { ReactNode } from "react"
 
 import { useSuspenseAuth } from "@/hooks/use-auth"
@@ -69,27 +75,35 @@ export interface CheckoutFormData {
 }
 
 /** Helper to infer the correct form type - not actually called */
-const _formTypeHelper = (d: CheckoutFormData) => useForm({ defaultValues: d })
+const useCheckoutFormShape = (values: CheckoutFormData) =>
+  useForm({ defaultValues: values })
 
 /** Form type for checkout - inferred from useForm return type */
-type CheckoutForm = ReturnType<typeof _formTypeHelper>
+type CheckoutForm = ReturnType<typeof useCheckoutFormShape>
 
 interface InitialCheckoutState {
   defaultValues: CheckoutFormData
   selectedAddressId: string | null
 }
 
-const resolveInitialCheckoutState = (
-  cart: ReturnType<typeof useSuspenseCart>["cart"],
-  customer: ReturnType<typeof useSuspenseAuth>["customer"],
-): InitialCheckoutState => {
-  if (cart?.billing_address?.first_name) {
-    const addressData = addressToFormData(cart.billing_address)
+interface CheckoutIdentity {
+  cart: ReturnType<typeof useSuspenseCart>["cart"]
+  customer: ReturnType<typeof useSuspenseAuth>["customer"]
+}
+
+const resolveInitialCheckoutState = ({
+  cart,
+  customer,
+}: CheckoutIdentity): InitialCheckoutState => {
+  const cartBillingAddress = cart?.billing_address
+
+  if ((cartBillingAddress?.first_name ?? "") !== "") {
+    const addressData = addressToFormData(cartBillingAddress)
 
     return {
       defaultValues: {
         billingAddress: addressData,
-        email: cart.email ?? customer?.email ?? "",
+        email: cart?.email ?? customer?.email ?? "",
       },
       selectedAddressId: null,
     }
@@ -118,6 +132,14 @@ const resolveInitialCheckoutState = (
   }
 }
 
+/**
+ * Identity reducer: `useReducer` is the only stable-by-contract way left to
+ * freeze a value that is computed once from the first render's cart and
+ * customer. The resolved state must never change identity because `useForm`
+ * re-applies `defaultValues` on every render.
+ */
+const keepInitialCheckoutState = (state: InitialCheckoutState) => state
+
 interface CheckoutContextValue {
   form: CheckoutForm
   cart: ReturnType<typeof useSuspenseCart>["cart"]
@@ -142,7 +164,15 @@ interface CheckoutContextValue {
 
 const CheckoutContext = createContext<CheckoutContextValue | null>(null)
 
-export function CheckoutProvider({ children }: { children: ReactNode }) {
+/**
+ * Owns every piece of checkout state the provider publishes.
+ *
+ * Kept separate from `CheckoutProvider` so the provider passes an already
+ * assembled value down: this app runs with the React Compiler
+ * (`reactCompiler: true`), which caches this hook's return value, so no manual
+ * `useMemo`/`useCallback` is added here.
+ */
+const useCheckoutContextValue = (): CheckoutContextValue => {
   const router = useRouter()
 
   const { customer } = useSuspenseAuth()
@@ -152,32 +182,14 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
   const shipping = useCheckoutShipping(cart?.id, cart)
   const payment = useCheckoutPayment(cart?.id, regionId, cart)
 
-  const { mutateAsync: updateCartAddressAsync, isPending: isSavingAddress } =
-    useUpdateCartAddress()
-  const { mutateAsync: completeCartAsync, isPending: isCompletingCart } =
-    useCompleteCart({
-      onSuccess: (order) => {
-        router.push(`/orders/${order.id}?success=true`)
-      },
-      // A completion that fails validation or payment resolves instead of
-      // rejecting, so without this the submit handler's catch never runs and
-      // the shopper is left on a silent, unchanged form.
-      onError: (completionError) => {
-        const prefix =
-          COMPLETION_RESULT_ERROR_PREFIX[completionError.type] ??
-          DEFAULT_COMPLETION_ERROR_PREFIX
-
-        setError(`${prefix}: ${completionError.message}`)
-      },
-    })
-
-  const initialStateRef = useRef<InitialCheckoutState | null>(null)
-  if (!initialStateRef.current) {
-    initialStateRef.current = resolveInitialCheckoutState(cart, customer)
-  }
+  const [initialCheckoutState] = useReducer(
+    keepInitialCheckoutState,
+    { cart, customer },
+    resolveInitialCheckoutState,
+  )
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
-    initialStateRef.current.selectedAddressId,
+    initialCheckoutState.selectedAddressId,
   )
   const [error, setError] = useState<string | null>(null)
 
@@ -185,6 +197,28 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     useState<PplAccessPointData | null>(null)
   const [isPickupDialogOpen, setIsPickupDialogOpen] = useState(false)
   const [pendingOptionId, setPendingOptionId] = useState<string | null>(null)
+
+  // Check if selected shipping requires access point
+  const selectedShippingOption = shipping.selectedOption
+  const requiresAccessPoint =
+    selectedShippingOption !== undefined &&
+    isPPLParcelOption(selectedShippingOption.name)
+
+  // Reset access point when switching to non-parcel shipping method.
+  // The reset is load-bearing: `ShippingOptionCard` silently reuses a retained
+  // access point instead of reopening the picker. Adjusting during render
+  // (instead of from an effect) keeps the cleared value in the same commit as
+  // the option change.
+  const [appliedShippingOptionId, setAppliedShippingOptionId] = useState(
+    selectedShippingOption?.id,
+  )
+  if (selectedShippingOption?.id !== appliedShippingOptionId) {
+    setAppliedShippingOptionId(selectedShippingOption?.id)
+    // If switched to non-parcel option, clear access point
+    if (selectedShippingOption !== undefined && !requiresAccessPoint) {
+      setSelectedAccessPoint(null)
+    }
+  }
 
   const openPickupDialog = (optionId: string) => {
     setPendingOptionId(optionId)
@@ -196,10 +230,30 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     setPendingOptionId(null)
   }
 
+  const { mutateAsync: updateCartAddressAsync, isPending: isSavingAddress } =
+    useUpdateCartAddress()
+  const { mutateAsync: completeCartAsync, isPending: isCompletingCart } =
+    useCompleteCart({
+      // A completion that fails validation or payment resolves instead of
+      // rejecting, so without this the submit handler's catch never runs and
+      // the shopper is left on a silent, unchanged form.
+      onError: (completionError) => {
+        const prefix =
+          COMPLETION_RESULT_ERROR_PREFIX[completionError.type] ??
+          DEFAULT_COMPLETION_ERROR_PREFIX
+
+        setError(`${prefix}: ${completionError.message}`)
+      },
+      onSuccess: (order) => {
+        router.push(`/orders/${order.id}?success=true`)
+      },
+    })
+
   const form = useForm({
-    defaultValues: initialStateRef.current.defaultValues,
+    defaultValues: initialCheckoutState.defaultValues,
     onSubmit: async ({ value }: { value: CheckoutFormData }) => {
-      if (!cart?.id) {
+      const cartId = cart?.id ?? ""
+      if (cartId === "") {
         setError("Košík nebyl nalezen")
         return
       }
@@ -211,34 +265,29 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
       // Determine shipping address based on delivery method
       // If PPL Parcel selected + access point → shipping = access point address
       // Otherwise → shipping = billing address
-      const isPplParcel =
-        shipping.selectedOption &&
-        isPPLParcelOption(shipping.selectedOption.name)
-
-      let shippingAddress: AddressFormData
-      if (isPplParcel && selectedAccessPoint) {
-        shippingAddress = accessPointToAddress(
-          selectedAccessPoint,
-          billingAddress,
-        )
-      } else {
-        shippingAddress = billingAddress
-      }
+      const shippingAddress: AddressFormData =
+        requiresAccessPoint && selectedAccessPoint !== null
+          ? accessPointToAddress(selectedAccessPoint, billingAddress)
+          : billingAddress
 
       // Save both addresses to cart
+      const customerEmail = customer?.email ?? ""
+      const cartEmail = customerEmail === "" ? (email ?? "") : customerEmail
+
       try {
-        const cartEmail = customer?.email || email
         await updateCartAddressAsync({
           billingAddress,
-          cartId: cart.id,
+          cartId,
           shippingAddress,
-          ...(cartEmail ? { email: cartEmail } : {}),
+          ...(cartEmail === "" ? {} : { email: cartEmail }),
         })
-      } catch (error) {
-        if (CartAddressUpdateError.isCartAddressUpdateError(error)) {
-          setError(`${ADDRESS_ERROR_PREFIX[error.code]}: ${error.message}`)
-        } else if (error instanceof Error) {
-          setError(`${DEFAULT_ADDRESS_ERROR_PREFIX}: ${error.message}`)
+      } catch (addressError) {
+        if (CartAddressUpdateError.isCartAddressUpdateError(addressError)) {
+          setError(
+            `${ADDRESS_ERROR_PREFIX[addressError.code]}: ${addressError.message}`,
+          )
+        } else if (addressError instanceof Error) {
+          setError(`${DEFAULT_ADDRESS_ERROR_PREFIX}: ${addressError.message}`)
         } else {
           setError(DEFAULT_ADDRESS_ERROR_PREFIX)
         }
@@ -247,14 +296,16 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
 
       // Complete the cart
       try {
-        await completeCartAsync({ cartId: cart.id })
-      } catch (error) {
-        if (CartServiceError.isCartServiceError(error)) {
+        await completeCartAsync({ cartId })
+      } catch (completeError) {
+        if (CartServiceError.isCartServiceError(completeError)) {
           setError(
-            `${COMPLETION_ERROR_PREFIX[error.code] ?? DEFAULT_COMPLETION_ERROR_PREFIX}: ${error.message}`,
+            `${COMPLETION_ERROR_PREFIX[completeError.code] ?? DEFAULT_COMPLETION_ERROR_PREFIX}: ${completeError.message}`,
           )
-        } else if (error instanceof Error) {
-          setError(`${DEFAULT_COMPLETION_ERROR_PREFIX}: ${error.message}`)
+        } else if (completeError instanceof Error) {
+          setError(
+            `${DEFAULT_COMPLETION_ERROR_PREFIX}: ${completeError.message}`,
+          )
         } else {
           setError(DEFAULT_COMPLETION_ERROR_PREFIX)
         }
@@ -268,7 +319,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     if (
       shipping.shippingOptions &&
       shipping.shippingOptions.length > 0 &&
-      !shipping.selectedShippingMethodId
+      (shipping.selectedShippingMethodId ?? "") === ""
     ) {
       // Find PPL Private option (doesn't require access point selection)
       const pplPrivate = shipping.shippingOptions.find((opt) =>
@@ -281,55 +332,45 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     }
   }, [shipping.shippingOptions, shipping.selectedShippingMethodId, shipping])
 
-  // Reset access point when switching to non-parcel shipping method
-  useEffect(() => {
-    // If switched to non-parcel option, clear access point
-    if (
-      shipping.selectedOption &&
-      !isPPLParcelOption(shipping.selectedOption.name)
-    ) {
-      setSelectedAccessPoint(null)
-    }
-  }, [shipping.selectedOption])
-
   const completeCheckout = async () => {
     await form.handleSubmit()
   }
 
-  // Check if selected shipping requires access point
-  const requiresAccessPoint =
-    shipping.selectedOption && isPPLParcelOption(shipping.selectedOption.name)
-  const hasRequiredAccessPoint = !requiresAccessPoint || !!selectedAccessPoint
+  const hasShippingMethod = (shipping.selectedShippingMethodId ?? "") !== ""
+  const hasRequiredAccessPoint =
+    !requiresAccessPoint || selectedAccessPoint !== null
 
-  const isReady =
-    form.state.isValid &&
-    !!shipping.selectedShippingMethodId &&
-    hasRequiredAccessPoint &&
-    payment.hasPaymentSessions &&
-    !shipping.isSettingShipping &&
-    !payment.isInitiatingPayment
+  const isShippingReady =
+    hasShippingMethod && hasRequiredAccessPoint && !shipping.isSettingShipping
+  const isPaymentReady =
+    payment.hasPaymentSessions && !payment.isInitiatingPayment
+  const isReady = form.state.isValid && isShippingReady && isPaymentReady
 
-  const contextValue: CheckoutContextValue = {
-    form,
+  return {
     cart,
-    hasItems,
-    shipping,
-    payment,
-    customer,
-    selectedAddressId,
-    setSelectedAddressId,
+    closePickupDialog,
     completeCheckout,
-    isCompleting: isSavingAddress || isCompletingCart,
+    customer,
     error,
+    form,
+    hasItems,
+    isCompleting: isSavingAddress || isCompletingCart,
+    isPickupDialogOpen,
     isReady,
+    openPickupDialog,
+    payment,
+    pendingOptionId,
     // PPL Parcel state
     selectedAccessPoint,
+    selectedAddressId,
     setSelectedAccessPoint,
-    isPickupDialogOpen,
-    openPickupDialog,
-    closePickupDialog,
-    pendingOptionId,
+    setSelectedAddressId,
+    shipping,
   }
+}
+
+export const CheckoutProvider = ({ children }: { children: ReactNode }) => {
+  const contextValue = useCheckoutContextValue()
 
   return (
     <CheckoutContext.Provider value={contextValue}>
@@ -338,7 +379,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useCheckoutContext() {
+export const useCheckoutContext = () => {
   const context = useContext(CheckoutContext)
   if (!context) {
     throw new Error("useCheckoutContext must be used within CheckoutProvider")
@@ -346,7 +387,7 @@ export function useCheckoutContext() {
   return context
 }
 
-export function useCheckoutForm() {
+export const useCheckoutForm = () => {
   const { form } = useCheckoutContext()
   return form
 }
