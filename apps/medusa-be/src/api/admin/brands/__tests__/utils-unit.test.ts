@@ -1,9 +1,14 @@
+import { DefineLinkSymbol } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 
 import { toBrandResponse } from "../utils"
 
 vi.mock(import("../../../../links/product-brand"), () => ({
-  ProductBrandLink: {},
+  ProductBrandLink: {
+    [DefineLinkSymbol]: true,
+    entryPoint: "product_brand",
+    serviceName: "product_brand",
+  },
 }))
 
 describe(toBrandResponse, () => {

@@ -110,15 +110,76 @@ type ResolvedProductInput = Parameters<
   typeof buildProductRecordMutationPlan
 >[0][number]
 type ResolvedVariantInput = NonNullable<ProductInput["variants"]>[number]
+type ResolvedProductRecord = ResolvedProductInput["product"]
+type ResolvedVariantRecord = ResolvedProductRecord["variants"][number]
+
+const resolvedVariant = (id: string, index: number): ResolvedVariantRecord => ({
+  allow_backorder: false,
+  barcode: null,
+  created_at: new Date("2026-01-01T00:00:00.000Z"),
+  deleted_at: new Date("2026-01-01T00:00:00.000Z"),
+  ean: null,
+  height: null,
+  hs_code: null,
+  id,
+  images: [],
+  length: null,
+  manage_inventory: true,
+  material: null,
+  metadata: null,
+  mid_code: null,
+  options: [],
+  origin_country: null,
+  product_id: "product-1",
+  requires_shipping: true,
+  sku: `SKU-${index + 1}`,
+  thumbnail: null,
+  title: id,
+  upc: null,
+  updated_at: new Date("2026-01-01T00:00:00.000Z"),
+  weight: null,
+  width: null,
+})
+
+const resolvedProductRecord = (
+  handle: string,
+  variants: ResolvedVariantRecord[],
+): ResolvedProductRecord => ({
+  collection: null,
+  collection_id: null,
+  created_at: new Date("2026-01-01T00:00:00.000Z"),
+  deleted_at: new Date("2026-01-01T00:00:00.000Z"),
+  description: null,
+  external_id: null,
+  handle,
+  height: null,
+  hs_code: null,
+  id: "product-1",
+  images: [],
+  is_giftcard: false,
+  length: null,
+  material: null,
+  mid_code: null,
+  options: [],
+  origin_country: null,
+  status: "draft",
+  subtitle: null,
+  tags: [],
+  thumbnail: null,
+  title: handle,
+  type: null,
+  type_id: null,
+  updated_at: new Date("2026-01-01T00:00:00.000Z"),
+  variants,
+  weight: null,
+  width: null,
+})
 
 const resolvedProduct = (
   input: ProductInput,
   variantIds = ["variant-1"],
 ): ResolvedProductInput => {
-  const variants = variantIds.map((id, index) => ({
-    id,
-    sku: `SKU-${index + 1}`,
-  }))
+  const variants = variantIds.map(resolvedVariant)
   const variantInputById = new Map<string, ResolvedVariantInput>()
   const variantInputs = input.variants ?? []
   for (const [index, variant] of variants.entries()) {
@@ -130,11 +191,7 @@ const resolvedProduct = (
 
   return {
     input,
-    product: {
-      handle: input.handle,
-      id: "product-1",
-      variants,
-    },
+    product: resolvedProductRecord(input.handle, variants),
     variantInputById,
   }
 }

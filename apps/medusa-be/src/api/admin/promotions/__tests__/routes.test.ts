@@ -60,7 +60,7 @@ const createRequest = <TQuery = RuleValueOptionsQuerySchemaType>({
     scope: {
       resolve: vi
         .fn<(key: string) => { graph?: ReturnType<typeof vi.fn<GraphMock>> }>()
-        .mockReturnValue({ graph }),
+        .mockReturnValue(graph === undefined ? {} : { graph }),
     },
     validatedQuery,
   }

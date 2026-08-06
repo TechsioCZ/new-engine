@@ -1,10 +1,5 @@
-import { asValue } from "@medusajs/framework/awilix"
 import type { Logger } from "@medusajs/framework/types"
-import {
-  ContainerRegistrationKeys,
-  createMedusaContainer,
-  MedusaError,
-} from "@medusajs/framework/utils"
+import { MedusaError } from "@medusajs/framework/utils"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { API_STORE_MODULE } from "../../api-store"
@@ -14,9 +9,22 @@ import {
   REFRESH_TOKEN_API_STORE_NAME,
 } from "../zbozi-token"
 
-const logger = {
+const logger: Logger = {
+  activity: vi.fn<Logger["activity"]>(),
+  debug: vi.fn<Logger["debug"]>(),
   error: vi.fn<Logger["error"]>(),
+  failure: vi.fn<Logger["failure"]>(),
+  http: vi.fn<Logger["http"]>(),
   info: vi.fn<Logger["info"]>(),
+  log: vi.fn<Logger["log"]>(),
+  panic: vi.fn<Logger["panic"]>(),
+  progress: vi.fn<Logger["progress"]>(),
+  setLogLevel: vi.fn<Logger["setLogLevel"]>(),
+  shouldLog: vi.fn<Logger["shouldLog"]>(),
+  silly: vi.fn<Logger["silly"]>(),
+  success: vi.fn<Logger["success"]>(),
+  unsetLogLevel: vi.fn<Logger["unsetLogLevel"]>(),
+  verbose: vi.fn<Logger["verbose"]>(),
   warn: vi.fn<Logger["warn"]>(),
 }
 
@@ -27,14 +35,53 @@ interface UpsertApiStoreInput {
 }
 type UpsertApiStoreConfig = (input: UpsertApiStoreInput) => Promise<unknown>
 
-const createService = (apiStoreService: Record<string, unknown>) => {
-  const container = createMedusaContainer()
-  container.register({
-    [API_STORE_MODULE]: asValue(apiStoreService),
-    [ContainerRegistrationKeys.LOGGER]: asValue(logger),
-  })
+type ShopReviewDependencies = ConstructorParameters<
+  typeof ShopReviewModuleService
+>[0]
 
-  return new ShopReviewModuleService(container)
+const assertShopReviewDependencies: (
+  candidate: unknown,
+) => asserts candidate is ShopReviewDependencies = (candidate) => {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected Shop Review dependencies")
+  }
+  if (!(API_STORE_MODULE in candidate)) {
+    throw new TypeError("Expected the API Store dependency")
+  }
+  const apiStoreService = candidate[API_STORE_MODULE]
+  if (typeof apiStoreService !== "object" || apiStoreService === null) {
+    throw new TypeError("Expected the API Store service")
+  }
+  if (
+    !("retrieveApiStoreSecretsByName" in apiStoreService) ||
+    typeof apiStoreService.retrieveApiStoreSecretsByName !== "function"
+  ) {
+    throw new TypeError("Expected API Store secret retrieval behavior")
+  }
+  if (
+    !("upsertApiStoreConfigByName" in apiStoreService) ||
+    typeof apiStoreService.upsertApiStoreConfigByName !== "function"
+  ) {
+    throw new TypeError("Expected API Store upsert behavior")
+  }
+  if (!("logger" in candidate) || candidate.logger !== logger) {
+    throw new TypeError("Expected the Shop Review logger")
+  }
+}
+
+const createService = (apiStoreOverrides: Record<string, unknown>) => {
+  const candidate: unknown = {
+    [API_STORE_MODULE]: {
+      upsertApiStoreConfigByName: vi.fn<UpsertApiStoreConfig>(
+        async () =>
+          await Promise.reject(new Error("Unexpected API Store upsert")),
+      ),
+      ...apiStoreOverrides,
+    },
+    logger,
+  }
+  assertShopReviewDependencies(candidate)
+  return new ShopReviewModuleService(candidate)
 }
 
 describe("ShopReviewModuleService Zboží token handling", () => {

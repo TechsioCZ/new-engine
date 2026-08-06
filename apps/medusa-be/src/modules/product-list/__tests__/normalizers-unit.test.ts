@@ -7,10 +7,14 @@ import {
   normalizeProductListType,
 } from "../normalizers"
 
+const absentValueArguments: [undefined] = [undefined]
+
 describe("product-list normalizers", () => {
   describe(normalizeProductListAccessType, () => {
     it("defaults to private access", () => {
-      expect(normalizeProductListAccessType()).toBe("private")
+      expect(normalizeProductListAccessType(...absentValueArguments)).toBe(
+        "private",
+      )
     })
 
     it.each(["private", "public"] as const)("accepts %s access", (value) => {
@@ -44,7 +48,9 @@ describe("product-list normalizers", () => {
 
   describe(normalizePositiveInteger, () => {
     it("returns the default when omitted", () => {
-      expect(normalizePositiveInteger("quantity")).toBe(1)
+      expect(
+        normalizePositiveInteger("quantity", ...absentValueArguments),
+      ).toBe(1)
       expect(normalizePositiveInteger("quantity", undefined, 3)).toBe(3)
     })
 
@@ -62,7 +68,9 @@ describe("product-list normalizers", () => {
 
   describe(normalizeNonNegativeInteger, () => {
     it("returns the default when omitted", () => {
-      expect(normalizeNonNegativeInteger("sort_order")).toBe(0)
+      expect(
+        normalizeNonNegativeInteger("sort_order", ...absentValueArguments),
+      ).toBe(0)
       expect(normalizeNonNegativeInteger("sort_order", undefined, 2)).toBe(2)
     })
 

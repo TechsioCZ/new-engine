@@ -1,9 +1,9 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import { asValue } from "@medusajs/framework/awilix"
 import {
   ContainerRegistrationKeys,
+  createMedusaContainer,
   SearchUtils,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
@@ -13,40 +13,34 @@ import {
 import { reconcileBrandSearchProjection } from "../reconcile-brand-search-projection"
 import { resolveBrandSearchProjectionTargets } from "../resolve-brand-search-projection-targets"
 
-vi.mock(import("../../../../links/product-brand"), () => ({
-  ProductBrandLink: {
-    entryPoint: "product_brand",
-  },
-}))
-
-/**
- * Asserts that a plain mock object contains the given keys before narrowing
- * it to a framework type. Building the mock this way avoids requiring every
- * property of the huge container interface while still validating the shape
- * the code under test actually reads from at runtime.
- */
-const assertMockShape = (
-  candidate: unknown,
-  requiredKeys: readonly string[],
-): asserts candidate is MedusaContainer => {
-  if (!isRecord(candidate)) {
-    throw new TypeError("Expected a mock object")
+vi.mock(import("../../../../links/product-brand"), async (importOriginal) => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    ProductBrandLink: {
+      ...original.ProductBrandLink,
+      entryPoint: "product_brand",
+    },
   }
+})
 
-  for (const key of requiredKeys) {
-    if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
-    }
+const createContainer = ({
+  graph,
+  meilisearch,
+}: {
+  graph?: unknown
+  meilisearch?: unknown
+} = {}) => {
+  const container = createMedusaContainer()
+  if (graph !== undefined) {
+    container.register({
+      [ContainerRegistrationKeys.QUERY]: asValue({ graph }),
+    })
   }
-}
-
-const asContainer = (resolve: (key: string) => unknown): MedusaContainer => {
-  const candidate: unknown = {
-    resolve: vi.fn<(key: string) => unknown>(resolve),
+  if (meilisearch !== undefined) {
+    container.register({ meilisearch: asValue(meilisearch) })
   }
-
-  assertMockShape(candidate, ["resolve"])
-  return candidate
+  return container
 }
 
 describe("Brand search projection", () => {
@@ -82,9 +76,7 @@ describe("Brand search projection", () => {
       .mockResolvedValue({
         data: [{ product_id: "prod_linked" }, { product_id: "prod_explicit" }],
       })
-    const container = asContainer((key) =>
-      key === ContainerRegistrationKeys.QUERY ? { graph } : undefined,
-    )
+    const container = createContainer({ graph })
 
     const targets = await resolveBrandSearchProjectionTargets(
       {
@@ -132,15 +124,7 @@ describe("Brand search projection", () => {
         .mockReturnValueOnce(["brands"])
         .mockReturnValueOnce(["products"]),
     }
-    const container = asContainer((key) => {
-      if (key === ContainerRegistrationKeys.QUERY) {
-        return { graph }
-      }
-      if (key === "meilisearch") {
-        return meilisearch
-      }
-      throw new Error(`Unexpected dependency: ${key}`)
-    })
+    const container = createContainer({ graph, meilisearch })
 
     const result = await reconcileBrandSearchProjection(
       {
@@ -188,8 +172,8 @@ describe("Brand search projection", () => {
 
   it("does not resolve services when Meilisearch is disabled", async () => {
     vi.stubEnv("MEILISEARCH_ENABLED", "0")
-    const resolve = vi.fn<(key: string) => unknown>()
-    const container = asContainer(resolve)
+    const container = createContainer()
+    const resolve = vi.spyOn(container, "resolve")
 
     await expect(
       reconcileBrandSearchProjection(

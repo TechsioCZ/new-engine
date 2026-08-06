@@ -6,7 +6,6 @@ import { Modules } from "@medusajs/framework/utils"
 import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { PplClient } from "../client"
 import { PPL_CLIENT_MODULE } from "../index"
 import PplConfig from "../models/ppl-config"
 import type { PplClientModuleService } from "../service"
@@ -17,12 +16,6 @@ vi.hoisted(() => {
 })
 
 vi.setConfig({ testTimeout: 60_000 })
-
-vi.mock(import("../client"), () => ({
-  PplClient: vi.fn<() => Pick<PplClient, "fetchNewToken">>().mockReturnValue({
-    fetchNewToken: vi.fn<PplClient["fetchNewToken"]>(),
-  }),
-}))
 
 // Mock services for dependencies
 const mockCacheService = {

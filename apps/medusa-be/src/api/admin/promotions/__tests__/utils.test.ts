@@ -1,10 +1,11 @@
-import type {
-  MedusaContainer,
-  PromotionRuleDTO,
-} from "@medusajs/framework/types"
-import { ApplicationMethodTargetType } from "@medusajs/framework/utils"
+import { asValue } from "@medusajs/framework/awilix"
+import type { PromotionRuleDTO } from "@medusajs/framework/types"
+import {
+  ApplicationMethodTargetType,
+  ContainerRegistrationKeys,
+  createMedusaContainer,
+} from "@medusajs/framework/utils"
 import { areRulesValidForContext } from "@medusajs/promotion/dist/utils/validations/promotion-rule"
-import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
 import { BRAND_MODULE } from "../../../../modules/brand"
@@ -423,26 +424,13 @@ describe("custom rule operator compatibility", () => {
   })
 })
 
-/**
- * Asserts that a plain mock object contains a `resolve` method before
- * narrowing it to `MedusaContainer`. Building the mock this way avoids
- * requiring every property of the huge container interface while still
- * validating the shape the code under test actually reads from at runtime.
- */
-const assertContainerShape = (
-  candidate: unknown,
-): asserts candidate is MedusaContainer => {
-  if (!isRecord(candidate) || !("resolve" in candidate)) {
-    throw new TypeError("Expected a mock container with a resolve method")
-  }
-}
-
-const createContainer = (
-  resolve: ReturnType<typeof vi.fn>,
-): MedusaContainer => {
-  const candidate: unknown = { resolve }
-  assertContainerShape(candidate)
-  return candidate
+const createContainer = (graph: unknown, listBrands: unknown) => {
+  const container = createMedusaContainer()
+  container.register({
+    [BRAND_MODULE]: asValue({ listBrands }),
+    [ContainerRegistrationKeys.QUERY]: asValue({ graph }),
+  })
+  return container
 }
 
 describe(buildBrandPromotionContext, () => {
@@ -469,12 +457,7 @@ describe(buildBrandPromotionContext, () => {
         { id: "brand_b" },
         { id: "brand_c" },
       ])
-    const resolve = vi.fn<
-      (
-        key: string,
-      ) => { listBrands: typeof listBrands } | { graph: typeof graph }
-    >((key) => (key === BRAND_MODULE ? { listBrands } : { graph }))
-    const container = createContainer(resolve)
+    const container = createContainer(graph, listBrands)
 
     const result = await buildBrandPromotionContext(
       {
@@ -547,12 +530,7 @@ describe(buildBrandPromotionContext, () => {
     const listBrands = vi
       .fn<() => Promise<{ id: string }[]>>()
       .mockResolvedValue([{ id: "brand_a" }])
-    const resolve = vi.fn<
-      (
-        key: string,
-      ) => { listBrands: typeof listBrands } | { graph: typeof graph }
-    >((key) => (key === BRAND_MODULE ? { listBrands } : { graph }))
-    const container = createContainer(resolve)
+    const container = createContainer(graph, listBrands)
 
     const result = await buildBrandPromotionContext(
       {
@@ -622,12 +600,7 @@ describe(buildBrandPromotionContext, () => {
         ) => Promise<{ id: string }[]>
       >()
       .mockResolvedValue([{ id: "brand_active" }])
-    const resolve = vi.fn<
-      (
-        key: string,
-      ) => { listBrands: typeof listBrands } | { graph: typeof graph }
-    >((key) => (key === BRAND_MODULE ? { listBrands } : { graph }))
-    const container = createContainer(resolve)
+    const container = createContainer(graph, listBrands)
 
     const result = await buildBrandPromotionContext(
       {

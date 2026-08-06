@@ -8,6 +8,7 @@ import {
   getStripeProviderOptions,
   getStripeWebhookOptions,
 } from "../runtime"
+import type { PaykitProviderRuntime } from "../runtime"
 
 describe("PayKit runtime helpers", () => {
   it("maps GoPay options to PayKit's public createGopay options", () => {
@@ -87,7 +88,9 @@ describe("PayKit runtime helpers", () => {
 
   it("calls PayKit 1.2 provider webhooks with headersAsObject and secret argument", async () => {
     const provider = {
-      handleWebhook: vi.fn<() => Promise<unknown[]>>().mockResolvedValue([]),
+      handleWebhook: vi
+        .fn<PaykitProviderRuntime["handleWebhook"]>()
+        .mockResolvedValue([]),
     }
 
     await callPaykitProviderWebhook(
@@ -126,7 +129,9 @@ describe("PayKit runtime helpers", () => {
 
   it("passes null webhook secret when a provider has no webhook secret option", async () => {
     const provider = {
-      handleWebhook: vi.fn<() => Promise<unknown[]>>().mockResolvedValue([]),
+      handleWebhook: vi
+        .fn<PaykitProviderRuntime["handleWebhook"]>()
+        .mockResolvedValue([]),
     }
 
     await callPaykitProviderWebhook(provider, {

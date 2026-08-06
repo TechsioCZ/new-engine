@@ -1,66 +1,36 @@
+import { createStep } from "@medusajs/framework/workflows-sdk"
 import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
-const workflowSdkMock = vi.hoisted(() => {
-  const Response = vi.fn<(output: unknown) => { output: unknown }>(
-    (output) => ({
-      output,
-    }),
-  )
-  return {
-    Response,
-    steps: new Map<string, (...args: unknown[]) => unknown>(),
+vi.mock(import("@medusajs/framework/workflows-sdk"), { spy: true })
+
+const orderReceiptMock = vi.hoisted(() =>
+  Object.freeze({ ORDER_RECEIPT_MODULE: "order_receipt" }),
+)
+
+vi.mock(import("../../modules/order-receipt"), () => orderReceiptMock)
+
+type StepHandler = (input: unknown, context: unknown) => unknown
+
+const assertStepHandler: (
+  candidate: unknown,
+) => asserts candidate is StepHandler = (candidate) => {
+  if (typeof candidate !== "function") {
+    throw new TypeError("Expected a workflow step handler")
   }
-})
+}
 
-vi.mock(import("@medusajs/framework/utils"), () => {
-  class MedusaError extends Error {
-    static readonly Types = {
-      NOT_FOUND: "not_found",
-    }
-
-    type: string
-
-    constructor(type: string, message: string) {
-      super(message)
-      this.name = "MedusaError"
-      this.type = type
-    }
-  }
-
-  return {
-    ContainerRegistrationKeys: {
-      LOGGER: "logger",
-      QUERY: "query",
-    },
-    MedusaError,
-  }
-})
-
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: workflowSdkMock.Response,
-  WorkflowResponse: workflowSdkMock.Response,
-  createStep: vi.fn<
-    (
-      name: string,
-      handler: (...args: unknown[]) => unknown,
-    ) => (...args: unknown[]) => unknown
-  >((name, handler) => {
-    workflowSdkMock.steps.set(name, handler)
-    return handler
-  }),
-  createWorkflow: vi.fn<(name: string, handler: unknown) => unknown>(
-    (_name, handler) => handler,
-  ),
-}))
-
-vi.mock(import("../../modules/order-receipt"), () => ({
-  ORDER_RECEIPT_MODULE: "order_receipt",
-}))
-
-vi.mock(import("../steps/send-notification"), () => ({
-  sendNotificationStep: vi.fn<() => void>(),
-}))
+const getPaymentReminderStep = (): StepHandler => {
+  const call = vi
+    .mocked(createStep)
+    .mock.calls.find(
+      ([nameOrConfig]) =>
+        nameOrConfig === "build-order-payment-reminder-notification",
+    )
+  const candidate: unknown = call?.[1]
+  assertStepHandler(candidate)
+  return candidate
+}
 
 interface Notification {
   data?: Record<string, unknown>
@@ -139,13 +109,7 @@ describe("send order payment reminder workflow", () => {
   it("uses the fetched order summary total for notification data", async () => {
     await import("../send-order-payment-reminder")
 
-    const step = workflowSdkMock.steps.get(
-      "build-order-payment-reminder-notification",
-    )
-
-    if (step === undefined) {
-      throw new TypeError("Expected the payment reminder workflow step")
-    }
+    const step = getPaymentReminderStep()
 
     const { container, graph } = createPaymentReminderNotificationContext({
       summary: {
@@ -228,13 +192,7 @@ describe("send order payment reminder workflow", () => {
     "uses fetched order total precedence before input fallback %#",
     async ({ expectedTotal, inputTotal, order }) => {
       await import("../send-order-payment-reminder")
-
-      const step = workflowSdkMock.steps.get(
-        "build-order-payment-reminder-notification",
-      )
-      if (step === undefined) {
-        throw new TypeError("Expected the payment reminder workflow step")
-      }
+      const step = getPaymentReminderStep()
 
       const { container } = createPaymentReminderNotificationContext(order)
 

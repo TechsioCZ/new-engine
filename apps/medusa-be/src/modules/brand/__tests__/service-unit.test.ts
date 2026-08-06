@@ -13,11 +13,13 @@ const attribute = ({
   typeDeletedAt?: string
 } = {}): BrandAttributeRecord => ({
   attributeType: {
-    deleted_at: typeDeletedAt,
+    ...(typeDeletedAt === undefined ? {} : { deleted_at: typeDeletedAt }),
     id: `type_${name}`,
     name,
   },
-  deleted_at: attributeDeletedAt,
+  ...(attributeDeletedAt === undefined
+    ? {}
+    : { deleted_at: attributeDeletedAt }),
   id: `attribute_${name}`,
   value: "value",
 })

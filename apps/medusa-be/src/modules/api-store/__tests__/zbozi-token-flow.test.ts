@@ -1,3 +1,4 @@
+import type { Logger } from "@medusajs/framework/types"
 import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -14,10 +15,23 @@ import type ApiStoreModuleService from "../service"
 
 vi.setConfig({ testTimeout: 60_000 })
 
-const logger = {
-  error: vi.fn<(message: string) => void>(),
-  info: vi.fn<(message: string) => void>(),
-  warn: vi.fn<(message: string) => void>(),
+const logger: Logger = {
+  activity: vi.fn<Logger["activity"]>(),
+  debug: vi.fn<Logger["debug"]>(),
+  error: vi.fn<Logger["error"]>(),
+  failure: vi.fn<Logger["failure"]>(),
+  http: vi.fn<Logger["http"]>(),
+  info: vi.fn<Logger["info"]>(),
+  log: vi.fn<Logger["log"]>(),
+  panic: vi.fn<Logger["panic"]>(),
+  progress: vi.fn<Logger["progress"]>(),
+  setLogLevel: vi.fn<Logger["setLogLevel"]>(),
+  shouldLog: vi.fn<Logger["shouldLog"]>(),
+  silly: vi.fn<Logger["silly"]>(),
+  success: vi.fn<Logger["success"]>(),
+  unsetLogLevel: vi.fn<Logger["unsetLogLevel"]>(),
+  verbose: vi.fn<Logger["verbose"]>(),
+  warn: vi.fn<Logger["warn"]>(),
 }
 
 moduleIntegrationTestRunner<ApiStoreModuleService>({

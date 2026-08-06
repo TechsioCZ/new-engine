@@ -21,6 +21,7 @@ const product = (
   handle,
   images: [],
   productAttributes,
+  salesChannelNames: [],
   shippingProfileName: "",
   title: handle,
 })

@@ -1,3 +1,4 @@
+import { DefineLinkSymbol } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 
 import {
@@ -8,7 +9,11 @@ import {
 } from "../20260729-migrate-herbatica-supplier"
 
 vi.mock(import("../../links/product-brand"), () => ({
-  ProductBrandLink: { entryPoint: "product_product_brand_brand" },
+  ProductBrandLink: {
+    [DefineLinkSymbol]: true,
+    entryPoint: "product_product_brand_brand",
+    serviceName: "product_brand",
+  },
 }))
 
 describe("tracked Herbatica Supplier migration", () => {

@@ -14,25 +14,36 @@ type SeedProduct = Parameters<
   typeof buildDesiredProductBrandLinks
 >[0]["products"][number]
 
-const assertSeedProduct = (
-  candidate: unknown,
-): asserts candidate is SeedProduct => {
-  if (typeof candidate !== "object" || candidate === null) {
-    throw new TypeError("Expected a seed product")
-  }
-  if (!("handle" in candidate) || typeof candidate.handle !== "string") {
-    throw new TypeError("Expected a seed product handle")
-  }
-  if (!("id" in candidate) || typeof candidate.id !== "string") {
-    throw new TypeError("Expected a seed product id")
-  }
-}
-
-const createSeedProduct = (handle: string, id: string): SeedProduct => {
-  const candidate: unknown = { handle, id }
-  assertSeedProduct(candidate)
-  return candidate
-}
+const createSeedProduct = (handle: string, id: string): SeedProduct => ({
+  collection: null,
+  collection_id: null,
+  created_at: new Date("2026-01-01T00:00:00.000Z"),
+  deleted_at: new Date("2026-01-01T00:00:00.000Z"),
+  description: null,
+  external_id: null,
+  handle,
+  height: null,
+  hs_code: null,
+  id,
+  images: [],
+  is_giftcard: false,
+  length: null,
+  material: null,
+  mid_code: null,
+  options: [],
+  origin_country: null,
+  status: "draft",
+  subtitle: null,
+  tags: [],
+  thumbnail: null,
+  title: handle,
+  type: null,
+  type_id: null,
+  updated_at: new Date("2026-01-01T00:00:00.000Z"),
+  variants: [],
+  weight: null,
+  width: null,
+})
 
 describe("deleted brand link lifecycle", () => {
   it("ignores an inactive current brand as a conflict and replaces it for a new active assignment", () => {

@@ -416,7 +416,6 @@ describe(PaykitPaymentProviderBase, () => {
       refund: {
         amount: 250,
         id: "refund-1",
-        payment_id: "provider-payment-1",
       },
       refund_id: "refund-1",
     })
@@ -457,7 +456,6 @@ describe(PaykitPaymentProviderBase, () => {
           .fn<NonNullable<PaykitPaymentClient["refunds"]>["create"]>()
           .mockResolvedValue({
             amount: 250,
-            payment_id: "provider-payment-1",
           }),
       },
     })
@@ -695,7 +693,7 @@ describe(PaykitPaymentProviderBase, () => {
   it("returns not supported when PayKit does not return webhook events", async () => {
     const handleWebhook = vi
       .fn<NonNullable<PaykitPaymentClient["handleWebhook"]>>()
-      .mockResolvedValue()
+      .mockResolvedValue([])
     const client = createMockPaykitClient({ handleWebhook })
     const provider = createProvider(client)
 
