@@ -15,26 +15,26 @@ interface ProductTabsProps {
   product: Product
 }
 
-export function ProductTabs({ product }: ProductTabsProps) {
-  const mockReviews = [
-    {
-      author: "Sára M.",
-      comment: "Naprosto skvělé! Kvalita je úzasná a dokonale to sedí.",
-      date: "před 2 týdny",
-      id: "1",
-      rating: 5,
-      verified: true,
-    },
-    {
-      author: "Jan D.",
-      comment: "Skvělý produkt, přesně podle popisu. Doporučuji.",
-      date: "před měsícem",
-      id: "2",
-      rating: 4,
-      verified: true,
-    },
-  ]
+const MOCK_REVIEWS = [
+  {
+    author: "Sára M.",
+    comment: "Naprosto skvělé! Kvalita je úzasná a dokonale to sedí.",
+    date: "před 2 týdny",
+    id: "1",
+    rating: 5,
+    verified: true,
+  },
+  {
+    author: "Jan D.",
+    comment: "Skvělý produkt, přesně podle popisu. Doporučuji.",
+    date: "před měsícem",
+    id: "2",
+    rating: 4,
+    verified: true,
+  },
+]
 
+export const ProductTabs = ({ product }: ProductTabsProps) => {
   const detailAccordionItems = [
     {
       content: (
@@ -114,11 +114,12 @@ export function ProductTabs({ product }: ProductTabsProps) {
           <SafeHtmlContent
             className="text-product-tabs-content-fg text-product-tabs-content-size leading-relaxed"
             content={
-              product.description ||
-              "Zažijte prvotřídní kvalitu a moderní design s tímto výjimečným produktem. Vyrobeno s důrazem na detail a vydrží roky."
+              product.description === undefined || product.description === ""
+                ? "Zažijte prvotřídní kvalitu a moderní design s tímto výjimečným produktem. Vyrobeno s důrazem na detail a vydrží roky."
+                : product.description
             }
           />
-          {product.features && product.features.length > 0 && (
+          {product.features !== undefined && product.features.length > 0 && (
             <div>
               <h4 className="font-product-tabs-heading text-product-tabs-heading-fg text-product-tabs-heading-size">
                 Klíčové vlastnosti
@@ -143,28 +144,29 @@ export function ProductTabs({ product }: ProductTabsProps) {
     {
       content: (
         <div className="space-y-product-tabs-section-gap">
-          {product.specifications && product.specifications.length > 0 && (
-            <div className="space-y-product-tabs-content-gap">
-              <h4 className="font-product-tabs-heading text-product-tabs-heading-fg text-product-tabs-heading-size">
-                Specifikace
-              </h4>
-              <dl className="space-y-product-tabs-spec-gap">
-                {product.specifications.map((spec) => (
-                  <div
-                    className="flex gap-product-tabs-spec-gap border-product-tabs-spec-border border-b py-product-tabs-table-cell-y last:border-0"
-                    key={spec.name}
-                  >
-                    <dt className="min-w-[var(--spacing-product-tabs-spec-label-width)] font-product-tabs-spec-label text-product-tabs-spec-label text-product-tabs-spec-size">
-                      {spec.name}
-                    </dt>
-                    <dd className="text-product-tabs-spec-size text-product-tabs-spec-value">
-                      {spec.value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          )}
+          {product.specifications !== undefined &&
+            product.specifications.length > 0 && (
+              <div className="space-y-product-tabs-content-gap">
+                <h4 className="font-product-tabs-heading text-product-tabs-heading-fg text-product-tabs-heading-size">
+                  Specifikace
+                </h4>
+                <dl className="space-y-product-tabs-spec-gap">
+                  {product.specifications.map((spec) => (
+                    <div
+                      className="flex gap-product-tabs-spec-gap border-product-tabs-spec-border border-b py-product-tabs-table-cell-y last:border-0"
+                      key={spec.name}
+                    >
+                      <dt className="min-w-[var(--spacing-product-tabs-spec-label-width)] font-product-tabs-spec-label text-product-tabs-spec-label text-product-tabs-spec-size">
+                        {spec.name}
+                      </dt>
+                      <dd className="text-product-tabs-spec-size text-product-tabs-spec-value">
+                        {spec.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
           <div className="mt-product-tabs-accordion-margin">
             <Accordion shadow="none">
               {detailAccordionItems.map((item) => (
@@ -186,7 +188,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
     {
       content: (
         <div className="space-y-product-tabs-section-gap">
-          {mockReviews.length > 0 ? (
+          {MOCK_REVIEWS.length > 0 ? (
             <>
               <div className="rounded-product-tabs-review-bg bg-product-tabs-review-bg p-product-tabs-review-card">
                 <div className="flex items-center gap-product-tabs-review-rating-gap">
@@ -195,12 +197,12 @@ export function ProductTabs({ product }: ProductTabsProps) {
                   </span>
                   <Rating value={4.5} />
                   <span className="text-product-tabs-content-muted text-product-tabs-review-meta">
-                    Na základě {mockReviews.length} recenzí
+                    Na základě {MOCK_REVIEWS.length} recenzí
                   </span>
                 </div>
               </div>
               <div className="space-y-product-tabs-content-gap">
-                {mockReviews.map((review) => (
+                {MOCK_REVIEWS.map((review) => (
                   <div
                     className="border-product-tabs-review-border border-b pb-product-tabs-content-gap"
                     key={review.id}

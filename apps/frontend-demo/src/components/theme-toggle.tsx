@@ -7,7 +7,7 @@ import { getBrand } from "@techsio/ui-kit/theme/theme-config"
 
 import { useTheme } from "@/hooks/use-theme"
 
-export function ThemeToggle() {
+export const ThemeToggle = () => {
   const {
     theme,
     toggleTheme,

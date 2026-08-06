@@ -1,17 +1,15 @@
 "use client"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Combobox } from "@techsio/ui-kit/molecules/combobox"
-import type { ComboboxItem } from "@techsio/ui-kit/molecules/combobox"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 import { useSearchProducts } from "@/hooks/use-search-products"
-import type { Product } from "@/types/product"
 
 export const HeaderSearch = () => {
   const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
+  const searchQueryRef = useRef("")
   const [selectedValue, setSelectedValue] = useState<string[]>([])
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -38,7 +36,7 @@ export const HeaderSearch = () => {
 
   // Update search query and trigger debounced search
   const handleInputChange = (value: string) => {
-    setSearchQuery(value)
+    searchQueryRef.current = value
 
     // Clear existing timer
     if (debounceTimerRef.current) {
@@ -51,26 +49,10 @@ export const HeaderSearch = () => {
     }, 300)
   }
 
-  // Create combobox items
-  const searchItems: ComboboxItem<Product>[] = searchResults.map((product) => ({
-    data: product,
-    label: product.title || "Untitled Product",
-    value: product.handle || product.id,
-  }))
-
-  // Add "View all results" option if there's a search query
-  if (searchQuery && searchResults.length > 0) {
-    searchItems.push({
-      data: undefined,
-      label: `Zobrazit všechny výsledky pro "${searchQuery}"`,
-      value: "__search__",
-    })
-  }
-
   const handleSearch = (query: string) => {
     if (query.trim()) {
       router.push(`/products?q=${encodeURIComponent(query.trim())}`)
-      setSearchQuery("")
+      searchQueryRef.current = ""
       setSelectedValue([])
     }
   }
@@ -78,14 +60,16 @@ export const HeaderSearch = () => {
   const handleSelect = (value: string | string[]) => {
     const selectedValues = Array.isArray(value) ? value : [value]
 
-    if (selectedValues.length > 0 && selectedValues[0]) {
-      const nextSelectedValue = selectedValues[0]
-
+    const [nextSelectedValue] = selectedValues
+    if (nextSelectedValue !== undefined && nextSelectedValue !== "") {
       if (nextSelectedValue === "__search__") {
-        handleSearch(searchQuery)
+        handleSearch(searchQueryRef.current)
       } else if (
         searchResults.some(
-          (product) => (product.handle || product.id) === nextSelectedValue,
+          (product) =>
+            (product.handle === undefined || product.handle === ""
+              ? product.id
+              : product.handle) === nextSelectedValue,
         )
       ) {
         router.push(`/products/${nextSelectedValue}`)
@@ -94,7 +78,7 @@ export const HeaderSearch = () => {
         handleSearch(nextSelectedValue)
       }
 
-      setSearchQuery("")
+      searchQueryRef.current = ""
       setSelectedValue([])
     }
   }
@@ -114,8 +98,8 @@ export const HeaderSearch = () => {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          if (searchQuery.trim()) {
-            handleSearch(searchQuery)
+          if (searchQueryRef.current.trim() !== "") {
+            handleSearch(searchQueryRef.current)
           }
         }}
       >

@@ -17,8 +17,8 @@ export interface NavItem {
   children?: NavItem[]
 }
 
-function NavigationItem({ item }: { item: NavItem }) {
-  if (item.role === "submenu" && item.children) {
+const NavigationItem = ({ item }: { item: NavItem }) => {
+  if (item.role === "submenu" && item.children !== undefined) {
     return (
       <li>
         <Popover
@@ -27,7 +27,7 @@ function NavigationItem({ item }: { item: NavItem }) {
           showArrow={true}
           trigger={
             <div className="flex items-center gap-2">
-              {item.icon && <Icon icon={item.icon} size="sm" />}
+              {item.icon !== undefined && <Icon icon={item.icon} size="sm" />}
               <span className="text-sm">{item.title}</span>
               <Icon icon="token-icon-chevron-down" size="sm" />
             </div>
@@ -44,7 +44,9 @@ function NavigationItem({ item }: { item: NavItem }) {
                   prefetch: child.prefetch,
                 })}
               >
-                {child.icon && <Icon icon={child.icon} size="sm" />}
+                {child.icon !== undefined && (
+                  <Icon icon={child.icon} size="sm" />
+                )}
                 {child.title}
               </Link>
             ))}
@@ -61,9 +63,9 @@ function NavigationItem({ item }: { item: NavItem }) {
         href={item.href ?? "/"}
         prefetch={item.prefetch ?? false}
       >
-        {item.icon && <Icon icon={item.icon} size="sm" />}
+        {item.icon !== undefined && <Icon icon={item.icon} size="sm" />}
         {item.title}
-        {item.label && (
+        {item.label !== undefined && (
           <span className="ml-nav-badge-ml rounded-full bg-nav-badge-bg px-nav-badge-x py-nav-badge-y font-medium text-nav-badge text-nav-badge-fg">
             {item.label}
           </span>
@@ -77,14 +79,12 @@ interface NavigationProps extends ComponentPropsWithoutRef<"nav"> {
   items: NavItem[]
 }
 
-export function Navigation({ items, className, ...props }: NavigationProps) {
-  return (
-    <nav className={`bg-nav-bg ${className ?? ""}`} {...props}>
-      <ul className="flex items-center gap-nav-gap">
-        {items.map((item) => (
-          <NavigationItem item={item} key={slugify(item.title)} />
-        ))}
-      </ul>
-    </nav>
-  )
-}
+export const Navigation = ({ items, className, ...props }: NavigationProps) => (
+  <nav className={`bg-nav-bg ${className ?? ""}`} {...props}>
+    <ul className="flex items-center gap-nav-gap">
+      {items.map((item) => (
+        <NavigationItem item={item} key={slugify(item.title)} />
+      ))}
+    </ul>
+  </nav>
+)

@@ -12,6 +12,25 @@ import type { VariantProps } from "tailwind-variants"
 
 //object-cover aspect-product-card-image
 const productCard = tv({
+  /* Define compound styles for slots */
+  compoundSlots: [
+    {
+      class: ["col-start-2"],
+      layout: "row",
+      slots: [
+        "nameSlot",
+        "priceSlot",
+        "stockStatusSlot",
+        "badgesSlot",
+        "ratingSlot",
+        "buttonsSlot",
+      ],
+    },
+  ],
+  defaultVariants: {
+    buttonLayout: "horizontal",
+    layout: "column",
+  },
   slots: {
     badgesSlot: "flex flex-wrap gap-pc-box",
     base: [
@@ -32,6 +51,15 @@ const productCard = tv({
       "w-max bg-btn-wishlist text-btn-wishlist-fg hover:bg-btn-wishlist-hover",
   },
   variants: {
+    // variant for layout of the buttons
+    buttonLayout: {
+      horizontal: {
+        buttonsSlot: "justify-center gap-2",
+      },
+      vertical: {
+        buttonsSlot: "flex-col gap-2",
+      },
+    },
     // variant for layout of the card
     layout: {
       column: {
@@ -49,34 +77,6 @@ const productCard = tv({
         imageSlot: "row-span-6",
       },
     },
-    // variant for layout of the buttons
-    buttonLayout: {
-      horizontal: {
-        buttonsSlot: "justify-center gap-2",
-      },
-      vertical: {
-        buttonsSlot: "flex-col gap-2",
-      },
-    },
-  },
-  /* Define compound styles for slots */
-  compoundSlots: [
-    {
-      class: ["col-start-2"],
-      layout: "row",
-      slots: [
-        "nameSlot",
-        "priceSlot",
-        "stockStatusSlot",
-        "badgesSlot",
-        "ratingSlot",
-        "buttonsSlot",
-      ],
-    },
-  ],
-  defaultVariants: {
-    buttonLayout: "horizontal",
-    layout: "column",
   },
 })
 
@@ -104,12 +104,14 @@ export interface ProductCardProps
   customButtons?: ReactNode
 }
 
-export function DemoProductCard({
+const EMPTY_BADGES: BadgeProps[] = []
+
+export const DemoProductCard = ({
   imageUrl,
   name,
   price,
   stockStatus,
-  badges = [],
+  badges = EMPTY_BADGES,
   hasCartButton,
   hasDetailButton,
   hasWishlistButton,
@@ -126,7 +128,12 @@ export function DemoProductCard({
   buttonLayout,
   customButtons,
   ...props
-}: ProductCardProps) {
+}: ProductCardProps) => {
+  const hasActionButtons =
+    hasCartButton === true ||
+    hasDetailButton === true ||
+    hasWishlistButton === true
+  const shouldRenderButtons = hasActionButtons || customButtons !== undefined
   const productCardId = useId()
 
   const {
@@ -162,7 +169,7 @@ export function DemoProductCard({
       {/* Elements with grid positioning based on layout */}
       <h3 className={nameSlot({ layout })}>{name}</h3>
 
-      {rating && (
+      {rating !== undefined && (
         <div className={ratingSlot({ layout })}>
           <Rating {...rating} />
         </div>
@@ -183,20 +190,17 @@ export function DemoProductCard({
         </div>
       )}
 
-      {stockStatus && (
+      {stockStatus !== undefined && (
         <p className={stockStatusSlot({ layout })}>{stockStatus}</p>
       )}
 
       <p className={priceSlot({ layout })}>{price}</p>
 
-      {(hasCartButton ||
-        hasDetailButton ||
-        hasWishlistButton ||
-        customButtons) && (
+      {shouldRenderButtons && (
         <div className={buttonsSlot({ buttonLayout })}>
-          {hasCartButton && (
+          {hasCartButton === true && (
             <div className="flex gap-pc-box">
-              {numericInput && <NumericInputTemplate />}
+              {numericInput === true && <NumericInputTemplate />}
               <Button
                 className={cartButton()}
                 icon="token-icon-cart"
@@ -211,7 +215,7 @@ export function DemoProductCard({
               </Button>
             </div>
           )}
-          {hasDetailButton && (
+          {hasDetailButton === true && (
             <Button
               className={detailButton()}
               icon="token-icon-eye"
@@ -221,7 +225,7 @@ export function DemoProductCard({
               {detailButtonText}
             </Button>
           )}
-          {hasWishlistButton && (
+          {hasWishlistButton === true && (
             <Button
               className={wishlistButton()}
               icon="token-icon-heart"

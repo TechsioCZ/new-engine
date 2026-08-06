@@ -1,5 +1,5 @@
 import { tv } from "@techsio/ui-kit/utils"
-import type * as React from "react"
+import type { HTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import "../../tokens/app-components/atoms/_skeleton-loader.css"
@@ -71,13 +71,13 @@ const skeletonVariants = tv({
 
 export interface SkeletonLoaderProps
   extends
-    React.HTMLAttributes<HTMLDivElement>,
+    HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof skeletonVariants> {
   count?: number
   containerClassName?: string
 }
 
-export function SkeletonLoader({
+export const SkeletonLoader = ({
   variant,
   size,
   block,
@@ -86,7 +86,7 @@ export function SkeletonLoader({
   className,
   style,
   ...props
-}: SkeletonLoaderProps) {
+}: SkeletonLoaderProps) => {
   if (count > 1) {
     return (
       <div className={containerClassName}>

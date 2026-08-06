@@ -14,12 +14,12 @@ interface OrderPreviewProps {
   className?: string
 }
 
-export function OrderPreview({
+export const OrderPreview = ({
   shippingPrice = 0,
   paymentFee = 0,
   showDetails = true,
   className = "",
-}: OrderPreviewProps) {
+}: OrderPreviewProps) => {
   const { cart } = useCart()
 
   // Use order data from store or current cart
@@ -44,22 +44,23 @@ export function OrderPreview({
               className="grid grid-cols-[auto_1fr_auto] items-start gap-2 sm:gap-3"
               key={cartItem.id}
             >
-              {cartItem.thumbnail && (
-                <div className="h-[48px] w-[48px] flex-shrink-0 sm:h-[60px] sm:w-[60px]">
-                  <Image
-                    alt={cartItem.title}
-                    className="rounded-md object-cover"
-                    height={60}
-                    src={cartItem.thumbnail}
-                    width={60}
-                  />
-                </div>
-              )}
+              {cartItem.thumbnail !== null &&
+                cartItem.thumbnail !== undefined && (
+                  <div className="h-[48px] w-[48px] flex-shrink-0 sm:h-[60px] sm:w-[60px]">
+                    <Image
+                      alt={cartItem.title}
+                      className="rounded-md object-cover"
+                      height={60}
+                      src={cartItem.thumbnail}
+                      width={60}
+                    />
+                  </div>
+                )}
               <div className="flex flex-col gap-0.5 sm:gap-1">
                 <div className="font-medium text-fg-primary text-xs sm:text-sm">
                   {cartItem.title} ({cartItem.variant_title})
                 </div>
-                {cartItem.variant && (
+                {cartItem.variant !== undefined && (
                   <div className="text-fg-secondary text-xs">
                     {cartItem.variant.title}
                   </div>

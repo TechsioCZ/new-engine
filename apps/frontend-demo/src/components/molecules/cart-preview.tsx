@@ -10,10 +10,10 @@ import { getVariantInventory, isQuantityAvailable } from "@/lib/inventory"
 import { formatPrice } from "@/utils/price-utils"
 import { getProductPath } from "@/utils/product-utils"
 
-export function CartPreview() {
+export const CartPreview = () => {
   const { cart, removeItem, isLoading } = useCart()
-  const items = cart?.items || []
-  const total = cart?.total || 0
+  const items = cart?.items ?? []
+  const total = cart?.total ?? 0
 
   if (isLoading) {
     return (
@@ -58,12 +58,19 @@ export function CartPreview() {
       <div className="max-h-cart-preview-height overflow-y-auto">
         {items.map((item) => {
           const price = item.unit_price || 0
-          const imageUrl = item.thumbnail || "/placeholder.png"
-          const inventory = item.variant
-            ? getVariantInventory(item.variant)
-            : null
+          const imageUrl =
+            item.thumbnail === null ||
+            item.thumbnail === undefined ||
+            item.thumbnail === ""
+              ? "/placeholder.png"
+              : item.thumbnail
+          const inventory =
+            item.variant === undefined
+              ? null
+              : getVariantInventory(item.variant)
           const hasStockIssue =
-            inventory && !isQuantityAvailable(item.variant, item.quantity)
+            inventory !== null &&
+            !isQuantityAvailable(item.variant, item.quantity)
 
           return (
             <div
@@ -82,17 +89,18 @@ export function CartPreview() {
               <div className="min-w-0 flex-1">
                 <Link
                   className="block font-cart-preview-item text-cart-preview-fg text-cart-preview-item-size hover:text-cart-preview-fg-secondary"
-                  href={getProductPath(item.variant?.product?.handle || "")}
+                  href={getProductPath(item.variant?.product?.handle ?? "")}
                 >
                   <span className="line-clamp-cart-item-name">
                     {item.title}
                   </span>
                 </Link>
-                {item.variant?.title && item.variant.title !== item.title && (
-                  <p className="text-cart-preview-detail-size text-cart-preview-fg-secondary">
-                    {item.variant.title}
-                  </p>
-                )}
+                {item.variant?.title !== undefined &&
+                  item.variant.title !== item.title && (
+                    <p className="text-cart-preview-detail-size text-cart-preview-fg-secondary">
+                      {item.variant.title}
+                    </p>
+                  )}
                 <p className="text-cart-preview-detail-size text-cart-preview-fg-secondary">
                   Množství: {item.quantity}
                 </p>

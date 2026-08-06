@@ -21,29 +21,30 @@ interface ProductGridProps {
   getPageUrl?: NonNullable<UIPaginationProps["getPageUrl"]>
 }
 
-export function ProductGrid({
+export const ProductGrid = ({
   products,
   totalCount,
   currentPage = 1,
   pageSize = 12,
   getPageUrl,
-}: ProductGridProps) {
+}: ProductGridProps) => {
   const { selectedRegion } = useRegions()
   const prefetchProduct = usePrefetchProduct()
   const [dialogProduct, setDialogProduct] = useState<Product | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  // Calculate total pages based on totalCount or products length
-  const totalPages = Math.ceil((totalCount || products.length) / pageSize)
+  // Calculate total pages based on totalCount or products length.
+  const resolvedTotalCount =
+    totalCount === undefined || totalCount === 0 ? products.length : totalCount
+  const totalPages = Math.ceil(resolvedTotalCount / pageSize)
 
   const handleAddToCart = (product: Product) => {
     // If product has multiple variants, show dialog
-    if (product.variants && product.variants.length > 1) {
-      setDialogProduct(product)
-      setIsDialogOpen(true)
-    } else if (product.variants && product.variants.length === 1) {
-      // Single variant - add directly to cart
-      // This would need useCart hook here, but for now we'll show dialog anyway
+    if (
+      product.variants !== undefined &&
+      product.variants !== null &&
+      product.variants.length > 0
+    ) {
       setDialogProduct(product)
       setIsDialogOpen(true)
     }
@@ -66,12 +67,10 @@ export function ProductGrid({
           const { displayBadges } = extractProductData(product)
           // Format the price for display
           // Prices from Medusa are already in dollars/euros, NOT cents
-          const formattedPrice =
-            product &&
-            formatPrice(
-              product.priceWithTax ?? 0,
-              selectedRegion?.currency_code,
-            )
+          const formattedPrice = formatPrice(
+            product.priceWithTax ?? 0,
+            selectedRegion?.currency_code,
+          )
 
           return (
             <div className="relative" key={product.id}>
@@ -90,12 +89,14 @@ export function ProductGrid({
                   cartButtonText="Do košíku"
                   className="hover:bg-highlight"
                   hasCartButton={true}
-                  imageUrl={product.thumbnail || ""}
+                  imageUrl={product.thumbnail ?? ""}
                   name={product.title}
                   onCartClick={() => {
                     handleAddToCart(product)
                   }}
-                  price={formattedPrice || "není k dispozici"}
+                  price={
+                    formattedPrice === "" ? "není k dispozici" : formattedPrice
+                  }
                 />
               </Link>
             </div>
@@ -103,12 +104,12 @@ export function ProductGrid({
         })}
       </div>
 
-      {totalPages > 1 && getPageUrl && (
+      {totalPages > 1 && getPageUrl !== undefined && (
         <div className="mt-product-grid-pagination-margin flex justify-center">
           {/* Mobile pagination with no siblings */}
           <Pagination
             className="sm:hidden"
-            count={totalCount || products.length}
+            count={resolvedTotalCount}
             getPageUrl={getPageUrl}
             linkAs={Link}
             page={currentPage}
@@ -118,7 +119,7 @@ export function ProductGrid({
           {/* Desktop pagination with siblings */}
           <Pagination
             className="hidden sm:flex"
-            count={totalCount || products.length}
+            count={resolvedTotalCount}
             getPageUrl={getPageUrl}
             linkAs={Link}
             page={currentPage}
@@ -129,7 +130,7 @@ export function ProductGrid({
       )}
 
       {/* Add to Cart Dialog */}
-      {dialogProduct && (
+      {dialogProduct !== null && (
         <AddToCartDialog
           onOpenChange={({ open }) => {
             setIsDialogOpen(open)

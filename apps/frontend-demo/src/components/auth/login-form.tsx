@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { useState } from "react"
-import type { FormEvent } from "react"
+import type { SyntheticEvent } from "react"
 
 import { useAuth } from "@/hooks/use-auth"
 import {
@@ -16,7 +16,7 @@ import {
 
 import { AuthFormWrapper } from "./auth-form-wrapper"
 
-export function LoginForm() {
+export const LoginForm = () => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
@@ -32,7 +32,7 @@ export function LoginForm() {
 
   const isFormLoading = loginMutation.isPending
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     clearErrors()
 
@@ -71,7 +71,9 @@ export function LoginForm() {
             isFormLoading,
           )}
           helpText={getFieldError("email")}
-          validateStatus={getFieldError("email") ? "error" : "default"}
+          validateStatus={
+            getFieldError("email") === undefined ? "default" : "error"
+          }
         />
 
         <FormInput
@@ -86,7 +88,9 @@ export function LoginForm() {
             isFormLoading,
           )}
           helpText={getFieldError("password")}
-          validateStatus={getFieldError("password") ? "error" : "default"}
+          validateStatus={
+            getFieldError("password") === undefined ? "default" : "error"
+          }
         />
 
         <div className="flex items-center justify-between">
@@ -101,11 +105,13 @@ export function LoginForm() {
           <span className="text-auth-link">Zapomněli jste heslo?</span>
         </div>
 
-        {error && !getFieldError("email") && !getFieldError("password") && (
-          <div className="rounded-md bg-red-50 p-3">
-            <p className="text-red-800 text-sm">{error}</p>
-          </div>
-        )}
+        {error !== null &&
+          getFieldError("email") === undefined &&
+          getFieldError("password") === undefined && (
+            <div className="rounded-md bg-red-50 p-3">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
 
         <Button
           className="w-full"

@@ -20,6 +20,9 @@ import { MobileMenu } from "./organisms/mobile-menu"
 import { RegionSelector } from "./region-selector"
 import { ThemeToggle } from "./theme-toggle"
 
+const DEFAULT_LOGO = { href: "/", text: "Logo" }
+const DEFAULT_NAVIGATION_ITEMS: NavItem[] = []
+
 interface HeaderProps extends ComponentPropsWithoutRef<"header"> {
   logo?: {
     text?: string
@@ -31,18 +34,18 @@ interface HeaderProps extends ComponentPropsWithoutRef<"header"> {
   showMobileMenu?: boolean
 }
 
-export function Header({
-  logo: _logo = { href: "/", text: "Logo" },
-  navigationItems = [],
+export const Header = ({
+  logo: _logo = DEFAULT_LOGO,
+  navigationItems = DEFAULT_NAVIGATION_ITEMS,
   actions,
   showMobileMenu = true,
   className,
   ...props
-}: HeaderProps) {
+}: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { cart } = useCart()
   const itemCount =
-    cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0
+    cart?.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0
 
   return (
     <header

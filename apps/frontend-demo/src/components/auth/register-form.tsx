@@ -3,7 +3,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { useState } from "react"
-import type { FormEvent } from "react"
+import type { SyntheticEvent } from "react"
 
 import { useAuth } from "@/hooks/use-auth"
 import {
@@ -18,7 +18,7 @@ import type { ValidationError } from "@/lib/auth"
 import { AuthFormWrapper } from "./auth-form-wrapper"
 import { PasswordRequirements } from "./password-requirements"
 
-export function RegisterForm() {
+export const RegisterForm = () => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -36,7 +36,7 @@ export function RegisterForm() {
 
   const isFormLoading = registerMutation.isPending
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     clearErrors()
 
@@ -132,7 +132,9 @@ export function RegisterForm() {
             isFormLoading,
           )}
           helpText={getFieldError("email")}
-          validateStatus={getFieldError("email") ? "error" : "default"}
+          validateStatus={
+            getFieldError("email") === undefined ? "default" : "error"
+          }
         />
 
         <div>
@@ -149,7 +151,9 @@ export function RegisterForm() {
               isFormLoading,
             )}
             helpText={getFieldError("password")}
-            validateStatus={getFieldError("password") ? "error" : "default"}
+            validateStatus={
+              getFieldError("password") === undefined ? "default" : "error"
+            }
           />
           <PasswordRequirements password={password} />
         </div>
@@ -168,7 +172,7 @@ export function RegisterForm() {
           )}
           helpText={getFieldError("confirmPassword")}
           validateStatus={
-            getFieldError("confirmPassword") ? "error" : "default"
+            getFieldError("confirmPassword") === undefined ? "default" : "error"
           }
         />
 
@@ -179,7 +183,9 @@ export function RegisterForm() {
           id="acceptTerms"
           label="Souhlasím s obchodními podmínkami"
           onCheckedChange={setAcceptTerms}
-          validateStatus={getFieldError("terms") ? "error" : "default"}
+          validateStatus={
+            getFieldError("terms") === undefined ? "default" : "error"
+          }
         />
 
         <Button

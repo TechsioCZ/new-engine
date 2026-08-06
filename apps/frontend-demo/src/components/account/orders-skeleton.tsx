@@ -1,6 +1,6 @@
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
 
-export function OrdersSkeleton({ itemsCount }: { itemsCount: number }) {
+export const OrdersSkeleton = ({ itemsCount }: { itemsCount: number }) => {
   const maxItems = Array.from({ length: Math.min(itemsCount, 10) })
   return (
     <>

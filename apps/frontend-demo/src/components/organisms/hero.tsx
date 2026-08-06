@@ -20,59 +20,58 @@ interface HeroProps {
   }
 }
 
-export function Hero({
+export const Hero = ({
   title,
   subtitle,
   backgroundImage,
   primaryAction,
   secondaryAction,
-}: HeroProps) {
-  return (
-    <section className="relative h-hero-height overflow-hidden">
-      {/* Background Image */}
-      <div className="absolute inset-0">
-        <Image
-          alt="Pozadí hero sekce"
-          className="h-full w-full object-cover"
-          fill
-          placeholder="blur"
-          priority
-          src={backgroundImage}
-        />
-        <div className="absolute inset-0 bg-hero-overlay" />
-      </div>
+}: HeroProps) => (
+  <section className="relative h-hero-height overflow-hidden">
+    {/* Background Image */}
+    <div className="absolute inset-0">
+      <Image
+        alt="Pozadí hero sekce"
+        className="h-full w-full object-cover"
+        fill
+        sizes="100vw"
+        placeholder="blur"
+        priority
+        src={backgroundImage}
+      />
+      <div className="absolute inset-0 bg-hero-overlay" />
+    </div>
 
-      {/* Content */}
-      <div className="relative flex h-full items-center">
-        <div className="mx-auto w-full max-w-hero-max-w px-hero-container-x sm:px-hero-container-x-sm lg:px-hero-container-x-lg">
-          <div className="flex w-full max-w-hero-content-max-w flex-col gap-hero-content-gap">
-            <h1 className="font-hero-title text-hero-fg text-hero-title-size tracking-tight sm:text-hero-title-size-sm md:text-hero-title-size-md">
-              {title}
-            </h1>
-            {subtitle && (
-              <p className="max-w-hero-subtitle-max-w text-hero-fg text-hero-subtitle-size">
-                {subtitle}
-              </p>
-            )}
-            {(primaryAction || secondaryAction) && (
-              <div className="flex w-fit flex-col gap-hero-button-gap md:flex-row">
-                {primaryAction && (
-                  <LinkButton
-                    as={Link}
-                    className="h-fit py-xs lg:px-hero-button-x lg:py-hero-button-y"
-                    href="/products"
-                    size="lg"
-                    theme="solid"
-                    variant="primary"
-                  >
-                    {primaryAction.label}
-                  </LinkButton>
-                )}
-              </div>
-            )}
-          </div>
+    {/* Content */}
+    <div className="relative flex h-full items-center">
+      <div className="mx-auto w-full max-w-hero-max-w px-hero-container-x sm:px-hero-container-x-sm lg:px-hero-container-x-lg">
+        <div className="flex w-full max-w-hero-content-max-w flex-col gap-hero-content-gap">
+          <h1 className="font-hero-title text-hero-fg text-hero-title-size tracking-tight sm:text-hero-title-size-sm md:text-hero-title-size-md">
+            {title}
+          </h1>
+          {subtitle !== undefined && (
+            <p className="max-w-hero-subtitle-max-w text-hero-fg text-hero-subtitle-size">
+              {subtitle}
+            </p>
+          )}
+          {(primaryAction !== undefined || secondaryAction !== undefined) && (
+            <div className="flex w-fit flex-col gap-hero-button-gap md:flex-row">
+              {primaryAction !== undefined && (
+                <LinkButton
+                  as={Link}
+                  className="h-fit py-xs lg:px-hero-button-x lg:py-hero-button-y"
+                  href="/products"
+                  size="lg"
+                  theme="solid"
+                  variant="primary"
+                >
+                  {primaryAction.label}
+                </LinkButton>
+              )}
+            </div>
+          )}
         </div>
       </div>
-    </section>
-  )
-}
+    </div>
+  </section>
+)

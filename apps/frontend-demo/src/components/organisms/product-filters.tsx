@@ -8,11 +8,17 @@ import { useState } from "react"
 import { useRegions } from "@/hooks/use-region"
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
-import data, { categoryTree } from "@/lib/static-data/categories"
+import {
+  categoryTree,
+  leafCategories,
+  leafParents,
+} from "@/lib/static-data/categories"
 import { getProducts } from "@/services/product-service"
 
 import { CategoryTreeFilter } from "../category-tree-filter"
 import { FilterSection } from "../molecules/filter-section"
+
+const PRODUCT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"]
 
 export interface FilterState {
   categories: Set<string>
@@ -26,15 +32,22 @@ interface ProductFiltersProps {
   hideCategories?: boolean
 }
 
-export function ProductFilters({
+export const ProductFilters = ({
   className,
   filters,
   onFiltersChange,
   hideCategories = false,
-}: ProductFiltersProps) {
+}: ProductFiltersProps) => {
   const { selectedRegion } = useRegions()
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
+
+  const updateFilters = (updates: Partial<FilterState>) => {
+    onFiltersChange({
+      ...filters,
+      ...updates,
+    })
+  }
 
   const handleCategoryChange = (newCategoryIds: string[]) => {
     updateFilters({ categories: new Set(newCategoryIds) })
@@ -43,8 +56,8 @@ export function ProductFilters({
   // Prefetch products with specific filters
   const prefetchFilteredProducts = (newFilters: Partial<FilterState>) => {
     const updatedFilters = {
-      categories: newFilters.categories || filters.categories,
-      sizes: newFilters.sizes || filters.sizes,
+      categories: newFilters.categories ?? filters.categories,
+      sizes: newFilters.sizes ?? filters.sizes,
     }
 
     const productFilters = {
@@ -57,7 +70,8 @@ export function ProductFilters({
       limit: 12,
       page: 1,
       region_id: selectedRegion?.id,
-      sort: "newest", // Add default sort to match products page,
+      // Match the products page default sort.
+      sort: "newest",
     })
 
     // Check if data is already in cache and fresh
@@ -65,7 +79,7 @@ export function ProductFilters({
     const queryState = queryClient.getQueryState(queryKey)
 
     // Only prefetch if data is not in cache or is stale
-    if (!cachedData || queryState?.isInvalidated) {
+    if (cachedData === undefined || queryState?.isInvalidated === true) {
       void queryClient.prefetchQuery({
         queryFn: async () =>
           await getProducts({
@@ -76,16 +90,10 @@ export function ProductFilters({
             sort: "newest",
           }),
         queryKey,
-        ...cacheConfig.semiStatic, // Use consistent cache config
+        // Use the shared semi-static cache policy.
+        ...cacheConfig.semiStatic,
       })
     }
-  }
-
-  const updateFilters = (updates: Partial<FilterState>) => {
-    onFiltersChange({
-      ...filters,
-      ...updates,
-    })
   }
 
   const clearAllFilters = () => {
@@ -100,19 +108,17 @@ export function ProductFilters({
   // Count active filters for mobile button
   const activeFilterCount = filters.categories.size + filters.sizes.size
 
-  const SIZES = ["XS", "S", "M", "L", "XL", "XXL"]
-
   const renderCategories = () => (
     <FilterSection title="Kategorie">
-      {categoryTree.length > 0 && (
+      {categoryTree.length !== 0 && (
         <>
           <div className="mb-2 text-gray-500 text-xs">
             Tip: Filtry se aplikují pouze na koncové podkategorie
           </div>
           <CategoryTreeFilter
             categories={categoryTree}
-            leafCategories={data.leafCategories}
-            leafParents={data.leafParents}
+            leafCategories={leafCategories}
+            leafParents={leafParents}
             onSelectionChange={handleCategoryChange}
           />
         </>
@@ -132,7 +138,7 @@ export function ProductFilters({
       title="Velikost"
     >
       <div className="flex flex-wrap gap-2">
-        {SIZES.map((size) => {
+        {PRODUCT_SIZES.map((size) => {
           const isSelected = filters.sizes.has(size)
           return (
             <Button
@@ -188,7 +194,7 @@ export function ProductFilters({
   )
 
   return (
-    <div className={`w-full ${className || ""}`}>
+    <div className={`w-full ${className ?? ""}`}>
       {/* Mobile Filter Button */}
       <Button
         className="flex items-center bg-surface md:hidden"

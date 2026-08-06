@@ -2,6 +2,24 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import type { ReactNode } from "react"
 import { useState } from "react"
 
+const getVisibleItems = <T,>(
+  items: T[] | undefined,
+  defaultItemsShown: number | undefined,
+  showAll: boolean,
+  hasMore: boolean,
+): T[] => {
+  if (
+    items === undefined ||
+    showAll ||
+    !hasMore ||
+    defaultItemsShown === undefined
+  ) {
+    return items ?? []
+  }
+
+  return items.slice(0, defaultItemsShown)
+}
+
 export interface FilterSectionProps<T = unknown> {
   title: string
   items?: T[]
@@ -12,7 +30,7 @@ export interface FilterSectionProps<T = unknown> {
   className?: string
 }
 
-export function FilterSection<T>({
+export const FilterSection = <T,>({
   title,
   items,
   renderItem,
@@ -20,17 +38,25 @@ export function FilterSection<T>({
   defaultItemsShown,
   onClear,
   className,
-}: FilterSectionProps<T>) {
+}: FilterSectionProps<T>) => {
   const [showAll, setShowAll] = useState(false)
-
-  const hasItems = items && renderItem
+  const hasItems = items !== undefined && renderItem !== undefined
   const hasMore =
-    hasItems && defaultItemsShown && items.length > defaultItemsShown
-  const visibleItems = hasItems
-    ? showAll || !hasMore
-      ? items
-      : items.slice(0, defaultItemsShown)
-    : []
+    hasItems &&
+    defaultItemsShown !== undefined &&
+    items.length > defaultItemsShown
+  const visibleItems = getVisibleItems(
+    items,
+    defaultItemsShown,
+    showAll,
+    hasMore,
+  )
+  const renderedItems: ReactNode[] = []
+  if (hasItems) {
+    for (const [index, item] of visibleItems.entries()) {
+      renderedItems.push(renderItem(item, index))
+    }
+  }
 
   return (
     <div className="mb-filter-section-margin">
@@ -38,7 +64,7 @@ export function FilterSection<T>({
         <h3 className="font-filter-section-title text-filter-section-title">
           {title}
         </h3>
-        {onClear && (
+        {onClear !== undefined && (
           <Button
             onClick={onClear}
             size="sm"
@@ -50,15 +76,13 @@ export function FilterSection<T>({
         )}
       </div>
       <div className={className ?? ""}>
-        {hasItems
-          ? visibleItems.map((item, index) => renderItem(item, index))
-          : children}
+        {hasItems ? renderedItems : children}
       </div>
-      {hasMore && (
+      {hasMore && defaultItemsShown !== undefined && (
         <div className="mt-filter-section-view-more-margin">
           <Button
             onClick={() => {
-              setShowAll(!showAll)
+              setShowAll((current) => !current)
             }}
             size="sm"
             theme="borderless"

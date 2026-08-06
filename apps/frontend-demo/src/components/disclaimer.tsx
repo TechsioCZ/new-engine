@@ -75,7 +75,7 @@ const defaultIcons: Record<string, IconType> = {
   warning: "token-icon-warning",
 }
 
-export function Disclaimer({
+export const Disclaimer = ({
   variant = "info",
   size = "md",
   icon,
@@ -83,13 +83,13 @@ export function Disclaimer({
   children,
   className,
   ...props
-}: DisclaimerProps) {
+}: DisclaimerProps) => {
   const {
     root,
     icon: iconClass,
     content,
   } = disclaimerVariants({ size, variant })
-  const displayIcon = icon || defaultIcons[variant]
+  const displayIcon = icon ?? defaultIcons[variant]
 
   return (
     <div className={root({ className })} {...props}>
