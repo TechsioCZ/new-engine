@@ -1,31 +1,79 @@
+import type {
+  CreateOrderAddressDTO,
+  CreateOrderLineItemDTO,
+  CreateOrderShippingMethodDTO,
+  UpdateOrderAddressDTO,
+} from "@medusajs/framework/types"
 import { OrderStatus } from "@medusajs/framework/utils"
 import {
   createWorkflow,
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import type {
+  StepFunctionReturnConfig,
+  WorkflowData,
+} from "@medusajs/framework/workflows-sdk"
 import {
   beginOrderEditOrderWorkflow,
-  createOrdersWorkflow,
+  createOrderWorkflow,
   useRemoteQueryStep,
 } from "@medusajs/medusa/core-flows"
 
 import { createQuotesWorkflow } from "./create-quote"
 
 /*
-  A workflow that creates a request for quote. 
-  
+  A workflow that creates a request for quote.
+
   Quotes contain links to a draft order, customer and cart. Any changes (updated price, quantity, etc) made on the quote
   is performed within the scope of a draft order. We then re-use the order edit functionality of the order to stage
-  any changes to the quote made by the merchant. 
+  any changes to the quote made by the merchant.
 
   The customer can then accept or reject the changes. The lifecycle of the quote is managed through its status,
   that is performed by independent workflows - accept / reject.
 */
+
+interface QuoteCartQueryResult {
+  billing_address?: CreateOrderAddressDTO | UpdateOrderAddressDTO
+  currency_code: string
+  id: string
+  items: CreateOrderLineItemDTO[]
+  promotions: { code: string }[]
+  region_id?: string
+  sales_channel_id?: string
+  shipping_address?: CreateOrderAddressDTO | UpdateOrderAddressDTO
+  shipping_methods: Omit<CreateOrderShippingMethodDTO, "order_id">[]
+}
+
+interface QuoteCustomerQueryResult {
+  email: string
+  id: string
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const assertIsQuoteCartQueryResult: (
+  value: unknown,
+) => asserts value is WorkflowData<QuoteCartQueryResult> = (value) => {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
+    throw new Error("Unexpected cart query result shape")
+  }
+}
+
+const assertIsQuoteCustomerQueryResult: (
+  value: unknown,
+) => asserts value is WorkflowData<QuoteCustomerQueryResult> &
+  StepFunctionReturnConfig<QuoteCustomerQueryResult> = (value) => {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
+    throw new Error("Unexpected customer query result shape")
+  }
+}
+
 export const createRequestForQuoteWorkflow = createWorkflow(
   "create-request-for-quote",
   (input: { cart_id: string; customer_id: string }) => {
-    const cart = useRemoteQueryStep({
+    const cart: unknown = useRemoteQueryStep({
       entry_point: "cart",
       fields: [
         "id",
@@ -44,19 +92,24 @@ export const createRequestForQuoteWorkflow = createWorkflow(
       throw_if_key_not_found: true,
       variables: { id: input.cart_id },
     })
+    assertIsQuoteCartQueryResult(cart)
 
-    const customer = useRemoteQueryStep({
+    const customerQueryResult: unknown = useRemoteQueryStep({
       entry_point: "customer",
       fields: ["id", "email"],
       list: false,
       throw_if_key_not_found: true,
       variables: { id: input.customer_id },
-    }).config({ name: "customer-query" })
+    })
+    assertIsQuoteCustomerQueryResult(customerQueryResult)
+    const customer = customerQueryResult.config({ name: "customer-query" })
 
     const orderInput = transform(
       { cart, customer },
       ({ cart: cartData, customer: customerData }) => ({
-        billing_address: cartData.billing_address,
+        ...(cartData.billing_address === undefined
+          ? {}
+          : { billing_address: cartData.billing_address }),
         currency_code: cartData.currency_code,
         customer_id: customerData.id,
         email: customerData.email,
@@ -65,15 +118,21 @@ export const createRequestForQuoteWorkflow = createWorkflow(
         promo_codes: cartData.promotions.map(
           ({ code }: { code: string }) => code,
         ),
-        region_id: cartData.region_id,
-        sales_channel_id: cartData.sales_channel_id,
-        shipping_address: cartData.shipping_address,
+        ...(cartData.region_id === undefined
+          ? {}
+          : { region_id: cartData.region_id }),
+        ...(cartData.sales_channel_id === undefined
+          ? {}
+          : { sales_channel_id: cartData.sales_channel_id }),
+        ...(cartData.shipping_address === undefined
+          ? {}
+          : { shipping_address: cartData.shipping_address }),
         shipping_methods: cartData.shipping_methods,
         status: OrderStatus.DRAFT,
       }),
     )
 
-    const draftOrder = createOrdersWorkflow.runAsStep({
+    const draftOrder = createOrderWorkflow.runAsStep({
       input: orderInput,
     })
 
