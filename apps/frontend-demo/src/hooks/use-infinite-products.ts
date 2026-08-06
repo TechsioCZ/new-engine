@@ -1,11 +1,15 @@
 "use client"
 
 import { useInfiniteQuery } from "@tanstack/react-query"
+import type { InfiniteData } from "@tanstack/react-query"
 
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts } from "@/services/product-service"
-import type { ProductListParams } from "@/services/product-service"
+import type {
+  ProductListParams,
+  ProductListResponse,
+} from "@/services/product-service"
 import type { Product } from "@/types/product"
 
 import type { PageRange } from "./use-url-filters"
@@ -30,9 +34,9 @@ interface UseInfiniteProductsReturn {
 /**
  * Hook for fetching infinite product lists with "load more" functionality
  */
-export function useInfiniteProducts(
+export const useInfiniteProducts = (
   params: UseInfiniteProductsParams,
-): UseInfiniteProductsReturn {
+): UseInfiniteProductsReturn => {
   const {
     pageRange,
     limit = 12,
@@ -59,8 +63,14 @@ export function useInfiniteProducts(
     isFetchingNextPage,
     fetchNextPage,
     refetch,
-  } = useInfiniteQuery({
-    enabled: enabled !== undefined ? enabled : !!region_id,
+  } = useInfiniteQuery<
+    ProductListResponse,
+    Error,
+    InfiniteData<ProductListResponse, number>,
+    ReturnType<typeof queryKeys.products.infinite>,
+    number
+  >({
+    enabled: enabled ?? Boolean(region_id),
     getNextPageParam: (lastPage, allPages) => {
       // Since we load the full range in the first request,
       // subsequent calls are just "load more" beyond the range
@@ -71,11 +81,12 @@ export function useInfiniteProducts(
 
       // Check if there are more products to load
       const hasMore = totalFetched < lastPage.count
-      if (!hasMore) return
+      if (!hasMore) {
+        return null
+      }
 
       // Calculate offset for the next batch (beyond current range)
-      const nextOffset = baseOffset + totalFetched
-      return nextOffset
+      return baseOffset + totalFetched
     },
     initialPageParam: baseOffset,
     queryFn: async ({ pageParam }) => {
@@ -84,37 +95,37 @@ export function useInfiniteProducts(
       const isInitialLoad = pageParam === baseOffset
       const requestLimit = isInitialLoad ? rangeLimit : limit
 
-      return getProducts({
+      return await getProducts({
+        category,
+        fields,
+        filters,
         limit: requestLimit,
         offset: pageParam,
-        filters,
-        sort,
-        fields,
         q,
-        category,
         region_id,
+        sort,
       })
     },
     queryKey: queryKeys.products.infinite({
-      pageRangeStart: pageRange.start, // Use only start to keep key stable when extending
-      limit,
-      filters,
-      sort,
-      region_id,
-      q,
+      // Use only start to keep key stable when extending
       category,
+      filters,
+      limit,
+      pageRangeStart: pageRange.start,
+      q,
+      region_id,
+      sort,
     }),
     ...cacheConfig.semiStatic,
   })
 
   // Flatten all pages into a single array
-  const products = data?.pages.flatMap((page) => page.products) || []
-  const totalCount = data?.pages[0]?.count || 0
+  const products = data?.pages.flatMap((page) => page.products) ?? []
+  const totalCount = data?.pages[0]?.count ?? 0
 
   return {
     currentPageRange: pageRange,
-    error:
-      error instanceof Error ? error.message : error ? String(error) : null,
+    error: error instanceof Error ? error.message : null,
     fetchNextPage: async () => {
       await fetchNextPage()
     },
@@ -122,7 +133,9 @@ export function useInfiniteProducts(
     isFetchingNextPage,
     isLoading,
     products,
-    refetch,
+    refetch: () => {
+      void refetch()
+    },
     totalCount,
   }
 }
