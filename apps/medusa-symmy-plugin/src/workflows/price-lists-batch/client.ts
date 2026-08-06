@@ -91,6 +91,152 @@ interface VariantQueryResult {
   priceSetByVariantId: Map<string, string>
 }
 
+const isObjectMap = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const getObjectValue = (value: unknown, key: string): unknown =>
+  isObjectMap(value) ? value[key] : undefined
+
+const decodePriceList = (value: unknown): ExistingPriceList | null => {
+  const id = getObjectValue(value, "id")
+  const title = getObjectValue(value, "title")
+  if (typeof id !== "string" || typeof title !== "string") {
+    return null
+  }
+  const description = getObjectValue(value, "description") ?? null
+  const metadata = getObjectValue(value, "metadata") ?? null
+  const startsAt = getObjectValue(value, "starts_at") ?? null
+  const endsAt = getObjectValue(value, "ends_at") ?? null
+  if (description !== null && typeof description !== "string") {
+    return null
+  }
+  if (metadata !== null && !isObjectMap(metadata)) {
+    return null
+  }
+  if (startsAt !== null && typeof startsAt !== "string") {
+    return null
+  }
+  if (endsAt !== null && typeof endsAt !== "string") {
+    return null
+  }
+  const status = getObjectValue(value, "status")
+  const type = getObjectValue(value, "type")
+  return {
+    description,
+    ends_at: endsAt,
+    id,
+    metadata,
+    starts_at: startsAt,
+    title,
+    ...(typeof status === "string" ? { status } : {}),
+    ...(typeof type === "string" ? { type } : {}),
+  }
+}
+
+const decodeExistingPrice = (value: unknown): ExistingPrice | null => {
+  const id = getObjectValue(value, "id")
+  const currencyCode = getObjectValue(value, "currency_code")
+  if (typeof id !== "string" || typeof currencyCode !== "string") {
+    return null
+  }
+  const minQuantity = getObjectValue(value, "min_quantity") ?? null
+  if (minQuantity !== null && typeof minQuantity !== "number") {
+    return null
+  }
+  const priceSet = getObjectValue(value, "price_set")
+  const variant = getObjectValue(priceSet, "variant")
+  const variantId = getObjectValue(variant, "id")
+  return {
+    currency_code: currencyCode,
+    id,
+    min_quantity: minQuantity,
+    ...(typeof variantId === "string"
+      ? { price_set: { variant: { id: variantId } } }
+      : {}),
+  }
+}
+
+const buildVariantPriceSetMap = (
+  variants: Record<string, unknown>[],
+): Map<string, string> => {
+  const map = new Map<string, string>()
+  for (const variant of variants) {
+    const id = getObjectValue(variant, "id")
+    const priceSetId = getObjectValue(
+      getObjectValue(variant, "price_set"),
+      "id",
+    )
+    if (typeof id === "string" && typeof priceSetId === "string") {
+      map.set(id, priceSetId)
+    }
+  }
+  return map
+}
+
+const resolvePriceVariantId = (
+  price: PriceInput,
+  variantMaps: VariantLookupMaps,
+): string | undefined => {
+  if (price.identifier_type === "sku" && price.sku !== undefined) {
+    return variantMaps.bySku.get(price.sku)
+  }
+  if (price.identifier_type === "ean" && price.ean !== undefined) {
+    return variantMaps.byEan.get(price.ean)
+  }
+  if (
+    price.identifier_type === "variant_id" &&
+    price.variant_id !== undefined
+  ) {
+    return variantMaps.byId.get(price.variant_id)
+  }
+  return undefined
+}
+
+interface CreatePricePayload {
+  amount: number
+  currency_code: string
+  min_quantity: number
+  variant_id: string
+}
+
+interface UpdatePricePayload extends CreatePricePayload {
+  id: string
+}
+
+const decodeCreatePricePayload = (
+  value: Record<string, unknown>,
+): CreatePricePayload => {
+  const amount = getObjectValue(value, "amount")
+  const currencyCode = getObjectValue(value, "currency_code")
+  const minQuantity = getObjectValue(value, "min_quantity")
+  const variantId = getObjectValue(value, "variant_id")
+  if (
+    typeof amount !== "number" ||
+    typeof currencyCode !== "string" ||
+    typeof minQuantity !== "number" ||
+    typeof variantId !== "string"
+  ) {
+    throw new TypeError("Invalid price create payload")
+  }
+  return {
+    amount,
+    currency_code: currencyCode,
+    min_quantity: minQuantity,
+    variant_id: variantId,
+  }
+}
+
+const decodeUpdatePricePayload = (
+  value: Record<string, unknown>,
+): UpdatePricePayload => {
+  const create = decodeCreatePricePayload(value)
+  const id = getObjectValue(value, "id")
+  if (typeof id !== "string") {
+    throw new TypeError("Invalid price update payload")
+  }
+  return { ...create, id }
+}
+
 const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -119,7 +265,7 @@ export class PriceListsClient {
   async preloadPriceLists(
     priceLists?: PriceListInput[],
   ): Promise<ExistingPriceListIndex> {
-    if (!priceLists) {
+    if (priceLists === undefined) {
       return { byCode: new Map() }
     }
 
@@ -155,18 +301,22 @@ export class PriceListsClient {
     const priceListsById = await this.queryPriceListsByIds(
       new Set(mappings.map((mapping) => mapping.price_list_id)),
     )
-    const price_lists = mappings
-      .flatMap((mapping) => {
-        const priceList = priceListsById.get(mapping.price_list_id)
-        return priceList ? [{ ...priceList, erp_code: mapping.erp_code }] : []
+    const priceLists = mappings.flatMap((mapping): ListedPriceList[] => {
+      const priceList = priceListsById.get(mapping.price_list_id)
+      if (priceList === undefined) {
+        return []
+      }
+      const listed = this.mapper.toListedPriceList({
+        ...priceList,
+        erp_code: mapping.erp_code,
       })
-      .map((priceList) => this.mapper.toListedPriceList(priceList))
-      .filter((priceList): priceList is ListedPriceList => priceList !== null)
+      return listed === null ? [] : [listed]
+    })
     return {
       count,
       limit,
       offset,
-      price_lists,
+      price_lists: priceLists,
     }
   }
 
@@ -174,7 +324,7 @@ export class PriceListsClient {
     priceLists: PriceListInput[],
   ): Promise<PriceListCustomerGroupIndex> {
     const codes = this.mapper.collectCustomerGroupCodes(priceLists)
-    if (!codes.size) {
+    if (codes.size === 0) {
       return { byCode: new Map() }
     }
     const [nameGroups, codeMappings] = await Promise.all([
@@ -200,12 +350,19 @@ export class PriceListsClient {
     const { result } = await createPriceListsWorkflow(this.container).run({
       input: {
         price_lists_data: [
-          this.mapper.buildPriceListPayload(input, groupIndex),
-        ] as never,
+          {
+            ...this.mapper.buildPriceListPayload(input, groupIndex),
+            description: input.description ?? "",
+          },
+        ],
       },
     })
-    const created = result?.[0] as ExistingPriceList | undefined
-    if (!created) {
+    const workflowResult: unknown = result
+    const first: unknown = Array.isArray(workflowResult)
+      ? workflowResult[0]
+      : undefined
+    const created = decodePriceList(first)
+    if (created === null) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         "createPriceListsWorkflow returned empty result",
@@ -232,9 +389,10 @@ export class PriceListsClient {
         price_lists_data: [
           {
             ...this.mapper.buildPriceListPayload(input, groupIndex),
+            description: input.description ?? null,
             id,
           },
-        ] as never,
+        ],
       },
     })
     await this.priceListCodeService.upsertCode({
@@ -271,17 +429,18 @@ export class PriceListsClient {
     const currencyCodes = new Set<string>()
 
     for (const price of prices) {
-      const variantId = this.resolvePriceVariantId(price, variantMaps)
-      const priceSetId = variantId
-        ? variantMaps.priceSetByVariantId.get(variantId)
-        : undefined
-      if (priceSetId) {
+      const variantId = resolvePriceVariantId(price, variantMaps)
+      const priceSetId =
+        variantId === undefined
+          ? undefined
+          : variantMaps.priceSetByVariantId.get(variantId)
+      if (priceSetId !== undefined) {
         priceSetIds.add(priceSetId)
         currencyCodes.add(price.currency_code.toLowerCase())
       }
     }
 
-    if (!priceSetIds.size) {
+    if (priceSetIds.size === 0) {
       return this.mapper.buildExistingPriceIndex([])
     }
 
@@ -289,13 +448,19 @@ export class PriceListsClient {
       entity: "price",
       fields: [...PRICE_FIELDS],
       filters: {
-        currency_code: Array.from(currencyCodes),
+        currency_code: [...currencyCodes],
         price_list_id: priceListId,
-        price_set_id: Array.from(priceSetIds),
+        price_set_id: [...priceSetIds],
       },
     })
 
-    return this.mapper.buildExistingPriceIndex((data ?? []) as ExistingPrice[])
+    const rows: unknown[] = data ?? []
+    return this.mapper.buildExistingPriceIndex(
+      rows.flatMap((row) => {
+        const price = decodeExistingPrice(row)
+        return price === null ? [] : [price]
+      }),
+    )
   }
 
   async applyPrices(
@@ -303,29 +468,34 @@ export class PriceListsClient {
     create: Record<string, unknown>[],
     update: Record<string, unknown>[],
   ): Promise<PriceBatchApplyResult> {
-    if (!(create.length || update.length)) {
+    if (create.length === 0 && update.length === 0) {
       return { created: [], updated: [] }
     }
     const { result } = await batchPriceListPricesWorkflow(this.container).run({
       input: {
         data: {
-          create: create as never,
+          create: create.map(decodeCreatePricePayload),
           delete: [],
           id: priceListId,
-          update: update as never,
+          update: update.map(decodeUpdatePricePayload),
         },
       },
     })
-    return {
-      created: result?.created ?? [],
-      updated: result?.updated ?? [],
+    const workflowResult: unknown = result
+    if (!isObjectMap(workflowResult)) {
+      throw new Error("Price batch workflow returned an invalid result")
     }
+    const rawCreated = getObjectValue(workflowResult, "created")
+    const rawUpdated = getObjectValue(workflowResult, "updated")
+    const created: unknown[] = Array.isArray(rawCreated) ? rawCreated : []
+    const updated: unknown[] = Array.isArray(rawUpdated) ? rawUpdated : []
+    return { created, updated }
   }
 
   private async queryPriceListsByIds(
     ids: Set<string>,
   ): Promise<Map<string, ExistingPriceList>> {
-    if (!ids.size) {
+    if (ids.size === 0) {
       return new Map()
     }
     const { data } = await this.query.graph({
@@ -333,18 +503,21 @@ export class PriceListsClient {
       fields: [...PRICE_LIST_FIELDS],
       filters: { id: [...ids] },
     })
-    return new Map(
-      ((data ?? []) as ExistingPriceList[]).map((priceList) => [
-        priceList.id,
-        priceList,
-      ]),
-    )
+    const byId = new Map<string, ExistingPriceList>()
+    const rows: unknown[] = data ?? []
+    for (const row of rows) {
+      const priceList = decodePriceList(row)
+      if (priceList !== null) {
+        byId.set(priceList.id, priceList)
+      }
+    }
+    return byId
   }
 
   private async queryPriceListsByCodes(
     codes: Set<string>,
   ): Promise<ExistingPriceList[]> {
-    if (!codes.size) {
+    if (codes.size === 0) {
       return []
     }
 
@@ -367,7 +540,7 @@ export class PriceListsClient {
     } else {
       values = identifiers.variantIds
     }
-    if (!values.size) {
+    if (values.size === 0) {
       return { byField: new Map(), priceSetByVariantId: new Map() }
     }
     const { data } = await this.query.graph({
@@ -375,45 +548,12 @@ export class PriceListsClient {
       fields: ["id", field, "price_set.id"],
       filters: { [field]: [...values] },
     })
-    const variants = (data ?? []) as Record<string, unknown>[]
+    const rows: unknown[] = data ?? []
+    const variants = rows.filter(isObjectMap)
     return {
       byField: this.mapper.buildVariantMap(field, variants),
-      priceSetByVariantId: this.buildVariantPriceSetMap(variants),
+      priceSetByVariantId: buildVariantPriceSetMap(variants),
     }
-  }
-
-  private buildVariantPriceSetMap(
-    variants: Record<string, unknown>[],
-  ): Map<string, string> {
-    const map = new Map<string, string>()
-    for (const variant of variants) {
-      const { id } = variant
-      const priceSet = variant.price_set
-      const priceSetId =
-        priceSet && typeof priceSet === "object" && "id" in priceSet
-          ? priceSet.id
-          : undefined
-      if (typeof id === "string" && typeof priceSetId === "string") {
-        map.set(id, priceSetId)
-      }
-    }
-    return map
-  }
-
-  private resolvePriceVariantId(
-    price: PriceInput,
-    variantMaps: VariantLookupMaps,
-  ) {
-    if (price.identifier_type === "sku" && price.sku) {
-      return variantMaps.bySku.get(price.sku)
-    }
-    if (price.identifier_type === "ean" && price.ean) {
-      return variantMaps.byEan.get(price.ean)
-    }
-    if (price.identifier_type === "variant_id" && price.variant_id) {
-      return variantMaps.byId.get(price.variant_id)
-    }
-    return
   }
 
   private async queryCustomerGroups(filters: Record<string, string[]>) {
@@ -425,10 +565,18 @@ export class PriceListsClient {
       fields: ["id", "name", "metadata"],
       filters,
     })
-    return (data ?? []) as {
-      id: string
-      name: string
-      metadata: Record<string, unknown> | null
-    }[]
+    const rows: unknown[] = data ?? []
+    return rows.flatMap((row) => {
+      const id = getObjectValue(row, "id")
+      const name = getObjectValue(row, "name")
+      if (typeof id !== "string" || typeof name !== "string") {
+        return []
+      }
+      const metadata = getObjectValue(row, "metadata") ?? null
+      if (metadata !== null && !isObjectMap(metadata)) {
+        return []
+      }
+      return [{ id, metadata, name }]
+    })
   }
 }

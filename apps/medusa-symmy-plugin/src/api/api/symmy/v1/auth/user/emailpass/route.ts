@@ -10,10 +10,52 @@ import type { PostSymmyAuthUserEmailPassSchemaType } from "./validators"
 
 const JWT_TTL_SECONDS = 24 * 60 * 60
 
-export async function POST(
+const metadataValue = (
+  metadata: Record<string, unknown> | null | undefined,
+  key: string,
+): unknown => metadata?.[key]
+
+const environmentValue = (key: string): string | undefined => process.env[key]
+
+const resolveUserId = async (
+  query: Query,
+  authIdentity: {
+    app_metadata?: Record<string, unknown> | null
+    user_metadata?: Record<string, unknown> | null
+  },
+): Promise<string | undefined> => {
+  const linkedUserId = metadataValue(authIdentity.app_metadata, "user_id")
+  if (typeof linkedUserId === "string" && linkedUserId.length > 0) {
+    return linkedUserId
+  }
+
+  const email = metadataValue(authIdentity.user_metadata, "email")
+  if (typeof email !== "string" || email.length === 0) {
+    return undefined
+  }
+
+  const { data } = await query.graph({
+    entity: "user",
+    fields: ["id"],
+    filters: { email },
+  })
+
+  const user: unknown = data[0]
+  if (
+    typeof user === "object" &&
+    user !== null &&
+    "id" in user &&
+    typeof user.id === "string"
+  ) {
+    return user.id
+  }
+  return undefined
+}
+
+const post = async (
   req: MedusaRequest<PostSymmyAuthUserEmailPassSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const authModuleService = req.scope.resolve<IAuthModuleService>(Modules.AUTH)
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { email, password } = req.validatedBody
@@ -32,30 +74,26 @@ export async function POST(
   }
 
   const userId = await resolveUserId(query, result.authIdentity)
-  if (!userId) {
+  if (userId === undefined) {
     throw new MedusaError(
       MedusaError.Types.UNAUTHORIZED,
       "Invalid email or password",
     )
   }
 
-  const jwtSecret = process.env.JWT_SECRET?.trim()
-  if (!jwtSecret) {
+  const jwtSecret = environmentValue("JWT_SECRET")?.trim()
+  if (jwtSecret === undefined || jwtSecret.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "JWT_SECRET is not configured",
     )
   }
 
-  const authIdentity = result.authIdentity as typeof result.authIdentity & {
-    user_metadata?: Record<string, unknown>
-  }
-
   const { SignJWT } = await import("jose")
   const token = await new SignJWT({
     actor_id: userId,
     actor_type: "user",
-    auth_identity_id: authIdentity.id,
+    auth_identity_id: result.authIdentity.id,
     auth_provider: "emailpass",
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
@@ -66,30 +104,4 @@ export async function POST(
   res.status(200).json({ token })
 }
 
-async function resolveUserId(
-  query: Query,
-  authIdentity: {
-    app_metadata?: Record<string, unknown> | null
-    user_metadata?: Record<string, unknown> | null
-  },
-) {
-  const linkedUserId = authIdentity.app_metadata?.user_id
-  if (typeof linkedUserId === "string" && linkedUserId.length > 0) {
-    return linkedUserId
-  }
-
-  const email = authIdentity.user_metadata?.email
-  if (typeof email !== "string" || !email) {
-    return
-  }
-
-  const { data } = await query.graph({
-    entity: "user",
-    fields: ["id"],
-    filters: { email },
-  })
-
-  return Array.isArray(data) && typeof data[0]?.id === "string"
-    ? data[0].id
-    : undefined
-}
+export { post as POST }

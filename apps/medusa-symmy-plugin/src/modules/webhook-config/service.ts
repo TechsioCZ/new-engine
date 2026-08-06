@@ -7,9 +7,12 @@ import type { SymmyWebhookEndpoint } from "./models/symmy-webhook-config"
 
 export type { SymmyWebhookEndpoint } from "./models/symmy-webhook-config"
 
+const environmentValue = (key: string): string | undefined => process.env[key]
+
 const DEFAULT_CONFIG_KEY = "default"
 const WEBHOOK_TIMEOUT_MS = 10_000
-const PLUGIN_VERSION = process.env.SYMMY_PLUGIN_VERSION ?? packageJson.version
+const PLUGIN_VERSION =
+  environmentValue("SYMMY_PLUGIN_VERSION") ?? packageJson.version
 
 export interface SymmyWebhookConfigDTO {
   id: string
@@ -55,6 +58,9 @@ type RawSymmyWebhookConfigDTO = Omit<SymmyWebhookConfigDTO, "endpoints"> & {
 const isObjectMap = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
+const getObjectValue = (value: Record<string, unknown>, key: string): unknown =>
+  value[key]
+
 const isDateOrString = (value: unknown): value is Date | string =>
   value instanceof Date || typeof value === "string"
 
@@ -62,20 +68,35 @@ const isSymmyWebhookEndpoint = (
   value: unknown,
 ): value is SymmyWebhookEndpoint =>
   isObjectMap(value) &&
-  typeof value.url === "string" &&
-  typeof value.enabled === "boolean"
+  typeof getObjectValue(value, "url") === "string" &&
+  typeof getObjectValue(value, "enabled") === "boolean"
 
 const isRawSymmyWebhookConfigDTO = (
   value: unknown,
-): value is RawSymmyWebhookConfigDTO =>
-  isObjectMap(value) &&
-  typeof value.id === "string" &&
-  typeof value.config_key === "string" &&
-  typeof value.is_enabled === "boolean" &&
-  Array.isArray(value.endpoints) &&
-  value.endpoints.every(isSymmyWebhookEndpoint) &&
-  (value.created_at === undefined || isDateOrString(value.created_at)) &&
-  (value.updated_at === undefined || isDateOrString(value.updated_at))
+): value is RawSymmyWebhookConfigDTO => {
+  if (!isObjectMap(value)) {
+    return false
+  }
+  const id = getObjectValue(value, "id")
+  const configKey = getObjectValue(value, "config_key")
+  const isEnabled = getObjectValue(value, "is_enabled")
+  const endpoints = getObjectValue(value, "endpoints")
+  const createdAt = getObjectValue(value, "created_at")
+  const updatedAt = getObjectValue(value, "updated_at")
+  if (typeof id !== "string" || typeof configKey !== "string") {
+    return false
+  }
+  if (typeof isEnabled !== "boolean") {
+    return false
+  }
+  if (!Array.isArray(endpoints) || !endpoints.every(isSymmyWebhookEndpoint)) {
+    return false
+  }
+  if (createdAt !== undefined && !isDateOrString(createdAt)) {
+    return false
+  }
+  return updatedAt === undefined || isDateOrString(updatedAt)
+}
 
 const normalizeEndpoint = (
   endpoint: SymmyWebhookEndpoint,
@@ -85,30 +106,33 @@ const normalizeEndpoint = (
 })
 
 const normalizeEndpoints = (endpoints: SymmyWebhookEndpoint[] = []) =>
-  endpoints.map(normalizeEndpoint).filter((endpoint) => endpoint.url.length > 0)
+  endpoints.flatMap((endpoint) => {
+    const normalized = normalizeEndpoint(endpoint)
+    return normalized.url.length > 0 ? [normalized] : []
+  })
+
+const toDTO = (raw: unknown): SymmyWebhookConfigDTO => {
+  if (!isRawSymmyWebhookConfigDTO(raw)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "[symmy-plugin] Invalid webhook config data",
+    )
+  }
+
+  return {
+    ...raw,
+    endpoints: normalizeEndpoints(raw.endpoints),
+  }
+}
 
 export class SymmyWebhookConfigModuleService extends MedusaService({
   SymmyWebhookConfig,
 }) {
-  private readonly logger_: Logger
+  private readonly logger: Logger
 
   constructor(container: InjectedDependencies) {
     super(container)
-    this.logger_ = container.logger
-  }
-
-  private toDTO(raw: unknown): SymmyWebhookConfigDTO {
-    if (!isRawSymmyWebhookConfigDTO(raw)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "[symmy-plugin] Invalid webhook config data",
-      )
-    }
-
-    return {
-      ...raw,
-      endpoints: normalizeEndpoints(raw.endpoints),
-    }
+    this.logger = container.logger
   }
 
   async getConfig(): Promise<SymmyWebhookConfigDTO> {
@@ -116,9 +140,9 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
       { config_key: DEFAULT_CONFIG_KEY },
       { take: 1 },
     )
-    const existing = configs[0]
-    if (existing) {
-      return this.toDTO(existing)
+    const [existing] = configs
+    if (existing !== undefined) {
+      return toDTO(existing)
     }
 
     const created = await this.createSymmyWebhookConfigs({
@@ -127,13 +151,14 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
       is_enabled: false,
     })
 
-    return this.toDTO(created)
+    return toDTO(created)
   }
 
   async updateConfig(
     input: UpdateSymmyWebhookConfigInput,
+    currentConfig?: SymmyWebhookConfigDTO,
   ): Promise<SymmyWebhookConfigDTO> {
-    const existing = await this.getConfig()
+    const existing = currentConfig ?? (await this.getConfig())
     const updated = await this.updateSymmyWebhookConfigs({
       id: existing.id,
       ...(input.is_enabled === undefined
@@ -146,7 +171,7 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
           }),
     })
 
-    return this.toDTO(updated)
+    return toDTO(updated)
   }
 
   async deliverJobFinished(payload: SymmyWebhookJobPayload): Promise<void> {
@@ -156,7 +181,7 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
     }
 
     const endpoints = config.endpoints.filter((endpoint) => endpoint.enabled)
-    if (!endpoints.length) {
+    if (endpoints.length === 0) {
       return
     }
 
@@ -174,14 +199,14 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
           })
 
           if (!response.ok) {
-            this.logger_.warn(
+            this.logger.warn(
               `[symmy-plugin] Webhook ${endpoint.url} returned ${response.status} for job ${payload.job.id}`,
             )
           }
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Unknown webhook error"
-          this.logger_.warn(
+          this.logger.warn(
             `[symmy-plugin] Failed to deliver webhook ${endpoint.url} for job ${payload.job.id}: ${message}`,
           )
         }

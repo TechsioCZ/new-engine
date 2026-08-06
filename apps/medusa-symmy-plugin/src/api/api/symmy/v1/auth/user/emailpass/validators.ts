@@ -1,7 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
 export const PostSymmyAuthUserEmailPassSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(1),
 })
 

@@ -24,14 +24,18 @@ interface CompletionStats {
   failed: number
 }
 
-interface RunImportJobInput<TInput, TOutput extends Record<string, unknown>> {
+interface RunImportJobInput<TInput, TOutput extends object> {
   container: MedusaContainer
   jobId: string
   jobLabel: string
   lockKey: string
+  decodeInput: (value: unknown) => value is TInput
   run: (input: TInput) => Promise<TOutput>
   getCompletionStats: (output: TOutput) => CompletionStats
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const toErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
@@ -131,11 +135,9 @@ const failJobAfterLockError = async ({
   }
 }
 
-export const runImportJob = async <
-  TInput,
-  TOutput extends Record<string, unknown>,
->({
+export const runImportJob = async <TInput, TOutput extends object>({
   container,
+  decodeInput,
   getCompletionStats,
   jobId,
   jobLabel,
@@ -170,13 +172,21 @@ export const runImportJob = async <
         await importJobService.markRunning(job.id)
 
         try {
-          const output = await run(job.payload as TInput)
+          const input: unknown = job.payload
+          if (!decodeInput(input)) {
+            throw new Error("Import job payload failed validation")
+          }
+          const output = await run(input)
           const stats = getCompletionStats(output)
+          const persistedOutput: unknown = output
+          if (!isRecord(persistedOutput)) {
+            throw new Error("Import job output is not a record")
+          }
 
           const completedJob = await importJobService.markCompleted(job.id, {
             failed: stats.failed,
             processed: stats.processed,
-            result: output,
+            result: persistedOutput,
           })
           await deliverJobFinishedWebhook(
             webhookConfigService,

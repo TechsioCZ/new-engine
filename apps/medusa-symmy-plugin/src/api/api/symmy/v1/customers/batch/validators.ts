@@ -32,7 +32,7 @@ const CustomerInputSchema = z
       .max(CUSTOMER_GROUP_CODES_MAX)
       .optional(),
     customer_id: z.string().min(1).optional(),
-    email: z.string().email().optional(),
+    email: z.email().optional(),
     first_name: z.string().min(1),
     identifier_type: z.enum([
       "email",
@@ -46,9 +46,9 @@ const CustomerInputSchema = z
     phone: z.string().optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.identifier_type === "email" && !value.email) {
+    if (value.identifier_type === "email" && value.email === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "email is required when identifier_type is 'email'",
         path: ["email"],
       })
@@ -61,10 +61,10 @@ const CustomerInputSchema = z
     ] as const) {
       if (
         value.identifier_type === identifierType &&
-        !value.metadata?.[identifierType]
+        typeof value.metadata?.[identifierType] !== "string"
       ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: `metadata.${identifierType} is required when identifier_type is '${identifierType}'`,
           path: ["metadata", identifierType],
         })
@@ -76,7 +76,7 @@ const CustomerInputSchema = z
       typeof value.customer_id !== "string"
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message:
           "customer_id is required when identifier_type is 'customer_id'",
         path: ["customer_id"],

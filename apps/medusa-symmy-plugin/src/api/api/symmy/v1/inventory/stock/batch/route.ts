@@ -3,7 +3,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { updateStockBatchWorkflow } from "../../../../../../../workflows/update-stock-batch/workflow"
 import type { UpdateStockBatchSchemaType } from "./validators"
 
-/**
+/*
  * @api [post] /api/symmy/v1/inventory/stock/batch
  * operationId: PostSymmyInventoryStockBatch
  * summary: Update inventory stock in batch
@@ -49,7 +49,7 @@ import type { UpdateStockBatchSchemaType } from "./validators"
  * x-workflow: updateStockBatchWorkflow
  * x-events: []
  */
-export const POST = async (
+const post = async (
   req: MedusaRequest<UpdateStockBatchSchemaType>,
   res: MedusaResponse,
 ) => {
@@ -58,3 +58,5 @@ export const POST = async (
   })
   res.status(200).json(result)
 }
+
+export { post as POST }

@@ -22,7 +22,7 @@ const serializeJob = (job: SymmyImportJobDTO) => ({
   updated_at: job.updated_at,
 })
 
-/**
+/*
  * @api [get] /api/symmy/v1/jobs/{id}
  * operationId: GetSymmyImportJob
  * summary: Get a Symmy import job
@@ -67,12 +67,12 @@ const serializeJob = (job: SymmyImportJobDTO) => ({
  *         schema:
  *           $ref: "#/components/schemas/SymmyInternalErrorResponse"
  */
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const importJobService = req.scope.resolve<SymmyImportJobModuleService>(
     SYMMY_IMPORT_JOB_MODULE,
   )
 
-  const jobId = req.params.id
+  const { id: jobId } = req.params
   if (!jobId) {
     res.status(400).json({ error: { message: "Job ID is required" } })
     return
@@ -81,3 +81,5 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const job = await importJobService.retrieveJob(jobId)
   res.status(200).json({ job: serializeJob(job) })
 }
+
+export { get as GET }

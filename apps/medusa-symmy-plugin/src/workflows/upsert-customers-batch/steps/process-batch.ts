@@ -90,8 +90,12 @@ export const symmyProcessCustomersBatchStep = createStep(
       client.preloadGroups(input.customers),
     ])
 
-    const results: UpsertCustomersBatchResult[] = []
-    for (const customer of input.customers) {
+    const results: UpsertCustomersBatchOutput["results"] = []
+    const processAt = async (index: number): Promise<void> => {
+      const customer = input.customers[index]
+      if (customer === undefined) {
+        return
+      }
       results.push(
         await processCustomerForBatch({
           client,
@@ -101,7 +105,9 @@ export const symmyProcessCustomersBatchStep = createStep(
           logger,
         }),
       )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const processed = results.filter((r) => r.status !== "failed").length
     const failed = results.length - processed

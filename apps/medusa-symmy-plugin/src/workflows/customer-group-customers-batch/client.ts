@@ -24,6 +24,76 @@ interface CustomerIndex {
 
 const CUSTOMER_FIELDS = ["id", "email", "metadata", "groups.id"] as const
 
+const stringMetadataValue = (
+  metadata: Record<string, unknown> | null | undefined,
+  key: string,
+) => {
+  const value = metadata?.[key]
+  return typeof value === "string" && value.length > 0 ? value : null
+}
+
+const getIdentifierFieldValue = (
+  identifier: CustomerGroupCustomerIdentifier,
+  type: CustomerGroupCustomerIdentifierType,
+) => {
+  const value = identifier[type]
+  return typeof value === "string" && value.length > 0 ? value : null
+}
+
+const findCustomerInIndex = (
+  identifier: CustomerGroupCustomerIdentifier,
+  index: CustomerIndex,
+): ExistingCustomer | null => {
+  const value = getIdentifierFieldValue(identifier, identifier.identifier_type)
+  if (value === null) {
+    return null
+  }
+  if (identifier.identifier_type === "customer_id") {
+    return index.byId.get(value) ?? null
+  }
+  if (identifier.identifier_type === "email") {
+    return index.byEmail.get(value.toLowerCase()) ?? null
+  }
+  return index.byErpId.get(value) ?? null
+}
+
+const isObjectMap = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const decodeCustomer = (value: unknown): ExistingCustomer | null => {
+  if (typeof value !== "object" || value === null) {
+    return null
+  }
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null
+  }
+  const email = "email" in value ? value.email : null
+  if (email !== null && typeof email !== "string") {
+    return null
+  }
+  const metadata = "metadata" in value ? value.metadata : null
+  if (metadata !== null && !isObjectMap(metadata)) {
+    return null
+  }
+  if (!("groups" in value) || !Array.isArray(value.groups)) {
+    return null
+  }
+  const candidates: unknown[] = value.groups
+  const groups: { id: string }[] = []
+  for (const group of candidates) {
+    if (
+      typeof group !== "object" ||
+      group === null ||
+      !("id" in group) ||
+      typeof group.id !== "string"
+    ) {
+      return null
+    }
+    groups.push({ id: group.id })
+  }
+  return { email, groups, id: value.id, metadata }
+}
+
 const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -47,7 +117,7 @@ export class CustomerGroupCustomersBatchClient {
     const [mapping] = await this.customerGroupCodeService.listByCodes(
       new Set([code]),
     )
-    if (mapping) {
+    if (mapping !== undefined) {
       return mapping.customer_group_id
     }
 
@@ -57,7 +127,14 @@ export class CustomerGroupCustomersBatchClient {
       filters: { name: [code] },
     })
 
-    return ((data ?? []) as { id: string }[])[0]?.id ?? null
+    const row: unknown = data[0]
+    if (typeof row !== "object" || row === null) {
+      return null
+    }
+    if (!("id" in row) || typeof row.id !== "string") {
+      return null
+    }
+    return row.id
   }
 
   async preloadCustomers(
@@ -70,14 +147,20 @@ export class CustomerGroupCustomersBatchClient {
     for (const identifier of identifiers) {
       if (
         identifier.identifier_type === "customer_id" &&
-        identifier.customer_id
+        identifier.customer_id !== undefined
       ) {
         ids.add(identifier.customer_id)
       }
-      if (identifier.identifier_type === "email" && identifier.email) {
+      if (
+        identifier.identifier_type === "email" &&
+        identifier.email !== undefined
+      ) {
         emails.add(identifier.email.toLowerCase())
       }
-      if (identifier.identifier_type === "erp_id" && identifier.erp_id) {
+      if (
+        identifier.identifier_type === "erp_id" &&
+        identifier.erp_id !== undefined
+      ) {
         erpIds.add(identifier.erp_id)
       }
     }
@@ -89,30 +172,18 @@ export class CustomerGroupCustomersBatchClient {
       this.queryCustomers({ id: [...erpCustomerIds] }),
     ])
 
-    return this.buildCustomerIndex([...byId, ...byEmail, ...byErpId])
+    return CustomerGroupCustomersBatchClient.buildCustomerIndex([
+      ...byId,
+      ...byEmail,
+      ...byErpId,
+    ])
   }
 
-  findCustomer(
+  static findCustomer(
     identifier: CustomerGroupCustomerIdentifier,
     index: CustomerIndex,
   ): ExistingCustomer | null {
-    if (identifier.identifier_type === "customer_id") {
-      return identifier.customer_id
-        ? (index.byId.get(identifier.customer_id) ?? null)
-        : null
-    }
-    if (identifier.identifier_type === "email") {
-      return identifier.email
-        ? (index.byEmail.get(identifier.email.toLowerCase()) ?? null)
-        : null
-    }
-    if (identifier.identifier_type === "erp_id") {
-      return identifier.erp_id
-        ? (index.byErpId.get(identifier.erp_id) ?? null)
-        : null
-    }
-
-    return null
+    return findCustomerInIndex(identifier, index)
   }
 
   async assignCustomerToGroup(customer: ExistingCustomer, groupId: string) {
@@ -129,10 +200,10 @@ export class CustomerGroupCustomersBatchClient {
     })
   }
 
-  getIdentifierValue(identifier: CustomerGroupCustomerIdentifier): string {
-    return (
-      this.getIdentifierFieldValue(identifier, identifier.identifier_type) ?? ""
-    )
+  static getIdentifierValue(
+    identifier: CustomerGroupCustomerIdentifier,
+  ): string {
+    return getIdentifierFieldValue(identifier, identifier.identifier_type) ?? ""
   }
 
   private async queryCustomers(filters: Record<string, string[]>) {
@@ -144,13 +215,17 @@ export class CustomerGroupCustomersBatchClient {
       fields: [...CUSTOMER_FIELDS],
       filters,
     })
-    return (data ?? []) as ExistingCustomer[]
+    const rows: unknown[] = data ?? []
+    return rows.flatMap((row) => {
+      const customer = decodeCustomer(row)
+      return customer === null ? [] : [customer]
+    })
   }
 
   private async queryCustomerIdsByErpId(
     erpIds: Set<string>,
   ): Promise<Set<string>> {
-    if (!erpIds.size) {
+    if (erpIds.size === 0) {
       return new Set()
     }
 
@@ -164,41 +239,39 @@ export class CustomerGroupCustomersBatchClient {
       },
     })
 
-    return new Set(((data ?? []) as { id: string }[]).map((row) => row.id))
+    const ids = new Set<string>()
+    const rows: unknown[] = data ?? []
+    for (const row of rows) {
+      if (
+        typeof row === "object" &&
+        row !== null &&
+        "id" in row &&
+        typeof row.id === "string"
+      ) {
+        ids.add(row.id)
+      }
+    }
+    return ids
   }
 
-  private buildCustomerIndex(customers: ExistingCustomer[]): CustomerIndex {
+  private static buildCustomerIndex(
+    customers: ExistingCustomer[],
+  ): CustomerIndex {
     const byId = new Map<string, ExistingCustomer>()
     const byEmail = new Map<string, ExistingCustomer>()
     const byErpId = new Map<string, ExistingCustomer>()
 
     for (const customer of customers) {
       byId.set(customer.id, customer)
-      if (customer.email) {
+      if (customer.email !== null) {
         byEmail.set(customer.email.toLowerCase(), customer)
       }
-      const erpId = this.stringMetadataValue(customer.metadata, "erp_id")
-      if (erpId) {
+      const erpId = stringMetadataValue(customer.metadata, "erp_id")
+      if (erpId !== null) {
         byErpId.set(erpId, customer)
       }
     }
 
     return { byEmail, byErpId, byId }
-  }
-
-  private getIdentifierFieldValue(
-    identifier: CustomerGroupCustomerIdentifier,
-    type: CustomerGroupCustomerIdentifierType,
-  ) {
-    const value = identifier[type]
-    return typeof value === "string" && value.length ? value : null
-  }
-
-  private stringMetadataValue(
-    metadata: Record<string, unknown> | null | undefined,
-    key: string,
-  ) {
-    const value = metadata?.[key]
-    return typeof value === "string" && value.length ? value : null
   }
 }

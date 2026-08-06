@@ -86,8 +86,12 @@ export const symmyProcessTrackingBatchStep = createStep(
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const orderIndex = await client.preload(input.shipments)
 
-    const results: AddTrackingBatchResult[] = []
-    for (const shipment of input.shipments) {
+    const results: AddTrackingBatchOutput["results"] = []
+    const processAt = async (index: number): Promise<void> => {
+      const shipment = input.shipments[index]
+      if (shipment === undefined) {
+        return
+      }
       results.push(
         await processShipmentForBatch({
           client,
@@ -97,7 +101,9 @@ export const symmyProcessTrackingBatchStep = createStep(
           shipment,
         }),
       )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const processed = results.filter((r) => r.status === "success").length
     const failed = results.length - processed

@@ -6,7 +6,19 @@ import type {
 import type { InvoiceInput } from "./types"
 
 type Metadata = Record<string, unknown>
-const UNSAFE_FILENAME_CHARS = /[^a-zA-Z0-9._-]+/g
+const metadataValue = (
+  metadata: Metadata | null | undefined,
+  key: string,
+): unknown => metadata?.[key]
+
+const UNSAFE_FILENAME_CHARS = /[^a-zA-Z0-9._-]+/gu
+
+interface InvoiceUploadPayload {
+  access: "public"
+  content: string
+  filename: string
+  mimeType: string
+}
 
 export interface InvoiceOrderLookupKeys {
   orderIds: Set<string>
@@ -14,29 +26,10 @@ export interface InvoiceOrderLookupKeys {
   erpIds: Set<string>
 }
 
-export class InvoicesBatchClientMapperHelper {
-  collectOrderLookupKeys(invoices: InvoiceInput[]): InvoiceOrderLookupKeys {
-    const orderIds = new Set<string>()
-    const displayIds = new Set<number>()
-    const erpIds = new Set<string>()
-
-    for (const invoice of invoices) {
-      if (invoice.identifier_type === "order_id" && invoice.order_id) {
-        orderIds.add(invoice.order_id)
-      }
-      if (invoice.identifier_type === "display_id" && invoice.display_id) {
-        const displayId = Number(invoice.display_id)
-        if (Number.isInteger(displayId)) {
-          displayIds.add(displayId)
-        }
-      }
-      if (invoice.identifier_type === "erp_id" && invoice.erp_id) {
-        erpIds.add(invoice.erp_id)
-      }
-    }
-
-    return { displayIds, erpIds, orderIds }
-  }
+export const InvoicesBatchClientMapperHelper = {
+  buildInvoiceUrl(invoice: InvoiceInput, uploaded?: UploadedInvoice | null) {
+    return invoice.url ?? uploaded?.url
+  },
 
   buildOrderIndex(orders: ExistingOrder[]): ExistingOrderIndex {
     const index: ExistingOrderIndex = {
@@ -49,52 +42,13 @@ export class InvoicesBatchClientMapperHelper {
       index.byId.set(order.id, order)
       index.byDisplayId.set(String(order.display_id), order)
       const erpId = this.stringMetadataValue(order.metadata, "erp_id")
-      if (erpId) {
+      if (erpId !== null) {
         index.byErpId.set(erpId, order)
       }
     }
 
     return index
-  }
-
-  findExistingOrder(
-    invoice: InvoiceInput,
-    index: ExistingOrderIndex,
-  ): ExistingOrder | null {
-    if (invoice.identifier_type === "order_id" && invoice.order_id) {
-      return index.byId.get(invoice.order_id) ?? null
-    }
-    if (invoice.identifier_type === "display_id" && invoice.display_id) {
-      return index.byDisplayId.get(invoice.display_id) ?? null
-    }
-    if (invoice.identifier_type === "erp_id" && invoice.erp_id) {
-      return index.byErpId.get(invoice.erp_id) ?? null
-    }
-    return null
-  }
-
-  getOrderIdentifier(invoice: InvoiceInput) {
-    if (invoice.identifier_type === "display_id") {
-      return invoice.display_id ?? ""
-    }
-    if (invoice.identifier_type === "order_id") {
-      return invoice.order_id ?? ""
-    }
-    return invoice.erp_id ?? ""
-  }
-
-  buildUploadPayload(invoice: InvoiceInput) {
-    return {
-      access: "public",
-      content: invoice.data ?? "",
-      filename: `${this.sanitizeFilename(invoice.invoice_number)}.pdf`,
-      mimeType: "application/pdf",
-    }
-  }
-
-  buildInvoiceUrl(invoice: InvoiceInput, uploaded?: UploadedInvoice | null) {
-    return invoice.url ?? uploaded?.url
-  }
+  },
 
   buildUpdatedMetadata(
     existingMetadata: Metadata | null | undefined,
@@ -120,34 +74,104 @@ export class InvoicesBatchClientMapperHelper {
       invoice_url: invoiceUrl,
       invoices: [...filtered, nextInvoice],
     }
-  }
+  },
 
-  private getExistingInvoices(metadata: Metadata | null | undefined) {
-    const invoices = metadata?.invoices
+  buildUploadPayload(invoice: InvoiceInput): InvoiceUploadPayload {
+    return {
+      access: "public",
+      content: invoice.data ?? "",
+      filename: `${this.sanitizeFilename(invoice.invoice_number)}.pdf`,
+      mimeType: "application/pdf",
+    }
+  },
+
+  collectOrderLookupKeys(invoices: InvoiceInput[]): InvoiceOrderLookupKeys {
+    const orderIds = new Set<string>()
+    const displayIds = new Set<number>()
+    const erpIds = new Set<string>()
+
+    for (const invoice of invoices) {
+      if (
+        invoice.identifier_type === "order_id" &&
+        invoice.order_id !== undefined
+      ) {
+        orderIds.add(invoice.order_id)
+      }
+      if (
+        invoice.identifier_type === "display_id" &&
+        invoice.display_id !== undefined
+      ) {
+        const displayId = Number(invoice.display_id)
+        if (Number.isInteger(displayId)) {
+          displayIds.add(displayId)
+        }
+      }
+      if (
+        invoice.identifier_type === "erp_id" &&
+        invoice.erp_id !== undefined
+      ) {
+        erpIds.add(invoice.erp_id)
+      }
+    }
+
+    return { displayIds, erpIds, orderIds }
+  },
+
+  findExistingOrder(
+    invoice: InvoiceInput,
+    index: ExistingOrderIndex,
+  ): ExistingOrder | null {
+    if (
+      invoice.identifier_type === "order_id" &&
+      invoice.order_id !== undefined
+    ) {
+      return index.byId.get(invoice.order_id) ?? null
+    }
+    if (
+      invoice.identifier_type === "display_id" &&
+      invoice.display_id !== undefined
+    ) {
+      return index.byDisplayId.get(invoice.display_id) ?? null
+    }
+    if (invoice.identifier_type === "erp_id" && invoice.erp_id !== undefined) {
+      return index.byErpId.get(invoice.erp_id) ?? null
+    }
+    return null
+  },
+
+  getExistingInvoices(metadata: Metadata | null | undefined) {
+    const invoices = metadataValue(metadata, "invoices")
     if (!Array.isArray(invoices)) {
       return []
     }
-    return invoices.filter(
+    const candidates: unknown[] = invoices
+    return candidates.filter(
       (invoice): invoice is { invoice_number: string } =>
         typeof invoice === "object" &&
         invoice !== null &&
         "invoice_number" in invoice &&
         typeof invoice.invoice_number === "string",
     )
-  }
+  },
 
-  private sanitizeFilename(value: string) {
+  getOrderIdentifier(invoice: InvoiceInput) {
+    if (invoice.identifier_type === "display_id") {
+      return invoice.display_id ?? ""
+    }
+    if (invoice.identifier_type === "order_id") {
+      return invoice.order_id ?? ""
+    }
+    return invoice.erp_id ?? ""
+  },
+
+  sanitizeFilename(value: string) {
     return value.replace(UNSAFE_FILENAME_CHARS, "_")
-  }
+  },
 
-  private stringMetadataValue(
-    metadata: Metadata | null | undefined,
-    key: string,
-  ) {
+  stringMetadataValue(metadata: Metadata | null | undefined, key: string) {
     const value = metadata?.[key]
-    return typeof value === "string" && value.length ? value : null
-  }
+    return typeof value === "string" && value.length > 0 ? value : null
+  },
 }
 
-export const invoicesBatchClientMapperHelper =
-  new InvoicesBatchClientMapperHelper()
+export const invoicesBatchClientMapperHelper = InvoicesBatchClientMapperHelper

@@ -76,8 +76,12 @@ export const symmyProcessInvoicesBatchStep = createStep(
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const orderIndex = await client.preload(input.invoices)
 
-    const results: AttachInvoicesBatchResult[] = []
-    for (const invoice of input.invoices) {
+    const results: AttachInvoicesBatchOutput["results"] = []
+    const processAt = async (index: number): Promise<void> => {
+      const invoice = input.invoices[index]
+      if (invoice === undefined) {
+        return
+      }
       results.push(
         await processInvoiceForBatch({
           client,
@@ -87,7 +91,9 @@ export const symmyProcessInvoicesBatchStep = createStep(
           userId: input.user_id,
         }),
       )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const processed = results.filter((r) => r.status === "success").length
     const failed = results.length - processed

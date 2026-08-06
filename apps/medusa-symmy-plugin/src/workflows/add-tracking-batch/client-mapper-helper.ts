@@ -16,31 +16,19 @@ export interface TrackingOrderLookupKeys {
   erpIds: Set<string>
 }
 
-export class TrackingBatchClientMapperHelper {
-  collectOrderLookupKeys(
-    shipments: TrackingShipmentInput[],
-  ): TrackingOrderLookupKeys {
-    const orderIds = new Set<string>()
-    const displayIds = new Set<number>()
-    const erpIds = new Set<string>()
-
-    for (const shipment of shipments) {
-      if (shipment.identifier_type === "order_id" && shipment.order_id) {
-        orderIds.add(shipment.order_id)
+export const TrackingBatchClientMapperHelper = {
+  buildItemsBySku(items: OrderLineItem[]) {
+    const itemsBySku = new Map<string, OrderLineItem[]>()
+    for (const item of items) {
+      if (typeof item.variant_sku !== "string") {
+        continue
       }
-      if (shipment.identifier_type === "display_id" && shipment.display_id) {
-        const displayId = Number(shipment.display_id)
-        if (Number.isInteger(displayId)) {
-          displayIds.add(displayId)
-        }
-      }
-      if (shipment.identifier_type === "erp_id" && shipment.erp_id) {
-        erpIds.add(shipment.erp_id)
-      }
+      const list = itemsBySku.get(item.variant_sku) ?? []
+      list.push(item)
+      itemsBySku.set(item.variant_sku, list)
     }
-
-    return { displayIds, erpIds, orderIds }
-  }
+    return itemsBySku
+  },
 
   buildOrderIndex(orders: ExistingOrder[]): TrackingOrderIndex {
     const index: TrackingOrderIndex = {
@@ -53,35 +41,98 @@ export class TrackingBatchClientMapperHelper {
       index.byId.set(order.id, order)
       index.byDisplayId.set(String(order.display_id), order)
       const erpId = this.stringMetadataValue(order.metadata, "erp_id")
-      if (erpId) {
+      if (erpId !== null) {
         index.byErpId.set(erpId, order)
       }
     }
 
     return index
-  }
+  },
+
+  buildShipmentMetadata(shipment: TrackingShipmentInput) {
+    return {
+      ...(shipment.carrier === undefined ? {} : { carrier: shipment.carrier }),
+      tracking_number: shipment.tracking_number,
+      ...(shipment.tracking_url === undefined
+        ? {}
+        : { tracking_url: shipment.tracking_url }),
+    }
+  },
+
+  collectOrderLookupKeys(
+    shipments: TrackingShipmentInput[],
+  ): TrackingOrderLookupKeys {
+    const orderIds = new Set<string>()
+    const displayIds = new Set<number>()
+    const erpIds = new Set<string>()
+
+    for (const shipment of shipments) {
+      if (
+        shipment.identifier_type === "order_id" &&
+        shipment.order_id !== undefined
+      ) {
+        orderIds.add(shipment.order_id)
+      }
+      if (
+        shipment.identifier_type === "display_id" &&
+        shipment.display_id !== undefined
+      ) {
+        const displayId = Number(shipment.display_id)
+        if (Number.isInteger(displayId)) {
+          displayIds.add(displayId)
+        }
+      }
+      if (
+        shipment.identifier_type === "erp_id" &&
+        shipment.erp_id !== undefined
+      ) {
+        erpIds.add(shipment.erp_id)
+      }
+    }
+
+    return { displayIds, erpIds, orderIds }
+  },
 
   findExistingOrder(
     shipment: TrackingShipmentInput,
     index: TrackingOrderIndex,
   ): ExistingOrder | null {
-    if (shipment.identifier_type === "order_id" && shipment.order_id) {
+    if (
+      shipment.identifier_type === "order_id" &&
+      shipment.order_id !== undefined
+    ) {
       return index.byId.get(shipment.order_id) ?? null
     }
-    if (shipment.identifier_type === "display_id" && shipment.display_id) {
+    if (
+      shipment.identifier_type === "display_id" &&
+      shipment.display_id !== undefined
+    ) {
       return index.byDisplayId.get(shipment.display_id) ?? null
     }
-    if (shipment.identifier_type === "erp_id" && shipment.erp_id) {
+    if (
+      shipment.identifier_type === "erp_id" &&
+      shipment.erp_id !== undefined
+    ) {
       return index.byErpId.get(shipment.erp_id) ?? null
     }
     return null
-  }
+  },
+
+  getOrderIdentifier(shipment: TrackingShipmentInput) {
+    if (shipment.identifier_type === "display_id") {
+      return shipment.display_id ?? ""
+    }
+    if (shipment.identifier_type === "order_id") {
+      return shipment.order_id ?? ""
+    }
+    return shipment.erp_id ?? ""
+  },
 
   resolveItems(
     order: ExistingOrder,
     requestedItems: TrackingItemInput[] | undefined,
   ): ResolvedTrackingItems {
-    if (!requestedItems?.length) {
+    if (requestedItems === undefined || requestedItems.length === 0) {
       return order.items.map((item) => ({
         id: item.id,
         quantity: item.quantity,
@@ -103,8 +154,8 @@ export class TrackingBatchClientMapperHelper {
           `SKU '${requested.sku}' matches multiple order items in order '${order.id}'`,
         )
       }
-      const match = matches[0]
-      if (!match) {
+      const [match] = matches
+      if (match === undefined) {
         throw new Error(`SKU '${requested.sku}' could not be resolved`)
       }
       return {
@@ -112,49 +163,12 @@ export class TrackingBatchClientMapperHelper {
         quantity: requested.quantity,
       }
     })
-  }
+  },
 
-  buildShipmentMetadata(shipment: TrackingShipmentInput) {
-    return {
-      ...(shipment.carrier === undefined ? {} : { carrier: shipment.carrier }),
-      tracking_number: shipment.tracking_number,
-      ...(shipment.tracking_url === undefined
-        ? {}
-        : { tracking_url: shipment.tracking_url }),
-    }
-  }
-
-  getOrderIdentifier(shipment: TrackingShipmentInput) {
-    if (shipment.identifier_type === "display_id") {
-      return shipment.display_id ?? ""
-    }
-    if (shipment.identifier_type === "order_id") {
-      return shipment.order_id ?? ""
-    }
-    return shipment.erp_id ?? ""
-  }
-
-  private buildItemsBySku(items: OrderLineItem[]) {
-    const itemsBySku = new Map<string, OrderLineItem[]>()
-    for (const item of items) {
-      if (!item.variant_sku) {
-        continue
-      }
-      const list = itemsBySku.get(item.variant_sku) ?? []
-      list.push(item)
-      itemsBySku.set(item.variant_sku, list)
-    }
-    return itemsBySku
-  }
-
-  private stringMetadataValue(
-    metadata: Metadata | null | undefined,
-    key: string,
-  ) {
+  stringMetadataValue(metadata: Metadata | null | undefined, key: string) {
     const value = metadata?.[key]
-    return typeof value === "string" && value.length ? value : null
-  }
+    return typeof value === "string" && value.length > 0 ? value : null
+  },
 }
 
-export const trackingBatchClientMapperHelper =
-  new TrackingBatchClientMapperHelper()
+export const trackingBatchClientMapperHelper = TrackingBatchClientMapperHelper

@@ -1,20 +1,21 @@
-import { z } from "@medusajs/framework/zod"
+import type { z } from "@medusajs/framework/zod"
 
 type IdentifiedValue = Record<string, unknown> & {
   identifier_type: string
 }
 
-export function requireIdentifierField(
+export const requireIdentifierField = (
   value: IdentifiedValue,
   ctx: z.RefinementCtx,
-): void {
+): void => {
   const identifierType = value.identifier_type
-  if (value[identifierType]) {
+  const identifier = value[identifierType]
+  if (typeof identifier === "string" && identifier.length > 0) {
     return
   }
 
   ctx.addIssue({
-    code: z.ZodIssueCode.custom,
+    code: "custom",
     message: `${identifierType} is required when identifier_type is '${identifierType}'`,
     path: [identifierType],
   })

@@ -5,7 +5,7 @@ import {
   remapProductResponse,
 } from "@medusajs/medusa/api/admin/products/helpers"
 
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const selectFields = remapKeysForProduct(req.queryConfig.fields ?? [])
   const { data: products, metadata } = await refetchEntities({
     entity: "product",
@@ -25,3 +25,5 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     products: products.map(remapProductResponse),
   })
 }
+
+export { get as GET }

@@ -35,6 +35,23 @@ interface CompleteImportJobInput {
   failed: number
 }
 
+const parseJobStatus = (value: string): SymmyImportJobStatus => {
+  if (
+    value === "queued" ||
+    value === "running" ||
+    value === "completed" ||
+    value === "failed"
+  ) {
+    return value
+  }
+  throw new Error(`Invalid import job status: ${value}`)
+}
+
+const normalizeJob = <T extends { status: string }>(job: T) => ({
+  ...job,
+  status: parseJobStatus(job.status),
+})
+
 const toErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error)
 
@@ -45,7 +62,11 @@ export class SymmyImportJobModuleService extends MedusaService({
     type: string,
     idempotencyKey: string | null | undefined,
   ): Promise<SymmyImportJobDTO | null> {
-    if (!idempotencyKey) {
+    if (
+      idempotencyKey === null ||
+      idempotencyKey === undefined ||
+      idempotencyKey.length === 0
+    ) {
       return null
     }
 
@@ -57,7 +78,8 @@ export class SymmyImportJobModuleService extends MedusaService({
       { take: 1 },
     )
 
-    return (existing[0] as SymmyImportJobDTO | undefined) ?? null
+    const [job] = existing
+    return job === undefined ? null : normalizeJob(job)
   }
 
   async createQueuedJob({
@@ -67,7 +89,7 @@ export class SymmyImportJobModuleService extends MedusaService({
     idempotencyKey,
   }: CreateImportJobInput): Promise<SymmyImportJobDTO> {
     const existing = await this.findByIdempotencyKey(type, idempotencyKey)
-    if (existing) {
+    if (existing !== null) {
       return existing
     }
 
@@ -87,7 +109,7 @@ export class SymmyImportJobModuleService extends MedusaService({
         type,
       })
 
-      return created as SymmyImportJobDTO
+      return normalizeJob(created)
     } catch (error) {
       const racedJob = await this.findByIdempotencyKey(type, idempotencyKey)
       if (racedJob && toErrorMessage(error).includes("unique")) {
@@ -99,7 +121,7 @@ export class SymmyImportJobModuleService extends MedusaService({
 
   async retrieveJob(id: string): Promise<SymmyImportJobDTO> {
     const job = await this.retrieveSymmyImportJob(id)
-    return job as SymmyImportJobDTO
+    return normalizeJob(job)
   }
 
   async markRunning(id: string): Promise<SymmyImportJobDTO> {
@@ -113,7 +135,7 @@ export class SymmyImportJobModuleService extends MedusaService({
       status: "running",
     })
 
-    return updated as SymmyImportJobDTO
+    return normalizeJob(updated)
   }
 
   async markCompleted(
@@ -130,7 +152,7 @@ export class SymmyImportJobModuleService extends MedusaService({
       status: "completed",
     })
 
-    return updated as SymmyImportJobDTO
+    return normalizeJob(updated)
   }
 
   async markFailed(
@@ -146,6 +168,6 @@ export class SymmyImportJobModuleService extends MedusaService({
       status: "failed",
     })
 
-    return updated as SymmyImportJobDTO
+    return normalizeJob(updated)
   }
 }

@@ -7,7 +7,7 @@ import {
 } from "../../../../../../workflows/price-lists-batch/async"
 import type { UpsertPriceListsBatchSchemaType } from "./validators"
 
-/**
+/*
  * @api [post] /api/symmy/v1/price-lists/batch-upsert
  * operationId: PostSymmyPriceListsBatchUpsert
  * summary: Queue price list batch upsert
@@ -67,7 +67,7 @@ import type { UpsertPriceListsBatchSchemaType } from "./validators"
  *       }
  *       ```
  */
-export const POST = async (
+const post = async (
   req: MedusaRequest<UpsertPriceListsBatchSchemaType>,
   res: MedusaResponse,
 ) => {
@@ -78,3 +78,5 @@ export const POST = async (
     type: SYMMY_PRICE_LISTS_UPSERT_JOB_TYPE,
   })
 }
+
+export { post as POST }

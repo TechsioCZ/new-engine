@@ -10,17 +10,17 @@ const InvoiceInputSchema = z
     display_id: z.string().min(1).optional(),
     erp_id: z.string().min(1).optional(),
     identifier_type: z.enum(["display_id", "order_id", "erp_id"]),
-    invoice_date: z.string().date().optional(),
+    invoice_date: z.iso.date().optional(),
     invoice_number: z.string().min(1),
     order_id: z.string().min(1).optional(),
-    url: z.string().url().optional(),
+    url: z.url().optional(),
   })
   .superRefine((value, ctx) => {
     requireIdentifierField(value, ctx)
 
-    if (!(value.url || value.data)) {
+    if (value.url === undefined && value.data === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Either url or data must be provided",
         path: ["url"],
       })

@@ -7,7 +7,7 @@ import {
 } from "../../../../../../workflows/upsert-customers-batch/async"
 import type { UpsertCustomersBatchSchemaType } from "./validators"
 
-/**
+/*
  * @api [post] /api/symmy/v1/customers/batch
  * operationId: PostSymmyCustomersBatch
  * summary: Queue customer batch upsert
@@ -67,7 +67,7 @@ import type { UpsertCustomersBatchSchemaType } from "./validators"
  *       }
  *       ```
  */
-export const POST = async (
+const post = async (
   req: MedusaRequest<UpsertCustomersBatchSchemaType>,
   res: MedusaResponse,
 ) => {
@@ -78,3 +78,5 @@ export const POST = async (
     type: SYMMY_CUSTOMERS_UPSERT_JOB_TYPE,
   })
 }
+
+export { post as POST }

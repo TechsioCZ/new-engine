@@ -50,6 +50,66 @@ const ORDER_FIELDS = [
   "items.variant_sku",
 ] as const
 
+const isObjectMap = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const decodeOrderLineItem = (value: unknown): OrderLineItem | null => {
+  if (typeof value !== "object" || value === null) {
+    return null
+  }
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null
+  }
+  if (!("quantity" in value) || typeof value.quantity !== "number") {
+    return null
+  }
+  const variantSku = "variant_sku" in value ? value.variant_sku : undefined
+  if (
+    variantSku !== undefined &&
+    variantSku !== null &&
+    typeof variantSku !== "string"
+  ) {
+    return null
+  }
+  return {
+    id: value.id,
+    quantity: value.quantity,
+    ...(variantSku === undefined ? {} : { variant_sku: variantSku }),
+  }
+}
+
+const decodeOrder = (value: unknown): ExistingOrder | null => {
+  if (typeof value !== "object" || value === null) {
+    return null
+  }
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null
+  }
+  if (!("display_id" in value) || typeof value.display_id !== "number") {
+    return null
+  }
+  if (!("metadata" in value)) {
+    return null
+  }
+  const { metadata } = value
+  if (metadata !== null && !isObjectMap(metadata)) {
+    return null
+  }
+  if (!("items" in value) || !Array.isArray(value.items)) {
+    return null
+  }
+  const candidates: unknown[] = value.items
+  const items: OrderLineItem[] = []
+  for (const item of candidates) {
+    const decoded = decodeOrderLineItem(item)
+    if (decoded === null) {
+      return null
+    }
+    items.push(decoded)
+  }
+  return { display_id: value.display_id, id: value.id, items, metadata }
+}
+
 const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -118,11 +178,11 @@ export class TrackingBatchClient {
       this.container,
     ).run({
       input: {
-        order_id: order.id,
         ...(createdBy === undefined ? {} : { created_by: createdBy }),
         items,
-        no_notification: noNotification,
         metadata,
+        no_notification: noNotification,
+        order_id: order.id,
       },
     })
     const fulfillmentId = fulfillment.result.id
@@ -130,11 +190,9 @@ export class TrackingBatchClient {
 
     await createOrderShipmentWorkflow(this.container).run({
       input: {
-        order_id: order.id,
-        fulfillment_id: fulfillmentId,
         ...(createdBy === undefined ? {} : { created_by: createdBy }),
+        fulfillment_id: fulfillmentId,
         items,
-        no_notification: noNotification,
         labels: [
           {
             label_url: trackingUrl,
@@ -143,6 +201,8 @@ export class TrackingBatchClient {
           },
         ],
         metadata,
+        no_notification: noNotification,
+        order_id: order.id,
       },
     })
 
@@ -164,7 +224,11 @@ export class TrackingBatchClient {
       fields: [...ORDER_FIELDS],
       filters,
     })
-    return (data ?? []) as ExistingOrder[]
+    const rows: unknown[] = data ?? []
+    return rows.flatMap((row) => {
+      const order = decodeOrder(row)
+      return order === null ? [] : [order]
+    })
   }
 
   private async queryOrderIdsByMetadata(
@@ -172,7 +236,7 @@ export class TrackingBatchClient {
     values: TrackingOrderLookupKeys["erpIds"],
   ): Promise<Set<string>> {
     const ids = new Set<string>()
-    if (!values.size) {
+    if (values.size === 0) {
       return ids
     }
     const { data } = await this.query.graph({
@@ -184,8 +248,16 @@ export class TrackingBatchClient {
         },
       },
     })
-    for (const row of (data ?? []) as { id: string }[]) {
-      ids.add(row.id)
+    const rows: unknown[] = data ?? []
+    for (const row of rows) {
+      if (
+        typeof row === "object" &&
+        row !== null &&
+        "id" in row &&
+        typeof row.id === "string"
+      ) {
+        ids.add(row.id)
+      }
     }
     return ids
   }

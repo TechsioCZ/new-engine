@@ -12,12 +12,16 @@ import {
   Tooltip,
   toast,
 } from "@medusajs/ui"
-import { useEffect, useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 import type { ChangeEvent } from "react"
 
 interface SymmyWebhookEndpoint {
   url: string
   enabled: boolean
+}
+
+interface SymmyWebhookFormEndpoint extends SymmyWebhookEndpoint {
+  key: string
 }
 
 interface SymmyWebhookConfigResponse {
@@ -28,13 +32,13 @@ interface SymmyWebhookConfigResponse {
 
 interface SymmyWebhookConfigInput {
   is_enabled: boolean
-  endpoints: SymmyWebhookEndpoint[]
+  endpoints: SymmyWebhookFormEndpoint[]
 }
 
-const fetchJson = async <T,>(
+const fetchJson = async (
   path: string,
   options?: RequestInit,
-): Promise<T> => {
+): Promise<unknown> => {
   const response = await fetch(path, {
     ...options,
     credentials: "include",
@@ -48,57 +52,124 @@ const fetchJson = async <T,>(
     throw new Error(`Request failed with ${response.status}`)
   }
 
-  return await (response.json() as Promise<T>)
+  return await response.json()
 }
 
-const createEmptyEndpoint = (): SymmyWebhookEndpoint => ({
+const parseConfigResponse = (value: unknown): SymmyWebhookConfigResponse => {
+  if (typeof value !== "object" || value === null || !("config" in value)) {
+    throw new Error("Webhook configuration response is invalid")
+  }
+  const { config } = value
+  if (typeof config !== "object" || config === null) {
+    throw new Error("Webhook configuration is invalid")
+  }
+  if (!("id" in config) || typeof config.id !== "string") {
+    throw new Error("Webhook configuration ID is invalid")
+  }
+  if (!("is_enabled" in config) || typeof config.is_enabled !== "boolean") {
+    throw new Error("Webhook enabled state is invalid")
+  }
+  if (!("endpoints" in config) || !Array.isArray(config.endpoints)) {
+    throw new Error("Webhook endpoints are invalid")
+  }
+  const candidates: unknown[] = config.endpoints
+  const endpoints: SymmyWebhookEndpoint[] = []
+  for (const endpoint of candidates) {
+    if (typeof endpoint !== "object" || endpoint === null) {
+      throw new Error("Webhook endpoint is invalid")
+    }
+    if (!("url" in endpoint) || typeof endpoint.url !== "string") {
+      throw new Error("Webhook endpoint URL is invalid")
+    }
+    if (!("enabled" in endpoint) || typeof endpoint.enabled !== "boolean") {
+      throw new Error("Webhook endpoint state is invalid")
+    }
+    endpoints.push({ enabled: endpoint.enabled, url: endpoint.url })
+  }
+  return { endpoints, id: config.id, is_enabled: config.is_enabled }
+}
+
+const createEndpointKey = () => crypto.randomUUID()
+
+const createEmptyEndpoint = (): SymmyWebhookFormEndpoint => ({
   enabled: true,
+  key: createEndpointKey(),
   url: "",
 })
 
-const SymmyWebhooksSettingsPage = () => {
-  const [formData, setFormData] = useState<SymmyWebhookConfigInput>({
-    endpoints: [createEmptyEndpoint()],
-    is_enabled: false,
-  })
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [loadError, setLoadError] = useState<string | null>(null)
+const toFormEndpoints = (
+  endpoints: SymmyWebhookEndpoint[],
+): SymmyWebhookFormEndpoint[] =>
+  endpoints.length === 0
+    ? [createEmptyEndpoint()]
+    : endpoints.map((endpoint) => ({
+        ...endpoint,
+        key: createEndpointKey(),
+      }))
 
-  useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const data = await fetchJson<{ config: SymmyWebhookConfigResponse }>(
-          "/admin/symmy-webhooks",
-        )
+type WebhookConfigState =
+  | { status: "loading" }
+  | { error: string; status: "error" }
+  | { config: SymmyWebhookConfigResponse; status: "ready" }
 
-        setFormData({
-          endpoints: data.config.endpoints.length
-            ? data.config.endpoints
-            : [createEmptyEndpoint()],
-          is_enabled: data.config.is_enabled,
-        })
-        setLoadError(null)
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Unknown request error"
-        setLoadError(message)
-      } finally {
-        setIsLoading(false)
-      }
+let webhookConfigState: WebhookConfigState = { status: "loading" }
+let webhookConfigRequestStarted = false
+const webhookConfigListeners = new Set<() => void>()
+
+const notifyWebhookConfigListeners = () => {
+  for (const listener of webhookConfigListeners) {
+    listener()
+  }
+}
+
+const loadWebhookConfig = async () => {
+  try {
+    const response = await fetchJson("/admin/symmy-webhooks")
+    webhookConfigState = {
+      config: parseConfigResponse(response),
+      status: "ready",
     }
+  } catch (error) {
+    webhookConfigState = {
+      error: error instanceof Error ? error.message : "Unknown request error",
+      status: "error",
+    }
+  }
+  notifyWebhookConfigListeners()
+}
 
-    void loadConfig()
-  }, [])
+const subscribeToWebhookConfig = (listener: () => void) => {
+  webhookConfigListeners.add(listener)
+  if (!webhookConfigRequestStarted) {
+    webhookConfigRequestStarted = true
+    void loadWebhookConfig()
+  }
+  return () => {
+    webhookConfigListeners.delete(listener)
+  }
+}
+
+const getWebhookConfigSnapshot = () => webhookConfigState
+
+const SymmyWebhooksForm = ({
+  config,
+}: {
+  config: SymmyWebhookConfigResponse
+}) => {
+  const [formData, setFormData] = useState<SymmyWebhookConfigInput>({
+    endpoints: toFormEndpoints(config.endpoints),
+    is_enabled: config.is_enabled,
+  })
+  const [isSaving, setIsSaving] = useState(false)
 
   const updateEndpoint = (
-    index: number,
+    key: string,
     patch: Partial<SymmyWebhookEndpoint>,
   ) => {
     setFormData((current) => ({
       ...current,
-      endpoints: current.endpoints.map((endpoint, endpointIndex) =>
-        endpointIndex === index ? { ...endpoint, ...patch } : endpoint,
+      endpoints: current.endpoints.map((endpoint) =>
+        endpoint.key === key ? { ...endpoint, ...patch } : endpoint,
       ),
     }))
   }
@@ -110,41 +181,33 @@ const SymmyWebhooksSettingsPage = () => {
     }))
   }
 
-  const removeEndpoint = (index: number) => {
+  const removeEndpoint = (key: string) => {
     setFormData((current) => ({
       ...current,
-      endpoints: current.endpoints.filter(
-        (_, endpointIndex) => endpointIndex !== index,
-      ),
+      endpoints: current.endpoints.filter((endpoint) => endpoint.key !== key),
     }))
   }
 
   const saveConfig = async () => {
     const payload = {
-      endpoints: formData.endpoints
-        .map((endpoint) => ({
-          url: endpoint.url.trim(),
-          enabled: endpoint.enabled,
-        }))
-        .filter((endpoint) => endpoint.url.length > 0),
+      endpoints: formData.endpoints.flatMap((endpoint) => {
+        const url = endpoint.url.trim()
+        return url.length > 0 ? [{ enabled: endpoint.enabled, url }] : []
+      }),
       is_enabled: formData.is_enabled,
     }
 
     setIsSaving(true)
     try {
-      const data = await fetchJson<{ config: SymmyWebhookConfigResponse }>(
-        "/admin/symmy-webhooks",
-        {
-          body: JSON.stringify(payload),
-          method: "POST",
-        },
-      )
+      const response = await fetchJson("/admin/symmy-webhooks", {
+        body: JSON.stringify(payload),
+        method: "POST",
+      })
+      const savedConfig = parseConfigResponse(response)
 
       setFormData({
-        endpoints: data.config.endpoints.length
-          ? data.config.endpoints
-          : [createEmptyEndpoint()],
-        is_enabled: data.config.is_enabled,
+        endpoints: toFormEndpoints(savedConfig.endpoints),
+        is_enabled: savedConfig.is_enabled,
       })
       toast.success("Symmy webhook configuration saved")
     } catch (error) {
@@ -154,34 +217,6 @@ const SymmyWebhooksSettingsPage = () => {
     } finally {
       setIsSaving(false)
     }
-  }
-
-  if (isLoading) {
-    return (
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h1">Symmy Webhooks</Heading>
-        </div>
-        <div className="px-6 py-4">
-          <Text>Loading...</Text>
-        </div>
-      </Container>
-    )
-  }
-
-  if (loadError) {
-    return (
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h1">Symmy Webhooks</Heading>
-        </div>
-        <div className="px-6 py-4">
-          <Text className="text-ui-fg-error">
-            Error loading webhook configuration.
-          </Text>
-        </div>
-      </Container>
-    )
   }
 
   return (
@@ -246,14 +281,13 @@ const SymmyWebhooksSettingsPage = () => {
           </div>
 
           <div className="flex flex-col gap-3">
-            {formData.endpoints.map((endpoint, index) => {
-              const inputId = `symmy-webhook-endpoint-${index}`
-              const switchId = `symmy-webhook-endpoint-enabled-${index}`
+            {formData.endpoints.map((endpoint) => {
+              const inputId = `symmy-webhook-endpoint-${endpoint.key}`
+              const switchId = `symmy-webhook-endpoint-enabled-${endpoint.key}`
               return (
                 <div
                   className="grid grid-cols-[1fr_auto_auto] items-end gap-3"
-                  // Endpoint rows are controlled by index and are only appended or removed.
-                  key={index}
+                  key={endpoint.key}
                 >
                   <div className="flex flex-col gap-2">
                     <Label htmlFor={inputId}>Webhook URL</Label>
@@ -266,7 +300,7 @@ const SymmyWebhooksSettingsPage = () => {
                           typeof currentTarget.value === "string"
                             ? currentTarget.value
                             : ""
-                        updateEndpoint(index, { url })
+                        updateEndpoint(endpoint.key, { url })
                       }}
                       placeholder="https://example.com/webhooks/symmy"
                       type="url"
@@ -279,7 +313,7 @@ const SymmyWebhooksSettingsPage = () => {
                       checked={endpoint.enabled}
                       id={switchId}
                       onCheckedChange={(checked) => {
-                        updateEndpoint(index, { enabled: checked })
+                        updateEndpoint(endpoint.key, { enabled: checked })
                       }}
                     />
                   </div>
@@ -288,7 +322,7 @@ const SymmyWebhooksSettingsPage = () => {
                       aria-label="Remove endpoint"
                       className="mb-0"
                       onClick={() => {
-                        removeEndpoint(index)
+                        removeEndpoint(endpoint.key)
                       }}
                       type="button"
                       variant="transparent"
@@ -310,6 +344,44 @@ const SymmyWebhooksSettingsPage = () => {
       </form>
     </Container>
   )
+}
+
+const SymmyWebhooksSettingsPage = () => {
+  const configState = useSyncExternalStore(
+    subscribeToWebhookConfig,
+    getWebhookConfigSnapshot,
+    getWebhookConfigSnapshot,
+  )
+
+  if (configState.status === "loading") {
+    return (
+      <Container className="divide-y p-0">
+        <div className="px-6 py-4">
+          <Heading level="h1">Symmy Webhooks</Heading>
+        </div>
+        <div className="px-6 py-4">
+          <Text>Loading...</Text>
+        </div>
+      </Container>
+    )
+  }
+
+  if (configState.status === "error") {
+    return (
+      <Container className="divide-y p-0">
+        <div className="px-6 py-4">
+          <Heading level="h1">Symmy Webhooks</Heading>
+        </div>
+        <div className="px-6 py-4">
+          <Text className="text-ui-fg-error">
+            Error loading webhook configuration.
+          </Text>
+        </div>
+      </Container>
+    )
+  }
+
+  return <SymmyWebhooksForm config={configState.config} />
 }
 
 export const config = defineRouteConfig({

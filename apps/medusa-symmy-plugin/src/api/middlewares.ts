@@ -43,12 +43,13 @@ const getErrorStatus = (error: unknown) => {
     }
   }
 
-  if (!error || typeof error !== "object") {
+  if (typeof error !== "object" || error === null) {
     return 500
   }
 
-  const record = error as Record<string, unknown>
-  const status = record.status ?? record.statusCode
+  const status =
+    ("status" in error ? error.status : undefined) ??
+    ("statusCode" in error ? error.statusCode : undefined)
 
   return typeof status === "number" ? status : 500
 }

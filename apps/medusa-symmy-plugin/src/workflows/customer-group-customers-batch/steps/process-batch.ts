@@ -14,14 +14,55 @@ const toErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Unknown error"
 
 const buildFailedResult = (
-  client: CustomerGroupCustomersBatchClient,
   identifier: CustomerGroupCustomerIdentifier,
   error: string,
 ): AssignCustomersToGroupBatchResult => ({
   error,
-  identifier: client.getIdentifierValue(identifier),
+  identifier: CustomerGroupCustomersBatchClient.getIdentifierValue(identifier),
   status: "failed",
 })
+
+const processIdentifierForBatch = async ({
+  client,
+  customerIndex,
+  groupId,
+  identifier,
+  input,
+  logger,
+}: {
+  client: CustomerGroupCustomersBatchClient
+  customerIndex: Awaited<
+    ReturnType<CustomerGroupCustomersBatchClient["preloadCustomers"]>
+  >
+  groupId: string
+  identifier: CustomerGroupCustomerIdentifier
+  input: AssignCustomersToGroupBatchInput
+  logger: Logger
+}): Promise<AssignCustomersToGroupBatchResult> => {
+  const identifierValue =
+    CustomerGroupCustomersBatchClient.getIdentifierValue(identifier)
+  const customer = CustomerGroupCustomersBatchClient.findCustomer(
+    identifier,
+    customerIndex,
+  )
+  if (customer === null) {
+    return { identifier: identifierValue, status: "not_found" }
+  }
+  try {
+    await client.assignCustomerToGroup(customer, groupId)
+    return {
+      customer_id: customer.id,
+      identifier: identifierValue,
+      status: "assigned",
+    }
+  } catch (error) {
+    const message = toErrorMessage(error)
+    logger.warn(
+      `[symmy-plugin] Failed to assign customer ${identifierValue} to customer group ${input.code}: ${message}`,
+    )
+    return buildFailedResult(identifier, message)
+  }
+}
 
 export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
   "symmy-process-customer-group-customers-batch",
@@ -30,10 +71,11 @@ export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const groupId = await client.resolveCustomerGroupId(input.code)
 
-    if (!groupId) {
+    if (groupId === null) {
       const results = input.customer_identifiers.map((identifier) => ({
         error: `Customer group code '${input.code}' was not found`,
-        identifier: client.getIdentifierValue(identifier),
+        identifier:
+          CustomerGroupCustomersBatchClient.getIdentifierValue(identifier),
         status: "failed" as const,
       }))
       const output: AssignCustomersToGroupBatchOutput = {
@@ -50,33 +92,24 @@ export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
       input.customer_identifiers,
     )
     const results: AssignCustomersToGroupBatchResult[] = []
-
-    for (const identifier of input.customer_identifiers) {
-      const identifierValue = client.getIdentifierValue(identifier)
-      const customer = client.findCustomer(identifier, customerIndex)
-      if (!customer) {
-        results.push({
-          identifier: identifierValue,
-          status: "not_found",
-        })
-        continue
+    const processAt = async (index: number): Promise<void> => {
+      const identifier = input.customer_identifiers[index]
+      if (identifier === undefined) {
+        return
       }
-
-      try {
-        await client.assignCustomerToGroup(customer, groupId)
-        results.push({
-          customer_id: customer.id,
-          identifier: identifierValue,
-          status: "assigned",
-        })
-      } catch (error) {
-        const message = toErrorMessage(error)
-        logger.warn(
-          `[symmy-plugin] Failed to assign customer ${identifierValue} to customer group ${input.code}: ${message}`,
-        )
-        results.push(buildFailedResult(client, identifier, message))
-      }
+      results.push(
+        await processIdentifierForBatch({
+          client,
+          customerIndex,
+          groupId,
+          identifier,
+          input,
+          logger,
+        }),
+      )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const assigned = results.filter(
       (result) => result.status === "assigned",

@@ -25,10 +25,10 @@ const PriceListInputSchema = z.object({
   code: z.string().min(1),
   customer_group_code: z.string().min(1).optional(),
   description: z.string().optional(),
-  ends_at: z.string().datetime().optional(),
+  ends_at: z.iso.datetime().optional(),
   name: z.string().min(1),
   prices: z.array(PriceInputSchema).max(PRICE_LIST_PRICES_MAX).optional(),
-  starts_at: z.string().datetime().optional(),
+  starts_at: z.iso.datetime().optional(),
   status: z.enum(["active", "draft"]).default("active"),
   type: z.enum(["sale", "override"]).default("sale"),
 })

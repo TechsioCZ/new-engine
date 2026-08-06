@@ -25,7 +25,7 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
   SymmyPriceListCode,
 }) {
   async listByErpCodes(codes: Set<string>): Promise<SymmyPriceListCodeDTO[]> {
-    if (!codes.size) {
+    if (codes.size === 0) {
       return []
     }
 
@@ -42,7 +42,7 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
     mappings: SymmyPriceListCodeDTO[]
     count: number
   }> {
-    const filters = erpCode ? { erp_code: erpCode } : {}
+    const filters = erpCode === undefined ? {} : { erp_code: erpCode }
     const [mappings, count] = await this.listAndCountSymmyPriceListCodes(
       filters,
       {
@@ -53,8 +53,8 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
     )
 
     return {
-      mappings,
       count,
+      mappings,
     }
   }
 
@@ -62,11 +62,13 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
     erpCode,
     priceListId,
   }: UpsertSymmyPriceListCodeInput): Promise<SymmyPriceListCodeDTO> {
-    const existingByCode = (
-      await this.listSymmyPriceListCodes({ erp_code: erpCode }, { take: 1 })
-    )[0] as SymmyPriceListCodeDTO | undefined
+    const existingByCodeResults = await this.listSymmyPriceListCodes(
+      { erp_code: erpCode },
+      { take: 1 },
+    )
+    const [existingByCode] = existingByCodeResults
 
-    if (existingByCode) {
+    if (existingByCode !== undefined) {
       if (existingByCode.price_list_id === priceListId) {
         return existingByCode
       }
@@ -76,14 +78,13 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
       })
     }
 
-    const existingByPriceList = (
-      await this.listSymmyPriceListCodes(
-        { price_list_id: priceListId },
-        { take: 1 },
-      )
-    )[0] as SymmyPriceListCodeDTO | undefined
+    const existingByPriceListResults = await this.listSymmyPriceListCodes(
+      { price_list_id: priceListId },
+      { take: 1 },
+    )
+    const [existingByPriceList] = existingByPriceListResults
 
-    if (existingByPriceList) {
+    if (existingByPriceList !== undefined) {
       return await this.updateSymmyPriceListCodes({
         code: existingByPriceList.code,
         erp_code: erpCode,

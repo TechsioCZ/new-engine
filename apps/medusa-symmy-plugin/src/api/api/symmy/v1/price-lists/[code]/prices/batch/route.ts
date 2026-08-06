@@ -7,7 +7,7 @@ import {
 } from "../../../../../../../../workflows/price-lists-batch/async"
 import type { UpdatePriceListPricesBatchSchemaType } from "./validators"
 
-/**
+/*
  * @api [post] /api/symmy/v1/price-lists/{code}/prices/batch
  * operationId: PostSymmyPriceListPricesBatch
  * summary: Queue price list price updates
@@ -73,13 +73,14 @@ import type { UpdatePriceListPricesBatchSchemaType } from "./validators"
  *       }
  *       ```
  */
-export const POST = async (
+const post = async (
   req: MedusaRequest<UpdatePriceListPricesBatchSchemaType>,
   res: MedusaResponse,
 ) => {
+  const { code } = req.params
   await enqueueImportJob(req, res, {
     payload: {
-      code: req.params.code,
+      code,
       prices: req.validatedBody.prices,
     },
     requestedEvent: SYMMY_PRICE_LIST_PRICES_UPDATE_REQUESTED_EVENT,
@@ -87,3 +88,5 @@ export const POST = async (
     type: SYMMY_PRICE_LIST_PRICES_UPDATE_JOB_TYPE,
   })
 }
+
+export { post as POST }

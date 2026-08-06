@@ -26,7 +26,7 @@ const CategoryRefSchema = z
   })
 
 const ImageSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
 })
 
 const VariantInputSchema = z
@@ -43,23 +43,26 @@ const VariantInputSchema = z
     vat_rate: z.number().nonnegative().optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.identifier_type === "sku" && !value.sku) {
+    if (value.identifier_type === "sku" && value.sku === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "sku is required when variant identifier_type is 'sku'",
         path: ["sku"],
       })
     }
-    if (value.identifier_type === "ean" && !value.ean) {
+    if (value.identifier_type === "ean" && value.ean === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "ean is required when variant identifier_type is 'ean'",
         path: ["ean"],
       })
     }
-    if (value.identifier_type === "variant_id" && !value.variant_id) {
+    if (
+      value.identifier_type === "variant_id" &&
+      value.variant_id === undefined
+    ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message:
           "variant_id is required when variant identifier_type is 'variant_id'",
         path: ["variant_id"],
@@ -94,23 +97,23 @@ const ProductInputSchema = z
     weight: z.number().int().nonnegative().optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.identifier_type === "sku" && !value.sku) {
+    if (value.identifier_type === "sku" && value.sku === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "sku is required when product identifier_type is 'sku'",
         path: ["sku"],
       })
     }
-    if (value.identifier_type === "ean" && !value.ean) {
+    if (value.identifier_type === "ean" && value.ean === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "ean is required when product identifier_type is 'ean'",
         path: ["ean"],
       })
     }
-    if (value.identifier_type === "erp_id" && !value.erp_id) {
+    if (value.identifier_type === "erp_id" && value.erp_id === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "erp_id is required when product identifier_type is 'erp_id'",
         path: ["erp_id"],
       })

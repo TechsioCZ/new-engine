@@ -78,16 +78,17 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(AdminGetProductsParams, listProductQueryConfig),
-      (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
-        if (
-          !req.filterableFields ||
-          Object.keys(req.filterableFields).length === 0
-        ) {
+      async (
+        req: MedusaRequest,
+        res: MedusaResponse,
+        next: MedusaNextFunction,
+      ) => {
+        if (Object.keys(req.filterableFields).length === 0) {
           next()
           return
         }
 
-        return maybeApplyLinkFilter({
+        await maybeApplyLinkFilter({
           entryPoint: "product_sales_channel",
           filterableField: "sales_channel_id",
           resourceId: "product_id",

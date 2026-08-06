@@ -13,33 +13,64 @@ export interface CustomerGroupLookupKeys {
   erpCodes: Set<string>
 }
 
-export class CustomerGroupsBatchClientMapperHelper {
-  collectLookupKeys(groups: CustomerGroupInput[]): CustomerGroupLookupKeys {
-    const ids = new Set<string>()
-    const names = new Set<string>()
-    const codes = new Set<string>()
-    const erpCodes = new Set<string>()
+export const CustomerGroupsBatchClientMapperHelper = {
+  addCreatedCustomerGroupToIndex(
+    index: ExistingCustomerGroupIndex,
+    input: CustomerGroupInput,
+    groupId: string,
+  ): void {
+    this.addCustomerGroupToIndex(index, {
+      code: input.code ?? null,
+      erp_code: input.erp_code ?? null,
+      id: groupId,
+      metadata: this.buildMetadata(null, input),
+      name: input.name,
+    })
+  },
 
-    for (const group of groups) {
-      if (
-        group.identifier_type === "customer_group_id" &&
-        group.customer_group_id
-      ) {
-        ids.add(group.customer_group_id)
-      }
-      if (group.identifier_type === "name") {
-        names.add(group.name)
-      }
-      if (group.identifier_type === "code" && group.code) {
-        codes.add(group.code)
-      }
-      if (group.identifier_type === "erp_code" && group.erp_code) {
-        erpCodes.add(group.erp_code)
-      }
+  addCustomerGroupToIndex(
+    index: ExistingCustomerGroupIndex,
+    group: ExistingCustomerGroup,
+  ): void {
+    index.byId.set(group.id, group)
+    index.byName.set(group.name, group)
+    const { code } = group
+    if (typeof code === "string") {
+      index.byCode.set(code, group)
     }
+    const erpCode = group.erp_code
+    if (typeof erpCode === "string") {
+      index.byErpCode.set(erpCode, group)
+    }
+  },
 
-    return { codes, erpCodes, ids, names }
-  }
+  applyCodeMappings(
+    groups: ExistingCustomerGroup[],
+    mappings: {
+      code: string | null
+      erp_code: string | null
+      customer_group_id: string
+    }[],
+  ): ExistingCustomerGroup[] {
+    const mappingsByGroupId = new Map(
+      mappings.map((mapping) => [mapping.customer_group_id, mapping]),
+    )
+
+    return groups.map((group) => {
+      const mapping = mappingsByGroupId.get(group.id)
+      return mapping === undefined
+        ? group
+        : { ...group, code: mapping.code, erp_code: mapping.erp_code }
+    })
+  },
+
+  buildCreatePayload(group: CustomerGroupInput, createdBy?: string) {
+    return {
+      ...(createdBy === undefined ? {} : { created_by: createdBy }),
+      metadata: this.buildMetadata(null, group),
+      name: group.name,
+    }
+  },
 
   buildCustomerGroupIndex(
     groups: ExistingCustomerGroup[],
@@ -56,61 +87,20 @@ export class CustomerGroupsBatchClientMapperHelper {
     }
 
     return index
-  }
+  },
 
-  addCreatedCustomerGroupToIndex(
-    index: ExistingCustomerGroupIndex,
-    input: CustomerGroupInput,
-    groupId: string,
-  ): void {
-    this.addCustomerGroupToIndex(index, {
-      code: input.code ?? null,
-      erp_code: input.erp_code ?? null,
-      id: groupId,
-      metadata: this.buildMetadata(null, input),
-      name: input.name,
-    })
-  }
-
-  findExistingCustomerGroup(
-    group: CustomerGroupInput,
-    index: ExistingCustomerGroupIndex,
-  ): ExistingCustomerGroup | null {
-    if (
-      group.identifier_type === "customer_group_id" &&
-      group.customer_group_id
-    ) {
-      return index.byId.get(group.customer_group_id) ?? null
-    }
-    if (group.identifier_type === "name") {
-      return index.byName.get(group.name) ?? null
-    }
-    if (group.identifier_type === "code" && group.code) {
-      return index.byCode.get(group.code) ?? null
-    }
-    if (group.identifier_type === "erp_code" && group.erp_code) {
-      return index.byErpCode.get(group.erp_code) ?? null
-    }
-    return null
-  }
-
-  buildCreatePayload(group: CustomerGroupInput, createdBy?: string) {
-    return {
-      created_by: createdBy,
-      metadata: this.buildMetadata(null, group),
-      name: group.name,
-    }
-  }
-
-  buildUpdatePayload(
-    existing: ExistingCustomerGroup,
+  buildMetadata(
+    existingMetadata: Metadata | null | undefined,
     group: CustomerGroupInput,
   ) {
-    return {
-      metadata: this.buildMetadata(existing.metadata, group),
-      name: group.name,
+    const metadata = {
+      ...existingMetadata,
+      ...group.metadata,
     }
-  }
+    Reflect.deleteProperty(metadata, "code")
+    Reflect.deleteProperty(metadata, "erp_code")
+    return metadata
+  },
 
   buildResultEcho(group: CustomerGroupInput) {
     return {
@@ -120,61 +110,70 @@ export class CustomerGroupsBatchClientMapperHelper {
       identifier_type: group.identifier_type,
       name: group.name,
     }
-  }
+  },
 
-  private addCustomerGroupToIndex(
-    index: ExistingCustomerGroupIndex,
-    group: ExistingCustomerGroup,
-  ): void {
-    index.byId.set(group.id, group)
-    index.byName.set(group.name, group)
-    const { code } = group
-    if (code) {
-      index.byCode.set(code, group)
-    }
-    const erpCode = group.erp_code
-    if (erpCode) {
-      index.byErpCode.set(erpCode, group)
-    }
-  }
-
-  private buildMetadata(
-    existingMetadata: Metadata | null | undefined,
+  buildUpdatePayload(
+    existing: ExistingCustomerGroup,
     group: CustomerGroupInput,
   ) {
-    const {
-      code: _code,
-      erp_code: _erpCode,
-      ...metadata
-    } = {
-      ...existingMetadata,
-      ...group.metadata,
-    }
     return {
-      ...metadata,
+      metadata: this.buildMetadata(existing.metadata, group),
+      name: group.name,
     }
-  }
+  },
 
-  applyCodeMappings(
-    groups: ExistingCustomerGroup[],
-    mappings: {
-      code: string | null
-      erp_code: string | null
-      customer_group_id: string
-    }[],
-  ): ExistingCustomerGroup[] {
-    const mappingsByGroupId = new Map(
-      mappings.map((mapping) => [mapping.customer_group_id, mapping]),
-    )
+  collectLookupKeys(groups: CustomerGroupInput[]): CustomerGroupLookupKeys {
+    const ids = new Set<string>()
+    const names = new Set<string>()
+    const codes = new Set<string>()
+    const erpCodes = new Set<string>()
 
-    return groups.map((group) => {
-      const mapping = mappingsByGroupId.get(group.id)
-      return mapping
-        ? { ...group, code: mapping.code, erp_code: mapping.erp_code }
-        : group
-    })
-  }
+    for (const group of groups) {
+      if (
+        group.identifier_type === "customer_group_id" &&
+        group.customer_group_id !== undefined
+      ) {
+        ids.add(group.customer_group_id)
+      }
+      if (group.identifier_type === "name") {
+        names.add(group.name)
+      }
+      if (group.identifier_type === "code" && group.code !== undefined) {
+        codes.add(group.code)
+      }
+      if (
+        group.identifier_type === "erp_code" &&
+        group.erp_code !== undefined
+      ) {
+        erpCodes.add(group.erp_code)
+      }
+    }
+
+    return { codes, erpCodes, ids, names }
+  },
+
+  findExistingCustomerGroup(
+    group: CustomerGroupInput,
+    index: ExistingCustomerGroupIndex,
+  ): ExistingCustomerGroup | null {
+    if (
+      group.identifier_type === "customer_group_id" &&
+      group.customer_group_id !== undefined
+    ) {
+      return index.byId.get(group.customer_group_id) ?? null
+    }
+    if (group.identifier_type === "name") {
+      return index.byName.get(group.name) ?? null
+    }
+    if (group.identifier_type === "code" && group.code !== undefined) {
+      return index.byCode.get(group.code) ?? null
+    }
+    if (group.identifier_type === "erp_code" && group.erp_code !== undefined) {
+      return index.byErpCode.get(group.erp_code) ?? null
+    }
+    return null
+  },
 }
 
 export const customerGroupsBatchClientMapperHelper =
-  new CustomerGroupsBatchClientMapperHelper()
+  CustomerGroupsBatchClientMapperHelper

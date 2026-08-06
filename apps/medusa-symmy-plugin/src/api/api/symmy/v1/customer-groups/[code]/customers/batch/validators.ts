@@ -5,15 +5,15 @@ const CUSTOMER_IDENTIFIERS_BATCH_MAX = 500
 const CustomerIdentifierSchema = z
   .object({
     customer_id: z.string().min(1).optional(),
-    email: z.string().email().optional(),
+    email: z.email().optional(),
     erp_id: z.string().min(1).optional(),
     identifier_type: z.enum(["email", "customer_id", "erp_id"]),
   })
   .superRefine((value, ctx) => {
     const identifier = value[value.identifier_type]
-    if (!identifier) {
+    if (identifier === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: `${value.identifier_type} is required when identifier_type is '${value.identifier_type}'`,
         path: [value.identifier_type],
       })

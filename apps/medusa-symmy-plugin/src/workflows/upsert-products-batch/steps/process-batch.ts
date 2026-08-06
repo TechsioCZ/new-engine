@@ -131,7 +131,7 @@ const processBatchRequests = async ({
   toCreate: CreateProductRequest[]
   toUpdate: UpdateProductRequest[]
 }) => {
-  if (!(toCreate.length || toUpdate.length)) {
+  if (toCreate.length === 0 && toUpdate.length === 0) {
     return
   }
 
@@ -143,33 +143,35 @@ const processBatchRequests = async ({
     const { created, updated } = await client.applyBatch(payload)
     for (const [createIndex, item] of toCreate.entries()) {
       const createdProduct = created[createIndex]
-      results[item.index] = createdProduct
-        ? {
-            ...item.echo,
-            product_id: createdProduct.id,
-            status: "created",
-            variant_ids: (createdProduct.variants ?? []).map(
-              (variant) => variant.id,
-            ),
-          }
-        : buildFailedResult(
-            item.echo,
-            "batchProductsWorkflow returned fewer created products than requested",
-          )
+      results[item.index] =
+        createdProduct === undefined
+          ? buildFailedResult(
+              item.echo,
+              "batchProductsWorkflow returned fewer created products than requested",
+            )
+          : {
+              ...item.echo,
+              product_id: createdProduct.id,
+              status: "created",
+              variant_ids: (createdProduct.variants ?? []).map(
+                (variant) => variant.id,
+              ),
+            }
     }
     for (const [updateIndex, item] of toUpdate.entries()) {
       const updatedProduct = updated[updateIndex]
-      results[item.index] = updatedProduct
-        ? {
-            ...item.echo,
-            product_id: updatedProduct.id,
-            status: "updated",
-            variant_ids: getVariantIds(updatedProduct, item.existing),
-          }
-        : buildFailedResult(
-            item.echo,
-            "batchProductsWorkflow returned fewer updated products than requested",
-          )
+      results[item.index] =
+        updatedProduct === undefined
+          ? buildFailedResult(
+              item.echo,
+              "batchProductsWorkflow returned fewer updated products than requested",
+            )
+          : {
+              ...item.echo,
+              product_id: updatedProduct.id,
+              status: "updated",
+              variant_ids: getVariantIds(updatedProduct, item.existing),
+            }
     }
   } catch (error) {
     const message = toErrorMessage(error)

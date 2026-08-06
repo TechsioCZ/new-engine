@@ -16,7 +16,7 @@ const toConfigResponse = (config: SymmyWebhookConfigDTO) => ({
   updated_at: config.updated_at,
 })
 
-/**
+/*
  * @api [get] /admin/symmy-webhooks
  * operationId: GetAdminSymmyWebhookConfig
  * summary: Get Symmy webhook configuration
@@ -38,7 +38,7 @@ const toConfigResponse = (config: SymmyWebhookConfigDTO) => ({
  *   "401":
  *     description: Missing or invalid admin authentication.
  */
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const webhookService = req.scope.resolve<SymmyWebhookConfigModuleService>(
     SYMMY_WEBHOOK_CONFIG_MODULE,
   )
@@ -47,7 +47,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   res.json({ config: toConfigResponse(config) })
 }
 
-/**
+/*
  * @api [post] /admin/symmy-webhooks
  * operationId: PostAdminSymmyWebhookConfig
  * summary: Update Symmy webhook configuration
@@ -77,10 +77,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
  *   "401":
  *     description: Missing or invalid admin authentication.
  */
-export async function POST(
+const post = async (
   req: MedusaRequest<PostAdminSymmyWebhookConfigSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { result: config } = await symmyUpdateWebhookConfigWorkflow(
     req.scope,
   ).run({
@@ -88,3 +88,5 @@ export async function POST(
   })
   res.json({ config: toConfigResponse(config) })
 }
+
+export { get as GET, post as POST }

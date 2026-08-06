@@ -13,7 +13,7 @@ export const symmyUpdateWebhookConfigStep = createStep(
       SYMMY_WEBHOOK_CONFIG_MODULE,
     )
     const previous = await service.getConfig()
-    const updated = await service.updateConfig(input)
+    const updated = await service.updateConfig(input, previous)
 
     return new StepResponse(updated, {
       endpoints: previous.endpoints,
@@ -24,7 +24,7 @@ export const symmyUpdateWebhookConfigStep = createStep(
     previous: UpdateSymmyWebhookConfigInput | undefined,
     { container },
   ) => {
-    if (!previous) {
+    if (previous === undefined) {
       return
     }
 

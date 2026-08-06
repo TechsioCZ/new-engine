@@ -9,7 +9,6 @@ import type {
   ResolvedUpdate,
   ResolverMaps,
   StockBatchPayload,
-  VariantInventoryItemRow,
 } from "./client-mapper-helper"
 import type { UpdateStockBatchInput } from "./types"
 
@@ -65,7 +64,7 @@ export class StockBatchClient {
   ): Promise<Map<string, ExistingLevel>> {
     const { inventoryItemIds, locationIds } =
       this.mapper.collectLevelLookupKeys(resolved)
-    if (!(inventoryItemIds.length && locationIds.length)) {
+    if (inventoryItemIds.length === 0 || locationIds.length === 0) {
       return new Map()
     }
     const { data: levels } = await this.query.graph({
@@ -76,21 +75,19 @@ export class StockBatchClient {
         location_id: locationIds,
       },
     })
-    return this.mapper.buildExistingLevelIndex(
-      (levels ?? []) as ExistingLevel[],
-    )
+    return this.mapper.buildExistingLevelIndex(levels ?? [])
   }
 
   async applyBatch(payload: StockBatchPayload): Promise<BatchApplyResult> {
-    if (!(payload.create.length || payload.update.length)) {
+    if (payload.create.length === 0 && payload.update.length === 0) {
       return { created: [], updated: [] }
     }
     const { result } = await batchInventoryItemLevelsWorkflow(
       this.container,
     ).run({
       input: {
-        create: payload.create as never,
-        update: payload.update as never,
+        create: payload.create,
+        update: payload.update,
       },
     })
     return {
@@ -103,7 +100,7 @@ export class StockBatchClient {
     field: "sku" | "ean" | "id",
     values: Set<string>,
   ): Promise<Map<string, string>> {
-    if (!values.size) {
+    if (values.size === 0) {
       return new Map()
     }
     const { data: variants } = await this.query.graph({
@@ -111,16 +108,13 @@ export class StockBatchClient {
       fields: [field, "inventory_items.inventory.id"],
       filters: { [field]: [...values] },
     })
-    return this.mapper.buildVariantInventoryItemMap(
-      field,
-      (variants ?? []) as VariantInventoryItemRow[],
-    )
+    return this.mapper.buildVariantInventoryItemMap(field, variants ?? [])
   }
 
   private async queryValidInventoryItemIds(
     ids: Set<string>,
   ): Promise<Set<string>> {
-    if (!ids.size) {
+    if (ids.size === 0) {
       return new Set()
     }
     const { data: items } = await this.query.graph({
@@ -128,9 +122,7 @@ export class StockBatchClient {
       fields: ["id"],
       filters: { id: [...ids] },
     })
-    return this.mapper.buildValidInventoryItemIdSet(
-      (items ?? []) as { id: string }[],
-    )
+    return this.mapper.buildValidInventoryItemIdSet(items ?? [])
   }
 
   private async resolveDefaultLocationId(): Promise<string | null> {
@@ -139,6 +131,13 @@ export class StockBatchClient {
       fields: ["id"],
       pagination: { take: 1 },
     })
-    return locations?.[0]?.id ?? null
+    const location: unknown = locations[0]
+    if (typeof location !== "object" || location === null) {
+      return null
+    }
+    if (!("id" in location) || typeof location.id !== "string") {
+      return null
+    }
+    return location.id
   }
 }

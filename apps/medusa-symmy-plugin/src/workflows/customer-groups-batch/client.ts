@@ -36,6 +36,26 @@ export interface ExistingCustomerGroupIndex {
 
 const CUSTOMER_GROUP_FIELDS = ["id", "name", "metadata"] as const
 
+const isObjectMap = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const decodeCustomerGroup = (value: unknown): ExistingCustomerGroup | null => {
+  if (typeof value !== "object" || value === null) {
+    return null
+  }
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null
+  }
+  if (!("name" in value) || typeof value.name !== "string") {
+    return null
+  }
+  const metadata = "metadata" in value ? value.metadata : null
+  if (metadata !== null && !isObjectMap(metadata)) {
+    return null
+  }
+  return { id: value.id, metadata, name: value.name }
+}
+
 const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -101,13 +121,11 @@ export class CustomerGroupsBatchClient {
   ): Promise<ExistingCustomerGroup> {
     const { result } = await createCustomerGroupsWorkflow(this.container).run({
       input: {
-        customersData: [
-          this.mapper.buildCreatePayload(group, createdBy),
-        ] as never,
+        customersData: [this.mapper.buildCreatePayload(group, createdBy)],
       },
     })
-    const created = result?.[0] as ExistingCustomerGroup | undefined
-    if (!created) {
+    const [created] = result
+    if (created === undefined) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         "createCustomerGroupsWorkflow returned empty result",
@@ -119,9 +137,11 @@ export class CustomerGroupsBatchClient {
       erpCode: group.erp_code,
     })
     return {
-      ...created,
       code: group.code ?? null,
       erp_code: group.erp_code ?? null,
+      id: created.id,
+      metadata: created.metadata ?? null,
+      name: created.name,
     }
   }
 
@@ -154,7 +174,11 @@ export class CustomerGroupsBatchClient {
       fields: [...CUSTOMER_GROUP_FIELDS],
       filters,
     })
-    return (data ?? []) as ExistingCustomerGroup[]
+    const rows: unknown[] = data ?? []
+    return rows.flatMap((row) => {
+      const group = decodeCustomerGroup(row)
+      return group === null ? [] : [group]
+    })
   }
 
   private async queryGroupCodeMappings(

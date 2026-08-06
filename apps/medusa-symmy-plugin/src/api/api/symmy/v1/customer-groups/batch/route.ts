@@ -10,7 +10,7 @@ type AuthenticatedRequest =
     }
   }
 
-/**
+/*
  * @api [post] /api/symmy/v1/customer-groups/batch
  * operationId: PostSymmyCustomerGroupsBatch
  * summary: Upsert customer groups in batch
@@ -56,7 +56,7 @@ type AuthenticatedRequest =
  * x-workflow: upsertCustomerGroupsBatchWorkflow
  * x-events: []
  */
-export const POST = async (
+const post = async (
   req: MedusaRequest<UpsertCustomerGroupsBatchSchemaType>,
   res: MedusaResponse,
 ) => {
@@ -69,3 +69,5 @@ export const POST = async (
   })
   res.status(200).json(result)
 }
+
+export { post as POST }

@@ -2,7 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { getOrdersListWorkflow } from "@medusajs/medusa/core-flows"
 
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const variables = {
     filters: {
       ...req.filterableFields,
@@ -35,3 +35,5 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     orders,
   })
 }
+
+export { get as GET }

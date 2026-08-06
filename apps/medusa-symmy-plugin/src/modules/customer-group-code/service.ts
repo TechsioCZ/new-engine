@@ -21,7 +21,7 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
   SymmyCustomerGroupCode,
 }) {
   async listByCodes(codes: Set<string>): Promise<SymmyCustomerGroupCodeDTO[]> {
-    if (!codes.size) {
+    if (codes.size === 0) {
       return []
     }
 
@@ -32,10 +32,7 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
     ])
 
     const byId = new Map<string, SymmyCustomerGroupCodeDTO>()
-    for (const mapping of [
-      ...(byCode as SymmyCustomerGroupCodeDTO[]),
-      ...(byErpCode as SymmyCustomerGroupCodeDTO[]),
-    ]) {
+    for (const mapping of [...byCode, ...byErpCode]) {
       byId.set(mapping.id, mapping)
     }
 
@@ -58,7 +55,7 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
       erp_code: erpCode ?? null,
     }
 
-    if (existing) {
+    if (existing !== undefined) {
       return await this.updateSymmyCustomerGroupCodes({
         id: existing.id,
         ...payload,
@@ -72,33 +69,36 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
     code,
     erpCode,
     customerGroupId,
-  }: UpsertSymmyCustomerGroupCodeInput) {
-    const byGroupId = (
-      await this.listSymmyCustomerGroupCodes(
-        { customer_group_id: customerGroupId },
-        { take: 1 },
-      )
-    )[0] as SymmyCustomerGroupCodeDTO | undefined
-    if (byGroupId) {
+  }: UpsertSymmyCustomerGroupCodeInput): Promise<
+    SymmyCustomerGroupCodeDTO | undefined
+  > {
+    const byGroupIdResults = await this.listSymmyCustomerGroupCodes(
+      { customer_group_id: customerGroupId },
+      { take: 1 },
+    )
+    const [byGroupId] = byGroupIdResults
+    if (byGroupId !== undefined) {
       return byGroupId
     }
 
-    if (code) {
-      const byCode = (
-        await this.listSymmyCustomerGroupCodes({ code }, { take: 1 })
-      )[0] as SymmyCustomerGroupCodeDTO | undefined
-      if (byCode) {
+    if (code !== undefined) {
+      const byCodeResults = await this.listSymmyCustomerGroupCodes(
+        { code },
+        { take: 1 },
+      )
+      const [byCode] = byCodeResults
+      if (byCode !== undefined) {
         return byCode
       }
     }
 
-    if (erpCode) {
-      return (
-        await this.listSymmyCustomerGroupCodes(
-          { erp_code: erpCode },
-          { take: 1 },
-        )
-      )[0] as SymmyCustomerGroupCodeDTO | undefined
+    if (erpCode !== undefined) {
+      const byErpCodeResults = await this.listSymmyCustomerGroupCodes(
+        { erp_code: erpCode },
+        { take: 1 },
+      )
+      return byErpCodeResults[0]
     }
+    return undefined
   }
 }

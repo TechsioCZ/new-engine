@@ -87,9 +87,10 @@ const processPriceListForBatch = async ({
     if (!existing) {
       const created = await client.createPriceList(input, groupIndex)
       priceListIndex.byCode.set(input.code, created)
-      const priceResult = input.prices?.length
-        ? await updatePrices(client, created.id, input.prices)
-        : undefined
+      const priceResult =
+        input.prices !== undefined && input.prices.length > 0
+          ? await updatePrices(client, created.id, input.prices)
+          : undefined
       return {
         code: input.code,
         price_list_id: created.id,
@@ -99,9 +100,10 @@ const processPriceListForBatch = async ({
     }
 
     await client.updatePriceList(existing.id, input, groupIndex)
-    const priceResult = input.prices?.length
-      ? await updatePrices(client, existing.id, input.prices)
-      : undefined
+    const priceResult =
+      input.prices !== undefined && input.prices.length > 0
+        ? await updatePrices(client, existing.id, input.prices)
+        : undefined
     return {
       code: input.code,
       price_list_id: existing.id,
@@ -134,12 +136,12 @@ export const symmyUpdatePriceListPricesBatchStep = createStep(
         prices_failed: input.prices.length,
         prices_updated: 0,
         results: input.prices.map((price) => ({
+          ean: price.ean,
+          error: `Price list '${input.code}' was not found`,
           identifier_type: price.identifier_type,
           sku: price.sku,
-          ean: price.ean,
-          variant_id: price.variant_id,
           status: "not_found",
-          error: `Price list '${input.code}' was not found`,
+          variant_id: price.variant_id,
         })),
         success: false,
       })
@@ -160,8 +162,12 @@ export const symmyUpsertPriceListsBatchStep = createStep(
       client.preloadCustomerGroups(input.price_lists),
     ])
 
-    const results: UpsertPriceListsBatchResult[] = []
-    for (const priceList of input.price_lists) {
+    const results: UpsertPriceListsBatchOutput["results"] = []
+    const processAt = async (index: number): Promise<void> => {
+      const priceList = input.price_lists[index]
+      if (priceList === undefined) {
+        return
+      }
       results.push(
         await processPriceListForBatch({
           client,
@@ -171,7 +177,9 @@ export const symmyUpsertPriceListsBatchStep = createStep(
           priceListIndex,
         }),
       )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const processed = results.filter(
       (result) => result.status !== "failed",

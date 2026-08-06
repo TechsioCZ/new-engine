@@ -4,7 +4,7 @@ import {
   remoteQueryObjectFromString,
 } from "@medusajs/framework/utils"
 
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
   const query = remoteQueryObjectFromString({
     entryPoint: "region",
@@ -15,12 +15,36 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     },
   })
 
-  const { rows: regions, metadata } = await remoteQuery(query)
+  const result: unknown = await remoteQuery(query)
+  if (typeof result !== "object" || result === null) {
+    throw new Error("Region query returned an invalid result")
+  }
+  if (!("rows" in result) || !Array.isArray(result.rows)) {
+    throw new Error("Region query returned invalid rows")
+  }
+  if (!("metadata" in result)) {
+    throw new Error("Region query returned no metadata")
+  }
+  const { metadata } = result
+  if (typeof metadata !== "object" || metadata === null) {
+    throw new Error("Region query returned invalid metadata")
+  }
+  if (!("count" in metadata) || typeof metadata.count !== "number") {
+    throw new Error("Region query returned an invalid count")
+  }
+  if (!("take" in metadata) || typeof metadata.take !== "number") {
+    throw new Error("Region query returned an invalid limit")
+  }
+  if (!("skip" in metadata) || typeof metadata.skip !== "number") {
+    throw new Error("Region query returned an invalid offset")
+  }
 
   res.json({
     count: metadata.count,
     limit: metadata.take,
     offset: metadata.skip,
-    regions,
+    regions: result.rows,
   })
 }
+
+export { get as GET }

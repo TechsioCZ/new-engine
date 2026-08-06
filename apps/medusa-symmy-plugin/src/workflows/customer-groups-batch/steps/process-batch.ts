@@ -72,8 +72,12 @@ export const symmyProcessCustomerGroupsBatchStep = createStep(
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const customerGroupIndex = await client.preload(input.customer_groups)
 
-    const results: UpsertCustomerGroupsBatchResult[] = []
-    for (const group of input.customer_groups) {
+    const results: UpsertCustomerGroupsBatchOutput["results"] = []
+    const processAt = async (index: number): Promise<void> => {
+      const group = input.customer_groups[index]
+      if (group === undefined) {
+        return
+      }
       results.push(
         await processCustomerGroupForBatch({
           client,
@@ -83,7 +87,9 @@ export const symmyProcessCustomerGroupsBatchStep = createStep(
           logger,
         }),
       )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const processed = results.filter((r) => r.status !== "failed").length
     const failed = results.length - processed

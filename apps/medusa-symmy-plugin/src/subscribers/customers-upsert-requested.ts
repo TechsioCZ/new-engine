@@ -1,5 +1,6 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 
+import { UpsertCustomersBatchSchema } from "../api/api/symmy/v1/customers/batch/validators"
 import { runImportJob } from "../lib/import-job-runner"
 import { SYMMY_CUSTOMERS_UPSERT_REQUESTED_EVENT } from "../workflows/upsert-customers-batch/async"
 import type { SymmyCustomersUpsertRequestedEvent } from "../workflows/upsert-customers-batch/async"
@@ -15,9 +16,13 @@ export default async function customersUpsertRequestedHandler({
 }: SubscriberArgs<SymmyCustomersUpsertRequestedEvent>) {
   await runImportJob<UpsertCustomersBatchInput, UpsertCustomersBatchOutput>({
     container,
+    decodeInput: (value): value is UpsertCustomersBatchInput => {
+      UpsertCustomersBatchSchema.parse(value)
+      return true
+    },
     getCompletionStats: (output) => ({
-      processed: output.processed,
       failed: output.failed,
+      processed: output.processed,
     }),
     jobId: data.job_id,
     jobLabel: "Customer upsert",

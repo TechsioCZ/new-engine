@@ -14,25 +14,25 @@ const CustomerGroupInputSchema = z
   .superRefine((value, ctx) => {
     if (
       value.identifier_type === "customer_group_id" &&
-      !value.customer_group_id
+      value.customer_group_id === undefined
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message:
           "customer_group_id is required when identifier_type is 'customer_group_id'",
         path: ["customer_group_id"],
       })
     }
-    if (value.identifier_type === "code" && !value.code) {
+    if (value.identifier_type === "code" && value.code === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "code is required when identifier_type is 'code'",
         path: ["code"],
       })
     }
-    if (value.identifier_type === "erp_code" && !value.erp_code) {
+    if (value.identifier_type === "erp_code" && value.erp_code === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "erp_code is required when identifier_type is 'erp_code'",
         path: ["erp_code"],
       })

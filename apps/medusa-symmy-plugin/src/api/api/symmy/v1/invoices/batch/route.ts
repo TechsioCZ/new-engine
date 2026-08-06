@@ -9,7 +9,7 @@ type AuthenticatedRequest = MedusaRequest<AttachInvoicesBatchSchemaType> & {
   }
 }
 
-/**
+/*
  * @api [post] /api/symmy/v1/invoices/batch
  * operationId: PostSymmyInvoicesBatch
  * summary: Attach invoices to orders in batch
@@ -55,7 +55,7 @@ type AuthenticatedRequest = MedusaRequest<AttachInvoicesBatchSchemaType> & {
  * x-workflow: attachInvoicesBatchWorkflow
  * x-events: []
  */
-export const POST = async (
+const post = async (
   req: MedusaRequest<AttachInvoicesBatchSchemaType>,
   res: MedusaResponse,
 ) => {
@@ -68,3 +68,5 @@ export const POST = async (
   })
   res.status(200).json(result)
 }
+
+export { post as POST }
