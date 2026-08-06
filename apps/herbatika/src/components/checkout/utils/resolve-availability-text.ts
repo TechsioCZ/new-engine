@@ -18,14 +18,14 @@ const resolveLineItemTopOffer = (
   product?: HttpTypes.StoreProduct | null,
 ) => {
   const itemRecord = asStorefrontRecord(item)
-  const metadata = asStorefrontRecord(itemRecord?.metadata)
-  const itemProduct = asStorefrontRecord(itemRecord?.product)
-  const itemProductMetadata = asStorefrontRecord(itemProduct?.metadata)
+  const metadata = asStorefrontRecord(itemRecord?.["metadata"])
+  const itemProduct = asStorefrontRecord(itemRecord?.["product"])
+  const itemProductMetadata = asStorefrontRecord(itemProduct?.["metadata"])
 
   return (
     resolveProductTopOffer(product) ??
-    asStorefrontRecord(metadata?.top_offer) ??
-    asStorefrontRecord(itemProductMetadata?.top_offer)
+    asStorefrontRecord(metadata?.["top_offer"]) ??
+    asStorefrontRecord(itemProductMetadata?.["top_offer"])
   )
 }
 
@@ -35,7 +35,9 @@ export const resolveOriginalLineItemTotalAmount = (
 ) => {
   const itemRecord = asStorefrontRecord(item)
   const topOffer = resolveLineItemTopOffer(item, product)
-  const compareAtUnit = asStorefrontNumber(itemRecord?.compare_at_unit_price)
+  const compareAtUnit = asStorefrontNumber(
+    itemRecord?.["compare_at_unit_price"],
+  )
 
   const quantity = resolveLineItemQuantity(item)
   const originalUnitAmount = resolveTopOfferOriginalAmount({
@@ -54,21 +56,21 @@ export const resolveAvailabilityText = (
   product?: HttpTypes.StoreProduct | null,
 ) => {
   const topOffer = resolveLineItemTopOffer(item, product)
-  const stock = asStorefrontRecord(topOffer?.stock)
+  const stock = asStorefrontRecord(topOffer?.["stock"])
   const stockAmount =
-    resolveLineItemInventory(item) ?? asStorefrontNumber(stock?.amount)
+    resolveLineItemInventory(item) ?? asStorefrontNumber(stock?.["amount"])
   const isInStock = stockAmount === null ? true : stockAmount > 0
 
   if (!isInStock) {
     return (
-      asStorefrontString(topOffer?.availability_out_of_stock) ??
+      asStorefrontString(topOffer?.["availability_out_of_stock"]) ??
       "Momentálne nie je skladom"
     )
   }
 
   const availabilityLabel =
-    asStorefrontString(topOffer?.availability_in_stock) ?? "Na sklade"
-  const deliveryLabel = asStorefrontString(topOffer?.delivery_label)
+    asStorefrontString(topOffer?.["availability_in_stock"]) ?? "Na sklade"
+  const deliveryLabel = asStorefrontString(topOffer?.["delivery_label"])
 
   return deliveryLabel !== null && deliveryLabel.length > 0
     ? `${availabilityLabel}, ${deliveryLabel}`

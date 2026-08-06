@@ -43,15 +43,13 @@ const toBulletLines = (value: string): string | null => {
 }
 
 const extractListItems = (value: string): string[] => {
-  const listMatches = [
-    ...value.matchAll(/<li[^>]*>(?<content>[\s\S]*?)<\/li>/giu),
-  ]
+  const listMatches = [...value.matchAll(/<li[^>]*>[\s\S]*?<\/li>/giu)]
   if (listMatches.length === 0) {
     return []
   }
 
   return listMatches.flatMap((item) => {
-    const content = stripHtml(item.groups?.content ?? "")
+    const content = stripHtml(item[0])
     return content.length > 0 ? [content] : []
   })
 }
@@ -60,18 +58,18 @@ export const resolveDescription = (
   product: HttpTypes.StoreProduct,
 ): string | null => {
   const metadata = asRecord(product.metadata)
-  const contentSectionsMap = asRecord(metadata?.content_sections_map)
+  const contentSectionsMap = asRecord(metadata?.["content_sections_map"])
   const descriptionSection =
-    typeof contentSectionsMap?.description === "string"
-      ? contentSectionsMap.description
+    typeof contentSectionsMap?.["description"] === "string"
+      ? contentSectionsMap["description"]
       : null
   const usageSection =
-    typeof contentSectionsMap?.usage === "string"
-      ? contentSectionsMap.usage
+    typeof contentSectionsMap?.["usage"] === "string"
+      ? contentSectionsMap["usage"]
       : null
   const shortDescription =
-    typeof metadata?.short_description === "string"
-      ? metadata.short_description
+    typeof metadata?.["short_description"] === "string"
+      ? metadata["short_description"]
       : null
 
   const htmlCandidates = [

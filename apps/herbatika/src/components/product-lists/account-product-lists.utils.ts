@@ -232,9 +232,9 @@ const resolveProductListItemPrice = (params: {
   const calculatedPrice = asStorefrontRecord(variant?.calculated_price)
   const topOffer = resolveProductTopOffer(product)
   const price = resolveStorefrontPrice({
-    calculatedAmount: calculatedPrice?.calculated_amount,
-    calculatedCurrencyCode: calculatedPrice?.currency_code,
-    calculatedOriginalAmount: calculatedPrice?.original_amount,
+    calculatedAmount: calculatedPrice?.["calculated_amount"],
+    calculatedCurrencyCode: calculatedPrice?.["currency_code"],
+    calculatedOriginalAmount: calculatedPrice?.["original_amount"],
     expectedCurrencyCode: currencyCode,
     topOffer,
   })
@@ -246,14 +246,14 @@ const resolveProductListItemPrice = (params: {
   const variantMetadata = asStorefrontRecord(variant?.metadata)
   const calculatedAmountWithoutTax =
     price.source === "calculated_price"
-      ? asStorefrontNumber(calculatedPrice?.calculated_amount_without_tax)
+      ? asStorefrontNumber(calculatedPrice?.["calculated_amount_without_tax"])
       : null
   const amountWithoutTax = resolveAmountWithoutTax({
     amountWithTax: price.currentAmount,
     amountWithoutTax: calculatedAmountWithoutTax,
     vatRate:
-      asStorefrontNumber(variantMetadata?.vat) ??
-      asStorefrontNumber(topOffer?.vat),
+      asStorefrontNumber(variantMetadata?.["vat"]) ??
+      asStorefrontNumber(topOffer?.["vat"]),
   })
 
   return {

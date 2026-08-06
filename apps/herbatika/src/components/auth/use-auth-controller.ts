@@ -123,7 +123,7 @@ export const useAuthController = ({
       await loginMutation.mutateAsync(values)
       const transferNotice = await runPostAuthCartTransfer()
 
-      if (safeRedirectHref !== null && safeRedirectHref !== "") {
+      if (safeRedirectHref !== null) {
         router.replace(safeRedirectHref)
         return null
       }
@@ -152,7 +152,7 @@ export const useAuthController = ({
       )
       const transferNotice = await runPostAuthCartTransfer()
 
-      if (safeRedirectHref !== null && safeRedirectHref !== "") {
+      if (safeRedirectHref !== null) {
         router.replace(safeRedirectHref)
         return null
       }
@@ -198,8 +198,7 @@ export const useAuthController = ({
   if (
     !authQuery.isLoading &&
     authQuery.isAuthenticated &&
-    safeRedirectHref !== null &&
-    safeRedirectHref !== ""
+    safeRedirectHref !== null
   ) {
     redirect(safeRedirectHref)
   }

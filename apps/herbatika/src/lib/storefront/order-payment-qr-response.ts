@@ -142,14 +142,14 @@ export const mapStoreOrderPaymentQr = async (payload: StoreOrderResponse) => {
   }
 
   const spaydFields = parseSpaydFields(spayd)
-  const iban = readString(spaydFields.ACC)
+  const iban = readString(spaydFields["ACC"])
   if (iban === null) {
     return UNAVAILABLE_QR_PAYMENT_RESPONSE
   }
 
-  const amount = readAmount(spaydFields.AM) ?? order.total ?? null
+  const amount = readAmount(spaydFields["AM"]) ?? order.total ?? null
   const currencyCode =
-    readString(spaydFields.CC)?.toUpperCase() ??
+    readString(spaydFields["CC"])?.toUpperCase() ??
     readString(order.currency_code)?.toUpperCase() ??
     "EUR"
   const orderDisplayId =
@@ -162,7 +162,7 @@ export const mapStoreOrderPaymentQr = async (payload: StoreOrderResponse) => {
       amount,
       currency_code: currencyCode,
       iban,
-      message: readString(spaydFields.MSG),
+      message: readString(spaydFields["MSG"]),
       order_display_id: orderDisplayId,
       order_id: order.id,
       provider_id: ORDER_QR_PAYMENT_PROVIDER_ID,

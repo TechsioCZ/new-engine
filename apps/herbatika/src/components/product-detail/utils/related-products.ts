@@ -34,10 +34,11 @@ export const resolveProductReferenceHandle = (code: string) => {
 export const resolveRelatedProductReferenceCodes = (
   product: Product | null,
 ): string[] => {
-  const metadata = isRecord(product?.metadata) ? product.metadata : null
+  const productMetadata = product?.metadata
+  const metadata = isRecord(productMetadata) ? productMetadata : null
   const codes = [
-    ...asStringArray(metadata?.related_products),
-    ...asStringArray(metadata?.alternative_products),
+    ...asStringArray(metadata?.["related_products"]),
+    ...asStringArray(metadata?.["alternative_products"]),
   ]
   const seen = new Set<string>()
   const result: string[] = []
@@ -68,7 +69,7 @@ export const orderProductsByReferenceCodes = (
     }
 
     const metadata = isRecord(product.metadata) ? product.metadata : null
-    const sourceShopitemId = metadata?.source_shopitem_id
+    const sourceShopitemId = metadata?.["source_shopitem_id"]
     if (typeof sourceShopitemId === "string" && sourceShopitemId !== "") {
       productBySourceId.set(sourceShopitemId, product)
     }

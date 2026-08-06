@@ -6,33 +6,23 @@ export const resolveOrderId = (result: unknown) => {
     return null
   }
 
-  if (
-    result.type === "order" &&
-    isObject(result.order) &&
-    typeof result.order.id === "string"
-  ) {
-    return result.order.id
-  }
-
-  if (isObject(result.order) && typeof result.order.id === "string") {
-    return result.order.id
-  }
-
-  return null
-}
-
-export const resolveCompleteCartFailure = (result: unknown) => {
-  if (!isObject(result)) {
+  const { order } = result
+  if (!isObject(order) || typeof order["id"] !== "string") {
     return null
   }
 
-  if (
-    result.type === "cart" &&
-    isObject(result.error) &&
-    typeof result.error.message === "string"
-  ) {
-    return result.error.message
+  return order["id"]
+}
+
+export const resolveCompleteCartFailure = (result: unknown) => {
+  if (!isObject(result) || result["type"] !== "cart") {
+    return null
   }
 
-  return null
+  const { error } = result
+  if (!isObject(error) || typeof error["message"] !== "string") {
+    return null
+  }
+
+  return error["message"]
 }
