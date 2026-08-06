@@ -53,106 +53,72 @@ const LOCK_KEY = "gls-tracking-sync-job"
 const LOCK_TIMEOUT_SECONDS = 120
 const CHUNK_SIZE = 25
 const PENDING_FETCH_MULTIPLIER = 4
+const GLS_DELIVERED_EVENT_NAME: GLSPendingEvent["name"] = "gls.delivered"
 
-/**
- * GLS Tracking Sync Job
- *
- * Runs every 15 minutes to poll packet status for each shipped-but-not-delivered
- * GLS fulfillment, and emit domain events on status changes.
- *
- * Unlike PPL (which supports batch queries), GLS's packetStatus endpoint is
- * per-packet — so we make one request per pending fulfillment. Serial execution
- * keeps us well within the API's rate budget; batching can be added later if
- * the pending-fulfillment volume grows.
- */
-export default async function glsTrackingSyncJob(container: MedusaContainer) {
-  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
 
-  if (process.env.FEATURE_GLS_ENABLED !== "1") {
-    logger.debug(
-      "GLS Tracking Sync: module disabled (FEATURE_GLS_ENABLED != 1), skipping",
-    )
-    return
-  }
+const hasValidIdentity = (value: Record<string, unknown>): boolean => {
+  const id: unknown = value.id
+  const providerId: unknown = value.provider_id
+  const shippedAt: unknown = value.shipped_at
+  const deliveredAt: unknown = value.delivered_at
 
-  const lockingService = container.resolve<ILockingModule>(Modules.LOCKING)
-
-  try {
-    await lockingService.execute(
-      LOCK_KEY,
-      async () => {
-        await run(container, logger)
-      },
-      { timeout: LOCK_TIMEOUT_SECONDS },
-    )
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("Timed-out")) {
-      logger.debug("GLS Tracking Sync: lock held by another instance, skipping")
-      return
-    }
-    throw error
-  }
-}
-
-export const config = {
-  name: "gls-tracking-sync",
-  schedule: "*/15 * * * *",
-}
-
-async function run(container: MedusaContainer, logger: Logger) {
-  const glsClient = container.resolve<GLSClientModuleService>(GLS_CLIENT_MODULE)
-
-  const runtimeConfig = await glsClient.getConfig()
-  if (!runtimeConfig?.is_enabled) {
-    logger.debug("GLS Tracking Sync: disabled in settings, skipping")
-    return
-  }
-
-  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const fulfillmentService = container.resolve<IFulfillmentModuleService>(
-    Modules.FULFILLMENT,
+  return (
+    typeof id === "string" &&
+    providerId === GLS_PROVIDER_ID &&
+    typeof shippedAt === "string" &&
+    deliveredAt === null
   )
-  const eventBus = container.resolve<IEventBusModuleService>(Modules.EVENT_BUS)
-
-  logger.info("GLS Tracking Sync: Starting...")
-
-  try {
-    const pending = await fetchPendingFulfillments(query, CHUNK_SIZE)
-
-    if (pending.length === 0) {
-      logger.info("GLS Tracking Sync: No pending fulfillments to check")
-      return
-    }
-
-    logger.info(
-      `GLS Tracking Sync: Processing ${pending.length} pending fulfillments (limit ${CHUNK_SIZE})`,
-    )
-
-    const ctx: TrackingContext = { eventBus, fulfillmentService, logger }
-    for (const fulfillment of pending) {
-      try {
-        await processFulfillment(ctx, glsClient, fulfillment)
-      } catch (error) {
-        logger.error(
-          `GLS Tracking Sync: Failed to process fulfillment ${fulfillment.id}`,
-          error instanceof Error ? error : new Error(String(error)),
-        )
-      }
-    }
-
-    logger.info("GLS Tracking Sync: Completed")
-  } catch (error) {
-    logger.error(
-      "GLS Tracking Sync failed",
-      error instanceof Error ? error : new Error(String(error)),
-    )
-  }
 }
 
-async function fetchPendingFulfillments(
+const hasValidPacketId = (data: Record<string, unknown>): boolean => {
+  const packetId: unknown = data.packet_id
+  return typeof packetId === "number" || typeof packetId === "string"
+}
+
+const hasValidParcelNumber = (data: Record<string, unknown>): boolean => {
+  const parcelNumber: unknown = data.parcel_number
+  return (
+    parcelNumber === undefined ||
+    typeof parcelNumber === "string" ||
+    typeof parcelNumber === "number"
+  )
+}
+
+const hasValidPacketFields = (data: Record<string, unknown>): boolean => {
+  const barcode: unknown = data.barcode
+  const accessPointId: unknown = data.access_point_id
+  const supportsCod: unknown = data.supports_cod
+  const deliveryFailed: unknown = data.delivery_failed
+
+  return (
+    typeof barcode === "string" &&
+    typeof accessPointId === "string" &&
+    typeof supportsCod === "boolean" &&
+    deliveryFailed !== true
+  )
+}
+
+const isPendingFulfillment = (value: unknown): value is PendingFulfillment => {
+  if (!(isRecord(value) && isRecord(value.data))) {
+    return false
+  }
+
+  const { data } = value
+
+  return (
+    hasValidIdentity(value) &&
+    hasValidPacketId(data) &&
+    hasValidParcelNumber(data) &&
+    hasValidPacketFields(data)
+  )
+}
+
+const fetchPendingFulfillments = async (
   query: Query,
   limit: number,
-): Promise<PendingFulfillment[]> {
+): Promise<PendingFulfillment[]> => {
   const { data: fulfillments } = await query.graph({
     entity: "fulfillment",
     fields: ["id", "data", "shipped_at", "delivered_at", "provider_id"],
@@ -177,47 +143,209 @@ async function fetchPendingFulfillments(
     : []
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
+const getPendingDeliveredAt = (
+  pendingEvent: GLSPendingEvent,
+): Date | undefined => {
+  if (pendingEvent.name !== GLS_DELIVERED_EVENT_NAME) {
+    return undefined
+  }
+
+  const deliveredAt: unknown = pendingEvent.data.delivered_at
+  if (typeof deliveredAt !== "string") {
+    return undefined
+  }
+
+  const date = new Date(deliveredAt)
+  return Number.isNaN(date.getTime()) ? undefined : date
 }
 
-function isPendingFulfillment(value: unknown): value is PendingFulfillment {
+const buildPendingEvent = (
+  name: GLSPendingEvent["name"],
+  fulfillment: PendingFulfillment,
+  data: Record<string, unknown>,
+): GLSPendingEvent => {
+  const status: unknown = data.status
+  const statusFragment =
+    typeof status === "string" || typeof status === "number"
+      ? String(status)
+      : ""
+
+  return {
+    data: {
+      barcode: fulfillment.data.barcode,
+      fulfillment_id: fulfillment.id,
+      packet_id: fulfillment.data.packet_id,
+      ...data,
+    },
+    key: `${name}:${fulfillment.id}:${fulfillment.data.packet_id}:${statusFragment}`,
+    name,
+  }
+}
+
+const getPendingEvent = (value: unknown): GLSPendingEvent | null => {
   if (!(isRecord(value) && isRecord(value.data))) {
+    return null
+  }
+
+  const { key, name } = value
+
+  if (
+    typeof key !== "string" ||
+    (name !== GLS_DELIVERED_EVENT_NAME && name !== "gls.delivery_failed")
+  ) {
+    return null
+  }
+
+  return { data: value.data, key, name }
+}
+
+const emitPendingEvent = async (
+  ctx: TrackingContext,
+  pendingEvent: GLSPendingEvent,
+): Promise<void> => {
+  await ctx.eventBus.emit({
+    data: {
+      ...pendingEvent.data,
+      idempotency_key: pendingEvent.key,
+    },
+    name: pendingEvent.name,
+  })
+}
+
+const flushPendingEvent = async (
+  ctx: TrackingContext,
+  fulfillment: PendingFulfillment,
+): Promise<boolean> => {
+  const pendingEvent = getPendingEvent(fulfillment.data.gls_pending_event)
+  if (!pendingEvent) {
     return false
   }
 
-  const id: unknown = value.id
-  const providerId: unknown = value.provider_id
-  const shippedAt: unknown = value.shipped_at
-  const deliveredAt: unknown = value.delivered_at
-  const packetId: unknown = value.data.packet_id
-  const barcode: unknown = value.data.barcode
-  const parcelNumber: unknown = value.data.parcel_number
-  const accessPointId: unknown = value.data.access_point_id
-  const supportsCod: unknown = value.data.supports_cod
-  const deliveryFailed: unknown = value.data.delivery_failed
-
-  return (
-    typeof id === "string" &&
-    providerId === GLS_PROVIDER_ID &&
-    typeof shippedAt === "string" &&
-    deliveredAt === null &&
-    deliveryFailed !== true &&
-    (typeof packetId === "number" || typeof packetId === "string") &&
-    typeof barcode === "string" &&
-    (parcelNumber === undefined ||
-      typeof parcelNumber === "string" ||
-      typeof parcelNumber === "number") &&
-    typeof accessPointId === "string" &&
-    typeof supportsCod === "boolean"
+  await emitPendingEvent(ctx, pendingEvent)
+  const updatedData = (({ gls_pending_event: _pendingEvent, ...rest }) => rest)(
+    fulfillment.data,
   )
+  const deliveredAt = getPendingDeliveredAt(pendingEvent)
+  await ctx.fulfillmentService.updateFulfillment(fulfillment.id, {
+    ...(deliveredAt ? { delivered_at: deliveredAt } : {}),
+    data: updatedData,
+  })
+  return true
 }
 
-async function processFulfillment(
+const handleDelivered = async (
+  ctx: TrackingContext,
+  fulfillment: PendingFulfillment,
+  latest: GLSPacketStatusRecord,
+  newStatus: GLSShipmentState,
+): Promise<void> => {
+  const { logger, fulfillmentService } = ctx
+  const { data } = fulfillment
+  const deliveredAt = new Date(latest.dateTime)
+
+  logger.info(
+    `GLS: Packet ${data.packet_id} delivered (${newStatus}) at ${deliveredAt.toISOString()}`,
+  )
+
+  const pendingEvent = buildPendingEvent(
+    GLS_DELIVERED_EVENT_NAME,
+    fulfillment,
+    {
+      delivered_at: deliveredAt.toISOString(),
+      status: newStatus,
+    },
+  )
+
+  await fulfillmentService.updateFulfillment(fulfillment.id, {
+    data: {
+      ...data,
+      gls_pending_event: pendingEvent,
+      last_status: newStatus,
+      last_status_date: latest.dateTime,
+    },
+  })
+
+  await emitPendingEvent(ctx, pendingEvent)
+
+  const updatedData = (({ gls_pending_event: _pendingEvent, ...rest }) => rest)(
+    data,
+  )
+  await fulfillmentService.updateFulfillment(fulfillment.id, {
+    data: {
+      ...updatedData,
+      last_status: newStatus,
+      last_status_date: latest.dateTime,
+    },
+    delivered_at: deliveredAt,
+  })
+}
+
+const handleFailed = async (
+  ctx: TrackingContext,
+  fulfillment: PendingFulfillment,
+  latest: GLSPacketStatusRecord,
+  newStatus: GLSShipmentState,
+): Promise<void> => {
+  const { logger, fulfillmentService } = ctx
+  const { data } = fulfillment
+
+  logger.warn(`GLS: Packet ${data.packet_id} failed (${newStatus})`)
+
+  const pendingEvent = buildPendingEvent("gls.delivery_failed", fulfillment, {
+    status: newStatus,
+    status_date: latest.dateTime,
+  })
+
+  await fulfillmentService.updateFulfillment(fulfillment.id, {
+    data: {
+      ...data,
+      delivery_failed: true,
+      gls_pending_event: pendingEvent,
+      last_status: newStatus,
+      last_status_date: latest.dateTime,
+    },
+  })
+
+  await emitPendingEvent(ctx, pendingEvent)
+
+  const updatedData = (({ gls_pending_event: _pendingEvent, ...rest }) => rest)(
+    data,
+  )
+  await fulfillmentService.updateFulfillment(fulfillment.id, {
+    data: {
+      ...updatedData,
+      delivery_failed: true,
+      last_status: newStatus,
+      last_status_date: latest.dateTime,
+    },
+  })
+}
+
+const handleInTransit = async (
+  ctx: TrackingContext,
+  fulfillment: PendingFulfillment,
+  latest: GLSPacketStatusRecord,
+  newStatus: GLSShipmentState,
+): Promise<void> => {
+  const { logger, fulfillmentService } = ctx
+  const { data } = fulfillment
+
+  logger.debug(`GLS: Packet ${data.packet_id} status: ${newStatus}`)
+
+  await fulfillmentService.updateFulfillment(fulfillment.id, {
+    data: {
+      ...data,
+      last_status: newStatus,
+      last_status_date: latest.dateTime,
+    },
+  })
+}
+
+const processFulfillment = async (
   ctx: TrackingContext,
   glsClient: GLSClientModuleService,
   fulfillment: PendingFulfillment,
-): Promise<void> {
+): Promise<void> => {
   const { logger } = ctx
   const {
     packet_id: packetId,
@@ -264,185 +392,115 @@ async function processFulfillment(
   }
 }
 
-async function handleDelivered(
+// Pending fulfillments are processed one at a time (not Promise.all) because
+// GLS's packetStatus endpoint is per-packet and serial execution keeps us
+// well within the API's rate budget. Bounded tail recursion replaces a
+// for-of/await loop so each item still runs strictly after the previous one.
+const processPendingFulfillments = async (
   ctx: TrackingContext,
-  fulfillment: PendingFulfillment,
-  latest: GLSPacketStatusRecord,
-  newStatus: GLSShipmentState,
-): Promise<void> {
-  const { logger, fulfillmentService } = ctx
-  const { data } = fulfillment
-  const deliveredAt = new Date(latest.dateTime)
+  glsClient: GLSClientModuleService,
+  pending: PendingFulfillment[],
+  index: number,
+): Promise<void> => {
+  const fulfillment = pending[index]
+  if (!fulfillment) {
+    return
+  }
 
-  logger.info(
-    `GLS: Packet ${data.packet_id} delivered (${newStatus}) at ${deliveredAt.toISOString()}`,
+  try {
+    await processFulfillment(ctx, glsClient, fulfillment)
+  } catch (error) {
+    ctx.logger.error(
+      `GLS Tracking Sync: Failed to process fulfillment ${fulfillment.id}`,
+      error instanceof Error ? error : new Error(String(error)),
+    )
+  }
+
+  await processPendingFulfillments(ctx, glsClient, pending, index + 1)
+}
+
+const run = async (container: MedusaContainer, logger: Logger) => {
+  const glsClient = container.resolve<GLSClientModuleService>(GLS_CLIENT_MODULE)
+
+  const runtimeConfig = await glsClient.getConfig()
+  if (runtimeConfig === null || !runtimeConfig.is_enabled) {
+    logger.debug("GLS Tracking Sync: disabled in settings, skipping")
+    return
+  }
+
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const fulfillmentService = container.resolve<IFulfillmentModuleService>(
+    Modules.FULFILLMENT,
   )
+  const eventBus = container.resolve<IEventBusModuleService>(Modules.EVENT_BUS)
 
-  const pendingEvent = buildPendingEvent("gls.delivered", fulfillment, {
-    delivered_at: deliveredAt.toISOString(),
-    status: newStatus,
-  })
+  logger.info("GLS Tracking Sync: Starting...")
 
-  await fulfillmentService.updateFulfillment(fulfillment.id, {
-    data: {
-      ...data,
-      gls_pending_event: pendingEvent,
-      last_status: newStatus,
-      last_status_date: latest.dateTime,
-    },
-  })
+  try {
+    const pending = await fetchPendingFulfillments(query, CHUNK_SIZE)
 
-  await emitPendingEvent(ctx, pendingEvent)
+    if (pending.length === 0) {
+      logger.info("GLS Tracking Sync: No pending fulfillments to check")
+      return
+    }
 
-  const { gls_pending_event: _pendingEvent, ...updatedData } = data
-  await fulfillmentService.updateFulfillment(fulfillment.id, {
-    data: {
-      ...updatedData,
-      last_status: newStatus,
-      last_status_date: latest.dateTime,
-    },
-    delivered_at: deliveredAt,
-  })
-}
+    logger.info(
+      `GLS Tracking Sync: Processing ${pending.length} pending fulfillments (limit ${CHUNK_SIZE})`,
+    )
 
-async function handleFailed(
-  ctx: TrackingContext,
-  fulfillment: PendingFulfillment,
-  latest: GLSPacketStatusRecord,
-  newStatus: GLSShipmentState,
-): Promise<void> {
-  const { logger, fulfillmentService } = ctx
-  const { data } = fulfillment
+    const ctx: TrackingContext = { eventBus, fulfillmentService, logger }
+    await processPendingFulfillments(ctx, glsClient, pending, 0)
 
-  logger.warn(`GLS: Packet ${data.packet_id} failed (${newStatus})`)
-
-  const pendingEvent = buildPendingEvent("gls.delivery_failed", fulfillment, {
-    status: newStatus,
-    status_date: latest.dateTime,
-  })
-
-  await fulfillmentService.updateFulfillment(fulfillment.id, {
-    data: {
-      ...data,
-      delivery_failed: true,
-      gls_pending_event: pendingEvent,
-      last_status: newStatus,
-      last_status_date: latest.dateTime,
-    },
-  })
-
-  await emitPendingEvent(ctx, pendingEvent)
-
-  const { gls_pending_event: _pendingEvent, ...updatedData } = data
-  await fulfillmentService.updateFulfillment(fulfillment.id, {
-    data: {
-      ...updatedData,
-      delivery_failed: true,
-      last_status: newStatus,
-      last_status_date: latest.dateTime,
-    },
-  })
-}
-
-async function flushPendingEvent(
-  ctx: TrackingContext,
-  fulfillment: PendingFulfillment,
-): Promise<boolean> {
-  const pendingEvent = getPendingEvent(fulfillment.data.gls_pending_event)
-  if (!pendingEvent) {
-    return false
+    logger.info("GLS Tracking Sync: Completed")
+  } catch (error) {
+    logger.error(
+      "GLS Tracking Sync failed",
+      error instanceof Error ? error : new Error(String(error)),
+    )
   }
-
-  await emitPendingEvent(ctx, pendingEvent)
-  const { gls_pending_event: _pendingEvent, ...updatedData } = fulfillment.data
-  const deliveredAt = getPendingDeliveredAt(pendingEvent)
-  await ctx.fulfillmentService.updateFulfillment(fulfillment.id, {
-    ...(deliveredAt ? { delivered_at: deliveredAt } : {}),
-    data: updatedData,
-  })
-  return true
 }
 
-function getPendingDeliveredAt(
-  pendingEvent: GLSPendingEvent,
-): Date | undefined {
-  if (pendingEvent.name !== "gls.delivered") {
+/**
+ * GLS Tracking Sync Job
+ *
+ * Runs every 15 minutes to poll packet status for each shipped-but-not-delivered
+ * GLS fulfillment, and emit domain events on status changes.
+ *
+ * Unlike PPL (which supports batch queries), GLS's packetStatus endpoint is
+ * per-packet — so we make one request per pending fulfillment. Serial execution
+ * keeps us well within the API's rate budget; batching can be added later if
+ * the pending-fulfillment volume grows.
+ */
+export default async function glsTrackingSyncJob(container: MedusaContainer) {
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+
+  if (process.env.FEATURE_GLS_ENABLED !== "1") {
+    logger.debug(
+      "GLS Tracking Sync: module disabled (FEATURE_GLS_ENABLED != 1), skipping",
+    )
     return
   }
 
-  const deliveredAt: unknown = pendingEvent.data.delivered_at
-  if (typeof deliveredAt !== "string") {
-    return
-  }
+  const lockingService = container.resolve<ILockingModule>(Modules.LOCKING)
 
-  const date = new Date(deliveredAt)
-  return Number.isNaN(date.getTime()) ? undefined : date
-}
-
-function buildPendingEvent(
-  name: GLSPendingEvent["name"],
-  fulfillment: PendingFulfillment,
-  data: Record<string, unknown>,
-): GLSPendingEvent {
-  return {
-    data: {
-      barcode: fulfillment.data.barcode,
-      fulfillment_id: fulfillment.id,
-      packet_id: fulfillment.data.packet_id,
-      ...data,
-    },
-    key: `${name}:${fulfillment.id}:${fulfillment.data.packet_id}:${String(data.status ?? "")}`,
-    name,
+  try {
+    await lockingService.execute(
+      LOCK_KEY,
+      async () => {
+        await run(container, logger)
+      },
+      { timeout: LOCK_TIMEOUT_SECONDS },
+    )
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Timed-out")) {
+      logger.debug("GLS Tracking Sync: lock held by another instance, skipping")
+      return
+    }
+    throw error
   }
 }
 
-function getPendingEvent(value: unknown): GLSPendingEvent | null {
-  if (!(isRecord(value) && isRecord(value.data))) {
-    return null
-  }
-
-  const key: unknown = value.key
-  const name: unknown = value.name
-
-  if (
-    typeof key !== "string" ||
-    (name !== "gls.delivered" && name !== "gls.delivery_failed")
-  ) {
-    return null
-  }
-
-  return { data: value.data, key, name }
-}
-
-async function emitPendingEvent(
-  ctx: TrackingContext,
-  pendingEvent: GLSPendingEvent,
-): Promise<void> {
-  await ctx.eventBus.emit({
-    data: {
-      ...pendingEvent.data,
-      idempotency_key: pendingEvent.key,
-    },
-    name: pendingEvent.name,
-  })
-}
-
-async function handleInTransit(
-  ctx: TrackingContext,
-  fulfillment: PendingFulfillment,
-  latest: GLSPacketStatusRecord,
-  newStatus: GLSShipmentState,
-): Promise<void> {
-  const { logger, fulfillmentService } = ctx
-  const { data } = fulfillment
-
-  logger.debug(`GLS: Packet ${data.packet_id} status: ${newStatus}`)
-
-  await fulfillmentService.updateFulfillment(fulfillment.id, {
-    data: {
-      ...data,
-      last_status: newStatus,
-      last_status_date: latest.dateTime,
-    },
-  })
+export const config = {
+  name: "gls-tracking-sync",
+  schedule: "*/15 * * * *",
 }
