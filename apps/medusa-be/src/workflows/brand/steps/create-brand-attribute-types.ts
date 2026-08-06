@@ -2,7 +2,7 @@ import type { Context, InferTypeOf } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-import type BrandAttributeType from "../../../modules/brand/models/brand-attribute-type"
+import type { BrandAttributeType } from "../../../modules/brand/models/brand"
 import type BrandModuleService from "../../../modules/brand/service"
 import type { CreateBrandAttributeTypesWorkflowInput } from "../types"
 import { getBrandService, withBrandTransaction } from "./helpers"
@@ -13,15 +13,17 @@ interface EnsuredBrandAttributeType {
   attribute_type: BrandAttributeTypeRecord
 }
 
-async function ensureBrandAttributeType(
-  service: BrandModuleService,
-  name: string,
-  sharedContext: Context,
-): Promise<{
+interface BrandAttributeTypeOutcome {
   created_id?: string
   restored_id?: string
   result: EnsuredBrandAttributeType
-}> {
+}
+
+const ensureBrandAttributeType = async (
+  service: BrandModuleService,
+  name: string,
+  sharedContext: Context,
+): Promise<BrandAttributeTypeOutcome> => {
   const matches = await service.listBrandAttributeTypes(
     { name },
     {
@@ -31,9 +33,9 @@ async function ensureBrandAttributeType(
     sharedContext,
   )
   const active = matches.filter((record) => !record.deleted_at)
-  const deleted = matches.filter((record) => !!record.deleted_at)
+  const deleted = matches.filter((record) => Boolean(record.deleted_at))
 
-  if (active.length > 1 || (!active.length && deleted.length > 1)) {
+  if (active.length > 1 || (active.length === 0 && deleted.length > 1)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `Brand attribute type "${name}" has ambiguous persisted records`,
@@ -69,11 +71,10 @@ async function ensureBrandAttributeType(
     }
   }
 
-  const created = await service.createBrandAttributeTypes(
-    { name },
+  const [createdAttributeType] = await service.createBrandAttributeTypes(
+    [{ name }],
     sharedContext,
   )
-  const createdAttributeType = Array.isArray(created) ? created[0] : created
 
   if (!createdAttributeType) {
     throw new MedusaError(
@@ -89,6 +90,29 @@ async function ensureBrandAttributeType(
       attribute_type: createdAttributeType,
     },
   }
+}
+
+const ensureBrandAttributeTypesSequentially = async (
+  service: BrandModuleService,
+  names: string[],
+  sharedContext: Context,
+  index = 0,
+  outcomes: BrandAttributeTypeOutcome[] = [],
+): Promise<BrandAttributeTypeOutcome[]> => {
+  const name = names[index]
+
+  if (name === undefined) {
+    return outcomes
+  }
+
+  outcomes.push(await ensureBrandAttributeType(service, name, sharedContext))
+  return await ensureBrandAttributeTypesSequentially(
+    service,
+    names,
+    sharedContext,
+    index + 1,
+    outcomes,
+  )
 }
 
 export const createBrandAttributeTypesStep = createStep(
@@ -107,27 +131,26 @@ export const createBrandAttributeTypesStep = createStep(
     const { compensation, results } = await withBrandTransaction(
       service,
       async (context) => {
-        const createdIds: string[] = []
-        const restoredIds: string[] = []
-        const ensured: EnsuredBrandAttributeType[] = []
-
-        for (const name of names) {
-          const outcome = await ensureBrandAttributeType(service, name, context)
-          if (outcome.created_id) {
-            createdIds.push(outcome.created_id)
-          }
-          if (outcome.restored_id) {
-            restoredIds.push(outcome.restored_id)
-          }
-          ensured.push(outcome.result)
-        }
+        const outcomes = await ensureBrandAttributeTypesSequentially(
+          service,
+          names,
+          context,
+        )
+        const createdIds = outcomes.flatMap(({ created_id: createdId }) =>
+          createdId === undefined || createdId.length === 0 ? [] : [createdId],
+        )
+        const restoredIds = outcomes.flatMap(({ restored_id: restoredId }) =>
+          restoredId === undefined || restoredId.length === 0
+            ? []
+            : [restoredId],
+        )
 
         return {
           compensation: {
             created_ids: createdIds,
             restored_ids: restoredIds,
           },
-          results: ensured,
+          results: outcomes.map(({ result }) => result),
         }
       },
     )
@@ -135,20 +158,20 @@ export const createBrandAttributeTypesStep = createStep(
     return new StepResponse(results, compensation)
   },
   async (compensation, { container }) => {
-    if (!compensation) {
+    if (compensation === undefined || compensation === null) {
       return
     }
 
     const service = getBrandService(container)
 
     await withBrandTransaction(service, async (context) => {
-      if (compensation.created_ids.length) {
+      if (compensation.created_ids.length > 0) {
         await service.deleteBrandAttributeTypes(
           compensation.created_ids,
           context,
         )
       }
-      if (compensation.restored_ids.length) {
+      if (compensation.restored_ids.length > 0) {
         await service.softDeleteBrandAttributeTypes(
           compensation.restored_ids,
           {},

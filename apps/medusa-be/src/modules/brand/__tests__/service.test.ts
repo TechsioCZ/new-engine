@@ -2,9 +2,7 @@ import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
 import { describe, expect, it, vi } from "vitest"
 
 import { BRAND_MODULE } from "../index"
-import Brand from "../models/brand"
-import BrandAttribute from "../models/brand-attribute"
-import BrandAttributeType from "../models/brand-attribute-type"
+import Brand, { BrandAttribute, BrandAttributeType } from "../models/brand"
 import type BrandModuleService from "../service"
 
 vi.setConfig({ testTimeout: 60_000 })

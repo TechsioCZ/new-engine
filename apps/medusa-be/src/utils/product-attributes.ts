@@ -8,8 +8,10 @@ import { MedusaError, toHandle } from "@medusajs/framework/utils"
 
 import { PRODUCT_ATTRIBUTE_MODULE } from "../modules/product-attribute"
 import type ProductAttribute from "../modules/product-attribute/models/product-attribute"
-import type ProductAttributeDefinition from "../modules/product-attribute/models/product-attribute-definition"
-import type ProductAttributeOption from "../modules/product-attribute/models/product-attribute-option"
+import type {
+  ProductAttributeDefinition,
+  ProductAttributeOption,
+} from "../modules/product-attribute/models/product-attribute"
 import type ProductAttributeModuleService from "../modules/product-attribute/service"
 
 export type ProductAttributeDefinitionRecord = InferTypeOf<

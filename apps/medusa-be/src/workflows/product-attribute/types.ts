@@ -1,4 +1,4 @@
-import type { ProductAttributeInputType } from "../../modules/product-attribute/models/product-attribute-definition"
+import type { ProductAttributeInputType } from "../../modules/product-attribute/models/product-attribute"
 
 export interface CreateProductAttributeDefinitionInput {
   input_type: ProductAttributeInputType
