@@ -1,16 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { validateEntityQuery } from "@/lib/routing/query-validation"
+import {
+  CANONICALIZATION_REQUIRED_HEADER,
+  ORIGINAL_PUBLIC_PATH_HEADER,
+  TRUSTED_MARKET_HEADER,
+} from "@/lib/routing/trusted-headers"
 import { getMarketOrigin } from "@/lib/url/builder"
 import {
   getSegment,
   type RouteKind,
   resolveKindFromSegment,
+  type SegmentKey,
 } from "@/lib/url/segments"
 import { MARKETS, type Market } from "@/lib/url/types"
-
-export const TRUSTED_MARKET_HEADER = "x-sf-market"
-export const ORIGINAL_PUBLIC_PATH_HEADER = "x-sf-public-path"
-export const CANONICALIZATION_REQUIRED_HEADER = "x-sf-canonicalization-required"
 
 const INTERNAL_HEADER_NAMES = new Set([
   "x-market-code",
@@ -20,9 +22,48 @@ const INTERNAL_HEADER_NAMES = new Set([
   ORIGINAL_PUBLIC_PATH_HEADER,
   CANONICALIZATION_REQUIRED_HEADER,
 ])
-const SYSTEM_PATH_PATTERN =
-  /^\/(?:robots\.txt|sitemap\.xml|sitemaps(?:\/|$)|manifest\.webmanifest|feeds(?:\/|$)|favicon\.ico|\.well-known(?:\/|$))/i
 const INTERNAL_ROUTE_SEGMENTS = new Set<Market | "~sf">([...MARKETS, "~sf"])
+const FLOW_KINDS = new Set<RouteKind>([
+  "search",
+  "cart",
+  "checkout",
+  "account",
+  "reviews",
+])
+const CHECKOUT_SEGMENTS = [
+  "checkout.contact",
+  "checkout.shipping",
+  "checkout.payment",
+  "checkout.review",
+  "checkout.paymentReturn",
+  "checkout.confirmation",
+] as const satisfies readonly SegmentKey[]
+const ACCOUNT_SEGMENTS = [
+  "account.orders",
+  "account.lists",
+  "account.settings",
+  "account.login",
+  "account.register",
+  "account.forgotPassword",
+  "account.resetPassword",
+] as const satisfies readonly SegmentKey[]
+const HOSTNAME_PATTERN =
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i
+const PORT_PATTERN = /^\d+$/
+const BRACKETED_HOST_PATTERN = /^\[([0-9a-f:.]+)\](?::(\d+))?$/i
+const TRAILING_DOT_PATTERN = /\.$/
+const SITEMAP_SHARD_PATTERN = /^[a-z]+-[1-9]\d*\.xml$/
+const ENTITY_SEGMENT_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/i
+
+type FlowKind = Extract<
+  RouteKind,
+  "search" | "cart" | "checkout" | "account" | "reviews"
+>
+
+export type ParsedRequestHost = {
+  hostname: string
+  port: string | null
+}
 
 export type MarketHostBinding = {
   canonicalHost: string
@@ -31,48 +72,87 @@ export type MarketHostBinding = {
 }
 
 export type ProxyRoute =
-  | { type: "home"; target: string; normalizedPath: string }
+  | { type: "home"; normalizedPath: string }
   | {
       type: "entity"
-      kind: Exclude<
-        RouteKind,
-        "search" | "cart" | "checkout" | "account" | "reviews"
-      >
-      target: string
+      kind: Exclude<RouteKind, FlowKind>
       normalizedPath: string
       isDetail: boolean
     }
-  | {
-      type: "flow"
-      kind: Extract<
-        RouteKind,
-        "search" | "cart" | "checkout" | "account" | "reviews"
-      >
-      target: string
-      normalizedPath: string
-    }
-  | { type: "system"; target: string; normalizedPath: string }
-  | { type: "static"; target: string; normalizedPath: string }
+  | { type: "flow"; kind: FlowKind; normalizedPath: string }
+  | { type: "system"; normalizedPath: string }
   | { type: "not-found" }
 
-const stripPort = (host: string) => {
-  const value = host.trim().replace(/\.$/, "")
-  if (value.startsWith("[")) {
-    const close = value.indexOf("]")
-    return close >= 0 ? value.slice(0, close + 1) : value
+const hasControlCharacter = (value: string, includeSpace: boolean) => {
+  for (const character of value) {
+    const code = character.charCodeAt(0)
+    if (code === 127 || code < 32 || (includeSpace && code === 32)) {
+      return true
+    }
   }
-  return value.replace(/:\d+$/, "")
+  return false
 }
 
-export const normalizeRequestHost = (host?: string | null): string | null => {
-  const first = host?.split(",")[0]?.trim()
-  if (!first) {
+const validPort = (port: string | undefined): string | null | undefined => {
+  if (port === undefined) {
     return null
   }
-  return stripPort(
-    first.replace(/^https?:\/\//i, "").replace(/\/.*$/, "")
-  ).toLowerCase()
+  if (port.length > 5 || !PORT_PATTERN.test(port)) {
+    return
+  }
+  const number = Number(port)
+  return Number.isSafeInteger(number) && number <= 65_535 ? port : undefined
 }
+
+/** Parse one RFC-style Host authority without accepting forwarded-host lists or URLs. */
+export const parseRequestHost = (
+  host?: string | null
+): ParsedRequestHost | null => {
+  if (
+    !host ||
+    hasControlCharacter(host, true) ||
+    host.includes(",") ||
+    host.includes("/") ||
+    host.includes("\\")
+  ) {
+    return null
+  }
+
+  if (host.startsWith("[")) {
+    const match = BRACKETED_HOST_PATTERN.exec(host)
+    const port = validPort(match?.[2])
+    if (!match || port === undefined) {
+      return null
+    }
+    try {
+      const parsed = new URL(`http://${host}`)
+      return { hostname: parsed.hostname.toLowerCase(), port }
+    } catch {
+      return null
+    }
+  }
+
+  const parts = host.split(":")
+  if (parts.length > 2) {
+    return null
+  }
+  const port = validPort(parts[1])
+  const hostname = (parts[0] ?? "")
+    .toLowerCase()
+    .replace(TRAILING_DOT_PATTERN, "")
+  if (
+    port === undefined ||
+    hostname.length === 0 ||
+    hostname.length > 253 ||
+    !HOSTNAME_PATTERN.test(hostname)
+  ) {
+    return null
+  }
+  return { hostname, port }
+}
+
+export const normalizeRequestHost = (host?: string | null): string | null =>
+  parseRequestHost(host)?.hostname ?? null
 
 export const resolveAllowedMarkets = (
   raw = process.env.ALLOWED_MARKETS
@@ -81,14 +161,11 @@ export const resolveAllowedMarkets = (
     return new Set(MARKETS)
   }
 
-  const requested = raw
-    .split(",")
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean)
   const allowed = new Set<Market>()
-  for (const value of requested) {
-    if ((MARKETS as readonly string[]).includes(value)) {
-      allowed.add(value as Market)
+  for (const value of raw.split(",")) {
+    const normalized = value.trim().toLowerCase()
+    if ((MARKETS as readonly string[]).includes(normalized)) {
+      allowed.add(normalized as Market)
     }
   }
   return allowed
@@ -100,7 +177,7 @@ const additionalHostsForMarket = (
 ) =>
   (environment[`HERBATICA_ALLOWED_HOSTS_${market.toUpperCase()}`] ?? "")
     .split(",")
-    .map(normalizeRequestHost)
+    .map((value) => normalizeRequestHost(value.trim()))
     .filter((host): host is string => Boolean(host))
 
 export const createMarketHostBindings = (
@@ -136,10 +213,10 @@ export const resolveMarketFromHost = (
   if (!normalizedHost) {
     return null
   }
-  return (
-    bindings.find((binding) => binding.acceptedHosts.has(normalizedHost)) ??
-    null
+  const matches = bindings.filter((binding) =>
+    binding.acceptedHosts.has(normalizedHost)
   )
+  return matches.length === 1 ? (matches[0] ?? null) : null
 }
 
 export const scrubInternalHeaders = (source: Headers): Headers => {
@@ -156,188 +233,194 @@ export const scrubInternalHeaders = (source: Headers): Headers => {
   return headers
 }
 
+type ParsedPath = { decoded: string[] }
+
+const parsePath = (pathname: string): ParsedPath | null => {
+  if (!pathname.startsWith("/")) {
+    return null
+  }
+  const raw = pathname.slice(1).split("/")
+  while (raw.at(-1) === "") {
+    raw.pop()
+  }
+  if (raw.some((segment) => segment.length === 0)) {
+    return null
+  }
+
+  try {
+    const decoded = raw.map(decodeURIComponent)
+    return decoded.some(
+      (segment) =>
+        hasControlCharacter(segment, false) ||
+        segment.includes("/") ||
+        segment.includes("\\")
+    )
+      ? null
+      : { decoded }
+  } catch {
+    return null
+  }
+}
+
 const joinPath = (segments: readonly string[]) =>
   segments.length === 0 ? "/" : `/${segments.join("/")}`
 
-const normalizeFlowSegments = (
-  kind: Extract<
-    RouteKind,
-    "search" | "cart" | "checkout" | "account" | "reviews"
-  >,
+const isFlowKind = (kind: RouteKind): kind is FlowKind => FLOW_KINDS.has(kind)
+
+const resolveSystemRoute = (segments: readonly string[]): ProxyRoute | null => {
+  const lowered = segments.map((segment) => segment.toLowerCase())
+  if (lowered.length === 1 && lowered[0] === "robots.txt") {
+    return { type: "system", normalizedPath: "/robots.txt" }
+  }
+  if (lowered.length === 1 && lowered[0] === "sitemap.xml") {
+    return { type: "system", normalizedPath: "/sitemap.xml" }
+  }
+  if (
+    lowered.length === 2 &&
+    lowered[0] === "sitemaps" &&
+    SITEMAP_SHARD_PATTERN.test(lowered[1] ?? "")
+  ) {
+    return { type: "system", normalizedPath: joinPath(lowered) }
+  }
+  return null
+}
+
+const resolveCheckoutRoute = (
+  market: Market,
   segments: readonly string[]
-) => {
+): ProxyRoute => {
+  const kind = "checkout"
+  const root = getSegment(market, kind)
+  if (segments.length === 1) {
+    return { type: "flow", kind, normalizedPath: `/${root}` }
+  }
+  const step = CHECKOUT_SEGMENTS.map((key) => getSegment(market, key)).find(
+    (candidate) => candidate === segments[1]?.toLowerCase()
+  )
+  return segments.length === 2 && step
+    ? { type: "flow", kind, normalizedPath: `/${root}/${step}` }
+    : { type: "not-found" }
+}
+
+const resolveAccountRoute = (
+  market: Market,
+  segments: readonly string[]
+): ProxyRoute => {
+  const kind = "account"
+  const root = getSegment(market, kind)
+  if (segments.length === 1) {
+    return { type: "flow", kind, normalizedPath: `/${root}` }
+  }
+  const section = ACCOUNT_SEGMENTS.map((key) => getSegment(market, key)).find(
+    (candidate) => candidate === segments[1]?.toLowerCase()
+  )
+  const mayHaveValue =
+    section === getSegment(market, "account.orders") ||
+    section === getSegment(market, "account.resetPassword")
+  const valid =
+    Boolean(section) &&
+    (segments.length === 2 || (mayHaveValue && segments.length === 3))
+  return valid
+    ? {
+        type: "flow",
+        kind,
+        normalizedPath: joinPath([root, section ?? "", ...segments.slice(2)]),
+      }
+    : { type: "not-found" }
+}
+
+const resolveReviewsRoute = (
+  market: Market,
+  segments: readonly string[]
+): ProxyRoute => {
+  const kind = "reviews"
+  const root = getSegment(market, kind)
+  const productSegment = getSegment(market, "reviews.product")
+  return segments.length === 3 &&
+    segments[1]?.toLowerCase() === productSegment &&
+    Boolean(segments[2])
+    ? {
+        type: "flow",
+        kind,
+        normalizedPath: joinPath([root, productSegment, segments[2] ?? ""]),
+      }
+    : { type: "not-found" }
+}
+
+const resolveFlowRoute = (
+  market: Market,
+  kind: FlowKind,
+  segments: readonly string[]
+): ProxyRoute => {
+  if (kind === "checkout") {
+    return resolveCheckoutRoute(market, segments)
+  }
   if (kind === "account") {
-    return segments.map((segment, index) =>
-      index < 2 ? segment.toLowerCase() : segment
-    )
+    return resolveAccountRoute(market, segments)
   }
   if (kind === "reviews") {
-    return segments.map((segment, index) =>
-      index < 2 ? segment.toLowerCase() : segment
-    )
+    return resolveReviewsRoute(market, segments)
   }
-  return segments.map((segment) => segment.toLowerCase())
+  const root = getSegment(market, kind)
+  return segments.length === 1
+    ? { type: "flow", kind, normalizedPath: `/${root}` }
+    : { type: "not-found" }
 }
 
 /** Pure static public-path parser used by Proxy and unit tests. */
 export const resolveProxyRoute = (
   market: Market,
   pathname: string
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Static taxonomy dispatch is intentionally centralized.
 ): ProxyRoute => {
-  if (SYSTEM_PATH_PATTERN.test(pathname)) {
-    return { type: "system", target: pathname, normalizedPath: pathname }
+  const parsed = parsePath(pathname)
+  if (!parsed) {
+    return { type: "not-found" }
+  }
+  const segments = parsed.decoded
+  if (segments.length === 0) {
+    return { type: "home", normalizedPath: "/" }
   }
 
-  const _hadTrailingSlash = pathname.length > 1 && pathname.endsWith("/")
-  const segments = pathname.split("/").filter(Boolean)
-  if (segments.length === 0) {
-    return { type: "home", target: `/~sf/${market}/home`, normalizedPath: "/" }
+  const system = resolveSystemRoute(segments)
+  if (system) {
+    return system
   }
 
   const first = segments[0] ?? ""
-  if (INTERNAL_ROUTE_SEGMENTS.has(first.toLowerCase() as Market | "~sf")) {
+  const normalizedFirst = first.toLowerCase()
+  if (INTERNAL_ROUTE_SEGMENTS.has(normalizedFirst as Market | "~sf")) {
     return { type: "not-found" }
-  }
-
-  if (segments.length === 1) {
-    const staticPages = [
-      {
-        key: "about",
-        current: getSegment(market, "about"),
-        aliases: ["o-nas"],
-      },
-      { key: "faq", current: getSegment(market, "faq"), aliases: ["faq"] },
-    ] as const
-    const normalizedFirst = first.toLowerCase()
-    const staticPage = staticPages.find(
-      ({ current, aliases }) =>
-        normalizedFirst === current ||
-        aliases.includes(normalizedFirst as never)
-    )
-    if (staticPage) {
-      return {
-        type: "static",
-        target: `/~sf/${market}/static/${staticPage.key}`,
-        normalizedPath: `/${staticPage.current}`,
-      }
-    }
   }
 
   const kind = resolveKindFromSegment(market, first)
   if (!kind) {
     return { type: "not-found" }
   }
-
-  const flowKinds = new Set<RouteKind>([
-    "search",
-    "cart",
-    "checkout",
-    "account",
-    "reviews",
-  ])
-  const isFlowKind = (
-    value: RouteKind
-  ): value is Extract<
-    RouteKind,
-    "search" | "cart" | "checkout" | "account" | "reviews"
-  > => flowKinds.has(value)
   if (isFlowKind(kind)) {
-    const normalizedSegments = normalizeFlowSegments(kind, segments)
-    const rest = segments.slice(1)
-    let target: string
-    switch (kind) {
-      case "search":
-      case "cart":
-        target = `/~sf/${market}/${kind}`
-        break
-      case "checkout":
-        target =
-          rest[0]?.toLowerCase() ===
-          getSegment(market, "checkout.paymentReturn")
-            ? `/~sf/${market}/checkout/result`
-            : `/~sf/${market}/checkout${rest.length ? `/${rest.join("/")}` : ""}`
-        break
-      case "account": {
-        const section = rest[0]?.toLowerCase()
-        if (!section) {
-          target = `/~sf/${market}/account`
-        } else if (
-          section === getSegment(market, "account.orders") &&
-          rest[1]
-        ) {
-          target = `/~sf/${market}/account/order/${rest.slice(1).join("/")}`
-        } else if (
-          [
-            "account.login",
-            "account.register",
-            "account.forgotPassword",
-            "account.resetPassword",
-          ].some(
-            (key) =>
-              section ===
-              getSegment(
-                market,
-                key as
-                  | "account.login"
-                  | "account.register"
-                  | "account.forgotPassword"
-                  | "account.resetPassword"
-              )
-          )
-        ) {
-          target = `/~sf/${market}/account/auth/${rest.join("/")}`
-        } else {
-          target = `/~sf/${market}/account/section/${rest.join("/")}`
-        }
-        break
-      }
-      case "reviews":
-        target = `/~sf/${market}/reviews/product/${rest.slice(1).join("/")}`
-        break
-      default:
-        target = `/~sf/${market}/${kind}`
-    }
-    return {
-      type: "flow",
-      kind,
-      target,
-      normalizedPath: joinPath(normalizedSegments),
-    }
+    return resolveFlowRoute(market, kind, segments)
   }
 
-  const normalizedSegments = segments.map((segment) => segment.toLowerCase())
-  const detailDirectory: Record<
-    Exclude<RouteKind, "search" | "cart" | "checkout" | "account" | "reviews">,
-    string
-  > = {
-    product: "product",
-    category: "category",
-    brand: "brand",
-    collection: "collection",
-    campaign: "campaign",
-    article: "advice",
-    page: "information",
+  const supportsIndex = kind !== "page"
+  if (segments.length === 1 && supportsIndex) {
+    return {
+      type: "entity",
+      kind,
+      isDetail: false,
+      normalizedPath: `/${normalizedFirst}`,
+    }
   }
-  const indexDirectory: Partial<typeof detailDirectory> = {
-    product: "products",
-    category: "categories",
-    brand: "brands",
-    collection: "collections",
-    campaign: "campaigns",
-    article: "advice",
-  }
-  const isDetail = segments.length === 2
-  const directory = isDetail ? detailDirectory[kind] : indexDirectory[kind]
-  if (!directory || segments.length > 2) {
+  if (
+    segments.length !== 2 ||
+    !segments[1] ||
+    !ENTITY_SEGMENT_PATTERN.test(segments[1])
+  ) {
     return { type: "not-found" }
   }
   return {
     type: "entity",
     kind,
-    isDetail,
-    target: `/~sf/${market}/${directory}${isDetail ? `/${segments[1]}` : ""}`,
-    normalizedPath: joinPath(normalizedSegments),
+    isDetail: true,
+    normalizedPath: joinPath([normalizedFirst, segments[1].toLowerCase()]),
   }
 }
 
@@ -352,23 +435,34 @@ const canonicalUrl = (
   return target
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: The trust boundary keeps decisions explicit.
+const isApiPath = (pathname: string) =>
+  pathname === "/api" || pathname.startsWith("/api/")
+
+const passThrough = (headers: Headers) =>
+  NextResponse.next({ request: { headers } })
+
 export function proxy(request: NextRequest) {
-  const host = request.headers.get("host")
-  const binding = resolveMarketFromHost(host)
-  if (!binding) {
+  const parsedHost = parseRequestHost(request.headers.get("host"))
+  const binding = resolveMarketFromHost(request.headers.get("host"))
+  if (!(parsedHost && binding)) {
     return new NextResponse("Misdirected Request", { status: 421 })
+  }
+
+  const requestHeaders = scrubInternalHeaders(request.headers)
+  requestHeaders.set(TRUSTED_MARKET_HEADER, binding.market)
+  requestHeaders.set(ORIGINAL_PUBLIC_PATH_HEADER, request.nextUrl.pathname)
+
+  // APIs share the Host-derived market trust boundary, but retain their own
+  // methods, path validation, and responses. There is no health/internal bypass.
+  if (isApiPath(request.nextUrl.pathname)) {
+    return passThrough(requestHeaders)
   }
 
   const route = resolveProxyRoute(binding.market, request.nextUrl.pathname)
   if (route.type === "not-found") {
     return new NextResponse("Not Found", { status: 404 })
   }
-  if (
-    route.type !== "system" &&
-    request.method !== "GET" &&
-    request.method !== "HEAD"
-  ) {
+  if (request.method !== "GET" && request.method !== "HEAD") {
     return new NextResponse("Method Not Allowed", {
       status: 405,
       headers: { Allow: "GET, HEAD" },
@@ -385,13 +479,8 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  const requestHeaders = scrubInternalHeaders(request.headers)
-  requestHeaders.set(TRUSTED_MARKET_HEADER, binding.market)
-  requestHeaders.set(ORIGINAL_PUBLIC_PATH_HEADER, request.nextUrl.pathname)
-
-  const rawHost = stripPort(host ?? "")
   const canonicalizationRequired =
-    rawHost !== binding.canonicalHost ||
+    parsedHost.hostname !== binding.canonicalHost ||
     request.nextUrl.pathname !== route.normalizedPath
 
   if (route.type === "entity" && route.isDetail) {
@@ -405,32 +494,14 @@ export function proxy(request: NextRequest) {
     )
   }
 
-  if (route.type === "system") {
-    const target = request.nextUrl.clone()
-    if (/^\/robots\.txt$/i.test(route.target)) {
-      target.pathname = `/~sf/${binding.market}/system/robots`
-    } else if (/^\/sitemap\.xml$/i.test(route.target)) {
-      target.pathname = `/~sf/${binding.market}/system/sitemap/index`
-    } else {
-      const shard = route.target.match(/^\/sitemaps\/(.+)\.xml$/i)?.[1]
-      if (!shard) {
-        return NextResponse.next({ request: { headers: requestHeaders } })
-      }
-      target.pathname = `/~sf/${binding.market}/system/sitemap/shard/${encodeURIComponent(shard)}`
-    }
-    return NextResponse.rewrite(target, {
-      request: { headers: requestHeaders },
-    })
-  }
-
-  const target = request.nextUrl.clone()
-  target.pathname = route.target
-  return NextResponse.rewrite(target, { request: { headers: requestHeaders } })
+  return passThrough(requestHeaders)
 }
 
 export const config = {
+  // API routes deliberately pass through Proxy for Host-derived market headers.
+  // Next static/image internals and immutable public assets remain excluded.
   matcher: [
-    "/((?!api(?:/|$)|_next/static|_next/image|.*.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|woff|woff2)$).*)",
-    "/favicon.ico",
+    "/api/:path*",
+    "/((?!_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|woff|woff2)$).*)",
   ],
 }

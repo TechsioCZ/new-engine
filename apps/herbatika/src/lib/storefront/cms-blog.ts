@@ -1,5 +1,6 @@
 import type { BlogPost, BlogTopicKey } from "@/lib/storefront/blog-content"
 import {
+  CmsUpstreamError,
   fetchCmsJson,
   resolveCmsMediaUrl,
   rewriteCmsHtmlMediaUrls,
@@ -102,7 +103,13 @@ export const fetchCmsArticleCategories = async (locale: HerbatikaLocale) => {
     locale
   )
 
-  return response?.articleCategories ?? []
+  if (response === null) {
+    return []
+  }
+  if (!Array.isArray(response.articleCategories)) {
+    throw new CmsUpstreamError("invalid-payload")
+  }
+  return response.articleCategories
 }
 
 /**
@@ -118,7 +125,14 @@ export const fetchCmsArticleBySlug = async (
     locale
   )
 
-  return response?.article ?? null
+  if (response === null) {
+    return null
+  }
+  const article = response.article
+  if (!(article?.id && article.slug?.trim() && article.title?.trim())) {
+    throw new CmsUpstreamError("invalid-payload")
+  }
+  return article
 }
 
 /** Load a published article by stable Payload document ID and market locale. */
@@ -131,7 +145,14 @@ export const fetchCmsArticleById = async (
     locale
   )
 
-  return response?.article ?? null
+  if (response === null) {
+    return null
+  }
+  const article = response.article
+  if (!(article?.id && article.slug?.trim() && article.title?.trim())) {
+    throw new CmsUpstreamError("invalid-payload")
+  }
+  return article
 }
 
 export const fetchCmsBlogPostById = async (

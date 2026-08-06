@@ -1,19 +1,6 @@
+import type { Metadata } from "next"
 import { buildAlternates, buildCanonical } from "@/lib/url/builder"
 import type { Market, UrlKind, UrlRecord } from "@/lib/url/types"
-
-export type SeoPageMetadata = {
-  title?: string
-  description?: string
-  robots: string
-  canonical?: string
-  hreflang?: Array<{ hrefLang: string; href: string }>
-  openGraph?: {
-    url?: string
-    title?: string
-    description?: string
-    type?: string
-  }
-}
 
 export type EntityPageMetadataInput = {
   market: Market
@@ -31,6 +18,7 @@ export type IndexPageMetadataInput = {
   title?: string
   description?: string
   page?: number
+  query?: Record<string, string | string[] | undefined>
 }
 
 export type NoindexMetadataInput = {
@@ -67,39 +55,35 @@ const pageCopy = (input: { title?: string; description?: string }) => ({
 
 const buildOpenGraph = (
   input: { title?: string; description?: string },
-  canonical?: string
-): SeoPageMetadata["openGraph"] => {
-  if (
-    canonical === undefined &&
-    input.title === undefined &&
-    input.description === undefined
-  ) {
-    return
-  }
-  return {
-    ...(canonical === undefined ? {} : { url: canonical }),
-    ...(input.title === undefined ? {} : { title: input.title }),
-    ...(input.description === undefined
-      ? {}
-      : { description: input.description }),
-  }
-}
+  canonical: string
+): Metadata["openGraph"] => ({
+  url: canonical,
+  ...(input.title === undefined ? {} : { title: input.title }),
+  ...(input.description === undefined
+    ? {}
+    : { description: input.description }),
+})
 
-const alternatesIncludingSelf = (
+const buildLanguageAlternates = (
   record: UrlRecord,
   records: UrlRecord[]
-): SeoPageMetadata["hreflang"] => {
+): NonNullable<Metadata["alternates"]>["languages"] => {
   const candidates = records.some((candidate) => candidate.id === record.id)
     ? records
     : [record, ...records]
-  const result = buildAlternates(candidates)
-  return result.length === 0 ? undefined : result
+  const alternates = buildAlternates(candidates)
+  if (alternates.length === 0) {
+    return
+  }
+  return Object.fromEntries(
+    alternates.map(({ hrefLang, href }) => [hrefLang, href])
+  )
 }
 
-/** Compose a serializable SEO model for a registry-backed public entity. */
+/** Compose native App Router metadata for a registry-backed public entity. */
 export function buildEntityPageMetadata(
   input: EntityPageMetadataInput
-): SeoPageMetadata {
+): Metadata {
   if (
     input.record.market !== input.market ||
     input.record.kind !== input.kind
@@ -112,18 +96,27 @@ export function buildEntityPageMetadata(
     countQueryValues(input.query, "kategorie")
   const hasSort = hasQueryKey(input.query, "razeni")
   const hasVariant = hasQueryKey(input.query, "varianta")
-  const noindex =
-    input.record.status !== "current" ||
-    !input.record.indexable ||
-    filterCount >= 2 ||
-    hasSort ||
-    hasVariant
+  const recordNoindex =
+    input.record.status !== "current" || !input.record.indexable
+  const queryNoindex = filterCount >= 2 || hasSort || hasVariant
 
-  if (noindex) {
+  if (recordNoindex) {
     return {
       ...pageCopy(input),
       robots: NOINDEX_ROBOTS,
-      openGraph: buildOpenGraph(input),
+    }
+  }
+
+  if (queryNoindex) {
+    const canonical = buildCanonical({
+      market: input.market,
+      kind: input.kind,
+      slug: input.record.slug,
+    })
+    return {
+      ...pageCopy(input),
+      robots: NOINDEX_ROBOTS,
+      alternates: { canonical },
     }
   }
 
@@ -133,45 +126,80 @@ export function buildEntityPageMetadata(
     slug: input.record.slug,
     searchParams: input.query,
   })
+  const languages = buildLanguageAlternates(input.record, input.alternates)
 
   return {
     ...pageCopy(input),
     robots: INDEXABLE_ROBOTS,
-    canonical,
-    hreflang: alternatesIncludingSelf(input.record, input.alternates),
+    alternates: {
+      canonical,
+      ...(languages === undefined ? {} : { languages }),
+    },
     openGraph: buildOpenGraph(input, canonical),
   }
 }
 
-/** Compose a serializable SEO model for an index and page >= 2 route. */
+/** Compose native App Router metadata for an index or page >= 2 route. */
 export function buildIndexPageMetadata(
   input: IndexPageMetadataInput
-): SeoPageMetadata {
+): Metadata {
   const page =
     input.page !== undefined && Number.isInteger(input.page) && input.page >= 2
       ? input.page
       : undefined
+  const query = {
+    ...input.query,
+    ...(page === undefined ? {} : { strana: String(page) }),
+  }
+  const filterCount =
+    countQueryValues(query, "znacka") + countQueryValues(query, "kategorie")
+  const queryNoindex = filterCount >= 2 || hasQueryKey(query, "razeni")
   const canonical = buildCanonical({
     market: input.market,
     kind: input.kind,
-    searchParams: page === undefined ? undefined : { strana: String(page) },
+    searchParams: queryNoindex ? undefined : query,
   })
+
+  if (queryNoindex) {
+    return {
+      ...pageCopy(input),
+      robots: NOINDEX_ROBOTS,
+      alternates: { canonical },
+    }
+  }
+
+  const hasLocalizedFilter = filterCount > 0
+  const languages = hasLocalizedFilter
+    ? undefined
+    : Object.fromEntries(
+        (["sk", "cz", "hu", "ro"] as const).map((market) => [
+          ({ sk: "sk-SK", cz: "cs-CZ", hu: "hu-HU", ro: "ro-RO" } as const)[
+            market
+          ],
+          buildCanonical({
+            market,
+            kind: input.kind,
+            searchParams:
+              page === undefined ? undefined : { strana: String(page) },
+          }),
+        ])
+      )
 
   return {
     ...pageCopy(input),
     robots: INDEXABLE_ROBOTS,
-    canonical,
+    alternates: {
+      canonical,
+      ...(languages === undefined ? {} : { languages }),
+    },
     openGraph: buildOpenGraph(input, canonical),
   }
 }
 
-/** Compose metadata for private, search, or otherwise non-indexable surfaces. */
-export function buildNoindexMetadata(
-  input: NoindexMetadataInput
-): SeoPageMetadata {
+/** Compose native App Router metadata without URL or social sharing signals. */
+export function buildNoindexMetadata(input: NoindexMetadataInput): Metadata {
   return {
     ...pageCopy(input),
     robots: NOINDEX_ROBOTS,
-    openGraph: buildOpenGraph(input),
   }
 }

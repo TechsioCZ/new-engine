@@ -1,6 +1,10 @@
 import type { HeroBannerItem } from "@/components/homepage/homepage.data.types"
 import { assertServerOnly } from "@/lib/server-guard"
-import { fetchCmsJson, resolveCmsMediaUrl } from "./cms-client"
+import {
+  CmsUpstreamError,
+  fetchCmsJson,
+  resolveCmsMediaUrl,
+} from "./cms-client"
 import type { CmsHeroCarousel } from "./cms-types"
 import type { HerbatikaLocale } from "./market-context"
 
@@ -74,7 +78,13 @@ export const fetchCmsHeroBanners = async (locale: HerbatikaLocale) => {
     }
   )
 
-  return (response?.heroCarousels ?? [])
+  if (response === null) {
+    return []
+  }
+  if (!Array.isArray(response.heroCarousels)) {
+    throw new CmsUpstreamError("invalid-payload")
+  }
+  return response.heroCarousels
     .map(mapCmsHeroCarouselToHeroBanner)
     .filter((banner): banner is HeroBannerItem => Boolean(banner))
 }

@@ -1,4 +1,5 @@
 import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
+import { sanitizeHtml } from "@/components/product-detail/utils/html-sanitizer"
 import { assertServerOnly } from "@/lib/server-guard"
 import { resolveCmsMediaUrl } from "./cms-client"
 import { fetchCmsPageBySlug } from "./cms-pages"
@@ -16,7 +17,7 @@ export const mapCmsPageToHomepagePromo = (
   page: CmsPage | null
 ): HomepagePromoContent | null => {
   const heading = page?.title?.trim()
-  const contentHtml = page?.content?.trim()
+  const contentHtml = sanitizeHtml(page?.content?.trim() ?? "")
 
   if (!(heading && contentHtml)) {
     return null

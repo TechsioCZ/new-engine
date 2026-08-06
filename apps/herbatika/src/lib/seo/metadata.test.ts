@@ -47,55 +47,46 @@ describe("SEO metadata helpers", () => {
       title: "Green tea",
       description: "Tea description",
       robots: "index, follow",
-      canonical: "https://herbatica.sk/produkty/zeleny-caj",
+      alternates: {
+        canonical: "https://herbatica.sk/produkty/zeleny-caj",
+      },
       openGraph: {
         url: "https://herbatica.sk/produkty/zeleny-caj",
         title: "Green tea",
         description: "Tea description",
       },
     })
-    expect(metadata.hreflang).toEqual([
-      {
-        hrefLang: "sk-SK",
-        href: "https://herbatica.sk/produkty/zeleny-caj",
-      },
-      {
-        hrefLang: "cs-CZ",
-        href: "https://herbatica.cz/produkty/zeleny-caj",
-      },
-      {
-        hrefLang: "hu-HU",
-        href: "https://herbatica.hu/termekek/zold-tea",
-      },
-    ])
-    expect(metadata.hreflang).not.toContainEqual(
-      expect.objectContaining({ hrefLang: "x-default" })
-    )
+    expect(metadata.alternates?.languages).toEqual({
+      "sk-SK": "https://herbatica.sk/produkty/zeleny-caj",
+      "cs-CZ": "https://herbatica.cz/produkty/zeleny-caj",
+      "hu-HU": "https://herbatica.hu/termekek/zold-tea",
+    })
+    expect(metadata.alternates?.languages).not.toHaveProperty("x-default")
   })
 
   it("adds self when the registry alternate lookup omitted it", () => {
     expect(
-      entityMetadata({ alternates: alternates.slice(1) }).hreflang
-    ).toContainEqual({
-      hrefLang: "sk-SK",
-      href: "https://herbatica.sk/produkty/zeleny-caj",
-    })
+      entityMetadata({ alternates: alternates.slice(1) }).alternates?.languages
+    ).toHaveProperty("sk-SK", "https://herbatica.sk/produkty/zeleny-caj")
   })
 
   it("ignores tracking parameters without changing indexability", () => {
     const metadata = entityMetadata({
       query: { utm_source: "newsletter", gclid: "click", fbclid: "social" },
     })
-    expect(metadata.canonical).toBe("https://herbatica.sk/produkty/zeleny-caj")
+    expect(metadata.alternates?.canonical).toBe(
+      "https://herbatica.sk/produkty/zeleny-caj"
+    )
     expect(metadata.robots).toBe("index, follow")
   })
 
-  it("marks product variants noindex with no canonical, hreflang, or OG URL", () => {
+  it("noindexes product variants with a clean canonical and no hreflang or OG", () => {
     const metadata = entityMetadata({ query: { varianta: "SKU-AbC" } })
     expect(metadata.robots).toBe("noindex, follow")
-    expect(metadata.canonical).toBeUndefined()
-    expect(metadata.hreflang).toBeUndefined()
-    expect(metadata.openGraph?.url).toBeUndefined()
+    expect(metadata.alternates).toEqual({
+      canonical: "https://herbatica.sk/produkty/zeleny-caj",
+    })
+    expect(metadata.openGraph).toBeUndefined()
   })
 
   it("keeps one indexable filter in a category canonical", () => {
@@ -106,11 +97,11 @@ describe("SEO metadata helpers", () => {
       alternates: [category],
       query: { znacka: "Pukka" },
     })
-    expect(metadata.canonical).toBe(
+    expect(metadata.alternates?.canonical).toBe(
       "https://herbatica.sk/kategorie/caje?znacka=pukka"
     )
     expect(metadata.robots).toBe("index, follow")
-    expect(metadata.openGraph?.url).toBe(metadata.canonical)
+    expect(metadata.openGraph?.url).toBe(metadata.alternates?.canonical)
   })
 
   it.each([
@@ -125,12 +116,13 @@ describe("SEO metadata helpers", () => {
       query,
     })
     expect(metadata.robots).toBe("noindex, follow")
-    expect(metadata.canonical).toBeUndefined()
-    expect(metadata.hreflang).toBeUndefined()
-    expect(metadata.openGraph?.url).toBeUndefined()
+    expect(metadata.alternates).toEqual({
+      canonical: "https://herbatica.sk/kategorie/caje",
+    })
+    expect(metadata.openGraph).toBeUndefined()
   })
 
-  it("noindexes sorting without canonical, hreflang, or OG URL", () => {
+  it("noindexes sorting with a clean canonical and no hreflang or OG", () => {
     const category = record({ kind: "category", slug: "caje" })
     const metadata = entityMetadata({
       kind: "category",
@@ -139,9 +131,10 @@ describe("SEO metadata helpers", () => {
       query: { razeni: "cena", strana: "3" },
     })
     expect(metadata.robots).toBe("noindex, follow")
-    expect(metadata.canonical).toBeUndefined()
-    expect(metadata.hreflang).toBeUndefined()
-    expect(metadata.openGraph?.url).toBeUndefined()
+    expect(metadata.alternates).toEqual({
+      canonical: "https://herbatica.sk/kategorie/caje",
+    })
+    expect(metadata.openGraph).toBeUndefined()
   })
 
   it("keeps page 2 self-canonical without prev/next metadata", () => {
@@ -152,7 +145,7 @@ describe("SEO metadata helpers", () => {
       alternates: [category],
       query: { strana: "2" },
     })
-    expect(metadata.canonical).toBe(
+    expect(metadata.alternates?.canonical).toBe(
       "https://herbatica.sk/kategorie/caje?strana=2"
     )
     expect(metadata).not.toHaveProperty("pagination")
@@ -165,11 +158,47 @@ describe("SEO metadata helpers", () => {
       kind: "brand",
       page: 2,
     })
-    expect(second.canonical).toBe("https://herbatica.hu/markak?strana=2")
-    expect(second.openGraph?.url).toBe(second.canonical)
+    expect(second.alternates?.canonical).toBe(
+      "https://herbatica.hu/markak?strana=2"
+    )
+    expect(second.openGraph?.url).toBe(second.alternates?.canonical)
     expect(
-      buildIndexPageMetadata({ market: "hu", kind: "brand", page: 1 }).canonical
+      buildIndexPageMetadata({ market: "hu", kind: "brand", page: 1 })
+        .alternates?.canonical
     ).toBe("https://herbatica.hu/markak")
+  })
+
+  it("adds reciprocal localized index hreflang without x-default", () => {
+    const metadata = buildIndexPageMetadata({
+      market: "sk",
+      kind: "category",
+      page: 2,
+    })
+    expect(metadata.alternates?.languages).toEqual({
+      "sk-SK": "https://herbatica.sk/kategorie?strana=2",
+      "cs-CZ": "https://herbatica.cz/kategorie?strana=2",
+      "hu-HU": "https://herbatica.hu/kategoriak?strana=2",
+      "ro-RO": "https://herbatica.ro/categorii?strana=2",
+    })
+    expect(metadata.alternates?.languages).not.toHaveProperty("x-default")
+  })
+
+  it("noindexes sorted and multi-filter indexes with a clean canonical", () => {
+    for (const query of [
+      { razeni: "cena" },
+      { znacka: "pukka", kategorie: "caje" },
+    ]) {
+      const metadata = buildIndexPageMetadata({
+        market: "sk",
+        kind: "category",
+        query,
+      })
+      expect(metadata.robots).toBe("noindex, follow")
+      expect(metadata.alternates).toEqual({
+        canonical: "https://herbatica.sk/kategorie",
+      })
+      expect(metadata.openGraph).toBeUndefined()
+    }
   })
 
   it("builds noindex metadata without canonical, hreflang, or OG URL", () => {
@@ -178,9 +207,15 @@ describe("SEO metadata helpers", () => {
       title: "Search",
       robots: "noindex, follow",
     })
-    expect(metadata.canonical).toBeUndefined()
-    expect(metadata.hreflang).toBeUndefined()
-    expect(metadata.openGraph?.url).toBeUndefined()
+    expect(metadata.alternates).toBeUndefined()
+    expect(metadata.openGraph).toBeUndefined()
+  })
+
+  it("omits canonical, hreflang, and OG for a non-indexable record", () => {
+    const metadata = entityMetadata({ record: record({ indexable: false }) })
+    expect(metadata.robots).toBe("noindex, follow")
+    expect(metadata.alternates).toBeUndefined()
+    expect(metadata.openGraph).toBeUndefined()
   })
 
   it("rejects a cross-market or cross-kind record", () => {

@@ -9,7 +9,6 @@ import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
 import localFont from "next/font/local"
 import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl"
 import { getMessages } from "next-intl/server"
-import { Suspense } from "react"
 import { AppShell } from "@/components/app-shell"
 import {
   buildCategoryListParams,
@@ -96,9 +95,7 @@ function LayoutShell({
         initialRegion={initialRegion}
       >
         <HydrationBoundary state={dehydratedState}>
-          <Suspense fallback={<div className="min-h-dvh bg-base" />}>
-            <AppShell>{children}</AppShell>
-          </Suspense>
+          <AppShell>{children}</AppShell>
         </HydrationBoundary>
       </Providers>
     </NextIntlClientProvider>
@@ -155,15 +152,9 @@ async function ResolvedRootLayout({
       lang={marketContext.htmlLang}
     >
       <body className={`text-fg-primary ${verdana.className}`}>
-        <Suspense
-          // Avoid rendering a fallback app shell here. During streaming, it can
-          // coexist with the resolved shell and duplicate header popover ids.
-          fallback={<div className="min-h-dvh bg-base" />}
-        >
-          <ResolvedLayoutShell marketContext={marketContext}>
-            {children}
-          </ResolvedLayoutShell>
-        </Suspense>
+        <ResolvedLayoutShell marketContext={marketContext}>
+          {children}
+        </ResolvedLayoutShell>
       </body>
     </html>
   )
@@ -174,9 +165,5 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return (
-    <Suspense fallback={null}>
-      <ResolvedRootLayout>{children}</ResolvedRootLayout>
-    </Suspense>
-  )
+  return <ResolvedRootLayout>{children}</ResolvedRootLayout>
 }

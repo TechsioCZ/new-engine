@@ -12,8 +12,23 @@ import { storefrontConfig } from "./sdk"
 assertServerOnly("storefront/cms-client")
 
 const CMS_REVALIDATE_SECONDS = 600
+const CMS_REQUEST_TIMEOUT_MS = 10_000
 const CMS_MEDUSA_BASE_URL = resolveMedusaBackendUrl()
 const CMS_MEDIA_BASE_URL = resolvePublicPayloadBaseUrl()
+
+export type CmsUpstreamErrorReason = "network" | "http" | "invalid-payload"
+
+export class CmsUpstreamError extends Error {
+  readonly reason: CmsUpstreamErrorReason
+  readonly status: number | undefined
+
+  constructor(reason: CmsUpstreamErrorReason, status?: number) {
+    super("CMS upstream request failed")
+    this.name = "CmsUpstreamError"
+    this.reason = reason
+    this.status = status
+  }
+}
 
 const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, "")
 
@@ -49,16 +64,33 @@ export const fetchCmsJson = async <TResponse>(
       next: {
         revalidate: CMS_REVALIDATE_SECONDS,
       },
+      signal: AbortSignal.timeout(CMS_REQUEST_TIMEOUT_MS),
     })
   } catch {
+    throw new CmsUpstreamError("network")
+  }
+
+  if (response.status === 404) {
     return null
   }
 
   if (!response.ok) {
-    return null
+    throw new CmsUpstreamError("http", response.status)
   }
 
-  return (await response.json()) as TResponse
+  let payload: TResponse
+
+  try {
+    payload = (await response.json()) as TResponse
+  } catch {
+    throw new CmsUpstreamError("invalid-payload", response.status)
+  }
+
+  if (payload === null) {
+    throw new CmsUpstreamError("invalid-payload", response.status)
+  }
+
+  return payload
 }
 
 const resolveCmsMediaPath = (

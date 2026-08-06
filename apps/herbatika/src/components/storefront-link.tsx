@@ -1,10 +1,20 @@
-import type { AnchorHTMLAttributes, PropsWithChildren } from "react"
+import NextLink from "next/link"
+import type { ComponentPropsWithoutRef } from "react"
 
-export type StorefrontLinkProps = PropsWithChildren<
-  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & { href: string }
->
+export type StorefrontLinkProps = Omit<
+  ComponentPropsWithoutRef<typeof NextLink>,
+  "href"
+> & { href: string }
 
-/** Public Pages Router destinations deliberately use document navigation. */
-export function StorefrontLink({ children, href, ...props }: StorefrontLinkProps) {
-  return <a {...props} href={href}>{children}</a>
+/** Client navigation for canonical public App Router destinations. */
+export function StorefrontLink({
+  children,
+  href,
+  ...props
+}: StorefrontLinkProps) {
+  return (
+    <NextLink {...props} href={href}>
+      {children}
+    </NextLink>
+  )
 }

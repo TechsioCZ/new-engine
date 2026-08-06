@@ -1,4 +1,8 @@
-import { fetchCmsJson, rewriteCmsHtmlMediaUrls } from "./cms-client"
+import {
+  CmsUpstreamError,
+  fetchCmsJson,
+  rewriteCmsHtmlMediaUrls,
+} from "./cms-client"
 import type { CmsPage } from "./cms-types"
 import type { HerbatikaLocale } from "./market-context"
 
@@ -6,9 +10,9 @@ type CmsPageResponse = {
   page?: CmsPage | null
 }
 
-const normalizeCmsPage = (page: CmsPage | null | undefined) => {
-  if (!(page?.id && page.title)) {
-    return null
+const normalizeCmsPage = (page: CmsPage) => {
+  if (!(page.id && page.title?.trim())) {
+    throw new CmsUpstreamError("invalid-payload")
   }
 
   return {
@@ -30,7 +34,13 @@ export const fetchCmsPageBySlug = async (
     locale
   )
 
-  return normalizeCmsPage(response?.page)
+  if (response === null) {
+    return null
+  }
+  if (!response.page) {
+    throw new CmsUpstreamError("invalid-payload")
+  }
+  return normalizeCmsPage(response.page)
 }
 
 /** Load published page content by stable Payload document ID and market locale. */
@@ -43,5 +53,11 @@ export const fetchCmsPageById = async (
     locale
   )
 
-  return normalizeCmsPage(response?.page)
+  if (response === null) {
+    return null
+  }
+  if (!response.page) {
+    throw new CmsUpstreamError("invalid-payload")
+  }
+  return normalizeCmsPage(response.page)
 }

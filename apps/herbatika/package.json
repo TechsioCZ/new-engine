@@ -18,7 +18,8 @@
     "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives && pnpm validate:file-size && pnpm validate:url-segments",
     "validate:url-segments": "vitest run scripts/validate-url-segments.test.ts",
     "url-registry:migrate": "node scripts/url-registry-migrate.mjs",
-    "url-registry:seed": "node scripts/url-registry-seed.mjs"
+    "url-registry:seed": "node scripts/url-registry-seed.mjs",
+    "test:wire:url-architecture": "node tests/wire/url-architecture/run.mjs"
   },
   "nx": {
     "tags": [
@@ -35,7 +36,7 @@
     "@techsio/storefront-data": "workspace:*",
     "@techsio/storefront-i18n": "workspace:*",
     "@techsio/ui-kit": "workspace:*",
-    "next": "16.3.0-preview.5",
+    "next": "16.3.0",
     "next-intl": "^4.13.2",
     "nuqs": "^2.8.8",
     "pg": "^8.22.0",
