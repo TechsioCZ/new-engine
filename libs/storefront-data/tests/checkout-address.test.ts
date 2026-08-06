@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  type CheckoutAddressInput,
   buildCheckoutCartAddressInput,
   createCheckoutCartAddressAdapter,
   createCheckoutCustomerAddressAdapter,
@@ -9,6 +8,7 @@ import {
   mapCheckoutAddressToMedusaCartAddress,
   mapMedusaAddressToCheckoutAddress,
 } from "../src/checkout/address"
+import type { CheckoutAddressInput } from "../src/checkout/address"
 
 describe("checkout address defaults", () => {
   it("returns validation issues for missing shipping, billing, and email", () => {
@@ -95,7 +95,6 @@ describe("checkout address defaults", () => {
 
   it("skips billing validation when same-address mode omits billing input", () => {
     const issues = getCheckoutAddressValidationIssues({
-      billing: undefined as never,
       email: "jan@example.com",
       shipping: {
         city: "Prague",
@@ -212,28 +211,28 @@ describe("checkout address defaults", () => {
     ).toStrictEqual({
       billingAddress: {
         address_1: "Billing 2",
-        address_2: undefined,
+        address_2: undefined as const,
         city: "Brno",
-        company: undefined,
+        company: undefined as const,
         country_code: "sk",
         first_name: "Bill",
         last_name: "Buyer",
-        phone: undefined,
+        phone: undefined as const,
         postal_code: "60200",
-        province: undefined,
+        province: undefined as const,
       },
       email: "jan@example.com",
       shippingAddress: {
         address_1: "Main 1",
-        address_2: undefined,
+        address_2: undefined as const,
         city: "Prague",
         company: "ACME",
         country_code: "cz",
         first_name: "Jan",
         last_name: "Novak",
-        phone: undefined,
+        phone: undefined as const,
         postal_code: "11000",
-        province: undefined,
+        province: undefined as const,
       },
       useSameAddress: false,
     })
@@ -254,28 +253,28 @@ describe("checkout address defaults", () => {
     ).toStrictEqual({
       billingAddress: {
         address_1: "Main 1",
-        address_2: undefined,
+        address_2: undefined as const,
         city: "Prague",
-        company: undefined,
+        company: undefined as const,
         country_code: "cz",
         first_name: "Jan",
         last_name: "Novak",
-        phone: undefined,
+        phone: undefined as const,
         postal_code: "11000",
-        province: undefined,
+        province: undefined as const,
       },
       email: "jan@example.com",
       shippingAddress: {
         address_1: "Main 1",
-        address_2: undefined,
+        address_2: undefined as const,
         city: "Prague",
-        company: undefined,
+        company: undefined as const,
         country_code: "cz",
         first_name: "Jan",
         last_name: "Novak",
-        phone: undefined,
+        phone: undefined as const,
         postal_code: "11000",
-        province: undefined,
+        province: undefined as const,
       },
       useSameAddress: true,
     })
@@ -296,16 +295,16 @@ describe("checkout address defaults", () => {
       }),
     ).toStrictEqual({
       city: "Prague",
-      company: undefined,
+      company: undefined as const,
       country: "cz",
       firstName: "Jan",
-      isDefaultBilling: undefined,
+      isDefaultBilling: undefined as const,
       isDefaultShipping: true,
       lastName: "Novak",
       metadata: { source: "test" },
-      phone: undefined,
+      phone: undefined as const,
       postalCode: "11000",
-      province: undefined,
+      province: undefined as const,
       street: "Main 1",
       street2: "Floor 2",
     })
@@ -377,15 +376,15 @@ describe("checkout address defaults", () => {
       ),
     ).toStrictEqual({
       address_1: "Main 1",
-      address_2: undefined,
+      address_2: undefined as const,
       city: "Prague",
-      company: undefined,
+      company: undefined as const,
       country_code: "cz",
       first_name: "Jan",
       last_name: "Novak",
-      phone: undefined,
+      phone: undefined as const,
       postal_code: "11000",
-      province: undefined,
+      province: undefined as const,
     })
 
     expect(
@@ -410,16 +409,16 @@ describe("checkout address defaults", () => {
       address_1: "Main 1",
       address_2: "Floor 2",
       city: "Prague",
-      company: undefined,
+      company: undefined as const,
       country_code: "cz",
       first_name: "Jan",
       is_default_billing: false,
       is_default_shipping: true,
       last_name: "Novak",
       metadata: { source: "test" },
-      phone: undefined,
+      phone: undefined as const,
       postal_code: "11000",
-      province: undefined,
+      province: undefined as const,
     })
   })
 
