@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 
+import { isRecord } from "@techsio/std/object"
 import { APIError } from "payload"
 import type { Endpoint } from "payload"
 
@@ -35,20 +36,23 @@ const parseBoolean = (value: string | null | undefined) =>
   typeof value === "string" &&
   ["1", "true", "yes", "on"].includes(value.toLowerCase())
 
+const isImportStatus = (value: string): value is ImportStatus =>
+  STATUS_VALUES.some((status) => status === value)
+
 const parseImportStatus = (value?: string): ImportStatus | undefined => {
-  if (!value) {
-    return
+  if (value === undefined || value === "") {
+    return undefined
   }
 
   const normalized = value.trim().toLowerCase()
-  if (!STATUS_VALUES.includes(normalized as ImportStatus)) {
+  if (!isImportStatus(normalized)) {
     throw new APIError(
       `Invalid status ${value}. Supported values: ${STATUS_VALUES.join(", ")}`,
       400,
     )
   }
 
-  return normalized as ImportStatus
+  return normalized
 }
 
 const parseFormString = (value: FormDataEntryValue | null) =>
@@ -73,12 +77,14 @@ const parseFormData = (formData: FormData): ImportFormData => {
 
   return {
     file,
-    ...(locale ? { locale } : {}),
-    ...(sheetName ? { sheetName } : {}),
-    ...(statusRaw ? { status: statusRaw } : {}),
+    ...(locale !== undefined && locale !== "" ? { locale } : {}),
+    ...(sheetName !== undefined && sheetName !== "" ? { sheetName } : {}),
+    ...(statusRaw !== undefined && statusRaw !== ""
+      ? { status: statusRaw }
+      : {}),
     dryRun,
-    translate,
     overwrite,
+    translate,
   }
 }
 
@@ -89,7 +95,7 @@ const writeUploadToTempFile = async (file: File) => {
   }
 
   const safeName = (file.name || "upload.xlsx").replaceAll(
-    /[^a-zA-Z0-9._-]/g,
+    /[^a-zA-Z0-9._-]/gu,
     "_",
   )
   const dir = await mkdtemp(path.join(tmpdir(), "payload-import-"))
@@ -111,29 +117,38 @@ const resolveLocale = (
   value?: string,
 ) => {
   const normalized = value?.trim().toLowerCase()
-  if (!normalized) {
-    return
+  let result: string | undefined
+
+  if (
+    normalized !== undefined &&
+    normalized !== "" &&
+    supportedLocales !== undefined &&
+    supportedLocales.length > 0
+  ) {
+    result =
+      normalized === "all" || supportedLocales.includes(normalized)
+        ? normalized
+        : undefined
   }
 
-  if (!supportedLocales || supportedLocales.length === 0) {
-    return
-  }
-
-  if (normalized === "all") {
-    return "all"
-  }
-
-  return supportedLocales.includes(normalized) ? normalized : undefined
+  return result
 }
 
+const hasRoles = (value: unknown): value is { roles?: unknown } =>
+  isRecord(value)
+
 const isAuthorized = (req: ArticleImportRequest) => {
-  const roles = (req.user as { roles?: unknown } | null | undefined)?.roles
+  const roles = hasRoles(req.user) ? req.user.roles : undefined
   if (Array.isArray(roles) && roles.includes("admin")) {
     return true
   }
 
   const apiKey = process.env.PAYLOAD_API_KEY
-  return Boolean(apiKey && req.headers.get("x-payload-api-key") === apiKey)
+  return (
+    apiKey !== undefined &&
+    apiKey !== "" &&
+    req.headers.get("x-payload-api-key") === apiKey
+  )
 }
 
 const isImportInputError = (error: ArticleImportError) =>
@@ -158,7 +173,11 @@ const resolveImportLocale = (req: ArticleImportRequest, value?: string) => {
     resolveLocale(supportedLocales, value) ??
     (localization === false ? undefined : localization.defaultLocale)
 
-  if (value && !locale) {
+  if (
+    value !== undefined &&
+    value !== "" &&
+    (locale === undefined || locale === "")
+  ) {
     throw new APIError(
       `Invalid locale ${value}. Supported values: ${supportedLocales?.join(", ")}`,
       400,
@@ -166,6 +185,46 @@ const resolveImportLocale = (req: ArticleImportRequest, value?: string) => {
   }
 
   return locale
+}
+
+const buildImportOptions = (
+  payload: ImportFormData,
+  locale: string | undefined,
+  status: ImportStatus | undefined,
+  abortSignal: AbortSignal | undefined,
+  payloadClient: ArticleImportRequest["payload"],
+): ArticleImportOptions => ({
+  filePath: "",
+  ...(payload.sheetName !== undefined && payload.sheetName !== ""
+    ? { sheetName: payload.sheetName }
+    : {}),
+  ...(payload.dryRun === undefined ? {} : { dryRun: payload.dryRun }),
+  ...(locale !== undefined && locale !== "" ? { locale } : {}),
+  ...(status === undefined ? {} : { status }),
+  ...(payload.translate === undefined ? {} : { translate: payload.translate }),
+  ...(payload.overwrite === undefined ? {} : { overwrite: payload.overwrite }),
+  ...(abortSignal === undefined ? {} : { signal: abortSignal }),
+  payload: payloadClient,
+})
+
+const toImportEndpointError = (error: unknown) => {
+  if (error instanceof APIError && error.status < 500) {
+    return error
+  }
+
+  if (error instanceof ArticleImportError && error.code === "ABORTED") {
+    return new APIError("Import aborted", 499)
+  }
+
+  if (error instanceof ArticleImportError && isImportInputError(error)) {
+    return new APIError(error.message, 400)
+  }
+
+  if (error instanceof Error) {
+    console.error(error)
+  }
+
+  return new APIError("Import failed", 500)
 }
 
 /** Endpoint for uploading XLSX and importing articles through Payload admin. */
@@ -179,21 +238,13 @@ export const articleImportEndpoint: Endpoint = {
     const locale = resolveImportLocale(req, payload.locale)
     const status = parseImportStatus(payload.status)
     const abortSignal = getAbortSignal(req)
-    const importOptions: ArticleImportOptions = {
-      filePath: "",
-      ...(payload.sheetName ? { sheetName: payload.sheetName } : {}),
-      ...(payload.dryRun !== undefined ? { dryRun: payload.dryRun } : {}),
-      ...(locale ? { locale } : {}),
-      ...(status ? { status } : {}),
-      ...(payload.translate !== undefined
-        ? { translate: payload.translate }
-        : {}),
-      ...(payload.overwrite !== undefined
-        ? { overwrite: payload.overwrite }
-        : {}),
-      ...(abortSignal ? { signal: abortSignal } : {}),
-      payload: req.payload,
-    }
+    const importOptions = buildImportOptions(
+      payload,
+      locale,
+      status,
+      abortSignal,
+      req.payload,
+    )
 
     let tempDir = ""
     try {
@@ -206,32 +257,16 @@ export const articleImportEndpoint: Endpoint = {
       return buildJsonResponse(req, {
         ok: true,
         result: {
-          total: result.total,
           imported: result.imported,
           skipped: result.skipped,
+          total: result.total,
         },
       })
     } catch (error) {
-      if (error instanceof APIError && error.status < 500) {
-        throw error
-      }
-
-      if (error instanceof ArticleImportError && error.code === "ABORTED") {
-        throw new APIError("Import aborted", 499)
-      }
-
-      if (error instanceof ArticleImportError && isImportInputError(error)) {
-        throw new APIError(error.message, 400)
-      }
-
-      if (error instanceof Error) {
-        console.error(error)
-      }
-
-      throw new APIError("Import failed", 500)
+      throw toImportEndpointError(error)
     } finally {
       if (tempDir) {
-        await rm(tempDir, { recursive: true, force: true })
+        await rm(tempDir, { force: true, recursive: true })
       }
     }
   },
