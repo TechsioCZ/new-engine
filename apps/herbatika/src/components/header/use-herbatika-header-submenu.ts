@@ -37,7 +37,7 @@ interface HerbatikaHeaderSubmenuGroup {
 }
 
 const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
-  [...categories].sort((left, right) => {
+  categories.toSorted((left, right) => {
     const rankDifference =
       resolveCategoryRank(left) - resolveCategoryRank(right)
     if (rankDifference !== 0) {
@@ -50,7 +50,7 @@ const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
     )
   })
 
-export function useHerbatikaHeaderSubmenu() {
+export const useHerbatikaHeaderSubmenu = () => {
   const categoriesQuery = useCategories({
     fields: CATEGORY_TREE_FIELDS,
     limit: CATEGORY_TREE_LIMIT,
@@ -66,7 +66,11 @@ export function useHerbatikaHeaderSubmenu() {
   const categoryByHandle = new Map<string, HttpTypes.StoreProductCategory>()
 
   for (const category of categoriesQuery.categories) {
-    if (category.handle) {
+    if (
+      category.handle !== null &&
+      category.handle !== undefined &&
+      category.handle !== ""
+    ) {
       categoryByHandle.set(category.handle, category)
     }
   }
@@ -74,13 +78,19 @@ export function useHerbatikaHeaderSubmenu() {
   const childrenByParentId = new Map<string, HttpTypes.StoreProductCategory[]>()
 
   for (const category of categoriesQuery.categories) {
-    if (!(category.parent_category_id && category.handle)) {
+    const { handle, parent_category_id: parentId } = category
+    if (
+      typeof parentId !== "string" ||
+      parentId === "" ||
+      typeof handle !== "string" ||
+      handle === ""
+    ) {
       continue
     }
 
-    const siblings = childrenByParentId.get(category.parent_category_id) ?? []
+    const siblings = childrenByParentId.get(parentId) ?? []
     siblings.push(category)
-    childrenByParentId.set(category.parent_category_id, siblings)
+    childrenByParentId.set(parentId, siblings)
   }
 
   for (const [parentId, children] of childrenByParentId) {
@@ -100,18 +110,28 @@ export function useHerbatikaHeaderSubmenu() {
               parentCategoryId: category.parent_category_id,
             })
             return {
-              id: category.id,
-              handle: category.handle ?? category.id,
-              label: normalizeCategoryName(category.name),
-              ...(src === undefined ? {} : { src }),
-              href: category.handle ? `/c/${category.handle}` : "#",
               childItems: (childrenByParentId.get(category.id) ?? []).map(
                 (child) => ({
-                  href: child.handle ? `/c/${child.handle}` : "#",
+                  href:
+                    child.handle === null ||
+                    child.handle === undefined ||
+                    child.handle === ""
+                      ? "#"
+                      : `/c/${child.handle}`,
                   id: child.id,
                   label: normalizeCategoryName(child.name),
                 }),
               ),
+              handle: category.handle ?? category.id,
+              href:
+                category.handle === null ||
+                category.handle === undefined ||
+                category.handle === ""
+                  ? "#"
+                  : `/c/${category.handle}`,
+              id: category.id,
+              label: normalizeCategoryName(category.name),
+              ...(src === undefined ? {} : { src }),
             }
           })
         : []

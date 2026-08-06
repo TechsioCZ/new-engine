@@ -34,11 +34,11 @@ const FORM_LABEL_KEYS: Readonly<Record<string, string>> = {
   "form-tablets": "filters.form_values.tablets",
 }
 
-export function useCategoryFacetItems({
+export const useCategoryFacetItems = ({
   catalogFacets,
   queryState,
   seedFacets,
-}: UseCategoryFacetItemsProps) {
+}: UseCategoryFacetItemsProps) => {
   const t = useTranslations("catalog")
   const asideStatusItems = buildFacetChipItems(
     catalogFacets.status.filter((item) =>

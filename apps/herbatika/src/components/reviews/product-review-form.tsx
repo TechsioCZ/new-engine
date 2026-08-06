@@ -4,8 +4,8 @@ import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
-import type { FormEvent } from "react"
+import { useState } from "react"
+import type { ChangeEvent, SyntheticEvent } from "react"
 
 import { buildProductReviewTitle } from "@/components/reviews/product-review-errors"
 
@@ -63,24 +63,21 @@ const validateReviewForm = (
   return errors
 }
 
-export function ProductReviewForm({
+type ProductReviewFormFieldsProps = Omit<ProductReviewFormProps, "resetKey">
+
+const ProductReviewFormFields = ({
   disabled = false,
   formId,
-  resetKey,
   submitError,
   onSubmit,
-}: ProductReviewFormProps) {
+}: ProductReviewFormFieldsProps) => {
   const tCatalog = useTranslations("catalog")
   const [errors, setErrors] = useState<ProductReviewFormErrors>({})
   const [values, setValues] = useState<ProductReviewFormValues>(defaultValues)
 
-  // `resetKey` is an intentional reset trigger — the parent bumps it to restore the form to defaults; the effect body doesn't read it.
-  useEffect(() => {
-    setErrors({})
-    setValues(defaultValues)
-  }, [resetKey])
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (
+    event: SyntheticEvent<HTMLFormElement, SubmitEvent>,
+  ) => {
     event.preventDefault()
 
     const nextErrors = validateReviewForm(values, {
@@ -116,11 +113,11 @@ export function ProductReviewForm({
       noValidate
       onSubmit={handleSubmit}
     >
-      {submitError ? (
+      {submitError === null || submitError === undefined ? null : (
         <StatusText showIcon status="error">
           {submitError}
         </StatusText>
-      ) : null}
+      )}
 
       <div className="flex flex-col gap-form-field-gap">
         <Rating
@@ -129,7 +126,7 @@ export function ProductReviewForm({
           id={`${formId}-rating`}
           labelText={tCatalog("reviews.form.rating_label")}
           name="rating"
-          onChange={(rating) => {
+          onChange={(rating: number) => {
             setValues((current) => ({
               ...current,
               rating: rating > 0 ? rating : null,
@@ -139,7 +136,7 @@ export function ProductReviewForm({
           size="lg"
           value={values.rating ?? undefined}
         />
-        {errors.rating ? (
+        {errors.rating !== undefined && errors.rating !== "" ? (
           <StatusText showIcon status="error">
             {errors.rating}
           </StatusText>
@@ -157,7 +154,7 @@ export function ProductReviewForm({
         id={`${formId}-content`}
         label={tCatalog("reviews.form.content_label")}
         maxLength={1000}
-        onChange={(event) => {
+        onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
           setValues((current) => ({
             ...current,
             content: event.target.value,
@@ -167,9 +164,20 @@ export function ProductReviewForm({
         required
         resize="y"
         rows={5}
-        validateStatus={errors.content ? "error" : "default"}
+        validateStatus={
+          errors.content !== undefined && errors.content !== ""
+            ? "error"
+            : "default"
+        }
         value={values.content}
       />
     </form>
   )
 }
+
+export const ProductReviewForm = ({
+  resetKey = 0,
+  ...props
+}: ProductReviewFormProps) => (
+  <ProductReviewFormFields key={resetKey} {...props} />
+)

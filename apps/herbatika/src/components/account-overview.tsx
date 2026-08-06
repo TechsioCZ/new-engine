@@ -59,7 +59,7 @@ export const AccountOverview = () => {
         </li>
       </ul>
 
-      {ordersQuery.error && (
+      {ordersQuery.error !== null && (
         <StatusText showIcon status="error">
           {ordersQuery.error}
         </StatusText>

@@ -25,6 +25,38 @@ interface BlogDetailPageProps {
   sidebarFeaturedProduct: HttpTypes.StoreProduct | null
 }
 
+const BlogPostIntro = ({ post }: { post: BlogPost }) => {
+  const locale = useLocale()
+  const tContent = useTranslations("content")
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-x-500 gap-y-150 text-fg-secondary text-sm leading-normal">
+        <p>
+          <strong className="font-semibold text-fg-primary">
+            {tContent("blog.detail.author")}
+          </strong>{" "}
+          {post.author}
+        </p>
+        <p>
+          <strong className="font-semibold text-fg-primary">
+            {tContent("blog.detail.published")}
+          </strong>{" "}
+          {formatBlogDate(post.publishedAt, locale)}
+        </p>
+        <p>
+          <strong className="font-semibold text-fg-primary">
+            {tContent("blog.detail.reading_time")}
+          </strong>{" "}
+          {post.readingTime}
+        </p>
+      </div>
+
+      <p className="text-fg-primary text-md leading-relaxed">{post.lead}</p>
+    </>
+  )
+}
+
 export const BlogDetailPage = ({
   post,
   recommendedProducts,
@@ -132,37 +164,5 @@ export const BlogDetailPage = ({
         </div>
       </div>
     </main>
-  )
-}
-
-const BlogPostIntro = ({ post }: { post: BlogPost }) => {
-  const locale = useLocale()
-  const tContent = useTranslations("content")
-
-  return (
-    <>
-      <div className="flex flex-wrap items-center gap-x-500 gap-y-150 text-fg-secondary text-sm leading-normal">
-        <p>
-          <strong className="font-semibold text-fg-primary">
-            {tContent("blog.detail.author")}
-          </strong>{" "}
-          {post.author}
-        </p>
-        <p>
-          <strong className="font-semibold text-fg-primary">
-            {tContent("blog.detail.published")}
-          </strong>{" "}
-          {formatBlogDate(post.publishedAt, locale)}
-        </p>
-        <p>
-          <strong className="font-semibold text-fg-primary">
-            {tContent("blog.detail.reading_time")}
-          </strong>{" "}
-          {post.readingTime}
-        </p>
-      </div>
-
-      <p className="text-fg-primary text-md leading-relaxed">{post.lead}</p>
-    </>
   )
 }

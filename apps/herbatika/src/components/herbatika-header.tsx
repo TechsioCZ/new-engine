@@ -9,7 +9,7 @@ import { Header } from "@techsio/ui-kit/organisms/header"
 import { useTranslations } from "next-intl"
 import NextImage from "next/image"
 import { useRouter } from "next/navigation"
-import type { FocusEvent, FormEvent } from "react"
+import type { ComponentProps, FocusEvent } from "react"
 import { useState } from "react"
 
 import NextLink from "@/components/app-link"
@@ -45,28 +45,71 @@ const resolveRootHandleFromHref = (href: string) => {
   return href.slice(3)
 }
 
-export function HerbatikaHeader() {
+const resolveSubmenuRootHandleFromHref = (href: string) => {
+  const rootHandle = resolveRootHandleFromHref(href)
+
+  return typeof rootHandle === "string" &&
+    rootHandle !== "" &&
+    SUBMENU_ROOT_HANDLES.has(rootHandle)
+    ? rootHandle
+    : null
+}
+
+const buildHeaderCartInput = (region: ReturnType<typeof useRegionContext>) => ({
+  autoCreate: true,
+  ...(region?.region_id === undefined ? {} : { region_id: region.region_id }),
+  ...(region?.country_code === undefined
+    ? {}
+    : { country_code: region.country_code }),
+  enabled: Boolean(region?.region_id),
+})
+
+interface DesktopNavItemProps {
+  activeRootHandle: string | null
+  item: (typeof PRIMARY_NAV_ITEMS)[number]
+  onActivate: (href: string) => void
+}
+
+const DesktopNavItem = ({
+  activeRootHandle,
+  item,
+  onActivate,
+}: DesktopNavItemProps) => {
+  const rootHandle = resolveSubmenuRootHandleFromHref(item.href)
+  const hasSubmenu = rootHandle !== null
+
+  return (
+    <NextLink
+      aria-expanded={hasSubmenu ? activeRootHandle === rootHandle : undefined}
+      aria-haspopup={hasSubmenu ? "dialog" : undefined}
+      className="h-full shrink-0"
+      href={item.href}
+      onFocus={() => {
+        onActivate(item.href)
+      }}
+    >
+      <Header.NavItem
+        className="flex h-full items-center whitespace-nowrap leading-none lg:max-header-tablet:p-header-item-desktop-lg lg:max-header-tablet:text-header-item-desktop-lg"
+        onMouseEnter={() => {
+          onActivate(item.href)
+        }}
+      >
+        {item.label}
+      </Header.NavItem>
+    </NextLink>
+  )
+}
+
+export const HerbatikaHeader = () => {
   const router = useRouter()
   const t = useTranslations("navigation")
   const tAuth = useTranslations("auth")
   const region = useRegionContext()
   const [activeRootHandle, setActiveRootHandle] = useState<string | null>(null)
 
-  const { cart, itemCount } = useCart(
-    {
-      autoCreate: true,
-      ...(region?.region_id === undefined
-        ? {}
-        : { region_id: region?.region_id }),
-      ...(region?.country_code === undefined
-        ? {}
-        : { country_code: region?.country_code }),
-      enabled: Boolean(region?.region_id),
-    },
-    {
-      queryOptions: cartReadQueryOptions,
-    },
-  )
+  const { cart, itemCount } = useCart(buildHeaderCartInput(region), {
+    queryOptions: cartReadQueryOptions,
+  })
 
   const regionCurrency = resolveRegionCurrency(region)
   const cartCurrency = resolveSupportedCurrencyCode(
@@ -78,19 +121,15 @@ export function HerbatikaHeader() {
     cartCurrency,
   )
 
-  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSearchSubmit: ComponentProps<
+    typeof SearchAutocomplete
+  >["onSubmit"] = (event) => {
     const formData = new FormData(event.currentTarget)
     router.push(appHref(resolveSearchHref(formData.get("q"))))
   }
 
   const handleActivateDesktopItem = (href: string) => {
-    const rootHandle = resolveRootHandleFromHref(href)
-    if (!(rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle))) {
-      setActiveRootHandle(null)
-      return
-    }
-
-    setActiveRootHandle(rootHandle)
+    setActiveRootHandle(resolveSubmenuRootHandleFromHref(href))
   }
 
   const handleDesktopBlur = (event: FocusEvent<HTMLElement>) => {
@@ -215,36 +254,14 @@ export function HerbatikaHeader() {
             className="flex-nowrap overflow-x-auto [scrollbar-width:none] md:h-full [&::-webkit-scrollbar]:hidden"
             size="sm"
           >
-            {PRIMARY_NAV_ITEMS.map((item) => {
-              const rootHandle = resolveRootHandleFromHref(item.href)
-              const hasSubmenu = Boolean(
-                rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle),
-              )
-
-              return (
-                <NextLink
-                  aria-expanded={
-                    hasSubmenu ? activeRootHandle === rootHandle : undefined
-                  }
-                  aria-haspopup={hasSubmenu ? "dialog" : undefined}
-                  className="h-full shrink-0"
-                  href={item.href}
-                  key={item.href}
-                  onFocus={() => {
-                    handleActivateDesktopItem(item.href)
-                  }}
-                >
-                  <Header.NavItem
-                    className="flex h-full items-center whitespace-nowrap leading-none lg:max-header-tablet:p-header-item-desktop-lg lg:max-header-tablet:text-header-item-desktop-lg"
-                    onMouseEnter={() => {
-                      handleActivateDesktopItem(item.href)
-                    }}
-                  >
-                    {item.label}
-                  </Header.NavItem>
-                </NextLink>
-              )
-            })}
+            {PRIMARY_NAV_ITEMS.map((item) => (
+              <DesktopNavItem
+                activeRootHandle={activeRootHandle}
+                item={item}
+                key={item.href}
+                onActivate={handleActivateDesktopItem}
+              />
+            ))}
           </Header.Nav>
 
           <Header.Actions className="gap-x-250" size="sm">

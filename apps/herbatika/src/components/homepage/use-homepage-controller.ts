@@ -16,6 +16,20 @@ import {
 import type { HomepageProductSection } from "./homepage.types"
 import { useHomepagePrefetch } from "./use-homepage-prefetch"
 
+const indexCategoriesByHandle = (
+  categories: HttpTypes.StoreProductCategory[],
+) => {
+  const categoryByHandle = new Map<string, HttpTypes.StoreProductCategory>()
+
+  for (const category of categories) {
+    if (typeof category.handle === "string" && category.handle !== "") {
+      categoryByHandle.set(category.handle, category)
+    }
+  }
+
+  return categoryByHandle
+}
+
 interface UseHomepageControllerResult {
   productsError: string | null
   shouldShowProductSkeleton: boolean
@@ -25,7 +39,7 @@ interface UseHomepageControllerResult {
   handleProductHoverEnd: (product: HttpTypes.StoreProduct) => void
 }
 
-export function useHomepageController(): UseHomepageControllerResult {
+export const useHomepageController = (): UseHomepageControllerResult => {
   const region = useRegionContext()
   const categoriesQuery = useCategories({
     fields: CATEGORY_TREE_FIELDS,
@@ -35,28 +49,26 @@ export function useHomepageController(): UseHomepageControllerResult {
 
   const prefetchActions = useHomepagePrefetch(region)
 
-  const categoryByHandle = new Map<string, HttpTypes.StoreProductCategory>()
-
-  for (const category of categoriesQuery.categories) {
-    if (category.handle) {
-      categoryByHandle.set(category.handle, category)
-    }
-  }
+  const categoryByHandle = indexCategoriesByHandle(categoriesQuery.categories)
 
   const bestsellersCategoryId = categoryByHandle.get(
     HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE,
   )?.id
 
+  const hasRegion =
+    typeof region?.region_id === "string" && region.region_id !== ""
+  const hasBestsellersCategory =
+    typeof bestsellersCategoryId === "string" && bestsellersCategoryId !== ""
   const bestsellersProductsQuery = useCatalogProducts({
-    page: 1,
+    ...(hasBestsellersCategory ? { category_id: [bestsellersCategoryId] } : {}),
+    enabled: hasRegion && hasBestsellersCategory,
     limit: PRODUCTS_PER_COLLECTION_SECTION,
+    page: 1,
     sort: "recommended",
-    ...(bestsellersCategoryId ? { category_id: [bestsellersCategoryId] } : {}),
-    enabled: Boolean(region?.region_id && bestsellersCategoryId),
   })
 
   const newProductsQuery = useCatalogProducts({
-    enabled: Boolean(region?.region_id),
+    enabled: hasRegion,
     limit: PRODUCTS_PER_COLLECTION_SECTION,
     page: 1,
     sort: "newest",
@@ -64,7 +76,7 @@ export function useHomepageController(): UseHomepageControllerResult {
   })
 
   const actionProductsQuery = useCatalogProducts({
-    enabled: Boolean(region?.region_id),
+    enabled: hasRegion,
     limit: PRODUCTS_PER_COLLECTION_SECTION,
     page: 1,
     sort: "recommended",
@@ -79,7 +91,7 @@ export function useHomepageController(): UseHomepageControllerResult {
 
   const shouldShowProductSkeleton =
     sectionQueries.every((query) => query.products.length === 0) &&
-    (!region?.region_id ||
+    (!hasRegion ||
       categoriesQuery.isLoading ||
       sectionQueries.some((query) => query.isLoading))
 

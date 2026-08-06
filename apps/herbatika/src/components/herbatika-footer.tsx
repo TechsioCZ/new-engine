@@ -5,6 +5,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
 import type { Route } from "next"
 import { useTranslations } from "next-intl"
+import type { ReactNode } from "react"
 
 import NextLink from "@/components/app-link"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
@@ -34,6 +35,10 @@ const brandListingHref = "/znacka" as Route
 const formatMarketDomain = (domain: string) =>
   `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
 
+const emphasizeFooterBrand = (chunks: ReactNode) => (
+  <strong className="text-fg-primary">{chunks}</strong>
+)
+
 const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     links: [
@@ -49,9 +54,9 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
         labelKey: "footer.columns.information.brands",
       },
       {
+        external: true,
         href: "https://obchody.heureka.sk/herbatica-sk/recenze/",
         labelKey: "footer.columns.information.reviews",
-        external: true,
       },
     ],
     titleKey: "footer.columns.information.title",
@@ -138,7 +143,7 @@ const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
   { code: "HU", icon: "token-icon-hu" },
   { code: "RO", icon: "token-icon-ro" },
 ]
-export function HerbatikaFooter() {
+export const HerbatikaFooter = () => {
   const t = useTranslations("navigation")
   const marketContext = useMarketContext()
 
@@ -190,7 +195,7 @@ export function HerbatikaFooter() {
             <Footer.List>
               {column.links.map((link) => (
                 <li key={link.href}>
-                  {link.external ? (
+                  {link.external === true ? (
                     <Footer.Link external href={link.href}>
                       {t(link.labelKey)}
                     </Footer.Link>
@@ -216,9 +221,9 @@ export function HerbatikaFooter() {
               icon={social.icon}
               iconSize="lg"
               key={social.label}
-              onClick={() =>
+              onClick={() => {
                 window.open(social.href, "_blank", "noopener,noreferrer")
-              }
+              }}
               size="current"
               theme="unstyled"
               type="button"
@@ -234,9 +239,7 @@ export function HerbatikaFooter() {
       <Footer.Bottom className="mx-auto max-w-footer-max flex-wrap items-center gap-400">
         <Footer.Text className="leading-normal">
           {t.rich("footer.copyright", {
-            brand: (chunks) => (
-              <strong className="text-fg-primary">{chunks}</strong>
-            ),
+            brand: emphasizeFooterBrand,
             domain: formatMarketDomain(marketContext.domain),
             year: new Date().getFullYear(),
           })}{" "}
@@ -252,14 +255,14 @@ export function HerbatikaFooter() {
         <div className="flex w-full flex-wrap items-center justify-center gap-150 md:w-auto md:justify-end">
           {FOOTER_LOCALES.map((locale) => (
             <Button
-              className={`${!locale.active && "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
+              className={`${locale.active === true ? "" : "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
               icon={locale.icon}
               iconSize="md"
               key={locale.code}
               size="sm"
-              theme={locale.active ? "light" : "borderless"}
+              theme={locale.active === true ? "light" : "borderless"}
               type="button"
-              variant={locale.active ? "primary" : "primary"}
+              variant="primary"
             >
               {locale.code}
             </Button>

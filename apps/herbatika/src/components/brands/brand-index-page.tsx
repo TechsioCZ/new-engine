@@ -9,7 +9,7 @@ interface BrandIndexPageProps {
   brands: StorefrontBrand[]
 }
 
-export async function BrandIndexPage({ brands }: BrandIndexPageProps) {
+export const BrandIndexPage = async ({ brands }: BrandIndexPageProps) => {
   const [t, tNavigation] = await Promise.all([
     getTranslations("catalog"),
     getTranslations("navigation"),

@@ -89,10 +89,10 @@ const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] =>
     id: item.id,
   }))
 
-function PurposeCarouselSlides({
+const PurposeCarouselSlides = ({
   slides,
   slidesPerPage,
-}: PurposeCarouselSlidesProps) {
+}: PurposeCarouselSlidesProps) => {
   const hasOverflow = slides.length > slidesPerPage
 
   return (
@@ -123,12 +123,12 @@ function PurposeCarouselSlides({
   )
 }
 
-export function PurposeCarousel({
+export const PurposeCarousel = ({
   items,
   rootHandle = DEFAULT_ROOT_HANDLE,
   title,
   viewAllHref,
-}: PurposeCarouselProps) {
+}: PurposeCarouselProps) => {
   const tContent = useTranslations("content")
   const { groupsByRootHandle } = useHerbatikaHeaderSubmenu()
   const resolvedItems =

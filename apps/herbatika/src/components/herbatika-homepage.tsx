@@ -19,12 +19,15 @@ interface HerbatikaHomepageProps {
   homepagePromo?: HomepagePromoContent | null
 }
 
-export function HerbatikaHomepage({
+export const HerbatikaHomepage = ({
   heroBanners,
   homepagePromo,
-}: HerbatikaHomepageProps) {
+}: HerbatikaHomepageProps) => {
   const controller = useHomepageController()
-  const banners = heroBanners?.length ? heroBanners : HERO_BANNERS
+  const banners =
+    heroBanners !== undefined && heroBanners.length > 0
+      ? heroBanners
+      : HERO_BANNERS
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-homepage-gap p-homepage font-rubik 2xl:p-homepage-lg">
@@ -55,7 +58,9 @@ export function HerbatikaHomepage({
       ))}
 
       <HomepageBlogSection posts={BLOG_POSTS} />
-      <HomepagePromoSection promo={homepagePromo} />
+      <HomepagePromoSection
+        {...(homepagePromo === undefined ? {} : { promo: homepagePromo })}
+      />
       <RecentlyVisitedProductsSection />
     </main>
   )

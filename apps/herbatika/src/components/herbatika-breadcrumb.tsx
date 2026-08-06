@@ -26,7 +26,7 @@ export type HerbatikaBreadcrumbProps = Omit<
   items: HerbatikaBreadcrumbItem[]
 }
 
-function getBreadcrumbItemKey(item: HerbatikaBreadcrumbItem, index: number) {
+const getBreadcrumbItemKey = (item: HerbatikaBreadcrumbItem, index: number) => {
   const hrefKey =
     typeof item.href === "string"
       ? item.href
@@ -35,28 +35,26 @@ function getBreadcrumbItemKey(item: HerbatikaBreadcrumbItem, index: number) {
   return `${hrefKey}-${item.label}-${index}`
 }
 
-function BreadcrumbItemContent({ item }: { item: HerbatikaBreadcrumbItem }) {
-  return (
-    <>
-      {item.icon ? (
-        <Breadcrumb.Icon className="mr-50 mb-50 font-bold" icon={item.icon} />
-      ) : null}
-      {item.label && <span>{item.label}</span>}
-    </>
-  )
-}
+const BreadcrumbItemContent = ({ item }: { item: HerbatikaBreadcrumbItem }) => (
+  <>
+    {item.icon === undefined ? null : (
+      <Breadcrumb.Icon className="mr-50 mb-50 font-bold" icon={item.icon} />
+    )}
+    {item.label !== "" && <span>{item.label}</span>}
+  </>
+)
 
-export function HerbatikaBreadcrumb({
+export const HerbatikaBreadcrumb = ({
   items,
   ...breadcrumbProps
-}: HerbatikaBreadcrumbProps) {
+}: HerbatikaBreadcrumbProps) => {
   const t = useTranslations("navigation")
 
   if (items.length === 0) {
     return null
   }
 
-  const hasExplicitCurrent = items.some((item) => item.isCurrent)
+  const hasExplicitCurrent = items.some((item) => item.isCurrent === true)
 
   return (
     <Breadcrumb

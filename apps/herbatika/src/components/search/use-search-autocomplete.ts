@@ -1,9 +1,11 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 
 import {
   createEmptySearchAutocompleteResponse,
+  parseSearchAutocompleteResponse,
   SEARCH_AUTOCOMPLETE_DEBOUNCE_MS,
   SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH,
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
@@ -25,75 +27,97 @@ interface UseSearchAutocompleteResult {
   status: SearchAutocompleteStatus
 }
 
-export function useSearchAutocomplete({
+const useDebouncedValue = (value: string) => {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedValue(value)
+    }, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [value])
+
+  return debouncedValue
+}
+
+export const useSearchAutocomplete = ({
   countryCode,
   query,
   currencyCode,
   regionId,
-}: UseSearchAutocompleteInput): UseSearchAutocompleteResult {
+}: UseSearchAutocompleteInput): UseSearchAutocompleteResult => {
   const normalizedQuery = query
     .trim()
     .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
-  const [data, setData] = useState<SearchAutocompleteResponse>(
-    createEmptySearchAutocompleteResponse(""),
-  )
-  const [status, setStatus] = useState<SearchAutocompleteStatus>("idle")
-
-  useEffect(() => {
-    if (normalizedQuery.length < SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH) {
-      setData(createEmptySearchAutocompleteResponse(normalizedQuery))
-      setStatus("idle")
-      return
-    }
-
-    setData(createEmptySearchAutocompleteResponse(normalizedQuery))
-    setStatus("loading")
-
-    const abortController = new AbortController()
-    const timeoutId = window.setTimeout(() => {
+  const requestKey = JSON.stringify([
+    normalizedQuery,
+    countryCode,
+    currencyCode,
+    regionId,
+  ])
+  const debouncedRequestKey = useDebouncedValue(requestKey)
+  const isQueryEligible =
+    normalizedQuery.length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH
+  const isDebouncePending = debouncedRequestKey !== requestKey
+  const autocompleteQuery = useQuery({
+    enabled: isQueryEligible && !isDebouncePending,
+    queryFn: async ({ signal }) => {
       const params = new URLSearchParams({
         currency: currencyCode,
         q: normalizedQuery,
       })
 
-      if (countryCode) {
+      if (countryCode !== undefined && countryCode !== "") {
         params.set("country", countryCode)
       }
 
-      if (regionId) {
+      if (regionId !== undefined && regionId !== "") {
         params.set("region", regionId)
       }
 
-      fetch(`/api/search-autocomplete?${params.toString()}`, {
-        signal: abortController.signal,
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            throw new Error(`Autocomplete failed: ${response.status}`)
-          }
+      const response = await fetch(
+        `/api/search-autocomplete?${params.toString()}`,
+        { signal },
+      )
+      if (!response.ok) {
+        throw new Error(`Autocomplete failed: ${response.status}`)
+      }
 
-          return response.json() as Promise<SearchAutocompleteResponse>
-        })
-        .then((response) => {
-          setData(response)
-          setStatus("success")
-        })
-        .catch((error: unknown) => {
-          if (abortController.signal.aborted) {
-            return
-          }
+      const payload: unknown = await response.json()
+      return parseSearchAutocompleteResponse(payload)
+    },
+    queryKey: ["search-autocomplete", debouncedRequestKey],
+    retry: false,
+  })
 
-          console.error("Search autocomplete request failed", error)
-          setData(createEmptySearchAutocompleteResponse(normalizedQuery))
-          setStatus("error")
-        })
-    }, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS)
-
-    return () => {
-      window.clearTimeout(timeoutId)
-      abortController.abort()
+  if (!isQueryEligible) {
+    return {
+      data: createEmptySearchAutocompleteResponse(normalizedQuery),
+      status: "idle",
     }
-  }, [countryCode, currencyCode, normalizedQuery, regionId])
+  }
 
-  return { data, status }
+  if (isDebouncePending || autocompleteQuery.isPending) {
+    return {
+      data: createEmptySearchAutocompleteResponse(normalizedQuery),
+      status: "loading",
+    }
+  }
+
+  if (autocompleteQuery.isError) {
+    return {
+      data: createEmptySearchAutocompleteResponse(normalizedQuery),
+      status: "error",
+    }
+  }
+
+  return {
+    data:
+      autocompleteQuery.data ??
+      createEmptySearchAutocompleteResponse(normalizedQuery),
+    status: "success",
+  }
 }

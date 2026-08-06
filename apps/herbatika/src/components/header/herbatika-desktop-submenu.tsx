@@ -16,7 +16,7 @@ interface HerbatikaDesktopSubmenuProps {
 }
 
 const sortDesktopSubmenuItems = (items: HerbatikaHeaderSubmenuFeaturedItem[]) =>
-  [...items].sort((left, right) => {
+  items.toSorted((left, right) => {
     const childCountDifference =
       right.childItems.length - left.childItems.length
 
@@ -27,20 +27,22 @@ const sortDesktopSubmenuItems = (items: HerbatikaHeaderSubmenuFeaturedItem[]) =>
     return left.label.localeCompare(right.label, "sk")
   })
 
-export function HerbatikaDesktopSubmenu({
+export const HerbatikaDesktopSubmenu = ({
   activeRootHandle,
   onClose,
-}: HerbatikaDesktopSubmenuProps) {
+}: HerbatikaDesktopSubmenuProps) => {
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const { categoriesQuery, groupsByRootHandle } = useHerbatikaHeaderSubmenu()
 
-  const activeGroup = activeRootHandle
-    ? (groupsByRootHandle.get(activeRootHandle) ?? null)
-    : null
-  const desktopSubmenuItems = activeGroup
-    ? sortDesktopSubmenuItems(activeGroup.featuredItems)
-    : []
+  const activeGroup =
+    typeof activeRootHandle === "string" && activeRootHandle !== ""
+      ? (groupsByRootHandle.get(activeRootHandle) ?? null)
+      : null
+  const desktopSubmenuItems =
+    activeGroup === null
+      ? []
+      : sortDesktopSubmenuItems(activeGroup.featuredItems)
 
   return (
     <div className="herbatika-desktop-submenu-root">
@@ -64,7 +66,7 @@ export function HerbatikaDesktopSubmenu({
         size="xs"
         trapFocus={false}
       >
-        {activeGroup ? (
+        {activeGroup === null ? null : (
           <div className="mx-auto w-full max-w-max-w px-550 py-500 xl:px-700">
             {categoriesQuery.isLoading ? (
               <p className="mb-400 text-fg-secondary text-sm leading-snug">
@@ -72,11 +74,11 @@ export function HerbatikaDesktopSubmenu({
               </p>
             ) : null}
 
-            {categoriesQuery.error ? (
+            {categoriesQuery.error === null ? null : (
               <p className="mb-400 text-fg-secondary text-sm leading-snug">
                 {tCatalog("errors.categories_load_failed")}
               </p>
-            ) : null}
+            )}
 
             <div className="grid grid-cols-1 gap-x-750 gap-y-700 lg:grid-cols-3 xl:grid-cols-4">
               {desktopSubmenuItems.map((item) => (
@@ -85,7 +87,7 @@ export function HerbatikaDesktopSubmenu({
                     className="flex h-submenu-image w-submenu-image shrink-0 items-start justify-start"
                     href={item.href}
                   >
-                    {item.src ? (
+                    {item.src === undefined ? null : (
                       <NextImage
                         alt=""
                         aria-hidden="true"
@@ -94,7 +96,7 @@ export function HerbatikaDesktopSubmenu({
                         src={item.src}
                         width={76}
                       />
-                    ) : null}
+                    )}
                   </NextLink>
 
                   <div className="min-w-0 space-y-300 pt-100">
@@ -128,7 +130,7 @@ export function HerbatikaDesktopSubmenu({
               ))}
             </div>
           </div>
-        ) : null}
+        )}
       </Dialog>
     </div>
   )

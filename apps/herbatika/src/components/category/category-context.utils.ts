@@ -1,30 +1,88 @@
 import type { HttpTypes } from "@medusajs/types"
+import { isRecord } from "@techsio/std/object"
 
-import { buildCategoryContextImageTiles } from "@/components/category/category-context-image-tile-grid"
+import type { CategoryContextImageTile } from "@/components/category/category-context-image-tile-grid"
 import { rewriteCategoryMetadataHtml } from "@/components/category/category-html-rewrite"
 import {
   normalizeCategoryName,
   resolveCategoryRank,
 } from "@/components/category/category-product-utils"
+import { resolveCategoryImage } from "@/lib/category-images"
+
+interface CategoryContextImageTileSource {
+  handle?: string | null
+  href: string
+  id: string
+  label: string
+  parentCategoryId?: string | null
+}
+
+interface BuildCategoryContextImageTilesInput {
+  categories: CategoryContextImageTileSource[]
+  categoryById?: Map<string, HttpTypes.StoreProductCategory>
+}
+
+const resolveCategoryTileImage = ({
+  handle,
+  label,
+  parentCategoryId,
+  categoryById,
+}: {
+  handle?: string | null
+  label: string
+  parentCategoryId?: string | null
+  categoryById?: Map<string, HttpTypes.StoreProductCategory>
+}) =>
+  resolveCategoryImage({
+    ...(categoryById === undefined ? {} : { categoryById }),
+    ...(handle === undefined ? {} : { handle }),
+    label,
+    ...(parentCategoryId === undefined ? {} : { parentCategoryId }),
+  })
+
+export const buildCategoryContextImageTiles = ({
+  categories,
+  categoryById,
+}: BuildCategoryContextImageTilesInput): CategoryContextImageTile[] => {
+  const seenLabels = new Set<string>()
+  const tiles: CategoryContextImageTile[] = []
+
+  for (const category of categories) {
+    const normalizedLabel = category.label.trim()
+    const dedupeKey = normalizedLabel.toLocaleLowerCase("sk")
+
+    if (normalizedLabel !== "" && !seenLabels.has(dedupeKey)) {
+      seenLabels.add(dedupeKey)
+      const src = resolveCategoryTileImage({
+        ...(categoryById === undefined ? {} : { categoryById }),
+        ...(category.handle === undefined ? {} : { handle: category.handle }),
+        label: normalizedLabel,
+        ...(category.parentCategoryId === undefined
+          ? {}
+          : { parentCategoryId: category.parentCategoryId }),
+      })
+      tiles.push({
+        href: category.href,
+        id: category.id,
+        label: normalizedLabel,
+        ...(src === undefined ? {} : { src }),
+      })
+    }
+  }
+
+  return tiles
+}
 
 const CATEGORY_DESCRIPTION_PLACEHOLDERS = new Set([
   "Imported from Herbatica XML feed.",
   "Imported from Herbatica category export.",
 ])
 
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>
-  }
-
-  return null
-}
-
 const asString = (value: unknown): string | null =>
   typeof value === "string" && value.trim().length > 0 ? value.trim() : null
 
 const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
-  [...categories].sort((left, right) => {
+  categories.toSorted((left, right) => {
     const rankDifference =
       resolveCategoryRank(left) - resolveCategoryRank(right)
     if (rankDifference !== 0) {
@@ -49,7 +107,11 @@ export const resolveCategoryIntroText = ({
   activeCategory,
 }: ResolveCategoryIntroTextInput) => {
   const description = activeCategory?.description?.trim()
-  if (!description || CATEGORY_DESCRIPTION_PLACEHOLDERS.has(description)) {
+  if (
+    description === undefined ||
+    description === "" ||
+    CATEGORY_DESCRIPTION_PLACEHOLDERS.has(description)
+  ) {
     return null
   }
 
@@ -63,9 +125,11 @@ const resolveCategoryMetadataHtml = ({
 }: ResolveCategoryHtmlInput & {
   field: "bottom_description_html" | "top_description_html"
 }) => {
-  const metadata = asRecord(activeCategory?.metadata)
+  const metadata = isRecord(activeCategory?.metadata)
+    ? activeCategory.metadata
+    : null
   const html = asString(metadata?.[field])
-  if (!html) {
+  if (html === null) {
     return null
   }
 
@@ -91,7 +155,7 @@ export const resolveCategoryContextImageTiles = ({
   categories,
   categoryById,
 }: ResolveCategoryContextTilesInput) => {
-  if (!activeCategory) {
+  if (activeCategory === null) {
     return []
   }
 
@@ -120,7 +184,7 @@ export const resolveCategoryContextImageTiles = ({
     activeCategoryFilterIds
       .map((categoryId) => categoryById.get(categoryId) ?? null)
       .filter((category): category is HttpTypes.StoreProductCategory => {
-        if (!category?.handle) {
+        if (typeof category?.handle !== "string" || category.handle === "") {
           return false
         }
 

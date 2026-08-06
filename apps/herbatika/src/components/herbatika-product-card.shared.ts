@@ -2,7 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
@@ -20,30 +20,34 @@ interface HerbatikaProductCardStateOptions {
   onImageError?: () => void
 }
 
-export function useHerbatikaProductCardState(
+export const useHerbatikaProductCardState = (
   product: HttpTypes.StoreProduct,
   { priceUnavailableLabel, onImageError }: HerbatikaProductCardStateOptions,
-) {
+) => {
   const region = useRegionContext()
   const currencyCode = resolveRegionCurrency(region)
   const productHref = product.handle ? `/p/${product.handle}` : "/#"
   const price = resolvePriceState(product, currencyCode, priceUnavailableLabel)
   const thumbnail = resolveThumbnail(product)
-  const [imageSrc, setImageSrc] = useState(thumbnail)
+  const [imageState, setImageState] = useState(() => ({
+    source: thumbnail,
+    value: thumbnail,
+  }))
+  const imageSrc =
+    imageState.source === thumbnail ? imageState.value : thumbnail
   const title = product.title?.trim() || product.handle?.trim() || product.id
-
-  useEffect(() => {
-    setImageSrc(thumbnail)
-  }, [thumbnail])
 
   const handleImageError = () => {
     onImageError?.()
 
-    setImageSrc((currentImageSrc) =>
-      currentImageSrc === PRODUCT_FALLBACK_IMAGE
-        ? currentImageSrc
-        : PRODUCT_FALLBACK_IMAGE,
-    )
+    setImageState((currentState) => ({
+      source: thumbnail,
+      value:
+        currentState.source === thumbnail &&
+        currentState.value === PRODUCT_FALLBACK_IMAGE
+          ? currentState.value
+          : PRODUCT_FALLBACK_IMAGE,
+    }))
   }
 
   return {

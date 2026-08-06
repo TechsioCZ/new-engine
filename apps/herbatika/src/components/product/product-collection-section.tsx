@@ -46,29 +46,80 @@ type ProductCollectionSectionProps =
   | ProductCollectionSectionGridProps
   | ProductCollectionSectionCarouselProps
 
+const resolveProductContent = (
+  props: ProductCollectionSectionProps,
+  emptyText: string,
+): ReactNode => {
+  const {
+    keyPrefix,
+    onProductHoverEnd,
+    onProductHoverStart,
+    products,
+    shouldShowSkeleton = false,
+  } = props
+  const isCarousel = props.display === "carousel"
+  const skeletonLayout: HerbatikaProductGridLayout = isCarousel
+    ? "collection"
+    : props.layout
+
+  if (shouldShowSkeleton) {
+    return <HerbatikaProductGridSkeleton layout={skeletonLayout} />
+  }
+
+  if (products.length === 0) {
+    return (
+      <SupportingText className="text-fg-secondary text-sm">
+        {emptyText}
+      </SupportingText>
+    )
+  }
+
+  if (isCarousel) {
+    return (
+      <InlineProductsCarousel
+        {...(keyPrefix === undefined ? {} : { keyPrefix })}
+        {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
+        {...(onProductHoverStart === undefined ? {} : { onProductHoverStart })}
+        products={products}
+        {...(props.slidesLg === undefined ? {} : { slidesLg: props.slidesLg })}
+        {...(props.slidesMd === undefined ? {} : { slidesMd: props.slidesMd })}
+        {...(props.slidesSm === undefined ? {} : { slidesSm: props.slidesSm })}
+      />
+    )
+  }
+
+  return (
+    <HerbatikaProductGrid
+      {...(props.isProductAdding === undefined
+        ? {}
+        : { isProductAdding: props.isProductAdding })}
+      {...(keyPrefix === undefined ? {} : { keyPrefix })}
+      layout={props.layout}
+      onAddToCart={props.onAddToCart}
+      {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
+      {...(onProductHoverStart === undefined ? {} : { onProductHoverStart })}
+      products={products}
+    />
+  )
+}
+
 export const ProductCollectionSection = (
   props: ProductCollectionSectionProps,
 ) => {
   const tCatalog = useTranslations("catalog")
   const {
-    title,
-    products,
-    id,
-    subtitle,
-    shouldShowSkeleton = false,
     emptyText,
-    sectionClassName,
-    headerClassName,
-    titleClassName,
-    subtitleClassName,
     headerAction,
-    keyPrefix,
-    onProductHoverStart,
-    onProductHoverEnd,
+    headerClassName,
+    id,
+    sectionClassName,
+    subtitle,
+    subtitleClassName,
+    title,
+    titleClassName,
   } = props
   const resolvedEmptyText =
     emptyText ?? tCatalog("product_card.collection_empty")
-  const isCarousel = props.display === "carousel"
   const sectionClassNames = ["space-y-400", sectionClassName]
     .filter(Boolean)
     .join(" ")
@@ -90,52 +141,16 @@ export const ProductCollectionSection = (
   ]
     .filter(Boolean)
     .join(" ")
-  const skeletonLayout: HerbatikaProductGridLayout = isCarousel
-    ? "collection"
-    : props.layout
-  let productContent: ReactNode
-  if (shouldShowSkeleton) {
-    productContent = <HerbatikaProductGridSkeleton layout={skeletonLayout} />
-  } else if (products.length === 0) {
-    productContent = (
-      <SupportingText className="text-fg-secondary text-sm">
-        {resolvedEmptyText}
-      </SupportingText>
-    )
-  } else if (isCarousel) {
-    productContent = (
-      <InlineProductsCarousel
-        {...(keyPrefix === undefined ? {} : { keyPrefix })}
-        {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
-        {...(onProductHoverStart === undefined ? {} : { onProductHoverStart })}
-        products={products}
-        {...(props.slidesLg === undefined ? {} : { slidesLg: props.slidesLg })}
-        {...(props.slidesMd === undefined ? {} : { slidesMd: props.slidesMd })}
-        {...(props.slidesSm === undefined ? {} : { slidesSm: props.slidesSm })}
-      />
-    )
-  } else {
-    productContent = (
-      <HerbatikaProductGrid
-        {...(props.isProductAdding === undefined
-          ? {}
-          : { isProductAdding: props.isProductAdding })}
-        {...(keyPrefix === undefined ? {} : { keyPrefix })}
-        layout={props.layout}
-        onAddToCart={props.onAddToCart}
-        {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
-        {...(onProductHoverStart === undefined ? {} : { onProductHoverStart })}
-        products={products}
-      />
-    )
-  }
+  const productContent = resolveProductContent(props, resolvedEmptyText)
 
   return (
     <section className={sectionClassNames} id={id}>
       <header className={headerClassNames}>
         <div>
           <h2 className={titleClassNames}>{title}</h2>
-          {subtitle ? <p className={subtitleClassNames}>{subtitle}</p> : null}
+          {subtitle !== null && subtitle !== undefined && subtitle !== "" ? (
+            <p className={subtitleClassNames}>{subtitle}</p>
+          ) : null}
         </div>
         {headerAction}
       </header>

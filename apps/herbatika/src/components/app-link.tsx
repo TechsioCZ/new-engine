@@ -14,9 +14,11 @@ type AppLinkProps = Omit<
   href: string | UrlObject
 }
 
-export default function AppLink({ href, ...props }: AppLinkProps) {
+const AppLink = ({ href, ...props }: AppLinkProps) => {
   const resolvedHref: Route | UrlObject =
     typeof href === "string" ? appHref(href) : href
 
   return <NextLink href={resolvedHref} {...props} />
 }
+
+export default AppLink

@@ -11,7 +11,7 @@ interface BlogListingCardProps {
   post: BlogPost
 }
 
-export function BlogListingCard({ post }: BlogListingCardProps) {
+export const BlogListingCard = ({ post }: BlogListingCardProps) => {
   const locale = useLocale()
   const tContent = useTranslations("content")
 

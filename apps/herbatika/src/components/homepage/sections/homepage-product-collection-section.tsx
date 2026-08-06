@@ -12,12 +12,12 @@ interface HomepageProductCollectionSectionProps {
   onProductHoverEnd: (product: HttpTypes.StoreProduct) => void
 }
 
-export function HomepageProductCollectionSection({
+export const HomepageProductCollectionSection = ({
   section,
   shouldShowProductSkeleton,
   onProductHoverStart,
   onProductHoverEnd,
-}: HomepageProductCollectionSectionProps) {
+}: HomepageProductCollectionSectionProps) => {
   const tContent = useTranslations("content")
 
   return (

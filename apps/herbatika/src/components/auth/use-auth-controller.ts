@@ -2,8 +2,8 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { redirect, useRouter } from "next/navigation"
+import { useState } from "react"
 
 import {
   buildAuthRouteHref,
@@ -85,20 +85,24 @@ export const useAuthController = ({
 
   const transferCartIfAvailable = async () => {
     const activeCartId = cartQuery.cart?.id
-    if (!activeCartId) {
+    if (activeCartId === undefined || activeCartId === "") {
       return
     }
 
     const transferredCart = await transferCartMutation.mutateAsync({
       cartId: activeCartId,
     })
-    if (transferredCart?.id) {
+    if (
+      transferredCart?.id !== null &&
+      transferredCart?.id !== undefined &&
+      transferredCart.id !== ""
+    ) {
       cartStorage.setCartId(transferredCart.id)
     }
   }
 
   const runPostAuthCartTransfer = async () => {
-    if (!cartQuery.cart?.id) {
+    if (cartQuery.cart?.id === undefined || cartQuery.cart.id === "") {
       return null
     }
 
@@ -110,18 +114,6 @@ export const useAuthController = ({
     }
   }
 
-  useEffect(() => {
-    if (!safeRedirectHref) {
-      return
-    }
-
-    if (authQuery.isLoading || !authQuery.isAuthenticated) {
-      return
-    }
-
-    router.replace(safeRedirectHref)
-  }, [authQuery.isAuthenticated, authQuery.isLoading, router, safeRedirectHref])
-
   const handleLoginSubmit = async (
     values: LoginFormValues,
   ): Promise<string | null> => {
@@ -131,7 +123,7 @@ export const useAuthController = ({
       await loginMutation.mutateAsync(values)
       const transferNotice = await runPostAuthCartTransfer()
 
-      if (safeRedirectHref) {
+      if (safeRedirectHref !== null && safeRedirectHref !== "") {
         router.replace(safeRedirectHref)
         return null
       }
@@ -160,7 +152,7 @@ export const useAuthController = ({
       )
       const transferNotice = await runPostAuthCartTransfer()
 
-      if (safeRedirectHref) {
+      if (safeRedirectHref !== null && safeRedirectHref !== "") {
         router.replace(safeRedirectHref)
         return null
       }
@@ -202,6 +194,15 @@ export const useAuthController = ({
     safeRedirectHref ?? undefined,
   )
   const forgotPasswordHref = "/auth/forgot-password"
+
+  if (
+    !authQuery.isLoading &&
+    authQuery.isAuthenticated &&
+    safeRedirectHref !== null &&
+    safeRedirectHref !== ""
+  ) {
+    redirect(safeRedirectHref)
+  }
 
   return {
     authMessage,

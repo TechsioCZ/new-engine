@@ -26,28 +26,34 @@ interface ProductReviewTokenPageProps {
 const REVIEW_TOKEN_FORM_ID = "product-review-token-form"
 const REVIEW_TOKEN_PRODUCT_FIELDS = "id,title,handle"
 
-export function ProductReviewTokenPage({
+export const ProductReviewTokenPage = ({
   productId,
   token,
-}: ProductReviewTokenPageProps) {
+}: ProductReviewTokenPageProps) => {
   const tCatalog = useTranslations("catalog")
   const normalizedProductId = productId?.trim() ?? ""
   const [formResetKey, setFormResetKey] = useState(0)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const productQuery = useProducts({
-    page: 1,
-    limit: 1,
-    ...(normalizedProductId ? { id: normalizedProductId } : {}),
+    enabled: normalizedProductId !== "",
     fields: REVIEW_TOKEN_PRODUCT_FIELDS,
-    enabled: Boolean(normalizedProductId),
+    ...(normalizedProductId === "" ? {} : { id: normalizedProductId }),
+    limit: 1,
+    page: 1,
   })
   const product = productQuery.products[0] ?? null
-  const productHref = product?.handle ? `/p/${product.handle}` : null
+  const productHref =
+    product?.handle !== null &&
+    product?.handle !== undefined &&
+    product.handle !== ""
+      ? `/p/${product.handle}`
+      : null
   const backHref = productHref ?? "/"
-  const backLabel = productHref
-    ? tCatalog("reviews.token.back_to_product")
-    : tCatalog("reviews.token.back_to_store")
+  const backLabel =
+    productHref === null
+      ? tCatalog("reviews.token.back_to_store")
+      : tCatalog("reviews.token.back_to_product")
   const reviewErrorMessages = translateProductReviewErrorMessages(tCatalog)
   const createReviewMutation = useCreateProductReview({
     onError: (error) => {
@@ -63,7 +69,7 @@ export function ProductReviewTokenPage({
   })
   const isBusy = createReviewMutation.isPending
   const productStatus: ProductReviewTokenProductStatus = (() => {
-    if (!normalizedProductId) {
+    if (normalizedProductId === "") {
       return "missing-product-id"
     }
 
@@ -71,11 +77,11 @@ export function ProductReviewTokenPage({
       return "loading"
     }
 
-    if (productQuery.error) {
+    if (productQuery.error !== null) {
       return "error"
     }
 
-    if (!product) {
+    if (product === null) {
       return "not-found"
     }
 
@@ -92,7 +98,7 @@ export function ProductReviewTokenPage({
     rating,
     title,
   }: ProductReviewFormSubmitValues) => {
-    if (!normalizedProductId) {
+    if (normalizedProductId === "") {
       setSubmitError(tCatalog("reviews.token.missing_product"))
       return
     }
@@ -129,29 +135,29 @@ export function ProductReviewTokenPage({
           </StatusText>
         ) : null}
 
-        {productStatusMessage ? (
+        {productStatusMessage === null ? null : (
           <StatusText showIcon status={productStatusMessage.status}>
             {productStatusMessage.text}
           </StatusText>
-        ) : null}
+        )}
 
-        {product ? (
+        {product === null ? null : (
           <div className="space-y-100 border-border-secondary border-y py-300">
             <p className="text-fg-secondary text-sm">
               {tCatalog("reviews.token.product_label")}
             </p>
-            {productHref ? (
+            {productHref === null ? (
+              <p className="font-semibold text-fg-primary">{product.title}</p>
+            ) : (
               <NextLink
                 className="font-semibold text-fg-primary underline underline-offset-2"
                 href={productHref}
               >
                 {product.title}
               </NextLink>
-            ) : (
-              <p className="font-semibold text-fg-primary">{product.title}</p>
             )}
           </div>
-        ) : null}
+        )}
 
         {isSubmitted ? (
           <div className="space-y-300">
@@ -169,7 +175,7 @@ export function ProductReviewTokenPage({
           </div>
         ) : null}
 
-        {!isSubmitted && normalizedProductId ? (
+        {!isSubmitted && normalizedProductId !== "" ? (
           <>
             <ProductReviewForm
               disabled={isBusy}

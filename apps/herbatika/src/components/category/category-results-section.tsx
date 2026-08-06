@@ -20,6 +20,8 @@ interface CategoryResultsSectionProps {
   catalogError: unknown
   isEmpty: boolean
   isLoading: boolean
+  isRefreshing?: boolean
+  showCategoryNotFound: boolean
   isProductAdding: (productId: string) => boolean
   emptyMessage?: string
   onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void>
@@ -31,36 +33,35 @@ interface CategoryResultsSectionProps {
   products: HttpTypes.StoreProduct[]
   layout?: HerbatikaProductGridLayout
   loadingSkeleton?: ReactNode
-  showCategoryNotFound: boolean
   totalCount: number
   totalPages: number
   totalProducts: number
-  isRefreshing?: boolean
 }
 
-export function CategoryResultsSection({
-  activeSort,
-  categoriesError,
-  catalogError,
-  isEmpty,
-  isLoading,
-  isProductAdding,
-  emptyMessage,
-  onAddToCart,
-  onProductHoverEnd,
-  onProductHoverStart,
-  onSortChange,
-  page,
-  pageSize,
-  products,
-  layout = "catalog",
-  loadingSkeleton,
-  showCategoryNotFound,
-  totalCount,
-  totalPages,
-  totalProducts,
-  isRefreshing = false,
-}: CategoryResultsSectionProps) {
+export const CategoryResultsSection = (props: CategoryResultsSectionProps) => {
+  const {
+    activeSort,
+    categoriesError,
+    catalogError,
+    emptyMessage,
+    isEmpty,
+    isLoading,
+    isProductAdding,
+    isRefreshing = false,
+    layout = "catalog",
+    loadingSkeleton,
+    onAddToCart,
+    onProductHoverEnd,
+    onProductHoverStart,
+    onSortChange,
+    page,
+    pageSize,
+    products,
+    showCategoryNotFound,
+    totalCount,
+    totalPages,
+    totalProducts,
+  } = props
   const t = useTranslations("catalog")
   const getPageUrl = usePaginationUrlBuilder()
   const resolvedEmptyMessage = emptyMessage ?? t("results.empty_category")
@@ -82,12 +83,12 @@ export function CategoryResultsSection({
         <Skeleton.Rectangle className="h-100 rounded-full" speed="fast" />
       ) : null}
 
-      {categoriesError ? (
+      {categoriesError !== null && categoriesError !== undefined ? (
         <StatusText showIcon status="error">
           {t("errors.categories_load_failed")}
         </StatusText>
       ) : null}
-      {catalogError ? (
+      {catalogError !== null && catalogError !== undefined ? (
         <StatusText showIcon status="error">
           {t("errors.products_load_failed")}
         </StatusText>
@@ -127,7 +128,13 @@ export function CategoryResultsSection({
           pageSize={pageSize}
           size="sm"
           translations={{
-            itemLabel: ({ page: itemPage, totalPages: itemTotalPages }) =>
+            itemLabel: ({
+              page: itemPage,
+              totalPages: itemTotalPages,
+            }: {
+              page: number
+              totalPages: number
+            }) =>
               t("pagination.page_aria", {
                 page: itemPage,
                 totalPages: itemTotalPages,

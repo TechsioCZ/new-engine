@@ -15,14 +15,14 @@ interface FormCheckboxFieldProps {
   onValueChange?: (checked: boolean) => void
 }
 
-export function FormCheckboxField({
+export const FormCheckboxField = ({
   id,
   label,
   required = false,
   size = "md",
   validationMode = "blur",
   onValueChange,
-}: FormCheckboxFieldProps) {
+}: FormCheckboxFieldProps) => {
   const field = useFieldContext<boolean>()
   const fieldFeedback = resolveVisibleFieldFeedback({
     meta: field.state.meta,
@@ -32,11 +32,11 @@ export function FormCheckboxField({
 
   return (
     <FormCheckbox
-      checked={Boolean(field.state.value)}
+      checked={field.state.value}
       helpText={fieldFeedback.errorText}
       id={id}
       label={label}
-      onCheckedChange={(checked) => {
+      onCheckedChange={(checked: boolean) => {
         field.handleChange(checked)
         field.handleBlur()
         onValueChange?.(checked)

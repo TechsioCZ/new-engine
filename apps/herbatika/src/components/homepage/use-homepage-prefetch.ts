@@ -15,16 +15,20 @@ interface UseHomepagePrefetchResult {
   handleProductHoverEnd: (product: HttpTypes.StoreProduct) => void
 }
 
-export function useHomepagePrefetch(
+export const useHomepagePrefetch = (
   region: RegionLike,
-): UseHomepagePrefetchResult {
+): UseHomepagePrefetchResult => {
   const { delayedPrefetch, cancelPrefetch } = usePrefetchProduct({
     cacheStrategy: "semiStatic",
     defaultDelay: 160,
   })
 
   const handleProductHoverStart = (product: HttpTypes.StoreProduct) => {
-    if (!(region?.region_id && product.handle)) {
+    const hasRegion =
+      typeof region?.region_id === "string" && region.region_id !== ""
+    const hasHandle =
+      typeof product.handle === "string" && product.handle !== ""
+    if (!hasRegion || !hasHandle) {
       return
     }
 

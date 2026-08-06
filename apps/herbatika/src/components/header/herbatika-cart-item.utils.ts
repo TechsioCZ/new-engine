@@ -7,6 +7,9 @@ import { resolveDefaultStockInventoryQuantity } from "@/lib/storefront/default-s
 
 export const FALLBACK_MAX_QUANTITY = 99
 
+const inventoryQuantityKey = "inventory_quantity"
+const variantInventoryQuantityKey = "variant_inventory_quantity"
+
 export const resolveLineItemProductHandle = (
   item: HttpTypes.StoreCartLineItem,
 ) => {
@@ -19,7 +22,11 @@ export const resolveLineItemProductHandle = (
 export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
   const productHandle = resolveLineItemProductHandle(item)
 
-  if (productHandle) {
+  if (
+    productHandle !== null &&
+    productHandle !== undefined &&
+    productHandle !== ""
+  ) {
     return `/p/${productHandle}`
   }
 
@@ -36,17 +43,17 @@ export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {
     return defaultStockInventory
   }
 
-  const metadataInventory = asFiniteNumber(metadata?.inventory_quantity)
+  const metadataInventory = asFiniteNumber(metadata?.[inventoryQuantityKey])
   if (metadataInventory !== null) {
     return metadataInventory
   }
 
-  const variantInventory = asFiniteNumber(variant?.inventory_quantity)
+  const variantInventory = asFiniteNumber(variant?.[inventoryQuantityKey])
   if (variantInventory !== null) {
     return variantInventory
   }
 
-  return asFiniteNumber(itemRecord?.variant_inventory_quantity)
+  return asFiniteNumber(itemRecord?.[variantInventoryQuantityKey])
 }
 
 export const resolveLineItemThumbnail = (item: HttpTypes.StoreCartLineItem) => {

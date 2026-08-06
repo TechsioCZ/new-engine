@@ -76,7 +76,7 @@ export const translateProductReviewErrorMessages = (
 const hasErrorShape = (
   error: unknown,
 ): error is { message?: unknown; status?: unknown; statusText?: unknown } =>
-  Boolean(error && typeof error === "object")
+  error !== null && typeof error === "object"
 
 export const buildProductReviewTitle = (content: string) =>
   content.trim().slice(0, REVIEW_TITLE_MAX_LENGTH)
@@ -125,9 +125,24 @@ const isPurchaseRequiredReviewMessage = (normalizedMessage: string) => {
   )
 }
 
+const matchesAllPatterns = (
+  normalizedMessage: string,
+  patterns: readonly string[],
+) => {
+  const [firstPattern, secondPattern] = patterns
+  if (firstPattern === undefined) {
+    return true
+  }
+
+  return (
+    normalizedMessage.includes(firstPattern) &&
+    (secondPattern === undefined || normalizedMessage.includes(secondPattern))
+  )
+}
+
 const isSpecificDuplicateReviewMessage = (normalizedMessage: string) =>
   DUPLICATE_REVIEW_MESSAGE_RULES.some((patterns) =>
-    patterns.every((pattern) => normalizedMessage.includes(pattern)),
+    matchesAllPatterns(normalizedMessage, patterns),
   )
 
 const isBroadDuplicateReviewMessage = (normalizedMessage: string) =>
@@ -143,7 +158,7 @@ const isDuplicateReviewError = (
     return true
   }
 
-  if (status && BAD_REQUEST_REVIEW_STATUSES.has(status)) {
+  if (status !== undefined && BAD_REQUEST_REVIEW_STATUSES.has(status)) {
     return false
   }
 
@@ -156,10 +171,10 @@ const resolveReviewValidationMessage = (
   messages: ProductReviewErrorMessages,
 ) => {
   const messageKey = REVIEW_VALIDATION_MESSAGE_RULES.find(({ patterns }) =>
-    patterns.every((pattern) => normalizedMessage.includes(pattern)),
+    matchesAllPatterns(normalizedMessage, patterns),
   )?.messageKey
 
-  return messageKey ? messages[messageKey] : messages.validation
+  return messageKey === undefined ? messages.validation : messages[messageKey]
 }
 
 const resolveKnownReviewErrorMessage = ({
@@ -172,7 +187,7 @@ const resolveKnownReviewErrorMessage = ({
   status: number | undefined
 }) => {
   const tokenMessage = resolveTokenMessage(normalizedMessage, messages)
-  if (tokenMessage) {
+  if (tokenMessage !== null) {
     return tokenMessage
   }
 
@@ -196,11 +211,11 @@ const resolveKnownReviewErrorMessage = ({
     return messages.duplicate
   }
 
-  if (status && BAD_REQUEST_REVIEW_STATUSES.has(status)) {
+  if (status !== undefined && BAD_REQUEST_REVIEW_STATUSES.has(status)) {
     return resolveReviewValidationMessage(normalizedMessage, messages)
   }
 
-  if (status && status >= 500) {
+  if (status !== undefined && status >= 500) {
     return messages.generic
   }
 
@@ -218,7 +233,7 @@ export const resolveProductReviewSubmitErrorMessage = (
       : undefined
   const normalizedMessage = message.toLowerCase()
 
-  if (!message && status === undefined) {
+  if (message === "" && status === undefined) {
     return messages.generic
   }
 
@@ -228,5 +243,5 @@ export const resolveProductReviewSubmitErrorMessage = (
     status,
   })
 
-  return knownMessage || messages.generic
+  return knownMessage ?? messages.generic
 }

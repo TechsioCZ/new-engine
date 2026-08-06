@@ -9,10 +9,10 @@ interface CmsPageSurfaceProps {
   page: CmsPage
 }
 
-export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
+export const CmsPageSurface = ({ page }: CmsPageSurfaceProps) => {
   const tNavigation = useTranslations("navigation")
 
-  if (!page.title) {
+  if (page.title === null || page.title === undefined || page.title === "") {
     return null
   }
 
@@ -34,7 +34,9 @@ export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
 
         <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-600">
           <header className="space-y-200">
-            {page.category?.title ? (
+            {page.category?.title !== null &&
+            page.category?.title !== undefined &&
+            page.category.title !== "" ? (
               <p className="font-semibold text-primary text-sm leading-normal">
                 {page.category.title}
               </p>

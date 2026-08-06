@@ -10,9 +10,9 @@ interface BlogFeaturedProductCardProps {
   product: HttpTypes.StoreProduct
 }
 
-export function BlogFeaturedProductCard({
+export const BlogFeaturedProductCard = ({
   product,
-}: BlogFeaturedProductCardProps) {
+}: BlogFeaturedProductCardProps) => {
   const region = useRegionContext()
   const addToCart = useAddProductToCartAction({
     ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),

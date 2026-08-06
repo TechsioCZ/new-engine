@@ -4,7 +4,7 @@ import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
 import type { MouseEventHandler, PointerEventHandler } from "react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 
 import NextLink from "@/components/app-link"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
@@ -30,13 +30,15 @@ const HeroBannerCard = ({
 }: HeroBannerCardProps) => {
   const tContent = useTranslations("content")
   const label = banner.title ?? banner.imageAlt ?? banner.badge
+  const labelText = label ?? ""
+  const ctaLabel = banner.ctaLabel ?? ""
   const ariaLabel =
-    label && banner.ctaLabel
+    labelText !== "" && ctaLabel !== ""
       ? tContent("home.hero.link_aria", {
-          cta: banner.ctaLabel,
-          label,
+          cta: ctaLabel,
+          label: labelText,
         })
-      : label
+      : labelText
 
   return (
     <NextLink
@@ -50,20 +52,25 @@ const HeroBannerCard = ({
         alt={banner.imageAlt ?? label ?? ""}
         className="object-cover transition-transform duration-500 group-hover:scale-105"
         fill
+        sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, (min-width: 480px) 50vw, 100vw"
         src={banner.imageSrc}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-fg-primary/85 via-fg-primary/35 to-transparent" />
-      {banner.title && (
+      {typeof banner.title === "string" && banner.title !== "" && (
         <div className="absolute inset-x-0 bottom-0 flex flex-col items-start p-600 text-fg-reverse">
           <p className="line-clamp-2 font-bold text-2xl hero-title-leading">
             {banner.title}
           </p>
-          {banner.subtitle && (
-            <p className="line-clamp-2 font-semibold text-fg-reverse text-md leading-snug">
-              {banner.subtitle}
-            </p>
-          )}
-          {banner.ctaLabel ? (
+          {banner.subtitle !== null &&
+            banner.subtitle !== undefined &&
+            banner.subtitle !== "" && (
+              <p className="line-clamp-2 font-semibold text-fg-reverse text-md leading-snug">
+                {banner.subtitle}
+              </p>
+            )}
+          {banner.ctaLabel !== null &&
+          banner.ctaLabel !== undefined &&
+          banner.ctaLabel !== "" ? (
             <span
               className={buttonVariants({
                 className: "mt-350 rounded-xl px-450 py-250 text-md",
@@ -107,7 +114,7 @@ interface HeroCarouselProps {
   spacing?: string
 }
 
-function usePageRestoreKey() {
+const usePageRestoreKey = () => {
   const [restoreKey, setRestoreKey] = useState(0)
 
   useEffect(() => {
@@ -134,27 +141,27 @@ const HeroCarousel = ({
   slidesPerPage = 1,
   spacing = HERO_SLIDE_SPACING,
 }: HeroCarouselProps) => {
-  const didDragRef = useRef(false)
+  const [didDrag, setDidDrag] = useState(false)
   const handleSlidePointerDownCapture: PointerEventHandler<
     HTMLAnchorElement
   > = () => {
-    didDragRef.current = false
+    setDidDrag(false)
   }
   const handleSlideClickCapture: MouseEventHandler<HTMLAnchorElement> = (
     event,
   ) => {
     if (event.detail === 0) {
-      didDragRef.current = false
+      setDidDrag(false)
       return
     }
 
-    if (!didDragRef.current) {
+    if (!didDrag) {
       return
     }
 
     event.preventDefault()
     event.stopPropagation()
-    didDragRef.current = false
+    setDidDrag(false)
   }
   const slides = buildHeroSlides(
     banners,
@@ -169,9 +176,9 @@ const HeroCarousel = ({
       className="w-full"
       key={restoreKey}
       loop={hasOverflow}
-      onDragStatusChange={(details) => {
+      onDragStatusChange={(details: { type: string }) => {
         if (details.type === "dragging") {
-          didDragRef.current = true
+          setDidDrag(true)
         }
       }}
       size="full"

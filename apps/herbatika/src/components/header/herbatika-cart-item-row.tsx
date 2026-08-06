@@ -31,19 +31,23 @@ interface CartItemRowProps {
   onUpdateQuantity: (lineItemId: string, quantity: number) => void
 }
 
-export function CartItemRow({
+export const CartItemRow = ({
   currencyCode,
   isPending,
   item,
   onRemove,
   onUpdateQuantity,
-}: CartItemRowProps) {
+}: CartItemRowProps) => {
   const t = useTranslations("cart")
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
   const itemHref = resolveLineItemHref(item)
   const itemVariant = item.variant_title
   const itemInventory = resolveLineItemInventory(item)
+  const shouldShowVariant =
+    typeof itemVariant === "string" &&
+    itemVariant !== "" &&
+    itemVariant !== "Default"
   const itemMaxQuantity = Math.max(
     baseQuantity,
     itemInventory ?? FALLBACK_MAX_QUANTITY,
@@ -74,7 +78,7 @@ export function CartItemRow({
           {itemName}
         </Link>
 
-        {itemVariant && itemVariant !== "Default" ? (
+        {shouldShowVariant ? (
           <p className="truncate text-fg-secondary text-xs">{itemVariant}</p>
         ) : null}
 

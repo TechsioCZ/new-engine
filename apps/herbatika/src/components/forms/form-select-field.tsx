@@ -46,7 +46,7 @@ export const FormSelectField = ({
       id={id}
       items={items}
       name={field.name}
-      onValueChange={(details) => {
+      onValueChange={(details: { value: string[] }) => {
         const nextValue = details.value[0] ?? ""
         field.handleChange(nextValue)
         field.handleBlur()
@@ -56,7 +56,7 @@ export const FormSelectField = ({
       required={required}
       size={size}
       validateStatus={fieldFeedback.validateStatus}
-      value={value ? [value] : []}
+      value={value === "" ? [] : [value]}
     >
       <Select.Label>{label}</Select.Label>
       <Select.Control>
@@ -74,7 +74,8 @@ export const FormSelectField = ({
           ))}
         </Select.Content>
       </Select.Positioner>
-      {fieldFeedback.errorText ? (
+      {fieldFeedback.errorText !== undefined &&
+      fieldFeedback.errorText !== "" ? (
         <Select.StatusText>{fieldFeedback.errorText}</Select.StatusText>
       ) : null}
     </Select>

@@ -1,10 +1,8 @@
 "use client"
 
-import { useStore } from "@tanstack/react-form"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useTranslations } from "next-intl"
-import { useMemo } from "react"
 
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { RegisterAccountTypeField } from "@/components/auth/register-account-type-field"
@@ -36,26 +34,22 @@ export const RegisterForm = ({
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
   const toast = useAppToast()
-  const registerValidators = useMemo(
-    () =>
-      createRegisterValidators({
-        ...translateAddressValidationMessages(tForm),
-        accountTypeRequired: tAuth("validation.account_type_required"),
-        confirmPasswordRequired: tAuth("validation.confirm_password_required"),
-        passwordMinLength: tAuth("validation.password_min_length"),
-        passwordMismatch: tAuth("validation.password_mismatch"),
-        passwordNumber: tAuth("validation.password_number"),
-        passwordRequired: tAuth("validation.password_required"),
-        termsRequired: tAuth("validation.terms_required"),
-      }),
-    [tAuth, tForm],
-  )
+  const registerValidators = createRegisterValidators({
+    ...translateAddressValidationMessages(tForm),
+    accountTypeRequired: tAuth("validation.account_type_required"),
+    confirmPasswordRequired: tAuth("validation.confirm_password_required"),
+    passwordMinLength: tAuth("validation.password_min_length"),
+    passwordMismatch: tAuth("validation.password_mismatch"),
+    passwordNumber: tAuth("validation.password_number"),
+    passwordRequired: tAuth("validation.password_required"),
+    termsRequired: tAuth("validation.terms_required"),
+  })
 
   const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value, formApi }) => {
       const error = await onSubmit(value)
-      if (error) {
+      if (error !== null) {
         toast.error({ title: error })
         return
       }
@@ -63,8 +57,6 @@ export const RegisterForm = ({
       formApi.reset(defaultValues)
     },
   })
-  const accountType = useStore(form.store, (state) => state.values.account_type)
-  const isWholesaleAccount = accountType === "wholesale"
 
   return (
     <form
@@ -125,13 +117,17 @@ export const RegisterForm = ({
         </form.AppField>
       </div>
 
-      {isWholesaleAccount ? (
-        <RegisterWholesaleFields
-          countryItems={countryItems}
-          form={form}
-          validators={registerValidators}
-        />
-      ) : null}
+      <form.Subscribe selector={(state) => state.values.account_type}>
+        {(accountType) =>
+          accountType === "wholesale" ? (
+            <RegisterWholesaleFields
+              countryItems={countryItems}
+              form={form}
+              validators={registerValidators}
+            />
+          ) : null
+        }
+      </form.Subscribe>
 
       <form.AppField name="password" validators={registerValidators.password}>
         {(field) => (
@@ -144,7 +140,7 @@ export const RegisterForm = ({
               type="password"
               validationMode="blur"
             />
-            <PasswordRequirements password={String(field.state.value ?? "")} />
+            <PasswordRequirements password={field.state.value ?? ""} />
           </div>
         )}
       </form.AppField>

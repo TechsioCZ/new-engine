@@ -11,21 +11,24 @@ interface HerbatikaLogoProps {
   size?: "sm" | "md" | "lg"
 }
 
-export function HerbatikaLogo({
+export const HerbatikaLogo = ({
   className,
   href = "/",
   imageClassName,
   size = "md",
-}: HerbatikaLogoProps) {
+}: HerbatikaLogoProps) => {
   let sizeClass = "h-13 w-auto"
   if (size === "sm") {
     sizeClass = "h-11 w-auto"
   } else if (size === "lg") {
     sizeClass = "h-header-logo w-auto"
   }
-  const imageClasses = imageClassName
-    ? `${sizeClass} ${imageClassName}`
-    : sizeClass
+  const imageClasses =
+    imageClassName !== null &&
+    imageClassName !== undefined &&
+    imageClassName !== ""
+      ? `${sizeClass} ${imageClassName}`
+      : sizeClass
 
   return (
     <Link as={NextLink} className={className} href={href}>

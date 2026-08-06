@@ -43,7 +43,7 @@ const resolveBlogListingHref = ({
 const getFilterLabel = (filter: BlogTopicFilter) =>
   `${filter.label} (${filter.count})`
 
-export function BlogListingPage({ listing }: BlogListingPageProps) {
+export const BlogListingPage = ({ listing }: BlogListingPageProps) => {
   const tContent = useTranslations("content")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {

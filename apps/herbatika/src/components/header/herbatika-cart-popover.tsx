@@ -37,14 +37,14 @@ interface CartTotalsProps {
   taxAmount: number
 }
 
-function CartTotals({
+const CartTotals = ({
   cartItemsTotalLabel,
   cartTotalLabel,
   currencyCode,
   discountAmount,
   shippingAmount,
   taxAmount,
-}: CartTotalsProps) {
+}: CartTotalsProps) => {
   const t = useTranslations("cart")
 
   return (
@@ -85,7 +85,7 @@ function CartTotals({
   )
 }
 
-function EmptyCartPreview() {
+const EmptyCartPreview = () => {
   const t = useTranslations("cart")
 
   return (
@@ -101,12 +101,12 @@ function EmptyCartPreview() {
   )
 }
 
-export function HerbatikaCartPopover({
+export const HerbatikaCartPopover = ({
   cart,
   cartTotalLabel,
   currencyCode,
   itemCount,
-}: HerbatikaCartPopoverProps) {
+}: HerbatikaCartPopoverProps) => {
   const t = useTranslations("cart")
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -116,6 +116,11 @@ export function HerbatikaCartPopover({
   const lineItemActions = useCartLineItemActions(
     cartIdForActions === undefined ? {} : { cartId: cartIdForActions },
   )
+  const {
+    isPending,
+    removeItem: handleRemoveItem,
+    updateQuantity: handleUpdateQuantity,
+  } = lineItemActions
   const cartItems = cart?.items ?? []
   const cartItemsTotalLabel = formatCurrencyAmount(
     resolveCartItemsSubtotalAmount(cart),
@@ -178,36 +183,33 @@ export function HerbatikaCartPopover({
       portalled={false}
       shadow={false}
     >
-      <Popover.Context>
-        {(api) => (
-          <LinkButton
-            {...api.getAnchorProps()}
-            as={NextLink}
-            className="relative inline-flex items-center gap-250 py-550 text-xl data-[state=open]:bg-button-bg-primary-hover sm:w-36"
-            data-state={isPopoverOpen ? "open" : "closed"}
-            href="/checkout/kosik"
-            onClick={handleClose}
-            onMouseEnter={handlePreviewOpen}
-            onMouseLeave={schedulePreviewClose}
-            size="md"
-            theme="solid"
-            variant="primary"
-          >
-            <div className="relative">
-              <Icon icon="token-icon-cart" size="2xl" />
-              <Badge
-                className="-top-[7px] -right-200 absolute min-w-500 justify-center rounded-full bg-surface px-100 py-50 text-[11px] text-primary"
-                variant="success"
-              >
-                {itemCount > 99 ? "99+" : String(itemCount)}
-              </Badge>
-            </div>
-            <span className="font-normal font-sans text-md">
-              {cartTotalLabel}
-            </span>
-          </LinkButton>
-        )}
-      </Popover.Context>
+      <Popover.Anchor className="inline-flex">
+        <LinkButton
+          as={NextLink}
+          className="relative inline-flex items-center gap-250 py-550 text-xl data-[state=open]:bg-button-bg-primary-hover sm:w-36"
+          data-state={isPopoverOpen ? "open" : "closed"}
+          href="/checkout/kosik"
+          onClick={handleClose}
+          onMouseEnter={handlePreviewOpen}
+          onMouseLeave={schedulePreviewClose}
+          size="md"
+          theme="solid"
+          variant="primary"
+        >
+          <div className="relative">
+            <Icon icon="token-icon-cart" size="2xl" />
+            <Badge
+              className="-top-[7px] -right-200 absolute min-w-500 justify-center rounded-full bg-surface px-100 py-50 text-xs text-primary"
+              variant="success"
+            >
+              {itemCount > 99 ? "99+" : String(itemCount)}
+            </Badge>
+          </div>
+          <span className="font-normal font-sans text-md">
+            {cartTotalLabel}
+          </span>
+        </LinkButton>
+      </Popover.Anchor>
 
       <Popover.Positioner>
         <Popover.Content
@@ -229,11 +231,11 @@ export function HerbatikaCartPopover({
                 {visibleItems.map((item) => (
                   <CartItemRow
                     currencyCode={currencyCode}
-                    isPending={lineItemActions.isPending}
+                    isPending={isPending}
                     item={item}
                     key={item.id}
-                    onRemove={lineItemActions.removeItem}
-                    onUpdateQuantity={lineItemActions.updateQuantity}
+                    onRemove={handleRemoveItem}
+                    onUpdateQuantity={handleUpdateQuantity}
                   />
                 ))}
               </div>

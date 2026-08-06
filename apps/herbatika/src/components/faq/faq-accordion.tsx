@@ -1,7 +1,7 @@
 "use client"
 
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
-import { useCallback, useState } from "react"
+import { useState } from "react"
 
 import NextLink from "@/components/app-link"
 
@@ -26,23 +26,28 @@ const accordionContentClipClassName = "min-h-0 overflow-hidden"
 
 const accordionContentBodyClassName = "space-y-300 py-450"
 
-function isExternalHref(href: string) {
-  return (
-    href.startsWith("http") ||
-    href.startsWith("mailto:") ||
-    href.startsWith("tel:")
-  )
-}
+const isExternalHref = (href: string) =>
+  href.startsWith("http") ||
+  href.startsWith("mailto:") ||
+  href.startsWith("tel:")
 
 const FaqLinkItem = ({ href, label }: FaqLink) => {
-  if (isExternalHref(href)) {
+  if (href.startsWith("http")) {
     return (
       <a
         className={answerLinkClassName}
         href={href}
-        rel={href.startsWith("http") ? "noreferrer noopener" : undefined}
-        target={href.startsWith("http") ? "_blank" : undefined}
+        rel="noreferrer noopener"
+        target="_blank"
       >
+        {label}
+      </a>
+    )
+  }
+
+  if (isExternalHref(href)) {
+    return (
+      <a className={answerLinkClassName} href={href}>
         {label}
       </a>
     )
@@ -82,10 +87,11 @@ const FaqAnswerBlockContent = ({ block }: { block: FaqAnswerBlockData }) => {
     )
   }
 
-  const ListTag = block.ordered ? "ol" : "ul"
-  const listClassName = block.ordered
-    ? "ml-450 list-decimal space-y-150 font-verdana text-md leading-relaxed text-fg-secondary"
-    : "ml-450 list-disc space-y-150 font-verdana text-md leading-relaxed text-fg-secondary"
+  const ListTag = block.ordered === true ? "ol" : "ul"
+  const listClassName =
+    block.ordered === true
+      ? "ml-450 list-decimal space-y-150 font-verdana text-md leading-relaxed text-fg-secondary"
+      : "ml-450 list-disc space-y-150 font-verdana text-md leading-relaxed text-fg-secondary"
 
   return (
     <ListTag className={listClassName}>
@@ -96,11 +102,13 @@ const FaqAnswerBlockContent = ({ block }: { block: FaqAnswerBlockData }) => {
   )
 }
 
+const setAnimatedContentRef = (node: HTMLDivElement | null) => {
+  node?.style.setProperty("display", "grid", "important")
+}
+
 export const FaqAccordion = ({ defaultValue, items }: FaqAccordionProps) => {
   const [openValue, setOpenValue] = useState<string[]>(defaultValue ?? [])
-  const setAnimatedContentRef = useCallback((node: HTMLDivElement | null) => {
-    node?.style.setProperty("display", "grid", "important")
-  }, [])
+  const openItems = new Set(openValue)
 
   return (
     <Accordion
@@ -113,7 +121,7 @@ export const FaqAccordion = ({ defaultValue, items }: FaqAccordionProps) => {
       variant="borderless"
     >
       {items.map((item) => {
-        const isExpanded = openValue.includes(item.id)
+        const isExpanded = openItems.has(item.id)
 
         return (
           <Accordion.Item

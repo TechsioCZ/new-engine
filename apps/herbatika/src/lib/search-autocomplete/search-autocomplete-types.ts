@@ -1,3 +1,5 @@
+import { isRecord } from "@techsio/std/object"
+
 export type SearchAutocompleteSuggestionType = "product" | "category" | "brand"
 
 export interface SearchAutocompleteSuggestion {
@@ -16,6 +18,87 @@ export interface SearchAutocompleteResponse {
   products: SearchAutocompleteSuggestion[]
   categories: SearchAutocompleteSuggestion[]
   brands: SearchAutocompleteSuggestion[]
+}
+
+const isOptionalString = (value: unknown) =>
+  value === undefined || typeof value === "string"
+
+const isSearchAutocompleteSuggestion = (
+  value: unknown,
+  expectedType: SearchAutocompleteSuggestionType,
+): value is SearchAutocompleteSuggestion => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const { href, id, imageUrl, inStock, priceLabel, subtitle, title, type } =
+    value
+  if (type !== expectedType) {
+    return false
+  }
+  if (
+    typeof id !== "string" ||
+    typeof title !== "string" ||
+    typeof href !== "string"
+  ) {
+    return false
+  }
+  if (
+    !isOptionalString(subtitle) ||
+    !isOptionalString(imageUrl) ||
+    !isOptionalString(priceLabel)
+  ) {
+    return false
+  }
+
+  return inStock === undefined || typeof inStock === "boolean"
+}
+
+const isSuggestionArray = (
+  value: unknown,
+  expectedType: SearchAutocompleteSuggestionType,
+): value is SearchAutocompleteSuggestion[] =>
+  Array.isArray(value) &&
+  value.every((suggestion) =>
+    isSearchAutocompleteSuggestion(suggestion, expectedType),
+  )
+
+const isSearchAutocompleteResponse = (
+  value: unknown,
+): value is SearchAutocompleteResponse => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const { brands, categories, products, query } = value
+  if (typeof query !== "string") {
+    return false
+  }
+  if (!isSuggestionArray(products, "product")) {
+    return false
+  }
+  if (!isSuggestionArray(categories, "category")) {
+    return false
+  }
+
+  return isSuggestionArray(brands, "brand")
+}
+
+class InvalidSearchAutocompleteResponseError extends Error {
+  readonly code = "INVALID_SEARCH_AUTOCOMPLETE_RESPONSE"
+
+  constructor() {
+    super("Search autocomplete response did not match the expected schema")
+    this.name = "InvalidSearchAutocompleteResponseError"
+  }
+}
+
+export const parseSearchAutocompleteResponse = (
+  value: unknown,
+): SearchAutocompleteResponse => {
+  if (!isSearchAutocompleteResponse(value)) {
+    throw new InvalidSearchAutocompleteResponseError()
+  }
+
+  return value
 }
 
 export type SearchAutocompleteStatus = "idle" | "loading" | "success" | "error"

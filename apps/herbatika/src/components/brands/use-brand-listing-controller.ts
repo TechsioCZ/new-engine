@@ -26,9 +26,9 @@ interface UseBrandListingControllerProps {
   brandFacetId: string
 }
 
-export function useBrandListingController({
+export const useBrandListingController = ({
   brandFacetId,
-}: UseBrandListingControllerProps) {
+}: UseBrandListingControllerProps) => {
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers)
@@ -40,11 +40,13 @@ export function useBrandListingController({
     ...queryState,
     brand: [brandFacetId],
   }
-  const isBrandQueryEnabled = Boolean(region?.region_id && brandFacetId)
+  const hasRegion =
+    typeof region?.region_id === "string" && region.region_id !== ""
+  const isBrandQueryEnabled = hasRegion && brandFacetId !== ""
   const queryBrandSignature = queryState.brand.join("\0")
 
   useEffect(() => {
-    if (!queryBrandSignature) {
+    if (queryBrandSignature === "") {
       return
     }
 
@@ -122,7 +124,7 @@ export function useBrandListingController({
       isBrandQueryEnabled &&
       (catalogQuery.isLoading || catalogFacetSeedQuery.isLoading),
     isResultsLoading:
-      !region?.region_id ||
+      !hasRegion ||
       (catalogQuery.isLoading && catalogQuery.products.length === 0),
     isResultsRefreshing:
       catalogQuery.isFetching &&

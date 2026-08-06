@@ -6,25 +6,28 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
-import { usePathname, useRouter } from "next/navigation"
+import { redirect, usePathname, useRouter } from "next/navigation"
 import type { ReactNode } from "react"
-import { useEffect, useState } from "react"
 
 import NextLink from "@/components/app-link"
 import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skeleton"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
 import { OrderSkeleton } from "@/components/loading/order-skeleton"
 import { useAuth } from "@/lib/storefront/auth"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useLogoutAction } from "@/lib/storefront/use-logout-action"
+
+const ACCOUNT_NAV_LABEL_KEYS = {
+  lists: "account.navigation.lists",
+  orders: "account.navigation.orders",
+  overview: "account.navigation.overview",
+  settings: "account.navigation.settings",
+} as const
 
 interface AccountNavItemType {
   href: string
-  labelKey:
-    | "account.navigation.lists"
-    | "account.navigation.orders"
-    | "account.navigation.overview"
-    | "account.navigation.settings"
   icon: IconType
+  labelKey: (typeof ACCOUNT_NAV_LABEL_KEYS)[keyof typeof ACCOUNT_NAV_LABEL_KEYS]
 }
 
 const ACCOUNT_NAV_ITEMS: AccountNavItemType[] = [
@@ -66,12 +69,11 @@ interface AccountShellProps {
   children: ReactNode
 }
 
-export function AccountShell({ children }: AccountShellProps) {
+export const AccountShell = ({ children }: AccountShellProps) => {
   const tAuth = useTranslations("auth")
   const router = useRouter()
   const pathname = usePathname()
   const authQuery = useAuth()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const redirectTarget = pathname
   const isOrdersListRoute = pathname === "/account/orders"
   const isOrderDetailRoute = pathname.startsWith("/account/orders/")
@@ -87,36 +89,13 @@ export function AccountShell({ children }: AccountShellProps) {
     },
   })
 
-  useEffect(() => {
-    if (isLoggingOut) {
-      return
-    }
-
-    if (authQuery.isLoading || authQuery.isAuthenticated) {
-      return
-    }
-
-    router.replace(`/auth/login?next=${encodeURIComponent(redirectTarget)}`)
-  }, [
-    authQuery.isAuthenticated,
-    authQuery.isLoading,
-    isLoggingOut,
-    redirectTarget,
-    router,
-  ])
-
   const handleLogout = async () => {
     clearLogoutError()
-    setIsLoggingOut(true)
-
-    const result = await performLogout()
-    if (!result.ok) {
-      setIsLoggingOut(false)
-    }
+    await performLogout()
   }
 
   if (authQuery.isLoading) {
-    let skeletonSurface: ReactNode
+    let skeletonSurface: ReactNode = null
     if (isOrderDetailRoute) {
       skeletonSurface = <OrderSkeleton />
     } else if (isOrdersListRoute) {
@@ -127,6 +106,10 @@ export function AccountShell({ children }: AccountShellProps) {
   }
 
   if (!authQuery.isAuthenticated) {
+    if (!logoutMutation.isPending) {
+      redirect(`/auth/login?next=${encodeURIComponent(redirectTarget)}`)
+    }
+
     return (
       <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
         <section className="space-y-300 rounded-lg border border-border-secondary bg-surface p-550">
@@ -184,7 +167,7 @@ export function AccountShell({ children }: AccountShellProps) {
             })}
           </nav>
 
-          {logoutError && (
+          {logoutError !== null && (
             <StatusText showIcon status="error">
               {logoutError}
             </StatusText>
@@ -198,7 +181,9 @@ export function AccountShell({ children }: AccountShellProps) {
             icon="token-icon-logout"
             iconSize="2xl"
             isLoading={logoutMutation.isPending}
-            onClick={async () => handleLogout()}
+            onClick={() => {
+              runDetachedPromise(handleLogout())
+            }}
             size="current"
             theme="unstyled"
           >

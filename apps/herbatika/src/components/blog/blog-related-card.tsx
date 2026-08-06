@@ -12,7 +12,7 @@ interface BlogRelatedCardProps {
   post: BlogPost
 }
 
-export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
+export const BlogRelatedCard = ({ post }: BlogRelatedCardProps) => {
   const locale = useLocale()
 
   return (

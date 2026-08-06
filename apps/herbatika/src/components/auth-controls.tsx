@@ -13,7 +13,7 @@ interface AuthControlsProps {
   afterAuthHref?: string
 }
 
-export function AuthControls({ mode, afterAuthHref }: AuthControlsProps) {
+export const AuthControls = ({ mode, afterAuthHref }: AuthControlsProps) => {
   const controller = useAuthController({
     mode,
     ...(afterAuthHref === undefined ? {} : { afterAuthHref }),

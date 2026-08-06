@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { useTranslations } from "next-intl"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import {
   AccountSkeletonSurface,
@@ -28,16 +28,12 @@ export const AccountSettings = () => {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null)
   const hydratedCustomerIdRef = useRef<string | null>(null)
-  const accountSettingsValidators = useMemo(
-    () =>
-      createAccountSettingsValidators({
-        firstNameMinLength: tForm("validation.first_name_min_length"),
-        lastNameMinLength: tForm("validation.last_name_min_length"),
-        phoneInvalid: tForm("validation.phone_invalid"),
-        phoneMinDigits: tForm("validation.phone_min_digits"),
-      }),
-    [tForm],
-  )
+  const accountSettingsValidators = createAccountSettingsValidators({
+    firstNameMinLength: tForm("validation.first_name_min_length"),
+    lastNameMinLength: tForm("validation.last_name_min_length"),
+    phoneInvalid: tForm("validation.phone_invalid"),
+    phoneMinDigits: tForm("validation.phone_min_digits"),
+  })
 
   const form = useHerbatikaForm({
     defaultValues: toAccountSettingsValues(authQuery.customer),
@@ -129,7 +125,7 @@ export const AccountSettings = () => {
           runDetachedPromise(form.handleSubmit())
         }}
       >
-        {submitError && (
+        {submitError !== null && (
           <div className="md:col-span-2">
             <StatusText showIcon status="error">
               {submitError}
@@ -137,7 +133,7 @@ export const AccountSettings = () => {
           </div>
         )}
 
-        {submitSuccess && (
+        {submitSuccess !== null && (
           <div className="md:col-span-2">
             <StatusText showIcon status="success">
               {submitSuccess}

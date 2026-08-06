@@ -17,12 +17,12 @@ interface RegisterWholesaleFieldsProps {
   validators: RegisterFormValidators
 }
 
-export function RegisterWholesaleFields({
+export const RegisterWholesaleFields = ({
   countryItems,
   form,
   onValueChange,
   validators,
-}: RegisterWholesaleFieldsProps) {
+}: RegisterWholesaleFieldsProps) => {
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
 

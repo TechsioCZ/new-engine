@@ -3,7 +3,10 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { PhoneInput } from "@techsio/ui-kit/molecules/phone-input"
-import type { PhoneInputCountry } from "@techsio/ui-kit/molecules/phone-input"
+import type {
+  PhoneInputCountry,
+  PhoneInputValueChangeDetails,
+} from "@techsio/ui-kit/molecules/phone-input"
 import { useState } from "react"
 import type { ReactNode } from "react"
 
@@ -128,7 +131,7 @@ export const FormPhoneField = ({
       defaultCountry={resolvedDefaultCountry}
       id={id}
       name={field.name}
-      onValueChange={(details) => {
+      onValueChange={(details: PhoneInputValueChangeDetails) => {
         if (
           shouldTrackLiveFieldFeedback({
             meta: field.state.meta,
@@ -159,7 +162,8 @@ export const FormPhoneField = ({
           placeholder={placeholder}
         />
       </PhoneInput.Control>
-      {fieldFeedback.errorText ? (
+      {fieldFeedback.errorText !== undefined &&
+      fieldFeedback.errorText !== "" ? (
         <PhoneInput.StatusText showIcon>
           {fieldFeedback.errorText}
         </PhoneInput.StatusText>
