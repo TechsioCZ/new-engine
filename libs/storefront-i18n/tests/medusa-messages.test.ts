@@ -1,20 +1,16 @@
-import type { Client, FetchArgs, FetchInput } from "@medusajs/js-sdk"
-import { describe, expect, it } from "vitest"
+import type { FetchArgs, FetchInput } from "@medusajs/js-sdk"
+import { describe, expect, it, vi } from "vitest"
 
 import { loadMedusaStorefrontMessages } from "../src/medusa/messages"
 
 const createClient = (response: unknown) => {
-  const calls: [FetchInput, FetchArgs | undefined][] = []
-  const client = {
-    async fetch<T>(input: FetchInput, init?: FetchArgs): Promise<T> {
-      calls.push([input, init])
-      return Promise.resolve(response as T)
-    },
-  } satisfies Pick<Client, "fetch">
+  const fetch =
+    vi.fn<(input: FetchInput, init?: FetchArgs) => Promise<unknown>>()
+  fetch.mockResolvedValue(response)
 
   return {
-    calls,
-    client,
+    calls: fetch.mock.calls,
+    client: { fetch },
   }
 }
 
@@ -53,6 +49,23 @@ describe(loadMedusaStorefrontMessages, () => {
       market: "cz",
       messages: { "cart.title": "Košík" },
     })
+
+    await expect(
+      loadMedusaStorefrontMessages(client, {
+        locale: "cs-CZ",
+        market: "cz",
+      }),
+    ).rejects.toThrow("Invalid storefront messages response.")
+  })
+
+  it.each([
+    { locale: 42, market: "cz", messages: { "cart.title": "Košík" } },
+    { locale: "cs-CZ", market: "sk", messages: { "cart.title": "Košík" } },
+    { locale: "cs-CZ", market: "cz", messages: null },
+    { locale: "cs-CZ", market: "cz", messages: [] },
+    { locale: "cs-CZ", market: "cz", messages: { "cart.title": 42 } },
+  ])("rejects malformed external response %#", async (response) => {
+    const { client } = createClient(response)
 
     await expect(
       loadMedusaStorefrontMessages(client, {

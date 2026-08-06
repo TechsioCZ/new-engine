@@ -38,7 +38,7 @@ const getOrCreateMessageNamespace = (
     throw new TypeError(`Conflicting storefront message key: ${key}`)
   }
 
-  if (existingValue) {
+  if (existingValue !== undefined) {
     return existingValue
   }
 
@@ -60,7 +60,12 @@ export const nestStorefrontMessages = (
       target = getOrCreateMessageNamespace(target, segment, key)
     }
 
-    const lastSegment = segments.at(-1) as string
+    const lastSegment = segments.at(-1)
+
+    if (lastSegment === undefined) {
+      throw new Error(`Invalid storefront message key: ${key}`)
+    }
+
     if (Object.hasOwn(target, lastSegment)) {
       throw new Error(`Conflicting storefront message key: ${key}`)
     }
