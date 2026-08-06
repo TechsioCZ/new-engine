@@ -1,6 +1,21 @@
+/// <reference types="node" />
+
 import path from "node:path"
 
-export function parseGuardrailArgs(argv, defaultConfigPath) {
+/**
+ * @typedef {object} GuardrailArgs
+ * @property {string} configPath - Resolved guardrail config path.
+ * @property {boolean} json - Whether JSON output was requested.
+ */
+
+/**
+ * Parses guardrail script CLI arguments.
+ * @param {readonly string[]} argv - Raw CLI arguments (excluding node/script).
+ * @param {string} defaultConfigPath - Fallback config path when none is given.
+ * @returns {GuardrailArgs} Parsed guardrail arguments.
+ */
+export const parseGuardrailArgs = (argv, defaultConfigPath) => {
+  /** @type {GuardrailArgs} */
   const args = { configPath: defaultConfigPath, json: false }
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -8,19 +23,13 @@ export function parseGuardrailArgs(argv, defaultConfigPath) {
 
     if (arg === "--json") {
       args.json = true
-      continue
-    }
-
-    if (arg === "--config") {
+    } else if (arg === "--config") {
       const nextValue = argv[index + 1]
       if (nextValue) {
         args.configPath = nextValue
         index += 1
       }
-      continue
-    }
-
-    if (arg.startsWith("--config=")) {
+    } else if (arg.startsWith("--config=")) {
       args.configPath = arg.slice("--config=".length)
     }
   }
@@ -28,19 +37,27 @@ export function parseGuardrailArgs(argv, defaultConfigPath) {
   return args
 }
 
-export function normalizePath(value) {
-  return value.replaceAll(path.sep, "/")
-}
+/**
+ * Normalizes a filesystem path to use forward slashes.
+ * @param {string} value - Path to normalize.
+ * @returns {string} Path using forward slashes.
+ */
+export const normalizePath = (value) => value.replaceAll(path.sep, "/")
 
-export function globToRegExp(globPattern) {
+/**
+ * Converts a glob pattern into an anchored regular expression.
+ * @param {string} globPattern - Glob pattern to convert.
+ * @returns {RegExp} Anchored regular expression equivalent to the glob.
+ */
+export const globToRegExp = (globPattern) => {
   const normalized = normalizePath(globPattern)
   const withMarkers = normalized
     .replaceAll("**", "__DOUBLE_STAR__")
     .replaceAll("*", "__SINGLE_STAR__")
   const escaped = withMarkers
-    .replaceAll(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replaceAll(/[.+^${}()|[\]\\]/gu, "\\$&")
     .replaceAll("__DOUBLE_STAR__", ".*")
     .replaceAll("__SINGLE_STAR__", "[^/]*")
 
-  return new RegExp(`^${escaped}$`)
+  return new RegExp(`^${escaped}$`, "u")
 }
