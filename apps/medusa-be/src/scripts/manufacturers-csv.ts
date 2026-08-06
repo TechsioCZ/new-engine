@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs"
 
 import { z } from "@medusajs/framework/zod"
 
-const HTTP_CSV_SOURCE_PATTERN = /^https?:\/\//i
-const BOM_PREFIX_REGEX = /^\uFEFF/
-const EMAIL_SCHEMA = z.string().email()
+const HTTP_CSV_SOURCE_PATTERN = /^https?:\/\//iu
+const BOM_PREFIX_REGEX = /^\uFEFF/u
+const EMAIL_SCHEMA = z.email()
 const TRUE_BOOLEAN_VALUES = new Set(["1", "true", "yes", "on"])
 const FALSE_BOOLEAN_VALUES = new Set(["", "0", "false", "no", "off"])
 const REQUIRED_HEADERS = [
@@ -49,16 +49,16 @@ interface CsvParserState {
   line: number
 }
 
-function decodeCsvValue(value: string) {
+const decodeCsvValue = (value: string): string | null => {
   const trimmed = value.trim()
   return trimmed === "" ? null : trimmed
 }
 
-function parseBooleanCsvValue(
+const parseBooleanCsvValue = (
   value: string,
   field: string,
   manufacturerIdentity: string,
-) {
+): boolean => {
   const normalized = value.trim().toLowerCase()
   if (TRUE_BOOLEAN_VALUES.has(normalized)) {
     return true
@@ -72,23 +72,22 @@ function parseBooleanCsvValue(
   )
 }
 
-function normalizeLookupKey(value: string) {
-  return value
+const normalizeLookupKey = (value: string): string =>
+  value
     .normalize("NFKD")
-    .replaceAll(/[\u0300-\u036F]/g, "")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
     .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/-+/g, "-")
-    .replaceAll(/^-|-$/g, "")
-}
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/-+/gu, "-")
+    .replaceAll(/^-|-$/gu, "")
 
-function pushCsvField(state: CsvParserState) {
+const pushCsvField = (state: CsvParserState): void => {
   state.currentRow.push(state.currentField)
   state.currentField = ""
   state.afterClosingQuote = false
 }
 
-function pushCsvRow(rows: string[][], state: CsvParserState) {
+const pushCsvRow = (rows: string[][], state: CsvParserState): void => {
   pushCsvField(state)
   if (state.currentRow.some((cell) => cell.trim().length > 0)) {
     rows.push(state.currentRow)
@@ -96,11 +95,11 @@ function pushCsvRow(rows: string[][], state: CsvParserState) {
   state.currentRow = []
 }
 
-function consumeQuotedCsvCharacter(
+const consumeQuotedCsvCharacter = (
   source: string,
   index: number,
   state: CsvParserState,
-) {
+): number => {
   const char = source.charAt(index)
   if (char !== '"') {
     state.currentField += char
@@ -120,12 +119,12 @@ function consumeQuotedCsvCharacter(
   return index
 }
 
-function consumeUnquotedCsvCharacter(
+const consumeUnquotedCsvCharacter = (
   char: string,
   delimiter: string,
   rows: string[][],
   state: CsvParserState,
-) {
+): void => {
   if (state.afterClosingQuote && char !== delimiter && char !== "\n") {
     throw new Error(
       `Malformed manufacturers CSV at line ${state.line}: unexpected character after a closing quote`,
@@ -156,7 +155,10 @@ function consumeUnquotedCsvCharacter(
   state.currentField += char
 }
 
-function parseCsvRows(source: string, delimiter = ";") {
+// The parser advances through quoted and unquoted spans at different rates,
+// so the cursor is walked with a while loop instead of a for loop whose
+// counter would otherwise be reassigned from within the loop body.
+const parseCsvRows = (source: string, delimiter = ";"): string[][] => {
   const rows: string[][] = []
   const state: CsvParserState = {
     afterClosingQuote: false,
@@ -165,11 +167,12 @@ function parseCsvRows(source: string, delimiter = ";") {
     inQuotes: false,
     line: 1,
   }
-  const normalizedSource = source.replaceAll(/\r\n?/g, "\n")
+  const normalizedSource = source.replaceAll(/\r\n?/gu, "\n")
 
-  for (let index = 0; index < normalizedSource.length; index += 1) {
+  let index = 0
+  while (index < normalizedSource.length) {
     if (state.inQuotes) {
-      index = consumeQuotedCsvCharacter(normalizedSource, index, state)
+      index = consumeQuotedCsvCharacter(normalizedSource, index, state) + 1
       continue
     }
 
@@ -179,6 +182,7 @@ function parseCsvRows(source: string, delimiter = ";") {
       rows,
       state,
     )
+    index += 1
   }
 
   if (state.inQuotes) {
@@ -198,7 +202,7 @@ function parseCsvRows(source: string, delimiter = ";") {
   return rows
 }
 
-function validateHeaders(headers: string[]) {
+const validateHeaders = (headers: string[]): void => {
   if (!headers.length || headers.every((header) => header.length === 0)) {
     throw new Error("Manufacturers CSV has no usable headers")
   }
@@ -226,36 +230,40 @@ function validateHeaders(headers: string[]) {
   }
 }
 
-function validateEmail(
+const validateEmail = (
   value: string | null,
   field: string,
   manufacturerIdentity: string,
-) {
-  if (value && !EMAIL_SCHEMA.safeParse(value).success) {
+): void => {
+  if (
+    value !== null &&
+    value !== "" &&
+    !EMAIL_SCHEMA.safeParse(value).success
+  ) {
     throw new Error(
       `Manufacturer "${manufacturerIdentity}" has invalid email "${value}" in CSV field "${field}"`,
     )
   }
 }
 
-function buildManufacturerCsvFields(
+const buildManufacturerCsvFields = (
   record: Record<string, string>,
   manufacturerIdentity: string,
-) {
-  const gpsr_contact_email = decodeCsvValue(record["contactEmail"] ?? "")
-  const gpsr_european_reseller_contact_email = decodeCsvValue(
+): Omit<ManufacturerCsvRow, "id" | "name"> => {
+  const gpsrContactEmail = decodeCsvValue(record["contactEmail"] ?? "")
+  const gpsrEuropeanResellerContactEmail = decodeCsvValue(
     record["europeanResellerContactEmail"] ?? "",
   )
-  const gpsr_european_reseller_manufacturing_company_name = decodeCsvValue(
+  const gpsrEuropeanResellerManufacturingCompanyName = decodeCsvValue(
     record["europeanResellerManufacturingCompanyName"] ?? "",
   )
-  const gpsr_european_reseller_postal_address = decodeCsvValue(
+  const gpsrEuropeanResellerPostalAddress = decodeCsvValue(
     record["europeanResellerPostalAddress"] ?? "",
   )
   const europeanRepresentativeFields = [
-    gpsr_european_reseller_contact_email,
-    gpsr_european_reseller_manufacturing_company_name,
-    gpsr_european_reseller_postal_address,
+    gpsrEuropeanResellerContactEmail,
+    gpsrEuropeanResellerManufacturingCompanyName,
+    gpsrEuropeanResellerPostalAddress,
   ]
   const representativeFieldCount = europeanRepresentativeFields.filter(
     (value) => value !== null,
@@ -267,19 +275,20 @@ function buildManufacturerCsvFields(
     )
   }
 
-  validateEmail(gpsr_contact_email, "contactEmail", manufacturerIdentity)
+  validateEmail(gpsrContactEmail, "contactEmail", manufacturerIdentity)
   validateEmail(
-    gpsr_european_reseller_contact_email,
+    gpsrEuropeanResellerContactEmail,
     "europeanResellerContactEmail",
     manufacturerIdentity,
   )
 
   return {
     description: decodeCsvValue(record["description"] ?? ""),
-    gpsr_contact_email,
-    gpsr_european_reseller_contact_email,
-    gpsr_european_reseller_manufacturing_company_name,
-    gpsr_european_reseller_postal_address,
+    gpsr_contact_email: gpsrContactEmail,
+    gpsr_european_reseller_contact_email: gpsrEuropeanResellerContactEmail,
+    gpsr_european_reseller_manufacturing_company_name:
+      gpsrEuropeanResellerManufacturingCompanyName,
+    gpsr_european_reseller_postal_address: gpsrEuropeanResellerPostalAddress,
     gpsr_manufactured_outside_eu: representativeFieldCount === 3,
     gpsr_manufacturing_company_name: decodeCsvValue(
       record["manufacturingCompanyName"] ?? "",
@@ -302,11 +311,11 @@ function buildManufacturerCsvFields(
   }
 }
 
-function toManufacturerCsvRow(
+const toManufacturerCsvRow = (
   headers: string[],
   row: string[],
   sourceRow: number,
-): ManufacturerCsvRow {
+): ManufacturerCsvRow => {
   if (row.length !== headers.length) {
     throw new Error(
       `Malformed manufacturers CSV row ${sourceRow}: expected ${headers.length} columns, received ${row.length}`,
@@ -319,7 +328,7 @@ function toManufacturerCsvRow(
 
   const id = decodeCsvValue(record["id"] ?? "")
   const name = decodeCsvValue(record["name"] ?? "")
-  if (!(id && name)) {
+  if (id === null || id === "" || name === null || name === "") {
     throw new Error(
       `Malformed manufacturers CSV row ${sourceRow}: both "id" and "name" are required`,
     )
@@ -333,7 +342,7 @@ function toManufacturerCsvRow(
   }
 }
 
-export function parseManufacturersCsv(source: string): ManufacturerCsvRow[] {
+export const parseManufacturersCsv = (source: string): ManufacturerCsvRow[] => {
   const rows = parseCsvRows(source)
   const [headerRow] = rows
   if (!headerRow) {
@@ -358,9 +367,9 @@ export function parseManufacturersCsv(source: string): ManufacturerCsvRow[] {
   return manufacturers
 }
 
-export function buildManufacturersLookup(
+export const buildManufacturersLookup = (
   rows: ManufacturerCsvRow[],
-): ManufacturerCsvLookup {
+): ManufacturerCsvLookup => {
   if (!rows.length) {
     throw new Error("Cannot build manufacturers lookup from zero rows")
   }
@@ -370,7 +379,9 @@ export function buildManufacturersLookup(
   for (const row of rows) {
     const aliases = [
       { field: "name", value: row.name },
-      ...(row.indexName ? [{ field: "indexName", value: row.indexName }] : []),
+      ...(row.indexName !== null && row.indexName !== ""
+        ? [{ field: "indexName", value: row.indexName }]
+        : []),
     ]
 
     for (const alias of aliases) {
@@ -395,18 +406,18 @@ export function buildManufacturersLookup(
   return lookup
 }
 
-export function findManufacturerCsvRow(
+export const findManufacturerCsvRow = (
   lookup: ManufacturerCsvLookup,
   value?: string | null,
-): ManufacturerCsvRow | undefined {
-  if (!value) {
-    return
+): ManufacturerCsvRow | undefined => {
+  if (value === undefined || value === null || value === "") {
+    return undefined
   }
 
   return lookup.get(normalizeLookupKey(value))
 }
 
-export async function readCsvSource(source: string): Promise<string> {
+export const readCsvSource = async (source: string): Promise<string> => {
   if (!HTTP_CSV_SOURCE_PATTERN.test(source)) {
     return readFileSync(source, "utf-8")
   }
@@ -426,7 +437,7 @@ export async function readCsvSource(source: string): Promise<string> {
       )
     }
 
-    return response.text()
+    return await response.text()
   } finally {
     clearTimeout(timeout)
   }
