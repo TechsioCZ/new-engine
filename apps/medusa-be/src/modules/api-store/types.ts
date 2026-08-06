@@ -1,26 +1,27 @@
 export type ApiStoreCredentials = Record<string, unknown>
+export type ApiStoreAccessTokenExpiresAt = Date | string | null
 
-export type ApiStoreCreateInput = {
+export interface ApiStoreCreateInput {
   name: string
   api_url?: string | null
   api_key?: string | null
   credentials?: ApiStoreCredentials | null
   enabled?: boolean
   is_internal?: boolean
-  access_token_expires_at?: Date | string | null
+  access_token_expires_at?: ApiStoreAccessTokenExpiresAt
 }
 
-export type ApiStoreUpdateInput = {
+export interface ApiStoreUpdateInput {
   name?: string
   api_url?: string | null
   api_key?: string | null
   credentials?: ApiStoreCredentials | null
   enabled?: boolean
   is_internal?: boolean
-  access_token_expires_at?: Date | string | null
+  access_token_expires_at?: ApiStoreAccessTokenExpiresAt
 }
 
-export type ApiStoreAdminDTO = {
+export interface ApiStoreAdminDTO {
   id: string
   name: string
   api_url: string | null

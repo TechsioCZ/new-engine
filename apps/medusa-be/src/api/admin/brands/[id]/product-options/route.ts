@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework/http"
 import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { ProductBrandLink } from "../../../../../links/product-brand"
 import {
@@ -20,7 +21,10 @@ import {
 } from "../../utils"
 import type { AdminGetBrandProductOptionsSchemaType } from "../../validators"
 
-const PRODUCT_ORDER = { id: "ASC" as const, title: "ASC" as const }
+const PRODUCT_ORDER: { id: "ASC"; title: "ASC" } = {
+  id: "ASC",
+  title: "ASC",
+}
 
 type ProductIdGroup = string[] | { $nin?: string[] }
 
@@ -42,7 +46,11 @@ const getPageWindow = (
 })
 
 const getProductGroupFilters = (group: ProductIdGroup) => {
-  if (Array.isArray(group) || !group.$nin?.length) {
+  if (
+    Array.isArray(group) ||
+    group.$nin === undefined ||
+    group.$nin.length === 0
+  ) {
     return {}
   }
 
@@ -65,10 +73,14 @@ const listProductGroup = async ({
   const pageWindow = getPageWindow(options, remainingOffset, remainingLimit)
 
   if (Array.isArray(group)) {
-    return listAndCountProductsByIds(scope, group, pageWindow)
+    return await listAndCountProductsByIds(scope, group, pageWindow)
   }
 
-  return listAndCountProducts(scope, getProductGroupFilters(group), pageWindow)
+  return await listAndCountProducts(
+    scope,
+    getProductGroupFilters(group),
+    pageWindow,
+  )
 }
 
 const listRankedProductPage = async (
@@ -81,7 +93,16 @@ const listRankedProductPage = async (
   let remainingLimit = options.limit
   const page: ReturnType<typeof toProductResponse>[] = []
 
-  for (const group of productIdGroups) {
+  const readGroup = async (index: number): Promise<void> => {
+    if (index >= productIdGroups.length) {
+      return
+    }
+
+    const group = productIdGroups[index]
+    if (group === undefined) {
+      return
+    }
+
     const shouldReadPage = remainingLimit > 0
     const [products, groupCount] = await listProductGroup({
       group,
@@ -93,91 +114,93 @@ const listRankedProductPage = async (
 
     count += groupCount
 
-    if (!shouldReadPage) {
-      continue
+    if (shouldReadPage) {
+      if (remainingOffset >= groupCount) {
+        remainingOffset -= groupCount
+      } else {
+        page.push(...products.map(toProductResponse))
+        remainingLimit -= products.length
+        remainingOffset = 0
+      }
     }
 
-    if (remainingOffset >= groupCount) {
-      remainingOffset -= groupCount
-      continue
-    }
-
-    if (remainingLimit > 0) {
-      page.push(...products.map(toProductResponse))
-      remainingLimit -= products.length
-    }
-
-    remainingOffset = 0
+    await readGroup(index + 1)
   }
 
+  await readGroup(0)
   return { count, page }
 }
 
-export async function GET(
+const getBrandProductOptions = async (
   req: AuthenticatedMedusaRequest<
     unknown,
     AdminGetBrandProductOptionsSchemaType
   >,
   res: MedusaResponse,
-) {
+) => {
   const brandId = req.params["id"] ?? ""
 
   await retrieveBrandOrThrow(req.scope, brandId)
 
   const { limit, offset, q } = req.validatedQuery
   const currentProductIds = await listProductIdsForBrand(req.scope, brandId)
-  const groups = q
-    ? [currentProductIds, { $nin: currentProductIds }]
-    : await (async () => {
-        const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
-        const { data: activeBrands } = await query.graph({
-          entity: "brand",
-          fields: ["id"],
-          filters: {
-            deleted_at: null,
-          },
-        })
-        const activeBrandIds = Array.isArray(activeBrands)
-          ? activeBrands.flatMap((brand) => {
-              if (!(brand && typeof brand === "object" && "id" in brand)) {
+  const groups =
+    q !== undefined && q !== ""
+      ? [currentProductIds, { $nin: currentProductIds }]
+      : await (async () => {
+          const query = req.scope.resolve<Query>(
+            ContainerRegistrationKeys.QUERY,
+          )
+          const activeBrandsResult: unknown = await query.graph({
+            entity: "brand",
+            fields: ["id"],
+            filters: {
+              deleted_at: null,
+            },
+          })
+          const activeBrands =
+            isRecord(activeBrandsResult) &&
+            Array.isArray(activeBrandsResult["data"])
+              ? activeBrandsResult["data"]
+              : []
+          const activeBrandIds = activeBrands.flatMap((brand) => {
+            if (!isRecord(brand)) {
+              return []
+            }
+
+            const activeBrandId = brand["id"]
+            return typeof activeBrandId === "string" ? [activeBrandId] : []
+          })
+
+          const linkedProductsResult: unknown = await query.graph({
+            entity: ProductBrandLink.entryPoint,
+            fields: ["product_id"],
+            filters: {
+              brand_id: { $in: activeBrandIds },
+              product_id: { $nin: currentProductIds },
+            },
+          })
+          const linkedProducts =
+            isRecord(linkedProductsResult) &&
+            Array.isArray(linkedProductsResult["data"])
+              ? linkedProductsResult["data"]
+              : []
+          const linkedProductIds = uniqueIds(
+            linkedProducts.flatMap((link) => {
+              if (!isRecord(link)) {
                 return []
               }
 
-              const activeBrandId: unknown = brand.id
+              const productId = link["product_id"]
+              return typeof productId === "string" ? [productId] : []
+            }),
+          )
 
-              return typeof activeBrandId === "string" ? [activeBrandId] : []
-            })
-          : []
-
-        const { data: linkedProducts } = await query.graph({
-          entity: ProductBrandLink.entryPoint,
-          fields: ["product_id"],
-          filters: {
-            brand_id: { $in: activeBrandIds },
-            product_id: { $nin: currentProductIds },
-          },
-        })
-        const linkedProductIds = uniqueIds(
-          Array.isArray(linkedProducts)
-            ? linkedProducts.flatMap((link) => {
-                if (
-                  !(link && typeof link === "object" && "product_id" in link)
-                ) {
-                  return []
-                }
-
-                const productId: unknown = link.product_id
-
-                return typeof productId === "string" ? [productId] : []
-              })
-            : [],
-        )
-
-        return [
-          currentProductIds,
-          { $nin: uniqueIds([...currentProductIds, ...linkedProductIds]) },
-        ]
-      })()
+          return [
+            currentProductIds,
+            { $nin: uniqueIds([...currentProductIds, ...linkedProductIds]) },
+          ]
+        })()
   const { count, page: products } = await listRankedProductPage(
     req.scope,
     groups,
@@ -200,18 +223,25 @@ export async function GET(
     ]),
   )
   const activeBrandIds = new Set(
-    linkedBrands.filter((brand) => !brand.deleted_at).map((brand) => brand.id),
+    linkedBrands.flatMap((brand) =>
+      brand.deleted_at === null || brand.deleted_at === undefined
+        ? [brand.id]
+        : [],
+    ),
   )
   const activeBrandIdByProductId = new Map(
-    links
-      .filter((link) => activeBrandIds.has(link.brand_id))
-      .map((link) => [link.product_id, link.brand_id]),
+    links.flatMap((link) =>
+      activeBrandIds.has(link.brand_id)
+        ? [[link.product_id, link.brand_id]]
+        : [],
+    ),
   )
   const options = products.map((product) => {
     const assignedBrandId = activeBrandIdByProductId.get(product.id)
-    const assignedBrand = assignedBrandId
-      ? (brandsById.get(assignedBrandId) ?? null)
-      : null
+    const assignedBrand =
+      assignedBrandId === undefined || assignedBrandId === ""
+        ? null
+        : (brandsById.get(assignedBrandId) ?? null)
 
     return {
       assigned_brand: assignedBrand,
@@ -226,3 +256,5 @@ export async function GET(
     products: options,
   })
 }
+
+export { getBrandProductOptions as GET }

@@ -2,33 +2,26 @@ import { model } from "@medusajs/framework/utils"
 
 const GLSConfig = model
   .define("gls_config", {
-    id: model.id().primaryKey(),
-
-    environment: model.text(),
-    is_enabled: model.boolean().default(false),
-
-    // MyGLS credentials / account routing
-    username: model.text().nullable(),
-    password: model.text().nullable(),
     client_number: model.number().nullable(),
     country_code: model.text().default("SK"),
-    webshop_engine: model.text().nullable(),
-
-    // Label printing options accepted by MyGLS PrintLabels
-    type_of_printer: model.text().default("A4_2x2"),
-    print_position: model.number().default(1),
+    environment: model.text(),
     hide_phone_number_on_labels: model.boolean().default(false),
-
-    // Pickup/sender address used as MyGLS PickupAddress
-    sender_name: model.text().nullable(),
-    sender_street: model.text().nullable(),
+    id: model.id().primaryKey(),
+    is_enabled: model.boolean().default(false),
+    password: model.text().nullable(),
+    print_position: model.number().default(1),
+    sender_city: model.text().nullable(),
+    sender_country: model.text().nullable(),
+    sender_email: model.text().nullable(),
     sender_house_number: model.text().nullable(),
     sender_house_number_info: model.text().nullable(),
-    sender_city: model.text().nullable(),
-    sender_zip_code: model.text().nullable(),
-    sender_country: model.text().nullable(),
+    sender_name: model.text().nullable(),
     sender_phone: model.text().nullable(),
-    sender_email: model.text().nullable(),
+    sender_street: model.text().nullable(),
+    sender_zip_code: model.text().nullable(),
+    type_of_printer: model.text().default("A4_2x2"),
+    username: model.text().nullable(),
+    webshop_engine: model.text().nullable(),
   })
   .checks([
     {

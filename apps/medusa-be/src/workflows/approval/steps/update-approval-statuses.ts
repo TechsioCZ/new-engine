@@ -4,34 +4,35 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { isRecord } from "@techsio/std/object"
 
 import { APPROVAL_MODULE } from "../../../modules/approval"
-import { ApprovalStatusType } from "../../../types"
+import { ApprovalStatusType } from "../../../types/approval/module"
 import type {
-  IApprovalModuleService,
   ModuleApproval,
   ModuleApprovalStatus,
-} from "../../../types"
+} from "../../../types/approval/module"
+import type { IApprovalModuleService } from "../../../types/approval/service"
 
-function toApprovalStatusSnapshot(value: unknown): ModuleApprovalStatus {
-  if (value === null || typeof value !== "object") {
+const APPROVAL_STATUSES = new Set<unknown>([
+  ApprovalStatusType.PENDING,
+  ApprovalStatusType.APPROVED,
+  ApprovalStatusType.REJECTED,
+])
+
+const toApprovalStatusSnapshot = (value: unknown): ModuleApprovalStatus => {
+  if (!isRecord(value)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Approval status snapshot is invalid",
     )
   }
 
-  const id = Reflect.get(value, "id")
-  const cartId = Reflect.get(value, "cart_id")
-  const status = Reflect.get(value, "status")
+  const { cart_id: cartId, id, status } = value
   if (
     typeof id !== "string" ||
     typeof cartId !== "string" ||
-    !(
-      status === ApprovalStatusType.PENDING ||
-      status === ApprovalStatusType.APPROVED ||
-      status === ApprovalStatusType.REJECTED
-    )
+    !APPROVAL_STATUSES.has(status)
   ) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
@@ -39,7 +40,15 @@ function toApprovalStatusSnapshot(value: unknown): ModuleApprovalStatus {
     )
   }
 
-  return { cart_id: cartId, id, status }
+  let validatedStatus: ModuleApprovalStatus["status"] =
+    ApprovalStatusType.PENDING
+  if (status === ApprovalStatusType.APPROVED) {
+    validatedStatus = ApprovalStatusType.APPROVED
+  } else if (status === ApprovalStatusType.REJECTED) {
+    validatedStatus = ApprovalStatusType.REJECTED
+  }
+
+  return { cart_id: cartId, id, status: validatedStatus }
 }
 
 export const updateApprovalStatusStep = createStep(
@@ -52,9 +61,7 @@ export const updateApprovalStatusStep = createStep(
     const approvalModule =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
-    const {
-      data: [approvalStatus],
-    } = await query.graph({
+    const graphResult: unknown = await query.graph({
       entity: "approval_status",
       fields: ["*"],
       filters: {
@@ -65,8 +72,15 @@ export const updateApprovalStatusStep = createStep(
         take: 1,
       },
     })
+    const graphData: unknown = isRecord(graphResult)
+      ? graphResult["data"]
+      : undefined
+    const approvalStatuses: unknown[] = Array.isArray(graphData)
+      ? graphData
+      : []
+    const [approvalStatus] = approvalStatuses
 
-    if (!approvalStatus) {
+    if (approvalStatus === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Approval status for cart ${input.cart_id} was not found`,
@@ -82,7 +96,7 @@ export const updateApprovalStatusStep = createStep(
     if (input.status === ApprovalStatusType.APPROVED && !hasPendingApprovals) {
       await approvalModule.updateApprovalStatuses([
         {
-          id: approvalStatus.id,
+          id: previousData.id,
           status: ApprovalStatusType.APPROVED,
         },
       ])
@@ -91,7 +105,7 @@ export const updateApprovalStatusStep = createStep(
     if (input.status === ApprovalStatusType.REJECTED) {
       await approvalModule.updateApprovalStatuses([
         {
-          id: approvalStatus.id,
+          id: previousData.id,
           status: ApprovalStatusType.REJECTED,
         },
       ])
@@ -100,7 +114,7 @@ export const updateApprovalStatusStep = createStep(
     return new StepResponse(undefined, previousData)
   },
   async (previousData: ModuleApprovalStatus | undefined, { container }) => {
-    if (!previousData) {
+    if (previousData === undefined) {
       return
     }
 

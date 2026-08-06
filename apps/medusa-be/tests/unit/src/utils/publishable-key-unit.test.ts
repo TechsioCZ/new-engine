@@ -24,22 +24,16 @@ interface ApiKeyServiceStub {
 type LockingModuleStub = Pick<ILockingModule, "execute">
 
 const createApiKeyService = (): Mocked<ApiKeyServiceStub> => ({
-  createApiKeys: vi.fn(),
+  createApiKeys: vi.fn<ApiKeyServiceStub["createApiKeys"]>(),
   listApiKeys: vi.fn<IApiKeyModuleService["listApiKeys"]>(),
 })
 
-/**
- * `ILockingModule["execute"]` is a genuinely generic method (`<T>(...) =>
- * Promise<T>`). Vitest's `Mock<T>` type loses genericity when wrapping a
- * generic call signature, so the mock is built from a simpler, non-generic
- * implementation shape and cast once at this single boundary.
- */
 const createLockingModule = (): LockingModuleStub => ({
-  execute: vi.fn(
-    async (_key: string | string[], callback: () => Promise<unknown>) =>
-      await callback(),
-  ) as ILockingModule["execute"],
+  execute: vi.fn<ILockingModule["execute"]>(),
 })
+
+const objectContaining = (value: Record<string, unknown>): unknown =>
+  expect.objectContaining(value)
 
 const createApiKey = (
   overrides: Partial<ApiKeyDTO> & Pick<ApiKeyDTO, "id" | "token">,
@@ -118,7 +112,7 @@ describe("publishable-key utils", () => {
         type: "publishable",
       })
       expect(result).toStrictEqual({
-        apiKey: expect.objectContaining({
+        apiKey: objectContaining({
           id: "key_active",
           token: "pk_active",
         }),
@@ -162,7 +156,7 @@ describe("publishable-key utils", () => {
 
       expect(apiKeyService.createApiKeys).not.toHaveBeenCalled()
       expect(result).toStrictEqual({
-        apiKey: expect.objectContaining({
+        apiKey: objectContaining({
           id: "key_existing",
           token: "pk_existing",
         }),
@@ -196,7 +190,7 @@ describe("publishable-key utils", () => {
         type: "publishable",
       })
       expect(result).toStrictEqual({
-        apiKey: expect.objectContaining({
+        apiKey: objectContaining({
           id: "key_created",
           token: "pk_created",
         }),

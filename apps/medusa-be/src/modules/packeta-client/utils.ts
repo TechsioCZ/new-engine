@@ -1,5 +1,42 @@
 import type { PacketaShipmentState } from "./types"
 
+const PACKETA_STATUS_BY_CODE = new Map<string, PacketaShipmentState>([
+  ["1", "received_data"],
+  ["received data", "received_data"],
+  ["receiveddata", "received_data"],
+  ["2", "arrived"],
+  ["arrived", "arrived"],
+  ["arrived at target", "arrived"],
+  ["arrivedattarget", "arrived"],
+  ["3", "prepared_for_departure"],
+  ["prepared for departure", "prepared_for_departure"],
+  ["preparedfordeparture", "prepared_for_departure"],
+  ["4", "handed_to_carrier"],
+  ["handed to carrier", "handed_to_carrier"],
+  ["handedtocarrier", "handed_to_carrier"],
+  ["5", "departed"],
+  ["departed", "departed"],
+  ["6", "ready_for_pickup"],
+  ["ready for pickup", "ready_for_pickup"],
+  ["readyforpickup", "ready_for_pickup"],
+  ["7", "delivered"],
+  ["delivered", "delivered"],
+  ["8", "collected"],
+  ["collected", "collected"],
+  ["pickedup", "collected"],
+  ["9", "posted_back"],
+  ["posted back", "posted_back"],
+  ["postedback", "posted_back"],
+  ["10", "returned"],
+  ["returned", "returned"],
+  ["11", "cancelled"],
+  ["cancelled", "cancelled"],
+  ["canceled", "cancelled"],
+  ["12", "customs_declaration"],
+  ["customs declaration", "customs_declaration"],
+  ["customsdeclarationprocess", "customs_declaration"],
+])
+
 /**
  * Map Packeta raw status codes to our normalised PacketaShipmentState.
  *
@@ -10,84 +47,7 @@ import type { PacketaShipmentState } from "./types"
  *
  * Source: https://docs.packetery.com/03-creating-packets/01-rest-api.html#status-codes
  */
-export function mapPacketaStatusCode(
+export const mapPacketaStatusCode = (
   code: string | number,
-): PacketaShipmentState {
-  const key = String(code).trim().toLowerCase()
-
-  switch (key) {
-    case "1":
-    case "received data":
-    case "receiveddata": {
-      return "received_data"
-    }
-
-    case "2":
-    case "arrived":
-    case "arrived at target":
-    case "arrivedattarget": {
-      return "arrived"
-    }
-
-    case "3":
-    case "prepared for departure":
-    case "preparedfordeparture": {
-      return "prepared_for_departure"
-    }
-
-    case "4":
-    case "handed to carrier":
-    case "handedtocarrier": {
-      return "handed_to_carrier"
-    }
-
-    case "5":
-    case "departed": {
-      return "departed"
-    }
-
-    case "6":
-    case "ready for pickup":
-    case "readyforpickup": {
-      return "ready_for_pickup"
-    }
-
-    case "7":
-    case "delivered": {
-      return "delivered"
-    }
-
-    case "8":
-    case "collected":
-    case "pickedup": {
-      return "collected"
-    }
-
-    case "9":
-    case "posted back":
-    case "postedback": {
-      return "posted_back"
-    }
-
-    case "10":
-    case "returned": {
-      return "returned"
-    }
-
-    case "11":
-    case "cancelled":
-    case "canceled": {
-      return "cancelled"
-    }
-
-    case "12":
-    case "customs declaration":
-    case "customsdeclarationprocess": {
-      return "customs_declaration"
-    }
-
-    default: {
-      return "unknown"
-    }
-  }
-}
+): PacketaShipmentState =>
+  PACKETA_STATUS_BY_CODE.get(String(code).trim().toLowerCase()) ?? "unknown"

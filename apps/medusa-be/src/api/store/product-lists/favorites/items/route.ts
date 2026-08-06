@@ -14,10 +14,10 @@ import {
 } from "../../utils"
 import type { StoreCreateFavoriteProductListItemSchemaType } from "../../validators"
 
-export async function POST(
+const postFavoriteProductListItem = async (
   req: AuthenticatedMedusaRequest<StoreCreateFavoriteProductListItemSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { result } = await addFavoriteProductListItemWorkflow(req.scope).run({
     input: definedProperties({
       ...req.validatedBody,
@@ -38,3 +38,5 @@ export async function POST(
     ),
   })
 }
+
+export { postFavoriteProductListItem as POST }

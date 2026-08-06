@@ -2,6 +2,7 @@ import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Badge, Container, Text } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
+import { isRecord } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
 
 import { sdk } from "../lib/sdk"
@@ -13,19 +14,28 @@ import {
 import type { ProductSalesRegionsResponse } from "../utils/product-sales-regions"
 
 type ProductSalesRegionsWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
+type SalesRegionRow = ProductSalesRegionsResponse["country_rates"][number] & {
+  countryName: string
+}
 
-function SalesRegionsContent({
+const isSalesRegionRow = (value: unknown): value is SalesRegionRow =>
+  isRecord(value) &&
+  typeof value["country_code"] === "string" &&
+  typeof value["countryName"] === "string" &&
+  typeof value["rate"] === "number"
+
+const SalesRegionsContent = ({
   error,
   isLoading,
   rows,
 }: {
   error: unknown
   isLoading: boolean
-  rows: ReturnType<typeof getSalesRegionRows>
-}) {
+  rows: SalesRegionRow[]
+}) => {
   const { i18n, t } = useTranslation("productSalesRegions")
 
-  if (error) {
+  if (error !== null && error !== undefined) {
     return (
       <Text className="text-ui-fg-error" size="small">
         {t("loadFailed")}
@@ -41,7 +51,7 @@ function SalesRegionsContent({
     )
   }
 
-  if (!rows.length) {
+  if (rows.length === 0) {
     return (
       <Text className="text-ui-fg-subtle" size="small">
         {t("empty")}
@@ -71,30 +81,32 @@ const ProductSalesRegionsWidget = ({
     error: regionsError,
     isLoading: regionsLoading,
   } = useQuery({
-    enabled: !!productId,
-    queryFn: async () => sdk.admin.region.list(),
+    enabled: productId !== undefined && productId !== "",
+    queryFn: async () => await sdk.admin.region.list(),
     queryKey: ["product-sales-regions", "regions"],
   })
 
   const { data, error, isLoading } = useQuery({
-    enabled: !!productId,
+    enabled: productId !== undefined && productId !== "",
     queryFn: async () =>
-      sdk.client.fetch<ProductSalesRegionsResponse>(
+      await sdk.client.fetch<ProductSalesRegionsResponse>(
         `/admin/products/${productId}/sales-regions`,
       ),
     queryKey: ["product-sales-regions", productId],
   })
 
-  if (!productId) {
+  if (productId === undefined || productId === "") {
     return null
   }
 
   const countriesByCode = getCountriesByCode(regionsData?.regions)
-  const rows = getSalesRegionRows(
+  const rowsResult: unknown = getSalesRegionRows(
     data,
     countriesByCode,
     i18n.resolvedLanguage ?? i18n.language,
   )
+  const rowValues: unknown[] = Array.isArray(rowsResult) ? rowsResult : []
+  const rows = rowValues.filter(isSalesRegionRow)
   const salesChannelCount = data?.product.sales_channels.length ?? 0
 
   return (

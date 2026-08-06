@@ -9,22 +9,20 @@ export const GetQuoteParams = createFindParams({
   limit: 15,
   offset: 0,
 })
-  .merge(
-    z.object({
-      created_at: createOperatorMap().optional(),
-      draft_order_id: z
-        .union([z.string(), z.array(z.string()), createOperatorMap()])
-        .optional(),
-      id: z
-        .union([z.string(), z.array(z.string()), createOperatorMap()])
-        .optional(),
-      q: z.string().optional(),
-      status: z
-        .union([z.string(), z.array(z.string()), createOperatorMap()])
-        .optional(),
-      updated_at: createOperatorMap().optional(),
-    }),
-  )
+  .extend({
+    created_at: createOperatorMap().optional(),
+    draft_order_id: z
+      .union([z.string(), z.array(z.string()), createOperatorMap()])
+      .optional(),
+    id: z
+      .union([z.string(), z.array(z.string()), createOperatorMap()])
+      .optional(),
+    q: z.string().optional(),
+    status: z
+      .union([z.string(), z.array(z.string()), createOperatorMap()])
+      .optional(),
+    updated_at: createOperatorMap().optional(),
+  })
   .strict()
 
 export type CreateQuoteType = z.infer<typeof CreateQuote>

@@ -10,7 +10,7 @@ export interface AssertProductListItemBelongsToListStepInput {
 
 export const assertProductListItemBelongsToListStep = createStep(
   "assert-product-list-item-belongs-to-list",
-  async (input: AssertProductListItemBelongsToListStepInput) => {
+  (input: AssertProductListItemBelongsToListStepInput) => {
     if (
       input.expected_list_id !== undefined &&
       input.item.list_id !== input.expected_list_id

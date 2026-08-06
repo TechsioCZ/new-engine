@@ -15,6 +15,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { isRecord } from "@techsio/std/object"
 
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
@@ -94,32 +95,32 @@ interface ReviewRequestProduct {
   token: string
 }
 
-function escapeHtml(value: string) {
-  return value
+const escapeHtml = (value: string) =>
+  value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;")
-}
 
-function formatReviewProducts(products: ReviewRequestProduct[]) {
-  return products
+const formatReviewProducts = (products: ReviewRequestProduct[]) =>
+  products
     .map((product) => `${product.title}: ${product.review_url}`)
     .join("\n")
-}
 
-function formatReviewItems(products: ReviewRequestProduct[]) {
-  return products
+const formatReviewItems = (products: ReviewRequestProduct[]) =>
+  products
     .map((product) => {
-      const image = product.image_url
-        ? `<img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.title)}" width="72" style="display:block;width:72px;height:72px;object-fit:cover;border-radius:8px;" />`
-        : ""
+      const image =
+        product.image_url !== undefined &&
+        product.image_url !== null &&
+        product.image_url !== ""
+          ? `<img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.title)}" width="72" style="display:block;width:72px;height:72px;object-fit:cover;border-radius:8px;" />`
+          : ""
 
       return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;border-collapse:collapse;"><tr><td width="84" valign="top">${image}</td><td valign="top" style="font-family:Arial,sans-serif;font-size:14px;line-height:20px;color:#111827;"><div style="font-weight:600;margin-bottom:10px;">${escapeHtml(product.title)}</div><a href="${escapeHtml(product.review_url)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;padding:10px 14px;font-weight:600;">Napiš recenzi produktu</a></td></tr></table>`
     })
     .join("")
-}
 
 const ORDER_REVIEW_REQUEST_FIELDS = [
   "id",
@@ -138,11 +139,9 @@ const PRODUCT_REVIEW_REQUEST_TEMPLATE = "product-review-request"
 const DEFAULT_REVIEW_TOKEN_EXPIRY_DAYS = 90
 const DAY_IN_MS = 24 * 60 * 60 * 1000
 
-function createToken() {
-  return randomBytes(32).toString("base64url")
-}
+const createToken = () => randomBytes(32).toString("base64url")
 
-function getReviewTokenExpiryDate() {
+const getReviewTokenExpiryDate = () => {
   const configuredDays = Number(process.env["PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS"])
   const expiryDays =
     Number.isFinite(configuredDays) && configuredDays > 0
@@ -152,30 +151,75 @@ function getReviewTokenExpiryDate() {
   return new Date(Date.now() + expiryDays * DAY_IN_MS)
 }
 
-function getProductTitle(item: ReviewRequestOrderItem) {
-  return item.product_title ?? item.title ?? "Produkt"
+const getProductTitle = (item: ReviewRequestOrderItem) =>
+  item.product_title ?? item.title ?? "Produkt"
+
+const isOptionalNullableString = (value: unknown): boolean => {
+  if (value === undefined || value === null) {
+    return true
+  }
+
+  return typeof value === "string"
 }
 
-function isReviewRequestOrderWithItems(
+const isReviewRequestOrderItem = (
   value: unknown,
-): value is ReviewRequestOrderWithItems {
-  if (typeof value !== "object" || value === null) {
+): value is ReviewRequestOrderItem => {
+  if (!isRecord(value)) {
     return false
   }
 
-  const record = value as Record<string, unknown>
-
-  return (
-    typeof record["id"] === "string" && typeof record["display_id"] === "number"
-  )
+  const fields = [
+    value["product_handle"],
+    value["product_id"],
+    value["product_title"],
+    value["thumbnail"],
+    value["title"],
+  ]
+  return fields.every(isOptionalNullableString)
 }
 
-function getUniqueProductItems(order: ReviewRequestOrderWithItems) {
+const isReviewRequestOrderWithItems = (
+  value: unknown,
+): value is ReviewRequestOrderWithItems => {
+  if (!isRecord(value)) {
+    return false
+  }
+  if (
+    typeof value["id"] !== "string" ||
+    typeof value["display_id"] !== "number"
+  ) {
+    return false
+  }
+
+  const optionalStrings = [
+    value["customer_id"],
+    value["custom_display_id"],
+    value["email"],
+  ]
+  if (!optionalStrings.every(isOptionalNullableString)) {
+    return false
+  }
+
+  const { items } = value
+  if (items === undefined || items === null) {
+    return true
+  }
+
+  return Array.isArray(items) && items.every(isReviewRequestOrderItem)
+}
+
+const getUniqueProductItems = (order: ReviewRequestOrderWithItems) => {
   const items: ReviewRequestOrderItem[] = []
   const seenProductIds = new Set<string>()
 
   for (const item of order.items ?? []) {
-    if (!item.product_id || seenProductIds.has(item.product_id)) {
+    if (
+      item.product_id === undefined ||
+      item.product_id === null ||
+      item.product_id === "" ||
+      seenProductIds.has(item.product_id)
+    ) {
       continue
     }
 
@@ -186,13 +230,13 @@ function getUniqueProductItems(order: ReviewRequestOrderWithItems) {
   return items
 }
 
-async function hasReviewRequestEmailLog({
+const hasReviewRequestEmailLog = async ({
   emailLogService,
   orderId,
 }: {
   emailLogService: EmailLogService
   orderId: string
-}) {
+}) => {
   const logs = await emailLogService.listEmailLogs(
     {
       order_id: orderId,
@@ -207,7 +251,7 @@ async function hasReviewRequestEmailLog({
   return logs.length > 0
 }
 
-async function getOrCreateReviewTokens({
+const getOrCreateReviewTokens = async ({
   email,
   items,
   order,
@@ -217,10 +261,13 @@ async function getOrCreateReviewTokens({
   items: ReviewRequestOrderItem[]
   order: ReviewRequestOrderWithItems
   reviewService: ProductReviewModuleServiceWithTokens
-}) {
+}) => {
   const productIds = items
     .map((item) => item.product_id)
-    .filter((productId): productId is string => Boolean(productId))
+    .filter(
+      (productId): productId is string =>
+        productId !== undefined && productId !== null && productId !== "",
+    )
 
   const existingTokens = await reviewService.listReviewTokens(
     {
@@ -239,7 +286,7 @@ async function getOrCreateReviewTokens({
     (productId) => !tokensByProductId.has(productId),
   )
 
-  if (missingProductIds.length) {
+  if (missingProductIds.length > 0) {
     const expiresAt = getReviewTokenExpiryDate()
     const createdTokens = await reviewService.createReviewTokens(
       missingProductIds.map((productId) => ({
@@ -274,24 +321,27 @@ const buildProductReviewRequestNotificationStep = createStep(
         PRODUCT_REVIEW_MODULE,
       )
 
-    const { data } = await query.graph({
+    const graphResult: unknown = await query.graph({
       entity: "order",
       fields: ORDER_REVIEW_REQUEST_FIELDS,
       filters: {
         id: input.order_id,
       },
     })
-    if (!(Array.isArray(data) && isReviewRequestOrderWithItems(data[0]))) {
+    const graphData: unknown = isRecord(graphResult)
+      ? graphResult["data"]
+      : undefined
+    const orders: unknown[] = Array.isArray(graphData) ? graphData : []
+    const [order] = orders
+    if (!isReviewRequestOrderWithItems(order)) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
     }
 
-    const order = data[0]
-
-    if (!order) {
-      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
-    }
-
-    if (!order.email) {
+    if (
+      order.email === undefined ||
+      order.email === null ||
+      order.email === ""
+    ) {
       logger.warn(
         `Order ${order.id} has no email; product review request skipped.`,
       )
@@ -311,7 +361,7 @@ const buildProductReviewRequestNotificationStep = createStep(
     }
 
     const items = getUniqueProductItems(order)
-    if (!items.length) {
+    if (items.length === 0) {
       logger.warn(
         `Order ${order.id} has no product items; product review request skipped.`,
       )
@@ -325,12 +375,16 @@ const buildProductReviewRequestNotificationStep = createStep(
       reviewService,
     })
     const products = items.flatMap<ReviewRequestProduct>((item) => {
-      if (!item.product_id) {
+      if (
+        item.product_id === undefined ||
+        item.product_id === null ||
+        item.product_id === ""
+      ) {
         return []
       }
 
       const token = tokensByProductId.get(item.product_id)?.token
-      if (!token) {
+      if (token === undefined || token === "") {
         return []
       }
 
@@ -348,9 +402,10 @@ const buildProductReviewRequestNotificationStep = createStep(
         },
       ]
     })
-    const message = await getReviewRequestMessage(
-      container as Record<string, unknown>
-    )
+    const reviewMessageContainer: Record<string, unknown> = {
+      resolve: container.resolve.bind(container),
+    }
+    const message = await getReviewRequestMessage(reviewMessageContainer)
 
     return new StepResponse([
       {
@@ -366,7 +421,11 @@ const buildProductReviewRequestNotificationStep = createStep(
             ? {}
             : { store_name: input.store_name }),
         },
-        ...(order.customer_id ? { receiver_id: order.customer_id } : {}),
+        ...(order.customer_id === undefined ||
+        order.customer_id === null ||
+        order.customer_id === ""
+          ? {}
+          : { receiver_id: order.customer_id }),
         resource_id: order.id,
         resource_type: "order",
         template: PRODUCT_REVIEW_REQUEST_TEMPLATE,

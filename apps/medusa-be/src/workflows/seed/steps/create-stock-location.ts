@@ -40,7 +40,7 @@ export const createStockLocationSeedStep = createStep(
       })
 
     const missingStockLocations = input.locations.filter(
-      (i) => !existingStockLocations.find((j) => j.name === i.name),
+      (i) => !existingStockLocations.some((j) => j.name === i.name),
     )
     const updateStockLocations = existingStockLocations.flatMap(
       (existingLocation) => {
@@ -84,20 +84,25 @@ export const createStockLocationSeedStep = createStep(
         },
       }))
 
-      for (const stockLocationToUpdate of toUpdate) {
-        const { result: updateResult } = await updateStockLocationsWorkflow(
-          container,
-        ).run({
-          input: stockLocationToUpdate,
-        })
+      const updateResults = await Promise.all(
+        toUpdate.map(async (stockLocationToUpdate) => {
+          const { result: updateResult } = await updateStockLocationsWorkflow(
+            container,
+          ).run({
+            input: stockLocationToUpdate,
+          })
+          const [updatedLocation] = Array.isArray(updateResult)
+            ? updateResult
+            : [updateResult]
+          return updatedLocation
+        }),
+      )
 
-        // medusa bug? updateStockLocationsWorkflow does not return StockLocationDTO[] but a single one?
-        const updateResultUnknown = updateResult as unknown
-        const updateResultFixed: StockLocationDTO =
-          updateResultUnknown as StockLocationDTO
-
-        result.push(updateResultFixed)
-      }
+      result.push(
+        ...updateResults.filter(
+          (location): location is StockLocationDTO => location !== undefined,
+        ),
+      )
     }
 
     return new StepResponse({

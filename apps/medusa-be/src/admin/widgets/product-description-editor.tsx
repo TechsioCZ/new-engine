@@ -30,8 +30,8 @@ interface UpdateProductResponse {
   product: AdminProduct
 }
 
-const PRODUCT_DETAIL_ROUTE_PATTERN = /\/products\/[^/]+(?:\/edit)?\/?$/
-const PRODUCT_EDIT_ROUTE_PATTERN = /\/products\/[^/]+\/edit\/?$/
+const PRODUCT_DETAIL_ROUTE_PATTERN = /\/products\/[^/]+(?:\/edit)?\/?$/u
+const PRODUCT_EDIT_ROUTE_PATTERN = /\/products\/[^/]+\/edit\/?$/u
 const PRODUCT_DETAIL_DESCRIPTION_ROW_SELECTOR = "div.grid.grid-cols-2"
 const PRODUCT_DESCRIPTION_LABEL = "Description"
 const DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE =
@@ -221,22 +221,26 @@ const ProductDescriptionEditor = ({
       productId,
       sectionsHtml,
     }: UpdateProductContentInput) =>
-      sdk.client.fetch<UpdateProductResponse>(`/admin/products/${productId}`, {
-        body: {
-          description:
-            sectionsHtml.description.length > 0
-              ? sectionsHtml.description
-              : null,
-          metadata: {
-            [CONTENT_SECTIONS_METADATA_KEY]: buildContentSections(sectionsHtml),
-            [CONTENT_SECTIONS_MAP_METADATA_KEY]: buildContentSectionsMap(
-              product?.metadata,
-              sectionsHtml,
-            ),
+      await sdk.client.fetch<UpdateProductResponse>(
+        `/admin/products/${productId}`,
+        {
+          body: {
+            description:
+              sectionsHtml.description.length > 0
+                ? sectionsHtml.description
+                : null,
+            metadata: {
+              [CONTENT_SECTIONS_METADATA_KEY]:
+                buildContentSections(sectionsHtml),
+              [CONTENT_SECTIONS_MAP_METADATA_KEY]: buildContentSectionsMap(
+                product?.metadata,
+                sectionsHtml,
+              ),
+            },
           },
+          method: "POST",
         },
-        method: "POST",
-      }),
+      ),
     onError: (error) => {
       toast.error(
         error instanceof Error
@@ -271,18 +275,19 @@ const ProductDescriptionEditor = ({
   })
 
   const handleSave = () => {
-    if (!product?.id) {
+    const productId = product?.id
+    if (productId === undefined || productId === "") {
       return
     }
 
     mutation.mutate({
       changeVersion: sectionHtmlChangeVersionRef.current,
-      productId: product.id,
+      productId,
       sectionsHtml: sectionHtmlRef.current,
     })
   }
 
-  if (!product?.id) {
+  if (product?.id === undefined || product.id === "") {
     return null
   }
 
@@ -319,7 +324,9 @@ const ProductDescriptionEditor = ({
                   [section.key]: html,
                 }
               }}
-              onError={(message) => toast.error(message)}
+              onError={(message) => {
+                toast.error(message)
+              }}
               valueHtml={savedSectionHtml[section.key]}
             />
           </section>

@@ -28,8 +28,8 @@ const getAuthenticatedCustomerId = (
 ): string | undefined => {
   const authContext = req.auth_context
 
-  if (!authContext || typeof authContext !== "object") {
-    return
+  if (authContext === undefined || authContext === null) {
+    return undefined
   }
 
   const { actor_id: actorId } = authContext
@@ -37,10 +37,10 @@ const getAuthenticatedCustomerId = (
   return typeof actorId === "string" ? actorId : undefined
 }
 
-export async function GET(
+const getProductList = async (
   req: RequestWithOptionalCustomerAuth,
   res: MedusaResponse,
-) {
+) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const productListService =
     req.scope.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
@@ -49,7 +49,7 @@ export async function GET(
   if (productList.access_type !== "public") {
     const customerId = getAuthenticatedCustomerId(req)
 
-    if (!customerId) {
+    if (customerId === undefined || customerId.length === 0) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Product list ${listId} was not found`,
@@ -63,7 +63,7 @@ export async function GET(
     [productList],
     { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT },
   )
-  const productListWithItems = productListsWithItems[0]
+  const [productListWithItems] = productListsWithItems
 
   if (!productListWithItems) {
     res.json({ product_list: toProductListResponse(productList) })
@@ -73,10 +73,10 @@ export async function GET(
   res.json({ product_list: toProductListResponse(productListWithItems) })
 }
 
-export async function POST(
+const postProductList = async (
   req: AuthenticatedMedusaRequest<StoreUpdateProductListSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result: productList } = await updateProductListWorkflow(
     req.scope,
@@ -98,10 +98,10 @@ export async function POST(
   })
 }
 
-export async function DELETE(
+const deleteProductList = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   await deleteProductListWorkflow(req.scope).run({
     input: {
@@ -111,4 +111,10 @@ export async function DELETE(
   })
 
   res.status(200).json({ deleted: true, id: listId })
+}
+
+export {
+  getProductList as GET,
+  postProductList as POST,
+  deleteProductList as DELETE,
 }

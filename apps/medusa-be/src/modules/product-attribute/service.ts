@@ -19,25 +19,84 @@ export interface ProductAttributeUsageCount {
 
 const USAGE_COUNT_CHUNK_SIZE = 500
 
+const getActiveUsageCounts = async (
+  column: "definition_id" | "option_id",
+  ids: string[],
+  sharedContext: Context<SqlEntityManager>,
+): Promise<ProductAttributeUsageCount[]> => {
+  const uniqueIds = [...new Set(ids)].filter((id) => id.length > 0)
+
+  if (uniqueIds.length === 0) {
+    return []
+  }
+
+  const { manager } = sharedContext
+  if (manager === undefined) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Product Attribute Module manager is unavailable while counting assignments.",
+    )
+  }
+
+  const chunks: string[][] = []
+  for (
+    let index = 0;
+    index < uniqueIds.length;
+    index += USAGE_COUNT_CHUNK_SIZE
+  ) {
+    chunks.push(uniqueIds.slice(index, index + USAGE_COUNT_CHUNK_SIZE))
+  }
+
+  const rowGroups = await Promise.all(
+    chunks.map(async (chunk) => {
+      const placeholders = chunk.map(() => "?").join(", ")
+      return await manager
+        .getConnection()
+        .execute<ProductAttributeUsageCount[]>(
+          `select "${column}" as "id", count(*)::int as "count"
+           from "product_attribute"
+           where "deleted_at" is null
+             and "${column}" in (${placeholders})
+           group by "${column}"`,
+          chunk,
+        )
+    }),
+  )
+  const countsById = new Map<string, number>()
+  for (const row of rowGroups.flat()) {
+    countsById.set(row.id, (countsById.get(row.id) ?? 0) + Number(row.count))
+  }
+
+  return [...countsById].map(([id, count]) => ({ count, id }))
+}
+
 class ProductAttributeModuleService extends MedusaService({
   ProductAttribute,
   ProductAttributeDefinition,
   ProductAttributeOption,
 }) {
+  private readonly operations = {
+    countActiveUsage: getActiveUsageCounts,
+    executeTransactionTask: async <T>(
+      task: (context: Context<SqlEntityManager>) => Promise<T>,
+      sharedContext: Context<SqlEntityManager>,
+    ): Promise<T> => await task(sharedContext),
+  }
+
   @InjectManager()
   async runInTransaction<T>(
     task: (context: Context<SqlEntityManager>) => Promise<T>,
     @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ) {
-    return await this.runInTransaction_(task, sharedContext)
+    return await this.runInTransactionWithManager(task, sharedContext)
   }
 
   @InjectTransactionManager()
-  protected async runInTransaction_<T>(
+  protected async runInTransactionWithManager<T>(
     task: (context: Context<SqlEntityManager>) => Promise<T>,
     @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ) {
-    return await task(sharedContext)
+    return await this.operations.executeTransactionTask(task, sharedContext)
   }
 
   @InjectManager()
@@ -70,49 +129,7 @@ class ProductAttributeModuleService extends MedusaService({
     ids: string[],
     @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
   ): Promise<ProductAttributeUsageCount[]> {
-    const uniqueIds = [...new Set(ids)].filter(Boolean)
-
-    if (!uniqueIds.length) {
-      return []
-    }
-
-    const { manager } = sharedContext
-    if (!manager) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Product Attribute Module manager is unavailable while counting assignments.",
-      )
-    }
-
-    const countsById = new Map<string, number>()
-
-    for (
-      let index = 0;
-      index < uniqueIds.length;
-      index += USAGE_COUNT_CHUNK_SIZE
-    ) {
-      const chunk = uniqueIds.slice(index, index + USAGE_COUNT_CHUNK_SIZE)
-      const placeholders = chunk.map(() => "?").join(", ")
-      const rows = await manager
-        .getConnection()
-        .execute<ProductAttributeUsageCount[]>(
-          `select "${column}" as "id", count(*)::int as "count"
-           from "product_attribute"
-           where "deleted_at" is null
-             and "${column}" in (${placeholders})
-           group by "${column}"`,
-          chunk,
-        )
-
-      for (const row of rows) {
-        countsById.set(
-          row.id,
-          (countsById.get(row.id) ?? 0) + Number(row.count),
-        )
-      }
-    }
-
-    return [...countsById].map(([id, count]) => ({ count, id }))
+    return await this.operations.countActiveUsage(column, ids, sharedContext)
   }
 }
 

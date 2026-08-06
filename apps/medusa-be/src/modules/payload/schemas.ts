@@ -1,9 +1,9 @@
 import { z } from "@medusajs/framework/zod"
 
 const passthroughObject = <T extends z.ZodRawShape>(shape: T) =>
-  z.object(shape).passthrough()
+  z.looseObject(shape)
 
-const nonStrictSchema = <T extends z.ZodTypeAny>(schema: T) =>
+const nonStrictSchema = <T extends z.ZodType>(schema: T) =>
   z.preprocess((value) => value, schema)
 
 const CmsVisibilitySchema = z.enum(["public", "customers-only"])
@@ -30,8 +30,8 @@ const CmsPageCategorySchema = passthroughObject({
   id: z.number(),
   pages: z.array(
     passthroughObject({
-      title: z.string(),
       slug: z.string().nullable().optional(),
+      title: z.string(),
     }),
   ),
   slug: z.string(),
@@ -54,10 +54,10 @@ const CmsArticleSchema = passthroughObject({
 const CmsArticleCategorySchema = passthroughObject({
   articles: z.array(
     passthroughObject({
-      title: z.string(),
-      slug: z.string().nullable().optional(),
       excerpt: z.string().nullable().optional(),
       featuredImage: z.string().nullable().optional(),
+      slug: z.string().nullable().optional(),
+      title: z.string(),
     }),
   ),
   id: z.number(),
@@ -76,7 +76,7 @@ const CmsHeroCarouselSchema = passthroughObject({
   updatedAt: z.string().optional(),
 })
 
-const createPayloadBulkResultSchema = <T extends z.ZodTypeAny>(docSchema: T) =>
+const createPayloadBulkResultSchema = <T extends z.ZodType>(docSchema: T) =>
   nonStrictSchema(
     passthroughObject({
       docs: z.array(docSchema),

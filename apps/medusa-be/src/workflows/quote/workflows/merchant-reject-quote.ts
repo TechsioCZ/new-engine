@@ -1,25 +1,62 @@
-import { createWorkflow } from "@medusajs/framework/workflows-sdk"
-import { useRemoteQueryStep } from "@medusajs/medusa/core-flows"
+import type { Query } from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+import {
+  createStep,
+  createWorkflow,
+  StepResponse,
+} from "@medusajs/framework/workflows-sdk"
+import { isRecord } from "@techsio/std/object"
 
-import type { QueryQuote } from "../../../types"
 import { validateQuoteRejectionStep } from "../steps/validate-quote-rejection"
 import { updateQuotesWorkflow } from "./update-quote"
 
+const getQuoteForRejectionStep = createStep(
+  "get-quote-for-rejection",
+  async (input: { quote_id: string }, { container }) => {
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+    const graphResult: unknown = await query.graph({
+      entity: "quote",
+      fields: ["id", "status"],
+      filters: { id: input.quote_id },
+      pagination: { take: 1 },
+    })
+    const graphData: unknown = isRecord(graphResult)
+      ? graphResult["data"]
+      : undefined
+    const quotes: unknown[] = Array.isArray(graphData) ? graphData : []
+    const [quote] = quotes
+
+    if (
+      !isRecord(quote) ||
+      typeof quote["id"] !== "string" ||
+      typeof quote["status"] !== "string"
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Quote ${input.quote_id} was not found`,
+      )
+    }
+
+    const result = {
+      id: quote["id"],
+      status: quote["status"],
+    }
+    return new StepResponse(result)
+  },
+)
+
 /*
-  A workflow that rejects a quote by a merchant. 
-  
+  A workflow that rejects a quote by a merchant.
+
   Once the merchant rejects the quote, we update the status of the quote to a rejection by merchant.
 */
 export const merchantRejectQuoteWorkflow = createWorkflow(
   "merchant-reject-quote",
   (input: { quote_id: string }) => {
-    const quote: QueryQuote = useRemoteQueryStep({
-      entry_point: "quote",
-      fields: ["id", "status"],
-      list: false,
-      throw_if_key_not_found: true,
-      variables: { id: input.quote_id },
-    })
+    const quote = getQuoteForRejectionStep(input)
 
     validateQuoteRejectionStep({ quote })
 

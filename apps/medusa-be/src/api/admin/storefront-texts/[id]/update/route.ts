@@ -15,13 +15,13 @@ const toWorkflowUpdate = (body: AdminUpdateStorefrontTextSchemaType) => ({
   ...(body.status === undefined ? {} : { status: body.status }),
 })
 
-export async function POST(
+const postStorefrontTextUpdate = async (
   req: MedusaRequest<AdminUpdateStorefrontTextSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const id = getStorefrontTextId(req)
 
-  if (!id) {
+  if (id === undefined || id.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Storefront text id is required",
@@ -43,3 +43,5 @@ export async function POST(
     handleStorefrontTextLockError(error, res)
   }
 }
+
+export { postStorefrontTextUpdate as POST }

@@ -20,7 +20,7 @@ export const deleteBrandAttributeTypesStep = createStep(
     )
     const missingIds = input.ids.filter((id) => !foundIds.has(id))
 
-    if (missingIds.length) {
+    if (missingIds.length > 0) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Brand attribute type ids were not found: ${missingIds.join(", ")}`,
@@ -32,7 +32,7 @@ export const deleteBrandAttributeTypesStep = createStep(
     )
     const activeIds = active.map((attributeType) => attributeType.id)
 
-    if (activeIds.length) {
+    if (activeIds.length > 0) {
       await service.softDeleteBrandAttributeTypes(activeIds)
     }
 
@@ -45,7 +45,7 @@ export const deleteBrandAttributeTypesStep = createStep(
     )
   },
   async (deletedIds, { container }) => {
-    if (deletedIds?.length) {
+    if (deletedIds !== undefined && deletedIds.length > 0) {
       await getBrandService(container).restoreBrandAttributeTypes(deletedIds)
     }
   },

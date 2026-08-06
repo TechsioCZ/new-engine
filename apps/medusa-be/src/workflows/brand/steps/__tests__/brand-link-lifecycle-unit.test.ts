@@ -10,6 +10,30 @@ import {
   resolveBrandProductDelta,
 } from "../helpers"
 
+type SeedProduct = Parameters<
+  typeof buildDesiredProductBrandLinks
+>[0]["products"][number]
+
+const assertSeedProduct = (
+  candidate: unknown,
+): asserts candidate is SeedProduct => {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a seed product")
+  }
+  if (!("handle" in candidate) || typeof candidate.handle !== "string") {
+    throw new TypeError("Expected a seed product handle")
+  }
+  if (!("id" in candidate) || typeof candidate.id !== "string") {
+    throw new TypeError("Expected a seed product id")
+  }
+}
+
+const createSeedProduct = (handle: string, id: string): SeedProduct => {
+  const candidate: unknown = { handle, id }
+  assertSeedProduct(candidate)
+  return candidate
+}
+
 describe("deleted brand link lifecycle", () => {
   it("ignores an inactive current brand as a conflict and replaces it for a new active assignment", () => {
     const currentIds = ["brand_deleted"]
@@ -79,7 +103,7 @@ describe("deleted brand link lifecycle", () => {
       buildDesiredProductBrandLinks({
         brandIdsByHandle: new Map([["brand", "brand_active"]]),
         desiredBrandHandleByProduct: new Map([["product", "brand"]]),
-        products: [{ handle: "product", id: "prod_1" }] as never,
+        products: [createSeedProduct("product", "prod_1")],
       }),
     ).toStrictEqual([{ brandIds: ["brand_active"], productId: "prod_1" }])
   })
@@ -89,7 +113,7 @@ describe("deleted brand link lifecycle", () => {
       buildDesiredProductBrandLinks({
         brandIdsByHandle: new Map(),
         desiredBrandHandleByProduct: new Map(),
-        products: [{ handle: "product", id: "prod_1" }] as never,
+        products: [createSeedProduct("product", "prod_1")],
       }),
     ).toStrictEqual([{ brandIds: [], productId: "prod_1" }])
   })

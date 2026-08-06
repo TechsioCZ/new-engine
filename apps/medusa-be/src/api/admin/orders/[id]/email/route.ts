@@ -21,32 +21,34 @@ import { getMedusaStoreName } from "../../../../../utils/store-name"
 import { sendOrderPaymentReminderWorkflow } from "../../../../../workflows/send-order-payment-reminder"
 import type { PostAdminOrderEmailSchemaType } from "./validators"
 
-export async function POST(
+const UNSUPPORTED_TEMPLATE_MESSAGE = "Order email template is not supported"
+
+const postOrderEmail = async (
   req: MedusaRequest<PostAdminOrderEmailSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { id } = req.params
   const { template: templateName } = req.validatedBody
 
-  if (!id) {
+  if (id === undefined || id.length === 0) {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Order id is missing")
   }
 
   if (!isOrderEmailTemplate(templateName)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order email template is not supported",
+      UNSUPPORTED_TEMPLATE_MESSAGE,
     )
   }
 
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const order = await fetchOrderById(query, id)
 
-  if (!order) {
+  if (order === undefined || order === null) {
     throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
   }
 
-  if (!order.email) {
+  if (order.email === undefined || order.email === null || order.email === "") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Order has no customer email",
@@ -55,10 +57,10 @@ export async function POST(
 
   const template = getOrderEmailTemplate(templateName)
 
-  if (!template) {
+  if (template === undefined) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order email template is not supported",
+      UNSUPPORTED_TEMPLATE_MESSAGE,
     )
   }
 
@@ -82,7 +84,7 @@ export async function POST(
     default: {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Order email template is not supported",
+        UNSUPPORTED_TEMPLATE_MESSAGE,
       )
     }
   }
@@ -93,3 +95,5 @@ export async function POST(
     template,
   })
 }
+
+export { postOrderEmail as POST }

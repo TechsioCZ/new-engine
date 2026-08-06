@@ -1,4 +1,4 @@
-import { ApprovalStatusType } from "../types/approval"
+import { ApprovalStatusType } from "../types/approval/module"
 
 interface CartWithApprovals {
   approvals?: ({ status?: string | null } | null)[] | null
@@ -11,7 +11,11 @@ export const getCartApprovalStatus = (cart: CartWithApprovals | null) => {
     isRejected: false,
   }
 
-  if (!cart?.approvals?.length) {
+  if (
+    cart?.approvals === undefined ||
+    cart.approvals === null ||
+    cart.approvals.length === 0
+  ) {
     return defaultStatus
   }
 

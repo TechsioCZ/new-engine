@@ -30,9 +30,9 @@ const retrieveDefinition = async (
     { id: input.id },
     { take: 1, withDeleted },
   )
-  const definition = definitions[0]
+  const [definition] = definitions
 
-  if (!definition) {
+  if (definition === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product Attribute definition "${input.id}" was not found.`,
@@ -67,7 +67,7 @@ export const createProductAttributeDefinitionStep = createStep(
     return new StepResponse(created, created.id)
   },
   async (createdId, { container }) => {
-    if (createdId) {
+    if (createdId !== undefined && createdId !== "") {
       await getProductAttributeService(
         container,
       ).deleteProductAttributeDefinitions(createdId)
@@ -81,7 +81,10 @@ export const updateProductAttributeDefinitionStep = createStep(
     const service = getProductAttributeService(container)
     const previous = await retrieveDefinition(input, container)
 
-    if (input.input_type && input.input_type !== previous.input_type) {
+    if (
+      input.input_type !== undefined &&
+      input.input_type !== previous.input_type
+    ) {
       const [options, assignments] = await Promise.all([
         service.listProductAttributeOptions(
           { definition_id: previous.id },
@@ -93,7 +96,7 @@ export const updateProductAttributeDefinitionStep = createStep(
         ),
       ])
 
-      if (options.length || assignments.length) {
+      if (options.length > 0 || assignments.length > 0) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           `Product Attribute definition "${previous.key}" cannot change input type after options or assignments exist.`,
@@ -109,7 +112,9 @@ export const updateProductAttributeDefinitionStep = createStep(
     }
     const updated = await service.updateProductAttributeDefinitions({
       id: previous.id,
-      ...(input.input_type ? { input_type: input.input_type } : {}),
+      ...(input.input_type === undefined
+        ? {}
+        : { input_type: input.input_type }),
       ...(input.is_public === undefined ? {} : { is_public: input.is_public }),
       ...(input.label === undefined ? {} : { label: input.label.trim() }),
     })
@@ -117,7 +122,7 @@ export const updateProductAttributeDefinitionStep = createStep(
     return new StepResponse(updated, snapshot)
   },
   async (previous, { container }) => {
-    if (previous) {
+    if (previous !== undefined) {
       await getProductAttributeService(
         container,
       ).updateProductAttributeDefinitions(previous)
@@ -136,7 +141,7 @@ export const deleteProductAttributeDefinitionsStep = createStep(
     const found = new Set(definitions.map((definition) => definition.id))
     const missing = input.ids.filter((id) => !found.has(id))
 
-    if (missing.length) {
+    if (missing.length > 0) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Product Attribute definition ids were not found: ${missing.join(", ")}`,
@@ -149,7 +154,7 @@ export const deleteProductAttributeDefinitionsStep = createStep(
       await service.getActiveDefinitionUsageCounts(input.ids),
     )
 
-    if (activeIds.length) {
+    if (activeIds.length > 0) {
       await service.softDeleteProductAttributeDefinitions(activeIds)
     }
 
@@ -163,7 +168,7 @@ export const deleteProductAttributeDefinitionsStep = createStep(
     )
   },
   async (deletedIds, { container }) => {
-    if (deletedIds?.length) {
+    if (deletedIds !== undefined && deletedIds.length > 0) {
       await getProductAttributeService(
         container,
       ).restoreProductAttributeDefinitions(deletedIds)
@@ -182,7 +187,7 @@ export const restoreProductAttributeDefinitionsStep = createStep(
     const found = new Set(definitions.map((definition) => definition.id))
     const missing = input.ids.filter((id) => !found.has(id))
 
-    if (missing.length) {
+    if (missing.length > 0) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Product Attribute definition ids were not found: ${missing.join(", ")}`,
@@ -192,7 +197,7 @@ export const restoreProductAttributeDefinitionsStep = createStep(
     const { deleted_ids: deletedIds } =
       partitionProductAttributeRecordIds(definitions)
 
-    if (deletedIds.length) {
+    if (deletedIds.length > 0) {
       await service.restoreProductAttributeDefinitions(deletedIds)
     }
 
@@ -205,7 +210,7 @@ export const restoreProductAttributeDefinitionsStep = createStep(
     )
   },
   async (restoredIds, { container }) => {
-    if (restoredIds?.length) {
+    if (restoredIds !== undefined && restoredIds.length > 0) {
       await getProductAttributeService(
         container,
       ).softDeleteProductAttributeDefinitions(restoredIds)

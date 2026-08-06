@@ -4,20 +4,24 @@ import { useTranslation } from "react-i18next"
 
 import { PlaceholderCell } from "./placeholder-cell"
 
+const USER_USES_12_HOUR_TIME =
+  new Intl.DateTimeFormat().resolvedOptions().hour12 === true
+
 interface DateCellProps {
   date?: Date | string | null
 }
 
 export const DateCell = ({ date }: DateCellProps) => {
-  if (!date) {
+  if (date === undefined || date === null || date === "") {
     return <PlaceholderCell />
   }
 
   const value = new Date(date)
   value.setMinutes(value.getMinutes() - value.getTimezoneOffset())
 
-  const { hour12 } = Intl.DateTimeFormat().resolvedOptions()
-  const timestampFormat = hour12 ? "dd MMM yyyy hh:MM a" : "dd MMM yyyy HH:MM"
+  const timestampFormat = USER_USES_12_HOUR_TIME
+    ? "dd MMM yyyy hh:MM a"
+    : "dd MMM yyyy HH:MM"
 
   return (
     <div className="flex h-full w-full items-center overflow-hidden">

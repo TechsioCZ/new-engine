@@ -1,11 +1,14 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep } from "@medusajs/framework/workflows-sdk"
 
-import type { QueryQuote } from "../../../types"
+interface QuoteRejectionCandidate {
+  id: string
+  status: string
+}
 
 export const validateQuoteRejectionStep = createStep(
   "validate-quote-rejection",
-  async ({ quote }: { quote: QueryQuote }) => {
+  ({ quote }: { quote: QuoteRejectionCandidate }) => {
     if (["accepted"].includes(quote.status)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,

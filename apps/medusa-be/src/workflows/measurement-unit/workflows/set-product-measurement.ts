@@ -42,7 +42,7 @@ export const setProductMeasurementWorkflow = createWorkflow(
       key: [
         `measurement-product:${current.product_id}`,
         `measurement-unit:${current.measurement_unit_id}`,
-      ].sort(),
+      ].toSorted(),
       timeout: 5,
       ttl: 30,
     }))
@@ -50,7 +50,7 @@ export const setProductMeasurementWorkflow = createWorkflow(
       key: [
         `measurement-product:${current.product_id}`,
         `measurement-unit:${current.measurement_unit_id}`,
-      ].sort(),
+      ].toSorted(),
     }))
 
     acquireLockStep(lockInput)

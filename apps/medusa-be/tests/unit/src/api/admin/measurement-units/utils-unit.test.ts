@@ -1,20 +1,39 @@
+import type { MedusaContainer } from "@medusajs/framework/types"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
+type UnknownMock = (...args: unknown[]) => unknown
+
+const assertMockShape: <T>(
+  candidate: unknown,
+  requiredKeys: readonly (keyof T)[],
+) => asserts candidate is T = (candidate, requiredKeys) => {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${String(key)}`)
+    }
+  }
+}
 
 const { measurementService, productService } = vi.hoisted(() => ({
   measurementService: {
-    listProductMeasurements: vi.fn(),
+    listProductMeasurements: vi.fn<UnknownMock>(),
   },
   productService: {
-    listAndCountProducts: vi.fn(),
+    listAndCountProducts: vi.fn<UnknownMock>(),
   },
 }))
 
 vi.mock(import("../../../../../../src/utils/measurement-units"), () => ({
-  getMeasurementUnitActiveProductCounts: vi.fn(),
-  getMeasurementUnitService: vi.fn(() => measurementService),
-  toMeasurementUnitResponse: vi.fn(),
-  toProductMeasurementResponse: vi.fn(),
-  toProductVariantMeasurementResponse: vi.fn(),
+  getMeasurementUnitActiveProductCounts: vi.fn<UnknownMock>(),
+  getMeasurementUnitService: vi.fn<() => typeof measurementService>(
+    () => measurementService,
+  ),
+  toMeasurementUnitResponse: vi.fn<UnknownMock>(),
+  toProductMeasurementResponse: vi.fn<UnknownMock>(),
+  toProductVariantMeasurementResponse: vi.fn<UnknownMock>(),
 }))
 
 describe("measurement unit assigned-product queries", () => {
@@ -57,8 +76,9 @@ describe("measurement unit assigned-product queries", () => {
       2,
     ])
     const scope = {
-      resolve: vi.fn(() => productService),
+      resolve: vi.fn<(key: string) => unknown>(() => productService),
     }
+    assertMockShape<MedusaContainer>(scope, ["resolve"])
     const { listMeasurementUnitAssignedProducts } =
       await import("../../../../../../src/api/admin/measurement-units/utils")
     const result = await listMeasurementUnitAssignedProducts({
@@ -66,7 +86,7 @@ describe("measurement unit assigned-product queries", () => {
       offset: 20,
       orderBy: "-updated_at",
       q: "50%_off",
-      scope: scope as never,
+      scope,
       status: "active",
       unitId: "unit_1",
     })
@@ -142,9 +162,7 @@ describe("measurement unit assigned-product queries", () => {
     }
 
     expect(
-      getCanonicalAssignmentByProductId([active, deleted] as never).get(
-        "prod_1",
-      ),
+      getCanonicalAssignmentByProductId([active, deleted]).get("prod_1"),
     ).toBe(active)
   })
 })

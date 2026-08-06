@@ -4,7 +4,7 @@ import { safeResolve } from "../../../../src/utils/safe-resolve"
 
 describe(safeResolve, () => {
   it("returns a registered dependency", () => {
-    const dependency = { get: vi.fn() }
+    const dependency = { get: vi.fn<() => unknown>() }
 
     expect(safeResolve<typeof dependency>({ cache: dependency }, "cache")).toBe(
       dependency,

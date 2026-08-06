@@ -3,10 +3,8 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 
-import {
-  removeCompanyCustomerGroupLinkStep,
-  validateCompanyActiveStep,
-} from "../steps"
+import { removeCompanyCustomerGroupLinkStep } from "../steps/remove-company-customer-group-link"
+import { validateCompanyActiveStep } from "../steps/validate-company-active"
 
 export const removeCompanyFromCustomerGroupWorkflow = createWorkflow(
   "remove-company-from-customer-group",

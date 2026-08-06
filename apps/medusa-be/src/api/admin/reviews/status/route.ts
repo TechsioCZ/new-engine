@@ -8,10 +8,10 @@ import {
 import { getProductsById } from "../helpers"
 import type { AdminUpdateReviewStatusSchemaType } from "../validators"
 
-export async function POST(
+const postReviewStatus = async (
   req: MedusaRequest<AdminUpdateReviewStatusSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { ids, status } = req.validatedBody
   const { result: reviews } = await updateReviewStatusWorkflow(req.scope).run({
     input: {
@@ -30,3 +30,5 @@ export async function POST(
     ),
   })
 }
+
+export { postReviewStatus as POST }

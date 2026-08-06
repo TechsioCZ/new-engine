@@ -12,10 +12,11 @@ export const GetAdminOrderBusinessStatusesSchema = z
 export const GetAdminOrderBusinessStatusesByIdsSchema = z
   .object({
     ids: z.preprocess(
-      (value) => {
+      (value: unknown): unknown => {
         if (Array.isArray(value)) {
-          return value.flatMap((item) =>
-            typeof item === "string" ? item.split(",") : item,
+          const values: unknown[] = value
+          return values.flatMap((item): unknown[] =>
+            typeof item === "string" ? item.split(",") : [item],
           )
         }
 

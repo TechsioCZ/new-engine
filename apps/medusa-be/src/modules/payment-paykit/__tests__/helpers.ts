@@ -13,64 +13,84 @@ type MockPaykitClientOverrides = Omit<
 }
 
 export const createMockContainer = (): PaykitInjectedDependencies => ({
-  resolve: vi.fn(),
+  resolve: vi.fn<() => unknown>(),
 })
 
 export const createMockPaykitClient = (
   overrides: MockPaykitClientOverrides = {},
 ): PaykitPaymentClient => ({
   customers: {
-    create: vi.fn().mockResolvedValue({
-      id: "customer-1",
-      email: "customer@example.com",
-      name: "Customer",
-      phone: "",
-    }),
-    delete: vi.fn().mockResolvedValue(null),
-    retrieve: vi.fn().mockResolvedValue({
-      id: "customer-1",
-      email: "customer@example.com",
-      name: "Customer",
-      phone: "",
-    }),
-    update: vi.fn().mockResolvedValue({
-      id: "customer-1",
-      email: "updated@example.com",
-      name: "Updated",
-      phone: "",
-    }),
+    create: vi
+      .fn<NonNullable<PaykitPaymentClient["customers"]>["create"]>()
+      .mockResolvedValue({
+        email: "customer@example.com",
+        id: "customer-1",
+        name: "Customer",
+        phone: "",
+      }),
+    delete: vi
+      .fn<NonNullable<PaykitPaymentClient["customers"]>["delete"]>()
+      .mockResolvedValue(null),
+    retrieve: vi
+      .fn<NonNullable<PaykitPaymentClient["customers"]>["retrieve"]>()
+      .mockResolvedValue({
+        email: "customer@example.com",
+        id: "customer-1",
+        name: "Customer",
+        phone: "",
+      }),
+    update: vi
+      .fn<NonNullable<PaykitPaymentClient["customers"]>["update"]>()
+      .mockResolvedValue({
+        email: "updated@example.com",
+        id: "customer-1",
+        name: "Updated",
+        phone: "",
+      }),
     ...overrides.customers,
   },
   payments: {
-    cancel: vi.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "canceled",
-    }),
-    capture: vi.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "succeeded",
-    }),
-    create: vi.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "requires_action",
-      payment_url: "https://payments.example/1",
-    }),
-    retrieve: vi.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "requires_capture",
-    }),
-    update: vi.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "requires_action",
-    }),
+    cancel: vi
+      .fn<NonNullable<PaykitPaymentClient["payments"]>["cancel"]>()
+      .mockResolvedValue({
+        id: "provider-payment-1",
+        status: "canceled",
+      }),
+    capture: vi
+      .fn<NonNullable<PaykitPaymentClient["payments"]>["capture"]>()
+      .mockResolvedValue({
+        id: "provider-payment-1",
+        status: "succeeded",
+      }),
+    create: vi
+      .fn<NonNullable<PaykitPaymentClient["payments"]>["create"]>()
+      .mockResolvedValue({
+        id: "provider-payment-1",
+        payment_url: "https://payments.example/1",
+        status: "requires_action",
+      }),
+    retrieve: vi
+      .fn<NonNullable<PaykitPaymentClient["payments"]>["retrieve"]>()
+      .mockResolvedValue({
+        id: "provider-payment-1",
+        status: "requires_capture",
+      }),
+    update: vi
+      .fn<NonNullable<PaykitPaymentClient["payments"]>["update"]>()
+      .mockResolvedValue({
+        id: "provider-payment-1",
+        status: "requires_action",
+      }),
     ...overrides.payments,
   },
   refunds: {
-    create: vi.fn().mockResolvedValue({
-      id: "refund-1",
-      payment_id: "provider-payment-1",
-      amount: 250,
-    }),
+    create: vi
+      .fn<NonNullable<PaykitPaymentClient["refunds"]>["create"]>()
+      .mockResolvedValue({
+        amount: 250,
+        id: "refund-1",
+        payment_id: "provider-payment-1",
+      }),
     ...overrides.refunds,
   },
   ...(overrides.handleWebhook
