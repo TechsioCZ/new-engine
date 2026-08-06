@@ -4,7 +4,7 @@ import type {
   CreateOrderShippingMethodDTO,
   UpdateOrderAddressDTO,
 } from "@medusajs/framework/types"
-import { OrderStatus } from "@medusajs/framework/utils"
+import { MedusaError, OrderStatus } from "@medusajs/framework/utils"
 import {
   createWorkflow,
   transform,
@@ -57,7 +57,11 @@ const assertIsQuoteCartQueryResult: (
   value: unknown,
 ) => asserts value is WorkflowData<QuoteCartQueryResult> = (value) => {
   if (!isRecord(value) || typeof value["id"] !== "string") {
-    throw new Error("Unexpected cart query result shape")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Unexpected cart query result shape",
+      "quote_cart_query_result_invalid",
+    )
   }
 }
 
@@ -66,7 +70,11 @@ const assertIsQuoteCustomerQueryResult: (
 ) => asserts value is WorkflowData<QuoteCustomerQueryResult> &
   StepFunctionReturnConfig<QuoteCustomerQueryResult> = (value) => {
   if (!isRecord(value) || typeof value["id"] !== "string") {
-    throw new Error("Unexpected customer query result shape")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Unexpected customer query result shape",
+      "quote_customer_query_result_invalid",
+    )
   }
 }
 
