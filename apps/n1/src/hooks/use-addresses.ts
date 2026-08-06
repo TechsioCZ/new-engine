@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { AddressValidationError } from "@/lib/errors"
+import { AddressValidationError } from "@/lib/address-validation-error"
 import { queryKeys } from "@/lib/query-keys"
 import {
   createAddress,

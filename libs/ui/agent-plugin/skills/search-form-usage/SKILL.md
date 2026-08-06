@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.2"
+component_version: "1.1.0"
 name: search-form-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit SearchForm for search landmarks, controlled or uncontrolled search text, label, control, input, submit button, clear button, icon props, and token-backed field layout.
@@ -117,6 +117,21 @@ Correct:
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_search-form.css
+
+## Composing a headless combobox
+
+`SearchForm.Input` and `SearchForm.ClearButton` accept Zag input/clear props. Spread machine props first. SearchForm composes the machine handler before its context update and preserves a single controlled value:
+
+```tsx
+<SearchForm value={api.inputValue}>
+  <SearchForm.Control>
+    <SearchForm.Input {...api.getInputProps()} aria-label="Search" />
+    <SearchForm.ClearButton {...api.getClearTriggerProps()} />
+  </SearchForm.Control>
+</SearchForm>
+```
+
+Do not add a second input value handler that diverges from the machine. Do not replace Zag focus, keyboard, clear, or selection handlers.
 
 ## Validation Commands
 

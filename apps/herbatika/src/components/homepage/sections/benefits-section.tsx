@@ -2,7 +2,7 @@ import { useTranslations } from "next-intl"
 import NextImage from "next/image"
 import type { StaticImageData } from "next/image"
 
-import type { HomepageBenefitTranslationKey } from "@/components/homepage/homepage.data.types"
+import type { HomepageBenefitTranslationKey } from "@/components/homepage/homepage-data-types"
 
 interface BenefitItem {
   id: number

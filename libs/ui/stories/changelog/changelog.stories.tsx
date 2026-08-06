@@ -12,6 +12,15 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### SafeHtml v1.0.0
+- Added a fail-closed rich-text atom that sanitizes, parses, and validates explicit app tag/attribute policies into SSR-stable React nodes without dangerous HTML injection.
+
+### Combobox v1.1.0
+- Exported the canonical Zag-backed \`useCombobox\` headless hook for grouped rich linked suggestions while preserving the existing styled component on the same machine owner.
+
+### SearchForm v1.1.0
+- Composed external machine input and clear handlers before SearchForm context updates so headless widgets retain one controlled value and all keyboard/pointer behavior.
+
 ### Accordion v1.0.2
 - Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 

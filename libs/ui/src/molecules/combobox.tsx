@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.0
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -14,9 +14,14 @@ import {
   connect as connectCombobox,
   collection as createComboboxCollection,
 } from "@zag-js/combobox"
-import type { Props as ZagComboboxProps } from "@zag-js/combobox"
+import type {
+  Api as ZagComboboxApi,
+  Props as ZagComboboxProps,
+} from "@zag-js/combobox"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
+import type { PropTypes as ZagPropTypes } from "@zag-js/react"
 import { useId, useState } from "react"
+import type { KeyboardEvent } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { ActionIcon } from "../atoms/action-icon"
@@ -172,6 +177,8 @@ export interface ComboboxProps<T = unknown> extends VariantProps<
   readOnly?: boolean | undefined
   required?: boolean | undefined
   items: ComboboxItem<T>[]
+  filterItems?: boolean | undefined
+  open?: boolean | undefined
   value?: ComboboxValue | undefined
   defaultValue?: ComboboxValue | undefined
   inputValue?: string | undefined
@@ -193,6 +200,8 @@ export interface ComboboxProps<T = unknown> extends VariantProps<
   onInputValueChange?: ((value: string) => void) | undefined
   onOpenChange?: ((open: boolean) => void) | undefined
   inputBehavior?: ZagComboboxProps["inputBehavior"]
+  navigate?: ZagComboboxProps["navigate"]
+  openOnChange?: ZagComboboxProps["openOnChange"]
 }
 
 type DefaultedComboboxKey =
@@ -202,6 +211,7 @@ type DefaultedComboboxKey =
   | "clearIcon"
   | "closeOnSelect"
   | "disabled"
+  | "filterItems"
   | "inputBehavior"
   | "loopFocus"
   | "multiple"
@@ -232,6 +242,7 @@ const resolveComboboxProps = <T,>(
   clearable: props.clearable ?? true,
   closeOnSelect: props.closeOnSelect ?? true,
   disabled: props.disabled ?? false,
+  filterItems: props.filterItems ?? true,
   inputBehavior: props.inputBehavior ?? "autocomplete",
   loopFocus: props.loopFocus ?? true,
   multiple: props.multiple ?? false,
@@ -248,22 +259,32 @@ const resolveComboboxProps = <T,>(
 const normalizeComboboxValue = (value: ComboboxValue): string[] =>
   typeof value === "string" ? [value] : value
 
-const useComboboxApi = <T,>(
-  props: ResolvedComboboxProps<T>,
-  uniqueId: string,
-) => {
+export type ComboboxApi<T = unknown> = ZagComboboxApi<
+  ZagPropTypes,
+  ComboboxItem<T>
+>
+
+export const useCombobox = <T,>(rawProps: ComboboxProps<T>) => {
+  const props = resolveComboboxProps(rawProps)
+  const generatedId = useId()
+  const uniqueId =
+    props.id !== undefined && props.id !== "" ? props.id : generatedId
   const {
     allowCustomValue,
     autoFocus,
     closeOnSelect,
     defaultValue,
     disabled,
+    filterItems,
     inputBehavior,
     inputValue,
     items,
     loopFocus,
     multiple,
     name,
+    navigate,
+    open,
+    openOnChange,
     onChange,
     onInputValueChange,
     onOpenChange,
@@ -278,7 +299,7 @@ const useComboboxApi = <T,>(
     filterState.source === items ? filterState.query : undefined
   const normalizedQuery = filterQuery?.toLowerCase()
   const options =
-    normalizedQuery === undefined
+    !filterItems || normalizedQuery === undefined
       ? items
       : items.filter((item) =>
           item.label.toLowerCase().includes(normalizedQuery),
@@ -310,13 +331,16 @@ const useComboboxApi = <T,>(
     loopFocus,
     multiple,
     ...(name !== undefined && { name }),
+    ...(navigate !== undefined && { navigate }),
+    ...(open !== undefined && { open }),
+    ...(openOnChange !== undefined && { openOnChange }),
     onInputValueChange: ({ inputValue: nextInputValue }) => {
       setFilterState({ query: nextInputValue, source: items })
       onInputValueChange?.(nextInputValue)
     },
-    onOpenChange: ({ open }) => {
+    onOpenChange: ({ open: nextOpen }) => {
       setFilterState({ source: items })
-      onOpenChange?.(open)
+      onOpenChange?.(nextOpen)
     },
     onValueChange: ({ value: nextValue }) => {
       onChange?.(nextValue)
@@ -326,19 +350,33 @@ const useComboboxApi = <T,>(
     ...(value !== undefined && { value: normalizeComboboxValue(value) }),
   })
 
-  return {
-    api: connectCombobox(service, normalizeProps),
-    options,
+  const machineApi = connectCombobox(service, normalizeProps)
+  const api: ComboboxApi<T> = {
+    ...machineApi,
+    getInputProps: () => {
+      const inputProps = machineApi.getInputProps()
+      return {
+        ...inputProps,
+        onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => {
+          const wasDefaultPrevented = event.defaultPrevented
+          inputProps.onKeyDown?.(event)
+          if (event.key === "Escape" && !wasDefaultPrevented) {
+            machineApi.setOpen(false)
+          }
+        },
+      }
+    },
   }
+
+  return { api, options, props }
 }
 
 export const Combobox = <T = unknown,>(rawProps: ComboboxProps<T>) => {
-  const props = resolveComboboxProps(rawProps)
+  const { api, options, props } = useCombobox(rawProps)
   const {
     clearable,
     clearIcon,
     helpText,
-    id,
     label,
     name,
     noResultsMessage,
@@ -350,9 +388,6 @@ export const Combobox = <T = unknown,>(rawProps: ComboboxProps<T>) => {
     triggerIconSize,
     validateStatus,
   } = props
-  const generatedId = useId()
-  const uniqueId = id !== undefined && id !== "" ? id : generatedId
-  const { api, options } = useComboboxApi(props, uniqueId)
   const restInputProps = api.getInputProps()
 
   const {

@@ -2,13 +2,14 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.0.2
+ * @componentVersion v1.1.0
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the search-form-usage skill's component_version and a changelog entry. Bump all three together.
  */
+import { omitKeys } from "@techsio/std/object"
 import { createContext, useContext, useEffect, useId, useState } from "react"
 import type {
   ComponentPropsWithoutRef,
@@ -170,17 +171,23 @@ const SearchFormRoot = ({
   )
 }
 
-type SearchFormLabelProps = Omit<LabelProps, "htmlFor" | "size">
+type SearchFormLabelProps = Omit<LabelProps, "size">
 
 const SearchFormLabel = ({
   children,
   className,
+  htmlFor,
   ...props
 }: SearchFormLabelProps) => {
   const { inputId, size } = useSearchFormContext()
 
   return (
-    <LabelAtom className={className} htmlFor={inputId} size={size} {...props}>
+    <LabelAtom
+      {...props}
+      className={className}
+      htmlFor={htmlFor ?? inputId}
+      size={size}
+    >
       {children}
     </LabelAtom>
   )
@@ -208,11 +215,12 @@ const SearchFormControl = ({
 
 type SearchFormInputProps = Omit<
   InputProps,
-  "size" | "value" | "onChange" | "withButtonInside"
+  "size" | "value" | "withButtonInside"
 >
 
 const SearchFormInput = ({
   className,
+  onChange,
   placeholder = "Search...",
   ref,
   ...props
@@ -228,15 +236,25 @@ const SearchFormInput = ({
     setClearSlot,
   } = useSearchFormContext()
   const styles = searchFormVariants({ gapped, size })
+  const providedInputProps: InputProps = props
+  const machineInputProps = omitKeys(providedInputProps, [
+    "defaultValue",
+    "value",
+  ])
 
   return (
     <div className={styles.inputWrapper()} ref={setClearSlot}>
       <InputAtom
+        {...machineInputProps}
         aria-label={props["aria-label"] ?? "Search"}
         className={styles.input({ className })}
-        id={inputId}
-        onChange={(e) => {
-          setInputValue(e.target.value)
+        id={props.id ?? inputId}
+        onChange={(event) => {
+          const nextValue = event.currentTarget.value
+          onChange?.(event)
+          if (!event.defaultPrevented) {
+            setInputValue(nextValue)
+          }
         }}
         placeholder={placeholder}
         ref={ref}
@@ -244,7 +262,6 @@ const SearchFormInput = ({
         type="search"
         value={inputValue}
         withButtonInside={hasValue && hasClearButton ? "right" : undefined}
-        {...props}
       />
     </div>
   )
@@ -285,7 +302,7 @@ const SearchFormButton = ({
 
 type SearchFormClearButtonProps = Omit<
   ActionIconProps,
-  "size" | "onClick" | "type" | "icon"
+  "size" | "type" | "icon"
 > & {
   icon?: IconType | undefined
 }
@@ -293,6 +310,7 @@ type SearchFormClearButtonProps = Omit<
 const SearchFormClearButton = ({
   className,
   icon = "token-icon-close",
+  onClick,
   tone = "neutral",
   ...props
 }: SearchFormClearButtonProps) => {
@@ -326,13 +344,18 @@ const SearchFormClearButton = ({
     <>
       {createPortal(
         <ActionIcon
-          aria-label={`Clear search: ${inputValue}`}
+          {...props}
+          aria-label={props["aria-label"] ?? `Clear search: ${inputValue}`}
           className={styles.clearButton({ className })}
           icon={icon}
-          onClick={clearInput}
+          onClick={(event) => {
+            onClick?.(event)
+            if (!event.defaultPrevented) {
+              clearInput()
+            }
+          }}
           size={size}
           tone={tone}
-          {...props}
         />,
         clearSlot,
       )}

@@ -17,11 +17,10 @@ import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
 import { useCheckoutShipping } from "@/hooks/use-checkout-shipping"
 import { useSuspenseRegion } from "@/hooks/use-region"
 import { useUpdateCartAddress } from "@/hooks/use-update-cart-address"
-import { CartAddressUpdateError, CartServiceError } from "@/lib/errors"
-import type {
-  CartAddressUpdateErrorCode,
-  CartServiceErrorCode,
-} from "@/lib/errors"
+import { CartAddressUpdateError } from "@/lib/cart-address-update-error"
+import type { CartAddressUpdateErrorCode } from "@/lib/cart-address-update-error"
+import { CartServiceError } from "@/lib/cart-service-error"
+import type { CartServiceErrorCode } from "@/lib/cart-service-error"
 import {
   accessPointToAddress,
   addressToFormData,

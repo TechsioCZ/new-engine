@@ -1,16 +1,16 @@
 import type {
   BlogTeaserItem,
   ProductSectionDefinition,
-} from "./homepage.data.types"
+} from "./homepage-data-types"
 
 export { HOMEPAGE_PRODUCTS_PER_SECTION as PRODUCTS_PER_COLLECTION_SECTION } from "@/lib/storefront/homepage-catalog-config"
 
-export { HERO_BANNERS } from "./homepage.hero.data"
+export { HERO_BANNERS } from "./homepage-hero-data"
 export type {
   BlogTeaserItem,
   HeroBannerItem,
   ProductSectionDefinition,
-} from "./homepage.data.types"
+} from "./homepage-data-types"
 
 const BLOG_PUBLISHED_AT = "2025-12-06"
 

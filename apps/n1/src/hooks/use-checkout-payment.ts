@@ -6,8 +6,8 @@ import {
 } from "@tanstack/react-query"
 
 import { useCartToast } from "@/hooks/use-toast"
+import { CartServiceError } from "@/lib/cart-service-error"
 import { CACHE_TIMES } from "@/lib/constants"
-import { CartServiceError } from "@/lib/errors"
 import { queryKeys } from "@/lib/query-keys"
 import {
   createPaymentCollection,

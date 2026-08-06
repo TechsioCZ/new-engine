@@ -1,11 +1,56 @@
+import { SafeHtml } from "@techsio/ui-kit/atoms/safe-html"
+import type { SafeHtmlPolicy } from "@techsio/ui-kit/atoms/safe-html"
 import NextImage from "next/image"
 import { useEffect, useRef } from "react"
 
-import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
+import type { HomepagePromoContent } from "@/components/homepage/homepage-data-types"
 
 import { sanitizeHomepagePromoHtml } from "./homepage-promo-html"
 
 const HOMEPAGE_PROMO_SECTION_ID = "homepage-promo"
+
+const HOMEPAGE_PROMO_POLICY: SafeHtmlPolicy = {
+  allowedAttributes: {
+    "*": ["title"],
+    a: ["href", "rel", "target"],
+    img: ["alt", "decoding", "height", "loading", "src", "width"],
+    li: ["aria-checked", "role"],
+    td: ["colspan", "rowspan"],
+    th: ["colspan", "rowspan"],
+  },
+  allowedTags: [
+    "a",
+    "b",
+    "blockquote",
+    "br",
+    "code",
+    "em",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "hr",
+    "i",
+    "img",
+    "li",
+    "ol",
+    "p",
+    "span",
+    "strong",
+    "sub",
+    "sup",
+    "table",
+    "tbody",
+    "td",
+    "th",
+    "thead",
+    "tr",
+    "u",
+    "ul",
+  ],
+}
 
 const DEFAULT_IMAGE = {
   alt: "Predajňa Herbatika",
@@ -18,9 +63,16 @@ interface HomepagePromoSectionProps {
 
 export const HomepagePromoSection = ({ promo }: HomepagePromoSectionProps) => {
   const sectionRef = useRef<HTMLElement>(null)
-  const imageAlt = promo?.imageAlt || DEFAULT_IMAGE.alt
-  const imageSrc = promo?.imageSrc || DEFAULT_IMAGE.src
+  const imageAlt =
+    promo?.imageAlt === undefined || promo.imageAlt === ""
+      ? DEFAULT_IMAGE.alt
+      : promo.imageAlt
+  const imageSrc =
+    promo?.imageSrc === undefined || promo.imageSrc === ""
+      ? DEFAULT_IMAGE.src
+      : promo.imageSrc
   const contentHtml = sanitizeHomepagePromoHtml(promo?.contentHtml ?? "")
+  const hasContentHtml = contentHtml.length > 0
 
   useEffect(() => {
     if (window.location.hash === `#${HOMEPAGE_PROMO_SECTION_ID}`) {
@@ -50,12 +102,10 @@ export const HomepagePromoSection = ({ promo }: HomepagePromoSectionProps) => {
           {promo?.heading ??
             "Prírodná kozmetika, doplnky výživy a tradičná medicína"}
         </h2>
-        {contentHtml ? (
-          <div
-            className="text-fg-secondary text-sm leading-relaxed [&_a]:font-bold [&_a]:underline [&_code]:font-mono [&_code]:text-xs [&_em]:italic [&_h1]:font-bold [&_h1]:text-fg-primary [&_h1]:text-xl [&_h2]:font-bold [&_h2]:text-fg-primary [&_h2]:text-lg [&_h3]:font-bold [&_h3]:text-fg-primary [&_h3]:text-md [&_h4]:font-bold [&_h4]:text-fg-primary [&_h5]:font-bold [&_h5]:text-fg-primary [&_h6]:font-bold [&_h6]:text-fg-primary [&_hr]:my-300 [&_hr]:border-border-secondary [&_li[aria-checked=true]]:before:bg-primary [&_li[role=checkbox]]:list-none [&_li[role=checkbox]]:before:mr-200 [&_li[role=checkbox]]:before:inline-block [&_li[role=checkbox]]:before:size-300 [&_li[role=checkbox]]:before:rounded-sm [&_li[role=checkbox]]:before:border [&_li[role=checkbox]]:before:border-border-primary [&_li[role=checkbox]]:before:align-middle [&_li[role=checkbox]]:before:content-[''] [&_li]:ml-400 [&_li]:list-disc [&_ol]:list-decimal [&_p+p]:mt-300 [&_strong]:font-bold [&_ul]:mt-250"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: Payload rich text is normalized through the promo-specific sanitizer before rendering.
-            dangerouslySetInnerHTML={{ __html: contentHtml }}
-          />
+        {hasContentHtml ? (
+          <div className="text-fg-secondary text-sm leading-relaxed [&_a]:font-bold [&_a]:underline [&_code]:font-mono [&_code]:text-xs [&_em]:italic [&_h1]:font-bold [&_h1]:text-fg-primary [&_h1]:text-xl [&_h2]:font-bold [&_h2]:text-fg-primary [&_h2]:text-lg [&_h3]:font-bold [&_h3]:text-fg-primary [&_h3]:text-md [&_h4]:font-bold [&_h4]:text-fg-primary [&_h5]:font-bold [&_h5]:text-fg-primary [&_h6]:font-bold [&_h6]:text-fg-primary [&_hr]:my-300 [&_hr]:border-border-secondary [&_li[aria-checked=true]]:before:bg-primary [&_li[role=checkbox]]:list-none [&_li[role=checkbox]]:before:mr-200 [&_li[role=checkbox]]:before:inline-block [&_li[role=checkbox]]:before:size-300 [&_li[role=checkbox]]:before:rounded-sm [&_li[role=checkbox]]:before:border [&_li[role=checkbox]]:before:border-border-primary [&_li[role=checkbox]]:before:align-middle [&_li[role=checkbox]]:before:content-[''] [&_li]:ml-400 [&_li]:list-disc [&_ol]:list-decimal [&_p+p]:mt-300 [&_strong]:font-bold [&_ul]:mt-250">
+            <SafeHtml html={contentHtml} policy={HOMEPAGE_PROMO_POLICY} />
+          </div>
         ) : (
           <>
             <p className="text-fg-secondary text-sm leading-relaxed">

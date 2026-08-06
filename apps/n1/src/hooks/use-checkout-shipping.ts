@@ -5,8 +5,8 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 
+import { CartServiceError } from "@/lib/cart-service-error"
 import { CACHE_TIMES, TAX_RATE } from "@/lib/constants"
-import { CartServiceError } from "@/lib/errors"
 import { queryKeys } from "@/lib/query-keys"
 import { getShippingOptions, setShippingMethod } from "@/services/cart-service"
 import type { Cart, ShippingMethodData } from "@/services/cart-service"

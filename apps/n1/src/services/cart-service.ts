@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 
-import { CartServiceError, isNotFoundError } from "@/lib/errors"
+import { CartServiceError } from "@/lib/cart-service-error"
+import { isNotFoundError } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
 
 export type Cart = HttpTypes.StoreCart

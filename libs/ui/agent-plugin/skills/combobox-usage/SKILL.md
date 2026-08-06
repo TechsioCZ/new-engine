@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.1"
+component_version: "1.1.0"
 name: combobox-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Combobox for searchable selection with Zag.js collection behavior, controlled value/input, multiple mode, validation status, clear trigger, and token styling.
@@ -108,6 +108,33 @@ Correct:
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_combobox.css
+
+## Headless rich suggestions
+
+Use the canonical `useCombobox` export when options need grouped rich content or navigation links that the styled `Combobox` does not render:
+
+```tsx
+import { useCombobox } from "@techsio/ui-kit/molecules/combobox"
+
+const { api, options } = useCombobox({
+  items,
+  navigate: ({ href }) => router.push(href),
+  openOnChange: true,
+})
+
+<input {...api.getInputProps()} />
+<div {...api.getContentProps()}>
+  <div {...api.getListProps()}>
+    {options.map((item) => (
+      <a {...api.getItemProps({ item })} href={item.data?.href} key={item.value}>
+        {item.label}
+      </a>
+    ))}
+  </div>
+</div>
+```
+
+Spread every `api.get*Props()` result before presentation props. If an app must add a handler, explicitly compose it so the machine handler runs first; never replace the machine handler. Use `getItemGroupProps` and `getItemGroupLabelProps` for grouped results. Keep linked suggestions as options in the Zag listbox, never as an ARIA menu or native select.
 
 ## Validation Commands
 

@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { useState, useSyncExternalStore } from "react"
 
 import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
-import { AddressValidationError } from "@/lib/errors"
+import { AddressValidationError } from "@/lib/address-validation-error"
 
 import {
   useCheckoutContext,

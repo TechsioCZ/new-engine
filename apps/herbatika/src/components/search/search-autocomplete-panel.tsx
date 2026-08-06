@@ -1,29 +1,20 @@
 "use client"
 
+import type { ComboboxApi } from "@techsio/ui-kit/molecules/combobox"
 import { useTranslations } from "next-intl"
-import type { MouseEvent } from "react"
 
 import NextLink from "@/components/app-link"
 import type {
   SearchAutocompleteStatus,
   SearchAutocompleteSuggestion,
-  SearchAutocompleteSuggestionType,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
 
 import { SearchAutocompleteMedia } from "./search-autocomplete-media"
-
-export interface SearchAutocompletePanelSection {
-  key: SearchAutocompleteSuggestionType
-  title: string
-  items: SearchAutocompleteSuggestion[]
-}
+import { toSearchComboboxItem } from "./search-autocomplete-sections"
+import type { SearchAutocompletePanelSection } from "./search-autocomplete-sections"
 
 interface SearchAutocompletePanelProps {
-  activeItemId?: string
-  id: string
-  onItemClick: () => void
-  onItemMouseEnter: (item: SearchAutocompleteSuggestion) => void
-  onMouseDown: (event: MouseEvent<HTMLDivElement>) => void
+  api: ComboboxApi<SearchAutocompleteSuggestion>
   query: string
   sections: SearchAutocompletePanelSection[]
   status: SearchAutocompleteStatus
@@ -32,21 +23,13 @@ interface SearchAutocompletePanelProps {
 const PANEL_CLASS_NAME =
   "absolute left-0 right-0 top-full z-50 mt-100 max-h-screen overflow-y-auto rounded-xs border border-border-secondary bg-surface py-200 shadow-md"
 
-const joinClassNames = (...classNames: (string | false | undefined)[]) =>
-  classNames.filter(Boolean).join(" ")
-
 type SearchTranslator = ReturnType<typeof useTranslations<"search">>
-
-export const getSearchAutocompleteOptionId = (
-  panelId: string,
-  item: SearchAutocompleteSuggestion,
-) => `${panelId}-${item.type}-${item.id}`
 
 const resolveSearchAutocompleteSubtitle = (
   item: SearchAutocompleteSuggestion,
   translate: SearchTranslator,
-) => {
-  if (item.subtitle) {
+): string | undefined => {
+  if (item.subtitle !== undefined && item.subtitle !== "") {
     return item.subtitle
   }
 
@@ -58,10 +41,10 @@ const resolveSearchAutocompleteSubtitle = (
     return translate("autocomplete.types.brand")
   }
 
-  return
+  return undefined
 }
 
-function SearchAutocompleteMeta({
+const SearchAutocompleteMeta = ({
   inStockLabel,
   item,
   outOfStockLabel,
@@ -69,92 +52,85 @@ function SearchAutocompleteMeta({
   inStockLabel: string
   item: SearchAutocompleteSuggestion
   outOfStockLabel: string
-}) {
+}) => {
   const hasAvailability = typeof item.inStock === "boolean"
+  const hasPrice = item.priceLabel !== undefined && item.priceLabel !== ""
 
-  if (!(item.priceLabel || hasAvailability)) {
+  if (!hasPrice && !hasAvailability) {
     return null
   }
 
   return (
     <span className="shrink-0 text-right text-xs leading-snug">
-      {item.priceLabel ? (
+      {hasPrice ? (
         <span className="block font-bold text-primary">{item.priceLabel}</span>
       ) : null}
       {hasAvailability ? (
-        <span className={item.inStock ? "text-success" : "text-fg-secondary"}>
-          {item.inStock ? inStockLabel : outOfStockLabel}
+        <span
+          className={
+            item.inStock === true ? "text-success" : "text-fg-secondary"
+          }
+        >
+          {item.inStock === true ? inStockLabel : outOfStockLabel}
         </span>
       ) : null}
     </span>
   )
 }
 
-function SearchAutocompleteRow({
-  activeItemId,
+const SearchAutocompleteRow = ({
+  api,
   item,
-  onItemClick,
-  onItemMouseEnter,
-  panelId,
-}: Pick<
-  SearchAutocompletePanelProps,
-  "activeItemId" | "onItemClick" | "onItemMouseEnter"
-> & {
+}: Pick<SearchAutocompletePanelProps, "api"> & {
   item: SearchAutocompleteSuggestion
-  panelId: string
-}) {
+}) => {
   const t = useTranslations("search")
-  const optionId = getSearchAutocompleteOptionId(panelId, item)
-  const isActive = activeItemId === optionId
   const subtitle = resolveSearchAutocompleteSubtitle(item, t)
+  const comboboxItem = toSearchComboboxItem(item)
+  const { onClick, onMouseEnter, onTouchStart, ...itemProps } =
+    api.getItemProps({ item: comboboxItem })
 
   return (
-    <li role="presentation">
-      <NextLink
-        aria-selected={isActive}
-        className={joinClassNames(
-          "flex min-w-0 items-center gap-300 px-300 py-200 text-fg-primary transition-colors",
-          isActive ? "bg-fill-secondary" : "hover:bg-fill-secondary",
-        )}
-        href={item.href}
-        id={optionId}
-        onClick={onItemClick}
-        onMouseEnter={() => {
-          onItemMouseEnter(item)
-        }}
-        role="option"
-      >
-        <SearchAutocompleteMedia item={item} />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold text-sm leading-snug">
-            {item.title}
-          </span>
-          {subtitle ? (
-            <span className="block truncate text-fg-secondary text-xs leading-snug">
-              {subtitle}
-            </span>
-          ) : null}
+    <NextLink
+      {...itemProps}
+      className="flex min-w-0 items-center gap-300 px-300 py-200 text-fg-primary transition-colors hover:bg-fill-secondary data-[highlighted]:bg-fill-secondary"
+      href={item.href}
+      onClick={(event) => {
+        onClick?.(event)
+      }}
+      onMouseEnter={(event) => {
+        onMouseEnter?.(event)
+      }}
+      onTouchStart={(event) => {
+        onTouchStart?.(event)
+      }}
+    >
+      <SearchAutocompleteMedia item={item} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-semibold text-sm leading-snug">
+          {item.title}
         </span>
-        <SearchAutocompleteMeta
-          inStockLabel={t("availability.in_stock")}
-          item={item}
-          outOfStockLabel={t("availability.out_of_stock")}
-        />
-      </NextLink>
-    </li>
+        {subtitle !== undefined && subtitle !== "" ? (
+          <span className="block truncate text-fg-secondary text-xs leading-snug">
+            {subtitle}
+          </span>
+        ) : null}
+      </span>
+      <SearchAutocompleteMeta
+        inStockLabel={t("availability.in_stock")}
+        item={item}
+        outOfStockLabel={t("availability.out_of_stock")}
+      />
+    </NextLink>
   )
 }
 
-export function SearchAutocompletePanel({
-  activeItemId,
-  id,
-  onItemClick,
-  onItemMouseEnter,
-  onMouseDown,
+export const SearchAutocompletePanel = ({
+  api,
   query,
   sections,
   status,
-}: SearchAutocompletePanelProps) {
+}: SearchAutocompletePanelProps) => {
   const t = useTranslations("search")
   const hasItems = sections.some((section) => section.items.length > 0)
   let statusMessage = t("autocomplete.empty", { query })
@@ -167,12 +143,9 @@ export function SearchAutocompletePanel({
 
   if (!hasItems) {
     return (
-      // Mouse down does not activate panel content; it only keeps the combobox
-      // input focused while the suggestion panel handles status feedback.
-      <div className={PANEL_CLASS_NAME} onMouseDown={onMouseDown}>
+      <div {...api.getContentProps()} className={PANEL_CLASS_NAME}>
         <output
           className={`block px-300 py-250 text-sm ${status === "error" ? "text-danger" : "text-fg-secondary"}`}
-          id={id}
         >
           {statusMessage}
         </output>
@@ -181,37 +154,35 @@ export function SearchAutocompletePanel({
   }
 
   return (
-    <div
-      aria-busy={status === "loading" ? true : undefined}
-      className={PANEL_CLASS_NAME}
-      id={id}
-      onMouseDown={onMouseDown}
-      role="listbox"
-    >
-      {sections.map((section) =>
-        section.items.length > 0 ? (
-          <div
-            className="border-border-secondary border-b py-100 last:border-b-0"
-            key={section.key}
-          >
-            <div className="px-300 py-100 font-semibold text-fg-secondary text-xs uppercase tracking-normal">
-              {section.title}
-            </div>
-            <ul aria-label={section.title}>
+    <div {...api.getContentProps()} className={PANEL_CLASS_NAME}>
+      <div
+        {...api.getListProps()}
+        aria-busy={status === "loading" ? true : undefined}
+      >
+        {sections.map((section) =>
+          section.items.length > 0 ? (
+            <div
+              {...api.getItemGroupProps({ id: section.key })}
+              className="border-border-secondary border-b py-100 last:border-b-0"
+              key={section.key}
+            >
+              <div
+                {...api.getItemGroupLabelProps({ htmlFor: section.key })}
+                className="px-300 py-100 font-semibold text-fg-secondary text-xs uppercase tracking-normal"
+              >
+                {section.title}
+              </div>
               {section.items.map((item) => (
                 <SearchAutocompleteRow
-                  {...(activeItemId === undefined ? {} : { activeItemId })}
+                  api={api}
                   item={item}
                   key={`${item.type}-${item.id}`}
-                  onItemClick={onItemClick}
-                  onItemMouseEnter={onItemMouseEnter}
-                  panelId={id}
                 />
               ))}
-            </ul>
-          </div>
-        ) : null,
-      )}
+            </div>
+          ) : null,
+        )}
+      </div>
     </div>
   )
 }

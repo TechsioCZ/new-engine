@@ -5,7 +5,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 
 import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
-import { AddressValidationError } from "@/lib/errors"
+import { AddressValidationError } from "@/lib/address-validation-error"
 import type { StoreCustomerAddress } from "@/services/customer-service"
 import { addressToFormData, DEFAULT_ADDRESS } from "@/utils/address-helpers"
 import type { AddressFormData } from "@/utils/address-validation"

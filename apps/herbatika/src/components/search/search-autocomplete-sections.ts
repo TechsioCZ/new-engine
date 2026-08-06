@@ -1,6 +1,16 @@
-import type { SearchAutocompleteResponse } from "@/lib/search-autocomplete/search-autocomplete-types"
+import type { ComboboxItem } from "@techsio/ui-kit/molecules/combobox"
 
-import type { SearchAutocompletePanelSection } from "./search-autocomplete-panel"
+import type {
+  SearchAutocompleteResponse,
+  SearchAutocompleteSuggestion,
+  SearchAutocompleteSuggestionType,
+} from "@/lib/search-autocomplete/search-autocomplete-types"
+
+export interface SearchAutocompletePanelSection {
+  key: SearchAutocompleteSuggestionType
+  title: string
+  items: SearchAutocompleteSuggestion[]
+}
 
 interface SearchAutocompleteSectionTitles {
   brands: string
@@ -17,21 +27,10 @@ export const createSearchAutocompleteSections = (
   { items: data.brands, key: "brand", title: titles.brands },
 ]
 
-export const clampSearchAutocompleteIndex = (
-  index: number,
-  itemCount: number,
-) => {
-  if (itemCount === 0) {
-    return -1
-  }
-
-  if (index < 0) {
-    return itemCount - 1
-  }
-
-  if (index >= itemCount) {
-    return 0
-  }
-
-  return index
-}
+export const toSearchComboboxItem = (
+  item: SearchAutocompleteSuggestion,
+): ComboboxItem<SearchAutocompleteSuggestion> => ({
+  data: item,
+  label: item.title,
+  value: `${item.type}:${item.id}`,
+})

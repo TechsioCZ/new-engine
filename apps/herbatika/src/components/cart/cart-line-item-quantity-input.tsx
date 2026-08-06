@@ -2,7 +2,7 @@
 
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { useTranslations } from "next-intl"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 interface CartLineItemQuantityInputProps {
   className?: string
@@ -18,7 +18,13 @@ interface CartLineItemQuantityInputProps {
   size?: "sm" | "md" | "lg"
 }
 
-export function CartLineItemQuantityInput({
+interface QuantityDraft {
+  lineItemId: string
+  quantity: number
+  sourceQuantity: number
+}
+
+export const CartLineItemQuantityInput = ({
   className,
   controlClassName,
   inputClassName,
@@ -30,26 +36,41 @@ export function CartLineItemQuantityInput({
   onUpdateQuantity,
   quantity,
   size = "md",
-}: CartLineItemQuantityInputProps) {
+}: CartLineItemQuantityInputProps) => {
   const t = useTranslations("cart")
-  const [localQuantity, setLocalQuantity] = useState(quantity)
+  const [quantityDraft, setQuantityDraft] = useState<QuantityDraft | null>(null)
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const localQuantity =
+    quantityDraft !== null &&
+    quantityDraft.lineItemId === lineItemId &&
+    quantityDraft.sourceQuantity === quantity
+      ? quantityDraft.quantity
+      : quantity
 
-  const clearPendingUpdate = useCallback(() => {
+  const clearPendingUpdate = () => {
     if (updateTimeoutRef.current === null) {
       return
     }
 
     clearTimeout(updateTimeoutRef.current)
     updateTimeoutRef.current = null
-  }, [])
+  }
 
   useEffect(() => {
-    setLocalQuantity(quantity)
-    clearPendingUpdate()
-  }, [clearPendingUpdate, quantity])
+    if (updateTimeoutRef.current !== null) {
+      clearTimeout(updateTimeoutRef.current)
+      updateTimeoutRef.current = null
+    }
+  }, [lineItemId, quantity])
 
-  useEffect(() => clearPendingUpdate, [clearPendingUpdate])
+  useEffect(
+    () => () => {
+      if (updateTimeoutRef.current !== null) {
+        clearTimeout(updateTimeoutRef.current)
+      }
+    },
+    [],
+  )
 
   const handleQuantityChange = (nextQuantity: number) => {
     if (!Number.isFinite(nextQuantity)) {
@@ -67,7 +88,11 @@ export function CartLineItemQuantityInput({
       1,
       Math.min(roundedQuantity, maxQuantity),
     )
-    setLocalQuantity(normalizedQuantity)
+    setQuantityDraft({
+      lineItemId,
+      quantity: normalizedQuantity,
+      sourceQuantity: quantity,
+    })
     clearPendingUpdate()
 
     if (normalizedQuantity === quantity) {
@@ -95,9 +120,7 @@ export function CartLineItemQuantityInput({
           disabled={isPending || localQuantity <= 0}
         />
         <NumericInput.Input
-          aria-label={t("quantity_aria", {
-            itemName,
-          })}
+          aria-label={t("quantity_aria", { itemName })}
           className={inputClassName}
         />
         <NumericInput.IncrementTrigger

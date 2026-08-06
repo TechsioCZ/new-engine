@@ -1,8 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { redirect, useRouter } from "next/navigation"
 
 import {
   canAccessCheckoutStep,
@@ -28,7 +27,7 @@ interface CheckoutFlowProps {
   activeStep: CheckoutStepSlug
 }
 
-export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
+export const CheckoutFlow = ({ activeStep }: CheckoutFlowProps) => {
   const router = useRouter()
   const controller = useCheckoutController()
   const tCart = useTranslations("cart")
@@ -46,6 +45,11 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
     hasStoredAddress: controller.hasStoredAddress,
   })
   const redirectStep = requiredStep
+  const { completedOrderId } = controller
+  const isCheckoutComplete =
+    completedOrderId !== null &&
+    completedOrderId !== undefined &&
+    completedOrderId !== ""
 
   const canAccessStep = canAccessCheckoutStep({
     hasItems: controller.hasItems,
@@ -58,16 +62,13 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
   const isStepGateLoading =
     controller.cartQuery.isLoading || controller.cartQuery.isFetching
   const hasResolvedCart = controller.cartQuery.cart !== undefined
+  const canApplyStepGate = hasResolvedCart && !isStepGateLoading
+  const isRequestedStepInvalid = !canAccessStep && redirectStep !== activeStep
   const shouldRedirectStep =
-    hasResolvedCart &&
-    !isStepGateLoading &&
-    !canAccessStep &&
-    !controller.completedOrderId &&
-    redirectStep !== activeStep
+    canApplyStepGate && isRequestedStepInvalid && !isCheckoutComplete
   const activeStepIndex = resolveCheckoutStepIndexBySlug(activeStep)
   const highestAccessibleStepIndex =
     resolveCheckoutStepIndexBySlug(requiredStep)
-  const isCheckoutComplete = Boolean(controller.completedOrderId)
   const checkoutSteps = CHECKOUT_STEPS.map((step, index) => ({
     ...step,
     disabled: !canNavigateToCheckoutStep({
@@ -81,23 +82,15 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
 
   const handleCheckoutStepChange = (targetStepIndex: number) => {
     const targetStep = checkoutSteps[targetStepIndex]
-    if (!targetStep || targetStep.disabled) {
+    if (targetStep === undefined || targetStep.disabled) {
       return
     }
 
     router.push(appHref(resolveCheckoutStepHref(targetStep.slug)))
   }
 
-  useEffect(() => {
-    if (!shouldRedirectStep) {
-      return
-    }
-
-    router.replace(appHref(resolveCheckoutStepHref(redirectStep)))
-  }, [redirectStep, router, shouldRedirectStep])
-
   if (shouldRedirectStep) {
-    return <main className="mx-auto min-h-dvh w-full max-w-max-w" />
+    redirect(appHref(resolveCheckoutStepHref(redirectStep)))
   }
 
   const checkoutStepIndex = isCheckoutComplete
@@ -118,17 +111,15 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
         checkoutError={controller.checkoutError}
       />
 
-      {controller.completedOrderId ? (
-        <CheckoutCompletedOrderSection
-          completedOrderId={controller.completedOrderId}
-        />
+      {isCheckoutComplete ? (
+        <CheckoutCompletedOrderSection completedOrderId={completedOrderId} />
       ) : null}
 
-      {controller.completedOrderId || controller.hasItems ? null : (
+      {isCheckoutComplete || controller.hasItems ? null : (
         <CheckoutEmptyCartSection />
       )}
 
-      {!controller.completedOrderId && controller.hasItems ? (
+      {!isCheckoutComplete && controller.hasItems ? (
         <CheckoutStepContent activeStep={activeStep} controller={controller} />
       ) : null}
     </main>

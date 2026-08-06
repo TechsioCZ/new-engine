@@ -3,7 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Slider } from "@techsio/ui-kit/molecules/slider"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { AsideFilterChipSection } from "@/components/aside-filter-chip-section"
 import type { AsideFilterChipItem } from "@/components/aside-filter-chip-section"
@@ -95,14 +95,6 @@ const resolveBoundsForRender = (
   }
 }
 
-const areBoundsEqual = (
-  left: AsideFilterPriceBounds,
-  right: AsideFilterPriceBounds,
-) => left.min === right.min && left.max === right.max
-
-const areRangesEqual = (left: [number, number], right: [number, number]) =>
-  left[0] === right[0] && left[1] === right[1]
-
 const normalizeCommittedRange = (
   nextRange: [number, number],
   bounds: AsideFilterPriceBounds,
@@ -137,7 +129,7 @@ interface AsideFilterProps {
   showBrandFilter?: boolean
 }
 
-export function AsideFilter({
+export const AsideFilter = ({
   priceBounds,
   selectedPriceRange,
   currencyCode,
@@ -154,73 +146,71 @@ export function AsideFilter({
   isLoading = false,
   onReset,
   showBrandFilter = true,
-}: AsideFilterProps) {
+}: AsideFilterProps) => {
   const t = useTranslations("catalog")
   const incomingPriceBounds = toSafeBounds(priceBounds)
   const hasActivePriceFilter =
     typeof selectedPriceRange.min === "number" ||
     typeof selectedPriceRange.max === "number"
-  const [priceBoundsForRender, setPriceBoundsForRender] =
-    useState<AsideFilterPriceBounds>(
-      incomingPriceBounds ?? {
-        max: 1,
-        min: 0,
-      },
-    )
-
-  useEffect(() => {
-    setPriceBoundsForRender((currentBounds) => {
-      const nextBounds = resolveBoundsForRender(
-        currentBounds,
+  const initialBounds = incomingPriceBounds ?? { max: 1, min: 0 }
+  const [boundsState, setBoundsState] = useState(() => ({
+    hasActivePriceFilter,
+    incomingMax: incomingPriceBounds?.max,
+    incomingMin: incomingPriceBounds?.min,
+    value: initialBounds,
+  }))
+  const boundsChanged =
+    boundsState.hasActivePriceFilter !== hasActivePriceFilter ||
+    boundsState.incomingMax !== incomingPriceBounds?.max ||
+    boundsState.incomingMin !== incomingPriceBounds?.min
+  const priceBoundsForRender = boundsChanged
+    ? resolveBoundsForRender(
+        boundsState.value,
         incomingPriceBounds,
         hasActivePriceFilter,
       )
+    : boundsState.value
 
-      return areBoundsEqual(currentBounds, nextBounds)
-        ? currentBounds
-        : nextBounds
+  if (boundsChanged) {
+    setBoundsState({
+      hasActivePriceFilter,
+      incomingMax: incomingPriceBounds?.max,
+      incomingMin: incomingPriceBounds?.min,
+      value: priceBoundsForRender,
     })
-  }, [hasActivePriceFilter, incomingPriceBounds])
+  }
 
-  const [sliderRange, setSliderRange] = useState<[number, number]>(() =>
-    resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender),
-  )
+  const selectedPriceRangeMin = selectedPriceRange.min
+  const selectedPriceRangeMax = selectedPriceRange.max
+  const [sliderState, setSliderState] = useState(() => ({
+    boundsMax: priceBoundsForRender.max,
+    boundsMin: priceBoundsForRender.min,
+    selectedMax: selectedPriceRangeMax,
+    selectedMin: selectedPriceRangeMin,
+    value: resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender),
+  }))
+  const sliderSourceChanged =
+    sliderState.boundsMax !== priceBoundsForRender.max ||
+    sliderState.boundsMin !== priceBoundsForRender.min ||
+    sliderState.selectedMax !== selectedPriceRangeMax ||
+    sliderState.selectedMin !== selectedPriceRangeMin
+  const sliderRange = sliderSourceChanged
+    ? resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender)
+    : sliderState.value
   const sliderRangeForRender = resolveRangeWithinBounds(
     sliderRange,
     priceBoundsForRender,
   )
-  const selectedPriceRangeMin = selectedPriceRange.min
-  const selectedPriceRangeMax = selectedPriceRange.max
-  const priceBoundsForRenderMin = priceBoundsForRender.min
-  const priceBoundsForRenderMax = priceBoundsForRender.max
 
-  useEffect(() => {
-    const nextSelectedRange = resolveRangeFromSelection(
-      {
-        ...(selectedPriceRangeMin === undefined
-          ? {}
-          : { min: selectedPriceRangeMin }),
-        ...(selectedPriceRangeMax === undefined
-          ? {}
-          : { max: selectedPriceRangeMax }),
-      },
-      {
-        max: priceBoundsForRenderMax,
-        min: priceBoundsForRenderMin,
-      },
-    )
-
-    setSliderRange((currentRange) =>
-      areRangesEqual(currentRange, nextSelectedRange)
-        ? currentRange
-        : nextSelectedRange,
-    )
-  }, [
-    selectedPriceRangeMin,
-    selectedPriceRangeMax,
-    priceBoundsForRenderMin,
-    priceBoundsForRenderMax,
-  ])
+  if (sliderSourceChanged) {
+    setSliderState({
+      boundsMax: priceBoundsForRender.max,
+      boundsMin: priceBoundsForRender.min,
+      selectedMax: selectedPriceRangeMax,
+      selectedMin: selectedPriceRangeMin,
+      value: sliderRangeForRender,
+    })
+  }
 
   return (
     <aside className="overflow-hidden rounded-2xl border border-border-secondary bg-surface text-fg-primary">
@@ -247,12 +237,16 @@ export function AsideFilter({
                 return
               }
 
-              setSliderRange(
-                resolveRangeWithinBounds(
+              setSliderState({
+                boundsMax: priceBoundsForRender.max,
+                boundsMin: priceBoundsForRender.min,
+                selectedMax: selectedPriceRangeMax,
+                selectedMin: selectedPriceRangeMin,
+                value: resolveRangeWithinBounds(
                   [Math.round(values[0]), Math.round(values[1])],
                   priceBoundsForRender,
                 ),
-              )
+              })
             }}
             onChangeEnd={(values) => {
               if (values[0] === undefined || values[1] === undefined) {

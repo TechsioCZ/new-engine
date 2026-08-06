@@ -1,7 +1,7 @@
 import "server-only"
 import { isRecord, getRecordValue } from "@techsio/std/object"
 
-import type { HeroBannerItem } from "@/components/homepage/homepage.data.types"
+import type { HeroBannerItem } from "@/components/homepage/homepage-data-types"
 
 import { fetchCmsJson, resolveCmsMediaUrl } from "./cms-client"
 import type { CmsHeroCarousel } from "./cms-types"

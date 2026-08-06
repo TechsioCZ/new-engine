@@ -111,6 +111,7 @@
     "@zag-js/tooltip": "^1.42.0",
     "@zag-js/tree-view": "^1.42.0",
     "better-themes": "^1.1.0",
+    "isomorphic-dompurify": "^3.21.0",
     "libphonenumber-js": "^1.13.8",
     "tailwind-merge": "^3.6.0",
     "tailwind-variants": "^3.2.2",
