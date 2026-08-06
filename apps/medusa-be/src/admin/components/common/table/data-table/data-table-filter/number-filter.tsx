@@ -11,7 +11,7 @@ import {
   Root as RadioGroupRoot,
 } from "@radix-ui/react-radio-group"
 import type { TFunction } from "i18next"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { debounce } from "../../../../../utils/debounce"
@@ -25,11 +25,114 @@ type NumberFilterProps = IFilter
 type Comparison = "exact" | "range"
 type Operator = "lt" | "gt" | "eq"
 
+/**
+ * `JSON.parse` is declared as returning an unchecked value; this binding pins
+ * the result to `unknown` so every consumer validates the shape it needs.
+ */
+const parseJson: (text: string) => unknown = JSON.parse
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const isComparison = (value: string): value is Comparison =>
+  value === "exact" || value === "range"
+
+const joinParams = (value: string[] | null | undefined): string =>
+  value?.join(",") ?? ""
+
+/** Query params hold either a bare number (`eq`) or a `{ gt, lt }` object. */
+const parseParamsOrEmpty = (value: string[] | null | undefined): unknown => {
+  const raw = joinParams(value)
+
+  return raw === "" ? {} : parseJson(raw)
+}
+
+const parseParams = (value: string[] | null | undefined): unknown => {
+  const raw = joinParams(value)
+
+  return raw === "" ? undefined : parseJson(raw)
+}
+
+/** Bounds are persisted as the raw input strings, so keep both primitives. */
+type Bound = string | number | undefined
+
+const asBound = (value: unknown): Bound =>
+  typeof value === "string" || typeof value === "number" ? value : undefined
+
+/** Only non-empty bounds contribute to the chip label. */
+const asDisplayBound = (value: unknown): Bound => {
+  const bound = asBound(value)
+
+  return bound === undefined || bound === "" || bound === 0 ? undefined : bound
+}
+
+const withoutOperator = (
+  record: Record<string, unknown>,
+  operator: Operator,
+): Record<string, unknown> => {
+  const next: Record<string, unknown> = {}
+
+  for (const [entryKey, entryValue] of Object.entries(record)) {
+    if (entryKey !== operator) {
+      next[entryKey] = entryValue
+    }
+  }
+
+  return next
+}
+
+const parseDisplayValue = (
+  value: string[] | null | undefined,
+  t: TFunction,
+) => {
+  const parsed = parseParamsOrEmpty(value)
+  let displayValue = ""
+
+  if (isRecord(parsed)) {
+    const parts: string[] = []
+    const greaterThan = asDisplayBound(parsed["gt"])
+    const lessThan = asDisplayBound(parsed["lt"])
+
+    if (greaterThan !== undefined) {
+      parts.push(t("filters.compare.greaterThanLabel", { value: greaterThan }))
+    }
+
+    if (lessThan !== undefined) {
+      parts.push(
+        t("filters.compare.lessThanLabel", {
+          value: lessThan,
+        }),
+      )
+    }
+
+    displayValue = parts.join(` ${t("filters.compare.andLabel")} `)
+  }
+
+  if (typeof parsed === "number") {
+    displayValue = parsed.toString()
+  }
+
+  return displayValue
+}
+
+const getValue = (value: string[] | null | undefined, key: Operator): Bound => {
+  const parsed = parseParams(value)
+
+  if (isRecord(parsed)) {
+    return asBound(parsed[key])
+  }
+
+  return typeof parsed === "number" && key === "eq" ? parsed : undefined
+}
+
+const getOperator = (value?: string[] | null): Comparison | undefined =>
+  isRecord(parseParams(value)) ? "range" : "exact"
+
 export const NumberFilter = ({
   filter,
   prefix,
   readonly,
-  openOnMount,
+  openOnMount = false,
 }: NumberFilterProps) => {
   const { t } = useTranslation()
   const [open, setOpen] = useState(openOnMount)
@@ -39,7 +142,7 @@ export const NumberFilter = ({
   const { removeFilter } = useDataTableFilterContext()
   const selectedParams = useSelectedParams({
     param: key,
-    ...(prefix ? { prefix } : {}),
+    ...(prefix === undefined || prefix === "" ? {} : { prefix }),
     multiple: false,
   })
 
@@ -48,58 +151,56 @@ export const NumberFilter = ({
     currentValue,
   )
 
-  const [operator, setOperator] = useState<Comparison | undefined>(
+  const [operator, setOperator] = useState<Comparison | undefined>(() =>
     getOperator(currentValue),
   )
 
-  const debouncedOnChange = useMemo(
-    () =>
-      debounce((value: string, selectedOperator: Operator) => {
-        const curr = JSON.parse(currentValue?.join(",") || "{}")
-        const isCurrentNumber = !Number.isNaN(Number(curr))
+  const debouncedOnChange = debounce(
+    (value: string, selectedOperator: Operator) => {
+      const curr = parseParamsOrEmpty(currentValue)
+      const isCurrentNumber = !Number.isNaN(Number(curr))
 
-        const handleValue = (valueOperator: Operator) => {
-          if (!value && isCurrentNumber) {
-            selectedParams.delete()
-            return
-          }
+      const handleValue = (valueOperator: Operator) => {
+        if (value === "" && isCurrentNumber) {
+          selectedParams.delete()
+          return
+        }
 
-          if (curr && !value) {
-            delete curr[valueOperator]
-            selectedParams.add(JSON.stringify(curr))
-            return
-          }
-
-          if (!curr) {
-            selectedParams.add(JSON.stringify({ [valueOperator]: value }))
-            return
-          }
-
+        if (value === "" && isRecord(curr)) {
           selectedParams.add(
-            JSON.stringify({ ...curr, [valueOperator]: value }),
+            JSON.stringify(withoutOperator(curr, valueOperator)),
           )
+          return
         }
 
-        switch (selectedOperator) {
-          case "eq": {
-            if (value) {
-              selectedParams.add(value)
-            } else {
-              selectedParams.delete()
-            }
-            break
+        selectedParams.add(
+          JSON.stringify({
+            ...(isRecord(curr) ? curr : {}),
+            [valueOperator]: value,
+          }),
+        )
+      }
+
+      switch (selectedOperator) {
+        case "eq": {
+          if (value === "") {
+            selectedParams.delete()
+          } else {
+            selectedParams.add(value)
           }
-          case "lt":
-          case "gt": {
-            handleValue(selectedOperator)
-            break
-          }
-          default: {
-            break
-          }
+          break
         }
-      }, 500),
-    [selectedParams, currentValue],
+        case "lt":
+        case "gt": {
+          handleValue(selectedOperator)
+          break
+        }
+        default: {
+          break
+        }
+      }
+    },
+    500,
   )
 
   useEffect(
@@ -109,18 +210,12 @@ export const NumberFilter = ({
     [debouncedOnChange],
   )
 
-  let timeoutId: ReturnType<typeof setTimeout> | null = null
-
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen)
     setPreviousValue(currentValue)
 
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-    }
-
     if (!(nextOpen || currentValue.length)) {
-      timeoutId = setTimeout(() => {
+      setTimeout(() => {
         removeFilter(key)
       }, 200)
     }
@@ -150,7 +245,7 @@ export const NumberFilter = ({
   const previousDisplayValue = parseDisplayValue(previousValue, t)
 
   return (
-    <PopoverRoot modal onOpenChange={handleOpenChange} open={open ?? false}>
+    <PopoverRoot modal onOpenChange={handleOpenChange} open={open}>
       <FilterChip
         hadPreviousValue={!!previousDisplayValue}
         hasOperator
@@ -159,7 +254,7 @@ export const NumberFilter = ({
         readonly={readonly ?? false}
         value={displayValue}
       />
-      {!readonly && (
+      {readonly !== true && (
         <PopoverPortal>
           <PopoverContent
             align="start"
@@ -184,7 +279,9 @@ export const NumberFilter = ({
                 autoFocus
                 className="flex flex-col items-start"
                 onValueChange={(val) => {
-                  setOperator(val as Comparison)
+                  if (isComparison(val)) {
+                    setOperator(val)
+                  }
                 }}
                 orientation="vertical"
                 value={operator ?? null}
@@ -267,70 +364,4 @@ export const NumberFilter = ({
       )}
     </PopoverRoot>
   )
-}
-
-const parseDisplayValue = (
-  value: string[] | null | undefined,
-  t: TFunction,
-) => {
-  const parsed = JSON.parse(value?.join(",") || "{}")
-  let displayValue = ""
-
-  if (typeof parsed === "object") {
-    const parts: string[] = []
-    if (parsed.gt) {
-      parts.push(t("filters.compare.greaterThanLabel", { value: parsed.gt }))
-    }
-
-    if (parsed.lt) {
-      parts.push(
-        t("filters.compare.lessThanLabel", {
-          value: parsed.lt,
-        }),
-      )
-    }
-
-    displayValue = parts.join(` ${t("filters.compare.andLabel")} `)
-  }
-
-  if (typeof parsed === "number") {
-    displayValue = parsed.toString()
-  }
-
-  return displayValue
-}
-
-const parseValue = (value: string[] | null | undefined) => {
-  if (!value) {
-    return
-  }
-
-  const val = value.join(",")
-  if (!val) {
-    return
-  }
-
-  return JSON.parse(val)
-}
-
-const getValue = (
-  value: string[] | null | undefined,
-  key: Operator,
-): number | undefined => {
-  const parsed = parseValue(value)
-
-  if (typeof parsed === "object") {
-    return parsed[key]
-  }
-  if (typeof parsed === "number" && key === "eq") {
-    return parsed
-  }
-
-  return
-}
-
-const getOperator = (value?: string[] | null): Comparison | undefined => {
-  const parsed = parseValue(value)
-
-  return typeof parsed === "object" ? "range" : "exact"
 }
