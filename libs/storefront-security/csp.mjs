@@ -106,7 +106,7 @@ export const buildDevHmrOrigins = (options = {}) => {
     ...allowedDevOrigins.flatMap((origin) => {
       const { hostname, port } = normalizeAllowedDevOrigin(origin)
 
-      if (port.length > 0) {
+      if (port !== null) {
         return [`ws://${hostname}:${port}`, `wss://${hostname}:${port}`]
       }
 

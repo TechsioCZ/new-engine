@@ -18,31 +18,29 @@ import { DEFAULT_PERMISSIONS_POLICY_DIRECTIVES } from "./headers.mjs"
  *   publicBackendOrigin?: string | undefined
  *   allowedDevOrigins?: string[]
  *   devPort?: number
- * }} context
- * @returns {StorefrontSecurityPresetConfig}
+ * }} context - Medusa storefront preset context.
+ * @returns {StorefrontSecurityPresetConfig} Medusa storefront security preset.
  */
-function createMedusaStorefrontPreset(context) {
-  return {
-    csp: createBaseStorefrontCsp(context),
-    permissionsPolicy: [...DEFAULT_PERMISSIONS_POLICY_DIRECTIVES],
-  }
-}
+const createMedusaStorefrontPreset = (context) => ({
+  csp: createBaseStorefrontCsp(context),
+  permissionsPolicy: [...DEFAULT_PERMISSIONS_POLICY_DIRECTIVES],
+})
 
-const storefrontSecurityPresets = {
-  medusaStorefront: createMedusaStorefrontPreset,
-}
+const storefrontSecurityPresets = new Map([
+  ["medusaStorefront", createMedusaStorefrontPreset],
+])
 
 /**
  * @param {{
- *   preset?: keyof typeof storefrontSecurityPresets | null
+ *   preset?: string | null
  *   isProduction?: boolean
  *   publicBackendOrigin?: string | undefined
  *   allowedDevOrigins?: string[]
  *   devPort?: number
- * }} options
- * @returns {StorefrontSecurityPresetConfig}
+ * }} options - Preset resolution settings.
+ * @returns {StorefrontSecurityPresetConfig} Resolved storefront security preset.
  */
-export function resolveStorefrontSecurityPreset(options) {
+export const resolveStorefrontSecurityPreset = (options) => {
   const {
     preset = "medusaStorefront",
     isProduction = process.env.NODE_ENV === "production",
@@ -63,9 +61,9 @@ export function resolveStorefrontSecurityPreset(options) {
     }
   }
 
-  const presetFactory = storefrontSecurityPresets[preset]
+  const presetFactory = storefrontSecurityPresets.get(preset)
 
-  if (!presetFactory) {
+  if (presetFactory === undefined) {
     throw new Error(`Unknown storefront security preset: "${preset}".`)
   }
 

@@ -23,40 +23,36 @@ import { resolveStorefrontSecurityPreset } from "./presets.mjs"
  *   csp?: Partial<StorefrontCspDirectives>
  *   permissionsPolicy?: string[]
  *   headers?: Array<{ key: string, value: string }>
- * }} [extend]
+ * }} [extend] - Additive storefront security overrides.
  * @returns {{
  *   csp: Partial<StorefrontCspDirectives>
  *   permissionsPolicy?: string[]
  *   headers: Array<{ key: string, value: string }>
- * }}
+ * }} Normalized additive overrides.
  */
-function normalizeExtend(extend = {}) {
-  return {
-    csp: extend.csp ?? {},
-    headers: extend.headers ?? [],
-    permissionsPolicy: extend.permissionsPolicy,
-  }
-}
+const normalizeExtend = (extend = {}) => ({
+  csp: extend.csp ?? {},
+  headers: extend.headers ?? [],
+  permissionsPolicy: extend.permissionsPolicy,
+})
 
 /**
  * @param {{
  *   csp?: Partial<StorefrontCspDirectives>
  *   permissionsPolicy?: string[]
  *   headers?: Array<{ key: string, value: string | null }>
- * }} [replace]
+ * }} [replace] - Replacement storefront security overrides.
  * @returns {{
  *   csp: Partial<StorefrontCspDirectives>
  *   permissionsPolicy?: string[]
  *   headers: Array<{ key: string, value: string | null }>
- * }}
+ * }} Normalized replacement overrides.
  */
-function normalizeReplace(replace = {}) {
-  return {
-    csp: replace.csp ?? {},
-    headers: replace.headers ?? [],
-    permissionsPolicy: replace.permissionsPolicy,
-  }
-}
+const normalizeReplace = (replace = {}) => ({
+  csp: replace.csp ?? {},
+  headers: replace.headers ?? [],
+  permissionsPolicy: replace.permissionsPolicy,
+})
 
 /**
  * Supports the pre-refactor option names so existing consumers can migrate
@@ -70,9 +66,13 @@ function normalizeReplace(replace = {}) {
  *   additionalImgSrc?: string[]
  *   additionalFontSrc?: string[]
  *   permissionsPolicyDirectives?: string[]
- * }} options
+ * }} options - Legacy storefront security options.
+ * @returns {{
+ *   csp: Partial<StorefrontCspDirectives>
+ *   permissionsPolicy?: string[]
+ * }} Normalized legacy additive overrides.
  */
-function normalizeLegacyOverrides(options) {
+const normalizeLegacyOverrides = (options) => {
   const {
     additionalScriptSrc = [],
     additionalStyleSrc = [],
@@ -123,14 +123,14 @@ function normalizeLegacyOverrides(options) {
  *   additionalImgSrc?: string[]
  *   additionalFontSrc?: string[]
  *   permissionsPolicyDirectives?: string[]
- * }} [options]
+ * }} [options] - Storefront security configuration options.
  * @returns {{
  *   allowedDevOrigins: string[]
  *   poweredByHeader: false
  *   headers: () => Array<{ source: string, headers: Array<{ key: string, value: string }> }>
- * }}
+ * }} Next.js storefront security configuration.
  */
-export function createStorefrontSecurityConfig(options = {}) {
+export const createStorefrontSecurityConfig = (options = {}) => {
   const {
     source = "/:path*",
     preset = "medusaStorefront",
@@ -213,7 +213,20 @@ export function createStorefrontSecurityConfig(options = {}) {
   }
 }
 
-export * from "./backend-url.mjs"
-export * from "./csp.mjs"
-export * from "./headers.mjs"
-export * from "./presets.mjs"
+export {
+  DEFAULT_DEVELOPMENT_BACKEND_URL,
+  DEFAULT_PUBLIC_BACKEND_ENV_NAME,
+  resolvePublicBackendOrigin,
+} from "./backend-url.mjs"
+export {
+  buildDevHmrOrigins,
+  buildStorefrontContentSecurityPolicy,
+  createBaseStorefrontCsp,
+  mergeStorefrontCsp,
+  uniquePolicySources,
+} from "./csp.mjs"
+export {
+  buildStorefrontResponseHeaders,
+  DEFAULT_PERMISSIONS_POLICY_DIRECTIVES,
+} from "./headers.mjs"
+export { resolveStorefrontSecurityPreset } from "./presets.mjs"

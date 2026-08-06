@@ -9,15 +9,17 @@ import {
   resolveStorefrontSecurityPreset,
 } from "./index.mjs"
 
-const MISSING_BACKEND_URL_PATTERN = /Missing NEXT_PUBLIC_MEDUSA_BACKEND_URL/
-const INVALID_BACKEND_URL_PATTERN = /Invalid NEXT_PUBLIC_MEDUSA_BACKEND_URL/
-const UNKNOWN_PRESET_PATTERN = /Unknown storefront security preset/
+const MISSING_BACKEND_URL_PATTERN = /Missing NEXT_PUBLIC_MEDUSA_BACKEND_URL/u
+const INVALID_BACKEND_URL_PATTERN = /Invalid NEXT_PUBLIC_MEDUSA_BACKEND_URL/u
+const UNKNOWN_PRESET_PATTERN = /Unknown storefront security preset/u
+const BACKEND_ORIGIN = "https://demo-medusa.example.com"
+const CONTENT_SECURITY_POLICY_HEADER = "Content-Security-Policy"
+const FRAME_OPTIONS_HEADER = "X-Frame-Options"
 
 await test("resolvePublicBackendOrigin falls back to localhost in development", () => {
   assert.equal(
     resolvePublicBackendOrigin({
       isProduction: false,
-      publicBackendUrl: undefined,
     }),
     "http://localhost:9000",
   )
@@ -28,7 +30,6 @@ await test("resolvePublicBackendOrigin fails fast in production when missing", (
     () =>
       resolvePublicBackendOrigin({
         isProduction: true,
-        publicBackendUrl: undefined,
       }),
     MISSING_BACKEND_URL_PATTERN,
   )
@@ -57,7 +58,6 @@ await test("resolvePublicBackendOrigin honors envVarName overrides", () => {
       resolvePublicBackendOrigin({
         envVarName: "CUSTOM_MEDUSA_BACKEND_URL",
         isProduction: false,
-        publicBackendUrl: undefined,
       }),
       "https://custom.example.com",
     )
@@ -115,22 +115,22 @@ await test("medusaStorefront preset includes backend origin and dev HMR in CSP",
     allowedDevOrigins: ["n1.medusa.localhost"],
     isProduction: false,
     preset: "medusaStorefront",
-    publicBackendOrigin: "https://demo-medusa.example.com",
+    publicBackendOrigin: BACKEND_ORIGIN,
   })
 
   const csp = buildStorefrontContentSecurityPolicy({ csp: preset.csp })
 
-  assert.match(csp, /connect-src 'self' https:\/\/demo-medusa\.example\.com/)
-  assert.match(csp, /ws:\/\/n1\.medusa\.localhost:3000/)
-  assert.match(csp, /img-src 'self' data: blob: https:/)
+  assert.match(csp, /connect-src 'self' https:\/\/demo-medusa\.example\.com/u)
+  assert.match(csp, /ws:\/\/n1\.medusa\.localhost:3000/u)
+  assert.match(csp, /img-src 'self' data: blob: https:/u)
 })
 
 await test("unknown preset fails fast", () => {
   assert.throws(
     () =>
       resolveStorefrontSecurityPreset({
-        preset: /** @type {never} */ ("unknown"),
-        publicBackendOrigin: "https://demo-medusa.example.com",
+        preset: "unknown",
+        publicBackendOrigin: BACKEND_ORIGIN,
       }),
     UNKNOWN_PRESET_PATTERN,
   )
@@ -147,7 +147,7 @@ await test("createStorefrontSecurityConfig supports preset + extend + replace", 
     },
     isProduction: false,
     preset: "medusaStorefront",
-    publicBackendUrl: "https://demo-medusa.example.com",
+    publicBackendUrl: BACKEND_ORIGIN,
     replace: {
       permissionsPolicy: ["camera=()", "microphone=()"],
     },
@@ -156,7 +156,7 @@ await test("createStorefrontSecurityConfig supports preset + extend + replace", 
   const headerGroups = securityConfig.headers()
   const responseHeaders = headerGroups[0].headers
   const cspHeader = responseHeaders.find(
-    (header) => header.key === "Content-Security-Policy",
+    (header) => header.key === CONTENT_SECURITY_POLICY_HEADER,
   )
   const permissionsHeader = responseHeaders.find(
     (header) => header.key === "Permissions-Policy",
@@ -169,11 +169,11 @@ await test("createStorefrontSecurityConfig supports preset + extend + replace", 
   assert.equal(securityConfig.poweredByHeader, false)
   assert.match(
     cspHeader?.value ?? "",
-    /script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\/\/www\.googletagmanager\.com/,
+    /script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\/\/www\.googletagmanager\.com/u,
   )
   assert.match(
     cspHeader?.value ?? "",
-    /frame-src 'self' https:\/\/www\.ppl\.cz/,
+    /frame-src 'self' https:\/\/www\.ppl\.cz/u,
   )
   assert.equal(permissionsHeader?.value, "camera=(), microphone=()")
   assert.equal(cacheControlHeader?.value, "public, max-age=60")
@@ -182,18 +182,18 @@ await test("createStorefrontSecurityConfig supports preset + extend + replace", 
 await test("replace headers win over extend headers", () => {
   const securityConfig = createStorefrontSecurityConfig({
     extend: {
-      headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }],
+      headers: [{ key: FRAME_OPTIONS_HEADER, value: "SAMEORIGIN" }],
     },
     isProduction: false,
-    publicBackendUrl: "https://demo-medusa.example.com",
+    publicBackendUrl: BACKEND_ORIGIN,
     replace: {
-      headers: [{ key: "X-Frame-Options", value: "DENY" }],
+      headers: [{ key: FRAME_OPTIONS_HEADER, value: "DENY" }],
     },
   })
 
   const frameOptionsHeader = securityConfig
     .headers()[0]
-    .headers.find((header) => header.key === "X-Frame-Options")
+    .headers.find((header) => header.key === FRAME_OPTIONS_HEADER)
 
   assert.equal(frameOptionsHeader?.value, "DENY")
 })
@@ -202,29 +202,29 @@ await test("legacy additional* options still extend the preset", () => {
   const securityConfig = createStorefrontSecurityConfig({
     additionalConnectSrc: ["https://www.google-analytics.com"],
     isProduction: false,
-    publicBackendUrl: "https://demo-medusa.example.com",
+    publicBackendUrl: BACKEND_ORIGIN,
   })
 
   const cspHeader = securityConfig
     .headers()[0]
-    .headers.find((header) => header.key === "Content-Security-Policy")
+    .headers.find((header) => header.key === CONTENT_SECURITY_POLICY_HEADER)
 
-  assert.match(cspHeader?.value ?? "", /https:\/\/www\.google-analytics\.com/)
+  assert.match(cspHeader?.value ?? "", /https:\/\/www\.google-analytics\.com/u)
 })
 
 await test("suppressing the CSP does not require a production backend URL", () => {
   const securityConfig = createStorefrontSecurityConfig({
     isProduction: true,
-    publicBackendUrl: undefined,
     replace: {
-      headers: [{ key: "Content-Security-Policy", value: null }],
+      headers: [{ key: CONTENT_SECURITY_POLICY_HEADER, value: null }],
     },
   })
 
-  const { headers } = securityConfig.headers()[0]
+  const [headerGroup] = securityConfig.headers()
+  const { headers } = headerGroup
 
   assert.equal(
-    headers.find((header) => header.key === "Content-Security-Policy"),
+    headers.find((header) => header.key === CONTENT_SECURITY_POLICY_HEADER),
     undefined,
   )
   assert.ok(headers.some((header) => header.key === "Permissions-Policy"))
