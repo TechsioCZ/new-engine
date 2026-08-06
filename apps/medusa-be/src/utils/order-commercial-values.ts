@@ -1,4 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 export const MANUAL_ITEM_DISCOUNT_CODE = "manual_item_discount"
 export const MANUAL_ORDER_DISCOUNT_CODE = "manual_order_discount"
@@ -35,9 +36,6 @@ export interface CommercialAdjustmentInput {
   subtotal?: number | null | undefined
   total?: number | null | undefined
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value)
 
 const parseCommercialDiscountIntent = (
   value: unknown,

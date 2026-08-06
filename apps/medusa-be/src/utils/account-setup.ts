@@ -158,7 +158,9 @@ const getCustomerCreateData = (order: AccountSetupOrder, email: string) => {
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isAccountSetupObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isUnknownArray = (value: unknown): value is unknown[] =>
@@ -192,7 +194,7 @@ const isOptionalNullableNumber = (value: unknown) =>
   value === undefined || value === null || typeof value === "number"
 
 const isOptionalNullableRecord = (value: unknown) =>
-  value === undefined || value === null || isRecord(value)
+  value === undefined || value === null || isAccountSetupObjectLike(value)
 
 const isOptionalNullableAddress = (value: unknown) => {
   if (value === undefined || value === null) {
@@ -200,7 +202,7 @@ const isOptionalNullableAddress = (value: unknown) => {
   }
 
   return (
-    isRecord(value) &&
+    isAccountSetupObjectLike(value) &&
     isOptionalNullableString(value["first_name"]) &&
     isOptionalNullableString(value["last_name"])
   )
@@ -211,7 +213,7 @@ const isOptionalNullableOrderCustomer = (value: unknown) => {
     return true
   }
 
-  if (!isRecord(value)) {
+  if (!isAccountSetupObjectLike(value)) {
     return false
   }
 
@@ -235,7 +237,7 @@ const isOptionalNullableOrderCustomer = (value: unknown) => {
 }
 
 const isAccountSetupOrder = (value: unknown): value is AccountSetupOrder => {
-  if (!isRecord(value)) {
+  if (!isAccountSetupObjectLike(value)) {
     return false
   }
 
@@ -285,7 +287,7 @@ export const assertAccountSetupOrder: (
 const isAccountSetupCustomer = (
   value: unknown,
 ): value is AccountSetupCustomer => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
+  if (!isAccountSetupObjectLike(value) || typeof value["id"] !== "string") {
     return false
   }
 
@@ -312,7 +314,7 @@ const assertAccountSetupCustomer: (
 const isEmailPassProviderIdentity = (
   value: unknown,
 ): value is EmailPassProviderIdentity =>
-  isRecord(value) &&
+  isAccountSetupObjectLike(value) &&
   typeof value["id"] === "string" &&
   (value["auth_identity_id"] === undefined ||
     typeof value["auth_identity_id"] === "string")

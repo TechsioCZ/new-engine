@@ -8,6 +8,7 @@ import {
   toast,
   usePrompt,
 } from "@medusajs/ui"
+import { isRecord } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router-dom"
 import type { LoaderFunctionArgs, UIMatch } from "react-router-dom"
@@ -49,9 +50,6 @@ interface QuoteEmployeeView {
   company: QuoteCompanyView | null
   spendingLimit: number | null
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const isNonEmptyString = (value: string | null | undefined): value is string =>
   typeof value === "string" && value !== ""

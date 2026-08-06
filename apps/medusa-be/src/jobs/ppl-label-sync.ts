@@ -41,11 +41,13 @@ interface SyncContext {
 const isNonEmptyString = (value: string | undefined): value is string =>
   typeof value === "string" && value.length > 0
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isPplLabelObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isPendingFulfillment = (value: unknown): value is PendingFulfillment => {
-  if (!(isRecord(value) && isRecord(value["data"]))) {
+  if (!(isPplLabelObjectLike(value) && isPplLabelObjectLike(value["data"]))) {
     return false
   }
 

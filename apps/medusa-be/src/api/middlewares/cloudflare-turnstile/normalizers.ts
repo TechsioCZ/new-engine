@@ -4,14 +4,16 @@ export const DEFAULT_TURNSTILE_TOKEN_FIELDS = [
   "turnstileToken",
 ] as const
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isTurnstileBodyObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 export const normalizeTurnstileToken = (
   body: unknown,
   tokenFields: readonly string[],
 ): string | undefined => {
-  if (!isRecord(body)) {
+  if (!isTurnstileBodyObjectLike(body)) {
     return undefined
   }
 

@@ -28,20 +28,22 @@ interface PrintableGLSFulfillmentData {
   barcode: string
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isGlsLabelObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isGLSFulfillmentRecord = (
   value: unknown,
 ): value is GLSFulfillmentRecord => {
-  if (!isRecord(value)) {
+  if (!isGlsLabelObjectLike(value)) {
     return false
   }
 
   const { canceled_at: canceledAt, data, id, provider_id: providerId } = value
   const hasValidCanceledAt =
     canceledAt === null || typeof canceledAt === "string"
-  const hasValidData = data === null || isRecord(data)
+  const hasValidData = data === null || isGlsLabelObjectLike(data)
 
   return (
     typeof id === "string" &&
@@ -52,7 +54,7 @@ const isGLSFulfillmentRecord = (
 }
 
 const isGLSLabelOrder = (value: unknown): value is GLSLabelOrder => {
-  if (!isRecord(value)) {
+  if (!isGlsLabelObjectLike(value)) {
     return false
   }
 
@@ -71,7 +73,7 @@ const isGLSLabelOrder = (value: unknown): value is GLSLabelOrder => {
 const isPrintableGLSFulfillmentData = (
   value: unknown,
 ): value is PrintableGLSFulfillmentData => {
-  if (!isRecord(value)) {
+  if (!isGlsLabelObjectLike(value)) {
     return false
   }
 

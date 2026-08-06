@@ -5,6 +5,7 @@ import {
   Modules,
   OrderChangeStatus,
 } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import type {
   CommercialAdjustmentInput,
@@ -263,9 +264,6 @@ const toSafeInteger = (value: AmountValue, fieldName: string) => {
 
 const toOrderVersion = (version: AmountValue) =>
   toSafeInteger(version ?? 0, "order version")
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value)
 
 const isCommercialValuesEntity = (value: unknown) => {
   if (!isRecord(value) || typeof value["id"] !== "string") {

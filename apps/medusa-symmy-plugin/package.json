@@ -47,6 +47,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@techsio/std": "workspace:*",
     "jose": "^6.2.3"
   },
   "devDependencies": {

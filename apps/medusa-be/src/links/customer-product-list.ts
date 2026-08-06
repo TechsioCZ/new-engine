@@ -11,11 +11,13 @@ interface LinkInputSource {
   serviceName: string
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isCustomerProductLinkObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isLinkInputSource = (value: unknown): value is LinkInputSource => {
-  if (!isRecord(value)) {
+  if (!isCustomerProductLinkObjectLike(value)) {
     return false
   }
 
@@ -30,13 +32,13 @@ const isLinkInputSource = (value: unknown): value is LinkInputSource => {
 
 const getCustomerLinkSource = (): LinkInputSource => {
   const customerModule: unknown = CustomerModule
-  const linkable: unknown = isRecord(customerModule)
+  const linkable: unknown = isCustomerProductLinkObjectLike(customerModule)
     ? customerModule["linkable"]
     : undefined
-  const customerLinkable: unknown = isRecord(linkable)
+  const customerLinkable: unknown = isCustomerProductLinkObjectLike(linkable)
     ? linkable["customer"]
     : undefined
-  if (!isRecord(customerLinkable)) {
+  if (!isCustomerProductLinkObjectLike(customerLinkable)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Customer module did not provide a customer link source",

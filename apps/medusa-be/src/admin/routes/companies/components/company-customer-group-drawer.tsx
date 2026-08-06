@@ -39,14 +39,14 @@ const getLoadErrorMessage = (
   ownersError: Error | null,
   fallback: string,
 ) => {
-  if (
-    customerGroupsError?.message !== undefined &&
-    customerGroupsError.message !== ""
-  ) {
-    return customerGroupsError.message
+  const customerGroupsMessage = customerGroupsError?.message
+  if (customerGroupsMessage !== undefined && customerGroupsMessage !== "") {
+    return customerGroupsMessage
   }
-  if (ownersError?.message !== undefined && ownersError.message !== "") {
-    return ownersError.message
+
+  const ownersMessage = ownersError?.message
+  if (ownersMessage !== undefined && ownersMessage !== "") {
+    return ownersMessage
   }
   return fallback
 }

@@ -71,7 +71,9 @@ const HOUSE_NUMBER_REGEX = /^(?<houseNumber>\d+)(?<houseNumberInfo>.*)$/u
 const FLOAT_PREFIX_REGEX =
   /^[+-]?(?:Infinity|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/u
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isGlsPacketObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const getOptionalString = (value: unknown): string | undefined => {
@@ -104,7 +106,7 @@ export const toFiniteNumber = (value: unknown): number | undefined => {
     const parsed = Number(numericPrefix)
     return Number.isFinite(parsed) ? parsed : undefined
   }
-  if (isRecord(value)) {
+  if (isGlsPacketObjectLike(value)) {
     const nestedValue: unknown = value["value"]
     return toFiniteNumber(nestedValue)
   }
@@ -185,7 +187,7 @@ const normalizeShippingAddress = (
   country: string
 } => {
   const address: unknown = shippingAddress
-  const addressRecord = isRecord(address) ? address : {}
+  const addressRecord = isGlsPacketObjectLike(address) ? address : {}
   const addressLine1 = getRequiredString(
     addressRecord["address_1"],
     "GLS: Shipping address address_1 is required",
@@ -214,7 +216,7 @@ const normalizeShippingAddress = (
 }
 
 const getOrderEmail = (value: unknown): string | undefined => {
-  if (!isRecord(value)) {
+  if (!isGlsPacketObjectLike(value)) {
     return undefined
   }
 
@@ -224,7 +226,9 @@ const getOrderEmail = (value: unknown): string | undefined => {
   }
 
   const customer: unknown = value["customer"]
-  return getOptionalString(isRecord(customer) ? customer["email"] : undefined)
+  return getOptionalString(
+    isGlsPacketObjectLike(customer) ? customer["email"] : undefined,
+  )
 }
 
 const getRequiredOrderEmail = async (
@@ -287,7 +291,7 @@ const getPacketOrderTotal = (
   shippingData: GLSShippingOptionData,
 ): PacketOrderTotal => {
   const orderRecord: unknown = order
-  const itemTotal: unknown = isRecord(orderRecord)
+  const itemTotal: unknown = isGlsPacketObjectLike(orderRecord)
     ? orderRecord["item_total"]
     : undefined
   const orderTotal = toFiniteNumber(order.total) ?? toFiniteNumber(itemTotal)
@@ -312,7 +316,9 @@ const getPacketCurrency = (
 ): PacketCurrency => {
   const orderRecord: unknown = order
   const currency = getOptionalString(
-    isRecord(orderRecord) ? orderRecord["currency_code"] : undefined,
+    isGlsPacketObjectLike(orderRecord)
+      ? orderRecord["currency_code"]
+      : undefined,
   )?.toUpperCase()
 
   if (currency !== undefined && currency.length > 0) {
@@ -360,12 +366,12 @@ const isOptionalNullableString = (value: unknown): boolean =>
   value === undefined || value === null || typeof value === "string"
 
 const isOptionalNullableRecord = (value: unknown): boolean =>
-  value === undefined || value === null || isRecord(value)
+  value === undefined || value === null || isGlsPacketObjectLike(value)
 
 const isOrderLineItemWithWeight = (
   value: unknown,
 ): value is OrderLineItemWithWeight => {
-  if (!isRecord(value)) {
+  if (!isGlsPacketObjectLike(value)) {
     return false
   }
 
@@ -380,7 +386,7 @@ const isOrderLineItemWithWeight = (
 const isFulfillmentItemWithQuantity = (
   value: unknown,
 ): value is FulfillmentItemWithQuantity => {
-  if (!isRecord(value)) {
+  if (!isGlsPacketObjectLike(value)) {
     return false
   }
 
@@ -389,7 +395,7 @@ const isFulfillmentItemWithQuantity = (
 }
 
 const isProductWeightRecord = (value: unknown): value is ProductWeightRecord =>
-  isRecord(value) && typeof value["id"] === "string"
+  isGlsPacketObjectLike(value) && typeof value["id"] === "string"
 
 const getProductWeights = async (
   orderItems: OrderLineItemWithWeight[],
@@ -535,7 +541,7 @@ const buildBasePacketAttributes = (params: {
   const address = normalizeShippingAddress(shippingAddress)
   const shippingAddressRecord: unknown = shippingAddress
   const phone = getRequiredString(
-    isRecord(shippingAddressRecord)
+    isGlsPacketObjectLike(shippingAddressRecord)
       ? shippingAddressRecord["phone"]
       : undefined,
     "GLS: Shipping address phone is required for ParcelShop delivery",

@@ -24,7 +24,9 @@ interface CartApprovalProjection {
   id: string
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isApprovalProjectionObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isOptionalBoolean = (value: unknown) =>
@@ -33,7 +35,10 @@ const isOptionalBoolean = (value: unknown) =>
 const isCartApprovalProjection = (
   value: unknown,
 ): value is CartApprovalProjection => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
+  if (
+    !isApprovalProjectionObjectLike(value) ||
+    typeof value["id"] !== "string"
+  ) {
     return false
   }
 
@@ -41,7 +46,7 @@ const isCartApprovalProjection = (
   if (
     approvalStatus !== undefined &&
     approvalStatus !== null &&
-    !isRecord(approvalStatus)
+    !isApprovalProjectionObjectLike(approvalStatus)
   ) {
     return false
   }
@@ -49,7 +54,7 @@ const isCartApprovalProjection = (
   if (company === undefined || company === null) {
     return true
   }
-  if (!isRecord(company)) {
+  if (!isApprovalProjectionObjectLike(company)) {
     return false
   }
 
@@ -57,7 +62,7 @@ const isCartApprovalProjection = (
   if (settings === undefined || settings === null) {
     return true
   }
-  if (!isRecord(settings)) {
+  if (!isApprovalProjectionObjectLike(settings)) {
     return false
   }
   return [
@@ -109,7 +114,7 @@ export const createApprovalStep = createStep(
         throwIfKeyNotFound: true,
       },
     )
-    const data: unknown = isRecord(graphResult)
+    const data: unknown = isApprovalProjectionObjectLike(graphResult)
       ? graphResult["data"]
       : undefined
     const cart: unknown = Array.isArray(data) ? data[0] : undefined

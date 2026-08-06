@@ -56,7 +56,9 @@ type StoreProductAttributeProjection = Pick<
   option?: Pick<ProductAttributeOptionRecord, "id" | "key" | "label"> | null
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isProductAttributeObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isUnknownArray = (value: unknown): value is unknown[] =>
@@ -65,7 +67,7 @@ const isUnknownArray = (value: unknown): value is unknown[] =>
 const isDefinitionProjection = (
   value: unknown,
 ): value is NonNullable<StoreProductAttributeProjection["definition"]> => {
-  if (!isRecord(value)) {
+  if (!isProductAttributeObjectLike(value)) {
     return false
   }
 
@@ -82,7 +84,7 @@ const isDefinitionProjection = (
 const isOptionProjection = (
   value: unknown,
 ): value is NonNullable<StoreProductAttributeProjection["option"]> => {
-  if (!isRecord(value)) {
+  if (!isProductAttributeObjectLike(value)) {
     return false
   }
 
@@ -97,7 +99,7 @@ const isOptionProjection = (
 const isStoreProductAttributeProjection = (
   value: unknown,
 ): value is StoreProductAttributeProjection => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
+  if (!isProductAttributeObjectLike(value) || typeof value["id"] !== "string") {
     return false
   }
 
@@ -207,7 +209,7 @@ export const listPublicStoreProductAttributes = async ({
       },
       locale === undefined ? {} : { locale },
     )
-    if (!isRecord(result)) {
+    if (!isProductAttributeObjectLike(result)) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         "Product Attribute query returned an invalid result",
@@ -230,7 +232,8 @@ export const listPublicStoreProductAttributes = async ({
 
     assignments.push(...page)
     sourceCount =
-      isRecord(metadata) && typeof metadata["count"] === "number"
+      isProductAttributeObjectLike(metadata) &&
+      typeof metadata["count"] === "number"
         ? metadata["count"]
         : assignments.length
     if (page.length === 0) {

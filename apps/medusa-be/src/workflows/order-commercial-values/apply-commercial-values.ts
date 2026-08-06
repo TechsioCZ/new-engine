@@ -22,6 +22,7 @@ import {
   orderEditUpdateItemQuantityWorkflow,
   requestOrderEditRequestWorkflow,
 } from "@medusajs/medusa/core-flows"
+import { isRecord } from "@techsio/std/object"
 
 import {
   calculateCommercialValuesPreview,
@@ -121,9 +122,6 @@ type CommercialValuesOrderEditCompletion = Pick<
 const COMMERCIAL_VALUES_LOCK_PREFIX = "order-commercial-values:apply"
 const COMMERCIAL_VALUES_LOCK_TIMEOUT_SECONDS = 5
 const MISSING_ORDER_CHANGE_ID_MESSAGE = "Order change id is missing"
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const isUnknownArray = (value: unknown): value is unknown[] =>
   Array.isArray(value)

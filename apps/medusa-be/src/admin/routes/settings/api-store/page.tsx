@@ -104,7 +104,7 @@ const toOptionalString = (value: string): string | null => {
   return trimmed === "" ? null : trimmed
 }
 
-const getErrorMessage = (error: unknown, fallback: string) =>
+const getApiStoreDisplayErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
 
 const parseOptionalCredentials = (
@@ -118,7 +118,10 @@ const parseOptionalCredentials = (
   try {
     return parseCredentials(value)
   } catch (error) {
-    errors.credentials = getErrorMessage(error, "Invalid credentials JSON")
+    errors.credentials = getApiStoreDisplayErrorMessage(
+      error,
+      "Invalid credentials JSON",
+    )
     return null
   }
 }
@@ -361,7 +364,12 @@ const CreateApiStoreModal = () => {
         method: "POST",
       }),
     onError: (error) => {
-      toast.error(getErrorMessage(error, "Failed to create API store config"))
+      toast.error(
+        getApiStoreDisplayErrorMessage(
+          error,
+          "Failed to create API store config",
+        ),
+      )
     },
     // The visible effects stay ahead of the awaited invalidation so the modal
     // closes in the same tick as before.
@@ -396,7 +404,7 @@ const CreateApiStoreModal = () => {
     try {
       credentials = parseCredentials(form.credentials)
     } catch (error) {
-      nextErrors.credentials = getErrorMessage(
+      nextErrors.credentials = getApiStoreDisplayErrorMessage(
         error,
         "Invalid credentials JSON",
       )
@@ -561,7 +569,12 @@ const EditApiStoreForm = ({
         },
       ),
     onError: (error) => {
-      toast.error(getErrorMessage(error, "Failed to save API store config"))
+      toast.error(
+        getApiStoreDisplayErrorMessage(
+          error,
+          "Failed to save API store config",
+        ),
+      )
     },
     // The visible effects stay ahead of the awaited invalidation so the drawer
     // closes in the same tick as before.
@@ -778,7 +791,10 @@ const ApiStoreSettingsPage = () => {
       }),
     onError: (deleteError) => {
       toast.error(
-        getErrorMessage(deleteError, "Failed to delete API store config"),
+        getApiStoreDisplayErrorMessage(
+          deleteError,
+          "Failed to delete API store config",
+        ),
       )
     },
     onSuccess: async () => {

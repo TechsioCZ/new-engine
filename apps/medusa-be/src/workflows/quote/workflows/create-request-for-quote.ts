@@ -50,13 +50,15 @@ interface QuoteCustomerQueryResult {
   id: string
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isQuoteQueryObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const assertIsQuoteCartQueryResult: (
   value: unknown,
 ) => asserts value is WorkflowData<QuoteCartQueryResult> = (value) => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
+  if (!isQuoteQueryObjectLike(value) || typeof value["id"] !== "string") {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Unexpected cart query result shape",
@@ -69,7 +71,7 @@ const assertIsQuoteCustomerQueryResult: (
   value: unknown,
 ) => asserts value is WorkflowData<QuoteCustomerQueryResult> &
   StepFunctionReturnConfig<QuoteCustomerQueryResult> = (value) => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
+  if (!isQuoteQueryObjectLike(value) || typeof value["id"] !== "string") {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Unexpected customer query result shape",

@@ -56,7 +56,9 @@ const isNonEmptyString = (value: string | null | undefined): value is string =>
  * Matches the previous `typeof value === "object" && value !== null` guard, so
  * arrays are still accepted and only `null` is rejected.
  */
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isQrPaymentDataObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const getString = (value: unknown) =>
@@ -90,7 +92,7 @@ const getPaymentReference = (
   input: Pick<InitiatePaymentInput, "context" | "data">,
 ) => {
   const existingQrPayment = input.data?.[QR_PAYMENT_DATA_KEY]
-  const existingReference = isRecord(existingQrPayment)
+  const existingReference = isQrPaymentDataObjectLike(existingQrPayment)
     ? getString(existingQrPayment["reference"])
     : undefined
   const dataReference =

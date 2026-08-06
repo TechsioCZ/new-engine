@@ -48,7 +48,9 @@ export const ORDER_BUSINESS_STATUS_ORDER_FIELDS = [
   "shipping_methods.id",
 ]
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isOrderBusinessStatusObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isNullableString = (value: unknown) =>
@@ -61,16 +63,18 @@ const isNullableTotal = (value: unknown) =>
   isNullableString(value) || typeof value === "number"
 
 const isPaymentCollection = (value: unknown) =>
-  isRecord(value) && isNullableString(value["status"])
+  isOrderBusinessStatusObjectLike(value) && isNullableString(value["status"])
 
 const isFulfillment = (value: unknown) =>
-  isRecord(value) &&
+  isOrderBusinessStatusObjectLike(value) &&
   isNullableDate(value["canceled_at"]) &&
   isNullableDate(value["delivered_at"]) &&
   isNullableDate(value["shipped_at"])
 
 const isNullableRecord = (value: unknown) =>
-  value === undefined || value === null || isRecord(value)
+  value === undefined ||
+  value === null ||
+  isOrderBusinessStatusObjectLike(value)
 
 const isNullableArrayOf = (
   value: unknown,
@@ -83,7 +87,7 @@ const isNullableArrayOf = (
 const isOrderBusinessStatusOrder = (
   value: unknown,
 ): value is OrderBusinessStatusOrder => {
-  if (!isRecord(value)) {
+  if (!isOrderBusinessStatusObjectLike(value)) {
     return false
   }
 
@@ -158,7 +162,9 @@ export const fetchOrderBusinessStatusOrder = async (
     fields: ORDER_BUSINESS_STATUS_ORDER_FIELDS,
     filters: { id },
   })
-  const data: unknown = isRecord(result) ? result["data"] : undefined
+  const data: unknown = isOrderBusinessStatusObjectLike(result)
+    ? result["data"]
+    : undefined
   const [order] = parseOrderBusinessStatusOrders(data)
   return order
 }

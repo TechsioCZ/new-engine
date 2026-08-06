@@ -15,6 +15,7 @@ import {
   ProductStatus,
 } from "@medusajs/framework/utils"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
+import { isRecord } from "@techsio/std/object"
 
 interface DemoVariant {
   id: string
@@ -298,9 +299,6 @@ const sortExistingDemoOrders = (orders: ExistingDemoOrder[]) =>
       return left.order.id.localeCompare(right.order.id)
     })
     .map(({ order }) => order)
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const isOptionalNullableString = (
   value: unknown,

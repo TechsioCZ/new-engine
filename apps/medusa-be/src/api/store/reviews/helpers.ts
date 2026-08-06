@@ -83,7 +83,9 @@ export interface ReviewTokenDTO {
   used_at?: Date | string | null
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isReviewAuthContextObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isPaymentCaptured = (payment: PaymentRecord) =>
@@ -107,7 +109,7 @@ type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
 export const getAuthenticatedCustomerId = (req: MedusaRequest) => {
   const authContext = "auth_context" in req ? req.auth_context : undefined
 
-  if (!isRecord(authContext)) {
+  if (!isReviewAuthContextObjectLike(authContext)) {
     return null
   }
 

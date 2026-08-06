@@ -26,16 +26,18 @@ interface ProductVariantRecord {
   product_id: string
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isPromotionContextObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isPromotionContextItem = (item: unknown): item is PromotionContextItem =>
-  isRecord(item)
+  isPromotionContextObjectLike(item)
 
 const isProductBrandLink = (
   value: unknown,
 ): value is ProductBrandLinkRecord => {
-  if (!isRecord(value)) {
+  if (!isPromotionContextObjectLike(value)) {
     return false
   }
   const { brand_id: brandId, product_id: productId } = value
@@ -45,7 +47,7 @@ const isProductBrandLink = (
 const isProductVariantRecord = (
   value: unknown,
 ): value is ProductVariantRecord => {
-  if (!isRecord(value)) {
+  if (!isPromotionContextObjectLike(value)) {
     return false
   }
   const { id, product_id: productId } = value
@@ -56,7 +58,7 @@ const getString = (value: unknown): string | undefined =>
   typeof value === "string" ? value : undefined
 
 const getNestedId = (value: unknown): string | undefined =>
-  isRecord(value) ? getString(value["id"]) : undefined
+  isPromotionContextObjectLike(value) ? getString(value["id"]) : undefined
 
 const getItemVariantId = (item: PromotionContextItem) =>
   getString(item["variant_id"]) ?? getNestedId(item["variant"])
@@ -66,8 +68,12 @@ const getDirectItemProductId = (item: PromotionContextItem) => {
   const candidates = [
     getString(productId),
     getNestedId(product),
-    isRecord(variant) ? getString(variant["product_id"]) : undefined,
-    isRecord(variant) ? getNestedId(variant["product"]) : undefined,
+    isPromotionContextObjectLike(variant)
+      ? getString(variant["product_id"])
+      : undefined,
+    isPromotionContextObjectLike(variant)
+      ? getNestedId(variant["product"])
+      : undefined,
   ]
   return candidates.find((candidate) => candidate !== undefined)
 }
@@ -88,7 +94,9 @@ const getItemProductId = (
 }
 
 const getGraphData = (result: unknown, context: string): unknown[] => {
-  const data: unknown = isRecord(result) ? result["data"] : undefined
+  const data: unknown = isPromotionContextObjectLike(result)
+    ? result["data"]
+    : undefined
   if (!Array.isArray(data)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,

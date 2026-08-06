@@ -34,9 +34,6 @@ interface RunImportJobInput<TInput, TOutput extends object> {
   getCompletionStats: (output: TOutput) => CompletionStats
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
 const toErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
     return error.message
@@ -179,6 +176,7 @@ export const runImportJob = async <TInput, TOutput extends object>({
           const output = await run(input)
           const stats = getCompletionStats(output)
           const persistedOutput: unknown = output
+          const { isRecord } = await import("@techsio/std/object")
           if (!isRecord(persistedOutput)) {
             throw new Error("Import job output is not a record")
           }

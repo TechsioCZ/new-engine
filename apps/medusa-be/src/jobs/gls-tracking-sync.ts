@@ -20,6 +20,7 @@ import type {
   GLSPacketStatusRecord,
   GLSShipmentState,
 } from "../modules/gls-client"
+import { executeWithLockTimeout } from "../utils/locking"
 
 interface FulfillmentRecord {
   id: string
@@ -55,7 +56,9 @@ const CHUNK_SIZE = 25
 const PENDING_FETCH_MULTIPLIER = 4
 const GLS_DELIVERED_EVENT_NAME: GLSPendingEvent["name"] = "gls.delivered"
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isGlsTrackingObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const hasValidIdentity = (value: Record<string, unknown>): boolean => {
@@ -101,7 +104,9 @@ const hasValidPacketFields = (data: Record<string, unknown>): boolean => {
 }
 
 const isPendingFulfillment = (value: unknown): value is PendingFulfillment => {
-  if (!(isRecord(value) && isRecord(value["data"]))) {
+  if (
+    !(isGlsTrackingObjectLike(value) && isGlsTrackingObjectLike(value["data"]))
+  ) {
     return false
   }
 
@@ -183,7 +188,9 @@ const buildPendingEvent = (
 }
 
 const getPendingEvent = (value: unknown): GLSPendingEvent | null => {
-  if (!(isRecord(value) && isRecord(value["data"]))) {
+  if (
+    !(isGlsTrackingObjectLike(value) && isGlsTrackingObjectLike(value["data"]))
+  ) {
     return null
   }
 
@@ -483,20 +490,17 @@ export default async function glsTrackingSyncJob(container: MedusaContainer) {
 
   const lockingService = container.resolve<ILockingModule>(Modules.LOCKING)
 
-  try {
-    await lockingService.execute(
-      LOCK_KEY,
-      async () => {
-        await run(container, logger)
-      },
-      { timeout: LOCK_TIMEOUT_SECONDS },
-    )
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("Timed-out")) {
-      logger.debug("GLS Tracking Sync: lock held by another instance, skipping")
-      return
-    }
-    throw error
+  const result = await executeWithLockTimeout(
+    lockingService,
+    LOCK_KEY,
+    LOCK_TIMEOUT_SECONDS,
+    async () => {
+      await run(container, logger)
+    },
+  )
+
+  if (result.status === "timed_out") {
+    logger.debug("GLS Tracking Sync: lock held by another instance, skipping")
   }
 }
 

@@ -1,4 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { API_STORE_MODULE } from "."
 import ApiStoreModuleService from "./service"
@@ -17,9 +18,6 @@ export type IntegrationConfigName =
   (typeof INTEGRATION_CONFIG_NAMES)[keyof typeof INTEGRATION_CONFIG_NAMES]
 
 export type IntegrationConfigContainer = Record<string, unknown>
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 export const getCredentialString = (
   credentials: Record<string, unknown> | null | undefined,

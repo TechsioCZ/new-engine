@@ -185,7 +185,9 @@ const isPresentTimestamp = (
 ): value is string | Date =>
   value !== null && value !== undefined && value !== ""
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isBrandQueryObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const PRODUCT_STATUS_VALUES = new Set<string>(Object.values(ProductStatus))
@@ -196,7 +198,7 @@ const isProductStatus = (
   typeof value === "string" && PRODUCT_STATUS_VALUES.has(value)
 
 const toLinkRecord = (value: unknown): LinkRecord => {
-  if (!isRecord(value)) {
+  if (!isBrandQueryObjectLike(value)) {
     return {}
   }
 
@@ -219,7 +221,7 @@ const toLinkRecords = (value: unknown): LinkRecord[] =>
   Array.isArray(value) ? value.map((item) => toLinkRecord(item)) : []
 
 const toProductRecord = (value: unknown): ProductRecord | null => {
-  if (!isRecord(value)) {
+  if (!isBrandQueryObjectLike(value)) {
     return null
   }
 

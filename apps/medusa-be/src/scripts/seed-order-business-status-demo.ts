@@ -1,6 +1,7 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
+import { isRecord } from "@techsio/std/object"
 
 import { ORDER_BUSINESS_STATUS_METADATA_KEY } from "../utils/order-business-status"
 import type {
@@ -137,9 +138,6 @@ const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
     paid: true,
   },
 ]
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const isOptionalNullableString = (value: unknown) =>
   value === undefined || value === null || typeof value === "string"

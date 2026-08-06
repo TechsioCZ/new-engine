@@ -36,7 +36,9 @@ type Operator = "lt" | "gt" | "eq"
  */
 const parseJson: (text: string) => unknown = JSON.parse
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isNumberFilterObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isComparison = (value: string): value is Comparison =>
@@ -93,7 +95,7 @@ const parseDisplayValue = (
   const parsed = parseParamsOrEmpty(value)
   let displayValue = ""
 
-  if (isRecord(parsed)) {
+  if (isNumberFilterObjectLike(parsed)) {
     const parts: string[] = []
     const greaterThan = asDisplayBound(parsed["gt"])
     const lessThan = asDisplayBound(parsed["lt"])
@@ -123,7 +125,7 @@ const parseDisplayValue = (
 const getValue = (value: string[] | null | undefined, key: Operator): Bound => {
   const parsed = parseParams(value)
 
-  if (isRecord(parsed)) {
+  if (isNumberFilterObjectLike(parsed)) {
     return asBound(parsed[key])
   }
 
@@ -131,7 +133,7 @@ const getValue = (value: string[] | null | undefined, key: Operator): Bound => {
 }
 
 const getOperator = (value?: string[] | null): Comparison | undefined =>
-  isRecord(parseParams(value)) ? "range" : "exact"
+  isNumberFilterObjectLike(parseParams(value)) ? "range" : "exact"
 
 export const NumberFilter = ({
   filter,
@@ -171,7 +173,7 @@ export const NumberFilter = ({
           return
         }
 
-        if (value === "" && isRecord(curr)) {
+        if (value === "" && isNumberFilterObjectLike(curr)) {
           selectedParams.add(
             JSON.stringify(withoutOperator(curr, valueOperator)),
           )
@@ -180,7 +182,7 @@ export const NumberFilter = ({
 
         selectedParams.add(
           JSON.stringify({
-            ...(isRecord(curr) ? curr : {}),
+            ...(isNumberFilterObjectLike(curr) ? curr : {}),
             [valueOperator]: value,
           }),
         )

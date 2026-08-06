@@ -27,13 +27,15 @@ interface RegionPaymentProviderLink {
 
 const REGION_PAGE_SIZE = 100
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isQrPaymentSeedObjectLike = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isRegionPaymentProviderLink = (
   link: unknown,
 ): link is RegionPaymentProviderLink => {
-  if (!isRecord(link)) {
+  if (!isQrPaymentSeedObjectLike(link)) {
     return false
   }
 
@@ -67,7 +69,9 @@ const getRegionPaymentProviderLinks = async (
       region_id: regionIds,
     },
   })
-  const data: unknown = isRecord(result) ? result["data"] : undefined
+  const data: unknown = isQrPaymentSeedObjectLike(result)
+    ? result["data"]
+    : undefined
   if (!isRegionPaymentProviderLinks(data)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
