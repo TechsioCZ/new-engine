@@ -29,12 +29,12 @@ export interface HeurekaProductProps {
  * <HeurekaProduct country="cz" />
  * ```
  */
-export function HeurekaProduct({
+export const HeurekaProduct = ({
   country = "cz",
   debug = false,
   nonce,
-}: HeurekaProductProps) {
-  const rawCountry = country as unknown
+}: HeurekaProductProps) => {
+  const rawCountry: unknown = country
   const safeCountry = normalizeHeurekaCountry(rawCountry)
   if (debug && !isHeurekaCountry(rawCountry)) {
     console.warn(
@@ -51,26 +51,25 @@ export function HeurekaProduct({
       id={`heureka-product-script-${safeCountry}`}
       strategy="afterInteractive"
       nonce={nonce}
-      dangerouslySetInnerHTML={{
-        __html: `
-          (function(t, r, a, c, k, i, n, g) {
-            t['ROIDataObject'] = k;
-            t[k] = t[k] || function() {
-              (t[k].q = t[k].q || []).push(arguments)
-            };
-            t[k].c = i;
-            n = r.createElement(a);
-            g = r.getElementsByTagName(a)[0];
-            n.async = 1;
-            n.src = c;
-            g.parentNode.insertBefore(n, g);
-          })(window, document, 'script',
-             ${JSON.stringify(
-               `https://${domain}/ocm/sdk.js?version=2&page=product_detail`,
-             )},
-             'heureka', ${JSON.stringify(safeCountry)});
-        `,
-      }}
-    />
+    >
+      {`
+        (function(t, r, a, c, k, i, n, g) {
+          t['ROIDataObject'] = k;
+          t[k] = t[k] || function() {
+            (t[k].q = t[k].q || []).push(arguments)
+          };
+          t[k].c = i;
+          n = r.createElement(a);
+          g = r.getElementsByTagName(a)[0];
+          n.async = 1;
+          n.src = c;
+          g.parentNode.insertBefore(n, g);
+        })(window, document, 'script',
+           ${JSON.stringify(
+             `https://${domain}/ocm/sdk.js?version=2&page=product_detail`,
+           )},
+           'heureka', ${JSON.stringify(safeCountry)});
+      `}
+    </Script>
   )
 }

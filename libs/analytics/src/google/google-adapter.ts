@@ -26,11 +26,11 @@ export interface UseGoogleAdapterConfig {
  * })
  * ```
  */
-export function useGoogleAdapter(
+export const useGoogleAdapter = (
   config?: UseGoogleAdapterConfig,
-): AnalyticsAdapter {
+): AnalyticsAdapter => {
   const { conversionLabel, debug } = config ?? {}
-  const adapterKey = "google" as const
+  const adapterKey = "google"
 
   const trackCustom = createTracker(
     getGtag,
@@ -47,14 +47,19 @@ export function useGoogleAdapter(
     trackAddToCart: createTracker(
       getGtag,
       (gtag, params) => {
-        const quantity = params.quantity || 1 // Guard against division by zero
+        // Guard against division by zero and non-numeric values.
+        const requestedQuantity = params.quantity
+        const quantity =
+          requestedQuantity === 0 || Number.isNaN(requestedQuantity)
+            ? 1
+            : requestedQuantity
         gtag("event", "add_to_cart", {
           currency: params.currency,
           items: [
             {
+              item_category: params.category,
               item_id: params.productId,
               item_name: params.productName,
-              item_category: params.category,
               // params.value is total value (unit price × quantity), divide to get unit price
               price: params.value / quantity,
               quantity,
@@ -99,9 +104,9 @@ export function useGoogleAdapter(
         gtag("event", "purchase", {
           currency: params.currency,
           items: params.products.map((p) => ({
+            item_category: p.category,
             item_id: p.id,
             item_name: p.name,
-            item_category: p.category,
             price: p.price,
             quantity: p.quantity ?? 1,
           })),
@@ -110,7 +115,7 @@ export function useGoogleAdapter(
         })
 
         // If conversion label provided, also track as conversion
-        if (conversionLabel) {
+        if (conversionLabel !== undefined && conversionLabel.length > 0) {
           gtag("event", "conversion", {
             currency: params.currency,
             send_to: conversionLabel,
@@ -130,9 +135,9 @@ export function useGoogleAdapter(
           currency: params.currency,
           items: [
             {
+              item_category: params.category,
               item_id: params.productId,
               item_name: params.productName,
-              item_category: params.category,
               price: params.value,
               quantity: 1,
             },

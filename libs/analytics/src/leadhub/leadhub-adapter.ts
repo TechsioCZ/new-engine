@@ -39,27 +39,16 @@ export interface UseLeadhubAdapterConfig {
  * leadhubAdapter.trackIdentify({ email: 'user@example.com', subscribe: [] })
  * ```
  */
-export function useLeadhubAdapter(
+export const useLeadhubAdapter = (
   config?: UseLeadhubAdapterConfig,
-): AnalyticsAdapter & LeadhubExtras {
+): AnalyticsAdapter & LeadhubExtras => {
   const debug = config?.debug
-  const adapterKey = "leadhub" as const
+  const adapterKey = "leadhub"
 
   return {
     key: adapterKey,
 
-    trackViewContent: createTracker(
-      getLhi,
-      (lhi, params) => {
-        lhi("ViewContent", {
-          products: [{ product_id: params.productId }],
-        })
-      },
-      debug,
-      adapterKey,
-    ),
-
-    // Leadhub uses SetCart instead of AddToCart
+    // Leadhub uses SetCart instead of AddToCart.
     trackAddToCart: createTracker(
       getLhi,
       (lhi, params) => {
@@ -78,6 +67,15 @@ export function useLeadhubAdapter(
       adapterKey,
     ),
 
+    trackIdentify: createTracker<LeadhubFunction, LeadhubIdentifyParams>(
+      getLhi,
+      (lhi, params) => {
+        lhi("Identify", params)
+      },
+      debug,
+      adapterKey,
+    ),
+
     // Leadhub doesn't support InitiateCheckout event - using SetCart as workaround.
     // If per-product quantities are available (params.items), pass them through;
     // otherwise default to quantity: 1 to signal checkout intent.
@@ -87,7 +85,10 @@ export function useLeadhubAdapter(
         const products =
           params.items?.map((item) => ({
             product_id: item.productId,
-            quantity: item.quantity || 1,
+            quantity:
+              item.quantity === 0 || Number.isNaN(item.quantity)
+                ? 1
+                : item.quantity,
           })) ??
           params.productIds.map((id) => ({
             product_id: id,
@@ -102,6 +103,15 @@ export function useLeadhubAdapter(
       adapterKey,
     ),
 
+    trackPageview: createSimpleTracker<LeadhubFunction>(
+      getLhi,
+      (lhi) => {
+        lhi("pageview")
+      },
+      debug,
+      adapterKey,
+    ),
+
     trackPurchase: createTracker(
       getLhi,
       (lhi, params) => {
@@ -109,39 +119,14 @@ export function useLeadhubAdapter(
           ...(params.email === undefined ? {} : { email: params.email }),
           currency: params.currency,
           order_id: params.orderId,
-          products: params.products.map((p) => ({
-            currency: p.currency,
-            product_id: p.id,
-            quantity: p.quantity ?? 1,
-            value: p.price,
+          products: params.products.map((product) => ({
+            currency: product.currency,
+            product_id: product.id,
+            quantity: product.quantity ?? 1,
+            value: product.price,
           })),
           value: params.value,
         })
-      },
-      debug,
-      adapterKey,
-    ),
-
-    // ========================================
-    // Leadhub-specific methods (LeadhubExtras)
-    // ========================================
-
-    trackViewCategory: createTracker<
-      LeadhubFunction,
-      LeadhubViewCategoryParams
-    >(
-      getLhi,
-      (lhi, params) => {
-        lhi("ViewCategory", params)
-      },
-      debug,
-      adapterKey,
-    ),
-
-    trackIdentify: createTracker<LeadhubFunction, LeadhubIdentifyParams>(
-      getLhi,
-      (lhi, params) => {
-        lhi("Identify", params)
       },
       debug,
       adapterKey,
@@ -156,10 +141,24 @@ export function useLeadhubAdapter(
       adapterKey,
     ),
 
-    trackPageview: createSimpleTracker<LeadhubFunction>(
+    trackViewCategory: createTracker<
+      LeadhubFunction,
+      LeadhubViewCategoryParams
+    >(
       getLhi,
-      (lhi) => {
-        lhi("pageview")
+      (lhi, params) => {
+        lhi("ViewCategory", params)
+      },
+      debug,
+      adapterKey,
+    ),
+
+    trackViewContent: createTracker(
+      getLhi,
+      (lhi, params) => {
+        lhi("ViewContent", {
+          products: [{ product_id: params.productId }],
+        })
       },
       debug,
       adapterKey,

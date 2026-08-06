@@ -24,11 +24,11 @@ export interface UseMetaAdapterConfig {
  * })
  * ```
  */
-export function useMetaAdapter(
+export const useMetaAdapter = (
   config?: UseMetaAdapterConfig,
-): AnalyticsAdapter {
+): AnalyticsAdapter => {
   const debug = config?.debug
-  const adapterKey = "meta" as const
+  const adapterKey = "meta"
 
   const trackCustom = createTracker(
     getFbq,
@@ -47,16 +47,16 @@ export function useMetaAdapter(
       (fbq, params) => {
         fbq("track", "AddToCart", {
           content_ids: [params.productId],
-          content_type: "product",
           content_name: params.productName,
-          currency: params.currency,
-          value: params.value,
+          content_type: "product",
           contents: [
             {
               id: params.productId,
               quantity: params.quantity,
             },
           ],
+          currency: params.currency,
+          value: params.value,
         })
       },
       debug,
@@ -78,10 +78,10 @@ export function useMetaAdapter(
 
         fbq("track", "InitiateCheckout", {
           content_ids: contentIds,
+          ...(contents === undefined ? {} : { contents }),
           currency: params.currency,
-          value: params.value,
           num_items: params.numItems,
-          ...(contents ? { contents } : {}),
+          value: params.value,
         })
       },
       debug,
@@ -94,13 +94,13 @@ export function useMetaAdapter(
         fbq("track", "Purchase", {
           content_ids: params.products.map((p) => p.id),
           content_type: "product",
-          currency: params.currency,
-          value: params.value,
-          num_items: params.numItems,
           contents: params.products.map((p) => ({
             id: p.id,
             quantity: p.quantity ?? 1,
           })),
+          currency: params.currency,
+          num_items: params.numItems,
+          value: params.value,
         })
       },
       debug,
@@ -111,12 +111,12 @@ export function useMetaAdapter(
       getFbq,
       (fbq, params) => {
         fbq("track", "ViewContent", {
+          content_category: params.category,
           content_ids: [params.productId],
-          content_type: "product",
           content_name: params.productName,
+          content_type: "product",
           currency: params.currency,
           value: params.value,
-          content_category: params.category,
         })
       },
       debug,

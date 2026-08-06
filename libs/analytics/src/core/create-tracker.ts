@@ -39,9 +39,8 @@ export const createTracker = <TGlobalFn, TParams>(
 
   return (params: TParams): boolean => {
     const globalFn = getGlobalFn()
-    const globalFnAvailable = Boolean(globalFn)
 
-    if (!globalFnAvailable) {
+    if (globalFn === null) {
       if (debug) {
         console.warn(`${logPrefix} Global function not available`)
       }
@@ -88,9 +87,8 @@ export const createSimpleTracker = <TGlobalFn>(
 
   return (): boolean => {
     const globalFn = getGlobalFn()
-    const globalFnAvailable = Boolean(globalFn)
 
-    if (!globalFnAvailable) {
+    if (globalFn === null) {
       if (debug) {
         console.warn(`${logPrefix} Global function not available`)
       }
