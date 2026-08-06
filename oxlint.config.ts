@@ -23,9 +23,13 @@ export default defineConfig({
     ...core.ignorePatterns,
     "**/.medusa/**",
     "**/__admin-extensions__.js",
+    // Payload owns these generated import maps and types; its CLI overwrites them.
     "apps/payload/src/app/(payload)/importMap.js",
+    "apps/payload/src/app/(payload)/admin/importMap/index.ts",
     "apps/payload/src/payload-types.ts",
-    // Committed migration history is generated and immutable.
+    // Framework-owned migration history is generated and immutable.
+    "apps/medusa-be/src/modules/**/migrations/**",
+    "apps/medusa-symmy-plugin/src/modules/**/migrations/**",
     "apps/payload/src/migrations/**",
   ],
   options: {

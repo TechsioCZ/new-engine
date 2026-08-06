@@ -10,7 +10,9 @@ export default defineConfig({
     // run overwrites.
     "apps/payload/src/app/(payload)/**",
     "apps/payload/src/payload-types.ts",
+    // Medusa owns committed migration history; its CLI output is immutable.
     "apps/medusa-be/src/modules/**/migrations/**",
+    "apps/medusa-symmy-plugin/src/modules/**/migrations/**",
     "apps/payload/src/migrations/**",
     "**/.medusa/**",
     "**/__admin-extensions__.js",
