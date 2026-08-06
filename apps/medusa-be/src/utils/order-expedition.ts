@@ -638,15 +638,17 @@ const toOrderExpeditionItemDto = (
   return {
     ...(item.id === undefined ? {} : { id: item.id }),
     quantity,
-    sku: item.variant_sku,
-    thumbnail: item.thumbnail,
+    ...(item.variant_sku === undefined ? {} : { sku: item.variant_sku }),
+    ...(item.thumbnail === undefined ? {} : { thumbnail: item.thumbnail }),
     title: item.title ?? item.subtitle ?? item.id ?? "Untitled item",
     unit_price:
       normalizeOrderExpeditionAmount(item.unit_price) ??
       normalizeOrderExpeditionAmount(item.raw_unit_price) ??
       null,
-    variant: item.variant_title,
-    variant_id: item.variant_id,
+    ...(item.variant_title === undefined
+      ? {}
+      : { variant: item.variant_title }),
+    ...(item.variant_id === undefined ? {} : { variant_id: item.variant_id }),
   }
 }
 

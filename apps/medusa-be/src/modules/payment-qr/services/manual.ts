@@ -36,7 +36,7 @@ import type { QrPaymentModuleService } from "../service"
 
 type QrManualPaymentProviderOptions = Record<string, never>
 
-interface QrManualPaymentProviderDependencies {
+interface QrManualPaymentProviderDependencies extends Record<string, unknown> {
   [QR_PAYMENT_MODULE]?: QrPaymentModuleService
 }
 

@@ -54,7 +54,7 @@ export const verifyCloudflareTurnstile = (
       removeTurnstileTokenFields(req.body, tokenFields)
 
       if (
-        !normalizeTurnstileEnabled(process.env.CLOUDFLARE_TURNSTILE_ENABLED)
+        !normalizeTurnstileEnabled(process.env["CLOUDFLARE_TURNSTILE_ENABLED"])
       ) {
         next()
         return

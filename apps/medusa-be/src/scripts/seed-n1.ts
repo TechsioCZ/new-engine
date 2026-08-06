@@ -8,6 +8,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { sql } from "drizzle-orm"
 
 import { DATABASE_MODULE } from "../modules/database"
 import type DatabaseModuleService from "../modules/database/service"
@@ -488,13 +489,21 @@ export default async function seedN1({ container }: ExecArgs) {
   const [resultCategories, resultProducts] = await Promise.all([
     getCachedOrFetch<CategoryRaw[]>(
       CACHE_KEYS.CATEGORIES,
-      async () => assertCategoryRawArray(await dbService.sqlRaw(categoriesSql)),
+      async () =>
+        assertCategoryRawArray(
+          await dbService.sqlRaw(
+            sql<Record<string, unknown>>`${categoriesSql}`,
+          ),
+        ),
       isCategoryRawArray,
       "categories",
     ),
     getCachedOrFetch<ProductRaw[]>(
       CACHE_KEYS.PRODUCTS,
-      async () => assertProductRawArray(await dbService.sqlRaw(productsSql)),
+      async () =>
+        assertProductRawArray(
+          await dbService.sqlRaw(sql<Record<string, unknown>>`${productsSql}`),
+        ),
       isProductRawArray,
       "products",
     ),

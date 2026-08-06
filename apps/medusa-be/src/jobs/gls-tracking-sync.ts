@@ -59,10 +59,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const hasValidIdentity = (value: Record<string, unknown>): boolean => {
-  const id: unknown = value.id
-  const providerId: unknown = value.provider_id
-  const shippedAt: unknown = value.shipped_at
-  const deliveredAt: unknown = value.delivered_at
+  const id: unknown = value["id"]
+  const providerId: unknown = value["provider_id"]
+  const shippedAt: unknown = value["shipped_at"]
+  const deliveredAt: unknown = value["delivered_at"]
 
   return (
     typeof id === "string" &&
@@ -73,12 +73,12 @@ const hasValidIdentity = (value: Record<string, unknown>): boolean => {
 }
 
 const hasValidPacketId = (data: Record<string, unknown>): boolean => {
-  const packetId: unknown = data.packet_id
+  const packetId: unknown = data["packet_id"]
   return typeof packetId === "number" || typeof packetId === "string"
 }
 
 const hasValidParcelNumber = (data: Record<string, unknown>): boolean => {
-  const parcelNumber: unknown = data.parcel_number
+  const parcelNumber: unknown = data["parcel_number"]
   return (
     parcelNumber === undefined ||
     typeof parcelNumber === "string" ||
@@ -87,10 +87,10 @@ const hasValidParcelNumber = (data: Record<string, unknown>): boolean => {
 }
 
 const hasValidPacketFields = (data: Record<string, unknown>): boolean => {
-  const barcode: unknown = data.barcode
-  const accessPointId: unknown = data.access_point_id
-  const supportsCod: unknown = data.supports_cod
-  const deliveryFailed: unknown = data.delivery_failed
+  const barcode: unknown = data["barcode"]
+  const accessPointId: unknown = data["access_point_id"]
+  const supportsCod: unknown = data["supports_cod"]
+  const deliveryFailed: unknown = data["delivery_failed"]
 
   return (
     typeof barcode === "string" &&
@@ -101,7 +101,7 @@ const hasValidPacketFields = (data: Record<string, unknown>): boolean => {
 }
 
 const isPendingFulfillment = (value: unknown): value is PendingFulfillment => {
-  if (!(isRecord(value) && isRecord(value.data))) {
+  if (!(isRecord(value) && isRecord(value["data"]))) {
     return false
   }
 
@@ -150,7 +150,7 @@ const getPendingDeliveredAt = (
     return undefined
   }
 
-  const deliveredAt: unknown = pendingEvent.data.delivered_at
+  const deliveredAt: unknown = pendingEvent.data["delivered_at"]
   if (typeof deliveredAt !== "string") {
     return undefined
   }
@@ -164,7 +164,7 @@ const buildPendingEvent = (
   fulfillment: PendingFulfillment,
   data: Record<string, unknown>,
 ): GLSPendingEvent => {
-  const status: unknown = data.status
+  const status: unknown = data["status"]
   const statusFragment =
     typeof status === "string" || typeof status === "number"
       ? String(status)
@@ -183,7 +183,7 @@ const buildPendingEvent = (
 }
 
 const getPendingEvent = (value: unknown): GLSPendingEvent | null => {
-  if (!(isRecord(value) && isRecord(value.data))) {
+  if (!(isRecord(value) && isRecord(value["data"]))) {
     return null
   }
 
@@ -196,7 +196,7 @@ const getPendingEvent = (value: unknown): GLSPendingEvent | null => {
     return null
   }
 
-  return { data: value.data, key, name }
+  return { data: value["data"], key, name }
 }
 
 const emitPendingEvent = async (
@@ -216,7 +216,7 @@ const flushPendingEvent = async (
   ctx: TrackingContext,
   fulfillment: PendingFulfillment,
 ): Promise<boolean> => {
-  const pendingEvent = getPendingEvent(fulfillment.data.gls_pending_event)
+  const pendingEvent = getPendingEvent(fulfillment.data["gls_pending_event"])
   if (!pendingEvent) {
     return false
   }
@@ -474,7 +474,7 @@ const run = async (container: MedusaContainer, logger: Logger) => {
 export default async function glsTrackingSyncJob(container: MedusaContainer) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
-  if (process.env.FEATURE_GLS_ENABLED !== "1") {
+  if (process.env["FEATURE_GLS_ENABLED"] !== "1") {
     logger.debug(
       "GLS Tracking Sync: module disabled (FEATURE_GLS_ENABLED != 1), skipping",
     )

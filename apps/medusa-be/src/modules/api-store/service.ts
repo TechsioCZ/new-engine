@@ -148,9 +148,12 @@ class ApiStoreModuleService extends MedusaService({
     }
 
     if (input.access_token_expires_at !== undefined) {
-      data.access_token_expires_at = normalizeAccessTokenExpiresAt(
+      const accessTokenExpiresAt = normalizeAccessTokenExpiresAt(
         input.access_token_expires_at,
       )
+      if (accessTokenExpiresAt !== undefined) {
+        data.access_token_expires_at = accessTokenExpiresAt
+      }
     }
 
     const credentials = serializeCredentials(input.credentials)

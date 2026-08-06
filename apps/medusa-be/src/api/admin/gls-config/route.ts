@@ -6,6 +6,7 @@ import { GLS_CLIENT_MODULE } from "../../../modules/gls-client"
 import type {
   GLSConfigDTO,
   GLSConfigResponse,
+  UpdateGLSConfigInput,
 } from "../../../modules/gls-client/types"
 import { updateGLSConfigWorkflow } from "../../../workflows/gls-config/update-gls-config"
 import type { PostAdminGLSConfigSchemaType } from "./validators"
@@ -34,6 +35,59 @@ const toConfigResponse = (config: GLSConfigDTO): GLSConfigResponse => ({
   webshop_engine: config.webshop_engine,
 })
 
+const toUpdateGLSConfigInput = (
+  input: PostAdminGLSConfigSchemaType,
+): UpdateGLSConfigInput => ({
+  ...(input.client_number === undefined
+    ? {}
+    : { client_number: input.client_number }),
+  ...(input.country_code === undefined
+    ? {}
+    : { country_code: input.country_code }),
+  ...(input.hide_phone_number_on_labels === undefined
+    ? {}
+    : { hide_phone_number_on_labels: input.hide_phone_number_on_labels }),
+  ...(input.is_enabled === undefined ? {} : { is_enabled: input.is_enabled }),
+  ...(input.password === undefined ? {} : { password: input.password }),
+  ...(input.print_position === undefined
+    ? {}
+    : { print_position: input.print_position }),
+  ...(input.sender_city === undefined
+    ? {}
+    : { sender_city: input.sender_city }),
+  ...(input.sender_country === undefined
+    ? {}
+    : { sender_country: input.sender_country }),
+  ...(input.sender_email === undefined
+    ? {}
+    : { sender_email: input.sender_email }),
+  ...(input.sender_house_number === undefined
+    ? {}
+    : { sender_house_number: input.sender_house_number }),
+  ...(input.sender_house_number_info === undefined
+    ? {}
+    : { sender_house_number_info: input.sender_house_number_info }),
+  ...(input.sender_name === undefined
+    ? {}
+    : { sender_name: input.sender_name }),
+  ...(input.sender_phone === undefined
+    ? {}
+    : { sender_phone: input.sender_phone }),
+  ...(input.sender_street === undefined
+    ? {}
+    : { sender_street: input.sender_street }),
+  ...(input.sender_zip_code === undefined
+    ? {}
+    : { sender_zip_code: input.sender_zip_code }),
+  ...(input.type_of_printer === undefined
+    ? {}
+    : { type_of_printer: input.type_of_printer }),
+  ...(input.username === undefined ? {} : { username: input.username }),
+  ...(input.webshop_engine === undefined
+    ? {}
+    : { webshop_engine: input.webshop_engine }),
+})
+
 const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const glsService =
     req.scope.resolve<GLSClientModuleService>(GLS_CLIENT_MODULE)
@@ -60,7 +114,7 @@ const post = async (
   res: MedusaResponse,
 ) => {
   const { result: updated } = await updateGLSConfigWorkflow(req.scope).run({
-    input: req.validatedBody,
+    input: toUpdateGLSConfigInput(req.validatedBody),
   })
 
   res.json({ config: toConfigResponse(updated) })

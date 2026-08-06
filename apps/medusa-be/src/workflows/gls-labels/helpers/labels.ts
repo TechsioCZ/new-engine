@@ -84,6 +84,20 @@ const isPrintableGLSFulfillmentData = (
   )
 }
 
+const toPrintableGLSLabel = (
+  order: GLSLabelOrder,
+  fulfillment: GLSFulfillmentRecord,
+  data: PrintableGLSFulfillmentData,
+): PrintableGLSLabel => ({
+  barcode: data.barcode,
+  fulfillment_id: fulfillment.id,
+  ...(order.display_id === undefined
+    ? {}
+    : { order_display_id: order.display_id }),
+  order_id: order.id,
+  packet_id: data.packet_id,
+})
+
 const collectOrderLabels = (
   order: GLSLabelOrder,
 ): {
@@ -148,13 +162,7 @@ export const collectPrintableGLSLabels = (
         ordersWithoutGLSLabels.push(orderId)
       } else {
         for (const { data, fulfillment } of orderLabels) {
-          labels.push({
-            barcode: data.barcode,
-            fulfillment_id: fulfillment.id,
-            order_display_id: order.display_id,
-            order_id: order.id,
-            packet_id: data.packet_id,
-          })
+          labels.push(toPrintableGLSLabel(order, fulfillment, data))
         }
       }
     } else {

@@ -128,16 +128,13 @@ const parseHerbaticaReviewsXml = (xml: string): ParsedReview[] => {
   const reviews: ParsedReview[] = []
 
   for (const review of extractElements(xml, "review")) {
-    const id = normalizeInlineText(extractFirstText(review.inner, "review_id"))
-    const content = normalizeText(extractFirstText(review.inner, "content"))
+    const id =
+      normalizeInlineText(extractFirstText(review.inner, "review_id")) ?? ""
+    const content =
+      normalizeText(extractFirstText(review.inner, "content")) ?? ""
     const rating = parseRating(extractFirstText(review.inner, "overall"))
 
-    if (
-      id === undefined ||
-      id.length === 0 ||
-      content.length === 0 ||
-      rating === undefined
-    ) {
+    if (id.length === 0 || content.length === 0 || rating === undefined) {
       continue
     }
 

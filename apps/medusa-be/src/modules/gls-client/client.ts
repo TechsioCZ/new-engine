@@ -36,42 +36,14 @@ const gunzipAsync = promisify(gunzip)
 
 const jsonValueSchema = z.unknown()
 
-interface MyGLSErrorInfo {
-  ErrorCode?: number
-  ErrorDescription?: string
-  ClientReferenceList?: string[]
-  ParcelIdList?: number[]
-}
-
-interface DeliveryPoint {
-  Id?: number | string
-  Address?: {
-    City?: string
-    ContactEmail?: string
-    ContactName?: string
-    ContactPhone?: string
-    CountryIsoCode?: string
-    HouseNumber?: string
-    HouseNumberInfo?: string
-    Name?: string
-    Street?: string
-    ZipCode?: string
-  }
-  Latitude?: number | string
-  Longitude?: number | string
-  Matchcode?: string
-  LegacyId?: string
-  DeliveryPointType?: number
-  PickupTime?: string
-  IsActive?: boolean
-}
-
 const myGLSErrorInfoSchema = z.object({
   ClientReferenceList: z.string().array().optional(),
   ErrorCode: z.number().optional(),
   ErrorDescription: z.string().optional(),
   ParcelIdList: z.number().array().optional(),
 })
+type MyGLSErrorInfo = z.infer<typeof myGLSErrorInfoSchema>
+
 const printLabelsInfoSchema = z.object({
   ClientReference: z.string().optional(),
   ParcelId: z.number().optional(),
@@ -142,6 +114,8 @@ const deliveryPointSchema = z.object({
   Matchcode: z.string().optional(),
   PickupTime: z.string().optional(),
 })
+type DeliveryPoint = z.infer<typeof deliveryPointSchema>
+
 const getDeliveryPointsResponseSchema = z.object({
   Data: z.number().array().optional(),
   ErrorCode: z.number().optional(),
@@ -628,7 +602,7 @@ export class GLSClient {
     }
 
     const dotNetMatch = DOT_NET_DATE_REGEX.exec(value)
-    const timestamp = dotNetMatch?.groups?.timestamp
+    const timestamp = dotNetMatch?.groups?.["timestamp"]
     if (timestamp !== undefined && timestamp.length > 0) {
       return new Date(Number(timestamp)).toISOString()
     }
@@ -654,13 +628,17 @@ export class GLSClient {
       city: address.City ?? "",
       country: address.CountryIsoCode ?? this.options.country_code,
       id,
-      latitude:
-        point.Latitude === undefined ? undefined : String(point.Latitude),
-      longitude:
-        point.Longitude === undefined ? undefined : String(point.Longitude),
+      ...(point.Latitude === undefined
+        ? {}
+        : { latitude: String(point.Latitude) }),
+      ...(point.Longitude === undefined
+        ? {}
+        : { longitude: String(point.Longitude) }),
       name: address.Name ?? point.Matchcode ?? id,
       nameStreet: [address.Name, street].filter(Boolean).join(", "),
-      openingHours: point.PickupTime,
+      ...(point.PickupTime === undefined
+        ? {}
+        : { openingHours: point.PickupTime }),
       street,
       zip: address.ZipCode ?? "",
     }

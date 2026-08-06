@@ -6,6 +6,7 @@ import { MedusaError } from "@medusajs/framework/utils"
 
 import { PRODUCT_REVIEW_MODULE } from "../../../../../../modules/product-review"
 import type ProductReviewModuleService from "../../../../../../modules/product-review/service"
+import type { UpdateReviewInput } from "../../../../../../workflows/product-review/types"
 import { updateReviewWorkflow } from "../../../../../../workflows/product-review/workflows/update-review"
 import {
   isReviewRecord,
@@ -17,6 +18,19 @@ import type { StoreUpdateCustomerReviewSchemaType } from "../validators"
 
 const getReviewRouteId = (req: AuthenticatedMedusaRequest) =>
   typeof req.params["id"] === "string" ? req.params["id"] : undefined
+
+const toExactCustomerReviewUpdateInput = (
+  input: StoreUpdateCustomerReviewSchemaType,
+): UpdateReviewInput => {
+  const review = toCustomerReviewUpdateInput(input)
+
+  return {
+    ...(review.content === undefined ? {} : { content: review.content }),
+    ...(review.rating === undefined ? {} : { rating: review.rating }),
+    status: "pending",
+    ...(review.title === undefined ? {} : { title: review.title }),
+  }
+}
 
 const assertCustomerOwnsReview = async (
   req: AuthenticatedMedusaRequest,
@@ -52,7 +66,7 @@ const updateCustomerReview = async (
   const { result: review } = await updateReviewWorkflow(req.scope).run({
     input: {
       id,
-      review: toCustomerReviewUpdateInput(req.validatedBody),
+      review: toExactCustomerReviewUpdateInput(req.validatedBody),
     },
   })
   const productsById = await getProductsById(req, [review.product_id])
