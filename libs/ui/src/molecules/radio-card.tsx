@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -50,7 +50,7 @@ export type RadioCardProps = VariantProps<typeof radioCardVariants> &
     onValueChange?: ((value: string | null) => void) | undefined
   }
 
-export const RadioCard = ({
+const RadioCardRoot = ({
   "aria-describedby": ariaDescribedByProp,
   id: providedId,
   disabled = false,
@@ -123,13 +123,13 @@ type RadioCardLabelProps = Omit<
   ref?: Ref<HTMLLabelElement> | undefined
 }
 
-RadioCard.Label = function Label({
+const RadioCardLabel = ({
   children,
   disabled,
   required,
   size: sizeProp,
   ...props
-}: RadioCardLabelProps) {
+}: RadioCardLabelProps) => {
   const {
     api,
     size,
@@ -158,7 +158,7 @@ export type RadioCardItemProps = Omit<
     ref?: Ref<HTMLLabelElement> | undefined
   }
 
-RadioCard.Item = function Item({
+const RadioCardItem = ({
   value,
   disabled,
   invalid,
@@ -166,7 +166,7 @@ RadioCard.Item = function Item({
   className,
   ref,
   ...props
-}: RadioCardItemProps) {
+}: RadioCardItemProps) => {
   const { api, size, variant } = useRadioCardContext()
   const styles = radioCardVariants({ size, variant })
   const itemProps = { disabled, invalid, value }
@@ -192,11 +192,11 @@ type RadioCardItemHiddenInputProps = Omit<
   ref?: Ref<HTMLInputElement> | undefined
 }
 
-RadioCard.ItemHiddenInput = function ItemHiddenInput({
+const RadioCardItemHiddenInput = ({
   className,
   ref,
   ...props
-}: RadioCardItemHiddenInputProps) {
+}: RadioCardItemHiddenInputProps) => {
   const { api, size, variant } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({ size, variant })
@@ -218,12 +218,12 @@ type RadioCardItemControlProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioCard.ItemControl = function ItemControl({
+const RadioCardItemControl = ({
   children,
   className,
   ref,
   ...props
-}: RadioCardItemControlProps) {
+}: RadioCardItemControlProps) => {
   const { api, size, variant, itemOrientation, align, justify } =
     useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
@@ -251,12 +251,12 @@ type RadioCardItemContentProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioCard.ItemContent = function ItemContent({
+const RadioCardItemContent = ({
   children,
   className,
   ref,
   ...props
-}: RadioCardItemContentProps) {
+}: RadioCardItemContentProps) => {
   const { size, variant, itemOrientation, align } = useRadioCardContext()
   const styles = radioCardVariants({
     align,
@@ -276,12 +276,12 @@ type RadioCardItemTextProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-RadioCard.ItemText = function ItemText({
+const RadioCardItemText = ({
   children,
   className,
   ref,
   ...props
-}: RadioCardItemTextProps) {
+}: RadioCardItemTextProps) => {
   const { api, size, variant, itemOrientation, align } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
@@ -307,12 +307,12 @@ type RadioCardItemDescriptionProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioCard.ItemDescription = function ItemDescription({
+const RadioCardItemDescription = ({
   children,
   className,
   ref,
   ...props
-}: RadioCardItemDescriptionProps) {
+}: RadioCardItemDescriptionProps) => {
   const { api, size, variant, align } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
@@ -342,11 +342,11 @@ type RadioCardItemIndicatorProps = Omit<
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-RadioCard.ItemIndicator = function ItemIndicator({
+const RadioCardItemIndicator = ({
   className,
   ref,
   ...props
-}: RadioCardItemIndicatorProps) {
+}: RadioCardItemIndicatorProps) => {
   const { api, size, variant } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({ size, variant })
@@ -376,12 +376,12 @@ type RadioCardItemAddonProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioCard.ItemAddon = function ItemAddon({
+const RadioCardItemAddon = ({
   children,
   className,
   ref,
   ...props
-}: RadioCardItemAddonProps) {
+}: RadioCardItemAddonProps) => {
   const { api, size, variant, align } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
@@ -413,13 +413,13 @@ type RadioCardStatusTextProps = Omit<
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioCard.StatusText = function StatusText({
+const RadioCardStatusText = ({
   status,
   size: sizeProp,
   showIcon,
   children,
   ...props
-}: RadioCardStatusTextProps) {
+}: RadioCardStatusTextProps) => {
   const { size, validateStatus } = useRadioCardContext()
   const effectiveSize = sizeProp ?? size
   const effectiveStatus = status ?? validateStatus
@@ -438,5 +438,19 @@ RadioCard.StatusText = function StatusText({
 
 export { useRadioCardContext } from "./radio-card-context"
 export { radioCardVariants } from "./radio-card-variants"
+RadioCardRoot.displayName = "RadioCard"
 
-RadioCard.displayName = "RadioCard"
+const RadioCardCompound = Object.assign(RadioCardRoot, {
+  Item: RadioCardItem,
+  ItemAddon: RadioCardItemAddon,
+  ItemContent: RadioCardItemContent,
+  ItemControl: RadioCardItemControl,
+  ItemDescription: RadioCardItemDescription,
+  ItemHiddenInput: RadioCardItemHiddenInput,
+  ItemIndicator: RadioCardItemIndicator,
+  ItemText: RadioCardItemText,
+  Label: RadioCardLabel,
+  StatusText: RadioCardStatusText,
+})
+
+export const RadioCard = RadioCardCompound

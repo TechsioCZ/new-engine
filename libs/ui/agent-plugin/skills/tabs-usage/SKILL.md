@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.1"
+component_version: "1.0.2"
 name: tabs-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Tabs for switching peer content panels with Zag.js tabs behavior, compound list, triggers, content, indicator, orientation, activation mode, variants, fitted, and justify props.

@@ -2,7 +2,7 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -132,7 +132,7 @@ const useSearchFormState = ({
   }
 }
 
-export const SearchForm = ({
+const SearchFormRoot = ({
   size = "md",
   gapped = false,
   children,
@@ -172,11 +172,11 @@ export const SearchForm = ({
 
 type SearchFormLabelProps = Omit<LabelProps, "htmlFor" | "size">
 
-SearchForm.Label = function Label({
+const SearchFormLabel = ({
   children,
   className,
   ...props
-}: SearchFormLabelProps) {
+}: SearchFormLabelProps) => {
   const { inputId, size } = useSearchFormContext()
 
   return (
@@ -190,12 +190,12 @@ interface SearchFormControlProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-SearchForm.Control = function Control({
+const SearchFormControl = ({
   children,
   className,
   ref,
   ...props
-}: SearchFormControlProps) {
+}: SearchFormControlProps) => {
   const { size, gapped } = useSearchFormContext()
   const styles = searchFormVariants({ gapped, size })
 
@@ -211,12 +211,12 @@ type SearchFormInputProps = Omit<
   "size" | "value" | "onChange" | "withButtonInside"
 >
 
-SearchForm.Input = function Input({
+const SearchFormInput = ({
   className,
   placeholder = "Search...",
   ref,
   ...props
-}: SearchFormInputProps) {
+}: SearchFormInputProps) => {
   const {
     inputId,
     inputValue,
@@ -254,14 +254,14 @@ interface SearchFormButtonProps extends Omit<ButtonProps, "size"> {
   showSearchIcon?: boolean | undefined
 }
 
-SearchForm.Button = function Button({
+const SearchFormButton = ({
   className,
   children,
   showSearchIcon = false,
   icon,
   iconPosition = "right",
   ...props
-}: SearchFormButtonProps) {
+}: SearchFormButtonProps) => {
   const { size, gapped } = useSearchFormContext()
   const styles = searchFormVariants({ gapped, size })
 
@@ -290,12 +290,12 @@ type SearchFormClearButtonProps = Omit<
   icon?: IconType | undefined
 }
 
-SearchForm.ClearButton = function ClearButton({
+const SearchFormClearButton = ({
   className,
   icon = "token-icon-close",
   tone = "neutral",
   ...props
-}: SearchFormClearButtonProps) {
+}: SearchFormClearButtonProps) => {
   const {
     size,
     gapped,
@@ -322,20 +322,34 @@ SearchForm.ClearButton = function ClearButton({
   // Render inside the input wrapper so the clear button sits inside the input,
   // pinned to its trailing edge, instead of between the input and the button.
   // ActionIcon supplies the shared size, glyph and hover pill.
-  return createPortal(
-    <ActionIcon
-      aria-label={`Clear search: ${inputValue}`}
-      className={styles.clearButton({ className })}
-      icon={icon}
-      onClick={clearInput}
-      size={size}
-      tone={tone}
-      {...props}
-    />,
-    clearSlot,
+  return (
+    <>
+      {createPortal(
+        <ActionIcon
+          aria-label={`Clear search: ${inputValue}`}
+          className={styles.clearButton({ className })}
+          icon={icon}
+          onClick={clearInput}
+          size={size}
+          tone={tone}
+          {...props}
+        />,
+        clearSlot,
+      )}
+      {null}
+    </>
   )
 }
 
 export { useSearchFormContext }
 
-SearchForm.displayName = "SearchForm"
+SearchFormRoot.displayName = "SearchForm"
+const SearchFormCompound = Object.assign(SearchFormRoot, {
+  Button: SearchFormButton,
+  ClearButton: SearchFormClearButton,
+  Control: SearchFormControl,
+  Input: SearchFormInput,
+  Label: SearchFormLabel,
+})
+
+export const SearchForm = SearchFormCompound

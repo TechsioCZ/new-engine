@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.1"
+component_version: "1.0.2"
 name: search-form-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit SearchForm for search landmarks, controlled or uncontrolled search text, label, control, input, submit button, clear button, icon props, and token-backed field layout.

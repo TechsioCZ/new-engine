@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -166,7 +166,7 @@ interface FooterBottomProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
 }
 
-export const Footer = ({
+const FooterRoot = ({
   children,
   size,
   sectionFlow,
@@ -187,17 +187,14 @@ export const Footer = ({
   )
 }
 
-Footer.Container = function Container({
-  children,
-  className,
-}: FooterContainerProps) {
+const FooterContainer = ({ children, className }: FooterContainerProps) => {
   const size = useContext(FooterSizeContext)
   const layout = useContext(FooterLayoutContext)
   const { container } = footerVariants({ layout, size })
   return <div className={container({ className })}>{children}</div>
 }
 
-Footer.Section = function Section({ children, className }: FooterSectionProps) {
+const FooterSection = ({ children, className }: FooterSectionProps) => {
   const size = useContext(FooterSizeContext)
   const sectionFlow = useContext(FooterSectionFlowContext)
   const { section } = footerVariants({
@@ -207,7 +204,7 @@ Footer.Section = function Section({ children, className }: FooterSectionProps) {
   return <div className={section({ className })}>{children}</div>
 }
 
-Footer.Title = function Title({ children, className }: FooterTitleProps) {
+const FooterTitle = ({ children, className }: FooterTitleProps) => {
   const size = useContext(FooterSizeContext)
   const { title } = footerVariants({ size })
   return <h3 className={title({ className })}>{children}</h3>
@@ -220,19 +217,13 @@ const FooterLink = <T extends ElementType = "a">(props: FooterLinkProps<T>) => {
   return <Link<T> {...props} className={link({ className: props.className })} />
 }
 
-Footer.Link = FooterLink
-
-Footer.Text = function Text({ children, className }: FooterTextProps) {
+const FooterText = ({ children, className }: FooterTextProps) => {
   const size = useContext(FooterSizeContext)
   const { text } = footerVariants({ size })
   return <p className={text({ className })}>{children}</p>
 }
 
-Footer.List = function List({
-  children,
-  className,
-  ...props
-}: FooterListProps) {
+const FooterList = ({ children, className, ...props }: FooterListProps) => {
   const size = useContext(FooterSizeContext)
   const { list } = footerVariants({ size })
   return (
@@ -242,17 +233,13 @@ Footer.List = function List({
   )
 }
 
-Footer.Divider = function Divider({ className, ...props }: FooterDividerProps) {
+const FooterDivider = ({ className, ...props }: FooterDividerProps) => {
   const size = useContext(FooterSizeContext)
   const { divider } = footerVariants({ size })
   return <hr className={divider({ className })} {...props} />
 }
 
-Footer.Bottom = function Bottom({
-  children,
-  className,
-  ...props
-}: FooterBottomProps) {
+const FooterBottom = ({ children, className, ...props }: FooterBottomProps) => {
   const size = useContext(FooterSizeContext)
   const { bottom } = footerVariants({ size })
   return (
@@ -261,3 +248,17 @@ Footer.Bottom = function Bottom({
     </div>
   )
 }
+FooterRoot.displayName = "Footer"
+
+const FooterCompound = Object.assign(FooterRoot, {
+  Bottom: FooterBottom,
+  Container: FooterContainer,
+  Divider: FooterDivider,
+  Link: FooterLink,
+  List: FooterList,
+  Section: FooterSection,
+  Text: FooterText,
+  Title: FooterTitle,
+})
+
+export const Footer = FooterCompound

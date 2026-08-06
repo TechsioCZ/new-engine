@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.1"
+component_version: "1.0.2"
 name: phone-input-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit PhoneInput for international phone entry with country selection, libphonenumber details, hidden E.164 form value, native validation, validation status, and compound country picker slots.

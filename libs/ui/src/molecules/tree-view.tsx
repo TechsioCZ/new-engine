@@ -2,7 +2,7 @@
  * TreeView — @techsio/ui-kit molecule.
  *
  * @component TreeView
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill tree-view-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -227,7 +227,7 @@ interface TreeViewRootProps
   selectionBehavior?: SelectionBehavior | undefined
 }
 
-export const TreeView = ({
+const TreeViewRoot = ({
   id,
   data,
   size,
@@ -297,11 +297,11 @@ export const TreeView = ({
 
 type TreeViewLabelProps = ComponentPropsWithoutRef<"h3">
 
-TreeView.Label = function Label({
+const TreeViewLabel = ({
   children,
   className,
   ...props
-}: TreeViewLabelProps) {
+}: TreeViewLabelProps) => {
   const api = useTreeViewApi()
   const styles = useTreeViewStyles()
 
@@ -317,11 +317,7 @@ TreeView.Label = function Label({
 
 type TreeViewTreeProps = ComponentPropsWithoutRef<"div">
 
-TreeView.Tree = function Tree({
-  children,
-  className,
-  ...props
-}: TreeViewTreeProps) {
+const TreeViewTree = ({ children, className, ...props }: TreeViewTreeProps) => {
   const api = useTreeViewApi()
   const styles = useTreeViewStyles()
 
@@ -341,11 +337,11 @@ interface TreeViewNodeProviderProps {
   children: ReactNode
 }
 
-TreeView.NodeProvider = function NodeProvider({
+const TreeViewNodeProvider = ({
   node,
   indexPath,
   children,
-}: TreeViewNodeProviderProps) {
+}: TreeViewNodeProviderProps) => {
   const api = useTreeViewApi()
   const nodeProps = { indexPath, node }
   const nodeState = api.getNodeState(nodeProps)
@@ -363,11 +359,11 @@ TreeView.NodeProvider = function NodeProvider({
 
 type TreeViewBranchProps = ComponentPropsWithoutRef<"div">
 
-TreeView.Branch = function Branch({
+const TreeViewBranch = ({
   children,
   className,
   ...props
-}: TreeViewBranchProps) {
+}: TreeViewBranchProps) => {
   const api = useTreeViewApi()
   const styles = useTreeViewStyles()
   const nodeProps = useTreeViewNodeProps()
@@ -384,11 +380,11 @@ TreeView.Branch = function Branch({
 
 type TreeViewBranchTriggerProps = ComponentPropsWithoutRef<"div">
 
-TreeView.BranchTrigger = function BranchTrigger({
+const TreeViewBranchTrigger = ({
   children,
   className,
   ...props
-}: TreeViewBranchTriggerProps) {
+}: TreeViewBranchTriggerProps) => {
   const styles = useTreeViewStyles()
 
   return (
@@ -400,11 +396,11 @@ TreeView.BranchTrigger = function BranchTrigger({
 
 type TreeViewBranchControlProps = ComponentPropsWithoutRef<"div">
 
-TreeView.BranchControl = function BranchControl({
+const TreeViewBranchControl = ({
   children,
   className,
   ...props
-}: TreeViewBranchControlProps) {
+}: TreeViewBranchControlProps) => {
   const api = useTreeViewApi()
   const selectionBehavior = useTreeViewSelectionBehavior()
   const styles = useTreeViewStyles()
@@ -465,10 +461,10 @@ interface TreeViewBranchTextProps {
   className?: string | undefined
 }
 
-TreeView.BranchText = function BranchText({
+const TreeViewBranchText = ({
   children,
   className,
-}: TreeViewBranchTextProps) {
+}: TreeViewBranchTextProps) => {
   const api = useTreeViewApi()
   const styles = useTreeViewStyles()
   const node = useTreeViewNode()
@@ -489,10 +485,10 @@ interface TreeViewBranchIndicatorProps {
   className?: string | undefined
 }
 
-TreeView.BranchIndicator = function BranchIndicator({
+const TreeViewBranchIndicator = ({
   icon = "token-icon-tree-indicator",
   className,
-}: TreeViewBranchIndicatorProps) {
+}: TreeViewBranchIndicatorProps) => {
   const api = useTreeViewApi()
   const styles = useTreeViewStyles()
   const node = useTreeViewNode()
@@ -524,11 +520,11 @@ TreeView.BranchIndicator = function BranchIndicator({
 
 type TreeViewBranchContentProps = ComponentPropsWithoutRef<"div">
 
-TreeView.BranchContent = function BranchContent({
+const TreeViewBranchContent = ({
   children,
   className,
   ...props
-}: TreeViewBranchContentProps) {
+}: TreeViewBranchContentProps) => {
   const api = useTreeViewApi()
   const styles = useTreeViewStyles()
   const nodeProps = useTreeViewNodeProps()
@@ -547,9 +543,7 @@ interface TreeViewIndentGuideProps {
   className?: string | undefined
 }
 
-TreeView.IndentGuide = function IndentGuide({
-  className,
-}: TreeViewIndentGuideProps) {
+const TreeViewIndentGuide = ({ className }: TreeViewIndentGuideProps) => {
   const api = useTreeViewApi()
   const styles = useTreeViewStyles()
   const nodeProps = useTreeViewNodeProps()
@@ -564,11 +558,7 @@ TreeView.IndentGuide = function IndentGuide({
 
 type TreeViewItemProps = ComponentPropsWithoutRef<"div">
 
-TreeView.Item = function Item({
-  children,
-  className,
-  ...props
-}: TreeViewItemProps) {
+const TreeViewItem = ({ children, className, ...props }: TreeViewItemProps) => {
   const api = useTreeViewApi()
   const selectionBehavior = useTreeViewSelectionBehavior()
   const styles = useTreeViewStyles()
@@ -619,10 +609,7 @@ interface TreeViewItemTextProps {
   className?: string | undefined
 }
 
-TreeView.ItemText = function ItemText({
-  children,
-  className,
-}: TreeViewItemTextProps) {
+const TreeViewItemText = ({ children, className }: TreeViewItemTextProps) => {
   const api = useTreeViewApi()
   const styles = useTreeViewStyles()
   const node = useTreeViewNode()
@@ -642,11 +629,11 @@ interface TreeViewNodeIconProps extends ComponentPropsWithoutRef<"span"> {
   icon?: IconType | undefined
 }
 
-TreeView.NodeIcon = function NodeIcon({
+const TreeViewNodeIcon = ({
   icon,
   className,
   ...props
-}: TreeViewNodeIconProps) {
+}: TreeViewNodeIconProps) => {
   const styles = useTreeViewStyles()
   const node = useTreeViewNode()
   const nodeState = useTreeViewNodeState()
@@ -683,36 +670,36 @@ interface TreeViewNodeProps {
   onNodeLeave?: ((node: TreeNode, indexPath: number[]) => void) | undefined
 }
 
-TreeView.Node = function Node({
+const TreeViewNode = ({
   node,
   indexPath,
   showIndentGuides = true,
   showNodeIcons = true,
   onNodeHover,
   onNodeLeave,
-}: TreeViewNodeProps) {
+}: TreeViewNodeProps) => {
   const api = useTreeViewApi()
   const nodeProps = { indexPath, node }
   const nodeState = api.getNodeState(nodeProps)
 
   return (
-    <TreeView.NodeProvider indexPath={indexPath} node={node}>
+    <TreeViewNodeProvider indexPath={indexPath} node={node}>
       {nodeState.isBranch ? (
-        <TreeView.Branch>
-          <TreeView.BranchTrigger
+        <TreeViewBranch>
+          <TreeViewBranchTrigger
             onMouseEnter={() => onNodeHover?.(node, indexPath)}
             onMouseLeave={() => onNodeLeave?.(node, indexPath)}
           >
-            <TreeView.BranchControl>
-              {showNodeIcons && <TreeView.NodeIcon />}
-              <TreeView.BranchText />
-            </TreeView.BranchControl>
-            <TreeView.BranchIndicator />
-          </TreeView.BranchTrigger>
-          <TreeView.BranchContent>
-            {showIndentGuides && <TreeView.IndentGuide />}
+            <TreeViewBranchControl>
+              {showNodeIcons && <TreeViewNodeIcon />}
+              <TreeViewBranchText />
+            </TreeViewBranchControl>
+            <TreeViewBranchIndicator />
+          </TreeViewBranchTrigger>
+          <TreeViewBranchContent>
+            {showIndentGuides && <TreeViewIndentGuide />}
             {node.children?.map((childNode, index) => (
-              <TreeView.Node
+              <TreeViewNode
                 indexPath={[...indexPath, index]}
                 key={childNode.id}
                 node={childNode}
@@ -722,19 +709,37 @@ TreeView.Node = function Node({
                 showNodeIcons={showNodeIcons}
               />
             ))}
-          </TreeView.BranchContent>
-        </TreeView.Branch>
+          </TreeViewBranchContent>
+        </TreeViewBranch>
       ) : (
-        <TreeView.Item
+        <TreeViewItem
           onMouseEnter={() => onNodeHover?.(node, indexPath)}
           onMouseLeave={() => onNodeLeave?.(node, indexPath)}
         >
-          {showNodeIcons && <TreeView.NodeIcon />}
-          <TreeView.ItemText />
-        </TreeView.Item>
+          {showNodeIcons && <TreeViewNodeIcon />}
+          <TreeViewItemText />
+        </TreeViewItem>
       )}
-    </TreeView.NodeProvider>
+    </TreeViewNodeProvider>
   )
 }
 
-TreeView.displayName = "TreeView"
+TreeViewRoot.displayName = "TreeView"
+const TreeViewCompound = Object.assign(TreeViewRoot, {
+  Branch: TreeViewBranch,
+  BranchContent: TreeViewBranchContent,
+  BranchControl: TreeViewBranchControl,
+  BranchIndicator: TreeViewBranchIndicator,
+  BranchText: TreeViewBranchText,
+  BranchTrigger: TreeViewBranchTrigger,
+  IndentGuide: TreeViewIndentGuide,
+  Item: TreeViewItem,
+  ItemText: TreeViewItemText,
+  Label: TreeViewLabel,
+  Node: TreeViewNode,
+  NodeIcon: TreeViewNodeIcon,
+  NodeProvider: TreeViewNodeProvider,
+  Tree: TreeViewTree,
+})
+
+export const TreeView = TreeViewCompound

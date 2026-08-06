@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -157,7 +157,7 @@ export interface AccordionProps
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-export const Accordion = ({
+const AccordionRoot = ({
   id,
   defaultValue,
   value,
@@ -217,14 +217,14 @@ interface AccordionItemProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Accordion.Item = function Item({
+const AccordionItem = ({
   value,
   disabled,
   children,
   ref,
   className,
   ...props
-}: AccordionItemProps) {
+}: AccordionItemProps) => {
   const { api, styles } = useAccordionContext()
 
   return (
@@ -247,12 +247,12 @@ interface AccordionHeaderProps extends ComponentPropsWithoutRef<"header"> {
   ref?: Ref<HTMLElement> | undefined
 }
 
-Accordion.Header = function Header({
+const AccordionHeader = ({
   children,
   ref,
   className,
   ...props
-}: AccordionHeaderProps) {
+}: AccordionHeaderProps) => {
   const { api, styles } = useAccordionContext()
   const { value, disabled } = useAccordionItemContext()
 
@@ -277,12 +277,12 @@ interface AccordionContentProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Accordion.Content = function Content({
+const AccordionContent = ({
   children,
   ref,
   className,
   ...props
-}: AccordionContentProps) {
+}: AccordionContentProps) => {
   const { api, styles } = useAccordionContext()
   const { value } = useAccordionItemContext()
 
@@ -305,13 +305,13 @@ type AccordionIndicatorProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Accordion.Indicator = function Indicator({
+const AccordionIndicator = ({
   icon = "token-icon-accordion-chevron",
   iconSize,
   ref,
   className,
   ...props
-}: AccordionIndicatorProps) {
+}: AccordionIndicatorProps) => {
   const { api, styles } = useAccordionContext()
   const { value } = useAccordionItemContext()
 
@@ -334,12 +334,12 @@ interface AccordionTitleProps extends ComponentPropsWithoutRef<"span"> {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Accordion.Title = function Title({
+const AccordionTitle = ({
   children,
   ref,
   className,
   ...props
-}: AccordionTitleProps) {
+}: AccordionTitleProps) => {
   const { styles } = useAccordionContext()
 
   return (
@@ -354,12 +354,12 @@ interface AccordionSubtitleProps extends ComponentPropsWithoutRef<"span"> {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Accordion.Subtitle = function Subtitle({
+const AccordionSubtitle = ({
   children,
   ref,
   className,
   ...props
-}: AccordionSubtitleProps) {
+}: AccordionSubtitleProps) => {
   const { styles } = useAccordionContext()
 
   return (
@@ -368,3 +368,15 @@ Accordion.Subtitle = function Subtitle({
     </span>
   )
 }
+AccordionRoot.displayName = "Accordion"
+
+const AccordionCompound = Object.assign(AccordionRoot, {
+  Content: AccordionContent,
+  Header: AccordionHeader,
+  Indicator: AccordionIndicator,
+  Item: AccordionItem,
+  Subtitle: AccordionSubtitle,
+  Title: AccordionTitle,
+})
+
+export const Accordion = AccordionCompound

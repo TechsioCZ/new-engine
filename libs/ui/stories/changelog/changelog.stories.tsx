@@ -12,8 +12,8 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
-### Accordion v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### Accordion v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
 ### ActionIcon v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
@@ -21,8 +21,8 @@ const CHANGELOG = `
 ### Badge v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
 
-### Breadcrumb v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### Breadcrumb v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
 ### Button v0.3.3
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
@@ -42,8 +42,8 @@ const CHANGELOG = `
 ### Dialog v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
 
-### Footer v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### Footer v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
 ### FormCheckbox v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
@@ -90,29 +90,29 @@ const CHANGELOG = `
 ### Pagination v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
 
-### PhoneInput v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### PhoneInput v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
-### Popover v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### Popover v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
-### ProductCard v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### ProductCard v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
-### RadioCard v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### RadioCard v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
-### RadioGroup v1.0.2
-- Added an explicit React-normalized Zag API context type so generated declarations remain portable while preserving the component’s public behavior and accessibility contract.
+### RadioGroup v1.0.3
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
 ### Rating v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
 
-### SearchForm v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### SearchForm v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
-### Select v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### Select v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
 ### Skeleton v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
@@ -123,8 +123,8 @@ const CHANGELOG = `
 ### StatusText v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
 
-### Steps v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### Steps v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
 ### Switch v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
@@ -132,8 +132,8 @@ const CHANGELOG = `
 ### Table v1.0.2
 - Exported the existing compound component prop interfaces so generated Storybook and package declarations can name the public Table type surface without changing runtime behavior.
 
-### Tabs v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### Tabs v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
 ### Textarea v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
@@ -144,8 +144,8 @@ const CHANGELOG = `
 ### Tooltip v1.0.1
 - Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
 
-### TreeView v1.0.1
-- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+### TreeView v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
 
 ### Button v0.3.2
 - Introduced per-component versioning: the component now carries \`@componentVersion\` + \`@skill\`,

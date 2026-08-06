@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -298,7 +298,7 @@ export type StepsProps = StepsRootSharedProps &
     id?: string | undefined
   }
 
-export const Steps = ({
+const StepsRoot = ({
   id,
   count = 1,
   defaultStep,
@@ -352,7 +352,7 @@ type StepsRootProviderProps = StepsRootSharedProps & {
   value: StepsApi
 }
 
-Steps.RootProvider = function RootProvider({
+const StepsRootProvider = ({
   value,
   size,
   variant,
@@ -360,7 +360,7 @@ Steps.RootProvider = function RootProvider({
   className,
   ref,
   ...props
-}: StepsRootProviderProps) {
+}: StepsRootProviderProps) => {
   const styles = stepsVariants({ size, variant })
   const resolvedOrientation = getOrientationFromApi(value)
   const rootProps = mergeProps(value.getRootProps(), props)
@@ -388,12 +388,7 @@ type StepsListProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Steps.List = function List({
-  children,
-  className,
-  ref,
-  ...props
-}: StepsListProps) {
+const StepsList = ({ children, className, ref, ...props }: StepsListProps) => {
   const api = useStepsApi()
   const styles = useStepsStyles()
   const listProps = mergeProps(api.getListProps(), props)
@@ -409,12 +404,12 @@ type StepsPanelsProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Steps.Panels = function Panels({
+const StepsPanels = ({
   children,
   className,
   ref,
   ...props
-}: StepsPanelsProps) {
+}: StepsPanelsProps) => {
   const orientation = useStepsOrientation()
   const styles = useStepsStyles()
 
@@ -434,12 +429,12 @@ type StepsNavigationProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Steps.Navigation = function Navigation({
+const StepsNavigation = ({
   children,
   className,
   ref,
   ...props
-}: StepsNavigationProps) {
+}: StepsNavigationProps) => {
   const orientation = useStepsOrientation()
   const styles = useStepsStyles()
 
@@ -460,13 +455,13 @@ type StepsItemProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Steps.Item = function Item({
+const StepsItem = ({
   index,
   children,
   className,
   ref,
   ...props
-}: StepsItemProps) {
+}: StepsItemProps) => {
   const api = useStepsApi()
   const styles = useStepsStyles()
   const state = api.getItemState({ index })
@@ -491,13 +486,13 @@ type StepsTriggerProps = Omit<
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Steps.Trigger = function Trigger({
+const StepsTrigger = ({
   children,
   className,
   disabled,
   ref,
   ...props
-}: StepsTriggerProps) {
+}: StepsTriggerProps) => {
   const api = useStepsApi()
   const styles = useStepsStyles()
   const index = useStepsItemIndex()
@@ -535,12 +530,12 @@ type StepsItemTextProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Steps.ItemText = function ItemText({
+const StepsItemText = ({
   children,
   className,
   ref,
   ...props
-}: StepsItemTextProps) {
+}: StepsItemTextProps) => {
   const orientation = useStepsOrientation()
   const styles = useStepsStyles()
 
@@ -556,65 +551,31 @@ Steps.ItemText = function ItemText({
   )
 }
 
-type StepsIndicatorProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement> | undefined
-}
-
-Steps.Indicator = function Indicator({
-  children,
-  className,
-  ref,
-  ...props
-}: StepsIndicatorProps) {
-  const api = useStepsApi()
-  const styles = useStepsStyles()
-  const index = useStepsItemIndex()
-  const indicatorProps = mergeProps(api.getIndicatorProps({ index }), props)
-
-  return (
-    <div
-      className={styles.indicator({ className })}
-      ref={ref}
-      {...indicatorProps}
-    >
-      {children ?? (
-        <Steps.Status
-          complete={
-            <Icon
-              className={styles.indicatorIcon()}
-              icon="token-icon-steps-check"
-            />
-          }
-          current={<Steps.Number />}
-          incomplete={<Steps.Number />}
-        />
-      )}
-    </div>
-  )
-}
-
 interface StepsStatusProps {
   complete: ReactNode
   current?: ReactNode | undefined
   incomplete: ReactNode
 }
 
-Steps.Status = function Status({
+const StepsStatus = ({
   complete,
   current,
   incomplete,
-}: StepsStatusProps): ReactNode {
+}: StepsStatusProps): ReactNode => {
   const state = useStepsItemState()
-
+  let content = incomplete
   if (state.current) {
-    return current ?? incomplete
+    content = current ?? incomplete
+  } else if (state.completed) {
+    content = complete
   }
 
-  if (state.completed) {
-    return complete
-  }
-
-  return incomplete
+  return (
+    <>
+      {content}
+      {null}
+    </>
+  )
 }
 
 type StepsNumberProps = ComponentPropsWithoutRef<"span"> & {
@@ -633,18 +594,53 @@ const StepsNumber = ({ className, ref, ...props }: StepsNumberProps) => {
   )
 }
 
-Steps.Number = StepsNumber
+type StepsIndicatorProps = ComponentPropsWithoutRef<"div"> & {
+  ref?: Ref<HTMLDivElement> | undefined
+}
+
+const StepsIndicator = ({
+  children,
+  className,
+  ref,
+  ...props
+}: StepsIndicatorProps) => {
+  const api = useStepsApi()
+  const styles = useStepsStyles()
+  const index = useStepsItemIndex()
+  const indicatorProps = mergeProps(api.getIndicatorProps({ index }), props)
+
+  return (
+    <div
+      className={styles.indicator({ className })}
+      ref={ref}
+      {...indicatorProps}
+    >
+      {children ?? (
+        <StepsStatus
+          complete={
+            <Icon
+              className={styles.indicatorIcon()}
+              icon="token-icon-steps-check"
+            />
+          }
+          current={<StepsNumber />}
+          incomplete={<StepsNumber />}
+        />
+      )}
+    </div>
+  )
+}
 
 type StepsTitleProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Steps.Title = function Title({
+const StepsTitle = ({
   children,
   className,
   ref,
   ...props
-}: StepsTitleProps) {
+}: StepsTitleProps) => {
   const styles = useStepsStyles()
   const state = useStepsItemState()
 
@@ -664,12 +660,12 @@ type StepsDescriptionProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Steps.Description = function Description({
+const StepsDescription = ({
   children,
   className,
   ref,
   ...props
-}: StepsDescriptionProps) {
+}: StepsDescriptionProps) => {
   const styles = useStepsStyles()
   const state = useStepsItemState()
 
@@ -689,11 +685,7 @@ type StepsSeparatorProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Steps.Separator = function Separator({
-  className,
-  ref,
-  ...props
-}: StepsSeparatorProps) {
+const StepsSeparator = ({ className, ref, ...props }: StepsSeparatorProps) => {
   const api = useStepsApi()
   const styles = useStepsStyles()
   const index = useStepsItemIndex()
@@ -715,13 +707,13 @@ type StepsContentProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Steps.Content = function Content({
+const StepsContent = ({
   index,
   children,
   className,
   ref,
   ...props
-}: StepsContentProps) {
+}: StepsContentProps) => {
   const api = useStepsApi()
   const styles = useStepsStyles()
   const contentProps = mergeProps(api.getContentProps({ index }), props)
@@ -737,12 +729,12 @@ type StepsProgressProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Steps.Progress = function Progress({
+const StepsProgress = ({
   className,
   ref,
   style,
   ...props
-}: StepsProgressProps) {
+}: StepsProgressProps) => {
   const api = useStepsApi()
   const orientation = useStepsOrientation()
   const styles = useStepsStyles()
@@ -774,12 +766,12 @@ type StepsCompletedContentProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Steps.CompletedContent = function CompletedContent({
+const StepsCompletedContent = ({
   children,
   className,
   ref,
   ...props
-}: StepsCompletedContentProps) {
+}: StepsCompletedContentProps) => {
   const api = useStepsApi()
   const styles = useStepsStyles()
   const contentProps = mergeProps(
@@ -803,14 +795,14 @@ type StepsControlProps = Omit<ButtonProps, "ref"> & {
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Steps.PrevTrigger = function PrevTrigger({
+const StepsPrevTrigger = ({
   className,
   ref,
   size,
   theme = "outlined",
   variant = "secondary",
   ...props
-}: StepsControlProps) {
+}: StepsControlProps) => {
   const api = useStepsApi()
   const styles = useStepsStyles()
   const rootSize = useStepsSize()
@@ -842,14 +834,14 @@ Steps.PrevTrigger = function PrevTrigger({
   )
 }
 
-Steps.NextTrigger = function NextTrigger({
+const StepsNextTrigger = ({
   className,
   ref,
   size,
   theme = "solid",
   variant = "primary",
   ...props
-}: StepsControlProps) {
+}: StepsControlProps) => {
   const api = useStepsApi()
   const styles = useStepsStyles()
   const rootSize = useStepsSize()
@@ -880,6 +872,29 @@ Steps.NextTrigger = function NextTrigger({
     />
   )
 }
+StepsRoot.displayName = "Steps"
 
-Steps.Root = Steps
-Steps.displayName = "Steps"
+const StepsCompound = Object.assign(StepsRoot, {
+  CompletedContent: StepsCompletedContent,
+  Content: StepsContent,
+  Description: StepsDescription,
+  Indicator: StepsIndicator,
+  Item: StepsItem,
+  ItemText: StepsItemText,
+  List: StepsList,
+  Navigation: StepsNavigation,
+  NextTrigger: StepsNextTrigger,
+  Number: StepsNumber,
+  Panels: StepsPanels,
+  PrevTrigger: StepsPrevTrigger,
+  Progress: StepsProgress,
+  RootProvider: StepsRootProvider,
+  Separator: StepsSeparator,
+  Status: StepsStatus,
+  Title: StepsTitle,
+  Trigger: StepsTrigger,
+})
+
+export const Steps = Object.assign(StepsCompound, {
+  Root: StepsCompound,
+})

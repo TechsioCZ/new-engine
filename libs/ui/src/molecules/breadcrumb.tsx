@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -162,7 +162,7 @@ export type BreadcrumbRootProps = ComponentPropsWithoutRef<"nav"> &
     ref?: Ref<HTMLElement> | undefined
   }
 
-export const Breadcrumb = ({
+const BreadcrumbRoot = ({
   children,
   className,
   ref,
@@ -193,12 +193,12 @@ export type BreadcrumbListProps = ComponentPropsWithoutRef<"ol"> & {
   ref?: Ref<HTMLOListElement> | undefined
 }
 
-Breadcrumb.List = function List({
+const BreadcrumbList = ({
   children,
   className,
   ref,
   ...props
-}: BreadcrumbListProps) {
+}: BreadcrumbListProps) => {
   const { styles } = useBreadcrumbContext()
 
   return (
@@ -212,12 +212,12 @@ export type BreadcrumbItemProps = ComponentPropsWithoutRef<"li"> & {
   ref?: Ref<HTMLLIElement> | undefined
 }
 
-Breadcrumb.Item = function Item({
+const BreadcrumbItem = ({
   children,
   className,
   ref,
   ...props
-}: BreadcrumbItemProps) {
+}: BreadcrumbItemProps) => {
   const { styles } = useBreadcrumbContext()
 
   return (
@@ -234,9 +234,9 @@ export type BreadcrumbLinkProps<T extends ElementType = "a"> = LinkProps<T> & {
   href?: BreadcrumbLinkHref<T> | undefined
 }
 
-Breadcrumb.Link = function Link<T extends ElementType = "a">(
+const BreadcrumbLink = <T extends ElementType = "a">(
   props: BreadcrumbLinkProps<T>,
-) {
+) => {
   const { styles } = useBreadcrumbContext()
 
   return (
@@ -251,12 +251,12 @@ export type BreadcrumbCurrentLinkProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Breadcrumb.CurrentLink = function CurrentLink({
+const BreadcrumbCurrentLink = ({
   children,
   className,
   ref,
   ...props
-}: BreadcrumbCurrentLinkProps) {
+}: BreadcrumbCurrentLinkProps) => {
   const { styles } = useBreadcrumbContext()
 
   return (
@@ -273,11 +273,7 @@ Breadcrumb.CurrentLink = function CurrentLink({
 
 export type BreadcrumbIconProps = IconProps
 
-Breadcrumb.Icon = function Icon({
-  className,
-  size,
-  ...props
-}: BreadcrumbIconProps) {
+const BreadcrumbIcon = ({ className, size, ...props }: BreadcrumbIconProps) => {
   const { styles } = useBreadcrumbContext()
 
   return (
@@ -302,7 +298,7 @@ export type BreadcrumbSeparatorProps = ComponentPropsWithoutRef<"li"> & {
   ref?: Ref<HTMLLIElement> | undefined
 }
 
-Breadcrumb.Separator = function Separator({
+const BreadcrumbSeparator = ({
   children,
   className,
   icon = "token-icon-breadcrumb-separator",
@@ -310,7 +306,7 @@ Breadcrumb.Separator = function Separator({
   iconSize,
   ref,
   ...props
-}: BreadcrumbSeparatorProps) {
+}: BreadcrumbSeparatorProps) => {
   const { styles } = useBreadcrumbContext()
   const { className: iconClassName, ...restIconProps } = iconProps ?? {}
 
@@ -346,7 +342,7 @@ export type BreadcrumbEllipsisProps = ComponentPropsWithoutRef<"li"> & {
   ref?: Ref<HTMLLIElement> | undefined
 }
 
-Breadcrumb.Ellipsis = function Ellipsis({
+const BreadcrumbEllipsis = ({
   children,
   className,
   icon = "token-icon-breadcrumb-ellipsis",
@@ -354,7 +350,7 @@ Breadcrumb.Ellipsis = function Ellipsis({
   iconSize,
   ref,
   ...props
-}: BreadcrumbEllipsisProps) {
+}: BreadcrumbEllipsisProps) => {
   const { styles } = useBreadcrumbContext()
   const { className: iconClassName, ...restIconProps } = iconProps ?? {}
 
@@ -383,6 +379,18 @@ Breadcrumb.Ellipsis = function Ellipsis({
     </li>
   )
 }
+BreadcrumbRoot.displayName = "Breadcrumb"
 
-Breadcrumb.Root = Breadcrumb
-Breadcrumb.displayName = "Breadcrumb"
+const BreadcrumbCompound = Object.assign(BreadcrumbRoot, {
+  CurrentLink: BreadcrumbCurrentLink,
+  Ellipsis: BreadcrumbEllipsis,
+  Icon: BreadcrumbIcon,
+  Item: BreadcrumbItem,
+  Link: BreadcrumbLink,
+  List: BreadcrumbList,
+  Separator: BreadcrumbSeparator,
+})
+
+export const Breadcrumb = Object.assign(BreadcrumbCompound, {
+  Root: BreadcrumbCompound,
+})

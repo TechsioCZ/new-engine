@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -159,7 +159,7 @@ export interface TabsProps
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-export const Tabs = ({
+const TabsRoot = ({
   id,
   defaultValue,
   value,
@@ -213,12 +213,7 @@ interface TabsListProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Tabs.List = function List({
-  children,
-  ref,
-  className,
-  ...props
-}: TabsListProps) {
+const TabsList = ({ children, ref, className, ...props }: TabsListProps) => {
   const { api, styles } = useTabsContext()
   const listProps = mergeProps(api.getListProps(), props)
 
@@ -235,7 +230,7 @@ type TabsTriggerProps = Omit<ButtonProps, "value"> & {
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Tabs.Trigger = function Trigger({
+const TabsTrigger = ({
   value,
   disabled,
   children,
@@ -245,7 +240,7 @@ Tabs.Trigger = function Trigger({
   theme = "unstyled",
   type = "button",
   ...props
-}: TabsTriggerProps) {
+}: TabsTriggerProps) => {
   const { api, styles } = useTabsContext()
   const triggerProps = mergeProps(
     api.getTriggerProps({ disabled, value }),
@@ -273,13 +268,13 @@ interface TabsContentProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Tabs.Content = function Content({
+const TabsContent = ({
   value,
   children,
   ref,
   className,
   ...props
-}: TabsContentProps) {
+}: TabsContentProps) => {
   const { api, styles } = useTabsContext()
   const contentProps = mergeProps(api.getContentProps({ value }), props)
 
@@ -295,11 +290,7 @@ interface TabsIndicatorProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Tabs.Indicator = function Indicator({
-  ref,
-  className,
-  ...props
-}: TabsIndicatorProps) {
+const TabsIndicator = ({ ref, className, ...props }: TabsIndicatorProps) => {
   const { api, styles } = useTabsContext()
   const indicatorProps = mergeProps(api.getIndicatorProps(), props)
 
@@ -313,4 +304,13 @@ Tabs.Indicator = function Indicator({
 }
 
 // Display name
-Tabs.displayName = "Tabs"
+TabsRoot.displayName = "Tabs"
+
+const TabsCompound = Object.assign(TabsRoot, {
+  Content: TabsContent,
+  Indicator: TabsIndicator,
+  List: TabsList,
+  Trigger: TabsTrigger,
+})
+
+export const Tabs = TabsCompound

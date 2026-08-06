@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.1"
+component_version: "1.0.2"
 name: footer-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Footer for site footer composition with container, section, title, list, link, text, divider, bottom area, size, layout, direction, section flow, and framework link adapters.

@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -208,7 +208,7 @@ export interface SelectProps
   validateStatus?: SelectValidateStatus | undefined
 }
 
-export const Select = ({
+const SelectRoot = ({
   items,
   id: providedId,
   size = "md",
@@ -315,18 +315,16 @@ const SelectLabel = ({ children, ...props }: SelectLabelProps) => {
   return <Label {...mergeProps(api.getLabelProps(), props)}>{children}</Label>
 }
 
-Select.Label = SelectLabel
-
 interface SelectControlProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Select.Control = function Control({
+const SelectControl = ({
   children,
   className,
   ref,
   ...props
-}: SelectControlProps) {
+}: SelectControlProps) => {
   const { api, size } = useSelectContext()
   const styles = selectVariants({ size })
 
@@ -347,14 +345,14 @@ type SelectTriggerProps = ComponentPropsWithoutRef<"button"> & {
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Select.Trigger = function Trigger({
+const SelectTrigger = ({
   children,
   className,
   size: sizeProp,
   iconSize,
   ref,
   ...props
-}: SelectTriggerProps) {
+}: SelectTriggerProps) => {
   const { api, size: contextSize, validateStatus } = useSelectContext()
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
@@ -395,14 +393,14 @@ interface SelectValueTextProps extends Omit<
   children?: (ReactNode | ((items: SelectItem[]) => ReactNode)) | undefined
 }
 
-Select.ValueText = function ValueText({
+const SelectValueText = ({
   placeholder = "Select an option",
   className,
   size: sizeProp,
   ref,
   children,
   ...props
-}: SelectValueTextProps) {
+}: SelectValueTextProps) => {
   const { api, size: contextSize, items } = useSelectContext()
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
@@ -441,11 +439,11 @@ type SelectClearTriggerProps = ComponentPropsWithoutRef<"button"> & {
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Select.ClearTrigger = function ClearTrigger({
+const SelectClearTrigger = ({
   className,
   ref,
   ...props
-}: SelectClearTriggerProps) {
+}: SelectClearTriggerProps) => {
   const { api, size } = useSelectContext()
   const styles = selectVariants({ size })
 
@@ -467,12 +465,12 @@ interface SelectPositionerProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Select.Positioner = function Positioner({
+const SelectPositioner = ({
   children,
   className,
   ref,
   ...props
-}: SelectPositionerProps) {
+}: SelectPositionerProps) => {
   const { api, size } = useSelectContext()
   const styles = selectVariants({ size })
 
@@ -493,12 +491,12 @@ interface SelectContentProps extends ComponentPropsWithoutRef<"ul"> {
   ref?: Ref<HTMLUListElement> | undefined
 }
 
-Select.Content = function Content({
+const SelectContent = ({
   children,
   className,
   ref,
   ...props
-}: SelectContentProps) {
+}: SelectContentProps) => {
   const { api, size } = useSelectContext()
   const styles = selectVariants({ size })
 
@@ -518,13 +516,13 @@ interface SelectItemGroupProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Select.ItemGroup = function ItemGroup({
+const SelectItemGroup = ({
   id,
   children,
   className,
   ref,
   ...props
-}: SelectItemGroupProps) {
+}: SelectItemGroupProps) => {
   const { api, size } = useSelectContext()
   const styles = selectVariants({ size })
 
@@ -544,13 +542,13 @@ interface SelectItemGroupLabelProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Select.ItemGroupLabel = function ItemGroupLabel({
+const SelectItemGroupLabel = ({
   htmlFor,
   children,
   className,
   ref,
   ...props
-}: SelectItemGroupLabelProps) {
+}: SelectItemGroupLabelProps) => {
   const { api, size } = useSelectContext()
   const styles = selectVariants({ size })
 
@@ -571,14 +569,14 @@ interface SelectItemProps extends ComponentPropsWithoutRef<"li"> {
   ref?: Ref<HTMLLIElement> | undefined
 }
 
-Select.Item = function Item({
+const SelectItem = ({
   item,
   children,
   className,
   size: sizeProp,
   ref,
   ...props
-}: SelectItemProps) {
+}: SelectItemProps) => {
   const { api, size: contextSize } = useSelectContext()
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
@@ -602,12 +600,12 @@ interface SelectItemTextProps extends ComponentPropsWithoutRef<"span"> {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Select.ItemText = function ItemText({
+const SelectItemText = ({
   children,
   className,
   ref,
   ...props
-}: SelectItemTextProps) {
+}: SelectItemTextProps) => {
   const { api, size } = useSelectContext()
   const { item } = useSelectItemContext()
   const styles = selectVariants({ size })
@@ -629,12 +627,12 @@ type SelectItemIndicatorProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Select.ItemIndicator = function ItemIndicator({
+const SelectItemIndicator = ({
   className,
   iconSize,
   ref,
   ...props
-}: SelectItemIndicatorProps) {
+}: SelectItemIndicatorProps) => {
   const { api, size } = useSelectContext()
   const { item } = useSelectItemContext()
   const styles = selectVariants({ size })
@@ -684,7 +682,22 @@ const SelectStatusText = ({
     </StatusText>
   )
 }
+SelectRoot.displayName = "Select"
 
-Select.StatusText = SelectStatusText
+const SelectCompound = Object.assign(SelectRoot, {
+  ClearTrigger: SelectClearTrigger,
+  Content: SelectContent,
+  Control: SelectControl,
+  Item: SelectItem,
+  ItemGroup: SelectItemGroup,
+  ItemGroupLabel: SelectItemGroupLabel,
+  ItemIndicator: SelectItemIndicator,
+  ItemText: SelectItemText,
+  Label: SelectLabel,
+  Positioner: SelectPositioner,
+  StatusText: SelectStatusText,
+  Trigger: SelectTrigger,
+  ValueText: SelectValueText,
+})
 
-Select.displayName = "Select"
+export const Select = SelectCompound

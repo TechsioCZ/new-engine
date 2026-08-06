@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -118,7 +118,7 @@ export type RadioGroupProps = VariantProps<typeof radioGroupVariants> &
     onValueChange?: ((value: string | null) => void) | undefined
   }
 
-export const RadioGroup = ({
+const RadioGroupRoot = ({
   id: providedId,
   disabled = false,
   required = false,
@@ -187,13 +187,13 @@ type RadioGroupLabelProps = Omit<
   ref?: Ref<HTMLLabelElement> | undefined
 }
 
-RadioGroup.Label = function Label({
+const RadioGroupLabel = ({
   children,
   disabled,
   required,
   size: sizeProp,
   ...props
-}: RadioGroupLabelProps) {
+}: RadioGroupLabelProps) => {
   const {
     api,
     size,
@@ -217,12 +217,12 @@ type RadioGroupItemGroupProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioGroup.ItemGroup = function ItemGroup({
+const RadioGroupItemGroup = ({
   children,
   className,
   ref,
   ...props
-}: RadioGroupItemGroupProps) {
+}: RadioGroupItemGroupProps) => {
   const { size, variant, orientation } = useRadioGroupContext()
   const styles = radioGroupVariants({ size, variant })
 
@@ -246,7 +246,7 @@ export type RadioGroupItemProps = Omit<
     ref?: Ref<HTMLLabelElement> | undefined
   }
 
-RadioGroup.Item = function Item({
+const RadioGroupItem = ({
   value,
   disabled,
   invalid,
@@ -254,7 +254,7 @@ RadioGroup.Item = function Item({
   className,
   ref,
   ...props
-}: RadioGroupItemProps) {
+}: RadioGroupItemProps) => {
   const { api, size, variant } = useRadioGroupContext()
   const styles = radioGroupVariants({ size, variant })
   const itemProps: ItemProps = { disabled, invalid, value }
@@ -283,11 +283,11 @@ type RadioGroupItemHiddenInputProps = Omit<
   ref?: Ref<HTMLInputElement> | undefined
 }
 
-RadioGroup.ItemHiddenInput = function ItemHiddenInput({
+const RadioGroupItemHiddenInput = ({
   className,
   ref,
   ...props
-}: RadioGroupItemHiddenInputProps) {
+}: RadioGroupItemHiddenInputProps) => {
   const { api, size, variant } = useRadioGroupContext()
   const { itemProps } = useRadioGroupItemContext()
   const styles = radioGroupVariants({ size, variant })
@@ -305,12 +305,12 @@ type RadioGroupItemControlProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-RadioGroup.ItemControl = function ItemControl({
+const RadioGroupItemControl = ({
   children,
   className,
   ref,
   ...props
-}: RadioGroupItemControlProps) {
+}: RadioGroupItemControlProps) => {
   const { api, size, variant } = useRadioGroupContext()
   const { itemProps } = useRadioGroupItemContext()
   const styles = radioGroupVariants({ size, variant })
@@ -337,12 +337,12 @@ type RadioGroupItemContentProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioGroup.ItemContent = function ItemContent({
+const RadioGroupItemContent = ({
   children,
   className,
   ref,
   ...props
-}: RadioGroupItemContentProps) {
+}: RadioGroupItemContentProps) => {
   const { size, variant } = useRadioGroupContext()
   const styles = radioGroupVariants({ size, variant })
 
@@ -357,12 +357,12 @@ type RadioGroupItemTextProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-RadioGroup.ItemText = function ItemText({
+const RadioGroupItemText = ({
   children,
   className,
   ref,
   ...props
-}: RadioGroupItemTextProps) {
+}: RadioGroupItemTextProps) => {
   const { api, size, variant } = useRadioGroupContext()
   const { itemProps } = useRadioGroupItemContext()
   const styles = radioGroupVariants({ size, variant })
@@ -382,12 +382,12 @@ type RadioGroupItemDescriptionProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioGroup.ItemDescription = function ItemDescription({
+const RadioGroupItemDescription = ({
   children,
   className,
   ref,
   ...props
-}: RadioGroupItemDescriptionProps) {
+}: RadioGroupItemDescriptionProps) => {
   const { api, size, variant } = useRadioGroupContext()
   const { itemProps } = useRadioGroupItemContext()
   const styles = radioGroupVariants({ size, variant })
@@ -414,13 +414,13 @@ type RadioGroupStatusTextProps = Omit<
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioGroup.StatusText = function StatusText({
+const RadioGroupStatusText = ({
   status,
   size: sizeProp,
   showIcon,
   children,
   ...props
-}: RadioGroupStatusTextProps) {
+}: RadioGroupStatusTextProps) => {
   const { size, validateStatus } = useRadioGroupContext()
   const effectiveSize = sizeProp ?? size
   const effectiveStatus = status ?? validateStatus
@@ -438,5 +438,18 @@ RadioGroup.StatusText = function StatusText({
 }
 
 export { useRadioGroupContext }
+RadioGroupRoot.displayName = "RadioGroup"
 
-RadioGroup.displayName = "RadioGroup"
+const RadioGroupCompound = Object.assign(RadioGroupRoot, {
+  Item: RadioGroupItem,
+  ItemContent: RadioGroupItemContent,
+  ItemControl: RadioGroupItemControl,
+  ItemDescription: RadioGroupItemDescription,
+  ItemGroup: RadioGroupItemGroup,
+  ItemHiddenInput: RadioGroupItemHiddenInput,
+  ItemText: RadioGroupItemText,
+  Label: RadioGroupLabel,
+  StatusText: RadioGroupStatusText,
+})
+
+export const RadioGroup = RadioGroupCompound

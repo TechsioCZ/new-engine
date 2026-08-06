@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -150,7 +150,7 @@ interface ProductCardButtonProps extends HTMLAttributes<HTMLButtonElement> {
 }
 
 // === ROOT COMPONENT ===
-export const ProductCard = ({
+const ProductCardRoot = ({
   children,
   layout = "column",
   className,
@@ -169,12 +169,12 @@ export const ProductCard = ({
 }
 
 // === SUB-COMPONENTS ===
-ProductCard.Image = function Image({
+const ProductCardImage = ({
   as,
   className,
   ref,
   ...props
-}: ProductCardImageProps) {
+}: ProductCardImageProps) => {
   const layout = useContext(ProductCardContext)
   const { imageSlot } = productCardVariants({ layout })
   const ImageComponent = as ?? ImageAtom
@@ -184,12 +184,12 @@ ProductCard.Image = function Image({
   )
 }
 
-ProductCard.Name = function Name({
+const ProductCardName = ({
   children,
   className,
   ref,
   ...props
-}: ProductCardNameProps) {
+}: ProductCardNameProps) => {
   const layout = useContext(ProductCardContext)
   const { nameSlot } = productCardVariants({ layout })
 
@@ -200,12 +200,12 @@ ProductCard.Name = function Name({
   )
 }
 
-ProductCard.Price = function Price({
+const ProductCardPrice = ({
   children,
   className,
   ref,
   ...props
-}: ProductCardPriceProps) {
+}: ProductCardPriceProps) => {
   const layout = useContext(ProductCardContext)
   const { priceSlot } = productCardVariants({ layout })
 
@@ -216,13 +216,13 @@ ProductCard.Price = function Price({
   )
 }
 
-ProductCard.Stock = function Stock({
+const ProductCardStock = ({
   children,
   className,
   ref,
   status = "in-stock",
   ...props
-}: ProductCardStockProps) {
+}: ProductCardStockProps) => {
   const layout = useContext(ProductCardContext)
   const { stockStatusSlot } = productCardVariants({ layout })
 
@@ -238,12 +238,12 @@ ProductCard.Stock = function Stock({
   )
 }
 
-ProductCard.Badges = function Badges({
+const ProductCardBadges = ({
   children,
   className,
   ref,
   ...props
-}: ProductCardBadgesProps) {
+}: ProductCardBadgesProps) => {
   const layout = useContext(ProductCardContext)
   const { badgesSlot } = productCardVariants({ layout })
 
@@ -254,13 +254,13 @@ ProductCard.Badges = function Badges({
   )
 }
 
-ProductCard.Rating = function Rating({
+const ProductCardRating = ({
   children,
   className,
   rating,
   ref,
   ...props
-}: ProductCardRatingProps) {
+}: ProductCardRatingProps) => {
   const layout = useContext(ProductCardContext)
   const { ratingSlot } = productCardVariants({ layout })
 
@@ -271,12 +271,12 @@ ProductCard.Rating = function Rating({
   )
 }
 
-ProductCard.Actions = function Actions({
+const ProductCardActions = ({
   children,
   className,
   ref,
   ...props
-}: ProductCardActionsProps) {
+}: ProductCardActionsProps) => {
   const layout = useContext(ProductCardContext)
   const { actionsSlot } = productCardVariants({ layout })
 
@@ -287,7 +287,7 @@ ProductCard.Actions = function Actions({
   )
 }
 
-ProductCard.Button = function Button({
+const ProductCardButton = ({
   children,
   onClick,
   icon,
@@ -296,7 +296,7 @@ ProductCard.Button = function Button({
   buttonVariant,
   ref,
   ...props
-}: ProductCardButtonProps) {
+}: ProductCardButtonProps) => {
   const { button } = productCardVariants({ buttonVariant })
 
   return (
@@ -313,3 +313,15 @@ ProductCard.Button = function Button({
     </ButtonAtom>
   )
 }
+const ProductCardCompound = Object.assign(ProductCardRoot, {
+  Actions: ProductCardActions,
+  Badges: ProductCardBadges,
+  Button: ProductCardButton,
+  Image: ProductCardImage,
+  Name: ProductCardName,
+  Price: ProductCardPrice,
+  Rating: ProductCardRating,
+  Stock: ProductCardStock,
+})
+
+export const ProductCard = ProductCardCompound
