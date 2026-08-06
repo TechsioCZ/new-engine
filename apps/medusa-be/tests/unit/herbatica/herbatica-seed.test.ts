@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs"
-import { resolve } from "node:path"
+import path from "node:path"
 
 import { ProductStatus } from "@medusajs/framework/utils"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 
 import { parseHerbaticaCategoriesXmlFile } from "../../../src/scripts/herbatica-category-export"
 import type { HerbaticaCategoryExport } from "../../../src/scripts/herbatica-category-export"
@@ -19,35 +19,68 @@ import {
 } from "../../../src/scripts/herbatica-seed-config"
 
 const DIRTY_FEED_MARKUP_PATTERN =
-  /data-turn-id|data-message-author-role|data-testid|ChatGPT|markdown prose|webpage-citation-pill|_ngcontent-ng|markdown-main-panel/i
+  /data-turn-id|data-message-author-role|data-testid|ChatGPT|markdown prose|webpage-citation-pill|_ngcontent-ng|markdown-main-panel/iu
 
-function getContentSections(product: unknown) {
+interface HerbaticaContentSections {
+  composition: string
+  description: string
+  other: string
+  usage: string
+  warning: string
+}
+
+const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const hasStringProperty = (
+  value: Record<string, unknown>,
+  key: string,
+): boolean => key in value && typeof value[key] === "string"
+
+const isHerbaticaContentSections = (
+  value: Record<string, unknown>,
+): value is Record<string, unknown> & HerbaticaContentSections => {
   if (
-    !product ||
-    typeof product !== "object" ||
-    !("metadata" in product) ||
-    !product.metadata ||
-    typeof product.metadata !== "object" ||
-    !("content_sections_map" in product.metadata)
+    !hasStringProperty(value, "composition") ||
+    !hasStringProperty(value, "description")
   ) {
+    return false
+  }
+
+  if (
+    !hasStringProperty(value, "other") ||
+    !hasStringProperty(value, "usage")
+  ) {
+    return false
+  }
+
+  return hasStringProperty(value, "warning")
+}
+
+const getContentSections = (product: unknown): HerbaticaContentSections => {
+  if (!isNonNullObject(product)) {
     throw new Error("Expected product content sections metadata")
   }
 
-  const sections = product.metadata["content_sections_map"]
-  if (
-    !sections ||
-    typeof sections !== "object" ||
-    !("composition" in sections) ||
-    typeof sections.composition !== "string" ||
-    !("description" in sections) ||
-    typeof sections.description !== "string" ||
-    !("other" in sections) ||
-    typeof sections.other !== "string" ||
-    !("usage" in sections) ||
-    typeof sections.usage !== "string" ||
-    !("warning" in sections) ||
-    typeof sections.warning !== "string"
-  ) {
+  if (!("metadata" in product)) {
+    throw new Error("Expected product content sections metadata")
+  }
+
+  const { metadata } = product
+  if (!isNonNullObject(metadata)) {
+    throw new Error("Expected product content sections metadata")
+  }
+
+  if (!("content_sections_map" in metadata)) {
+    throw new Error("Expected product content sections metadata")
+  }
+
+  const sections = metadata["content_sections_map"]
+  if (!isNonNullObject(sections)) {
+    throw new Error("Expected string product content sections")
+  }
+
+  if (!isHerbaticaContentSections(sections)) {
     throw new Error("Expected string product content sections")
   }
 
@@ -196,7 +229,9 @@ describe("Herbatica seed category mapping", () => {
       "trapi-ma-srdce-a-cievy-krcove-zily",
     ])
     expect(
-      result.categories.some((category) => category.handle?.endsWith("-2")),
+      result.categories.some(
+        (category) => category.handle?.endsWith("-2") ?? false,
+      ),
     ).toBeFalsy()
     expect(result.products[0]?.categories).toStrictEqual([
       {
@@ -237,7 +272,7 @@ describe("Herbatica seed promo rebase", () => {
 
   it("keeps expired discounts inactive by default", () => {
     const result = buildSeedInputFromXml(xml)
-    const product = result.products[0]
+    const [product] = result.products
     const variant = product?.variants?.[0]
 
     expect(variant?.prices).toStrictEqual([
@@ -263,7 +298,7 @@ describe("Herbatica seed promo rebase", () => {
       promoRebaseDays: 30,
       referenceDate: new Date("2026-04-23T12:00:00.000Z"),
     })
-    const product = result.products[0]
+    const [product] = result.products
     const variant = product?.variants?.[0]
 
     expect(variant?.prices).toStrictEqual([
@@ -277,10 +312,10 @@ describe("Herbatica seed promo rebase", () => {
         endsAt: "2026-05-23T23:59:59.999Z",
         prices: [
           {
-            productHandle: "shopitem-42",
-            variantSku: "SHOPITEM-42-42",
             amount: 7.99,
             currencyCode: "eur",
+            productHandle: "shopitem-42",
+            variantSku: "SHOPITEM-42-42",
           },
         ],
         sourceTitle: "Default pricelist",
@@ -355,10 +390,10 @@ describe("Herbatica seed price-list parsing", () => {
         customerGroupName: "Partnerský cenník",
         prices: [
           {
-            productHandle: "shopitem-pricelist-override",
-            variantSku: "SHOPITEM-PRICELIST-OVERRIDE-PRICELIST-OVERRIDE",
             amount: 8.5,
             currencyCode: "eur",
+            productHandle: "shopitem-pricelist-override",
+            variantSku: "SHOPITEM-PRICELIST-OVERRIDE-PRICELIST-OVERRIDE",
           },
         ],
         title: "Partnerský cenník",
@@ -466,16 +501,16 @@ describe("Herbatica seed price-list parsing", () => {
         endsAt: "2026-06-30T23:59:59.999Z",
         prices: [
           {
-            productHandle: "shopitem-sale-a",
-            variantSku: "SHOPITEM-SALE-A-SALE-A",
             amount: 7.25,
             currencyCode: "eur",
+            productHandle: "shopitem-sale-a",
+            variantSku: "SHOPITEM-SALE-A-SALE-A",
           },
           {
-            productHandle: "shopitem-sale-b",
-            variantSku: "SHOPITEM-SALE-B-SALE-B",
             amount: 8.25,
             currencyCode: "eur",
+            productHandle: "shopitem-sale-b",
+            variantSku: "SHOPITEM-SALE-B-SALE-B",
           },
         ],
         sourceTitle: "Partneri",
@@ -522,8 +557,8 @@ describe("Herbatica seed stock parsing", () => {
     expect(variant?.quantities).toStrictEqual({
       locations: [
         {
-          stockLocationName: "European Warehouse",
           quantity: 7,
+          stockLocationName: "European Warehouse",
         },
       ],
       quantity: 7,
@@ -735,16 +770,16 @@ describe("Herbatica seed product references", () => {
       alternative_product_handles: ["shopitem-3"],
       alternative_product_refs: [
         {
-          source_shopitem_id: "3",
           handle: "shopitem-3",
+          source_shopitem_id: "3",
         },
       ],
       alternative_products: ["3"],
       related_product_handles: ["shopitem-2"],
       related_product_refs: [
         {
-          source_shopitem_id: "2",
           handle: "shopitem-2",
+          source_shopitem_id: "2",
         },
       ],
       related_products: ["1", "2", "4", "999"],
@@ -753,109 +788,128 @@ describe("Herbatica seed product references", () => {
 })
 
 describe("Herbatica seed product content sections", () => {
-  it("splits labeled product description fragments into tab sections", () => {
-    const xml = `
-      <SHOP>
-        <SHOPITEM id="16182">
-          <NAME>Olej zo semien ostropestreca</NAME>
-          <SHORT_DESCRIPTION><![CDATA[
-            <p>Krátky popis produktu.</p>
-          ]]></SHORT_DESCRIPTION>
-          <DESCRIPTION><![CDATA[
-            <p>Hlavný popis produktu so <strong>silným marketingovým tvrdením</strong>.</p>
-            <p>
-              <span><strong>Spôsob užívania a o</strong></span>
-              <span>
-                <strong>dporúčané dávkovanie:</strong> Dospelí užívajú 4 kapsuly denne.
-                <br /><br />
-                <strong>Zdravotné upozornenia:</strong> Neprekračujte odporúčanú dennú dávku.
-              </span>
-            </p>
-            <p><strong>Výživové údaje na 100 g:</strong> Energia 3692 kJ.</p>
-            <p><strong>Skladovanie:</strong> Skladujte na tmavom mieste.</p>
-            <p><strong>Obsah balenia/Objem:</strong> 100 kapsúl.</p>
-            <p><strong>Krajina pôvodu:</strong> Estónsko.</p>
-          ]]></DESCRIPTION>
-          <PRICE_VAT>12.90</PRICE_VAT>
-          <CURRENCY>EUR</CURRENCY>
-          <VISIBLE>1</VISIBLE>
-          <STOCK>
-            <AMOUNT>3</AMOUNT>
-          </STOCK>
-          <CATEGORIES>
-            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
-            <DEFAULT_CATEGORY id="1701">Doplnky výživy</DEFAULT_CATEGORY>
-          </CATEGORIES>
-          <TEXT_PROPERTIES>
-            <TEXT_PROPERTY>
-              <NAME>Zloženie</NAME>
-              <VALUE>Olej zo semien ostropestreca.</VALUE>
-            </TEXT_PROPERTY>
-          </TEXT_PROPERTIES>
-        </SHOPITEM>
-      </SHOP>
-    `
+  describe("splits labeled product description fragments into tab sections", () => {
+    let contentSections: HerbaticaContentSections
 
-    const result = buildSeedInputFromXml(xml)
-    const contentSections = getContentSections(result.products[0])
+    beforeEach(() => {
+      const xml = `
+        <SHOP>
+          <SHOPITEM id="16182">
+            <NAME>Olej zo semien ostropestreca</NAME>
+            <SHORT_DESCRIPTION><![CDATA[
+              <p>Krátky popis produktu.</p>
+            ]]></SHORT_DESCRIPTION>
+            <DESCRIPTION><![CDATA[
+              <p>Hlavný popis produktu so <strong>silným marketingovým tvrdením</strong>.</p>
+              <p>
+                <span><strong>Spôsob užívania a o</strong></span>
+                <span>
+                  <strong>dporúčané dávkovanie:</strong> Dospelí užívajú 4 kapsuly denne.
+                  <br /><br />
+                  <strong>Zdravotné upozornenia:</strong> Neprekračujte odporúčanú dennú dávku.
+                </span>
+              </p>
+              <p><strong>Výživové údaje na 100 g:</strong> Energia 3692 kJ.</p>
+              <p><strong>Skladovanie:</strong> Skladujte na tmavom mieste.</p>
+              <p><strong>Obsah balenia/Objem:</strong> 100 kapsúl.</p>
+              <p><strong>Krajina pôvodu:</strong> Estónsko.</p>
+            ]]></DESCRIPTION>
+            <PRICE_VAT>12.90</PRICE_VAT>
+            <CURRENCY>EUR</CURRENCY>
+            <VISIBLE>1</VISIBLE>
+            <STOCK>
+              <AMOUNT>3</AMOUNT>
+            </STOCK>
+            <CATEGORIES>
+              <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+              <DEFAULT_CATEGORY id="1701">Doplnky výživy</DEFAULT_CATEGORY>
+            </CATEGORIES>
+            <TEXT_PROPERTIES>
+              <TEXT_PROPERTY>
+                <NAME>Zloženie</NAME>
+                <VALUE>Olej zo semien ostropestreca.</VALUE>
+              </TEXT_PROPERTY>
+            </TEXT_PROPERTIES>
+          </SHOPITEM>
+        </SHOP>
+      `
 
-    expect(contentSections["description"]).toContain("Hlavný popis produktu")
-    expect(contentSections["description"]).toContain("Krátky popis produktu")
-    expect(contentSections["description"]).not.toContain("Neprekračujte")
-    expect(contentSections["description"]).not.toContain("Skladovanie")
-    expect(contentSections["usage"]).toContain(
-      "Dospelí užívajú 4 kapsuly denne",
-    )
-    expect(contentSections["warning"]).toContain("Neprekračujte")
-    expect(contentSections["composition"]).toContain(
-      "Olej zo semien ostropestreca",
-    )
-    expect(contentSections["other"]).toContain("Výživové údaje")
-    expect(contentSections["other"]).toContain("Skladovanie")
-    expect(contentSections["other"]).toContain("Obsah balenia/Objem")
-    expect(contentSections["other"]).toContain("Krajina pôvodu")
+      const result = buildSeedInputFromXml(xml)
+      contentSections = getContentSections(result.products[0])
+    })
+
+    it("keeps the marketing claim and short description merged into description", () => {
+      expect(contentSections.description).toContain("Hlavný popis produktu")
+      expect(contentSections.description).toContain("Krátky popis produktu")
+      expect(contentSections.description).not.toContain("Neprekračujte")
+      expect(contentSections.description).not.toContain("Skladovanie")
+    })
+
+    it("extracts usage, warning, and composition into their own sections", () => {
+      expect(contentSections.usage).toContain("Dospelí užívajú 4 kapsuly denne")
+      expect(contentSections.warning).toContain("Neprekračujte")
+      expect(contentSections.composition).toContain(
+        "Olej zo semien ostropestreca",
+      )
+    })
+
+    it("places nutrition, storage, package, and origin details into other", () => {
+      expect(contentSections.other).toContain("Výživové údaje")
+      expect(contentSections.other).toContain("Skladovanie")
+      expect(contentSections.other).toContain("Obsah balenia/Objem")
+      expect(contentSections.other).toContain("Krajina pôvodu")
+    })
   })
 
-  it("uses explicit section headings without classifying marketing headings", () => {
-    const xml = `
-      <SHOP>
-        <SHOPITEM id="200">
-          <NAME>Produkt s heading sekciami</NAME>
-          <DESCRIPTION><![CDATA[
-            <h2>Prečo je produkt výnimočný</h2>
-            <p><strong>regenerácia pečene</strong> a podpora vitality.</p>
-            <h2>Použitie</h2>
-            <p>Užívajte jednu kapsulu denne.</p>
-            <h2>Upozornenie</h2>
-            <p>Nevhodné pre deti.</p>
-            <h2>Jednoduché použitie v praxi</h2>
-            <p>Tento marketingový odsek má zostať v popise.</p>
-          ]]></DESCRIPTION>
-          <PRICE_VAT>8.90</PRICE_VAT>
-          <CURRENCY>EUR</CURRENCY>
-          <VISIBLE>1</VISIBLE>
-          <STOCK>
-            <AMOUNT>3</AMOUNT>
-          </STOCK>
-          <CATEGORIES>
-            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
-            <DEFAULT_CATEGORY id="1701">Doplnky výživy</DEFAULT_CATEGORY>
-          </CATEGORIES>
-        </SHOPITEM>
-      </SHOP>
-    `
+  describe("uses explicit section headings without classifying marketing headings", () => {
+    let contentSections: HerbaticaContentSections
 
-    const result = buildSeedInputFromXml(xml)
-    const contentSections = getContentSections(result.products[0])
+    beforeEach(() => {
+      const xml = `
+        <SHOP>
+          <SHOPITEM id="200">
+            <NAME>Produkt s heading sekciami</NAME>
+            <DESCRIPTION><![CDATA[
+              <h2>Prečo je produkt výnimočný</h2>
+              <p><strong>regenerácia pečene</strong> a podpora vitality.</p>
+              <h2>Použitie</h2>
+              <p>Užívajte jednu kapsulu denne.</p>
+              <h2>Upozornenie</h2>
+              <p>Nevhodné pre deti.</p>
+              <h2>Jednoduché použitie v praxi</h2>
+              <p>Tento marketingový odsek má zostať v popise.</p>
+            ]]></DESCRIPTION>
+            <PRICE_VAT>8.90</PRICE_VAT>
+            <CURRENCY>EUR</CURRENCY>
+            <VISIBLE>1</VISIBLE>
+            <STOCK>
+              <AMOUNT>3</AMOUNT>
+            </STOCK>
+            <CATEGORIES>
+              <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+              <DEFAULT_CATEGORY id="1701">Doplnky výživy</DEFAULT_CATEGORY>
+            </CATEGORIES>
+          </SHOPITEM>
+        </SHOP>
+      `
 
-    expect(contentSections["description"]).toContain("regenerácia pečene")
-    expect(contentSections["description"]).toContain(
-      "Jednoduché použitie v praxi",
-    )
-    expect(contentSections["description"]).toContain("marketingový odsek")
-    expect(contentSections["usage"]).toContain("Užívajte jednu kapsulu denne")
-    expect(contentSections["warning"]).toContain("Nevhodné pre deti")
-    expect(contentSections["usage"]).not.toContain("marketingový odsek")
+      const result = buildSeedInputFromXml(xml)
+      contentSections = getContentSections(result.products[0])
+    })
+
+    it("keeps the marketing heading and its paragraph in description", () => {
+      expect(contentSections.description).toContain("regenerácia pečene")
+      expect(contentSections.description).toContain(
+        "Jednoduché použitie v praxi",
+      )
+      expect(contentSections.description).toContain("marketingový odsek")
+    })
+
+    it("classifies usage and warning headings without leaking the marketing paragraph", () => {
+      expect(contentSections.usage).toContain("Užívajte jednu kapsulu denne")
+      expect(contentSections.warning).toContain("Nevhodné pre deti")
+      expect(contentSections.usage).not.toContain("marketingový odsek")
+    })
   })
 
   it("splits multiple labels from the same paragraph without duplicating them in description", () => {
@@ -890,11 +944,11 @@ describe("Herbatica seed product content sections", () => {
     const result = buildSeedInputFromXml(xml)
     const contentSections = getContentSections(result.products[0])
 
-    expect(contentSections["description"]).toContain("Úvodný popis")
-    expect(contentSections["description"]).not.toContain("amarantový olej")
-    expect(contentSections["composition"]).toContain("amarantový olej")
-    expect(contentSections["other"]).toContain("Objem")
-    expect(contentSections["other"]).toContain("Krajina pôvodu")
+    expect(contentSections.description).toContain("Úvodný popis")
+    expect(contentSections.description).not.toContain("amarantový olej")
+    expect(contentSections.composition).toContain("amarantový olej")
+    expect(contentSections.other).toContain("Objem")
+    expect(contentSections.other).toContain("Krajina pôvodu")
   })
 })
 
@@ -930,11 +984,10 @@ describe("Herbatica Shoptet workflow input", () => {
       fulfillmentSetType: "shipping",
       regionsInput: [
         {
-          name: "Europe",
-          currencyCode: "eur",
           countries: ["sk"],
-          paymentProviders: undefined,
+          currencyCode: "eur",
           isTaxInclusive: true,
+          name: "Europe",
         },
       ],
       serviceZoneName: "Europe",
@@ -949,11 +1002,11 @@ describe("Herbatica Shoptet workflow input", () => {
 })
 
 describe("Herbatica committed feed fixtures", () => {
-  const productsXmlPath = resolve(
+  const productsXmlPath = path.resolve(
     process.cwd(),
     "src/scripts/seed-files/productsComplete.xml",
   )
-  const categoriesXmlPath = resolve(
+  const categoriesXmlPath = path.resolve(
     process.cwd(),
     "src/scripts/seed-files/categories.xml",
   )
@@ -968,72 +1021,92 @@ describe("Herbatica committed feed fixtures", () => {
     expect(categoriesXml).not.toMatch(DIRTY_FEED_MARKUP_PATTERN)
   })
 
-  it("preserves parser coverage for metadata, references, hidden products, and duplicate variants", () => {
-    const productsXml = readFileSync(productsXmlPath, "utf-8")
-    const categoryExports = parseHerbaticaCategoriesXmlFile(categoriesXmlPath)
-    const result = buildSeedInputFromXml(productsXml, categoryExports, {
-      referenceDate: new Date("2026-04-23T12:00:00.000Z"),
+  describe("preserves parser coverage for metadata, references, hidden products, and duplicate variants", () => {
+    let result: ReturnType<typeof buildSeedInputFromXml>
+    let mainProduct:
+      | ReturnType<typeof buildSeedInputFromXml>["products"][number]
+      | undefined
+    let hiddenProduct:
+      | ReturnType<typeof buildSeedInputFromXml>["products"][number]
+      | undefined
+
+    beforeEach(() => {
+      const productsXml = readFileSync(productsXmlPath, "utf-8")
+      const categoryExports = parseHerbaticaCategoriesXmlFile(categoriesXmlPath)
+      result = buildSeedInputFromXml(productsXml, categoryExports, {
+        referenceDate: new Date("2026-04-23T12:00:00.000Z"),
+      })
+
+      mainProduct = result.products.find(
+        (product) => product.handle === "shopitem-fixture-main",
+      )
+      hiddenProduct = result.products.find(
+        (product) => product.handle === "shopitem-fixture-hidden",
+      )
     })
 
-    expect(result.stats).toStrictEqual({
-      categories: 5,
-      hiddenProducts: 1,
-      overridePriceLists: 0,
-      priceListPrices: 1,
-      products: 4,
-      salePriceLists: 1,
-      shopItems: 4,
-      stockLocations: 1,
-      variants: 5,
-      warnings: 0,
+    it("computes aggregate stats and canonical category handles", () => {
+      expect(result.stats).toStrictEqual({
+        categories: 5,
+        hiddenProducts: 1,
+        overridePriceLists: 0,
+        priceListPrices: 1,
+        products: 4,
+        salePriceLists: 1,
+        shopItems: 4,
+        stockLocations: 1,
+        variants: 5,
+        warnings: 0,
+      })
+      expect(
+        result.categories.map((category) => category.handle),
+      ).toStrictEqual(
+        expect.arrayContaining([
+          "trapi-ma",
+          "trapi-ma-srdce-a-cievy",
+          "trapi-ma-srdce-a-cievy-krcove-zily",
+        ]),
+      )
     })
-    expect(result.categories.map((category) => category.handle)).toStrictEqual(
-      expect.arrayContaining([
-        "trapi-ma",
-        "trapi-ma-srdce-a-cievy",
-        "trapi-ma-srdce-a-cievy-krcove-zily",
-      ]),
-    )
 
-    const mainProduct = result.products.find(
-      (product) => product.handle === "shopitem-fixture-main",
-    )
-    const hiddenProduct = result.products.find(
-      (product) => product.handle === "shopitem-fixture-hidden",
-    )
-
-    expect(mainProduct?.categories).toStrictEqual([
-      {
-        handle: "trapi-ma-srdce-a-cievy-krcove-zily",
-      },
-    ])
-    expect(mainProduct?.metadata).toMatchObject({
-      alternative_product_handles: ["shopitem-fixture-alt"],
-      alternative_products: ["fixture-alt"],
-      related_product_handles: ["shopitem-fixture-related"],
-      related_product_refs: [
+    it("resolves the main product's category and cross-reference metadata", () => {
+      expect(mainProduct?.categories).toStrictEqual([
         {
-          source_shopitem_id: "fixture-related",
-          handle: "shopitem-fixture-related",
+          handle: "trapi-ma-srdce-a-cievy-krcove-zily",
         },
-      ],
-      related_products: [
-        "fixture-main",
-        "fixture-related",
-        "fixture-hidden",
-        "missing-product",
-      ],
-      source_category_ids: ["901"],
-      source_default_category_id: "901",
+      ])
+      expect(mainProduct?.metadata).toMatchObject({
+        alternative_product_handles: ["shopitem-fixture-alt"],
+        alternative_products: ["fixture-alt"],
+        related_product_handles: ["shopitem-fixture-related"],
+        related_product_refs: [
+          {
+            handle: "shopitem-fixture-related",
+            source_shopitem_id: "fixture-related",
+          },
+        ],
+        related_products: [
+          "fixture-main",
+          "fixture-related",
+          "fixture-hidden",
+          "missing-product",
+        ],
+        source_category_ids: ["901"],
+        source_default_category_id: "901",
+      })
     })
-    expect(mainProduct?.variants?.map((variant) => variant.sku)).toStrictEqual([
-      "SHOPITEM-FIXTURE-MAIN-VARIANT-VARIANT-DUP",
-      "SHOPITEM-FIXTURE-MAIN-VARIANT-VARIANT-DUP-2",
-    ])
-    expect(mainProduct?.variants?.map((variant) => variant.ean)).toStrictEqual([
-      "1234567890123",
-      "1234567890123",
-    ])
-    expect(hiddenProduct?.status).toBe(ProductStatus.DRAFT)
+
+    it("preserves duplicate variant SKU/EAN order and the hidden product status", () => {
+      expect(
+        mainProduct?.variants?.map((variant) => variant.sku),
+      ).toStrictEqual([
+        "SHOPITEM-FIXTURE-MAIN-VARIANT-VARIANT-DUP",
+        "SHOPITEM-FIXTURE-MAIN-VARIANT-VARIANT-DUP-2",
+      ])
+      expect(
+        mainProduct?.variants?.map((variant) => variant.ean),
+      ).toStrictEqual(["1234567890123", "1234567890123"])
+      expect(hiddenProduct?.status).toBe(ProductStatus.DRAFT)
+    })
   })
 })
