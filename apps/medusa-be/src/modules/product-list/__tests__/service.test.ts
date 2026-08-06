@@ -3,8 +3,7 @@ import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
 import { describe, expect, it, vi } from "vitest"
 
 import { PRODUCT_LIST_MODULE } from "../constants"
-import ProductList from "../models/product-list"
-import ProductListItem from "../models/product-list-item"
+import { ProductList, ProductListItem } from "../models/product-list"
 import type ProductListModuleService from "../service"
 
 moduleIntegrationTestRunner<ProductListModuleService>({

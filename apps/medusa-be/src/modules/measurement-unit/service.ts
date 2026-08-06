@@ -8,47 +8,22 @@ import {
   MedusaService,
 } from "@medusajs/framework/utils"
 
-import MeasurementUnit from "./models/measurement-unit"
-import ProductMeasurement from "./models/product-measurement"
-import ProductVariantMeasurement from "./models/product-variant-measurement"
+import {
+  MeasurementUnit,
+  ProductMeasurement,
+  ProductVariantMeasurement,
+} from "./models/measurement-unit"
 
 export interface ActiveProductCountRow {
   count: number | string
   measurement_unit_id: string
 }
 
-class MeasurementUnitModuleService extends MedusaService({
-  MeasurementUnit,
-  ProductMeasurement,
-  ProductVariantMeasurement,
-}) {
-  @InjectManager()
-  async runInTransaction<T>(
-    task: (context: Context<SqlEntityManager>) => Promise<T>,
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
-  ) {
-    return await this.runInTransaction_(task, sharedContext)
-  }
-
-  @InjectTransactionManager()
-  protected async runInTransaction_<T>(
-    task: (context: Context<SqlEntityManager>) => Promise<T>,
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
-  ) {
-    return await task(sharedContext)
-  }
-
-  @InjectManager()
-  async getActiveProductCounts(
-    unitIds: string[],
-    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
-  ): Promise<ActiveProductCountRow[]> {
-    const ids = [...new Set(unitIds)].filter(Boolean)
-
-    if (!ids.length) {
-      return [] as ActiveProductCountRow[]
-    }
-
+const measurementUnitOperations = {
+  executeActiveProductCountsQuery: async (
+    ids: string[],
+    sharedContext: Context<SqlEntityManager>,
+  ): Promise<ActiveProductCountRow[]> => {
     const { manager } = sharedContext
 
     if (!manager) {
@@ -67,6 +42,51 @@ class MeasurementUnitModuleService extends MedusaService({
          and "measurement_unit_id" in (${placeholders})
        group by "measurement_unit_id"`,
       ids,
+    )
+  },
+  executeTransactionTask: async <T>(
+    task: (context: Context<SqlEntityManager>) => Promise<T>,
+    sharedContext: Context<SqlEntityManager>,
+  ): Promise<T> => await task(sharedContext),
+}
+
+class MeasurementUnitModuleService extends MedusaService({
+  MeasurementUnit,
+  ProductMeasurement,
+  ProductVariantMeasurement,
+}) {
+  readonly #operations = measurementUnitOperations
+
+  @InjectManager()
+  async runInTransaction<T>(
+    task: (context: Context<SqlEntityManager>) => Promise<T>,
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
+  ) {
+    return await this.runInTransactionWithManager(task, sharedContext)
+  }
+
+  @InjectTransactionManager()
+  protected async runInTransactionWithManager<T>(
+    task: (context: Context<SqlEntityManager>) => Promise<T>,
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
+  ) {
+    return await this.#operations.executeTransactionTask(task, sharedContext)
+  }
+
+  @InjectManager()
+  async getActiveProductCounts(
+    unitIds: string[],
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {},
+  ): Promise<ActiveProductCountRow[]> {
+    const ids = [...new Set(unitIds)].filter(Boolean)
+
+    if (!ids.length) {
+      return []
+    }
+
+    return await this.#operations.executeActiveProductCountsQuery(
+      ids,
+      sharedContext,
     )
   }
 }

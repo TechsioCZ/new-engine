@@ -13,8 +13,7 @@ import {
   DEFAULT_FAVORITE_LIST_TITLE,
 } from "./constants"
 import type { ProductListAccessType, ProductListType } from "./constants"
-import ProductList from "./models/product-list"
-import ProductListItem from "./models/product-list-item"
+import { ProductList, ProductListItem } from "./models/product-list"
 import {
   normalizeNonNegativeInteger,
   normalizePositiveInteger,

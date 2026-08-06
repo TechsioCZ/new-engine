@@ -7,9 +7,11 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { isRecord } from "@techsio/std/object"
 
 import { MEASUREMENT_UNIT_MODULE } from "../modules/measurement-unit"
-import type MeasurementUnit from "../modules/measurement-unit/models/measurement-unit"
-import type ProductMeasurement from "../modules/measurement-unit/models/product-measurement"
-import type ProductVariantMeasurement from "../modules/measurement-unit/models/product-variant-measurement"
+import type {
+  MeasurementUnit,
+  ProductMeasurement,
+  ProductVariantMeasurement,
+} from "../modules/measurement-unit/models/measurement-unit"
 import type MeasurementUnitModuleService from "../modules/measurement-unit/service"
 
 export type MeasurementUnitRecord = InferEntityType<typeof MeasurementUnit>
