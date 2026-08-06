@@ -44,76 +44,110 @@ import {
   createStoreCustomerAddress,
 } from "./medusa-fixtures"
 
-const createWrapper =
-  (client: QueryClient) =>
-  ({ children }: { children: ReactNode }) => (
+const createWrapper = (client: QueryClient) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
+  return Wrapper
+}
 
 interface StoreCartLike {
   id: string
   region_id?: string | null
-  shipping_methods?: Array<{ shipping_option_id?: string }>
+  shipping_methods?: { shipping_option_id?: string }[]
   payment_collection?: { payment_sessions?: unknown[] } | null
 }
 
+type ClientFetchFn = (
+  path: string,
+  init?: { query?: Record<string, unknown> },
+) => Promise<Record<string, unknown>>
+type AddShippingMethodFn = () => Promise<{ cart: StoreCartLike }>
+type RetrieveCartFn = () => Promise<{ cart: StoreCartLike | null }>
+type InitiatePaymentSessionFn = () => Promise<{
+  payment_collection: { payment_sessions: unknown[] }
+}>
+
+type GetCustomerFn = () => Promise<HttpTypes.StoreCustomer | null>
+type LoginFn = () => Promise<string>
+type LogoutFn = () => Promise<void>
+type RegisterFn = () => Promise<string>
+type GetOrderFn = () => Promise<HttpTypes.StoreOrder | null>
+type GetOrdersFn = () => Promise<{
+  orders: HttpTypes.StoreOrder[]
+  count: number
+}>
+type CreateAddressFn = () => Promise<HttpTypes.StoreCustomerAddress>
+type DeleteAddressFn = () => Promise<void>
+type GetAddressesFn = () => Promise<{
+  addresses: HttpTypes.StoreCustomerAddress[]
+}>
+type UpdateAddressFn = () => Promise<HttpTypes.StoreCustomerAddress>
+type UpdateCustomerFn = () => Promise<HttpTypes.StoreCustomer>
+
 const createSdkMock = () => {
-  const clientFetch = vi.fn(
-    async (path: string): Promise<Record<string, unknown>> => {
-      if (path === "/store/products") {
-        return {
-          count: 1,
-          limit: 1,
-          offset: 0,
-          products: [{ id: "prod_1", handle: "p-1", title: "Product 1" }],
-        }
-      }
+  const clientFetch = vi.fn<ClientFetchFn>(async (path) => {
+    if (path === "/store/products") {
+      return await Promise.resolve({
+        count: 1,
+        limit: 1,
+        offset: 0,
+        products: [{ handle: "p-1", id: "prod_1", title: "Product 1" }],
+      })
+    }
 
-      if (path === "/store/shipping-options") {
-        return {
-          shipping_options: [{ amount: 150, id: "ship_1", price_type: "flat" }],
-        }
-      }
+    if (path === "/store/shipping-options") {
+      return await Promise.resolve({
+        shipping_options: [{ amount: 150, id: "ship_1", price_type: "flat" }],
+      })
+    }
 
-      if (path === "/store/payment-providers") {
-        return {
-          payment_providers: [],
-        }
-      }
+    if (path === "/store/payment-providers") {
+      return await Promise.resolve({
+        payment_providers: [],
+      })
+    }
 
-      if (path === "/store/product-lists/list_1/cart") {
-        return {
-          cart: {
-            id: "cart_from_list",
-            region_id: "reg_1",
-          },
-        }
-      }
+    if (path === "/store/product-lists/list_1/cart") {
+      return await Promise.resolve({
+        cart: {
+          id: "cart_from_list",
+          region_id: "reg_1",
+        },
+      })
+    }
 
-      return {}
-    },
-  )
+    return await Promise.resolve({})
+  })
 
-  const addShippingMethod = vi.fn(
-    async (): Promise<{ cart: StoreCartLike }> => ({
-      cart: {
-        id: "cart_1",
-        region_id: "reg_1",
-        shipping_methods: [{ shipping_option_id: "ship_1" }],
-      },
-    }),
+  const addShippingMethod = vi.fn<AddShippingMethodFn>(
+    async () =>
+      await Promise.resolve({
+        cart: {
+          id: "cart_1",
+          region_id: "reg_1",
+          shipping_methods: [{ shipping_option_id: "ship_1" }],
+        },
+      }),
   )
 
   const sdk = createTestMedusaSdk()
   Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
   Object.defineProperties(sdk.store.cart, {
     addShippingMethod: { value: addShippingMethod },
-    retrieve: { value: vi.fn(async () => ({ cart: null })) },
+    retrieve: {
+      value: vi.fn<RetrieveCartFn>(
+        async () => await Promise.resolve({ cart: null }),
+      ),
+    },
   })
   Object.defineProperty(sdk.store.payment, "initiatePaymentSession", {
-    value: vi.fn(async () => ({
-      payment_collection: { payment_sessions: [] },
-    })),
+    value: vi.fn<InitiatePaymentSessionFn>(
+      async () =>
+        await Promise.resolve({
+          payment_collection: { payment_sessions: [] },
+        }),
+    ),
   })
 
   return {
@@ -133,9 +167,9 @@ describe(createMedusaStorefrontPreset, () => {
       cart: {
         hooks: {
           cartStorage: {
-            clear: () => undefined,
+            clear: () => {},
             get: () => null,
-            set: () => undefined,
+            set: () => {},
           },
         },
       },
@@ -318,14 +352,12 @@ describe(createMedusaStorefrontPreset, () => {
       expect(result.current.isSuccess).toBeTruthy()
     })
 
-    expect(spies.clientFetch).toHaveBeenCalledWith(
-      "/store/products",
-      expect.objectContaining({
-        query: expect.objectContaining({
-          limit: 1,
-        }),
-      }),
+    const productsCall = spies.clientFetch.mock.calls.find(
+      ([path]) => path === "/store/products",
     )
+    expect(productsCall?.[1]?.query).toMatchObject({
+      limit: 1,
+    })
   })
 
   it("uses preset cart query keys as default checkout cart sync target", async () => {
@@ -397,11 +429,23 @@ describe(createMedusaStorefrontPreset, () => {
       string,
       string
     > = {
-      getCustomer: async () => null,
-      login: async () => "token",
+      getCustomer: async () => {
+        await Promise.resolve()
+        return null
+      },
+      login: async () => {
+        await Promise.resolve()
+        return "token"
+      },
       logout: async () => {},
-      register: async () => "token",
-      updateCustomer: async () => ({ id: "cus_1" }) as HttpTypes.StoreCustomer,
+      register: async () => {
+        await Promise.resolve()
+        return "token"
+      },
+      updateCustomer: async () => {
+        await Promise.resolve()
+        return createStoreCustomer("cus_1")
+      },
     }
     const customCustomerNamespace = ["custom", "customers"] as const
     const customCustomerQueryKeys: CustomerQueryKeys<MedusaCustomerListInput> =
@@ -583,37 +627,33 @@ describe(createMedusaStorefrontPreset, () => {
     const { sdk } = createSdkMock()
 
     const customAuthService = {
-      getCustomer: vi.fn(async () => null),
-      login: vi.fn(async () => "token"),
-      logout: vi.fn(async () => {}),
-      register: vi.fn(async () => "token"),
+      getCustomer: vi.fn<GetCustomerFn>().mockResolvedValue(null),
+      login: vi.fn<LoginFn>().mockResolvedValue("token"),
+      logout: vi.fn<LogoutFn>().mockResolvedValue(),
+      register: vi.fn<RegisterFn>().mockResolvedValue("token"),
     }
 
     const customOrderService = {
-      getOrder: vi.fn(async () => null),
-      getOrders: vi.fn(
-        async (): Promise<{
-          orders: HttpTypes.StoreOrder[]
-          count: number
-        }> => ({
-          orders: [],
-          count: 0,
-        }),
-      ),
+      getOrder: vi.fn<GetOrderFn>().mockResolvedValue(null),
+      getOrders: vi
+        .fn<GetOrdersFn>()
+        .mockResolvedValue({ count: 0, orders: [] }),
     }
 
     const customCustomerService = {
-      createAddress: vi.fn(async () => createStoreCustomerAddress("addr_1")),
-      deleteAddress: vi.fn(async () => {}),
-      getAddresses: vi.fn(
-        async (): Promise<{
-          addresses: HttpTypes.StoreCustomerAddress[]
-        }> => ({
-          addresses: [],
-        }),
-      ),
-      updateAddress: vi.fn(async () => createStoreCustomerAddress("addr_1")),
-      updateCustomer: vi.fn(async () => createStoreCustomer("cus_1")),
+      createAddress: vi
+        .fn<CreateAddressFn>()
+        .mockResolvedValue(createStoreCustomerAddress("addr_1")),
+      deleteAddress: vi.fn<DeleteAddressFn>().mockResolvedValue(),
+      getAddresses: vi.fn<GetAddressesFn>().mockResolvedValue({
+        addresses: [],
+      }),
+      updateAddress: vi
+        .fn<UpdateAddressFn>()
+        .mockResolvedValue(createStoreCustomerAddress("addr_1")),
+      updateCustomer: vi
+        .fn<UpdateCustomerFn>()
+        .mockResolvedValue(createStoreCustomer("cus_1")),
     }
 
     const preset = createMedusaStorefrontPreset({
@@ -647,7 +687,9 @@ describe(createMedusaStorefrontPreset, () => {
     })
 
     await waitFor(() => {
-      expect(customAuthService.getCustomer).toHaveBeenCalledWith()
+      expect(customAuthService.getCustomer).toHaveBeenCalledWith(
+        expect.any(AbortSignal),
+      )
       expect(customOrderService.getOrders).toHaveBeenCalledWith(
         { limit: 5, offset: 0 },
         expect.any(Object),
