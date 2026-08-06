@@ -9,11 +9,12 @@ import { createOrderHooks } from "../src/orders/hooks"
 import { createProductHooks } from "../src/products/hooks"
 import { resolvePagination as resolveSharedPagination } from "../src/shared/pagination"
 
-const createWrapper =
-  (client: QueryClient) =>
-  ({ children }: { children: ReactNode }) => (
+const createWrapper = (client: QueryClient) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
+  return Wrapper
+}
 
 describe("phase 3 regressions", () => {
   it("resolves shared pagination behavior for page and offset inputs", () => {
@@ -55,15 +56,23 @@ describe("phase 3 regressions", () => {
     const seenDetailParams: DetailParams[] = []
 
     const service = {
-      getOrder: vi.fn(async (params: DetailParams) => {
-        seenDetailParams.push(params)
-        return { id: "order_1" }
-      }),
-      getOrders: vi.fn(async (params: ListParams) => {
+      getOrder: vi.fn<(params: DetailParams) => Promise<{ id: string }>>(
+        async (params) => {
+          seenDetailParams.push(params)
+          await Promise.resolve()
+          return { id: "order_1" }
+        },
+      ),
+      getOrders: vi.fn<
+        (
+          params: ListParams,
+        ) => Promise<{ orders: { id: string }[]; count: number }>
+      >(async (params) => {
         seenListParams.push(params)
+        await Promise.resolve()
         return {
-          orders: [{ id: "order_1" }],
           count: 1,
+          orders: [{ id: "order_1" }],
         }
       }),
     }
@@ -126,13 +135,23 @@ describe("phase 3 regressions", () => {
     }
 
     const service = {
-      getOrder: vi.fn(async (params: DetailParams) => ({
-        id: params.id ?? "missing",
-      })),
-      getOrders: vi.fn(async (params: ListParams) => ({
-        orders: [{ id: `order_page_${params.page ?? 1}` }],
-        count: 1,
-      })),
+      getOrder: vi.fn<(params: DetailParams) => Promise<{ id: string }>>(
+        async (params) => {
+          await Promise.resolve()
+          return { id: params.id ?? "missing" }
+        },
+      ),
+      getOrders: vi.fn<
+        (
+          params: ListParams,
+        ) => Promise<{ orders: { id: string }[]; count: number }>
+      >(async (params) => {
+        await Promise.resolve()
+        return {
+          count: 1,
+          orders: [{ id: `order_page_${params.page ?? 1}` }],
+        }
+      }),
     }
 
     const { getListQueryOptions, getDetailQueryOptions } = createOrderHooks<
@@ -207,22 +226,42 @@ describe("phase 3 regressions", () => {
       region_id?: string
     }
 
+    interface ProductListResult {
+      products: { handle: string }[]
+      count: number
+      limit: number
+      offset: number
+    }
+
     const service = {
-      getProductByHandle: vi.fn(async (params: DetailParams) => ({
-        handle: params.handle,
-      })),
-      getProducts: vi.fn(async (params: ListParams) => ({
-        products: [{ handle: `list-${params.page ?? 1}` }],
-        count: 1,
-        limit: params.limit ?? 20,
-        offset: 0,
-      })),
-      getProductsGlobal: vi.fn(async (params: ListParams) => ({
-        products: [{ handle: `global-${params.page ?? 1}` }],
-        count: 1,
-        limit: params.limit ?? 20,
-        offset: 0,
-      })),
+      getProductByHandle: vi.fn<
+        (params: DetailParams) => Promise<{ handle: string }>
+      >(async (params) => {
+        await Promise.resolve()
+        return { handle: params.handle }
+      }),
+      getProducts: vi.fn<(params: ListParams) => Promise<ProductListResult>>(
+        async (params) => {
+          await Promise.resolve()
+          return {
+            count: 1,
+            limit: params.limit ?? 20,
+            offset: 0,
+            products: [{ handle: `list-${params.page ?? 1}` }],
+          }
+        },
+      ),
+      getProductsGlobal: vi.fn<
+        (params: ListParams) => Promise<ProductListResult>
+      >(async (params) => {
+        await Promise.resolve()
+        return {
+          count: 1,
+          limit: params.limit ?? 20,
+          offset: 0,
+          products: [{ handle: `global-${params.page ?? 1}` }],
+        }
+      }),
     }
 
     const { getListQueryOptions, getDetailQueryOptions } = createProductHooks<
@@ -234,19 +273,25 @@ describe("phase 3 regressions", () => {
     >({
       buildDetailParams: (input) => ({
         handle: input.handle,
-        ...(input.region_id ? { region_id: input.region_id } : {}),
+        ...(input.region_id !== undefined && input.region_id !== ""
+          ? { region_id: input.region_id }
+          : {}),
       }),
       buildListParams: (input) => ({
         ...(input.page === undefined ? {} : { page: input.page }),
         ...(input.limit === undefined ? {} : { limit: input.limit }),
         ...(input.offset === undefined ? {} : { offset: input.offset }),
-        ...(input.region_id ? { region_id: input.region_id } : {}),
+        ...(input.region_id !== undefined && input.region_id !== ""
+          ? { region_id: input.region_id }
+          : {}),
       }),
       buildPrefetchParams: (input) => ({
         ...(input.page === undefined ? {} : { page: input.page }),
         ...(input.limit === undefined ? {} : { limit: input.limit }),
         ...(input.offset === undefined ? {} : { offset: input.offset }),
-        ...(input.region_id ? { region_id: input.region_id } : {}),
+        ...(input.region_id !== undefined && input.region_id !== ""
+          ? { region_id: input.region_id }
+          : {}),
       }),
       queryKeyNamespace: "phase3-product-query-options",
       requireRegion: false,
@@ -315,13 +360,26 @@ describe("phase 3 regressions", () => {
     }
 
     const service = {
-      getProductByHandle: vi.fn(async () => null as Product | null),
-      getProducts: vi.fn(async () => ({
-        products: [] as Product[],
-        count: 0,
-        limit: 20,
-        offset: 0,
-      })),
+      getProductByHandle: vi.fn<() => Promise<Product | null>>(async () => {
+        await Promise.resolve()
+        return null
+      }),
+      getProducts: vi.fn<
+        () => Promise<{
+          products: Product[]
+          count: number
+          limit: number
+          offset: number
+        }>
+      >(async () => {
+        await Promise.resolve()
+        return {
+          count: 0,
+          limit: 20,
+          offset: 0,
+          products: [],
+        }
+      }),
     }
 
     const { useSuspenseProducts, useSuspenseProduct } = createProductHooks<
@@ -333,12 +391,16 @@ describe("phase 3 regressions", () => {
     >({
       buildDetailParams: (input) => ({
         handle: input.handle,
-        ...(input.region_id ? { region_id: input.region_id } : {}),
+        ...(input.region_id !== undefined && input.region_id !== ""
+          ? { region_id: input.region_id }
+          : {}),
       }),
       buildListParams: (input) => ({
         ...(input.page === undefined ? {} : { page: input.page }),
         ...(input.limit === undefined ? {} : { limit: input.limit }),
-        ...(input.region_id ? { region_id: input.region_id } : {}),
+        ...(input.region_id !== undefined && input.region_id !== ""
+          ? { region_id: input.region_id }
+          : {}),
       }),
       queryKeyNamespace: "phase3-suspense-input-types",
       requireRegion: false,
@@ -363,9 +425,9 @@ describe("phase 3 regressions", () => {
     // @ts-expect-error -- suspense list contracts intentionally reject enabled
     const invalidListInput: SuspenseListInput = { enabled: false, page: 1 }
     const invalidDetailInput: SuspenseDetailInput = {
-      handle: "hoodie",
       // @ts-expect-error -- suspense detail contracts intentionally reject enabled
       enabled: false,
+      handle: "hoodie",
     }
     void invalidListInput
     void invalidDetailInput
@@ -382,11 +444,23 @@ describe("phase 3 regressions", () => {
     }
 
     const service = {
-      createAddress: vi.fn(async () => ({ id: "addr_created" })),
-      deleteAddress: vi.fn(async () => {}),
-      getAddresses: vi.fn(async () => ({ addresses: [] as Address[] })),
-      updateAddress: vi.fn(async () => ({ id: "addr_updated" })),
-      updateCustomer: vi.fn(async () => ({ id: "cus_1" })),
+      createAddress: vi.fn<() => Promise<{ id: string }>>(async () => {
+        await Promise.resolve()
+        return { id: "addr_created" }
+      }),
+      deleteAddress: vi.fn<() => Promise<void>>(async () => {}),
+      getAddresses: vi.fn<() => Promise<{ addresses: Address[] }>>(async () => {
+        await Promise.resolve()
+        return { addresses: [] }
+      }),
+      updateAddress: vi.fn<() => Promise<{ id: string }>>(async () => {
+        await Promise.resolve()
+        return { id: "addr_updated" }
+      }),
+      updateCustomer: vi.fn<() => Promise<{ id: string }>>(async () => {
+        await Promise.resolve()
+        return { id: "cus_1" }
+      }),
     }
 
     const { useDeleteCustomerAddress } = createCustomerHooks<
@@ -411,9 +485,9 @@ describe("phase 3 regressions", () => {
     })
 
     await act(async () => {
-      await expect(result.current.mutateAsync({} as never)).rejects.toThrow(
-        "Address id is required",
-      )
+      await expect(
+        result.current.mutateAsync({ addressId: "" }),
+      ).rejects.toThrow("Address id is required")
     })
 
     await act(async () => {
