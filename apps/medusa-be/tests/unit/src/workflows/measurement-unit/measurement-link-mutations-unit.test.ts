@@ -1,5 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 interface MockContext {
   container: { resolve: (name: string) => unknown }
 }
@@ -12,61 +23,73 @@ type MockStep = MockInvoke & { compensate: MockCompensate }
 
 const { link } = vi.hoisted(() => ({
   link: {
-    dismiss: vi.fn<(input: unknown) => Promise<void>>().mockResolvedValue(),
-    restore: vi.fn<(input: unknown) => Promise<void>>().mockResolvedValue(),
+    dismiss: vi
+      .fn<(input: unknown) => Promise<void>>()
+      .mockImplementation(async () => {}),
+    restore: vi
+      .fn<(input: unknown) => Promise<void>>()
+      .mockImplementation(async () => {}),
   },
 }))
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: class StepResponse<
-    TPayload = unknown,
-    TCompensationInput = unknown,
-  > {
-    compensateInput: TCompensationInput
-    payload: TPayload
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: class StepResponse<
+      TPayload = unknown,
+      TCompensationInput = unknown,
+    > {
+      compensateInput: TCompensationInput
+      payload: TPayload
 
-    constructor(payload: TPayload, compensateInput: TCompensationInput) {
-      this.payload = payload
-      this.compensateInput = compensateInput
-    }
-  },
-  createStep: vi.fn<
-    (name: string, invoke: MockInvoke, compensate: MockCompensate) => MockStep
-  >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
-}))
-
-vi.mock(import("../../../../../src/modules/measurement-unit"), () => ({
-  MEASUREMENT_UNIT_MODULE: "measurement_unit",
-}))
-
-vi.mock(
-  import("../../../../../src/workflows/measurement-unit/steps/helpers"),
-  () => ({
-    productMeasurementLink: (
-      productId: string,
-      productMeasurementId: string,
-    ) => ({
-      measurement_unit: { product_measurement_id: productMeasurementId },
-      product: { product_id: productId },
-    }),
-    productVariantMeasurementLink: (
-      productVariantId: string,
-      productVariantMeasurementId: string,
-    ) => ({
-      measurement_unit: {
-        product_variant_measurement_id: productVariantMeasurementId,
-      },
-      product: { product_variant_id: productVariantId },
-    }),
+      constructor(payload: TPayload, compensateInput: TCompensationInput) {
+        this.payload = payload
+        this.compensateInput = compensateInput
+      }
+    },
+    createStep: vi.fn<
+      (name: string, invoke: MockInvoke, compensate: MockCompensate) => MockStep
+    >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
   }),
 )
 
+vi.mock(
+  import("../../../../../src/modules/measurement-unit"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      MEASUREMENT_UNIT_MODULE: "measurement_unit",
+    }),
+)
+
+vi.mock(
+  import("../../../../../src/workflows/measurement-unit/steps/helpers"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      productMeasurementLink: (
+        productId: string,
+        productMeasurementId: string,
+      ) => ({
+        measurement_unit: { product_measurement_id: productMeasurementId },
+        product: { product_id: productId },
+      }),
+      productVariantMeasurementLink: (
+        productVariantId: string,
+        productVariantMeasurementId: string,
+      ) => ({
+        measurement_unit: {
+          product_variant_measurement_id: productVariantMeasurementId,
+        },
+        product: { product_variant_id: productVariantId },
+      }),
+    }),
+)
+
+const isMockStep = (candidate: unknown): candidate is MockStep =>
+  typeof candidate === "function" &&
+  "compensate" in candidate &&
+  typeof candidate.compensate === "function"
+
 const asMockStep = (candidate: unknown): MockStep => {
-  if (
-    typeof candidate !== "function" ||
-    !("compensate" in candidate) ||
-    typeof candidate.compensate !== "function"
-  ) {
+  if (!isMockStep(candidate)) {
     throw new TypeError(
       "Expected the imported workflow step to be a mocked function",
     )

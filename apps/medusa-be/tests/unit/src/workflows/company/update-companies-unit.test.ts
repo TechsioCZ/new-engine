@@ -4,6 +4,17 @@ import type { Mock } from "vitest"
 
 import { COMPANY_MODULE } from "../../../../../src/modules/company"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 type StepInvoke = (input: unknown, context: unknown) => Promise<unknown>
 type StepCompensate = (input: unknown, context: unknown) => Promise<void>
 type CreateStep = (
@@ -13,23 +24,25 @@ type CreateStep = (
 ) => StepInvoke & { compensate: StepCompensate }
 type ServiceMethod = (input: unknown) => Promise<unknown>
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: class StepResponse<
-    TPayload = unknown,
-    TCompensationInput = unknown,
-  > {
-    compensateInput: TCompensationInput | undefined
-    payload: TPayload
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: class StepResponse<
+      TPayload = unknown,
+      TCompensationInput = unknown,
+    > {
+      compensateInput: TCompensationInput | undefined
+      payload: TPayload
 
-    constructor(payload: TPayload, compensateInput?: TCompensationInput) {
-      this.payload = payload
-      this.compensateInput = compensateInput
-    }
-  },
-  createStep: vi.fn<CreateStep>((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate }),
-  ),
-}))
+      constructor(payload: TPayload, compensateInput?: TCompensationInput) {
+        this.payload = payload
+        this.compensateInput = compensateInput
+      }
+    },
+    createStep: vi.fn<CreateStep>((_name, invoke, compensate) =>
+      Object.assign(invoke, { compensate }),
+    ),
+  }),
+)
 
 interface MockCompanyService {
   listCompanies: Mock<ServiceMethod>

@@ -5,17 +5,17 @@ import { describe, expect, it, vi } from "vitest"
 type JsonMock = ReturnType<typeof vi.fn<(body: unknown) => unknown>>
 type MockResponse = MedusaResponse & { json: JsonMock }
 
-const assertMockRequest = (
+const assertMockRequest: (
   candidate: unknown,
-): asserts candidate is MedusaRequest => {
+) => asserts candidate is MedusaRequest = (candidate) => {
   if (!isRecord(candidate)) {
     throw new TypeError("Expected a request mock")
   }
 }
 
-const assertMockResponse = (
+const assertMockResponse: (
   candidate: unknown,
-): asserts candidate is MockResponse => {
+) => asserts candidate is MockResponse = (candidate) => {
   if (!isRecord(candidate) || typeof candidate["json"] !== "function") {
     throw new TypeError("Expected a response mock with a json method")
   }

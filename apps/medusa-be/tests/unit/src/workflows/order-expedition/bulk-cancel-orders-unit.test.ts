@@ -1,6 +1,17 @@
 import { createMedusaContainer } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 type CancelOrderRun = (input: {
   input: { order_id: string }
 }) => Promise<unknown>
@@ -18,7 +29,8 @@ const { mockCancelOrderRun, mockCancelOrderWorkflow } = vi.hoisted(() => {
   }
 })
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => {
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) => {
+  const original = await importOriginal()
   class MockResponse {
     payload: unknown
 
@@ -27,7 +39,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => {
     }
   }
 
-  return {
+  return overrideModule(original, {
     StepResponse: MockResponse,
     WorkflowResponse: MockResponse,
     createStep: vi.fn<
@@ -36,12 +48,14 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => {
     createWorkflow: vi.fn<
       (name: string, factory: WorkflowFactory) => WorkflowFactory
     >((_name, factory) => factory),
-  }
+  })
 })
 
-vi.mock(import("@medusajs/medusa/core-flows"), () => ({
-  cancelOrderWorkflow: mockCancelOrderWorkflow,
-}))
+vi.mock(import("@medusajs/medusa/core-flows"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    cancelOrderWorkflow: mockCancelOrderWorkflow,
+  }),
+)
 
 describe("bulkCancelOrdersWorkflow", () => {
   it("cancels each selected order through the standard order cancellation workflow", async () => {

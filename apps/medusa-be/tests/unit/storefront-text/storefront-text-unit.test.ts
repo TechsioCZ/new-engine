@@ -747,7 +747,7 @@ describe("storefront text admin catalog", () => {
     if (catalogBody === undefined) {
       throw new Error("Expected the route to send a JSON response")
     }
-    expect(catalogBody.messages.cart?.retired_key).toBeUndefined()
+    expect(catalogBody.messages.cart?.["retired_key"]).toBeUndefined()
   })
 })
 

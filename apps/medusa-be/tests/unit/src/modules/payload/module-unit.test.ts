@@ -6,7 +6,20 @@ import payloadModule, {
 } from "../../../../../src/modules/payload/index"
 import PayloadModuleService from "../../../../../src/modules/payload/service"
 
-vi.mock(import("@medusajs/framework/utils"), () => {
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <ModuleShape extends object>(
+    original: ModuleShape,
+    replacements: Record<PropertyKey, unknown>,
+  ): ModuleShape =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) => {
+  const original = await importOriginal()
+
   class MedusaError extends Error {
     static readonly Types = {
       INVALID_DATA: "invalid_data",
@@ -19,12 +32,12 @@ vi.mock(import("@medusajs/framework/utils"), () => {
     }
   }
 
-  return {
+  return overrideModule(original, {
     MedusaError,
     MedusaService: vi.fn<() => ObjectConstructor>(() => Object),
-    Module: vi.fn<typeof Module>(() => ({ __module: true })),
+    Module: vi.fn<() => { __module: boolean }>(() => ({ __module: true })),
     Modules: { CACHING: "caching" },
-  }
+  })
 })
 
 describe("payload module", () => {

@@ -92,6 +92,17 @@ const createValidateContext = (): ValidateFulfillmentDataContext => ({
   },
   id: "cart_1",
   items: [],
+  shipping_address: {
+    address_1: "Customer street 1",
+    city: "Prague",
+    country_code: "cz",
+    created_at: new Date(),
+    first_name: "Ada",
+    id: "addr_customer_1",
+    last_name: "Lovelace",
+    postal_code: "11000",
+    updated_at: new Date(),
+  },
 })
 
 const createService = (): PplFulfillmentProviderService => {

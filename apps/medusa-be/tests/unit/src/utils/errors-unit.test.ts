@@ -7,6 +7,20 @@ import {
 } from "../../../../src/utils/errors"
 import type { ErrorWithOriginalThrowable } from "../../../../src/utils/errors"
 
+interface AbsentValue {
+  value?: undefined
+}
+
+const absentValue: AbsentValue = {}
+
+const assertHasOriginalThrowable: (
+  candidate: Error,
+) => asserts candidate is ErrorWithOriginalThrowable = (candidate) => {
+  if (!("originalThrowable" in candidate)) {
+    throw new TypeError("Expected normalized error to retain the throwable")
+  }
+}
+
 describe(normalizeError, () => {
   it("returns the same Error instance if throwable is already an Error", () => {
     const error = new Error("test error")
@@ -16,7 +30,8 @@ describe(normalizeError, () => {
 
   it("converts a string throwable to an Error with originalThrowable", () => {
     const throwable = "something went wrong"
-    const result = normalizeError(throwable) as ErrorWithOriginalThrowable
+    const result = normalizeError(throwable)
+    assertHasOriginalThrowable(result)
     expect(result).toBeInstanceOf(Error)
     expect(result.message).toBe("something went wrong")
     expect(result.originalThrowable).toBe(throwable)
@@ -24,28 +39,32 @@ describe(normalizeError, () => {
 
   it("converts an object throwable to an Error with originalThrowable", () => {
     const throwable = { code: "ERR_001", details: "some details" }
-    const result = normalizeError(throwable) as ErrorWithOriginalThrowable
+    const result = normalizeError(throwable)
+    assertHasOriginalThrowable(result)
     expect(result).toBeInstanceOf(Error)
     expect(result.message).toBe("[object Object]")
     expect(result.originalThrowable).toBe(throwable)
   })
 
   it("converts null to an Error with originalThrowable", () => {
-    const result = normalizeError(null) as ErrorWithOriginalThrowable
+    const result = normalizeError(null)
+    assertHasOriginalThrowable(result)
     expect(result).toBeInstanceOf(Error)
     expect(result.message).toBe("null")
     expect(result.originalThrowable).toBeNull()
   })
 
   it("converts undefined to an Error with originalThrowable", () => {
-    const result = normalizeError() as ErrorWithOriginalThrowable
+    const result = normalizeError(absentValue.value)
+    assertHasOriginalThrowable(result)
     expect(result).toBeInstanceOf(Error)
     expect(result.message).toBe("undefined")
     expect(result.originalThrowable).toBeUndefined()
   })
 
   it("converts a number throwable to an Error", () => {
-    const result = normalizeError(42) as ErrorWithOriginalThrowable
+    const result = normalizeError(42)
+    assertHasOriginalThrowable(result)
     expect(result).toBeInstanceOf(Error)
     expect(result.message).toBe("42")
     expect(result.originalThrowable).toBe(42)
@@ -104,7 +123,7 @@ describe(shouldCaptureException, () => {
     })
 
     it("returns true for undefined", () => {
-      expect(shouldCaptureException()).toBeTruthy()
+      expect(shouldCaptureException(absentValue.value)).toBeTruthy()
     })
 
     it("returns true for primitive values", () => {

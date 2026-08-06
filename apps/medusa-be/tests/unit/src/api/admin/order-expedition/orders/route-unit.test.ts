@@ -172,7 +172,11 @@ describe("GET /admin/order-expedition/orders", () => {
         },
       }),
     )
-    const [[graphInput]] = graph.mock.calls
+    const [firstGraphCall] = graph.mock.calls
+    if (firstGraphCall === undefined) {
+      throw new TypeError("Expected a graph call")
+    }
+    const [graphInput] = firstGraphCall
     if (!isRecord(graphInput) || !Array.isArray(graphInput["fields"])) {
       throw new TypeError("Expected graph fields")
     }

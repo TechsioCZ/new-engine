@@ -19,11 +19,16 @@ type Json = (body: unknown) => unknown
 type RemoteQuery = (input: unknown) => Promise<unknown>
 type MockedGetResponse = Parameters<typeof GET>[1] & { json: Mock<Json> }
 
-vi.mock(import("../../../../../../src/links/product-brand"), () => ({
-  ProductBrandLink: {
-    entryPoint: "product_brand",
-  },
-}))
+vi.mock(import("../../../../../../src/links/product-brand"), async () => {
+  const medusaUtils = await import("@medusajs/utils")
+  return {
+    ProductBrandLink: {
+      [medusaUtils.DefineLinkSymbol]: true,
+      entryPoint: "product_brand",
+      serviceName: "ProductBrandLink",
+    },
+  }
+})
 
 const isMockedGetResponse = (
   candidate: unknown,
@@ -51,7 +56,7 @@ const isMockRequest = (
   if (!(isRecord(queryConfig) && isRecord(scope))) {
     return false
   }
-  return typeof scope.resolve === "function"
+  return typeof scope["resolve"] === "function"
 }
 
 const createRequest = ({

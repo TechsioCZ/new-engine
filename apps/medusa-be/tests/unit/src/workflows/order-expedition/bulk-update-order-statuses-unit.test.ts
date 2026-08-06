@@ -2,6 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { OrderExpeditionDirectUpdateStatus } from "../../../../../src/workflows/order-expedition/bulk-update-order-statuses"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 type WorkflowComposer = (input: BulkUpdateOrderStatusesWorkflowInput) => void
 type Step = (input: unknown) => unknown
 type WorkflowFactory = (input: BulkUpdateOrderStatusesWorkflowInput) => unknown
@@ -34,28 +45,34 @@ const { mockEmitEventStep, mockUpdateOrdersStep } = vi.hoisted(() => ({
   mockUpdateOrdersStep: vi.fn<Step>((input) => input),
 }))
 
-vi.mock(import("@medusajs/framework/utils"), () => ({
-  OrderWorkflowEvents: {
-    UPDATED: "order.updated",
-  },
-}))
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    OrderWorkflowEvents: {
+      UPDATED: "order.updated",
+    },
+  }),
+)
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  WorkflowResponse: class WorkflowResponse {
-    payload: unknown
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    WorkflowResponse: class WorkflowResponse {
+      payload: unknown
 
-    constructor(payload: unknown) {
-      this.payload = payload
-    }
-  },
-  createWorkflow: vi.fn<CreateWorkflow>((_name, factory) => factory),
-  transform: vi.fn<Transform>((input, mapper) => mapper(input)),
-}))
+      constructor(payload: unknown) {
+        this.payload = payload
+      }
+    },
+    createWorkflow: vi.fn<CreateWorkflow>((_name, factory) => factory),
+    transform: vi.fn<Transform>((input, mapper) => mapper(input)),
+  }),
+)
 
-vi.mock(import("@medusajs/medusa/core-flows"), () => ({
-  emitEventStep: mockEmitEventStep,
-  updateOrdersStep: mockUpdateOrdersStep,
-}))
+vi.mock(import("@medusajs/medusa/core-flows"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    emitEventStep: mockEmitEventStep,
+    updateOrdersStep: mockUpdateOrdersStep,
+  }),
+)
 
 describe("bulkUpdateOrderStatusesWorkflow", () => {
   beforeEach(() => {

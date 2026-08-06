@@ -21,9 +21,24 @@ const mockCmsService = {
     vi.fn<(options?: Record<string, unknown>) => Promise<unknown>>(),
 }
 
-vi.mock(import("../../../../../../src/modules/payload"), () => ({
-  PAYLOAD_MODULE: "payload",
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
 }))
+
+vi.mock(
+  import("../../../../../../src/modules/payload"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      PAYLOAD_MODULE: "payload",
+    }),
+)
 
 /**
  * Asserts that a plain mock object contains the given keys before narrowing

@@ -26,19 +26,37 @@ const { createWorkflow, measurementService } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock(import("../../../../../../src/utils/measurement-units"), () => ({
-  getMeasurementUnitActiveProductCounts: vi.fn<UnknownMock>(),
-  getMeasurementUnitService: vi.fn<() => typeof measurementService>(
-    () => measurementService,
-  ),
-  toMeasurementUnitResponse: vi.fn<(unit: unknown) => unknown>((unit) => unit),
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
 }))
 
 vi.mock(
+  import("../../../../../../src/utils/measurement-units"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      getMeasurementUnitActiveProductCounts: vi.fn<UnknownMock>(),
+      getMeasurementUnitService: vi.fn<() => typeof measurementService>(
+        () => measurementService,
+      ),
+      toMeasurementUnitResponse: vi.fn<(unit: unknown) => unknown>(
+        (unit) => unit,
+      ),
+    }),
+)
+
+vi.mock(
   import("../../../../../../src/workflows/measurement-unit/workflows/create-measurement-units"),
-  () => ({
-    createMeasurementUnitsWorkflow: createWorkflow,
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      createMeasurementUnitsWorkflow: createWorkflow,
+    }),
 )
 
 describe("POST /admin/measurement-units", () => {

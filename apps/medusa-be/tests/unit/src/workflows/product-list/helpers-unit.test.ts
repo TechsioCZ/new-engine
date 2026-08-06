@@ -22,23 +22,44 @@ const {
   productListItemVariantLinkEntryPoint: "product_list_item_variant",
 }))
 
-vi.mock(import("../../../../../src/links/customer-product-list"), () => ({
-  CustomerProductListLink: {
-    entryPoint: customerProductListLinkEntryPoint,
-  },
-}))
+vi.mock(import("../../../../../src/links/customer-product-list"), async () => {
+  const medusaUtils = await import("@medusajs/utils")
+  return {
+    CustomerProductListLink: {
+      [medusaUtils.DefineLinkSymbol]: true,
+      entryPoint: customerProductListLinkEntryPoint,
+      serviceName: "CustomerProductListLink",
+    },
+  }
+})
 
-vi.mock(import("../../../../../src/links/product-list-item-product"), () => ({
-  ProductListItemProductLink: {
-    entryPoint: productListItemProductLinkEntryPoint,
+vi.mock(
+  import("../../../../../src/links/product-list-item-product"),
+  async () => {
+    const medusaUtils = await import("@medusajs/utils")
+    return {
+      ProductListItemProductLink: {
+        [medusaUtils.DefineLinkSymbol]: true,
+        entryPoint: productListItemProductLinkEntryPoint,
+        serviceName: "ProductListItemProductLink",
+      },
+    }
   },
-}))
+)
 
-vi.mock(import("../../../../../src/links/product-list-item-variant"), () => ({
-  ProductListItemVariantLink: {
-    entryPoint: productListItemVariantLinkEntryPoint,
+vi.mock(
+  import("../../../../../src/links/product-list-item-variant"),
+  async () => {
+    const medusaUtils = await import("@medusajs/utils")
+    return {
+      ProductListItemVariantLink: {
+        [medusaUtils.DefineLinkSymbol]: true,
+        entryPoint: productListItemVariantLinkEntryPoint,
+        serviceName: "ProductListItemVariantLink",
+      },
+    }
   },
-}))
+)
 
 type Graph = (input: unknown) => Promise<{ data: unknown[] }>
 type ListProductListItems = (
@@ -144,7 +165,7 @@ describe(findProductListItemForSelection, () => {
     }
     const service = {
       listProductListItems: vi
-        .fn<Graph>()
+        .fn<ListProductListItems>()
         .mockResolvedValueOnce([{ id: "item_plain" }, { id: "item_variant" }])
         .mockResolvedValueOnce([{ id: "item_plain", quantity: 1 }]),
     }
@@ -174,7 +195,7 @@ describe(findProductListItemForSelection, () => {
     }
     const service = {
       listProductListItems: vi
-        .fn<Graph>()
+        .fn<ListProductListItems>()
         .mockResolvedValueOnce([{ id: "item_plain" }, { id: "item_variant" }])
         .mockResolvedValueOnce([{ id: "item_variant", quantity: 2 }]),
     }

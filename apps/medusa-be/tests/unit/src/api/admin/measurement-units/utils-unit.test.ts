@@ -26,15 +26,30 @@ const { measurementService, productService } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock(import("../../../../../../src/utils/measurement-units"), () => ({
-  getMeasurementUnitActiveProductCounts: vi.fn<UnknownMock>(),
-  getMeasurementUnitService: vi.fn<() => typeof measurementService>(
-    () => measurementService,
-  ),
-  toMeasurementUnitResponse: vi.fn<UnknownMock>(),
-  toProductMeasurementResponse: vi.fn<UnknownMock>(),
-  toProductVariantMeasurementResponse: vi.fn<UnknownMock>(),
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
 }))
+
+vi.mock(
+  import("../../../../../../src/utils/measurement-units"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      getMeasurementUnitActiveProductCounts: vi.fn<UnknownMock>(),
+      getMeasurementUnitService: vi.fn<() => typeof measurementService>(
+        () => measurementService,
+      ),
+      toMeasurementUnitResponse: vi.fn<UnknownMock>(),
+      toProductMeasurementResponse: vi.fn<UnknownMock>(),
+      toProductVariantMeasurementResponse: vi.fn<UnknownMock>(),
+    }),
+)
 
 describe("measurement unit assigned-product queries", () => {
   beforeEach(() => {
@@ -148,17 +163,39 @@ describe("measurement unit assigned-product queries", () => {
   it("prefers an active assignment over newer deleted history", async () => {
     const { getCanonicalAssignmentByProductId } =
       await import("../../../../../../src/api/admin/measurement-units/utils")
+    const createdAt = new Date("2025-01-01")
+    const measurementUnit = {
+      base_quantity: 1,
+      code: "piece",
+      created_at: createdAt,
+      deleted_at: null,
+      description: null,
+      id: "unit_1",
+      name: "Piece",
+      product_measurements: [],
+      raw_base_quantity: {},
+      symbol: "pc",
+      updated_at: createdAt,
+    }
     const active = {
+      created_at: createdAt,
       deleted_at: null,
       id: "pm_active",
+      measurement_unit: measurementUnit,
+      measurement_unit_id: measurementUnit.id,
       product_id: "prod_1",
       updated_at: new Date("2026-01-01"),
+      variant_measurements: [],
     }
     const deleted = {
+      created_at: createdAt,
       deleted_at: new Date("2026-07-01"),
       id: "pm_deleted",
+      measurement_unit: measurementUnit,
+      measurement_unit_id: measurementUnit.id,
       product_id: "prod_1",
       updated_at: new Date("2026-07-01"),
+      variant_measurements: [],
     }
 
     expect(

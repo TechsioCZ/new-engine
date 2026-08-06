@@ -1,6 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 type Graph = (input: unknown) => Promise<{ data: unknown[] }>
 type ServiceMethod = (...input: unknown[]) => Promise<unknown>
 type StepInvoke = (input: unknown, context: unknown) => Promise<unknown>
@@ -38,28 +49,34 @@ const mocks = vi.hoisted(() => {
   return { MockMedusaError }
 })
 
-vi.mock(import("@medusajs/framework/utils"), () => ({
-  ContainerRegistrationKeys: {
-    LINK: "link",
-    QUERY: "query",
-  },
-  MedusaError: mocks.MockMedusaError,
-  Modules: {
-    AUTH: "auth",
-    CUSTOMER: "customer",
-  },
-}))
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    ContainerRegistrationKeys: {
+      LINK: "link",
+      QUERY: "query",
+    },
+    MedusaError: mocks.MockMedusaError,
+    Modules: {
+      AUTH: "auth",
+      CUSTOMER: "customer",
+    },
+  }),
+)
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: stepResponse,
-  createStep: vi.fn<CreateStep>((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate }),
-  ),
-}))
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: stepResponse,
+    createStep: vi.fn<CreateStep>((_name, invoke, compensate) =>
+      Object.assign(invoke, { compensate }),
+    ),
+  }),
+)
 
-vi.mock(import("../../../../../src/modules/company"), () => ({
-  COMPANY_MODULE: "company",
-}))
+vi.mock(import("../../../../../src/modules/company"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    COMPANY_MODULE: "company",
+  }),
+)
 
 interface CompanyService {
   restoreEmployees: Mock<ServiceMethod>

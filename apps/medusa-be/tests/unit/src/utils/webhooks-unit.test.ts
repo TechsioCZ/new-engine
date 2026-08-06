@@ -7,9 +7,15 @@ import {
   isValidWebhookSignature,
 } from "../../../../src/utils/webhooks"
 
-const assertMockRequest = (
+interface AbsentValue {
+  value?: undefined
+}
+
+const absentValue: AbsentValue = {}
+
+const assertMockRequest: (
   candidate: unknown,
-): asserts candidate is MedusaRequest => {
+) => asserts candidate is MedusaRequest = (candidate) => {
   if (!isRecord(candidate) || !isRecord(candidate["headers"])) {
     throw new TypeError("Expected a request mock with headers")
   }
@@ -76,11 +82,15 @@ describe(isValidWebhookSignature, () => {
   })
 
   it("returns false when expected signature is undefined", () => {
-    expect(isValidWebhookSignature(validSignature)).toBeFalsy()
+    expect(
+      isValidWebhookSignature(validSignature, absentValue.value),
+    ).toBeFalsy()
   })
 
   it("returns false when both signatures are undefined", () => {
-    expect(isValidWebhookSignature()).toBeFalsy()
+    expect(
+      isValidWebhookSignature(absentValue.value, absentValue.value),
+    ).toBeFalsy()
   })
 
   it("returns false for empty signature", () => {

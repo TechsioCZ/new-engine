@@ -4,6 +4,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { PRODUCT_LIST_MODULE } from "../../../../../src/modules/product-list/constants"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 type GeneralMock = (...args: unknown[]) => unknown
 type GeneralVitestMock = ReturnType<typeof vi.fn<GeneralMock>>
 
@@ -21,38 +32,41 @@ const {
   mockGetProductListType: vi.fn<GeneralMock>(),
 }))
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: class StepResponse<
-    TPayload = unknown,
-    TCompensationInput = unknown,
-  > {
-    compensateInput: TCompensationInput
-    payload: TPayload
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: class StepResponse<
+      TPayload = unknown,
+      TCompensationInput = unknown,
+    > {
+      compensateInput: TCompensationInput
+      payload: TPayload
 
-    constructor(payload: TPayload, compensateInput: TCompensationInput) {
-      this.payload = payload
-      this.compensateInput = compensateInput
-    }
-  },
-  createStep: vi.fn<
-    (
-      name: string,
-      invoke: GeneralMock,
-      compensate: GeneralMock,
-    ) => GeneralMock & { compensate: GeneralMock }
-  >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
-}))
+      constructor(payload: TPayload, compensateInput: TCompensationInput) {
+        this.payload = payload
+        this.compensateInput = compensateInput
+      }
+    },
+    createStep: vi.fn<
+      (
+        name: string,
+        invoke: GeneralMock,
+        compensate: GeneralMock,
+      ) => GeneralMock & { compensate: GeneralMock }
+    >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
+  }),
+)
 
 vi.mock(
   import("../../../../../src/workflows/product-list/steps/helpers"),
-  () => ({
-    assertProductSelectionExists: mockAssertProductSelectionExists,
-    findCustomerCustomProductListByHandle:
-      mockFindCustomerCustomProductListByHandle,
-    findCustomerFavoriteProductList: mockFindCustomerFavoriteProductList,
-    findProductListItemForSelection: mockFindProductListItemForSelection,
-    getProductListType: mockGetProductListType,
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      assertProductSelectionExists: mockAssertProductSelectionExists,
+      findCustomerCustomProductListByHandle:
+        mockFindCustomerCustomProductListByHandle,
+      findCustomerFavoriteProductList: mockFindCustomerFavoriteProductList,
+      findProductListItemForSelection: mockFindProductListItemForSelection,
+      getProductListType: mockGetProductListType,
+    }),
 )
 
 interface MockService {
@@ -80,7 +94,9 @@ interface MockStep {
   ) => Promise<void>
 }
 
-const assertMockStep = (candidate: unknown): asserts candidate is MockStep => {
+const assertMockStep: (candidate: unknown) => asserts candidate is MockStep = (
+  candidate,
+) => {
   if (
     typeof candidate !== "function" ||
     !("compensate" in candidate) ||
@@ -269,7 +285,7 @@ describe("createProductListItemStep", () => {
     })
     service.createProductListItemForList.mockResolvedValue(createdItem)
     mockGetProductListType.mockReturnValue("favorite")
-    mockAssertProductSelectionExists.mockResolvedValue()
+    mockAssertProductSelectionExists.mockImplementation(async () => {})
     mockFindProductListItemForSelection.mockResolvedValue(null)
     const container = makeContainer(service)
     const { createProductListItemStep } =
@@ -321,7 +337,7 @@ describe("createProductListItemStep", () => {
     })
     service.createProductListItemForList.mockResolvedValue(createdItem)
     mockGetProductListType.mockReturnValue("favorite")
-    mockAssertProductSelectionExists.mockResolvedValue()
+    mockAssertProductSelectionExists.mockImplementation(async () => {})
     mockFindProductListItemForSelection.mockResolvedValue(null)
     const container = makeContainer(service)
     const { createProductListItemStep } =
@@ -387,7 +403,7 @@ describe("createProductListItemStep", () => {
       type: "custom",
     })
     mockGetProductListType.mockReturnValue("custom")
-    mockAssertProductSelectionExists.mockResolvedValue()
+    mockAssertProductSelectionExists.mockImplementation(async () => {})
     mockFindProductListItemForSelection.mockResolvedValue(existingItem)
     const container = makeContainer(service)
     const { createProductListItemStep } =

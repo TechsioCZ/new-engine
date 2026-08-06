@@ -1,16 +1,38 @@
 import type { Context } from "@medusajs/framework/types"
+import type { Mock } from "vitest"
 import { describe, expect, it, vi } from "vitest"
 
 import StorefrontTextModuleService from "../../../src/modules/storefront-text/service"
 
+interface TransactionOptions {
+  enableNestedTransactions?: boolean
+  isolationLevel?: string
+  transaction?: unknown
+}
+
 type Transaction = <Result>(
   task: (transactionManager: unknown) => Promise<Result>,
-  options?: {
-    enableNestedTransactions?: boolean
-    isolationLevel?: string
-    transaction?: unknown
-  },
+  options?: TransactionOptions,
 ) => Promise<Result>
+
+type TransactionCall = (
+  task: (transactionManager: unknown) => Promise<unknown>,
+  options?: TransactionOptions,
+) => void
+
+const createTransaction = (
+  transactionManager: unknown,
+): { transaction: Transaction; transactionMock: Mock<TransactionCall> } => {
+  const transactionMock = vi.fn<TransactionCall>()
+  const transaction: Transaction = async <Result>(
+    task: (manager: unknown) => Promise<Result>,
+    options?: TransactionOptions,
+  ): Promise<Result> => {
+    transactionMock(task, options)
+    return await task(transactionManager)
+  }
+  return { transaction, transactionMock }
+}
 
 const getManager = (manager: unknown) =>
   vi.fn<(context?: Context) => unknown>(() => manager)
@@ -20,9 +42,8 @@ describe("StorefrontTextModuleService transactions", () => {
     const manager = { id: "manager" }
     const transactionManager = { id: "transaction-manager" }
     const getFreshManager = getManager(manager)
-    const transaction = vi.fn<Transaction>(
-      async (transactionTask) => await transactionTask(transactionManager),
-    )
+    const { transaction, transactionMock } =
+      createTransaction(transactionManager)
     const service = new StorefrontTextModuleService({
       baseRepository: { getFreshManager, transaction },
     })
@@ -42,14 +63,15 @@ describe("StorefrontTextModuleService transactions", () => {
       transactionManager,
     })
     expect(getFreshManager).toHaveBeenCalledOnce()
-    expect(transaction).toHaveBeenCalledOnce()
+    expect(transactionMock).toHaveBeenCalledOnce()
   })
 
   it("reuses an existing transaction without opening a nested one", async () => {
     const manager = { id: "manager" }
     const getFreshManager = getManager(manager)
-    const transaction = vi.fn<Transaction>()
     const transactionManager = { id: "existing-transaction" }
+    const { transaction, transactionMock } =
+      createTransaction(transactionManager)
     const service = new StorefrontTextModuleService({
       baseRepository: { getFreshManager, transaction },
     })
@@ -64,7 +86,7 @@ describe("StorefrontTextModuleService transactions", () => {
 
     expect(result).toBe(transactionManager)
     expect(getFreshManager).toHaveBeenCalledOnce()
-    expect(transaction).not.toHaveBeenCalled()
+    expect(transactionMock).not.toHaveBeenCalled()
     expect(task).toHaveBeenCalledWith(
       expect.objectContaining({
         manager,

@@ -4,21 +4,34 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../../../../../../../src/api/admin/order-expedition/validators"
 
-vi.mock(import("@medusajs/framework/utils"), () => ({
-  ContainerRegistrationKeys: {
-    QUERY: "query",
-  },
-  MedusaError: class MedusaError extends Error {
-    static readonly Types = {
-      INVALID_DATA: "invalid_data",
-    }
-
-    constructor(_type: string, message: string) {
-      super(message)
-      this.name = "MedusaError"
-    }
-  },
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
 }))
+
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    ContainerRegistrationKeys: {
+      QUERY: "query",
+    },
+    MedusaError: class MedusaError extends Error {
+      static readonly Types = {
+        INVALID_DATA: "invalid_data",
+      }
+
+      constructor(_type: string, message: string) {
+        super(message)
+        this.name = "MedusaError"
+      }
+    },
+  }),
+)
 
 const { mockAddPage, mockDrawText, mockEmbedFont, mockPage, mockSave } =
   vi.hoisted(() => {
@@ -45,26 +58,28 @@ const { mockAddPage, mockDrawText, mockEmbedFont, mockPage, mockSave } =
     }
   })
 
-vi.mock(import("pdf-lib"), () => ({
-  PDFDocument: {
-    create: vi.fn<() => Promise<unknown>>().mockResolvedValue({
-      addPage: mockAddPage,
-      embedFont: mockEmbedFont,
-      getPageCount: vi.fn<() => number>(() => 1),
-      getPages: vi.fn<() => (typeof mockPage)[]>(() => [mockPage]),
-      registerFontkit: vi.fn<(...args: unknown[]) => void>(),
-      save: mockSave,
-    }),
-  },
-  PageSizes: {
-    A4: [595.28, 841.89],
-  },
-  StandardFonts: {
-    Helvetica: "Helvetica",
-    HelveticaBold: "HelveticaBold",
-  },
-  rgb: vi.fn<(...args: number[]) => Record<string, never>>(() => ({})),
-}))
+vi.mock(import("pdf-lib"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    PDFDocument: {
+      create: vi.fn<() => Promise<unknown>>().mockResolvedValue({
+        addPage: mockAddPage,
+        embedFont: mockEmbedFont,
+        getPageCount: vi.fn<() => number>(() => 1),
+        getPages: vi.fn<() => (typeof mockPage)[]>(() => [mockPage]),
+        registerFontkit: vi.fn<(...args: unknown[]) => void>(),
+        save: mockSave,
+      }),
+    },
+    PageSizes: {
+      A4: [595.28, 841.89],
+    },
+    StandardFonts: {
+      Helvetica: "Helvetica",
+      HelveticaBold: "HelveticaBold",
+    },
+    rgb: vi.fn<(...args: number[]) => Record<string, never>>(() => ({})),
+  }),
+)
 
 const PRINTABLE_ASCII_REGEX = /^[\u0020-\u007E]*$/u
 

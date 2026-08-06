@@ -15,11 +15,16 @@ const { customerProductListLinkEntryPoint } = vi.hoisted(() => ({
   customerProductListLinkEntryPoint: "customer_product_list",
 }))
 
-vi.mock(import("../../../../src/links/customer-product-list"), () => ({
-  CustomerProductListLink: {
-    entryPoint: customerProductListLinkEntryPoint,
-  },
-}))
+vi.mock(import("../../../../src/links/customer-product-list"), async () => {
+  const medusaUtils = await import("@medusajs/utils")
+  return {
+    CustomerProductListLink: {
+      [medusaUtils.DefineLinkSymbol]: true,
+      entryPoint: customerProductListLinkEntryPoint,
+      serviceName: "CustomerProductListLink",
+    },
+  }
+})
 
 interface QueryStub {
   graph: () => Promise<{ data: unknown[] }>

@@ -3,6 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { APPROVAL_MODULE } from "../../../../../src/modules/approval"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 type StepImplementation = (...args: unknown[]) => unknown
 
 type CreateStepFn = (
@@ -11,23 +22,28 @@ type CreateStepFn = (
   compensate?: StepImplementation,
 ) => StepImplementation & { compensate?: StepImplementation }
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: class StepResponse<
-    TPayload = unknown,
-    TCompensationInput = unknown,
-  > {
-    compensateInput: TCompensationInput | undefined
-    payload: TPayload
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: class StepResponse<
+      TPayload = unknown,
+      TCompensationInput = unknown,
+    > {
+      compensateInput: TCompensationInput | undefined
+      payload: TPayload
 
-    constructor(payload: TPayload, compensateInput?: TCompensationInput) {
-      this.payload = payload
-      this.compensateInput = compensateInput
-    }
-  },
-  createStep: vi.fn<CreateStepFn>((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate }),
-  ),
-}))
+      constructor(payload: TPayload, compensateInput?: TCompensationInput) {
+        this.payload = payload
+        this.compensateInput = compensateInput
+      }
+    },
+    createStep: vi.fn<CreateStepFn>((_name, invoke, compensate) => {
+      if (compensate === undefined) {
+        return invoke
+      }
+      return Object.assign(invoke, { compensate })
+    }),
+  }),
+)
 
 type AsyncMockFn<TArgs extends unknown[] = unknown[], TReturn = unknown> = (
   ...args: TArgs

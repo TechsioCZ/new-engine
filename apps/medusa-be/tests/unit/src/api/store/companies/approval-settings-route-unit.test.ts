@@ -21,19 +21,32 @@ const workflowMocks = vi.hoisted(() => {
   }
 })
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 vi.mock(
   import("../../../../../../src/workflows/approval/workflows/ensure-approval-settings"),
-  () => ({
-    ensureApprovalSettingsWorkflow:
-      workflowMocks.ensureApprovalSettingsWorkflow,
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      ensureApprovalSettingsWorkflow:
+        workflowMocks.ensureApprovalSettingsWorkflow,
+    }),
 )
 vi.mock(
   import("../../../../../../src/workflows/approval/workflows/update-approval-settings"),
-  () => ({
-    updateApprovalSettingsWorkflow:
-      workflowMocks.updateApprovalSettingsWorkflow,
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      updateApprovalSettingsWorkflow:
+        workflowMocks.updateApprovalSettingsWorkflow,
+    }),
 )
 
 /**

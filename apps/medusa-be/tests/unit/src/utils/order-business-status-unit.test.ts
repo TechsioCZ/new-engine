@@ -20,7 +20,7 @@ describe("order business status", () => {
   it("exposes the approved statuses with admin translation keys", () => {
     expect(
       Object.values(ORDER_BUSINESS_STATUSES)
-        .map((status) => [status.id, status.translation_key])
+        .map((status): [string, string] => [status.id, status.translation_key])
         .toSorted(([left], [right]) => left.localeCompare(right)),
     ).toStrictEqual([
       ["awaiting_payment", "statuses.awaiting_payment"],

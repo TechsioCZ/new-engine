@@ -1,6 +1,17 @@
 import type { Mock } from "vitest"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 interface TestEvent {
   event_id: string
 }
@@ -80,40 +91,55 @@ const {
   spanProcessorResult,
 } = mocks
 
-vi.mock(import("@medusajs/medusa"), () => ({
-  registerOtel,
-}))
+vi.mock(import("@medusajs/medusa"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    registerOtel,
+  }),
+)
 
-vi.mock(import("@opentelemetry/api"), () => ({
-  default: {
+vi.mock(import("@opentelemetry/api"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    default: {
+      propagation: {
+        setGlobalPropagator,
+      },
+    },
     propagation: {
       setGlobalPropagator,
     },
-  },
-  propagation: {
-    setGlobalPropagator,
-  },
-}))
+  }),
+)
 
-vi.mock(import("@opentelemetry/exporter-trace-otlp-grpc"), () => ({
-  OTLPTraceExporter: otlpExporterMock,
-}))
+vi.mock(
+  import("@opentelemetry/exporter-trace-otlp-grpc"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      OTLPTraceExporter: otlpExporterMock,
+    }),
+)
 
-vi.mock(import("@sentry/opentelemetry"), () => ({
-  SentryPropagator: sentryPropagatorMock,
-  SentrySpanProcessor: sentrySpanProcessorMock,
-}))
+vi.mock(import("@sentry/opentelemetry"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    SentryPropagator: sentryPropagatorMock,
+    SentrySpanProcessor: sentrySpanProcessorMock,
+  }),
+)
 
-vi.mock(import("@sentry/node"), () => ({
-  __esModule: true,
-  default: {
+vi.mock(import("@sentry/node"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    __esModule: true,
+    default: {
+      init: sentryInit,
+    },
     init: sentryInit,
-  },
-}))
+  }),
+)
 
-vi.mock(import("../../src/utils/errors"), () => ({
-  shouldCaptureException: vi.fn<(error: unknown) => boolean>(),
-}))
+vi.mock(import("../../src/utils/errors"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    shouldCaptureException: vi.fn<(error: unknown) => boolean>(),
+  }),
+)
 
 const expectSentryInitialization = (
   shouldCaptureException: (error: unknown) => boolean,

@@ -17,6 +17,17 @@ import type {
   getCanonicalProductVariantMeasurement,
 } from "../../../../../src/workflows/measurement-unit/steps/helpers"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 interface MeasurementStepHelpers {
   pickCanonicalRecord: typeof pickCanonicalRecord
   normalizeUnitCode: typeof normalizeUnitCode
@@ -47,31 +58,37 @@ const { helpers, service } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: class StepResponse<
-    TPayload = unknown,
-    TCompensationInput = unknown,
-  > {
-    compensateInput: TCompensationInput
-    payload: TPayload
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: class StepResponse<
+      TPayload = unknown,
+      TCompensationInput = unknown,
+    > {
+      compensateInput: TCompensationInput
+      payload: TPayload
 
-    constructor(payload: TPayload, compensateInput: TCompensationInput) {
-      this.payload = payload
-      this.compensateInput = compensateInput
-    }
-  },
-  createStep: vi.fn<
-    (
-      name: string,
-      invoke: MockStep,
-      compensate: MockStep["compensate"],
-    ) => MockStep
-  >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
-}))
+      constructor(payload: TPayload, compensateInput: TCompensationInput) {
+        this.payload = payload
+        this.compensateInput = compensateInput
+      }
+    },
+    createStep: vi.fn<
+      (
+        name: string,
+        invoke: MockStep,
+        compensate: MockStep["compensate"],
+      ) => MockStep
+    >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
+  }),
+)
 
-vi.mock(import("../../../../../src/utils/measurement-units"), () => ({
-  getMeasurementUnitService: vi.fn<() => typeof service>(() => service),
-}))
+vi.mock(
+  import("../../../../../src/utils/measurement-units"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      getMeasurementUnitService: vi.fn<() => typeof service>(() => service),
+    }),
+)
 
 vi.mock(
   import("../../../../../src/workflows/measurement-unit/steps/helpers"),

@@ -1,18 +1,22 @@
 import type { MedusaResponse } from "@medusajs/framework/http"
-import type { wrapProductsWithTaxPrices as WrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
+import type { wrapProductsWithTaxPrices as wrapProductsWithTaxPricesType } from "@medusajs/medusa/api/store/products/helpers"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { GET } from "../../../src/api/store/catalog/products/route"
 
 const { wrapProductsWithTaxPrices } = vi.hoisted(() => ({
   wrapProductsWithTaxPrices: vi
-    .fn<WrapProductsWithTaxPrices>()
-    .mockResolvedValue(),
+    .fn<typeof wrapProductsWithTaxPricesType>()
+    .mockImplementation(async () => {}),
 }))
 
-vi.mock(import("@medusajs/medusa/api/store/products/helpers"), () => ({
-  wrapProductsWithTaxPrices,
-}))
+vi.mock(
+  import("@medusajs/medusa/api/store/products/helpers"),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    wrapProductsWithTaxPrices,
+  }),
+)
 
 interface TestProduct {
   id: string
@@ -221,17 +225,20 @@ const productMatchesSearchFilters = (
   return matchesStatus && matchesSalesChannel && isAboveMin && isBelowMax
 }
 
-const assertMockShape: (
+const assertMockShape: <T extends object>(
   candidate: unknown,
-  requiredKeys: readonly string[],
-) => asserts candidate is object = (candidate, requiredKeys) => {
+  requiredKeys: readonly (keyof T)[],
+) => asserts candidate is T = <T extends object>(
+  candidate: unknown,
+  requiredKeys: readonly (keyof T)[],
+): asserts candidate is T => {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
   }
 
   for (const key of requiredKeys) {
     if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
+      throw new TypeError(`Mock object missing required key: ${String(key)}`)
     }
   }
 }
@@ -240,7 +247,7 @@ const createMockResponse = (): MockResponse => {
   const json = vi.fn<(body: CatalogResponseBody) => MockResponse>()
   const status = vi.fn<(code: number) => MockResponse>()
   const candidate: unknown = { json, status }
-  assertMockShape(candidate, ["json", "status"])
+  assertMockShape<MockResponse>(candidate, ["json", "status"])
   const response: MockResponse = candidate
   json.mockReturnValue(response)
   status.mockReturnValue(response)
@@ -409,7 +416,7 @@ const createCatalogHarness = ({
       ...query,
     },
   }
-  assertMockShape(reqCandidate, [
+  assertMockShape<Parameters<typeof GET>[0]>(reqCandidate, [
     "filterableFields",
     "queryConfig",
     "scope",
@@ -688,15 +695,14 @@ describe("GET /store/catalog/products", () => {
     await GET(req, res)
 
     const payload = getJsonPayload(res)
-    expect(
-      payload.facets.status.find((item: { id: string }) => item.id === "action")
-        .count,
-    ).toBe(0)
-    expect(
-      payload.facets.status.find(
-        (item: { id: string }) => item.id === "in-stock",
-      ).count,
-    ).toBe(1)
+    const actionFacet = payload.facets.status.find(
+      (item: { id: string }) => item.id === "action",
+    )
+    const inStockFacet = payload.facets.status.find(
+      (item: { id: string }) => item.id === "in-stock",
+    )
+    expect(actionFacet?.count).toBe(0)
+    expect(inStockFacet?.count).toBe(1)
     expect(payload.facets.brand).toStrictEqual([
       {
         count: 1,

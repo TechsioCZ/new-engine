@@ -15,9 +15,24 @@ import PacketaFulfillmentProviderService from "../../../../../src/modules/fulfil
 import type { PacketaClientModuleService } from "../../../../../src/modules/packeta-client"
 import type { PacketaOptions } from "../../../../../src/modules/packeta-client/types"
 
-vi.mock(import("../../../../../src/modules/packeta-client"), () => ({
-  PACKETA_CLIENT_MODULE: "packeta_client",
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
 }))
+
+vi.mock(
+  import("../../../../../src/modules/packeta-client"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      PACKETA_CLIENT_MODULE: "packeta_client",
+    }),
+)
 
 type PacketaClientStub = Pick<
   PacketaClientModuleService,
@@ -75,6 +90,17 @@ const validationContext: ValidateFulfillmentDataContext = {
   },
   id: "cart_1",
   items: [],
+  shipping_address: {
+    address_1: "Customer street 1",
+    city: "Prague",
+    country_code: "cz",
+    created_at: new Date(),
+    first_name: "Ada",
+    id: "addr_customer_1",
+    last_name: "Lovelace",
+    postal_code: "11000",
+    updated_at: new Date(),
+  },
 }
 
 const PICKUP_POINT_ERROR = /Pickup point/u

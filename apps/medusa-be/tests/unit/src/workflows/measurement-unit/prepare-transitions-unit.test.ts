@@ -7,7 +7,6 @@ import type {
   getCanonicalProductMeasurement,
   getCanonicalProductVariantMeasurement,
   getCurrentProductMeasurement,
-  listProductMeasurementsForProduct,
   retrieveActiveUnitOrThrow,
 } from "../../../../../src/workflows/measurement-unit/steps/helpers"
 import type { ProductMeasurementLinkIds } from "../../../../../src/workflows/measurement-unit/steps/measurement-link-mutations"
@@ -21,6 +20,17 @@ import type {
   SetProductMeasurementWorkflowInput,
   SetProductVariantMeasurementWorkflowInput,
 } from "../../../../../src/workflows/measurement-unit/types"
+
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
 
 interface ProductVariantMeasurementFixture {
   deleted_at?: Date | null
@@ -62,16 +72,6 @@ type CreateStepFn = (
   invoke: StepImplementation,
 ) => StepImplementation
 
-interface HelpersModuleActual {
-  ensureProductExists: typeof ensureProductExists
-  ensureProductVariantBelongsToProduct: typeof ensureProductVariantBelongsToProduct
-  getCanonicalProductMeasurement: typeof getCanonicalProductMeasurement
-  getCanonicalProductVariantMeasurement: typeof getCanonicalProductVariantMeasurement
-  getCurrentProductMeasurement: typeof getCurrentProductMeasurement
-  listProductMeasurementsForProduct: typeof listProductMeasurementsForProduct
-  retrieveActiveUnitOrThrow: typeof retrieveActiveUnitOrThrow
-}
-
 const { helpers, service } = vi.hoisted(() => ({
   helpers: {
     ensureProductExists: vi.fn<typeof ensureProductExists>(),
@@ -90,45 +90,50 @@ const { helpers, service } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: class StepResponse<TPayload = unknown> {
-    payload: TPayload
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: class StepResponse<TPayload = unknown> {
+      payload: TPayload
 
-    constructor(payload: TPayload) {
-      this.payload = payload
-    }
-  },
-  createStep: vi.fn<CreateStepFn>((_name, invoke) => invoke),
-}))
+      constructor(payload: TPayload) {
+        this.payload = payload
+      }
+    },
+    createStep: vi.fn<CreateStepFn>((_name, invoke) => invoke),
+  }),
+)
 
-vi.mock(import("../../../../../src/links/product-measurement"), () => ({
-  ProductMeasurementLink: { entryPoint: "product_product_measurement" },
-}))
+vi.mock(
+  import("../../../../../src/links/product-measurement"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      ProductMeasurementLink: { entryPoint: "product_product_measurement" },
+    }),
+)
 
-vi.mock(import("../../../../../src/links/product-variant-measurement"), () => ({
-  ProductVariantMeasurementLink: {
-    entryPoint: "product_variant_product_variant_measurement",
-  },
-}))
+vi.mock(
+  import("../../../../../src/links/product-variant-measurement"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      ProductVariantMeasurementLink: {
+        entryPoint: "product_variant_product_variant_measurement",
+      },
+    }),
+)
 
 vi.mock(
   import("../../../../../src/workflows/measurement-unit/steps/helpers"),
-  async () => {
-    const actual = await vi.importActual<HelpersModuleActual>(
-      "../../../../../src/workflows/measurement-unit/steps/helpers",
-    )
-
-    return {
-      ...actual,
-      ...helpers,
-    }
-  },
+  async (importOriginal) => overrideModule(await importOriginal(), helpers),
 )
 
-vi.mock(import("../../../../../src/utils/measurement-units"), () => ({
-  getMeasurementUnitService: vi.fn<() => typeof service>(() => service),
-  toNumber: Number,
-}))
+vi.mock(
+  import("../../../../../src/utils/measurement-units"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      getMeasurementUnitService: vi.fn<() => typeof service>(() => service),
+      toNumber: Number,
+    }),
+)
 
 const container = {
   resolve: vi.fn<(key: unknown) => unknown>(),
@@ -322,7 +327,7 @@ describe("measurement transition preparation", () => {
   })
 
   it("returns a validation error when the product has no measurement unit", async () => {
-    helpers.getCanonicalProductMeasurement.mockResolvedValue()
+    helpers.getCanonicalProductMeasurement.mockImplementation(async () => {})
     const { prepareSetProductVariantMeasurementStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 

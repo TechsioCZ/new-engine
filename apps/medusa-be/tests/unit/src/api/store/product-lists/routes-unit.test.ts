@@ -50,53 +50,93 @@ const workflowMocks = vi.hoisted(() => {
   }
 })
 
-vi.mock(import("../../../../../../src/links/customer-product-list"), () => ({
-  CustomerProductListLink: { entryPoint: "customer_product_list" },
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
 }))
 
 vi.mock(
+  import("../../../../../../src/links/customer-product-list"),
+  async () => {
+    const medusaUtils = await import("@medusajs/utils")
+    return {
+      CustomerProductListLink: {
+        [medusaUtils.DefineLinkSymbol]: true,
+        entryPoint: "customer_product_list",
+        serviceName: "CustomerProductListLink",
+      },
+    }
+  },
+)
+
+vi.mock(
   import("../../../../../../src/links/product-list-item-product"),
-  () => ({
-    ProductListItemProductLink: { entryPoint: "product_list_item_product" },
-  }),
+  async () => {
+    const medusaUtils = await import("@medusajs/utils")
+    return {
+      ProductListItemProductLink: {
+        [medusaUtils.DefineLinkSymbol]: true,
+        entryPoint: "product_list_item_product",
+        serviceName: "ProductListItemProductLink",
+      },
+    }
+  },
 )
 
 vi.mock(
   import("../../../../../../src/links/product-list-item-variant"),
-  () => ({
-    ProductListItemVariantLink: { entryPoint: "product_list_item_variant" },
-  }),
+  async () => {
+    const medusaUtils = await import("@medusajs/utils")
+    return {
+      ProductListItemVariantLink: {
+        [medusaUtils.DefineLinkSymbol]: true,
+        entryPoint: "product_list_item_variant",
+        serviceName: "ProductListItemVariantLink",
+      },
+    }
+  },
 )
 
 vi.mock(
   import("../../../../../../src/workflows/product-list/workflows/add-favorite-product-list-item"),
-  () => ({
-    addFavoriteProductListItemWorkflow:
-      workflowMocks.addFavoriteProductListItemWorkflow,
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      addFavoriteProductListItemWorkflow:
+        workflowMocks.addFavoriteProductListItemWorkflow,
+    }),
 )
 
 vi.mock(
   import("../../../../../../src/workflows/product-list/workflows/create-customer-product-list"),
-  () => ({
-    createCustomerProductListWorkflow:
-      workflowMocks.createCustomerProductListWorkflow,
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      createCustomerProductListWorkflow:
+        workflowMocks.createCustomerProductListWorkflow,
+    }),
 )
 
 vi.mock(
   import("../../../../../../src/workflows/product-list/workflows/create-product-list-item"),
-  () => ({
-    createProductListItemWorkflow: workflowMocks.createProductListItemWorkflow,
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      createProductListItemWorkflow:
+        workflowMocks.createProductListItemWorkflow,
+    }),
 )
 
 vi.mock(
   import("../../../../../../src/workflows/product-list/workflows/increment-product-list-item"),
-  () => ({
-    incrementProductListItemWorkflow:
-      workflowMocks.incrementProductListItemWorkflow,
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      incrementProductListItemWorkflow:
+        workflowMocks.incrementProductListItemWorkflow,
+    }),
 )
 
 interface ProductListServiceMock {

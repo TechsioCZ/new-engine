@@ -7,27 +7,42 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { AdminGetApprovalsType } from "../../../../../../src/api/admin/approvals/validators"
 
-vi.mock(import("@medusajs/framework/utils"), () => ({
-  ContainerRegistrationKeys: {
-    QUERY: "query",
-  },
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
 }))
+
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    ContainerRegistrationKeys: {
+      QUERY: "query",
+    },
+  }),
+)
 
 type JsonMock = ReturnType<typeof vi.fn<(body: unknown) => unknown>>
 type GraphMock = ReturnType<typeof vi.fn<(input: unknown) => Promise<unknown>>>
 type MockJsonResponse = MedusaResponse & { json: JsonMock }
 
-const assertMockJsonResponse = (
+const assertMockJsonResponse: (
   candidate: unknown,
-): asserts candidate is MockJsonResponse => {
+) => asserts candidate is MockJsonResponse = (candidate) => {
   if (!isRecord(candidate) || typeof candidate["json"] !== "function") {
     throw new TypeError("Expected a mock response with a json method")
   }
 }
 
-const assertMockRequest = (
+const assertMockRequest: (
   candidate: unknown,
-): asserts candidate is AuthenticatedMedusaRequest<AdminGetApprovalsType> => {
+) => asserts candidate is AuthenticatedMedusaRequest<AdminGetApprovalsType> = (
+  candidate,
+) => {
   if (
     !isRecord(candidate) ||
     !isRecord(candidate["queryConfig"]) ||

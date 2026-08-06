@@ -5,6 +5,17 @@ import type { Mock } from "vitest"
 
 import type { PostAdminOrderExpeditionStatusSchemaType } from "../../../../../../../src/api/admin/order-expedition/validators"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 type Graph = (input: unknown) => Promise<{ data: unknown[] }>
 type Json = (body: unknown) => unknown
 type RunWorkflow = (input: unknown) => Promise<unknown>
@@ -15,11 +26,13 @@ type MockStatusResponse = MedusaResponse & {
   status: Mock<SetStatus>
 }
 
-vi.mock(import("@medusajs/framework/utils"), () => ({
-  ContainerRegistrationKeys: {
-    QUERY: "query",
-  },
-}))
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    ContainerRegistrationKeys: {
+      QUERY: "query",
+    },
+  }),
+)
 
 const {
   mockArchiveRun,
@@ -33,34 +46,38 @@ const {
   mockCompleteRun: vi.fn<RunWorkflow>(),
 }))
 
-vi.mock(import("@medusajs/medusa/core-flows"), () => ({
-  archiveOrderWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(() => ({
-    run: mockArchiveRun,
-  })),
-  completeOrderWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(() => ({
-    run: mockCompleteRun,
-  })),
-}))
-
-vi.mock(
-  import("../../../../../../../src/workflows/order-expedition/bulk-cancel-orders"),
-  () => ({
-    bulkCancelOrdersWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(() => ({
-      run: mockBulkCancelRun,
+vi.mock(import("@medusajs/medusa/core-flows"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    archiveOrderWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(() => ({
+      run: mockArchiveRun,
+    })),
+    completeOrderWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(() => ({
+      run: mockCompleteRun,
     })),
   }),
 )
 
 vi.mock(
+  import("../../../../../../../src/workflows/order-expedition/bulk-cancel-orders"),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      bulkCancelOrdersWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(() => ({
+        run: mockBulkCancelRun,
+      })),
+    }),
+)
+
+vi.mock(
   import("../../../../../../../src/workflows/order-expedition/bulk-update-order-statuses"),
-  () => ({
-    bulkUpdateOrderStatusesWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(
-      () => ({ run: mockBulkUpdateRun }),
-    ),
-    isOrderExpeditionDirectUpdateStatus: vi.fn<(status: string) => boolean>(
-      (status) => ["pending", "draft", "requires_action"].includes(status),
-    ),
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      bulkUpdateOrderStatusesWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(
+        () => ({ run: mockBulkUpdateRun }),
+      ),
+      isOrderExpeditionDirectUpdateStatus: vi.fn<(status: string) => boolean>(
+        (status) => ["pending", "draft", "requires_action"].includes(status),
+      ),
+    }),
 )
 
 const isMockStatusResponse = (

@@ -5,7 +5,7 @@ import type {
   IApiKeyModuleService,
   ILockingModule,
 } from "@medusajs/framework/types"
-import type { Mocked } from "vitest"
+import type { Mock, Mocked } from "vitest"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
@@ -21,16 +21,40 @@ interface ApiKeyServiceStub {
   ) => Promise<ApiKeyDTO>
   listApiKeys: IApiKeyModuleService["listApiKeys"]
 }
-type LockingModuleStub = Pick<ILockingModule, "execute">
+type ExecuteCall = (
+  keys: string | string[],
+  job: () => Promise<unknown>,
+  args?: { provider?: string; timeout?: number },
+  sharedContext?: Context,
+) => void
+
+interface LockingModuleStub extends Pick<ILockingModule, "execute"> {
+  executeMock: Mock<ExecuteCall>
+}
 
 const createApiKeyService = (): Mocked<ApiKeyServiceStub> => ({
   createApiKeys: vi.fn<ApiKeyServiceStub["createApiKeys"]>(),
   listApiKeys: vi.fn<IApiKeyModuleService["listApiKeys"]>(),
 })
 
-const createLockingModule = (): LockingModuleStub => ({
-  execute: vi.fn<ILockingModule["execute"]>(),
-})
+const createLockingModule = (): LockingModuleStub => {
+  const executeMock = vi.fn<ExecuteCall>()
+  const execute: ILockingModule["execute"] = async <T>(
+    keys: string | string[],
+    job: () => Promise<T>,
+    args?: { provider?: string; timeout?: number },
+    sharedContext?: Context,
+  ): Promise<T> => {
+    if (sharedContext === undefined) {
+      executeMock(keys, job, args)
+    } else {
+      executeMock(keys, job, args, sharedContext)
+    }
+    return await job()
+  }
+
+  return { execute, executeMock }
+}
 
 const objectContaining = (value: Record<string, unknown>): unknown =>
   expect.objectContaining(value)
@@ -214,7 +238,7 @@ describe("publishable-key utils", () => {
         title: "CI Key",
       })
 
-      expect(lockingModule.execute).toHaveBeenCalledWith(
+      expect(lockingModule.executeMock).toHaveBeenCalledWith(
         "publishable-key:provision:CI%20Key",
         expect.any(Function),
         { timeout: 5 },

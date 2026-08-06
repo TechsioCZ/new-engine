@@ -3,16 +3,29 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { PostAdminOrderBusinessStatusesBulkSchemaType } from "../../../../../../../src/api/admin/order-business-statuses/validators"
 
-vi.mock(import("@medusajs/framework/utils"), () => ({
-  ContainerRegistrationKeys: {
-    LOGGER: "logger",
-    QUERY: "query",
-  },
-  Modules: {
-    CACHING: "caching",
-    ORDER: "order",
-  },
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
 }))
+
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    ContainerRegistrationKeys: {
+      LOGGER: "logger",
+      QUERY: "query",
+    },
+    Modules: {
+      CACHING: "caching",
+      ORDER: "order",
+    },
+  }),
+)
 
 /**
  * Asserts that a plain mock object contains the given keys before narrowing
@@ -24,17 +37,17 @@ vi.mock(import("@medusajs/framework/utils"), () => ({
 const assertMockShape: <T>(
   candidate: unknown,
   requiredKeys: readonly (keyof T)[],
-) => asserts candidate is T = (
+) => asserts candidate is T = <T>(
   candidate: unknown,
-  requiredKeys: readonly string[],
-): asserts candidate is unknown => {
+  requiredKeys: readonly (keyof T)[],
+): asserts candidate is T => {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
   }
 
   for (const key of requiredKeys) {
     if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
+      throw new TypeError(`Mock object missing required key: ${String(key)}`)
     }
   }
 }
@@ -71,11 +84,11 @@ describe("POST /admin/order-business-statuses/bulk", () => {
       await import("../../../../../../../src/api/admin/order-business-statuses/bulk/route")
     const clearCache = vi
       .fn<(input: { tags: string[] }) => Promise<void>>()
-      .mockResolvedValue()
+      .mockImplementation(async () => {})
     const warn = vi.fn<(message: string) => void>()
     const updateOrders = vi
       .fn<(id: string, update: unknown) => Promise<void>>()
-      .mockResolvedValue()
+      .mockImplementation(async () => {})
     const graph = vi
       .fn<(input: unknown) => Promise<{ data: unknown[] }>>()
       .mockResolvedValueOnce({
@@ -164,7 +177,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
       await import("../../../../../../../src/api/admin/order-business-statuses/bulk/route")
     const clearCache = vi
       .fn<(input: { tags: string[] }) => Promise<void>>()
-      .mockResolvedValue()
+      .mockImplementation(async () => {})
     const warn = vi.fn<(message: string) => void>()
     const updateOrders = vi.fn<(id: string, update?: unknown) => Promise<void>>(
       async (id) => {

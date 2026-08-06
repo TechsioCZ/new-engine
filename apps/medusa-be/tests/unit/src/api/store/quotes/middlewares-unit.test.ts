@@ -24,27 +24,26 @@ const isAuthenticatedRequest = (
     return false
   }
   const { auth_context: authContext, params, scope } = candidate
-  if (!(isRecord(authContext) && typeof authContext.actor_id === "string")) {
+  if (!(isRecord(authContext) && typeof authContext["actor_id"] === "string")) {
     return false
   }
   if (!(isRecord(params) && isRecord(scope))) {
     return false
   }
-  return typeof scope.resolve === "function"
+  return typeof scope["resolve"] === "function"
 }
+
+const isMockResponse = (candidate: unknown): candidate is MockResponse =>
+  isRecord(candidate) &&
+  typeof candidate["json"] === "function" &&
+  typeof candidate["status"] === "function"
 
 const createResponse = (): MockResponse => {
   const candidate: unknown = {
     json: vi.fn<Json>().mockReturnThis(),
     status: vi.fn<SetStatus>().mockReturnThis(),
   }
-  if (
-    !(
-      isRecord(candidate) &&
-      typeof candidate["json"] === "function" &&
-      typeof candidate["status"] === "function"
-    )
-  ) {
+  if (!isMockResponse(candidate)) {
     throw new TypeError("Expected a response with json and status functions")
   }
   return candidate
@@ -102,11 +101,11 @@ describe("store quote middlewares", () => {
         if (!isRecord(candidate)) {
           return false
         }
-        const routeMethods = candidate.method
+        const routeMethods = candidate["methods"]
         return (
           Array.isArray(routeMethods) &&
           routeMethods.includes(method) &&
-          candidate.matcher === matcher
+          candidate["matcher"] === matcher
         )
       })
 

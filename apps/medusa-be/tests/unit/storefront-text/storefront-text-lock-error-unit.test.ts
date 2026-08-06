@@ -24,11 +24,15 @@ const expectLockConflict = (error: Error) => {
   })
 }
 
-const expectRethrow = (error: unknown) => {
+const expectRethrow = (expectedError: unknown) => {
   const response = createResponse()
-  expect(() => {
-    handleStorefrontTextLockError(error, response.res)
-  }).toThrow(error)
+  let caughtError: unknown
+  try {
+    handleStorefrontTextLockError(expectedError, response.res)
+  } catch (error) {
+    caughtError = error
+  }
+  expect(caughtError).toBe(expectedError)
   expect(response.status).not.toHaveBeenCalled()
   expect(response.json).not.toHaveBeenCalled()
 }

@@ -20,20 +20,33 @@ const workflowMocks = vi.hoisted(() => {
   }
 })
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 vi.mock(
   import("../../../../../../src/workflows/company/workflows/delete-companies"),
-  () => ({
-    deleteCompaniesWorkflow: {
-      run: vi.fn<() => Promise<unknown>>(),
-    },
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      deleteCompaniesWorkflow: {
+        run: vi.fn<() => Promise<unknown>>(),
+      },
+    }),
 )
 
 vi.mock(
   import("../../../../../../src/workflows/company/workflows/update-companies"),
-  () => ({
-    updateCompaniesWorkflow: workflowMocks.updateCompaniesWorkflow,
-  }),
+  async (importOriginal) =>
+    overrideModule(await importOriginal(), {
+      updateCompaniesWorkflow: workflowMocks.updateCompaniesWorkflow,
+    }),
 )
 
 /**

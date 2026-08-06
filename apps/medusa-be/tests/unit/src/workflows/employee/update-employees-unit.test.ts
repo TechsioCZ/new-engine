@@ -1,19 +1,23 @@
 import type { Mock } from "vitest"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 const COMPANY_MODULE = "company"
 
-vi.mock(import("@medusajs/framework/utils"), async (importOriginal) => {
-  const original = await importOriginal()
-
-  return {
-    ...original,
-    ContainerRegistrationKeys: {
-      ...original.ContainerRegistrationKeys,
-      QUERY: "query",
-    },
-  }
-})
+vi.mock(
+  import("@medusajs/framework/utils"),
+  async (importOriginal) => await importOriginal(),
+)
 
 type StepImplementation = (...args: unknown[]) => unknown
 
@@ -26,8 +30,7 @@ type CreateStepFn = (
 vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) => {
   const original = await importOriginal()
 
-  return {
-    ...original,
+  return overrideModule(original, {
     StepResponse: class StepResponse<
       TPayload = unknown,
       TCompensationInput = unknown,
@@ -40,15 +43,20 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) => {
         this.compensateInput = compensateInput
       }
     },
-    createStep: vi.fn<CreateStepFn>((_name, invoke, compensate) =>
-      Object.assign(invoke, { compensate }),
-    ),
-  }
+    createStep: vi.fn<CreateStepFn>((_name, invoke, compensate) => {
+      if (compensate === undefined) {
+        return invoke
+      }
+      return Object.assign(invoke, { compensate })
+    }),
+  })
 })
 
-vi.mock(import("../../../../../src/modules/company"), () => ({
-  COMPANY_MODULE: "company",
-}))
+vi.mock(import("../../../../../src/modules/company"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    COMPANY_MODULE: "company",
+  }),
+)
 
 type AsyncMockFn<TArgs extends unknown[] = unknown[], TReturn = unknown> = (
   ...args: TArgs

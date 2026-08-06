@@ -1,37 +1,52 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 type MockWorkflowCallback = (...args: never[]) => unknown
 
-vi.mock(import("@medusajs/framework/utils"), () => ({
-  ContainerRegistrationKeys: {
-    QUERY: "query",
-  },
-  Modules: {
-    AUTH: "auth",
-  },
-}))
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    ContainerRegistrationKeys: {
+      QUERY: "query",
+    },
+    Modules: {
+      AUTH: "auth",
+    },
+  }),
+)
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: class StepResponse<
-    TPayload = unknown,
-    TCompensationInput = unknown,
-  > {
-    compensateInput: TCompensationInput | undefined
-    payload: TPayload
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: class StepResponse<
+      TPayload = unknown,
+      TCompensationInput = unknown,
+    > {
+      compensateInput: TCompensationInput | undefined
+      payload: TPayload
 
-    constructor(payload: TPayload, compensateInput?: TCompensationInput) {
-      this.payload = payload
-      this.compensateInput = compensateInput
-    }
-  },
-  createStep: vi.fn<
-    (
-      name: string,
-      invoke: MockWorkflowCallback,
-      compensate: MockWorkflowCallback,
-    ) => MockWorkflowCallback & { compensate: MockWorkflowCallback }
-  >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
-}))
+      constructor(payload: TPayload, compensateInput?: TCompensationInput) {
+        this.payload = payload
+        this.compensateInput = compensateInput
+      }
+    },
+    createStep: vi.fn<
+      (
+        name: string,
+        invoke: MockWorkflowCallback,
+        compensate: MockWorkflowCallback,
+      ) => MockWorkflowCallback & { compensate: MockWorkflowCallback }
+    >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
+  }),
+)
 
 interface AuthService {
   updateProviderIdentities: ReturnType<
@@ -86,7 +101,7 @@ const makeAuthService = (
 ): AuthService => ({
   updateProviderIdentities: vi
     .fn<(updates: unknown[]) => Promise<void>>()
-    .mockResolvedValue(),
+    .mockImplementation(async () => {}),
   ...overrides,
 })
 

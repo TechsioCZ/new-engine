@@ -10,6 +10,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { CommercialValuesItemInput } from "../../../../../src/utils/order-commercial-values"
 import { applyOrderCommercialValues } from "../../../../../src/workflows/order-commercial-values/apply-commercial-values"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 interface ReplacementAdjustment {
   amount: number
   code?: string | undefined
@@ -95,14 +106,16 @@ const {
   mockRequestRun: vi.fn<RequestRun>(),
 }))
 
-vi.mock(import("@medusajs/medusa/core-flows"), () => ({
-  beginOrderEditOrderWorkflow: () => ({ run: mockBeginRun }),
-  cancelBeginOrderEditWorkflow: () => ({ run: mockCancelRun }),
-  confirmOrderEditRequestWorkflow: () => ({ run: mockConfirmRun }),
-  createOrderChangeActionsWorkflow: () => ({ run: mockCreateActionsRun }),
-  orderEditUpdateItemQuantityWorkflow: () => ({ run: mockItemUpdateRun }),
-  requestOrderEditRequestWorkflow: () => ({ run: mockRequestRun }),
-}))
+vi.mock(import("@medusajs/medusa/core-flows"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    beginOrderEditOrderWorkflow: () => ({ run: mockBeginRun }),
+    cancelBeginOrderEditWorkflow: () => ({ run: mockCancelRun }),
+    confirmOrderEditRequestWorkflow: () => ({ run: mockConfirmRun }),
+    createOrderChangeActionsWorkflow: () => ({ run: mockCreateActionsRun }),
+    orderEditUpdateItemQuantityWorkflow: () => ({ run: mockItemUpdateRun }),
+    requestOrderEditRequestWorkflow: () => ({ run: mockRequestRun }),
+  }),
+)
 
 const getRequired = <T>(values: readonly T[], index: number): T => {
   const value = values[index]

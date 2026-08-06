@@ -10,6 +10,12 @@ import {
 } from "../../src/admin/components/brands/brand-table-state"
 import type { Brand, BrandProductOption } from "../../src/admin/lib/brands"
 
+interface AbsentValue {
+  value?: undefined
+}
+
+const absentValue: AbsentValue = {}
+
 const brand = (id: string, deletedAt?: string): Brand => ({
   active_product_count: 0,
   attributes: [],
@@ -61,22 +67,30 @@ describe("Brand DataTable state", () => {
   })
 
   it("prevents selecting deleted, pending, and already-selected Brands", () => {
-    expect(isBrandSelectable(brand("brand_1"), undefined, false)).toBeTruthy()
+    expect(
+      isBrandSelectable(brand("brand_1"), absentValue.value, false),
+    ).toBeTruthy()
     expect(isBrandSelectable(brand("brand_1"), "brand_1", false)).toBeFalsy()
     expect(
       isBrandSelectable(brand("brand_1", "2026-07-20"), undefined, false),
     ).toBeFalsy()
-    expect(isBrandSelectable(brand("brand_1"), undefined, true)).toBeFalsy()
+    expect(
+      isBrandSelectable(brand("brand_1"), absentValue.value, true),
+    ).toBeFalsy()
   })
 
   it("does not submit an unchanged inactive Brand as an unlink", () => {
     const inactiveBrand = brand("brand_1", "2026-07-20")
 
-    expect(shouldSubmitProductBrandSelection(inactiveBrand)).toBeFalsy()
+    expect(
+      shouldSubmitProductBrandSelection(inactiveBrand, absentValue.value),
+    ).toBeFalsy()
     expect(
       shouldSubmitProductBrandSelection(inactiveBrand, "brand_2"),
     ).toBeTruthy()
-    expect(shouldSubmitProductBrandSelection(brand("brand_1"))).toBeTruthy()
+    expect(
+      shouldSubmitProductBrandSelection(brand("brand_1"), absentValue.value),
+    ).toBeTruthy()
   })
 
   it("submits only changed product selections", () => {

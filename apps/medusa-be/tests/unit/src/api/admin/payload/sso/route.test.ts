@@ -8,26 +8,39 @@ const { mockImportPKCS8, mockSignJWTConstructor } = vi.hoisted(() => ({
   mockSignJWTConstructor: vi.fn<(payload: unknown) => void>(),
 }))
 
-vi.mock(import("jose"), () => ({
-  SignJWT: class {
-    constructor(payload: unknown) {
-      mockSignJWTConstructor(payload)
-    }
-
-    setProtectedHeader = vi
-      .fn<(header: Record<string, unknown>) => unknown>()
-      .mockReturnThis()
-    setIssuedAt = vi.fn<(iat: number) => unknown>().mockReturnThis()
-    setExpirationTime = vi.fn<(exp: number) => unknown>().mockReturnThis()
-    setIssuer = vi.fn<(issuer: string) => unknown>().mockReturnThis()
-    setAudience = vi.fn<(audience: string) => unknown>().mockReturnThis()
-    setSubject = vi.fn<(subject: string) => unknown>().mockReturnThis()
-    sign = vi
-      .fn<(key: unknown) => Promise<string>>()
-      .mockResolvedValue("signed-sso-token")
-  },
-  importPKCS8: async (...args: unknown[]) => await mockImportPKCS8(...args),
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
 }))
+
+vi.mock(import("jose"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    SignJWT: class {
+      constructor(payload: unknown) {
+        mockSignJWTConstructor(payload)
+      }
+
+      setProtectedHeader = vi
+        .fn<(header: Record<string, unknown>) => unknown>()
+        .mockReturnThis()
+      setIssuedAt = vi.fn<(iat: number) => unknown>().mockReturnThis()
+      setExpirationTime = vi.fn<(exp: number) => unknown>().mockReturnThis()
+      setIssuer = vi.fn<(issuer: string) => unknown>().mockReturnThis()
+      setAudience = vi.fn<(audience: string) => unknown>().mockReturnThis()
+      setSubject = vi.fn<(subject: string) => unknown>().mockReturnThis()
+      sign = vi
+        .fn<(key: unknown) => Promise<string>>()
+        .mockResolvedValue("signed-sso-token")
+    },
+    importPKCS8: async (...args: unknown[]) => await mockImportPKCS8(...args),
+  }),
+)
 
 const ORIGINAL_ENV = { ...process.env }
 
@@ -176,7 +189,11 @@ describe("GET /admin/payload/sso", () => {
 
       await GET(req, res)
 
-      html = res.send.mock.calls[0]?.[0]
+      const sentHtml = res.send.mock.calls[0]?.[0]
+      if (sentHtml === undefined) {
+        throw new Error("Expected SSO route to send an HTML response")
+      }
+      html = sentHtml
     })
 
     it("sets the response headers and status for the auto-post form", () => {

@@ -1,5 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: Record<PropertyKey, unknown>,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
 type StepImplementation = (...args: unknown[]) => unknown
 
 type CreateStepFn = (
@@ -10,32 +21,39 @@ type CreateStepFn = (
 
 type AsyncMockFn = (...args: unknown[]) => Promise<unknown>
 
-vi.mock(import("@medusajs/framework/utils"), () => ({
-  ContainerRegistrationKeys: {
-    QUERY: "query",
-  },
-  Modules: {
-    AUTH: "auth",
-  },
-}))
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    ContainerRegistrationKeys: {
+      QUERY: "query",
+    },
+    Modules: {
+      AUTH: "auth",
+    },
+  }),
+)
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: class StepResponse<
-    TPayload = unknown,
-    TCompensationInput = unknown,
-  > {
-    compensateInput: TCompensationInput | undefined
-    payload: TPayload
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: class StepResponse<
+      TPayload = unknown,
+      TCompensationInput = unknown,
+    > {
+      compensateInput: TCompensationInput | undefined
+      payload: TPayload
 
-    constructor(payload: TPayload, compensateInput?: TCompensationInput) {
-      this.payload = payload
-      this.compensateInput = compensateInput
-    }
-  },
-  createStep: vi.fn<CreateStepFn>((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate }),
-  ),
-}))
+      constructor(payload: TPayload, compensateInput?: TCompensationInput) {
+        this.payload = payload
+        this.compensateInput = compensateInput
+      }
+    },
+    createStep: vi.fn<CreateStepFn>((_name, invoke, compensate) => {
+      if (compensate === undefined) {
+        return invoke
+      }
+      return Object.assign(invoke, { compensate })
+    }),
+  }),
+)
 
 type MockContainer = ReturnType<typeof makeContainer>
 
@@ -137,7 +155,9 @@ describe("setAdminRoleStep", () => {
       })
       .mockResolvedValueOnce({ data: [{ email: "employee@example.com" }] })
       .mockResolvedValueOnce({ data: [{ id: "authpi_1" }] })
-    const updateProviderIdentities = vi.fn<AsyncMockFn>().mockResolvedValue()
+    const updateProviderIdentities = vi
+      .fn<AsyncMockFn>()
+      .mockImplementation(async () => {})
     const container = makeContainer({ graph, updateProviderIdentities })
 
     const result = await asMockStep(setAdminRoleStep)(
@@ -181,7 +201,9 @@ describe("setAdminRoleStep", () => {
         ],
       })
       .mockResolvedValueOnce({ data: [{ id: "authpi_1" }] })
-    const updateProviderIdentities = vi.fn<AsyncMockFn>().mockResolvedValue()
+    const updateProviderIdentities = vi
+      .fn<AsyncMockFn>()
+      .mockImplementation(async () => {})
     const container = makeContainer({ graph, updateProviderIdentities })
 
     await asMockStep(setAdminRoleStep).compensate(
@@ -233,7 +255,9 @@ describe("setAdminRoleStep", () => {
           },
         ],
       })
-    const updateProviderIdentities = vi.fn<AsyncMockFn>().mockResolvedValue()
+    const updateProviderIdentities = vi
+      .fn<AsyncMockFn>()
+      .mockImplementation(async () => {})
     const container = makeContainer({ graph, updateProviderIdentities })
 
     await asMockStep(setAdminRoleStep).compensate(

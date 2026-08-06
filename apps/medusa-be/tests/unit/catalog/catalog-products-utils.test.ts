@@ -59,14 +59,16 @@ describe("catalog products filter utils", () => {
     expect(resolveCatalogSort("recommended")).toBeUndefined()
     expect(resolveCatalogSort("best-selling")).toBeUndefined()
     expect(
-      [
-        "newest",
-        "oldest",
-        "price-asc",
-        "price-desc",
-        "title-asc",
-        "title-desc",
-      ].map(resolveCatalogSort),
+      (
+        [
+          "newest",
+          "oldest",
+          "price-asc",
+          "price-desc",
+          "title-asc",
+          "title-desc",
+        ] satisfies Parameters<typeof resolveCatalogSort>[0][]
+      ).map((sort) => resolveCatalogSort(sort)),
     ).toStrictEqual([
       ["created_at:desc"],
       ["created_at:asc"],
