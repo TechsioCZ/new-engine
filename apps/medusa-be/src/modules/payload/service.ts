@@ -27,6 +27,7 @@ import type {
 
 const CMS = "cms"
 const DEFAULT_LOCALE = "default"
+const NO_FALLBACK_LOCALE = "none"
 const STATUS_PUBLISHED = "published"
 const PAGES = "pages"
 const ARTICLES = "articles"
@@ -356,10 +357,12 @@ export default class PayloadModuleService extends MedusaService({}) {
         const queryString = this.buildQuery({
           where: {
             slug: { equals: slug },
+            title: { exists: true },
             status: { equals: STATUS_PUBLISHED },
           },
           limit: 1,
           locale,
+          fallbackLocale: locale ? NO_FALLBACK_LOCALE : undefined,
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
           "GET",
@@ -399,10 +402,13 @@ export default class PayloadModuleService extends MedusaService({}) {
         const queryString = this.buildQuery({
           where: {
             id: { equals: id },
+            slug: { exists: true },
+            title: { exists: true },
             status: { equals: STATUS_PUBLISHED },
           },
           limit: 1,
           locale,
+          fallbackLocale: locale ? NO_FALLBACK_LOCALE : undefined,
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
           "GET",
@@ -442,6 +448,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       async () => {
         const queryString = this.buildParamsQuery({
           locale: options?.locale,
+          fallbackLocale: options?.locale ? NO_FALLBACK_LOCALE : undefined,
           categorySlug: options?.categorySlug,
         })
         const result = await this.makeRequest<{
@@ -470,10 +477,12 @@ export default class PayloadModuleService extends MedusaService({}) {
         const queryString = this.buildQuery({
           where: {
             slug: { equals: slug },
+            title: { exists: true },
             status: { equals: STATUS_PUBLISHED },
           },
           limit: 1,
           locale,
+          fallbackLocale: locale ? NO_FALLBACK_LOCALE : undefined,
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(
           "GET",
@@ -512,10 +521,13 @@ export default class PayloadModuleService extends MedusaService({}) {
         const queryString = this.buildQuery({
           where: {
             id: { equals: id },
+            slug: { exists: true },
+            title: { exists: true },
             status: { equals: STATUS_PUBLISHED },
           },
           limit: 1,
           locale,
+          fallbackLocale: locale ? NO_FALLBACK_LOCALE : undefined,
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(
           "GET",
@@ -556,6 +568,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       async () => {
         const queryString = this.buildParamsQuery({
           locale: options?.locale,
+          fallbackLocale: options?.locale ? NO_FALLBACK_LOCALE : undefined,
           categorySlug: options?.categorySlug,
         })
         const result = await this.makeRequest<{
@@ -589,6 +602,7 @@ export default class PayloadModuleService extends MedusaService({}) {
           page: options?.page,
           sort: options?.sort,
           locale: options?.locale,
+          fallbackLocale: options?.locale ? NO_FALLBACK_LOCALE : undefined,
         })
         const result = await this.makeRequest<
           PayloadBulkResult<CmsHeroCarouselDTO>

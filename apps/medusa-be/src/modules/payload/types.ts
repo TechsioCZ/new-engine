@@ -44,6 +44,7 @@ export type PayloadQueryOptions = {
   select?: Record<string, boolean>
   populate?: Record<string, boolean>
   locale?: string
+  fallbackLocale?: string
   depth?: number
 }
 

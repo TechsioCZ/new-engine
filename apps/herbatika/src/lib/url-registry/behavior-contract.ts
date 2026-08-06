@@ -8,10 +8,12 @@ export type RegistryBehaviorHarness = {
   cleanup(): Promise<void>
 }
 
+type Suite = (name: string, factory: () => void) => unknown
+
 export const runUrlRegistryBehaviorSuite = (
   name: string,
   createHarness: () => Promise<RegistryBehaviorHarness>,
-  suite: typeof describe = describe
+  suite: Suite = describe
 ) => {
   suite(name, () => {
     it("shares unique, alias, lookup, and tombstone semantics", async () => {
