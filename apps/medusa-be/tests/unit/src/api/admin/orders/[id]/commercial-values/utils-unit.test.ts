@@ -14,7 +14,7 @@ import {
   MANUAL_ORDER_DISCOUNT_CODE,
 } from "../../../../../../../../src/utils/order-commercial-values"
 
-function getRequired<T>(values: readonly T[], index: number): T {
+const getRequired = <T>(values: readonly T[], index: number): T => {
   const value = values[index]
   expect(value).toBeDefined()
   if (value === undefined) {
@@ -23,9 +23,9 @@ function getRequired<T>(values: readonly T[], index: number): T {
   return value
 }
 
-function createMockOrder(
+const createMockOrder = (
   overrides: Partial<CommercialValuesOrder> = {},
-): CommercialValuesOrder {
+): CommercialValuesOrder => {
   const baseOrder: CommercialValuesOrder = {
     currency_code: "czk",
     id: "order_1",
@@ -50,16 +50,37 @@ function createMockOrder(
 }
 
 class MedusaBigNumberLike {
-  numeric_: string
+  readonly #numeric: string
 
   constructor(value: string) {
-    this.numeric_ = value
+    this.#numeric = value
+    Object.defineProperty(this, "numeric_", { value })
   }
 
   toString() {
-    return this.numeric_
+    return this.#numeric
   }
 }
+
+type SnapshotContainer = Parameters<
+  typeof fetchCommercialValuesSnapshotOrder
+>[0]
+type SnapshotQuery = Parameters<typeof fetchCommercialValuesSnapshotOrder>[1]
+type Graph = (input: { entity: string }) => { data: unknown[] }
+
+const isSnapshotContainer = (
+  candidate: unknown,
+): candidate is SnapshotContainer =>
+  typeof candidate === "object" &&
+  candidate !== null &&
+  "resolve" in candidate &&
+  typeof candidate.resolve === "function"
+
+const isSnapshotQuery = (candidate: unknown): candidate is SnapshotQuery =>
+  typeof candidate === "object" &&
+  candidate !== null &&
+  "graph" in candidate &&
+  typeof candidate.graph === "function"
 
 describe("commercial values route utils", () => {
   it("builds snapshots for fractional Medusa amounts", () => {
@@ -157,7 +178,7 @@ describe("commercial values route utils", () => {
   it("uses pending edit preview items without dropping order fields", async () => {
     const order = createMockOrder()
     const query = {
-      graph: vi.fn(async ({ entity }: { entity: string }) => {
+      graph: vi.fn<Graph>(({ entity }) => {
         if (entity === "order") {
           return { data: [order] }
         }
@@ -179,18 +200,20 @@ describe("commercial values route utils", () => {
       }),
     }
     const container = {
-      resolve: vi.fn((key: string) => {
+      resolve: vi.fn<(key: string) => unknown>((key) => {
         if (key === Modules.ORDER) {
           return {
-            previewOrderChange: vi.fn(async () => ({
-              id: "order_1",
-              items: [
-                {
-                  detail: { quantity: 2 },
-                  id: "item_1",
-                },
-              ],
-            })),
+            previewOrderChange: vi
+              .fn<(orderId: string) => Promise<unknown>>()
+              .mockResolvedValue({
+                id: "order_1",
+                items: [
+                  {
+                    detail: { quantity: 2 },
+                    id: "item_1",
+                  },
+                ],
+              }),
           }
         }
 
@@ -198,12 +221,11 @@ describe("commercial values route utils", () => {
       }),
     }
 
+    if (!isSnapshotContainer(container) || !isSnapshotQuery(query)) {
+      throw new TypeError("Expected commercial values query collaborators")
+    }
     const { activeOrderChange, order: snapshotOrder } =
-      await fetchCommercialValuesSnapshotOrder(
-        container as never,
-        query as never,
-        "order_1",
-      )
+      await fetchCommercialValuesSnapshotOrder(container, query, "order_1")
     const snapshot = toCommercialValuesSnapshot(
       snapshotOrder,
       activeOrderChange,
@@ -363,12 +385,23 @@ describe("commercial values route utils", () => {
 
     const preview = calculateCommercialValuesPreview(calculationInput)
 
-    expect(getRequired(preview.items, 0).preserved_adjustment_amount).toBe(150)
-    expect(getRequired(preview.items, 0).final_line_total).toBe(850)
-    expect(getRequired(preview.items, 1).preserved_adjustment_amount).toBe(20)
-    expect(getRequired(preview.items, 1).final_line_total).toBe(580)
-    expect(preview.new_total).toBe(1430)
-    expect(preview.delta).toBe(100)
+    expect({
+      delta: preview.delta,
+      firstFinalTotal: getRequired(preview.items, 0).final_line_total,
+      firstPreservedAdjustment: getRequired(preview.items, 0)
+        .preserved_adjustment_amount,
+      newTotal: preview.new_total,
+      secondFinalTotal: getRequired(preview.items, 1).final_line_total,
+      secondPreservedAdjustment: getRequired(preview.items, 1)
+        .preserved_adjustment_amount,
+    }).toStrictEqual({
+      delta: 100,
+      firstFinalTotal: 850,
+      firstPreservedAdjustment: 150,
+      newTotal: 1430,
+      secondFinalTotal: 580,
+      secondPreservedAdjustment: 20,
+    })
   })
 
   it("includes shipping methods as discountable commercial values", () => {
@@ -406,19 +439,22 @@ describe("commercial values route utils", () => {
     })
     const preview = calculateCommercialValuesPreview(calculationInput)
 
-    expect(preview.shipping_discount_total).toBe(25)
-    expect(getRequired(preview.shipping_methods, 0).final_total).toBeCloseTo(
-      69.16666666666667,
-    )
-    expect(getRequired(preview.shipping_methods, 0)).toMatchObject({
-      final_total_with_tax: 83,
-      manual_shipping_discount_amount: 25,
-      shipping_method_id: "ship_1",
+    const shippingPreview = getRequired(preview.shipping_methods, 0)
+    expect(shippingPreview.final_total).toBeCloseTo(69.16666666666667)
+    expect(shippingPreview.tax_total).toBeCloseTo(13.833333333333329)
+    expect({
+      finalTotalWithTax: shippingPreview.final_total_with_tax,
+      manualDiscount: shippingPreview.manual_shipping_discount_amount,
+      newTotal: preview.new_total,
+      shippingDiscountTotal: preview.shipping_discount_total,
+      shippingMethodId: shippingPreview.shipping_method_id,
+    }).toStrictEqual({
+      finalTotalWithTax: 83,
+      manualDiscount: 25,
+      newTotal: 1083,
+      shippingDiscountTotal: 25,
+      shippingMethodId: "ship_1",
     })
-    expect(getRequired(preview.shipping_methods, 0).tax_total).toBeCloseTo(
-      13.833333333333329,
-    )
-    expect(preview.new_total).toBe(1083)
   })
 
   it("does not add tax twice for tax-inclusive unchanged items", () => {

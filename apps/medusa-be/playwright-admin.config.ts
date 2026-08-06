@@ -97,6 +97,7 @@ export default defineConfig({
   reporter: isCI ? [["github"], ["list"]] : "list",
   retries: isCI ? 2 : 0,
   testDir: "./tests/e2e",
+  testMatch: "**/*-e2e.ts",
   timeout: 60_000,
   use: {
     baseURL,

@@ -67,7 +67,8 @@ describe("ppl-label-sync", () => {
     })
 
     it("returns error when pending for over 24 hours", () => {
-      const oldDate = new Date(Date.now() - MAX_PENDING_AGE_MS - 1000) // 24h + 1s ago
+      // 24h + 1s ago
+      const oldDate = new Date(Date.now() - MAX_PENDING_AGE_MS - 1000)
       const fulfillment = createFulfillment({
         created_at: oldDate.toISOString(),
       })
@@ -81,7 +82,8 @@ describe("ppl-label-sync", () => {
     })
 
     it("returns null when just under 24 hours", () => {
-      const almostOldDate = new Date(Date.now() - MAX_PENDING_AGE_MS + 60_000) // 24h - 1min
+      // 24h - 1min
+      const almostOldDate = new Date(Date.now() - MAX_PENDING_AGE_MS + 60_000)
       const fulfillment = createFulfillment({
         created_at: almostOldDate.toISOString(),
       })

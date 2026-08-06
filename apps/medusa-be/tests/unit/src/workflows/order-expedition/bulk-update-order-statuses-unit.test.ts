@@ -2,24 +2,36 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { OrderExpeditionDirectUpdateStatus } from "../../../../../src/workflows/order-expedition/bulk-update-order-statuses"
 
+type WorkflowComposer = (input: BulkUpdateOrderStatusesWorkflowInput) => void
+type Step = (input: unknown) => unknown
+type WorkflowFactory = (input: BulkUpdateOrderStatusesWorkflowInput) => unknown
+type CreateWorkflow = (
+  name: string,
+  factory: WorkflowFactory,
+) => WorkflowFactory
+type Transform = (
+  input: unknown,
+  mapper: (value: unknown) => unknown,
+) => unknown
+
 interface BulkUpdateOrderStatusesWorkflowInput {
   order_ids: string[]
   target_status: OrderExpeditionDirectUpdateStatus
 }
 
-const asMockedWorkflowComposer = <TInput>(
-  workflow: unknown,
-): ((input: TInput) => void) => {
-  if (typeof workflow !== "function") {
+const isWorkflowComposer = (workflow: unknown): workflow is WorkflowComposer =>
+  typeof workflow === "function"
+
+const asMockedWorkflowComposer = (workflow: unknown): WorkflowComposer => {
+  if (!isWorkflowComposer(workflow)) {
     throw new TypeError("mocked workflow composer must be a function")
   }
-
-  return workflow as (input: TInput) => void
+  return workflow
 }
 
 const { mockEmitEventStep, mockUpdateOrdersStep } = vi.hoisted(() => ({
-  mockEmitEventStep: vi.fn(),
-  mockUpdateOrdersStep: vi.fn((input) => input),
+  mockEmitEventStep: vi.fn<Step>(),
+  mockUpdateOrdersStep: vi.fn<Step>((input) => input),
 }))
 
 vi.mock(import("@medusajs/framework/utils"), () => ({
@@ -36,8 +48,8 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.payload = payload
     }
   },
-  createWorkflow: vi.fn((_name, factory) => factory),
-  transform: vi.fn((input, mapper) => mapper(input)),
+  createWorkflow: vi.fn<CreateWorkflow>((_name, factory) => factory),
+  transform: vi.fn<Transform>((input, mapper) => mapper(input)),
 }))
 
 vi.mock(import("@medusajs/medusa/core-flows"), () => ({
@@ -54,9 +66,7 @@ describe("bulkUpdateOrderStatusesWorkflow", () => {
     const { bulkUpdateOrderStatusesWorkflow } =
       await import("../../../../../src/workflows/order-expedition/bulk-update-order-statuses")
 
-    asMockedWorkflowComposer<BulkUpdateOrderStatusesWorkflowInput>(
-      bulkUpdateOrderStatusesWorkflow,
-    )({
+    asMockedWorkflowComposer(bulkUpdateOrderStatusesWorkflow)({
       order_ids: ["order_1", "order_2"],
       target_status: "draft",
     })
@@ -80,9 +90,7 @@ describe("bulkUpdateOrderStatusesWorkflow", () => {
     const { bulkUpdateOrderStatusesWorkflow } =
       await import("../../../../../src/workflows/order-expedition/bulk-update-order-statuses")
 
-    asMockedWorkflowComposer<BulkUpdateOrderStatusesWorkflowInput>(
-      bulkUpdateOrderStatusesWorkflow,
-    )({
+    asMockedWorkflowComposer(bulkUpdateOrderStatusesWorkflow)({
       order_ids: ["order_1"],
       target_status: "requires_action",
     })

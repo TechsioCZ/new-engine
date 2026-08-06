@@ -3,42 +3,51 @@ import type {
   MedusaResponse,
   MiddlewareVerb,
 } from "@medusajs/framework"
+import { isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { Mock } from "vitest"
 
-const asAuthenticatedRequest = (request: {
-  auth_context: { actor_id: string }
-  params: Record<string, string>
-  scope: { resolve: (key: string) => unknown }
-}): AuthenticatedMedusaRequest => {
-  if (typeof request.scope.resolve !== "function") {
-    throw new TypeError("mock request requires a scope.resolve function")
-  }
-
-  return request as AuthenticatedMedusaRequest
+type Graph = (input: unknown) => Promise<{
+  data: { customer_id: string; id: string }[]
+}>
+type Json = (body: unknown) => unknown
+type SetStatus = (status: number) => unknown
+type MockResponse = MedusaResponse & {
+  json: Mock<Json>
+  status: Mock<SetStatus>
 }
 
-function assertMedusaResponse<
-  T extends {
-    json: (...args: unknown[]) => unknown
-    status: (...args: unknown[]) => unknown
-  },
->(response: T): asserts response is T & MedusaResponse {
+const isAuthenticatedRequest = (
+  candidate: unknown,
+): candidate is AuthenticatedMedusaRequest => {
+  if (!isRecord(candidate)) {
+    return false
+  }
+  const { auth_context: authContext, params, scope } = candidate
+  if (!(isRecord(authContext) && typeof authContext.actor_id === "string")) {
+    return false
+  }
+  if (!(isRecord(params) && isRecord(scope))) {
+    return false
+  }
+  return typeof scope.resolve === "function"
+}
+
+const createResponse = (): MockResponse => {
+  const candidate: unknown = {
+    json: vi.fn<Json>().mockReturnThis(),
+    status: vi.fn<SetStatus>().mockReturnThis(),
+  }
   if (
-    typeof response.json !== "function" ||
-    typeof response.status !== "function"
+    !(
+      isRecord(candidate) &&
+      typeof candidate["json"] === "function" &&
+      typeof candidate["status"] === "function"
+    )
   ) {
-    throw new TypeError("mock response requires json and status functions")
+    throw new TypeError("Expected a response with json and status functions")
   }
-}
-
-const createResponse = () => {
-  const response = {
-    json: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  }
-
-  assertMedusaResponse(response)
-  return response
+  return candidate
 }
 
 const createRequest = ({
@@ -47,25 +56,26 @@ const createRequest = ({
   params = { id: "quote_1" },
 }: {
   actorId?: string
-  graph: ReturnType<typeof vi.fn>
+  graph: Mock<Graph>
   params?: Record<string, string>
-}) =>
-  asAuthenticatedRequest({
-    auth_context: {
-      actor_id: actorId,
-    },
+}): AuthenticatedMedusaRequest => {
+  const candidate: unknown = {
+    auth_context: { actor_id: actorId },
     params,
     scope: {
-      resolve: vi.fn((key: string) => {
+      resolve: vi.fn<(key: string) => { graph: Mock<Graph> }>((key) => {
         if (key === "query") {
           return { graph }
         }
-
         throw new Error(`Unexpected dependency: ${key}`)
       }),
     },
-  })
-
+  }
+  if (!isAuthenticatedRequest(candidate)) {
+    throw new TypeError("Expected an authenticated request")
+  }
+  return candidate
+}
 describe("store quote middlewares", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -87,11 +97,18 @@ describe("store quote middlewares", () => {
     ]
 
     for (const { matcher, method } of ownerScopedRoutes) {
-      const route = storeQuotesMiddlewares.find(
-        (middlewareRoute) =>
-          middlewareRoute.method?.includes(method) &&
-          middlewareRoute.matcher === matcher,
-      )
+      const route = storeQuotesMiddlewares.find((middlewareRoute) => {
+        const candidate: unknown = middlewareRoute
+        if (!isRecord(candidate)) {
+          return false
+        }
+        const routeMethods = candidate.method
+        return (
+          Array.isArray(routeMethods) &&
+          routeMethods.includes(method) &&
+          candidate.matcher === matcher
+        )
+      })
 
       expect(route).toBeDefined()
       expect(route?.middlewares).toContain(ensureQuoteCustomer)
@@ -101,12 +118,12 @@ describe("store quote middlewares", () => {
   it("allows the customer that owns the route quote", async () => {
     const { ensureQuoteCustomer } =
       await import("../../../../../../src/api/store/quotes/middlewares")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [{ customer_id: "cus_1", id: "quote_1" }],
     })
     const req = createRequest({ graph })
     const res = createResponse()
-    const next = vi.fn()
+    const next = vi.fn<() => void>()
 
     await ensureQuoteCustomer(req, res, next)
 
@@ -122,12 +139,12 @@ describe("store quote middlewares", () => {
   it("rejects customers that do not own the route quote", async () => {
     const { ensureQuoteCustomer } =
       await import("../../../../../../src/api/store/quotes/middlewares")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [{ customer_id: "cus_2", id: "quote_1" }],
     })
     const req = createRequest({ graph })
     const res = createResponse()
-    const next = vi.fn()
+    const next = vi.fn<() => void>()
 
     await ensureQuoteCustomer(req, res, next)
 
@@ -139,10 +156,10 @@ describe("store quote middlewares", () => {
   it("returns not found when the route quote does not exist", async () => {
     const { ensureQuoteCustomer } =
       await import("../../../../../../src/api/store/quotes/middlewares")
-    const graph = vi.fn().mockResolvedValue({ data: [] })
+    const graph = vi.fn<Graph>().mockResolvedValue({ data: [] })
     const req = createRequest({ graph })
     const res = createResponse()
-    const next = vi.fn()
+    const next = vi.fn<() => void>()
 
     await ensureQuoteCustomer(req, res, next)
 

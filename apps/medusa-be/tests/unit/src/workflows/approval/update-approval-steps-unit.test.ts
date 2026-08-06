@@ -1,5 +1,16 @@
 import { MedusaError } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { Mock } from "vitest"
+
+type StepInvoke = (input: unknown, context: unknown) => Promise<unknown>
+type StepCompensate = (input: unknown, context: unknown) => Promise<void>
+type CreateStep = (
+  name: string,
+  invoke: StepInvoke,
+  compensate: StepCompensate,
+) => StepInvoke & { compensate: StepCompensate }
+type ServiceMethod = (input: unknown) => Promise<unknown>
+type Graph = (input: unknown) => Promise<{ data: unknown[] }>
 
 vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
@@ -14,22 +25,22 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.compensateInput = compensateInput
     }
   },
-  createStep: vi.fn((_name, invoke, compensate) =>
+  createStep: vi.fn<CreateStep>((_name, invoke, compensate) =>
     Object.assign(invoke, { compensate }),
   ),
 }))
 
 interface MockApprovalService {
-  hasPendingApprovals: ReturnType<typeof vi.fn>
-  updateApprovals: ReturnType<typeof vi.fn>
-  updateApprovalStatuses: ReturnType<typeof vi.fn>
+  hasPendingApprovals: Mock<ServiceMethod>
+  updateApprovals: Mock<ServiceMethod>
+  updateApprovalStatuses: Mock<ServiceMethod>
 }
 
 type MockContainer = ReturnType<typeof makeContainer>
 
-interface MockStep<TInput> {
+interface MockStep {
   (
-    input: TInput,
+    input: unknown,
     context: { container: MockContainer },
   ): Promise<{
     compensateInput?: unknown
@@ -41,31 +52,26 @@ interface MockStep<TInput> {
   ) => Promise<void>
 }
 
-const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
-  if (typeof candidate !== "function") {
+const isMockStep = (candidate: unknown): candidate is MockStep =>
+  typeof candidate === "function" &&
+  "compensate" in candidate &&
+  typeof candidate.compensate === "function"
+
+const asMockStep = (candidate: unknown): MockStep => {
+  if (!isMockStep(candidate)) {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function",
+      "Expected the imported workflow step to expose invoke and compensate functions",
     )
   }
-
-  if (
-    !("compensate" in candidate) ||
-    typeof candidate.compensate !== "function"
-  ) {
-    throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function",
-    )
-  }
-
-  return candidate as MockStep<TInput>
+  return candidate
 }
 
 const makeApprovalService = (
   overrides: Partial<MockApprovalService> = {},
 ): MockApprovalService => ({
-  hasPendingApprovals: vi.fn(),
-  updateApprovalStatuses: vi.fn(),
-  updateApprovals: vi.fn(),
+  hasPendingApprovals: vi.fn<ServiceMethod>(),
+  updateApprovalStatuses: vi.fn<ServiceMethod>(),
+  updateApprovals: vi.fn<ServiceMethod>(),
   ...overrides,
 })
 
@@ -74,9 +80,9 @@ const makeContainer = ({
   graph,
 }: {
   approvalService?: MockApprovalService
-  graph: ReturnType<typeof vi.fn>
+  graph: Mock<Graph>
 }) => ({
-  resolve: vi.fn((key: string) => {
+  resolve: vi.fn<(key: string) => unknown>((key) => {
     if (key === "query") {
       return { graph }
     }
@@ -98,15 +104,11 @@ describe("approval update steps", () => {
     const { updateApprovalStep } =
       await import("../../../../../src/workflows/approval/steps/update-approval")
     const approvalService = makeApprovalService()
-    const graph = vi.fn().mockResolvedValue({ data: [] })
+    const graph = vi.fn<Graph>().mockResolvedValue({ data: [] })
     const container = makeContainer({ approvalService, graph })
 
     await expect(
-      asMockStep<{
-        handled_by: string
-        id: string
-        status: "approved"
-      }>(updateApprovalStep)(
+      asMockStep(updateApprovalStep)(
         { handled_by: "cus_1", id: "appr_missing", status: "approved" },
         { container },
       ),
@@ -121,18 +123,11 @@ describe("approval update steps", () => {
     const { updateApprovalStatusStep } =
       await import("../../../../../src/workflows/approval/steps/update-approval-statuses")
     const approvalService = makeApprovalService()
-    const graph = vi.fn().mockResolvedValue({ data: [] })
+    const graph = vi.fn<Graph>().mockResolvedValue({ data: [] })
     const container = makeContainer({ approvalService, graph })
 
     await expect(
-      asMockStep<{
-        cart_id: string
-        created_by: string
-        handled_by: string
-        id: string
-        status: "approved"
-        type: "admin"
-      }>(updateApprovalStatusStep)(
+      asMockStep(updateApprovalStatusStep)(
         {
           cart_id: "cart_missing",
           created_by: "cus_1",

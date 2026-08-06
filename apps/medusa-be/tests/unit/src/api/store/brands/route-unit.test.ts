@@ -1,5 +1,7 @@
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { Mock } from "vitest"
 
 import { GET } from "../../../../../../src/api/store/brands/[id]/products/route"
 import { storeBrandsRoutesMiddlewares } from "../../../../../../src/api/store/brands/middlewares"
@@ -9,44 +11,47 @@ import {
   StoreBrandsSchema,
 } from "../../../../../../src/api/store/brands/validators"
 
+type Graph = (input: unknown) => Promise<{
+  data: unknown[]
+  metadata?: { count: number; skip: number; take: number }
+}>
+type Json = (body: unknown) => unknown
+type RemoteQuery = (input: unknown) => Promise<unknown>
+type MockedGetResponse = Parameters<typeof GET>[1] & { json: Mock<Json> }
+
 vi.mock(import("../../../../../../src/links/product-brand"), () => ({
   ProductBrandLink: {
     entryPoint: "product_brand",
   },
 }))
 
-/**
- * Asserts that a plain mock object contains the given keys before narrowing
- * it to a framework type. Building the mock this way avoids requiring every
- * property of the huge Node request/response interfaces while still
- * validating the shape the route handler actually reads from at runtime.
- */
-function assertMockShape<T>(
+const isMockedGetResponse = (
   candidate: unknown,
-  requiredKeys: readonly string[],
-): asserts candidate is T {
-  if (typeof candidate !== "object" || candidate === null) {
-    throw new TypeError("Expected a mock object")
-  }
-
-  for (const key of requiredKeys) {
-    if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
-    }
-  }
-}
-
-type MockedGetResponse = Parameters<typeof GET>[1] & {
-  json: ReturnType<typeof vi.fn>
-}
+): candidate is MockedGetResponse =>
+  isRecord(candidate) && typeof candidate["json"] === "function"
 
 const createMockResponse = (): MockedGetResponse => {
-  const candidate: unknown = {
-    json: vi.fn().mockReturnThis(),
+  const candidate: unknown = { json: vi.fn<Json>().mockReturnThis() }
+  if (!isMockedGetResponse(candidate)) {
+    throw new TypeError("Expected a response with a json function")
   }
-
-  assertMockShape<MockedGetResponse>(candidate, ["json"])
   return candidate
+}
+
+const isMockRequest = (
+  candidate: unknown,
+): candidate is Parameters<typeof GET>[0] => {
+  if (!isRecord(candidate)) {
+    return false
+  }
+  const { filterableFields, params, queryConfig, scope } = candidate
+  if (!(isRecord(filterableFields) && isRecord(params))) {
+    return false
+  }
+  if (!(isRecord(queryConfig) && isRecord(scope))) {
+    return false
+  }
+  return typeof scope.resolve === "function"
 }
 
 const createRequest = ({
@@ -56,8 +61,8 @@ const createRequest = ({
   skip = 0,
 }: {
   brandId: string
-  graph: ReturnType<typeof vi.fn>
-  remoteQuery: ReturnType<typeof vi.fn>
+  graph: Graph
+  remoteQuery: Mock<RemoteQuery>
   skip?: number
 }): Parameters<typeof GET>[0] => {
   const candidate: unknown = {
@@ -71,21 +76,16 @@ const createRequest = ({
       pagination: { skip, take: 20 },
     },
     scope: {
-      resolve: vi.fn((key: string) =>
+      resolve: vi.fn<(key: string) => unknown>((key) =>
         key === ContainerRegistrationKeys.QUERY ? { graph } : remoteQuery,
       ),
     },
   }
-
-  assertMockShape<Parameters<typeof GET>[0]>(candidate, [
-    "filterableFields",
-    "params",
-    "queryConfig",
-    "scope",
-  ])
+  if (!isMockRequest(candidate)) {
+    throw new TypeError("Expected a Store Brand products request")
+  }
   return candidate
 }
-
 describe("Store Brand visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -125,8 +125,8 @@ describe("Store Brand visibility", () => {
   })
 
   it("does not query links or products when the active Brand is absent", async () => {
-    const graph = vi.fn().mockResolvedValueOnce({ data: [] })
-    const remoteQuery = vi.fn()
+    const graph = vi.fn<Graph>().mockResolvedValueOnce({ data: [] })
+    const remoteQuery = vi.fn<RemoteQuery>()
     const req = createRequest({ brandId: "brand_deleted", graph, remoteQuery })
     const response = createMockResponse()
 
@@ -139,10 +139,10 @@ describe("Store Brand visibility", () => {
 
   it("returns an empty page without widening an unlinked Brand to all products", async () => {
     const graph = vi
-      .fn()
+      .fn<Graph>()
       .mockResolvedValueOnce({ data: [{ id: "brand_1" }] })
       .mockResolvedValueOnce({ data: [] })
-    const remoteQuery = vi.fn()
+    const remoteQuery = vi.fn<RemoteQuery>()
     const req = createRequest({
       brandId: "brand_1",
       graph,
@@ -165,7 +165,7 @@ describe("Store Brand visibility", () => {
 
   it("intersects linked products with published and authorized-channel filters", async () => {
     const graph = vi
-      .fn()
+      .fn<Graph>()
       .mockResolvedValueOnce({ data: [{ id: "brand_1" }] })
       .mockResolvedValueOnce({
         data: [
@@ -180,7 +180,7 @@ describe("Store Brand visibility", () => {
         data: [{ id: "prod_visible", title: "Visible" }],
         metadata: { count: 1, skip: 0, take: 20 },
       })
-    const remoteQuery = vi.fn()
+    const remoteQuery = vi.fn<RemoteQuery>()
     const req = createRequest({ brandId: "brand_1", graph, remoteQuery })
     const response = createMockResponse()
 

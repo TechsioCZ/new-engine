@@ -13,9 +13,9 @@ type PayloadDependencies = ConstructorParameters<typeof PayloadModuleService>[0]
 type PayloadCacheService = Pick<ICachingModuleService, "clear" | "get" | "set">
 
 const createCacheService = (): Mocked<PayloadCacheService> => ({
-  clear: vi.fn(),
-  get: vi.fn(),
-  set: vi.fn(),
+  clear: vi.fn<PayloadCacheService["clear"]>(),
+  get: vi.fn<PayloadCacheService["get"]>(),
+  set: vi.fn<PayloadCacheService["set"]>(),
 })
 
 const createDependencies = (
@@ -34,7 +34,7 @@ const createFetchResponse = (
   payload: unknown,
   overrides: FetchResponseOverrides = {},
 ) =>
-  new Response(JSON.stringify(payload), {
+  Response.json(payload, {
     headers: { "Content-Type": "application/json" },
     status: overrides.status ?? (overrides.ok === false ? 500 : 200),
   })
@@ -79,21 +79,45 @@ const createServiceWithoutCache = (options?: Partial<PayloadModuleOptions>) =>
     ...options,
   })
 
+const isStringHelper = (
+  candidate: unknown,
+): candidate is (this: PayloadModuleService, value?: undefined) => unknown =>
+  typeof candidate === "function"
+
 const callPrivateStringHelper = (
   service: PayloadModuleService,
   methodName: "buildParamsQuery" | "buildQuery",
 ): string => {
-  const helper = Reflect.get(service, methodName)
-  if (typeof helper !== "function") {
+  const helper: unknown = Reflect.get(service, methodName)
+  if (!isStringHelper(helper)) {
     throw new TypeError(`${methodName} is not callable`)
   }
 
-  const result = Reflect.apply(helper, service, [undefined])
+  const result = helper.call(service)
   if (typeof result !== "string") {
     throw new TypeError(`${methodName} did not return a string`)
   }
 
   return result
+}
+
+const getFetchCall = (
+  fetchMock: ReturnType<typeof vi.fn<typeof fetch>>,
+  index = 0,
+): { input: string | URL | Request; options: RequestInit | undefined } => {
+  const call = fetchMock.mock.calls[index]
+  if (call === undefined) {
+    throw new Error(`Expected fetch call at index ${index}`)
+  }
+  const [input, options] = call
+  return { input, options }
+}
+
+const toUrl = (input: string | URL | Request): URL => {
+  if (input instanceof Request) {
+    return new URL(input.url)
+  }
+  return new URL(input)
 }
 
 describe(PayloadModuleService, () => {
@@ -180,18 +204,24 @@ describe(PayloadModuleService, () => {
       expect(result).toStrictEqual(page)
       expect(fetchMock).toHaveBeenCalledOnce()
 
-      const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
-      const parsedUrl = new URL(url)
+      const { input, options } = getFetchCall(fetchMock)
+      const parsedUrl = toUrl(input)
 
-      expect(parsedUrl.pathname).toBe("/api/pages")
-      expect(parsedUrl.searchParams.get("where[slug][equals]")).toBe("home")
-      expect(parsedUrl.searchParams.get("where[status][equals]")).toBe(
-        "published",
-      )
-      expect(parsedUrl.searchParams.get("limit")).toBe("1")
-      expect(parsedUrl.searchParams.get("locale")).toBe("en")
-
-      expect(options?.method).toBe("GET")
+      expect({
+        limit: parsedUrl.searchParams.get("limit"),
+        locale: parsedUrl.searchParams.get("locale"),
+        method: options?.method,
+        pathname: parsedUrl.pathname,
+        slug: parsedUrl.searchParams.get("where[slug][equals]"),
+        status: parsedUrl.searchParams.get("where[status][equals]"),
+      }).toStrictEqual({
+        limit: "1",
+        locale: "en",
+        method: "GET",
+        pathname: "/api/pages",
+        slug: "home",
+        status: "published",
+      })
       expect(options?.headers).toMatchObject({
         Authorization: "users API-Key test-api-key",
         "Content-Type": "application/json",
@@ -357,26 +387,29 @@ describe(PayloadModuleService, () => {
 
       expect(cacheService.get).toHaveBeenCalledWith({ key: expectedKey })
 
-      const [url] = fetchMock.mock.calls[0] as [string]
-      const parsedUrl = new URL(url)
-      expect(parsedUrl.pathname).toBe("/api/hero-carousels")
-      expect(parsedUrl.searchParams.get("limit")).toBe("10")
-      expect(parsedUrl.searchParams.get("page")).toBe("2")
-      expect(parsedUrl.searchParams.get("sort")).toBe("-createdAt")
-      expect(parsedUrl.searchParams.get("locale")).toBe("en")
+      const { input } = getFetchCall(fetchMock)
+      const parsedUrl = toUrl(input)
+      expect({
+        limit: parsedUrl.searchParams.get("limit"),
+        locale: parsedUrl.searchParams.get("locale"),
+        page: parsedUrl.searchParams.get("page"),
+        pathname: parsedUrl.pathname,
+        sort: parsedUrl.searchParams.get("sort"),
+      }).toStrictEqual({
+        limit: "10",
+        locale: "en",
+        page: "2",
+        pathname: "/api/hero-carousels",
+        sort: "-createdAt",
+      })
 
-      expect(cacheService.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: carousels,
-          key: expectedKey,
-          tags: expect.arrayContaining([
-            "cms",
-            "cms:hero-carousels",
-            "cms:hero-carousels:locale:en",
-          ]),
-          ttl: 456,
-        }),
-      )
+      const cacheWrite = cacheService.set.mock.calls.at(0)?.[0]
+      expect(cacheWrite).toMatchObject({
+        data: carousels,
+        key: expectedKey,
+        tags: ["cms", "cms:hero-carousels", "cms:hero-carousels:locale:en"],
+        ttl: 456,
+      })
     })
 
     it("throws when payload API returns an error", async () => {
@@ -513,21 +546,24 @@ describe(PayloadModuleService, () => {
         key: "cms:page-categories:en:news",
       })
 
-      const [url] = fetchMock.mock.calls[0] as [string]
-      const parsedUrl = new URL(url)
-      expect(parsedUrl.pathname).toBe("/api/page-categories-with-pages")
-      expect(parsedUrl.searchParams.get("locale")).toBe("en")
-      expect(parsedUrl.searchParams.get("categorySlug")).toBe("news")
+      const { input } = getFetchCall(fetchMock)
+      const parsedUrl = toUrl(input)
+      expect({
+        categorySlug: parsedUrl.searchParams.get("categorySlug"),
+        locale: parsedUrl.searchParams.get("locale"),
+        pathname: parsedUrl.pathname,
+      }).toStrictEqual({
+        categorySlug: "news",
+        locale: "en",
+        pathname: "/api/page-categories-with-pages",
+      })
 
-      expect(cacheService.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          tags: expect.arrayContaining([
-            "cms",
-            "cms:page-categories",
-            "cms:page-categories:locale:en",
-          ]),
-        }),
-      )
+      const cacheWrite = cacheService.set.mock.calls.at(0)?.[0]
+      expect(cacheWrite?.tags).toStrictEqual([
+        "cms",
+        "cms:page-categories",
+        "cms:page-categories:locale:en",
+      ])
     })
 
     it("uses default category slug when not provided", async () => {
@@ -598,21 +634,24 @@ describe(PayloadModuleService, () => {
         key: "cms:article-categories:en:news",
       })
 
-      const [url] = fetchMock.mock.calls[0] as [string]
-      const parsedUrl = new URL(url)
-      expect(parsedUrl.pathname).toBe("/api/article-categories-with-articles")
-      expect(parsedUrl.searchParams.get("locale")).toBe("en")
-      expect(parsedUrl.searchParams.get("categorySlug")).toBe("news")
+      const { input } = getFetchCall(fetchMock)
+      const parsedUrl = toUrl(input)
+      expect({
+        categorySlug: parsedUrl.searchParams.get("categorySlug"),
+        locale: parsedUrl.searchParams.get("locale"),
+        pathname: parsedUrl.pathname,
+      }).toStrictEqual({
+        categorySlug: "news",
+        locale: "en",
+        pathname: "/api/article-categories-with-articles",
+      })
 
-      expect(cacheService.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          tags: expect.arrayContaining([
-            "cms",
-            "cms:article-categories",
-            "cms:article-categories:locale:en",
-          ]),
-        }),
-      )
+      const cacheWrite = cacheService.set.mock.calls.at(0)?.[0]
+      expect(cacheWrite?.tags).toStrictEqual([
+        "cms",
+        "cms:article-categories",
+        "cms:article-categories:locale:en",
+      ])
     })
 
     it("returns empty list when categories are empty", async () => {

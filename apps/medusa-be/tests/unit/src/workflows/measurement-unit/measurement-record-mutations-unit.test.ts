@@ -1,12 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+type ServiceMethod = (...input: unknown[]) => Promise<unknown>
+type StepInvoke = (input: unknown, context: unknown) => Promise<unknown>
+type StepCompensate = (input: unknown, context: unknown) => Promise<void>
+type CreateStep = (
+  name: string,
+  invoke: StepInvoke,
+  compensate: StepCompensate,
+) => StepInvoke & { compensate: StepCompensate }
+
 const { service } = vi.hoisted(() => ({
   service: {
-    createProductMeasurements: vi.fn(),
-    createProductVariantMeasurements: vi.fn(),
-    restoreProductMeasurements: vi.fn(),
-    softDeleteProductMeasurements: vi.fn(),
-    softDeleteProductVariantMeasurements: vi.fn(),
+    createProductMeasurements: vi.fn<ServiceMethod>(),
+    createProductVariantMeasurements: vi.fn<ServiceMethod>(),
+    restoreProductMeasurements: vi.fn<ServiceMethod>(),
+    softDeleteProductMeasurements: vi.fn<ServiceMethod>(),
+    softDeleteProductVariantMeasurements: vi.fn<ServiceMethod>(),
   },
 }))
 
@@ -23,13 +32,13 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.compensateInput = compensateInput
     }
   },
-  createStep: vi.fn((_name, invoke, compensate) =>
+  createStep: vi.fn<CreateStep>((_name, invoke, compensate) =>
     Object.assign(invoke, { compensate }),
   ),
 }))
 
 vi.mock(import("../../../../../src/utils/measurement-units"), () => ({
-  getMeasurementUnitService: vi.fn(() => service),
+  getMeasurementUnitService: vi.fn<() => typeof service>(() => service),
 }))
 
 interface MockStep {
@@ -46,14 +55,18 @@ interface MockStep {
   ) => Promise<void>
 }
 
+const isMockStep = (candidate: unknown): candidate is MockStep =>
+  typeof candidate === "function" &&
+  "compensate" in candidate &&
+  typeof candidate.compensate === "function"
+
 const asMockStep = (candidate: unknown): MockStep => {
-  if (typeof candidate !== "function") {
+  if (!isMockStep(candidate)) {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function",
+      "Expected the imported workflow step to expose invoke and compensate functions",
     )
   }
-
-  return candidate as MockStep
+  return candidate
 }
 
 const context = { container: {} }

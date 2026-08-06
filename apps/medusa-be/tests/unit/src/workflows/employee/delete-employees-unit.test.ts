@@ -1,10 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { Mock } from "vitest"
+
+type Graph = (input: unknown) => Promise<{ data: unknown[] }>
+type ServiceMethod = (...input: unknown[]) => Promise<unknown>
+type StepInvoke = (input: unknown, context: unknown) => Promise<unknown>
+type StepCompensate = (input: unknown, context: unknown) => Promise<void>
+type CreateStep = (
+  name: string,
+  invoke: StepInvoke,
+  compensate: StepCompensate,
+) => StepInvoke & { compensate: StepCompensate }
 
 const COMPANY_MODULE = "company"
 
+const stepResponse = function stepResponse(
+  payload: unknown,
+  compensateInput?: unknown,
+) {
+  return { compensateInput, payload }
+}
+
 const mocks = vi.hoisted(() => {
   class MockMedusaError extends Error {
-    static Types = {
+    static readonly Types = {
       NOT_FOUND: "not_found",
     }
 
@@ -12,6 +30,7 @@ const mocks = vi.hoisted(() => {
 
     constructor(type: string, message: string) {
       super(message)
+      this.name = "MockMedusaError"
       this.type = type
     }
   }
@@ -32,19 +51,8 @@ vi.mock(import("@medusajs/framework/utils"), () => ({
 }))
 
 vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: class StepResponse<
-    TPayload = unknown,
-    TCompensationInput = unknown,
-  > {
-    compensateInput: TCompensationInput | undefined
-    payload: TPayload
-
-    constructor(payload: TPayload, compensateInput?: TCompensationInput) {
-      this.payload = payload
-      this.compensateInput = compensateInput
-    }
-  },
-  createStep: vi.fn((_name, invoke, compensate) =>
+  StepResponse: stepResponse,
+  createStep: vi.fn<CreateStep>((_name, invoke, compensate) =>
     Object.assign(invoke, { compensate }),
   ),
 }))
@@ -54,22 +62,22 @@ vi.mock(import("../../../../../src/modules/company"), () => ({
 }))
 
 interface CompanyService {
-  restoreEmployees: ReturnType<typeof vi.fn>
-  softDeleteEmployees: ReturnType<typeof vi.fn>
+  restoreEmployees: Mock<ServiceMethod>
+  softDeleteEmployees: Mock<ServiceMethod>
 }
 
 interface CustomerService {
-  addCustomerToGroup: ReturnType<typeof vi.fn>
-  removeCustomerFromGroup: ReturnType<typeof vi.fn>
+  addCustomerToGroup: Mock<ServiceMethod>
+  removeCustomerFromGroup: Mock<ServiceMethod>
 }
 
 interface AuthService {
-  updateProviderIdentities: ReturnType<typeof vi.fn>
+  updateProviderIdentities: Mock<ServiceMethod>
 }
 
 interface LinkService {
-  delete: ReturnType<typeof vi.fn>
-  restore: ReturnType<typeof vi.fn>
+  delete: Mock<ServiceMethod>
+  restore: Mock<ServiceMethod>
 }
 
 type MockContainer = ReturnType<typeof makeContainer>
@@ -93,10 +101,10 @@ interface MockStep {
       }
       employee_ids: string[]
       provider_identity_ids: string[]
-      removed_customer_groups: Array<{
+      removed_customer_groups: {
         customer_group_id: string
         customer_id: string
-      }>
+      }[]
     }
     payload: unknown
   }>
@@ -110,63 +118,58 @@ interface MockStep {
           }
           employee_ids: string[]
           provider_identity_ids: string[]
-          removed_customer_groups: Array<{
+          removed_customer_groups: {
             customer_group_id: string
             customer_id: string
-          }>
+          }[]
         }
       | undefined,
     context: { container: MockContainer },
   ) => Promise<void>
 }
 
+const isMockStep = (candidate: unknown): candidate is MockStep =>
+  typeof candidate === "function" &&
+  "compensate" in candidate &&
+  typeof candidate.compensate === "function"
+
 const asMockStep = (candidate: unknown): MockStep => {
-  if (typeof candidate !== "function") {
+  if (!isMockStep(candidate)) {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function",
+      "Expected the imported workflow step to expose invoke and compensate functions",
     )
   }
-
-  if (
-    !("compensate" in candidate) ||
-    typeof candidate.compensate !== "function"
-  ) {
-    throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function",
-    )
-  }
-
-  return candidate as MockStep
+  return candidate
 }
 
 const makeCompanyService = (
   overrides: Partial<CompanyService> = {},
 ): CompanyService => ({
-  restoreEmployees: vi.fn(),
-  softDeleteEmployees: vi.fn(),
+  restoreEmployees: vi.fn<ServiceMethod>(),
+  softDeleteEmployees: vi.fn<ServiceMethod>(),
   ...overrides,
 })
 
 const makeAuthService = (
   overrides: Partial<AuthService> = {},
 ): AuthService => ({
-  updateProviderIdentities: vi.fn(),
+  updateProviderIdentities: vi.fn<ServiceMethod>(),
   ...overrides,
 })
 
 const makeCustomerService = (
   overrides: Partial<CustomerService> = {},
 ): CustomerService => ({
-  addCustomerToGroup: vi.fn(),
-  removeCustomerFromGroup: vi.fn(),
+  addCustomerToGroup: vi.fn<ServiceMethod>(),
+  removeCustomerFromGroup: vi.fn<ServiceMethod>(),
   ...overrides,
 })
 
 const makeLinkService = (
   overrides: Partial<LinkService> = {},
 ): LinkService => ({
-  delete: vi.fn(),
-  restore: vi.fn(),
+  delete: vi.fn<ServiceMethod>(),
+  restore: vi.fn<ServiceMethod>(),
   ...overrides,
 })
 
@@ -180,10 +183,10 @@ const makeContainer = ({
   authService?: AuthService
   companyService?: CompanyService
   customerService?: CustomerService
-  graph: ReturnType<typeof vi.fn>
+  graph: Mock<Graph>
   linkService?: LinkService
 }) => ({
-  resolve: vi.fn((key: string) => {
+  resolve: vi.fn<(key: string) => unknown>((key) => {
     if (key === "query") {
       return { graph }
     }
@@ -217,7 +220,7 @@ describe("deleteEmployeesStep", () => {
     const { deleteEmployeesStep } =
       await import("../../../../../src/workflows/employee/steps/delete-employees")
     const graph = vi
-      .fn()
+      .fn<Graph>()
       .mockResolvedValueOnce({
         data: [
           {
@@ -295,33 +298,45 @@ describe("deleteEmployeesStep", () => {
         provider: "emailpass",
       },
     })
-    expect(authService.updateProviderIdentities).toHaveBeenCalledWith([
-      {
-        id: "authpi_1",
-        user_metadata: {
-          role: null,
-        },
-      },
-    ])
-    expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
-      {
-        customer_group_id: "cgrp_1",
-        customer_id: "cus_1",
-      },
-      {
-        customer_group_id: "cgrp_1",
-        customer_id: "cus_2",
-      },
-    ])
-    expect(linkService.delete).toHaveBeenCalledWith({
-      company: {
-        employee_id: ["emp_1", "emp_2"],
-      },
+    expect({
+      authCalls: authService.updateProviderIdentities.mock.calls,
+      customerGroupCalls: customerService.removeCustomerFromGroup.mock.calls,
+      employeeDeleteCalls: companyService.softDeleteEmployees.mock.calls,
+      linkDeleteCalls: linkService.delete.mock.calls,
+    }).toStrictEqual({
+      authCalls: [
+        [
+          [
+            {
+              id: "authpi_1",
+              user_metadata: { role: null },
+            },
+          ],
+        ],
+      ],
+      customerGroupCalls: [
+        [
+          [
+            {
+              customer_group_id: "cgrp_1",
+              customer_id: "cus_1",
+            },
+            {
+              customer_group_id: "cgrp_1",
+              customer_id: "cus_2",
+            },
+          ],
+        ],
+      ],
+      employeeDeleteCalls: [[["emp_1", "emp_2"]]],
+      linkDeleteCalls: [
+        [
+          {
+            company: { employee_id: ["emp_1", "emp_2"] },
+          },
+        ],
+      ],
     })
-    expect(companyService.softDeleteEmployees).toHaveBeenCalledWith([
-      "emp_1",
-      "emp_2",
-    ])
     expect(result.compensateInput).toStrictEqual({
       employee_ids: ["emp_1", "emp_2"],
       employee_link_delete_input: {
@@ -347,7 +362,7 @@ describe("deleteEmployeesStep", () => {
     const { deleteEmployeesStep } =
       await import("../../../../../src/workflows/employee/steps/delete-employees")
     const graph = vi
-      .fn()
+      .fn<Graph>()
       .mockResolvedValueOnce({
         data: [
           {
@@ -409,7 +424,7 @@ describe("deleteEmployeesStep", () => {
   it("restores deleted employees and admin metadata on compensation", async () => {
     const { deleteEmployeesStep } =
       await import("../../../../../src/workflows/employee/steps/delete-employees")
-    const graph = vi.fn()
+    const graph = vi.fn<Graph>()
     const authService = makeAuthService()
     const companyService = makeCompanyService()
     const customerService = makeCustomerService()
@@ -466,7 +481,7 @@ describe("deleteEmployeesStep", () => {
   it("throws when an employee is not found for the requested company", async () => {
     const { deleteEmployeesStep } =
       await import("../../../../../src/workflows/employee/steps/delete-employees")
-    const graph = vi.fn().mockResolvedValue({ data: [] })
+    const graph = vi.fn<Graph>().mockResolvedValue({ data: [] })
     const authService = makeAuthService()
     const companyService = makeCompanyService()
     const linkService = makeLinkService()

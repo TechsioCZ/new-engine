@@ -1,7 +1,17 @@
 import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { Mock } from "vitest"
 
 import { COMPANY_MODULE } from "../../../../../src/modules/company"
+
+type StepInvoke = (input: unknown, context: unknown) => Promise<unknown>
+type StepCompensate = (input: unknown, context: unknown) => Promise<void>
+type CreateStep = (
+  name: string,
+  invoke: StepInvoke,
+  compensate: StepCompensate,
+) => StepInvoke & { compensate: StepCompensate }
+type ServiceMethod = (input: unknown) => Promise<unknown>
 
 vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
@@ -16,14 +26,14 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.compensateInput = compensateInput
     }
   },
-  createStep: vi.fn((_name, invoke, compensate) =>
+  createStep: vi.fn<CreateStep>((_name, invoke, compensate) =>
     Object.assign(invoke, { compensate }),
   ),
 }))
 
 interface MockCompanyService {
-  listCompanies: ReturnType<typeof vi.fn>
-  updateCompanies: ReturnType<typeof vi.fn>
+  listCompanies: Mock<ServiceMethod>
+  updateCompanies: Mock<ServiceMethod>
 }
 
 type MockContainer = ReturnType<typeof makeContainer>
@@ -39,20 +49,22 @@ type MockStep = (
   payload: unknown
 }>
 
+const isMockStep = (candidate: unknown): candidate is MockStep =>
+  typeof candidate === "function"
+
 const asMockStep = (candidate: unknown): MockStep => {
-  if (typeof candidate !== "function") {
+  if (!isMockStep(candidate)) {
     throw new TypeError(
       "Expected the imported workflow step to be a mocked function",
     )
   }
-
-  return candidate as MockStep
+  return candidate
 }
 
 const makeContainer = (companyService: MockCompanyService) => ({
-  resolve: vi.fn((key: string) => {
+  resolve: vi.fn<(key: string) => unknown>((key) => {
     if (key === ContainerRegistrationKeys.LOGGER) {
-      return { info: vi.fn() }
+      return { info: vi.fn<() => void>() }
     }
 
     if (key === COMPANY_MODULE) {
@@ -72,13 +84,13 @@ describe("updateCompaniesStep", () => {
     const { updateCompaniesStep } =
       await import("../../../../../src/workflows/company/steps/update-companies")
     const companyService = {
-      listCompanies: vi.fn().mockResolvedValue([
+      listCompanies: vi.fn<ServiceMethod>().mockResolvedValue([
         {
           id: "comp_route",
           name: "Old name",
         },
       ]),
-      updateCompanies: vi.fn().mockResolvedValue({
+      updateCompanies: vi.fn<ServiceMethod>().mockResolvedValue({
         id: "comp_route",
         name: "New name",
       }),

@@ -1,7 +1,19 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { Mock } from "vitest"
 
 import type { PostAdminOrderExpeditionStatusSchemaType } from "../../../../../../../src/api/admin/order-expedition/validators"
+
+type Graph = (input: unknown) => Promise<{ data: unknown[] }>
+type Json = (body: unknown) => unknown
+type RunWorkflow = (input: unknown) => Promise<unknown>
+type SetStatus = (status: number) => unknown
+
+type MockStatusResponse = MedusaResponse & {
+  json: Mock<Json>
+  status: Mock<SetStatus>
+}
 
 vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
@@ -15,87 +27,83 @@ const {
   mockBulkUpdateRun,
   mockCompleteRun,
 } = vi.hoisted(() => ({
-  mockArchiveRun: vi.fn(),
-  mockBulkCancelRun: vi.fn(),
-  mockBulkUpdateRun: vi.fn(),
-  mockCompleteRun: vi.fn(),
+  mockArchiveRun: vi.fn<RunWorkflow>(),
+  mockBulkCancelRun: vi.fn<RunWorkflow>(),
+  mockBulkUpdateRun: vi.fn<RunWorkflow>(),
+  mockCompleteRun: vi.fn<RunWorkflow>(),
 }))
 
 vi.mock(import("@medusajs/medusa/core-flows"), () => ({
-  archiveOrderWorkflow: vi.fn(() => ({ run: mockArchiveRun })),
-  completeOrderWorkflow: vi.fn(() => ({ run: mockCompleteRun })),
+  archiveOrderWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(() => ({
+    run: mockArchiveRun,
+  })),
+  completeOrderWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(() => ({
+    run: mockCompleteRun,
+  })),
 }))
 
 vi.mock(
   import("../../../../../../../src/workflows/order-expedition/bulk-cancel-orders"),
   () => ({
-    bulkCancelOrdersWorkflow: vi.fn(() => ({ run: mockBulkCancelRun })),
+    bulkCancelOrdersWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(() => ({
+      run: mockBulkCancelRun,
+    })),
   }),
 )
 
 vi.mock(
   import("../../../../../../../src/workflows/order-expedition/bulk-update-order-statuses"),
   () => ({
-    bulkUpdateOrderStatusesWorkflow: vi.fn(() => ({ run: mockBulkUpdateRun })),
-    isOrderExpeditionDirectUpdateStatus: vi.fn((status: string) =>
-      ["pending", "draft", "requires_action"].includes(status),
+    bulkUpdateOrderStatusesWorkflow: vi.fn<() => { run: Mock<RunWorkflow> }>(
+      () => ({ run: mockBulkUpdateRun }),
+    ),
+    isOrderExpeditionDirectUpdateStatus: vi.fn<(status: string) => boolean>(
+      (status) => ["pending", "draft", "requires_action"].includes(status),
     ),
   }),
 )
 
-/**
- * Asserts that a plain mock object contains the given keys before narrowing
- * it to a framework type. Building the mock as `unknown` first (instead of
- * the target type) avoids requiring every property of the huge Node
- * request/response interfaces while still validating the shape the route
- * handler actually reads from at runtime.
- */
-function assertMockShape<T>(
+const isMockStatusResponse = (
   candidate: unknown,
-  requiredKeys: readonly string[],
-): asserts candidate is T {
-  if (typeof candidate !== "object" || candidate === null) {
-    throw new TypeError("Expected a mock object")
-  }
-
-  for (const key of requiredKeys) {
-    if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
-    }
-  }
-}
-
-type MockStatusResponse = MedusaResponse & {
-  json: ReturnType<typeof vi.fn>
-  status: ReturnType<typeof vi.fn>
-}
+): candidate is MockStatusResponse =>
+  isRecord(candidate) &&
+  typeof candidate["json"] === "function" &&
+  typeof candidate["status"] === "function"
 
 const createMockResponse = (): MockStatusResponse => {
   const candidate: unknown = {
-    json: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
+    json: vi.fn<Json>().mockReturnThis(),
+    status: vi.fn<SetStatus>().mockReturnThis(),
   }
-  assertMockShape<MockStatusResponse>(candidate, ["json", "status"])
+  if (!isMockStatusResponse(candidate)) {
+    throw new TypeError("Expected a response with json and status functions")
+  }
   return candidate
 }
+
+const isMockRequest = (
+  candidate: unknown,
+): candidate is MedusaRequest<PostAdminOrderExpeditionStatusSchemaType> =>
+  isRecord(candidate) &&
+  isRecord(candidate["scope"]) &&
+  typeof candidate["scope"]["resolve"] === "function" &&
+  isRecord(candidate["validatedBody"])
 
 const createMockRequest = (
   validatedBody: Record<string, unknown>,
-  graph: ReturnType<typeof vi.fn>,
+  graph: Graph,
 ): MedusaRequest<PostAdminOrderExpeditionStatusSchemaType> => {
   const candidate: unknown = {
     scope: {
-      resolve: vi.fn(() => ({ graph })),
+      resolve: vi.fn<(token: string) => { graph: Graph }>(() => ({ graph })),
     },
     validatedBody,
   }
-  assertMockShape<MedusaRequest<PostAdminOrderExpeditionStatusSchemaType>>(
-    candidate,
-    ["scope", "validatedBody"],
-  )
+  if (!isMockRequest(candidate)) {
+    throw new TypeError("Expected a request with scope and validated body")
+  }
   return candidate
 }
-
 describe("POST /admin/order-expedition/status", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -104,7 +112,7 @@ describe("POST /admin/order-expedition/status", () => {
   it("prevalidates every selected order and blocks the whole batch when one is missing", async () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/status/route")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [{ display_id: 1001, id: "order_1", status: "pending" }],
     })
     const req = createMockRequest(
@@ -131,17 +139,24 @@ describe("POST /admin/order-expedition/status", () => {
         code: "order_expedition_status_blocked",
       }),
     )
-    expect(mockCompleteRun).not.toHaveBeenCalled()
-    expect(mockArchiveRun).not.toHaveBeenCalled()
-    expect(mockBulkCancelRun).not.toHaveBeenCalled()
-    expect(mockBulkUpdateRun).not.toHaveBeenCalled()
+    expect({
+      archiveCalls: mockArchiveRun.mock.calls,
+      bulkCancelCalls: mockBulkCancelRun.mock.calls,
+      bulkUpdateCalls: mockBulkUpdateRun.mock.calls,
+      completeCalls: mockCompleteRun.mock.calls,
+    }).toStrictEqual({
+      archiveCalls: [],
+      bulkCancelCalls: [],
+      bulkUpdateCalls: [],
+      completeCalls: [],
+    })
   })
 
   it("runs completed as one bulk workflow after prevalidation", async () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
-      .fn()
+      .fn<Graph>()
       .mockResolvedValueOnce({
         data: [
           { display_id: 1001, id: "order_1", status: "pending" },
@@ -180,7 +195,7 @@ describe("POST /admin/order-expedition/status", () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
-      .fn()
+      .fn<Graph>()
       .mockResolvedValueOnce({
         data: [
           { display_id: 1001, id: "order_1", status: "pending" },
@@ -224,7 +239,7 @@ describe("POST /admin/order-expedition/status", () => {
   it("blocks cancellation before mutation when a selected order has active fulfillments", async () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/status/route")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           display_id: 1001,
@@ -263,7 +278,7 @@ describe("POST /admin/order-expedition/status", () => {
   it("blocks direct status updates for final archived orders", async () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/status/route")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           display_id: 1001,
@@ -301,7 +316,7 @@ describe("POST /admin/order-expedition/status", () => {
   it("blocks archive for mutable orders that must be finalized first", async () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/status/route")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           display_id: 1001,
@@ -340,7 +355,7 @@ describe("POST /admin/order-expedition/status", () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
-      .fn()
+      .fn<Graph>()
       .mockResolvedValueOnce({
         data: [
           {
@@ -385,7 +400,7 @@ describe("POST /admin/order-expedition/status", () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
-      .fn()
+      .fn<Graph>()
       .mockResolvedValueOnce({
         data: [
           {
