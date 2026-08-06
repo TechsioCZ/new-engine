@@ -31,6 +31,9 @@
       "path": "./scripts/typescript/projects/apps/n1/tsconfig.json"
     },
     {
+      "path": "./scripts/typescript/projects/apps/n1/scripts/tsconfig.json"
+    },
+    {
       "path": "./scripts/typescript/projects/apps/new-engine-ctl/tsconfig.json"
     },
     {
