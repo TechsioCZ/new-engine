@@ -1,3 +1,10 @@
+import {
+  getCredentialString,
+  INTEGRATION_CONFIG_NAMES,
+  requireCredentialObject,
+  retrieveIntegrationConfig,
+} from "../modules/api-store/integration-config"
+
 export interface ReviewRequestOrder {
   id: string
   customer_id?: string | null
@@ -126,8 +133,29 @@ export function getReviewRequestRunAt(order: ReviewRequestOrder) {
   return new Date(paidAt.getTime() + getReviewRequestDelayMs())
 }
 
-export function getReviewRequestMessage() {
-  return (
-    process.env["PRODUCT_REVIEW_REQUEST_MESSAGE"] ?? "Napiš recenzi produktu"
-  )
+export async function getReviewRequestMessage(
+  container?: Record<string, unknown>,
+) {
+  if (container) {
+    const config = await retrieveIntegrationConfig(
+      container,
+      INTEGRATION_CONFIG_NAMES.PRODUCT_REVIEW_REQUEST,
+    )
+
+    if (config?.enabled === true) {
+      const credentials = requireCredentialObject(config)
+      const message = getCredentialString(
+        credentials,
+        "message",
+        "message_cs",
+        "cs",
+      )
+
+      if (message !== undefined && message !== "") {
+        return message
+      }
+    }
+  }
+
+  return "Napiš recenzi produktu"
 }

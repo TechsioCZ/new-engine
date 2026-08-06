@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-
+import { INTEGRATION_CONFIG_NAMES } from "../../api-store/integration-config"
 import {
   PAYKIT_COMGATE_PROVIDER_ID,
   PAYKIT_GOPAY_PROVIDER_ID,
@@ -7,74 +7,63 @@ import {
 } from "../constants"
 import { buildPaykitPaymentProviders } from "../medusa-config"
 
-describe(buildPaykitPaymentProviders, () => {
+describe("buildPaykitPaymentProviders", () => {
   it("returns no PayKit providers when disabled", () => {
-    expect(buildPaykitPaymentProviders({})).toStrictEqual([])
+    expect(buildPaykitPaymentProviders({})).toEqual([])
   })
 
-  it("builds enabled PayKit provider configs from env", () => {
+  it("builds enabled PayKit provider configs that read credentials from API Store at runtime", () => {
     expect(
       buildPaykitPaymentProviders({
-        COMGATE_MERCHANT: "merchant",
-        COMGATE_PAYMENT_LABEL: "Shop order",
-        COMGATE_SANDBOX: "true",
-        COMGATE_SECRET: "secret",
-        FEATURE_PAYKIT_COMGATE_ENABLED: "1",
         FEATURE_PAYKIT_GOPAY_ENABLED: "1",
         FEATURE_PAYKIT_STRIPE_ENABLED: "1",
-        GOPAY_CLIENT_ID: "gopay-client",
-        GOPAY_CLIENT_SECRET: "gopay-secret",
-        GOPAY_GO_ID: "go-id",
+        FEATURE_PAYKIT_COMGATE_ENABLED: "1",
         GOPAY_SANDBOX: "false",
-        GOPAY_WEBHOOK_URL: "https://shop.example/hooks/gopay",
+        COMGATE_SANDBOX: "true",
         PAYKIT_DEBUG: "1",
-        STRIPE_API_KEY: "sk_test_123",
-        STRIPE_WEBHOOK_SECRET: "whsec_123",
-      }),
-    ).toStrictEqual([
+      })
+    ).toEqual([
       {
+        resolve: "./src/modules/payment-paykit/services/gopay",
         id: PAYKIT_GOPAY_PROVIDER_ID,
         options: {
-          clientId: "gopay-client",
-          clientSecret: "gopay-secret",
-          debug: true,
-          goId: "go-id",
+          apiStoreName: INTEGRATION_CONFIG_NAMES.GOPAY,
           isSandbox: false,
-          webhookUrl: "https://shop.example/hooks/gopay",
+          debug: true,
         },
-        resolve: "./src/modules/payment-paykit/services/gopay",
       },
       {
+        resolve: "./src/modules/payment-paykit/services/stripe",
         id: PAYKIT_STRIPE_PROVIDER_ID,
         options: {
-          apiKey: "sk_test_123",
+          apiStoreName: INTEGRATION_CONFIG_NAMES.STRIPE,
           debug: true,
-          webhookSecret: "whsec_123",
         },
-        resolve: "./src/modules/payment-paykit/services/stripe",
       },
       {
+        resolve: "./src/modules/payment-paykit/services/comgate",
         id: PAYKIT_COMGATE_PROVIDER_ID,
         options: {
-          debug: true,
+          apiStoreName: INTEGRATION_CONFIG_NAMES.COMGATE,
           isSandbox: true,
-          merchant: "merchant",
-          paymentLabel: "Shop order",
-          secret: "secret",
+          debug: true,
         },
-        resolve: "./src/modules/payment-paykit/services/comgate",
       },
     ])
   })
 
-  it("throws a clear error for enabled providers with missing env", () => {
-    expect(() =>
+  it("keeps provider feature flags as registration gates without requiring secrets at boot", () => {
+    expect(
       buildPaykitPaymentProviders({
         FEATURE_PAYKIT_GOPAY_ENABLED: "1",
-        GOPAY_CLIENT_ID: "gopay-client",
+      })
+    ).toEqual([
+      expect.objectContaining({
+        id: PAYKIT_GOPAY_PROVIDER_ID,
+        options: expect.objectContaining({
+          apiStoreName: INTEGRATION_CONFIG_NAMES.GOPAY,
+        }),
       }),
-    ).toThrow(
-      "PayKit GoPay missing required environment variable(s): GOPAY_CLIENT_SECRET, GOPAY_GO_ID, GOPAY_WEBHOOK_URL",
-    )
+    ])
   })
 })

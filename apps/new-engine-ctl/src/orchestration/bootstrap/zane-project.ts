@@ -186,6 +186,9 @@ const sharedEnvCleanupKeys = [
   "PRODUCT_REVIEW_REQUEST_MESSAGE",
   "PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
   "PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
+  "CLOUDFLARE_TURNSTILE_ENABLED",
+  "CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES",
+  "MEDUSA_DISABLE_ZBOZI_ACCESS_TOKEN_BOOTSTRAP",
   "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
   "WORKFLOW_QUEUE_RUNNER_SCHEDULE",
   "SETTINGS_ENCRYPTION_KEY",
@@ -320,7 +323,10 @@ const sharedEnvCleanupKeys = [
   "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
   "DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY",
   "DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
+  "DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL",
   "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+  "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
+  "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
   "DC_N1_NEXT_PUBLIC_META_PIXEL_ID",
   "DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID",
   "DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY",
@@ -368,6 +374,9 @@ const sharedEnvCleanupKeys = [
   "DC_PRODUCT_REVIEW_REQUEST_MESSAGE",
   "DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
   "DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
+  "DC_CLOUDFLARE_TURNSTILE_ENABLED",
+  "DC_CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES",
+  "DC_MEDUSA_DISABLE_ZBOZI_ACCESS_TOKEN_BOOTSTRAP",
   "DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
   "DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE",
   "DC_MEDUSA_DEV_DB_USER",
@@ -592,6 +601,9 @@ const buildZaneProjectServices = (
       ? configuredGoPayWebhookUrl
       : generatedGoPayWebhookUrl
   const storefrontUrlOverride = trimmedText(process.env.DC_STOREFRONT_URL)
+  const herbatikaPayloadInternalOverride = trimmedText(
+    process.env.DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL,
+  )
 
   const servicePublicOrigins = {
     herbatika: servicePublicOriginSource(herbatikaSlug),
@@ -624,7 +636,10 @@ const buildZaneProjectServices = (
         "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
         "DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY",
         "DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
+        "DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL",
         "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+        "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
+        "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
       ],
       command: null,
       dockerfilePath: "./docker/development/herbatika/Dockerfile",
@@ -669,6 +684,29 @@ const buildZaneProjectServices = (
         {
           envVar: "NEXT_PUBLIC_PAYLOAD_BASE_URL",
           source: servicePublicOrigins.payload,
+        },
+        {
+          envVar: "PAYLOAD_BASE_URL_INTERNAL",
+          source: hasText(herbatikaPayloadInternalOverride)
+            ? literalSource(herbatikaPayloadInternalOverride)
+            : serviceInternalOriginSource({
+                port: 8083,
+                serviceSlug: payloadSlug,
+              }),
+        },
+        {
+          envVar: "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
+          source: literalEnvSource(
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED ??
+              process.env.DC_CLOUDFLARE_TURNSTILE_ENABLED,
+            "0",
+          ),
+        },
+        {
+          envVar: "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
+          source: literalEnvSource(
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY,
+          ),
         },
       ],
       healthcheck: {
@@ -887,6 +925,26 @@ const buildZaneProjectServices = (
           source: literalEnvSource(
             process.env.DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS,
             "90",
+          ),
+        },
+        {
+          envVar: "CLOUDFLARE_TURNSTILE_ENABLED",
+          source: literalEnvSource(
+            process.env.DC_CLOUDFLARE_TURNSTILE_ENABLED,
+            "0",
+          ),
+        },
+        {
+          envVar: "CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES",
+          source: literalEnvSource(
+            process.env.DC_CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES,
+          ),
+        },
+        {
+          envVar: "MEDUSA_DISABLE_ZBOZI_ACCESS_TOKEN_BOOTSTRAP",
+          source: literalEnvSource(
+            process.env.DC_MEDUSA_DISABLE_ZBOZI_ACCESS_TOKEN_BOOTSTRAP,
+            "0",
           ),
         },
         {

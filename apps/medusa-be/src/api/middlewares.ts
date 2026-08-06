@@ -9,6 +9,7 @@ import { captureException } from "@sentry/node"
 
 import { normalizeError, shouldCaptureException } from "../utils/errors"
 import { serveAdminAppStatic } from "./admin-app-static"
+import { adminApiStoreRoutesMiddlewares } from "./admin/api-store/middlewares"
 import { adminBrandRoutesMiddlewares } from "./admin/brands/middlewares"
 import { adminGLSConfigRoutesMiddlewares } from "./admin/gls-config/middlewares"
 import { adminGLSLabelsRoutesMiddlewares } from "./admin/gls-labels/middlewares"
@@ -32,11 +33,13 @@ import { adminStorefrontTextRoutesMiddlewares } from "./admin/storefront-texts/m
 import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
+import { storeCustomerReviewRoutesMiddlewares } from "./store/customers/me/reviews/middlewares"
 import { storeMiddlewares } from "./store/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
 import { storeProductAttributesRoutesMiddlewares } from "./store/products/[id]/product-attributes/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
+import { storeShopReviewRoutesMiddlewares } from "./store/shop-reviews/middlewares"
 import { storeStorefrontTextRoutesMiddlewares } from "./store/storefront-texts/middlewares"
 
 const originalErrorHandler = errorHandler()
@@ -77,6 +80,7 @@ export default defineMiddlewares({
     ...adminPacketaConfigRoutesMiddlewares,
     ...adminPacketaLabelsRoutesMiddlewares,
     ...adminPplConfigRoutesMiddlewares,
+    ...adminApiStoreRoutesMiddlewares,
     ...adminBrandRoutesMiddlewares,
     ...adminPromotionsExtensionMiddlewares,
     ...adminPublishableKeyRoutesMiddlewares,
@@ -85,6 +89,7 @@ export default defineMiddlewares({
     ...adminReviewRoutesMiddlewares,
     ...adminStorefrontTextRoutesMiddlewares,
     ...storeMiddlewares,
+    ...storeCustomerReviewRoutesMiddlewares,
     ...storeCatalogProductsRoutesMiddlewares,
     ...storeCmsRoutesMiddlewares,
     ...storeProductListsRoutesMiddlewares,
@@ -92,6 +97,7 @@ export default defineMiddlewares({
     ...storeProductAttributesRoutesMiddlewares,
     ...storeBrandsRoutesMiddlewares,
     ...storeReviewRoutesMiddlewares,
+    ...storeShopReviewRoutesMiddlewares,
     ...storeStorefrontTextRoutesMiddlewares,
   ],
 })

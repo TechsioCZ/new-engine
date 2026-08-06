@@ -476,9 +476,7 @@ const buildPaginatedPdf = (
   const discountTotal = getDiscountTotal(order)
   const shippingTotal = getShippingSubtotalTotal(order)
   const total = getTotal(order)
-  const storeName = process.env["STORE_NAME"]
-  const supplierName =
-    storeName === undefined || storeName.length === 0 ? "N1 Shop" : storeName
+  const supplierName = "N1 Shop"
   const pages: string[][] = []
   for (const page of paginateTableRows(tableRows)) {
     const commands: string[] = []
@@ -572,9 +570,7 @@ const buildPdf = (order: OrderReceiptOrder) => {
   const supplierY =
     paymentQrCommands.length > 0 ? SUPPLIER_Y_WITH_PAYMENT_QR : SUPPLIER_Y
   const tableRows = buildTableRows(order)
-  const storeName = process.env["STORE_NAME"]
-  const supplierName =
-    storeName === undefined || storeName.length === 0 ? "N1 Shop" : storeName
+  const supplierName = "N1 Shop"
 
   if (tableRows.length > FIRST_PAGE_ROWS_WITH_SUMMARY) {
     return buildPaginatedPdf(order, tableRows, paymentQrCommands, supplierY)

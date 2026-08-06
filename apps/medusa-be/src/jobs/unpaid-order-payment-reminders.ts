@@ -13,6 +13,7 @@ import {
   isPaymentReminderReadyOrder,
 } from "../utils/order-payment-reminders"
 import type { PaymentReminderOrder } from "../utils/order-payment-reminders"
+import { getMedusaStoreName } from "../utils/store-name"
 import { sendOrderPaymentReminderWorkflow } from "../workflows/send-order-payment-reminder"
 
 const JOB_LOCK_KEY = "unpaid-order-payment-reminders-job"
@@ -41,7 +42,6 @@ async function sendReminder(
   }
 
   const customerId = order.customer_id ?? undefined
-  const storeName = process.env["STORE_NAME"]
   const total = formatTotal(order)
 
   await sendOrderPaymentReminderWorkflow(container).run({
@@ -51,7 +51,9 @@ async function sendReminder(
       order_display_id: getOrderDisplayId(order),
       order_id: order.id,
       payment_url: getPaymentUrl(order),
-      ...(storeName === undefined ? {} : { store_name: storeName }),
+      store_name: await getMedusaStoreName(
+        container as Record<string, unknown>,
+      ),
       ...(total === undefined ? {} : { total }),
     },
   })

@@ -22,6 +22,7 @@ import {
   getStripeProviderOptions,
   getStripeWebhookOptions,
 } from "../runtime"
+import { resolveStripeRuntimeOptions } from "../runtime-config"
 import type {
   PaykitPayment,
   PaykitPaymentClient,
@@ -509,7 +510,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   }
 
   static override validateOptions(options: PaykitStripeOptions = {}): void {
-    if (options.client || options.clientFactory) {
+    if (options.client || options.clientFactory || options.apiStoreName) {
       return
     }
 
@@ -517,11 +518,15 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   }
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
+    const options = await resolveStripeRuntimeOptions(
+      this.container_,
+      this.options_,
+    )
     const { client, provider } = await createPaykitClientWithProvider(
       "@paykit-sdk/stripe",
       "createStripe",
-      getStripeProviderOptions(this.options_),
-      getStripeWebhookOptions(this.options_),
+      getStripeProviderOptions(options),
+      getStripeWebhookOptions(options),
     )
 
     return {

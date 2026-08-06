@@ -1,5 +1,6 @@
 import { Modules } from "@medusajs/framework/utils"
 
+import { INTEGRATION_CONFIG_NAMES } from "../modules/api-store/integration-config"
 import { requireRedisUrl } from "./env"
 import type { MedusaConfigEnv } from "./env"
 import { assertUnhandledConfigValue } from "./types"
@@ -31,6 +32,7 @@ export const buildNotificationProvider = (
         id: "resend",
         options: {
           api_key: env.resendApiKey,
+          apiStoreName: INTEGRATION_CONFIG_NAMES.RESEND,
           channels: ["email"],
           from: env.resendFromEmail,
         },

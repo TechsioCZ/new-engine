@@ -4,47 +4,36 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-
 import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
 import type ProductReviewModuleService from "../../../modules/product-review/service"
 
-const isEntityRecord = (
-  value: unknown,
-): value is Record<string, unknown> & object =>
-  typeof value === "object" && value !== null
-
-interface AuthContext {
-  actor_id?: string
-  actor_type?: string
-}
-
-interface CustomerRecord {
+type CustomerRecord = {
   first_name?: null | string
   id: string
   last_name?: null | string
 }
 
-interface ProductRecord {
+type ProductRecord = {
   id: string
 }
 
-interface PaymentRecord {
+type PaymentRecord = {
   captured_at?: Date | string | null
 }
 
-interface PaymentCollectionRecord {
+type PaymentCollectionRecord = {
   captured_amount?: number | string | null
   payments?: PaymentRecord[] | null
   status?: string | null
 }
 
-interface OrderRecord {
+type OrderRecord = {
   id: string
   items?: { product_id?: string | null }[] | null
   payment_collections?: PaymentCollectionRecord[] | null
 }
 
-export interface ReviewTokenDTO {
+export type ReviewTokenDTO = {
   customer_id: string | null
   email: string
   expires_at?: Date | string | null
@@ -55,14 +44,17 @@ export interface ReviewTokenDTO {
   used_at?: Date | string | null
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
 const isCustomerRecord = (value: unknown): value is CustomerRecord =>
-  isEntityRecord(value) && typeof value["id"] === "string"
+  isRecord(value) && typeof value.id === "string"
 
 const isProductRecord = (value: unknown): value is ProductRecord =>
-  isEntityRecord(value) && typeof value["id"] === "string"
+  isRecord(value) && typeof value.id === "string"
 
 const isOrderRecord = (value: unknown): value is OrderRecord =>
-  isEntityRecord(value) && typeof value["id"] === "string"
+  isRecord(value) && typeof value.id === "string"
 
 const isPaymentCaptured = (payment: PaymentRecord) =>
   Boolean(payment.captured_at)
@@ -78,24 +70,21 @@ const isOrderPaid = (order: OrderRecord) =>
 type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
   listReviewTokens: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    config?: Record<string, unknown>
   ) => Promise<ReviewTokenDTO[]>
 }
 
-export const getCustomerId = (req: MedusaRequest) => {
-  const authContext =
-    "auth_context" in req
-      ? (req.auth_context as AuthContext | undefined)
-      : undefined
+export const getAuthenticatedCustomerId = (req: MedusaRequest) => {
+  const authContext = "auth_context" in req ? req.auth_context : undefined
 
-  if (authContext?.actor_type !== "customer" || !authContext.actor_id) {
-    throw new MedusaError(
-      MedusaError.Types.UNAUTHORIZED,
-      "Product reviews require an authenticated customer.",
-    )
+  if (!isRecord(authContext)) {
+    return
   }
 
-  return authContext.actor_id
+  return authContext.actor_type === "customer" &&
+    typeof authContext.actor_id === "string"
+    ? authContext.actor_id
+    : undefined
 }
 
 export const getReviewTokenCustomerId = (reviewToken: ReviewTokenDTO) =>
@@ -103,37 +92,40 @@ export const getReviewTokenCustomerId = (reviewToken: ReviewTokenDTO) =>
 
 export const getReviewAuthorName = ({
   customer,
+  isGuest = false,
   reviewToken,
 }: {
   customer?: CustomerRecord
+  isGuest?: boolean
   reviewToken?: ReviewTokenDTO
 }) => ({
-  first_name: reviewToken ? "Anonym" : (customer?.first_name ?? null),
-  last_name: reviewToken ? null : (customer?.last_name ?? null),
+  first_name:
+    reviewToken || isGuest ? "Anonym" : (customer?.first_name ?? null),
+  last_name: reviewToken || isGuest ? null : (customer?.last_name ?? null),
 })
 
 export function assertReviewTokenUsable(
   reviewToken: ReviewTokenDTO | undefined,
-  productId: string,
+  productId: string
 ) {
   if (!reviewToken) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      "Review token was not found.",
+      "Review token was not found."
     )
   }
 
   if (reviewToken.product_id !== productId) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Review token does not match this product.",
+      "Review token does not match this product."
     )
   }
 
   if (reviewToken.used_at) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "Review token has already been used.",
+      "Review token has already been used."
     )
   }
 
@@ -145,7 +137,7 @@ export function assertReviewTokenUsable(
     ) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "Review token has expired.",
+        "Review token has expired."
       )
     }
   }
@@ -154,10 +146,10 @@ export function assertReviewTokenUsable(
 export async function retrieveReviewToken(
   req: MedusaRequest,
   token: string,
-  productId: string,
+  productId: string
 ) {
   const reviewService = req.scope.resolve<ProductReviewModuleServiceWithTokens>(
-    PRODUCT_REVIEW_MODULE,
+    PRODUCT_REVIEW_MODULE
   )
   const [reviewToken] = await reviewService.listReviewTokens(
     {
@@ -165,7 +157,7 @@ export async function retrieveReviewToken(
     },
     {
       take: 1,
-    },
+    }
   )
 
   assertReviewTokenUsable(reviewToken, productId)
@@ -190,20 +182,20 @@ export async function ensureReviewDoesNotExist({
       },
       {
         take: 1,
-      },
+      }
     )
 
   if (existingReview) {
     throw new MedusaError(
       MedusaError.Types.DUPLICATE_ERROR,
-      "You have already reviewed this product.",
+      "You have already reviewed this product."
     )
   }
 }
 
 export const retrieveCustomer = async (
   req: MedusaRequest,
-  customerId: string,
+  customerId: string
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -219,7 +211,7 @@ export const retrieveCustomer = async (
 
 export const ensureProductExists = async (
   req: MedusaRequest,
-  productId: string,
+  productId: string
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -233,7 +225,7 @@ export const ensureProductExists = async (
   if (!(Array.isArray(data) && isProductRecord(data[0]))) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product "${productId}" was not found.`,
+      `Product "${productId}" was not found.`
     )
   }
 }
@@ -241,7 +233,7 @@ export const ensureProductExists = async (
 export async function ensureCustomerPurchasedProduct(
   req: MedusaRequest,
   customerId: string,
-  productId: string,
+  productId: string
 ) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -264,13 +256,13 @@ export async function ensureCustomerPurchasedProduct(
       (order) =>
         isOrderRecord(order) &&
         order.items?.some((item) => item?.product_id === productId) &&
-        isOrderPaid(order),
+        isOrderPaid(order)
     )
 
   if (!customerPurchasedProduct) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "You can only review products you have purchased.",
+      "You can only review products you have purchased."
     )
   }
 }

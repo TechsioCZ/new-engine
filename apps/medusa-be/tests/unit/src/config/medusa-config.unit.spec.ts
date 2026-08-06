@@ -13,6 +13,7 @@ import {
   buildNotificationProvider,
   buildNotificationProviders,
 } from "../../../../src/config/providers"
+import { INTEGRATION_CONFIG_NAMES } from "../../../../src/modules/api-store/integration-config"
 
 const baseEnv = {
   CACHE_PROVIDER: "inmemory",
@@ -202,6 +203,7 @@ describe(readMedusaConfigEnv, () => {
         id: "resend",
         options: {
           api_key: "re_test",
+          apiStoreName: INTEGRATION_CONFIG_NAMES.RESEND,
           channels: ["email"],
           from: "store@example.com",
         },

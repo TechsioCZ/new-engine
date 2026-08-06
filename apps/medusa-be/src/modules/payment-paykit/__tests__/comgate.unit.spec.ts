@@ -55,7 +55,7 @@ describe(PaykitComgatePaymentProvider, () => {
         customer: { id: "customer@example.com" },
         provider_metadata: {
           email: "customer@example.com",
-          paymentLabel: "Order from Eshop",
+          paymentLabel: "Order payses_123",
         },
       }),
     )
@@ -142,11 +142,10 @@ describe(PaykitComgatePaymentProvider, () => {
     ).rejects.toThrow("PayKit Comgate requires a customer email")
   })
 
-  it("uses configured Comgate payment label before per-payment metadata", async () => {
+  it("generates Comgate payment labels from payment data and allows per-payment metadata override", async () => {
     const client = createMockPaykitClient()
     const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
       client,
-      paymentLabel: "Herbatica order",
     })
 
     await provider.initiatePayment({
@@ -186,7 +185,7 @@ describe(PaykitComgatePaymentProvider, () => {
       1,
       expect.objectContaining({
         provider_metadata: expect.objectContaining({
-          paymentLabel: "Herbatica order",
+          paymentLabel: "Order payses_123",
         }),
       }),
     )
@@ -194,7 +193,7 @@ describe(PaykitComgatePaymentProvider, () => {
       2,
       expect.objectContaining({
         provider_metadata: expect.objectContaining({
-          paymentLabel: "Herbatica order",
+          paymentLabel: "Order Custom checkout label",
         }),
       }),
     )

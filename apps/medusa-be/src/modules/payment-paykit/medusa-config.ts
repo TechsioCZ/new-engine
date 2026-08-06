@@ -1,3 +1,4 @@
+import { INTEGRATION_CONFIG_NAMES } from "../api-store/integration-config"
 import {
   PAYKIT_COMGATE_PROVIDER_ID,
   PAYKIT_GOPAY_PROVIDER_ID,
@@ -31,20 +32,6 @@ const parseBooleanEnv = (
   return value === "1" || value.toLowerCase() === "true"
 }
 
-const requirePaykitEnv = (
-  env: PaykitConfigEnv,
-  label: string,
-  names: string[],
-): void => {
-  const missing = names.filter((name) => !env[name]?.trim())
-
-  if (missing.length) {
-    throw new Error(
-      `${label} missing required environment variable(s): ${missing.join(", ")}`,
-    )
-  }
-}
-
 const isPaykitProviderEnabledForEnv = (
   env: PaykitConfigEnv,
   provider: PaykitProviderFeature,
@@ -69,58 +56,35 @@ export const buildPaykitPaymentProviders = (
   const debug = env["PAYKIT_DEBUG"] === "1"
 
   if (isPaykitProviderEnabledForEnv(env, "GOPAY")) {
-    requirePaykitEnv(env, "PayKit GoPay", [
-      "GOPAY_CLIENT_ID",
-      "GOPAY_CLIENT_SECRET",
-      "GOPAY_GO_ID",
-      "GOPAY_WEBHOOK_URL",
-    ])
-
     providers.push({
       id: PAYKIT_GOPAY_PROVIDER_ID,
       options: {
-        clientId: env["GOPAY_CLIENT_ID"],
-        clientSecret: env["GOPAY_CLIENT_SECRET"],
+        apiStoreName: INTEGRATION_CONFIG_NAMES.GOPAY,
         debug,
-        goId: env["GOPAY_GO_ID"],
         isSandbox: parseBooleanEnv(env["GOPAY_SANDBOX"], true),
-        webhookUrl: env["GOPAY_WEBHOOK_URL"],
       },
       resolve: "./src/modules/payment-paykit/services/gopay",
     })
   }
 
   if (isPaykitProviderEnabledForEnv(env, "STRIPE")) {
-    requirePaykitEnv(env, "PayKit Stripe", [
-      "STRIPE_API_KEY",
-      "STRIPE_WEBHOOK_SECRET",
-    ])
-
     providers.push({
       id: PAYKIT_STRIPE_PROVIDER_ID,
       options: {
-        apiKey: env["STRIPE_API_KEY"],
+        apiStoreName: INTEGRATION_CONFIG_NAMES.STRIPE,
         debug,
-        webhookSecret: env["STRIPE_WEBHOOK_SECRET"],
       },
       resolve: "./src/modules/payment-paykit/services/stripe",
     })
   }
 
   if (isPaykitProviderEnabledForEnv(env, "COMGATE")) {
-    requirePaykitEnv(env, "PayKit Comgate", [
-      "COMGATE_MERCHANT",
-      "COMGATE_SECRET",
-    ])
-
     providers.push({
       id: PAYKIT_COMGATE_PROVIDER_ID,
       options: {
+        apiStoreName: INTEGRATION_CONFIG_NAMES.COMGATE,
         debug,
         isSandbox: parseBooleanEnv(env["COMGATE_SANDBOX"], true),
-        merchant: env["COMGATE_MERCHANT"],
-        paymentLabel: env["COMGATE_PAYMENT_LABEL"],
-        secret: env["COMGATE_SECRET"],
       },
       resolve: "./src/modules/payment-paykit/services/comgate",
     })

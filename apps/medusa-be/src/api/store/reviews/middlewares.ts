@@ -5,6 +5,7 @@ import {
 import { authenticate } from "@medusajs/framework/http"
 import type { MiddlewareRoute } from "@medusajs/framework/http"
 
+import { verifyCloudflareTurnstile } from "../../middlewares/cloudflare-turnstile"
 import { StoreGetProductReviewsSchema } from "../products/[id]/reviews/validators"
 import { StoreCreateReviewSchema } from "./validators"
 
@@ -16,6 +17,7 @@ export const storeReviewRoutesMiddlewares: MiddlewareRoute[] = [
       authenticate("customer", ["session", "bearer"], {
         allowUnauthenticated: true,
       }),
+      verifyCloudflareTurnstile(),
       validateAndTransformBody(StoreCreateReviewSchema),
     ],
   },

@@ -2,6 +2,7 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import type { Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
+import { getMedusaStoreName } from "../utils/store-name"
 import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
 import { sendAccountSetupWorkflow } from "../workflows/send-account-setup"
 import { sendOrderReceiptWorkflow } from "../workflows/send-order-receipt"
@@ -31,11 +32,12 @@ export default async function orderPlacedHandler({
   event: { data },
   container,
 }: SubscriberArgs<OrderPlacedEvent>) {
-  const storeName = process.env["STORE_NAME"]
   await sendOrderReceiptWorkflow(container).run({
     input: {
       order_id: data.id,
-      ...(storeName === undefined ? {} : { store_name: storeName }),
+      store_name: await getMedusaStoreName(
+        container as Record<string, unknown>,
+      ),
     },
   })
 

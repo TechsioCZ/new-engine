@@ -4,6 +4,10 @@ import { isRecord } from "@techsio/std/object"
 
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
+import {
+  INTEGRATION_CONFIG_NAMES,
+  retrieveIntegrationConfig,
+} from "../api-store/integration-config"
 import { PacketaClient } from "./client"
 import PacketaConfig from "./models/packeta-config"
 import { PACKETA_SENSITIVE_FIELDS } from "./types"
@@ -34,7 +38,7 @@ const CACHE_TTL = {
   CONFIG: 60,
 } as const
 
-interface InjectedDependencies {
+type InjectedDependencies = Record<string, unknown> & {
   logger: Logger
   [Modules.CACHING]?: ICachingModuleService
 }
@@ -139,12 +143,14 @@ export class PacketaClientModuleService extends MedusaService({
   PacketaConfig,
 }) {
   private client_: PacketaClient | null = null
+  protected readonly container_: InjectedDependencies
   protected readonly logger_: Logger
   protected readonly environment_: PacketaEnvironment
   protected readonly cacheService_: ICachingModuleService | null
 
   constructor(container: InjectedDependencies, options: PacketaModuleOptions) {
     super(container, options)
+    this.container_ = container
     this.logger_ = container.logger
     this.environment_ = options.environment
 
@@ -244,7 +250,7 @@ export class PacketaClientModuleService extends MedusaService({
       return null
     }
 
-    const options = this.toEffectiveOptions(config, apiPassword)
+    const options = await this.toEffectiveOptions(config, apiPassword)
     await this.cacheEffectiveConfig(options)
 
     return options
@@ -263,15 +269,28 @@ export class PacketaClientModuleService extends MedusaService({
     return cached ?? undefined
   }
 
-  private toEffectiveOptions(
+  private async toEffectiveOptions(
     config: PacketaConfigDTO,
     apiPassword: string,
-  ): PacketaOptions {
+  ): Promise<PacketaOptions> {
+    const pickupPointsConfig = await retrieveIntegrationConfig(
+      this.container_,
+      INTEGRATION_CONFIG_NAMES.PACKETA_PICKUP_POINTS,
+    )
+    const pickupPointsApiKey =
+      pickupPointsConfig?.enabled === true &&
+      pickupPointsConfig.api_key !== null &&
+      pickupPointsConfig.api_key !== ""
+        ? pickupPointsConfig.api_key
+        : undefined
     const options: PacketaOptions = {
       api_password: apiPassword,
       default_label_format: config.default_label_format as PacketaLabelFormat,
       default_label_offset: config.default_label_offset,
       environment: this.environment_,
+      ...(pickupPointsApiKey === undefined
+        ? {}
+        : { pickup_points_api_key: pickupPointsApiKey }),
     }
     const optionalFields = [
       "sender_label",

@@ -368,6 +368,7 @@ const NOT_SUPPORTED_ACTION: WebhookActionResult["action"] =
 export abstract class PaykitPaymentProviderBase<
   TOptions extends PaykitAdapterOptions = PaykitAdapterOptions,
 > extends AbstractPaymentProvider<TOptions> {
+  protected readonly container_: PaykitInjectedDependencies
   protected readonly options_: TOptions
   private clientPromise: Promise<PaykitPaymentClient> | undefined
 
@@ -377,18 +378,22 @@ export abstract class PaykitPaymentProviderBase<
   ) {
     super(container, options)
 
+    this.container_ = container
     this.options_ = options
   }
 
   protected abstract createDefaultClient(): Promise<PaykitPaymentClient>
 
   protected async getClient(): Promise<PaykitPaymentClient> {
-    this.clientPromise ??= (async () => {
-      const configuredClient = await resolveConfiguredClient(this.options_)
-      return await (configuredClient ?? this.createDefaultClient())
-    })()
+    const configuredClient = await resolveConfiguredClient(this.options_)
+    if (configuredClient) {
+      this.clientPromise ??= Promise.resolve(configuredClient)
+      return await this.clientPromise
+    }
 
-    return await this.clientPromise
+    // Runtime API Store configs can change in Admin, so don't cache SDK clients
+    // created from provider credentials.
+    return await this.createDefaultClient()
   }
 
   protected getProviderPaymentId(data?: Record<string, unknown>): string {

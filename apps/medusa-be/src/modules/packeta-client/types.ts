@@ -20,6 +20,8 @@ export type PacketaLabelFormat = "A6" | "A7"
 export interface PacketaOptions {
   /** API password from Packeta admin portal */
   api_password: string
+  /** Optional pickup-point feed key. Defaults to api_password. */
+  pickup_points_api_key?: string
   environment: PacketaEnvironment
   default_label_format: PacketaLabelFormat
   /** Label offset on sheet (0 = top-left) */
