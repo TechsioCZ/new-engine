@@ -4,12 +4,35 @@ export const REVIEWERS = {
 } as const
 
 const CONVENTIONAL_TITLE =
-  /^(?:build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(?:\([a-z0-9][a-z0-9._/-]*\))?!?: .+$/i
+  /^(?:build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(?:\([a-z0-9][a-z0-9._/-]*\))?!?: .+$/iu
 const TEST_FILE =
-  /(?:^|\/)(?:__tests__|test|tests)\/|\.(?:spec|test)\.[cm]?[jt]sx?$/
-const SOURCE_FILE = /^(?:apps|libs)\/.+\.[cm]?[jt]sx?$/
-const MIGRATION_FILE = /(?:^|\/)migrations?(?:\/|$)/
-const PACKAGE_MANIFEST = /(?:^|\/)package\.json$/
+  /(?:^|\/)(?:__tests__|test|tests)\/|\.(?:spec|test)\.[cm]?[jt]sx?$/u
+const SOURCE_FILE = /^(?:apps|libs)\/.+\.[cm]?[jt]sx?$/u
+const MIGRATION_FILE = /(?:^|\/)migrations?(?:\/|$)/u
+const PACKAGE_MANIFEST = /(?:^|\/)package\.json$/u
+const INFRASTRUCTURE_ROOT_FILES = new Set([
+  ".mise.toml",
+  ".npmrc",
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "scripts/build-medusa.sh",
+  "scripts/dev/run-pnpm-toolchain.sh",
+  "scripts/install-storybook-playwright.mjs",
+])
+const INFRASTRUCTURE_PATTERNS = [
+  /(?:^|\/)Dockerfile(?:\.[^/]+)?$/u,
+  /(?:^|\/)docker-compose(?:\.[^/]+)?\.ya?ml$/u,
+]
+const FRONTEND_PREFIXES = [
+  "apps/frontend-demo/",
+  "apps/herbatika/",
+  "apps/n1/",
+  "apps/payload/",
+  "libs/analytics/",
+  "libs/storefront-data/",
+  "libs/ui/",
+]
 
 export interface PullRequestPolicyInput {
   additions: number
@@ -30,48 +53,33 @@ export interface PullRequestPolicyResult {
   warnings: string[]
 }
 
-function isInfrastructureFile(file: string): boolean {
-  return (
-    file === ".mise.toml" ||
-    file === ".npmrc" ||
-    file === "package.json" ||
-    file === "pnpm-lock.yaml" ||
-    file === "pnpm-workspace.yaml" ||
-    file.startsWith(".github/workflows/") ||
-    /(?:^|\/)Dockerfile(?:\.[^/]+)?$/.test(file) ||
-    /(?:^|\/)docker-compose(?:\.[^/]+)?\.ya?ml$/.test(file) ||
-    file === "scripts/build-medusa.sh" ||
-    file === "scripts/install-storybook-playwright.mjs" ||
-    file === "scripts/dev/run-pnpm-toolchain.sh"
-  )
+const isInfrastructureFile = (file: string): boolean => {
+  if (INFRASTRUCTURE_ROOT_FILES.has(file)) {
+    return true
+  }
+  if (file.startsWith(".github/workflows/")) {
+    return true
+  }
+  return INFRASTRUCTURE_PATTERNS.some((pattern) => pattern.test(file))
 }
 
-function isFrontendFile(file: string): boolean {
-  return (
-    file.startsWith("libs/ui/") ||
-    file.startsWith("libs/analytics/") ||
-    file.startsWith("libs/storefront-data/") ||
-    file.startsWith("apps/frontend-demo/") ||
-    file.startsWith("apps/herbatika/") ||
-    file.startsWith("apps/n1/") ||
-    file.startsWith("apps/payload/")
-  )
-}
+const isFrontendFile = (file: string): boolean =>
+  FRONTEND_PREFIXES.some((prefix) => file.startsWith(prefix))
 
-function isMeaningfulBody(body: string): boolean {
+const isMeaningfulBody = (body: string): boolean => {
   const normalized = body
-    .replaceAll(/<!--(?:.|\n)*?-->/g, "")
-    .replaceAll(/\s+/g, " ")
+    .replaceAll(/<!--[\s\S]*?-->/gu, "")
+    .replaceAll(/\s+/gu, " ")
     .trim()
 
   return normalized.length >= 40
 }
 
-function addBlockingFinding(
+const addBlockingFinding = (
   result: PullRequestPolicyResult,
   draft: boolean,
   finding: string,
-): void {
+): void => {
   if (draft) {
     result.warnings.push(`[draft] ${finding}`)
     return
@@ -80,7 +88,7 @@ function addBlockingFinding(
   result.failures.push(finding)
 }
 
-function collectRequiredReviewers(files: readonly string[]): string[] {
+const collectRequiredReviewers = (files: readonly string[]): string[] => {
   const reviewers = new Set<string>()
 
   if (files.some(isInfrastructureFile)) {
@@ -94,9 +102,9 @@ function collectRequiredReviewers(files: readonly string[]): string[] {
   return [...reviewers]
 }
 
-export function evaluatePullRequestPolicy(
+export const evaluatePullRequestPolicy = (
   input: PullRequestPolicyInput,
-): PullRequestPolicyResult {
+): PullRequestPolicyResult => {
   const result: PullRequestPolicyResult = {
     failures: [],
     requiredReviewers: collectRequiredReviewers(input.files),

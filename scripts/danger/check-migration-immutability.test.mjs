@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import assert from "node:assert/strict"
 import { execFileSync, spawnSync } from "node:child_process"
 import {
@@ -12,47 +14,62 @@ import path from "node:path"
 import { afterEach, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 
+const GIT = "/usr/bin/git"
+const INITIAL_MIGRATION = "app/migrations/001.ts"
 const SCRIPT_PATH = fileURLToPath(
   new URL("check-migration-immutability.mjs", import.meta.url),
 )
+/** @type {string[]} */
 const repositories = []
 
-function git(repository, ...args) {
-  return execFileSync("git", args, {
+/**
+ * @param {string} repository - Temporary repository path.
+ * @param {...string} args - Git arguments.
+ */
+const git = (repository, ...args) =>
+  execFileSync(GIT, args, {
     cwd: repository,
     encoding: "utf-8",
   }).trim()
-}
 
-function write(repository, relativePath, contents) {
+/**
+ * @param {string} repository - Temporary repository path.
+ * @param {string} relativePath - Repository-relative file path.
+ * @param {string} contents - File contents.
+ */
+const write = (repository, relativePath, contents) => {
   const filePath = path.join(repository, relativePath)
   mkdirSync(path.dirname(filePath), { recursive: true })
   writeFileSync(filePath, contents)
 }
 
-function createRepository() {
+const createRepository = () => {
   const repository = mkdtempSync(path.join(tmpdir(), "migration-immutability-"))
   repositories.push(repository)
   git(repository, "init", "--quiet")
   git(repository, "config", "user.email", "test@example.com")
   git(repository, "config", "user.name", "Test")
-  write(repository, "app/migrations/001.ts", "export const version = 1\n")
+  write(repository, INITIAL_MIGRATION, "export const version = 1\n")
   git(repository, "add", ".")
   git(repository, "commit", "--quiet", "-m", "base")
   return { base: git(repository, "rev-parse", "HEAD"), repository }
 }
 
-function commit(repository) {
+/** @param {string} repository - Temporary repository path. */
+const commit = (repository) => {
   git(repository, "add", "-A")
   git(repository, "commit", "--quiet", "-m", "change")
 }
 
-function check(repository, base) {
-  return spawnSync(process.execPath, [SCRIPT_PATH, base], {
+/**
+ * @param {string} repository - Temporary repository path.
+ * @param {string} base - Base commit SHA.
+ */
+const check = (repository, base) =>
+  spawnSync(process.execPath, [SCRIPT_PATH, base], {
     cwd: repository,
     encoding: "utf-8",
   })
-}
 
 afterEach(() => {
   for (const repository of repositories.splice(0)) {
@@ -70,29 +87,30 @@ void describe("migration immutability check", () => {
     assert.equal(check(repository, base).status, 0)
   })
 
-  for (const { mutate, name } of [
+  /** @type {readonly { mutate: (repository: string) => void, name: string }[]} */
+  const mutationCases = [
     {
       mutate: (repository) => {
-        write(repository, "app/migrations/001.ts", "changed\n")
+        write(repository, INITIAL_MIGRATION, "changed\n")
       },
       name: "modifications",
     },
     {
-      mutate: (repository) => git(repository, "rm", "app/migrations/001.ts"),
+      mutate: (repository) => {
+        git(repository, "rm", INITIAL_MIGRATION)
+      },
       name: "deletions",
     },
     {
-      mutate: (repository) =>
-        git(repository, "mv", "app/migrations/001.ts", "app/renamed.ts"),
+      mutate: (repository) => {
+        git(repository, "mv", INITIAL_MIGRATION, "app/renamed.ts")
+      },
       name: "renames",
     },
     {
       mutate: (repository) => {
-        rmSync(path.join(repository, "app/migrations/001.ts"))
-        symlinkSync(
-          "../target.ts",
-          path.join(repository, "app/migrations/001.ts"),
-        )
+        rmSync(path.join(repository, INITIAL_MIGRATION))
+        symlinkSync("../target.ts", path.join(repository, INITIAL_MIGRATION))
       },
       name: "type changes",
     },
@@ -102,7 +120,9 @@ void describe("migration immutability check", () => {
       },
       name: "copies",
     },
-  ]) {
+  ]
+
+  for (const { mutate, name } of mutationCases) {
     void it(`rejects ${name} of committed migrations`, () => {
       const { base, repository } = createRepository()
       mutate(repository)

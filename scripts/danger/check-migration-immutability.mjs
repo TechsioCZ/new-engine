@@ -1,18 +1,31 @@
 #!/usr/bin/env node
+/// <reference types="node" />
 
 import { execFileSync } from "node:child_process"
 
+const GIT = "/usr/bin/git"
 const ZERO_SHA = /^0+$/u
-const requestedBase = process.argv[2]
+const requestedBase = process.argv.at(2)
 const base =
-  requestedBase && !ZERO_SHA.test(requestedBase)
+  typeof requestedBase === "string" &&
+  requestedBase.length > 0 &&
+  !ZERO_SHA.test(requestedBase)
     ? requestedBase
-    : execFileSync("git", ["rev-parse", "HEAD^"], {
+    : execFileSync(GIT, ["rev-parse", "HEAD^"], {
         encoding: "utf-8",
       }).trim()
 
+/** @param {string} line - One name-status row from git diff. */
+const migrationPathFromDiffLine = (line) => {
+  const [, sourcePath] = line.split("\t")
+  return sourcePath !== undefined &&
+    sourcePath.split("/").includes("migrations")
+    ? [sourcePath]
+    : []
+}
+
 const mutatedMigrations = execFileSync(
-  "git",
+  GIT,
   [
     "diff",
     "--name-status",
@@ -26,18 +39,7 @@ const mutatedMigrations = execFileSync(
   .trim()
   .split("\n")
   .filter(Boolean)
-  .map((line) => {
-    const [status, sourceOrPath] = line.split("\t")
-    if (status.startsWith("R") || status.startsWith("C")) {
-      return sourceOrPath.split("/").includes("migrations")
-        ? sourceOrPath
-        : undefined
-    }
-    return sourceOrPath.split("/").includes("migrations")
-      ? sourceOrPath
-      : undefined
-  })
-  .filter(Boolean)
+  .flatMap(migrationPathFromDiffLine)
 
 if (mutatedMigrations.length > 0) {
   console.error(
