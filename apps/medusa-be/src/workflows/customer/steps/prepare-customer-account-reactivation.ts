@@ -1,8 +1,7 @@
-import type { ICustomerModuleService, Query } from "@medusajs/framework/types"
+import type { CustomerUpdatableFields, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
-  Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { normalizeEmail } from "../../../utils/email"
@@ -34,20 +33,14 @@ export type CustomerRecord = {
   phone?: string | null
 }
 
-export type ReactivateCustomerAccountUpdateInput = Parameters<
-  ICustomerModuleService["updateCustomers"]
->[1] & {
-  has_account?: boolean
-}
+export type ReactivateCustomerAccountUpdateInput = CustomerUpdatableFields
 
 type PrepareCustomerAccountReactivationOutput = {
   auth_identity_id: string
+  customer: CustomerRecord
   customer_id: string
   update: ReactivateCustomerAccountUpdateInput
-}
-
-type PrepareCustomerAccountReactivationCompensation = {
-  restored_customer_id?: string
+  was_soft_deleted: boolean
 }
 
 export const prepareCustomerAccountReactivationStep = createStep(
@@ -55,16 +48,8 @@ export const prepareCustomerAccountReactivationStep = createStep(
   async (
     input: ReactivateCustomerAccountInput,
     { container }
-  ): Promise<
-    StepResponse<
-      PrepareCustomerAccountReactivationOutput,
-      PrepareCustomerAccountReactivationCompensation
-    >
-  > => {
+  ): Promise<StepResponse<PrepareCustomerAccountReactivationOutput>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-    const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
-    )
     const email = normalizeEmail(input.email)
 
     await verifyAuthIdentityEmail({
@@ -87,37 +72,15 @@ export const prepareCustomerAccountReactivationStep = createStep(
       )
     }
 
-    if (deactivatedCustomer.deleted_at) {
-      await customerModuleService.restoreCustomers([deactivatedCustomer.id])
-    }
-
-    return new StepResponse(
-      {
-        auth_identity_id: input.auth_identity_id,
-        customer_id: deactivatedCustomer.id,
-        update: buildReactivatedCustomerUpdateInput(
-          { ...input, email },
-          deactivatedCustomer
-        ),
-      },
-      {
-        restored_customer_id: deactivatedCustomer.deleted_at
-          ? deactivatedCustomer.id
-          : undefined,
-      }
-    )
-  },
-  async (input, { container }) => {
-    if (!input?.restored_customer_id) {
-      return
-    }
-
-    const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
-    )
-
-    await customerModuleService.softDeleteCustomers([
-      input.restored_customer_id,
-    ])
+    return new StepResponse({
+      auth_identity_id: input.auth_identity_id,
+      customer: deactivatedCustomer,
+      customer_id: deactivatedCustomer.id,
+      update: buildReactivatedCustomerUpdateInput(
+        { ...input, email },
+        deactivatedCustomer
+      ),
+      was_soft_deleted: Boolean(deactivatedCustomer.deleted_at),
+    })
   }
 )

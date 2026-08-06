@@ -1,4 +1,4 @@
-import type { Query } from "@medusajs/framework/types"
+import type { CustomerUpdatableFields, Query } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 import { normalizeEmail } from "../../utils/email"
 import { hasArrayData } from "../../utils/guards"
@@ -6,7 +6,6 @@ import { normalizeReactivatedCustomerFirstName } from "./normalizers"
 import type {
   CustomerRecord,
   ReactivateCustomerAccountInput,
-  ReactivateCustomerAccountUpdateInput,
 } from "./steps/prepare-customer-account-reactivation"
 
 type ProviderIdentityRecord = {
@@ -69,13 +68,12 @@ export async function verifyAuthIdentityEmail({
 export function buildReactivatedCustomerUpdateInput(
   input: ReactivateCustomerAccountInput,
   customer: CustomerRecord
-): ReactivateCustomerAccountUpdateInput {
+): CustomerUpdatableFields {
   return {
     company_name: input.company_name ?? customer.company_name ?? null,
     first_name: normalizeReactivatedCustomerFirstName(
       input.first_name ?? customer.first_name
     ),
-    has_account: true,
     last_name: input.last_name ?? customer.last_name ?? null,
     metadata: mergeCustomerMetadata(customer.metadata, input.metadata),
     phone: input.phone ?? customer.phone ?? null,
