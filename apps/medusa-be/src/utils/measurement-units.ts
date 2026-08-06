@@ -4,6 +4,7 @@ import type {
   MedusaContainer,
 } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { MEASUREMENT_UNIT_MODULE } from "../modules/measurement-unit"
 import type MeasurementUnit from "../modules/measurement-unit/models/measurement-unit"
@@ -19,12 +20,14 @@ export type ProductVariantMeasurementRecord = InferEntityType<
   typeof ProductVariantMeasurement
 >
 
+type MeasurementTimestamp = Date | string
+
 export interface MeasurementUnitResponse {
   active_product_count?: number | undefined
   base_quantity: number
   code: string
-  created_at?: Date | string | undefined
-  deleted_at?: Date | string | null | undefined
+  created_at?: MeasurementTimestamp | undefined
+  deleted_at?: MeasurementTimestamp | null | undefined
   description?: null | string | undefined
   id: string
   name: string
@@ -58,11 +61,13 @@ type CalculatedPriceLike = NonNullable<
 interface ProductLike {
   id?: unknown
   measurement?: ProductMeasurementResponse | null
-  variants?: Array<{
-    calculated_price?: CalculatedPriceLike | null
-    id?: unknown
-    measurement?: ProductVariantMeasurementResponse | null
-  }> | null
+  variants?:
+    | {
+        calculated_price?: CalculatedPriceLike | null
+        id?: unknown
+        measurement?: ProductVariantMeasurementResponse | null
+      }[]
+    | null
 }
 
 export interface MeasurementDecorationOptions {
@@ -91,7 +96,7 @@ const PRICE_PER_UNIT_QUERY_FIELDS = [
   "variants.calculated_price.is_calculated_price_tax_inclusive",
   "variants.calculated_price.is_original_price_tax_inclusive",
 ]
-const LEADING_PLUS_PATTERN = /^\+/
+const LEADING_PLUS_PATTERN = /^\+/u
 const PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE = 500
 
 const normalizeRequestedField = (field: string) =>
@@ -158,13 +163,11 @@ export const toNumber = (value: unknown) => {
     return Number.isFinite(parsed) ? parsed : Number.NaN
   }
 
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "value" in value &&
-    (typeof value.value === "string" || typeof value.value === "number")
-  ) {
-    return Number(value.value)
+  if (isRecord(value)) {
+    const nestedValue = value["value"]
+    if (typeof nestedValue === "string" || typeof nestedValue === "number") {
+      return Number(nestedValue)
+    }
   }
 
   return Number.NaN
@@ -225,14 +228,17 @@ export const toProductVariantMeasurementResponse = (
 export const toProductMeasurementResponse = (
   measurement: ProductMeasurementRecord,
 ): ProductMeasurementResponse | null => {
-  if (!measurement.measurement_unit) {
+  if (
+    measurement.measurement_unit === null ||
+    measurement.measurement_unit === undefined
+  ) {
     return null
   }
 
   const variantMeasurements = (measurement.variant_measurements ?? []).flatMap(
     (variantMeasurement) => {
       const response = toProductVariantMeasurementResponse(variantMeasurement)
-      return response ? [response] : []
+      return response === null ? [] : [response]
     },
   )
 
@@ -246,38 +252,54 @@ export const toProductMeasurementResponse = (
   }
 }
 
+const listProductMeasurementChunk = async (
+  service: MeasurementUnitModuleService,
+  ids: string[],
+  startIndex: number,
+): Promise<ProductMeasurementRecord[]> => {
+  if (startIndex >= ids.length) {
+    return []
+  }
+
+  const chunk = ids.slice(
+    startIndex,
+    startIndex + PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE,
+  )
+  const chunkMeasurements = await service.listProductMeasurements(
+    { product_id: { $in: chunk } },
+    {
+      relations: ["measurement_unit", "variant_measurements"],
+      take: chunk.length,
+    },
+  )
+  const completedChunk = {
+    measurements: chunkMeasurements,
+    nextIndex: startIndex + PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE,
+  }
+  const remainingMeasurements = await listProductMeasurementChunk(
+    service,
+    ids,
+    completedChunk.nextIndex,
+  )
+
+  return [...completedChunk.measurements, ...remainingMeasurements]
+}
+
 export const listProductMeasurementsByProductIds = async (
   scope: MedusaContainer,
   productIds: string[],
 ) => {
-  const ids = [...new Set(productIds)].filter(Boolean)
+  const ids = [...new Set(productIds)].filter((id) => id.length > 0)
 
-  if (!ids.length) {
+  if (ids.length === 0) {
     return []
   }
 
-  const service = getMeasurementUnitService(scope)
-  const measurements: ProductMeasurementRecord[] = []
-
-  for (
-    let index = 0;
-    index < ids.length;
-    index += PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE
-  ) {
-    const chunk = ids.slice(index, index + PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE)
-    const chunkMeasurements = await service.listProductMeasurements(
-      {
-        product_id: { $in: chunk },
-      },
-      {
-        relations: ["measurement_unit", "variant_measurements"],
-        take: chunk.length,
-      },
-    )
-    measurements.push(...chunkMeasurements)
-  }
-
-  return measurements
+  return await listProductMeasurementChunk(
+    getMeasurementUnitService(scope),
+    ids,
+    0,
+  )
 }
 
 export const getMeasurementUnitActiveProductCounts = async (

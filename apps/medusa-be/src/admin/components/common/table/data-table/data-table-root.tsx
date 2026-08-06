@@ -1,17 +1,16 @@
 import { CommandBar, clx, Table } from "@medusajs/ui"
 import { flexRender } from "@tanstack/react-table"
-import type {
-  Cell,
-  ColumnDef,
-  Table as ReactTable,
-  Row,
-} from "@tanstack/react-table"
+import type { Cell, Table as ReactTable, Row } from "@tanstack/react-table"
 import { Fragment, useEffect, useRef, useState } from "react"
 import type { ComponentPropsWithoutRef, UIEvent } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
 import { NoResults } from "../empty-state"
+
+interface TableColumnIdentifier {
+  id?: string | undefined
+}
 
 interface BulkCommand {
   label: string
@@ -22,12 +21,14 @@ interface BulkCommand {
 interface BodyCellProps<TData> {
   cell: Cell<TData, unknown>
   cells: Cell<TData, unknown>[]
-  hasSelect: boolean
   index: number
-  isOdd: boolean
-  isRowDisabled: boolean
+  presentation: {
+    hasSelect: boolean
+    isOdd: boolean
+    isRowDisabled: boolean
+    showStickyBorder: boolean
+  }
   rowDepth: number
-  showStickyBorder: boolean
   to?: string
 }
 
@@ -39,8 +40,7 @@ export interface DataTableRootProps<TData> {
   /**
    * The columns to render
    */
-  // ColumnDef is invariant in TValue, and this table accepts heterogeneous column value types.
-  columns: ColumnDef<TData, any>[]
+  columns: TableColumnIdentifier[]
   /**
    * Function to generate a link to navigate to when clicking on a row
    */
@@ -88,33 +88,27 @@ const getIsFirstContentCell = <TData,>(
   return cell.column.id === cells[firstCell]?.column.id
 }
 
-const getDepthOffset = (rowDepth: number, isFirstCell: boolean) => {
-  if (rowDepth <= 0 || !isFirstCell) {
-    return
-  }
-
-  return rowDepth * 14 + 24
-}
+const getDepthOffset = (rowDepth: number, isFirstCell: boolean) =>
+  rowDepth > 0 && isFirstCell ? rowDepth * 14 + 24 : undefined
 
 const BodyCell = <TData,>({
   cell,
   cells,
-  hasSelect,
   index,
-  isOdd,
-  isRowDisabled,
+  presentation,
   rowDepth,
-  showStickyBorder,
   to,
 }: BodyCellProps<TData>) => {
+  const { hasSelect, isOdd, isRowDisabled, showStickyBorder } = presentation
   const isSelectCell = cell.column.id === "select"
   const isFirstCell = getIsFirstContentCell(cell, cells, index)
   const isStickyCell = isSelectCell || isFirstCell
   const depthOffset = getDepthOffset(rowDepth, isFirstCell)
   const hasLeftOffset = isStickyCell && hasSelect && !isSelectCell
   const inner = flexRender(cell.column.columnDef.cell, cell.getContext())
-  const isTabableLink = isFirstCell && !!to
-  const shouldRenderAsLink = !!to && !isSelectCell
+  const hasLink = to !== undefined && to.length > 0
+  const isTabableLink = isFirstCell && hasLink
+  const shouldRenderAsLink = hasLink && !isSelectCell
 
   return (
     <Table.Cell
@@ -130,7 +124,7 @@ const BodyCell = <TData,>({
           isStickyCell,
       })}
       style={{
-        paddingLeft: depthOffset ? `${depthOffset}px` : undefined,
+        paddingLeft: depthOffset === undefined ? undefined : `${depthOffset}px`,
       }}
     >
       {shouldRenderAsLink ? (
@@ -155,10 +149,33 @@ const BodyCell = <TData,>({
   )
 }
 
+type PaginationProps = Omit<
+  ComponentPropsWithoutRef<typeof Table.Pagination>,
+  "translations"
+>
+
+const Pagination = (props: PaginationProps) => {
+  const { t } = useTranslation()
+
+  const translations = {
+    next: t("general.next"),
+    of: t("general.of"),
+    pages: t("general.pages"),
+    prev: t("general.prev"),
+    results: t("general.results"),
+  }
+
+  return (
+    <Table.Pagination
+      className="flex-shrink-0"
+      {...props}
+      translations={translations}
+    />
+  )
+}
+
 /**
- * TODO
- *
- * Add a sticky header to the table that shows the column name when scrolling through the table vertically.
+ * Future enhancement: add a sticky header to the table that shows the column name when scrolling through the table vertically.
  *
  * This is a bit tricky as we can't support horizontal scrolling and sticky headers at the same time, natively
  * with CSS. We need to implement a custom solution for this. One solution is to render a duplicate table header
@@ -185,9 +202,9 @@ export const DataTableRoot = <TData,>({
 
   const scrollableRef = useRef<HTMLDivElement>(null)
 
-  const hasSelect = columns.find((c) => c.id === "select")
-  const hasActions = columns.find((c) => c.id === "actions")
-  const hasCommandBar = commands && commands.length > 0
+  const hasSelect = columns.some((column) => column.id === "select")
+  const hasActions = columns.some((column) => column.id === "actions")
+  const hasCommandBar = commands !== undefined && commands.length > 0
 
   const { rowSelection } = table.getState()
   const { pageIndex, pageSize } = table.getState().pagination
@@ -206,9 +223,8 @@ export const DataTableRoot = <TData,>({
   }
 
   const handleAction = async (action: BulkCommand["action"]) => {
-    await action(rowSelection).then(() => {
-      table.resetRowSelection()
-    })
+    await action(rowSelection)
+    table.resetRowSelection()
   }
 
   useEffect(() => {
@@ -295,7 +311,8 @@ export const DataTableRoot = <TData,>({
             )}
             <Table.Body className="border-b-0">
               {table.getRowModel().rows.map((row) => {
-                const to = navigateTo ? navigateTo(row) : undefined
+                const to =
+                  navigateTo === undefined ? undefined : navigateTo(row)
                 const isRowDisabled = hasSelect && !row.getCanSelect()
 
                 const isOdd = row.depth % 2 !== 0
@@ -313,7 +330,7 @@ export const DataTableRoot = <TData,>({
                         "bg-ui-bg-highlight hover:bg-ui-bg-highlight-hover":
                           row.getIsSelected(),
                         "bg-ui-bg-subtle hover:bg-ui-bg-subtle-hover": isOdd,
-                        "cursor-pointer": !!to,
+                        "cursor-pointer": to !== undefined && to.length > 0,
                       },
                     )}
                     data-selected={row.getIsSelected()}
@@ -323,14 +340,16 @@ export const DataTableRoot = <TData,>({
                       <BodyCell
                         cell={cell}
                         cells={cells}
-                        hasSelect={Boolean(hasSelect)}
                         index={index}
-                        isOdd={isOdd}
-                        isRowDisabled={Boolean(isRowDisabled)}
                         key={cell.id}
+                        presentation={{
+                          hasSelect,
+                          isOdd,
+                          isRowDisabled,
+                          showStickyBorder,
+                        }}
                         rowDepth={row.depth}
-                        showStickyBorder={showStickyBorder}
-                        {...(to ? { to } : {})}
+                        {...(to !== undefined && to.length > 0 ? { to } : {})}
                       />
                     ))}
                   </Table.Row>
@@ -340,7 +359,7 @@ export const DataTableRoot = <TData,>({
           </Table>
         )}
       </div>
-      {pagination && (
+      {pagination === true && (
         <div className={clx({ "border-t": layout === "fill" })}>
           <Pagination
             canNextPage={table.getCanNextPage()}
@@ -355,7 +374,7 @@ export const DataTableRoot = <TData,>({
         </div>
       )}
       {hasCommandBar && (
-        <CommandBar open={!!Object.keys(rowSelection).length}>
+        <CommandBar open={Object.keys(rowSelection).length > 0}>
           <CommandBar.Bar>
             <CommandBar.Value>
               {t("general.countSelected", {
@@ -366,7 +385,9 @@ export const DataTableRoot = <TData,>({
             {commands?.map((command, index) => (
               <Fragment key={`${command.label}-${command.shortcut}`}>
                 <CommandBar.Command
-                  action={async () =>{  await handleAction(command.action); }}
+                  action={async () => {
+                    await handleAction(command.action)
+                  }}
                   label={command.label}
                   shortcut={command.shortcut}
                 />
@@ -377,30 +398,5 @@ export const DataTableRoot = <TData,>({
         </CommandBar>
       )}
     </div>
-  )
-}
-
-type PaginationProps = Omit<
-  ComponentPropsWithoutRef<typeof Table.Pagination>,
-  "translations"
->
-
-const Pagination = (props: PaginationProps) => {
-  const { t } = useTranslation()
-
-  const translations = {
-    next: t("general.next"),
-    of: t("general.of"),
-    pages: t("general.pages"),
-    prev: t("general.prev"),
-    results: t("general.results"),
-  }
-
-  return (
-    <Table.Pagination
-      className="flex-shrink-0"
-      {...props}
-      translations={translations}
-    />
   )
 }

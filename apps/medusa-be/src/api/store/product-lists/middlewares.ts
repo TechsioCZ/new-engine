@@ -18,6 +18,7 @@ import {
   StoreUpdateProductListSchema,
 } from "./validators"
 
+const PRODUCT_LIST_MATCHER = "/store/product-lists/:id"
 const customerAuth = authenticate("customer", ["session", "bearer"])
 const optionalCustomerAuth = authenticate("customer", ["session", "bearer"], {
   allowUnauthenticated: true,
@@ -35,12 +36,12 @@ export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    matcher: "/store/product-lists/:id",
+    matcher: PRODUCT_LIST_MATCHER,
     methods: ["GET"],
     middlewares: [optionalCustomerAuth],
   },
   {
-    matcher: "/store/product-lists/:id",
+    matcher: PRODUCT_LIST_MATCHER,
     methods: ["POST"],
     middlewares: [
       customerAuth,
@@ -48,7 +49,7 @@ export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    matcher: "/store/product-lists/:id",
+    matcher: PRODUCT_LIST_MATCHER,
     methods: ["DELETE"],
     middlewares: [customerAuth],
   },

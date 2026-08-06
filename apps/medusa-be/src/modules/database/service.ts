@@ -5,33 +5,33 @@ import type { SQL } from "drizzle-orm/sql/sql"
 import mysql from "mysql2/promise"
 
 class DatabaseModuleService {
-  // todo, DB table with connections & admin widget for configuration, currently hardcoded for singular use
-  private db_: MySql2Database | undefined = undefined
-  private dbInitPromise_: Promise<MySql2Database> | undefined = undefined
+  // The legacy connection is currently configured for one database URL.
+  private database: MySql2Database | undefined = undefined
+  private dbInitPromise: Promise<MySql2Database> | undefined = undefined
 
   private async initDatabase() {
-    if (this.db_ !== undefined) {
-      return this.db_
+    if (this.database !== undefined) {
+      return this.database
     }
     // Prevent concurrent init races - return existing promise if in-flight
-    if (this.dbInitPromise_) {
-      return await this.dbInitPromise_
+    if (this.dbInitPromise !== undefined) {
+      return await this.dbInitPromise
     }
 
-    this.dbInitPromise_ = (async () => {
+    this.dbInitPromise = (async () => {
       const connectionString = process.env["LEGACY_DATABASE_URL"]
-      if (!connectionString) {
+      if (connectionString === undefined || connectionString.length === 0) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           "LEGACY_DATABASE_URL environment variable is required for legacy database connection",
         )
       }
       const connection = await mysql.createConnection(connectionString)
-      this.db_ = drizzle(connection)
-      return this.db_
+      this.database = drizzle(connection)
+      return this.database
     })()
 
-    return await this.dbInitPromise_
+    return await this.dbInitPromise
   }
 
   /**

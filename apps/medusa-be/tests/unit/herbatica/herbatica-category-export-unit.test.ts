@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { resolve } from "node:path"
+import path from "node:path"
 
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -12,7 +12,7 @@ import {
 import { readXmlSource } from "../../../src/scripts/herbatica-xml-utils"
 
 describe("Herbatica category export parser", () => {
-  const xmlPath = resolve(
+  const xmlPath = path.resolve(
     process.cwd(),
     "src/scripts/seed-files/categories.xml",
   )
@@ -33,13 +33,13 @@ describe("Herbatica category export parser", () => {
       expandInMenu: false,
       id: "758",
       isVisible: true,
-      metaDescription: expect.stringContaining("imunita"),
       metaTitle:
         "Trápi ma - prírodné riešenia a doplnky podľa problému | Herbatica",
       priority: 2,
       title: "Trápi ma",
       url: "trapi-ma",
     })
+    expect(category?.metaDescription).toContain("imunita")
     expect(stripHtmlToPlainText(category?.topDescriptionHtml)).toContain(
       "Človek je neoddeliteľnou súčasťou prírody",
     )
@@ -55,13 +55,13 @@ describe("Herbatica category export parser", () => {
     const category = categories.find((entry) => entry.id === "1584")
 
     expect(category).toMatchObject({
-      bottomDescriptionHtml: undefined,
       id: "1584",
-      metaDescription: expect.stringContaining("prehľad produktov"),
       metaTitle: "Prírodná kozmetika - prehľad a porovnanie | Herbatica",
       title: "Prírodná kozmetika",
       url: "prirodna-kozmetika",
     })
+    expect(category?.metaDescription).toContain("prehľad produktov")
+    expect(category?.bottomDescriptionHtml).toBeUndefined()
     expect(stripHtmlToPlainText(category?.topDescriptionHtml)).toContain(
       "Kľúčom ku zdravej a krásnej pleti",
     )

@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest"
 import { validateSalesChannelSeedInput } from "../steps/create-sales-channels"
 import { planSalesChannelApiKeyLinks } from "../steps/link-sales-channels-api-key"
 
-const UNIQUE_NAME_PATTERN = /unique/
-const EXACTLY_ONE_DEFAULT_PATTERN = /exactly one default/
+const UNIQUE_NAME_PATTERN = /unique/u
+const EXACTLY_ONE_DEFAULT_PATTERN = /exactly one default/u
 
 describe("sales-channel seed reconciliation", () => {
   it("requires unique names and exactly one default", () => {

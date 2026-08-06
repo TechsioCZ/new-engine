@@ -4,16 +4,32 @@ import type {
   MedusaContainer,
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
-import type { MedusaSuiteOptions } from "@medusajs/test-utils"
+import { z } from "@medusajs/framework/zod"
 import { SignJWT } from "jose"
-import * as Scrypt from "scrypt-kdf"
+import { kdf } from "scrypt-kdf"
 
 export const adminHeaders: { headers: Record<string, string> } = {
   headers: {},
 }
 
+const TEST_CUSTOMER_EMAIL = "test@email.com"
+const authResponseSchema = z.object({
+  data: z.object({ token: z.string() }),
+})
+const customerResponseSchema = z.object({
+  data: z.object({ customer: z.unknown() }),
+})
+
 interface TestHeaders {
   headers: Record<string, string>
+}
+
+interface TestApi {
+  post: (
+    url: string,
+    body: unknown,
+    config?: { headers: Record<string, string> },
+  ) => Promise<unknown>
 }
 
 export const createAdminUser = async (
@@ -29,7 +45,7 @@ export const createAdminUser = async (
   })
 
   const hashConfig = { logN: 15, p: 1, r: 8 }
-  const passwordHash = await Scrypt.kdf("somepassword", hashConfig)
+  const passwordHash = await kdf("somepassword", hashConfig)
 
   const authIdentity = await authModule.createAuthIdentities({
     app_metadata: {
@@ -37,8 +53,8 @@ export const createAdminUser = async (
     },
     provider_identities: [
       {
-        provider: "emailpass",
         entity_id: "admin@medusa.js",
+        provider: "emailpass",
         provider_metadata: {
           password: Buffer.from(passwordHash).toString("base64"),
         },
@@ -47,7 +63,7 @@ export const createAdminUser = async (
   })
 
   const jwtSecret = process.env["JWT_SECRET"]
-  if (!jwtSecret) {
+  if (jwtSecret === undefined || jwtSecret.length === 0) {
     throw new Error(
       "JWT_SECRET is required to create an integration-test admin",
     )
@@ -71,37 +87,35 @@ export const createStoreUser = async ({
   api,
   storeHeaders,
 }: {
-  api: MedusaSuiteOptions["api"]
+  api: TestApi
   storeHeaders: TestHeaders
 }) => {
-  const registerToken = (
-    await api.post("/auth/customer/emailpass/register", {
-      email: "test@email.com",
+  const registerResponse: unknown = await api.post(
+    "/auth/customer/emailpass/register",
+    {
+      email: TEST_CUSTOMER_EMAIL,
       password: "password",
-    })
-  ).data.token
+    },
+  )
+  const { data: registerData } = authResponseSchema.parse(registerResponse)
 
-  const { customer } = (
-    await api.post(
-      "/store/customers",
-      {
-        email: "test@email.com",
+  const customerResponse: unknown = await api.post(
+    "/store/customers",
+    { email: TEST_CUSTOMER_EMAIL },
+    {
+      headers: {
+        Authorization: `Bearer ${registerData.token}`,
+        ...storeHeaders.headers,
       },
-      {
-        headers: {
-          Authorization: `Bearer ${registerToken}`,
-          ...storeHeaders.headers,
-        },
-      },
-    )
-  ).data
+    },
+  )
+  const { data: customerData } = customerResponseSchema.parse(customerResponse)
 
-  const { token } = (
-    await api.post("/auth/customer/emailpass", {
-      email: "test@email.com",
-      password: "password",
-    })
-  ).data
+  const loginResponse: unknown = await api.post("/auth/customer/emailpass", {
+    email: TEST_CUSTOMER_EMAIL,
+    password: "password",
+  })
+  const { data: loginData } = authResponseSchema.parse(loginResponse)
 
-  return { customer, token }
+  return { customer: customerData.customer, token: loginData.token }
 }

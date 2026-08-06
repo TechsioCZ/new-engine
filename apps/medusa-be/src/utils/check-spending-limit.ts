@@ -1,11 +1,11 @@
-import { ModuleCompanySpendingLimitResetFrequency } from "../types"
+import { ModuleCompanySpendingLimitResetFrequency } from "../types/company/module"
 
 interface CompanySpendContext {
   spending_limit_reset_frequency: ModuleCompanySpendingLimitResetFrequency
 }
 
 interface EmployeeSpendContext {
-  company: CompanySpendContext
+  company: CompanySpendContext | null | undefined
   spending_limit: number
 }
 
@@ -23,11 +23,10 @@ interface CustomerSpendContext {
   orders?: (OrderSpendContext | null)[] | null
 }
 
-function getSpendWindow(company: CompanySpendContext): {
-  start: Date
-  end: Date
-} {
-  if (!company) {
+const getSpendWindow = (
+  company: CompanySpendContext | null | undefined,
+): { start: Date; end: Date } => {
+  if (company === null || company === undefined) {
     return { end: new Date(), start: new Date(0) }
   }
 
@@ -37,69 +36,72 @@ function getSpendWindow(company: CompanySpendContext): {
   switch (resetFrequency) {
     case ModuleCompanySpendingLimitResetFrequency.NEVER: {
       return { end: now, start: new Date(0) }
-    } // Never resets
+    }
     case ModuleCompanySpendingLimitResetFrequency.DAILY: {
       return { end: now, start: new Date(now.setHours(0, 0, 0, 0)) }
-    } // Window is the current day up to now
+    }
     case ModuleCompanySpendingLimitResetFrequency.WEEKLY: {
       const startOfWeek = new Date(now)
       startOfWeek.setDate(now.getDate() - now.getDay())
       startOfWeek.setHours(0, 0, 0, 0)
-      return { end: now, start: startOfWeek } // Window is the current week up to now, starting on Sunday
+      return { end: now, start: startOfWeek }
     }
     case ModuleCompanySpendingLimitResetFrequency.MONTHLY: {
       return {
         end: now,
         start: new Date(now.getFullYear(), now.getMonth(), 1),
       }
-    } // Window is the current month up to now
+    }
     case ModuleCompanySpendingLimitResetFrequency.YEARLY: {
       return { end: now, start: new Date(now.getFullYear(), 0, 1) }
-    } // Window is the current year up to now
+    }
     default: {
       return { end: now, start: new Date(0) }
-    } // Default to never resetting
+    }
   }
 }
 
-function getOrderTotalInSpendWindow(
+const getOrderTotalInSpendWindow = (
   orders: (OrderSpendContext | null)[],
   spendWindow: { start: Date; end: Date },
-): number {
-  return (
-    orders.reduce((acc, order) => {
-      if (!order) {
-        return acc
-      }
+): number => {
+  let total = 0
 
-      const orderDate = new Date(order.created_at)
-      if (orderDate >= spendWindow.start && orderDate <= spendWindow.end) {
-        return acc + order.total
-      }
-      return acc
-    }, 0) || 0
-  )
+  for (const order of orders) {
+    if (order === null) {
+      continue
+    }
+
+    const orderDate = new Date(order.created_at)
+    if (orderDate >= spendWindow.start && orderDate <= spendWindow.end) {
+      total += order.total
+    }
+  }
+
+  return Number.isNaN(total) ? 0 : total
 }
 
-export function checkSpendingLimit(
+export const checkSpendingLimit = (
   cart: CartSpendTotal | null,
   customer: CustomerSpendContext | null,
-) {
-  if (!(cart && customer && customer.employee)) {
+) => {
+  if (
+    cart === null ||
+    customer === null ||
+    customer.employee === null ||
+    customer.employee === undefined
+  ) {
     return false
   }
 
-  if (
-    !customer?.employee?.spending_limit ||
-    customer?.employee?.spending_limit === 0
-  ) {
+  if (customer.employee.spending_limit === 0) {
     return false
   }
 
   const { employee } = customer
   const spendingLimit = employee.spending_limit
   const spendWindow = getSpendWindow(employee.company)
-  const spent = getOrderTotalInSpendWindow(customer.orders || [], spendWindow)
+  const spent = getOrderTotalInSpendWindow(customer.orders ?? [], spendWindow)
 
   return spent + cart.total > spendingLimit
 }

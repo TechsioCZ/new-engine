@@ -22,13 +22,12 @@ interface BulkUpdateOrderStatusesWorkflowInput {
   target_status: OrderExpeditionDirectUpdateStatus
 }
 
-export function isOrderExpeditionDirectUpdateStatus(
+export const isOrderExpeditionDirectUpdateStatus = (
   status: OrderExpeditionTargetStatus,
-): status is OrderExpeditionDirectUpdateStatus {
-  return ORDER_EXPEDITION_DIRECT_UPDATE_STATUSES.some(
+): status is OrderExpeditionDirectUpdateStatus =>
+  ORDER_EXPEDITION_DIRECT_UPDATE_STATUSES.some(
     (directStatus) => directStatus === status,
   )
-}
 
 export const bulkUpdateOrderStatusesWorkflow = createWorkflow(
   "bulk-update-order-statuses",

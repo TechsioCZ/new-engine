@@ -7,6 +7,7 @@ import {
   AbstractNotificationProviderService,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import {
   getCredentialString,
@@ -14,8 +15,8 @@ import {
   requireCredentialObject,
   requireEnabledIntegrationConfig,
 } from "../api-store/integration-config"
-import { getResendTemplateDefinition } from "./templates"
-import type { ResendEmailTemplate, ResendTemplateDefinition } from "./templates"
+import { resendTemplateDefinitions } from "./templates"
+import type { ResendTemplateDefinition } from "./templates"
 
 interface ResendOptions {
   api_key?: string
@@ -35,8 +36,6 @@ interface NotificationAttachment {
   filename?: string | false
   path?: string
 }
-
-type Template = ResendEmailTemplate
 
 type TemplateVariableValue =
   | boolean
@@ -72,19 +71,23 @@ interface ResendApiErrorResponse {
   statusCode?: number
 }
 
+interface ResendApiResult {
+  data: ResendApiEmailResponse | null
+  error: ResendApiErrorResponse | null
+}
+
+const RESEND_TEMPLATE_DEFINITIONS: ReadonlyMap<
+  string,
+  ResendTemplateDefinition
+> = new Map(Object.entries(resendTemplateDefinitions))
 const DEFAULT_RESEND_REQUEST_TIMEOUT_MS = 10_000
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
+const isEmailResponse = (value: unknown): value is ResendApiEmailResponse =>
+  isRecord(value) && typeof value["id"] === "string"
 
-function isEmailResponse(value: unknown): value is ResendApiEmailResponse {
-  return isRecord(value) && typeof value["id"] === "string"
-}
-
-function isTemplateVariableValue(
+const isTemplateVariableValue = (
   value: unknown,
-): value is TemplateVariableValue {
+): value is TemplateVariableValue => {
   if (
     value === null ||
     typeof value === "string" ||
@@ -105,7 +108,7 @@ function isTemplateVariableValue(
   return false
 }
 
-function toErrorResponse(value: unknown): ResendApiErrorResponse {
+const toErrorResponse = (value: unknown): ResendApiErrorResponse => {
   if (!isRecord(value)) {
     return {}
   }
@@ -125,7 +128,7 @@ function toErrorResponse(value: unknown): ResendApiErrorResponse {
 }
 
 class ResendNotificationProviderService extends AbstractNotificationProviderService {
-  static override identifier = "notification-resend"
+  static override readonly identifier = "notification-resend"
 
   protected readonly container: InjectedDependencies
   protected readonly options: ResendOptions
@@ -140,11 +143,16 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
   }
 
   static override validateOptions(options: Record<string, unknown>) {
-    if (options["apiStoreName"]) {
+    const { apiStoreName } = options
+    if (typeof apiStoreName === "string" && apiStoreName.length > 0) {
       return
     }
 
-    if (!(options["api_key"] && options["from"])) {
+    const apiKey = options["api_key"]
+    const { from } = options
+    const hasApiKey = typeof apiKey === "string" && apiKey.length > 0
+    const hasFrom = typeof from === "string" && from.length > 0
+    if (!hasApiKey || !hasFrom) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Options `api_key` and `from` are required unless `apiStoreName` is configured.",
@@ -152,17 +160,14 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     }
   }
 
-  protected getAttachments(notification: ProviderSendNotificationDTO) {
-    if (!("attachments" in notification)) {
-      return
-    }
-
-    const { attachments } = notification
-    if (!Array.isArray(attachments) || !attachments.length) {
-      return
-    }
-
-    return attachments.flatMap((value) => {
+  protected static getAttachments(
+    notification: ProviderSendNotificationDTO,
+  ): ResendTemplateEmailOptions["attachments"] | undefined {
+    const rawAttachments =
+      "attachments" in notification && Array.isArray(notification.attachments)
+        ? notification.attachments
+        : []
+    const attachments = rawAttachments.flatMap((value) => {
       if (!isRecord(value)) {
         return []
       }
@@ -188,9 +193,11 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
 
       return [attachment]
     })
+
+    return rawAttachments.length === 0 ? undefined : attachments
   }
 
-  protected getTemplateVariables(
+  protected static getTemplateVariables(
     definition: ResendTemplateDefinition,
     data?: Record<string, unknown> | null,
   ) {
@@ -262,13 +269,10 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       "fromEmail",
     )
 
-    if (
-      apiKey === undefined ||
-      apiKey === null ||
-      apiKey === "" ||
-      from === undefined ||
-      from === ""
-    ) {
+    const isApiKeyMissing =
+      apiKey === undefined || apiKey === null || apiKey.length === 0
+    const isFromMissing = from === undefined || from.length === 0
+    if (isApiKeyMissing || isFromMissing) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         `${name} API Store config must contain api_key and from_email`,
@@ -278,8 +282,14 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     return { api_key: apiKey, from }
   }
 
-  protected async sendTemplateEmail(emailOptions: ResendTemplateEmailOptions) {
-    const baseUrl = process.env["RESEND_BASE_URL"] || "https://api.resend.com"
+  protected async sendTemplateEmail(
+    emailOptions: ResendTemplateEmailOptions,
+  ): Promise<ResendApiResult> {
+    const configuredBaseUrl = process.env["RESEND_BASE_URL"]
+    const baseUrl =
+      configuredBaseUrl === undefined || configuredBaseUrl.length === 0
+        ? "https://api.resend.com"
+        : configuredBaseUrl
     const timeoutMs = this.getRequestTimeoutMs()
     const controller = new AbortController()
     const timeoutId = setTimeout(() => {
@@ -327,7 +337,8 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       if (error instanceof Error && error.name === "AbortError") {
         message = `Resend API request timed out after ${timeoutMs}ms.`
       } else if (error instanceof Error) {
-        message = error.message
+        const { message: errorMessage } = error
+        message = errorMessage
       }
 
       return {
@@ -342,22 +353,23 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
   override async send(
     notification: ProviderSendNotificationDTO,
   ): Promise<ProviderSendNotificationResultsDTO> {
-    const templateKey = notification.template as Template
-    const template = getResendTemplateDefinition(templateKey)
+    const templateKey = notification.template
+    const template = RESEND_TEMPLATE_DEFINITIONS.get(templateKey)
 
-    if (!template) {
+    if (template === undefined) {
       this.logger.error(
         `Couldn't find a Resend email template for ${notification.template}.`,
       )
       return {}
     }
 
-    const { missingVariables, variables } = this.getTemplateVariables(
-      template,
-      notification.data,
-    )
+    const { missingVariables, variables } =
+      ResendNotificationProviderService.getTemplateVariables(
+        template,
+        notification.data,
+      )
 
-    if (missingVariables.length) {
+    if (missingVariables.length > 0) {
       this.logger.error(
         `Missing Resend email template variables for ${templateKey}: ${missingVariables.join(", ")}`,
       )
@@ -374,20 +386,21 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       },
       to: [notification.to],
     }
-    const attachments = this.getAttachments(notification)
+    const attachments =
+      ResendNotificationProviderService.getAttachments(notification)
     if (attachments !== undefined) {
       emailOptions.attachments = attachments
     }
 
     const { data, error } = await this.sendTemplateEmail(emailOptions)
 
-    if (error || !data) {
-      if (error) {
+    if (error !== null || data === null) {
+      if (error === null) {
+        this.logger.error("Failed to send email: unknown error")
+      } else {
         this.logger.error(
           `Failed to send email: ${error.message ?? "unknown Resend API error"}`,
         )
-      } else {
-        this.logger.error("Failed to send email: unknown error")
       }
 
       return {}

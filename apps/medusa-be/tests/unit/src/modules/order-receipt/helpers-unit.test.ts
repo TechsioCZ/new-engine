@@ -9,15 +9,14 @@ const CUSTOMER_X = 322
 const RIGHT = 531
 const CUSTOMER_MAX_WIDTH = RIGHT - CUSTOMER_X
 
-function linesFitWithinCustomerWidth(
+const linesFitWithinCustomerWidth = (
   lines: string[],
   size = 10,
   font: "F1" | "F2" = "F1",
-) {
-  return lines.every(
+) =>
+  lines.every(
     (line) => estimateTextWidth(line, size, font) <= CUSTOMER_MAX_WIDTH,
   )
-}
 
 describe("order receipt helpers", () => {
   it("wraps spaced text to an estimated PDF column width", () => {

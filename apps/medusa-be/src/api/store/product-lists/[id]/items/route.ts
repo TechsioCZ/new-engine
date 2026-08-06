@@ -12,10 +12,10 @@ import {
 import { StoreProductListParamsSchema } from "../../validators"
 import type { StoreCreateProductListItemSchemaType } from "../../validators"
 
-export async function POST(
+const postHandler = async (
   req: AuthenticatedMedusaRequest<StoreCreateProductListItemSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result: item } = await createProductListItemWorkflow(req.scope).run({
     input: definedProperties({
@@ -32,3 +32,5 @@ export async function POST(
     item: toProductListItemResponse(itemWithSelection ?? item),
   })
 }
+
+export { postHandler as POST }

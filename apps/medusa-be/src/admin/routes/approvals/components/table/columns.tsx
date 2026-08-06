@@ -2,8 +2,8 @@ import { StatusBadge } from "@medusajs/ui"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useTranslation } from "react-i18next"
 
-import type { AdminCartWithApprovals } from "../../../../../types"
-import { ApprovalStatusType } from "../../../../../types"
+import type { AdminCartWithApprovals } from "../../../../../types/approval/http"
+import { ApprovalStatusType } from "../../../../../types/approval/module"
 import { DateCell } from "../../../../components/common/table/table-cells/date-cell"
 import { TextCell } from "../../../../components/common/table/table-cells/text-cell"
 import { ApprovalActions } from "../approval-actions"
@@ -19,9 +19,17 @@ const getApprovalItems = (
     id: item.id,
     product_title: item.product_title ?? item.title ?? "-",
     quantity: item.quantity,
-    ...(item.thumbnail ? { thumbnail: item.thumbnail } : {}),
+    ...(item.thumbnail !== null &&
+    item.thumbnail !== undefined &&
+    item.thumbnail.length > 0
+      ? { thumbnail: item.thumbnail }
+      : {}),
     unit_price: item.unit_price,
-    ...(item.variant_title ? { variant_title: item.variant_title } : {}),
+    ...(item.variant_title !== null &&
+    item.variant_title !== undefined &&
+    item.variant_title.length > 0
+      ? { variant_title: item.variant_title }
+      : {}),
   })) ?? []
 
 const getStatusColor = (status: ApprovalStatusType) => {

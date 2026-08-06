@@ -30,15 +30,28 @@ export const buildProductSelectionDelta = (
 export const isProductOptionSelectable = (
   option: BrandProductOption,
   currentBrandId: string,
-) => !option.assigned_brand || option.assigned_brand.id === currentBrandId
+) =>
+  option.assigned_brand === null ||
+  option.assigned_brand === undefined ||
+  option.assigned_brand.id === currentBrandId
 
 export const isBrandSelectable = (
   brand: Brand,
   selectedId: string | undefined,
   isPending: boolean,
-) => !(brand.deleted_at || isPending || brand.id === selectedId)
+) => {
+  const { deleted_at: deletedAt } = brand
+  const isActive =
+    deletedAt === null || deletedAt === undefined || deletedAt.length === 0
+  return isActive && !isPending && brand.id !== selectedId
+}
 
 export const shouldSubmitProductBrandSelection = (
   currentBrand: Brand | undefined,
   selectedId: string | undefined,
-) => !(currentBrand?.deleted_at && selectedId === undefined)
+) => {
+  const deletedAt = currentBrand?.deleted_at
+  const isCurrentBrandActive =
+    deletedAt === null || deletedAt === undefined || deletedAt.length === 0
+  return isCurrentBrandActive || selectedId !== undefined
+}

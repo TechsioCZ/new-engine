@@ -32,25 +32,28 @@ export const updateMeasurementUnitStep = createStep(
       )
     }
 
-    if (previous.deleted_at) {
+    if (previous.deleted_at !== null) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         `Deleted measurement unit "${input.id}" must be restored before it can be updated.`,
       )
     }
 
-    if (
-      (update.code !== undefined && !normalizeUnitCode(update.code)) ||
-      (update.name !== undefined && !update.name.trim()) ||
-      (update.symbol !== undefined && !update.symbol.trim())
-    ) {
+    const hasEmptyCode =
+      update.code !== undefined && normalizeUnitCode(update.code).length === 0
+    const hasEmptyName =
+      update.name !== undefined && update.name.trim().length === 0
+    const hasEmptySymbol =
+      update.symbol !== undefined && update.symbol.trim().length === 0
+
+    if (hasEmptyCode || hasEmptyName || hasEmptySymbol) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Measurement unit code, name, and symbol must not be empty.",
       )
     }
 
-    if (update.code) {
+    if (update.code !== undefined && update.code.length > 0) {
       update.code = await ensureUnitCodeAvailable({
         code: update.code,
         container,
@@ -73,7 +76,10 @@ export const updateMeasurementUnitStep = createStep(
         id: input.id,
         ...update,
         base_quantity: update.base_quantity,
-        code: update.code ? normalizeUnitCode(update.code) : undefined,
+        code:
+          update.code === undefined
+            ? undefined
+            : normalizeUnitCode(update.code),
         description:
           update.description === undefined
             ? undefined
@@ -86,7 +92,7 @@ export const updateMeasurementUnitStep = createStep(
     return new StepResponse(updated, previous)
   },
   async (previous, { container }) => {
-    if (previous?.id) {
+    if (previous?.id !== undefined && previous.id.length > 0) {
       await getMeasurementUnitService(container).updateMeasurementUnits({
         base_quantity: previous.base_quantity,
         code: previous.code,

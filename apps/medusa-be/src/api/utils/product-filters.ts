@@ -24,13 +24,11 @@ export const normalizeProductSalesChannelFilter = async (
   remoteQuery: RemoteQueryLike,
   filterableFields: ProductFilters,
 ): Promise<ProductFilters> => {
-  let filters = { ...filterableFields }
+  const filters = { ...filterableFields }
 
   if (isPresent(filters["price_list_id"])) {
     const priceListIds = asArray(filters["price_list_id"])
-    const { price_list_id: _priceListId, ...filtersWithoutPriceListId } =
-      filters
-    filters = filtersWithoutPriceListId
+    delete filters["price_list_id"]
 
     const queryObject = remoteQueryObjectFromString({
       entryPoint: "price",
@@ -66,9 +64,7 @@ export const normalizeProductSalesChannelFilter = async (
   }
 
   const salesChannelIds = asArray(filters["sales_channel_id"])
-  const { sales_channel_id: _salesChannelId, ...filtersWithoutSalesChannelId } =
-    filters
-  filters = filtersWithoutSalesChannelId
+  delete filters["sales_channel_id"]
 
   const linkFilters: ProductFilters = {
     sales_channel_id: salesChannelIds,
@@ -89,9 +85,7 @@ export const normalizeProductSalesChannelFilter = async (
     .filter((id): id is string => typeof id === "string")
 
   if (isRecord(filters["sales_channels"])) {
-    const { sales_channels: _salesChannels, ...filtersWithoutSalesChannels } =
-      filters
-    filters = filtersWithoutSalesChannels
+    delete filters["sales_channels"]
   }
 
   return filters

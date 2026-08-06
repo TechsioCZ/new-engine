@@ -28,30 +28,28 @@ interface AdminPublishableKeyQuerySchemaType {
   title?: string
 }
 
-function readTitleFromQuery(
+const readTitleFromQuery = (
   req: AuthenticatedMedusaRequest<unknown, AdminPublishableKeyQuerySchemaType>,
-): string | undefined {
+): string | undefined => {
   const rawTitle = req.query["title"]
 
   return typeof rawTitle === "string" ? rawTitle : undefined
 }
 
-function toApiKeyResponse(result: PublishableKeyResult) {
-  return {
-    api_key: {
-      id: result.apiKey.id,
-      title: result.apiKey.title,
-      token: result.apiKey.token,
-      type: result.apiKey.type,
-    },
-    created: result.created,
-  }
-}
+const toApiKeyResponse = (result: PublishableKeyResult) => ({
+  api_key: {
+    id: result.apiKey.id,
+    title: result.apiKey.title,
+    token: result.apiKey.token,
+    type: result.apiKey.type,
+  },
+  created: result.created,
+})
 
-export async function GET(
+const getHandler = async (
   req: AuthenticatedMedusaRequest<unknown, AdminPublishableKeyQuerySchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const apiKeyService = req.scope.resolve<IApiKeyModuleService>(Modules.API_KEY)
   const title = readTitleFromQuery(req)
   const result = await getActivePublishableKey({
@@ -69,10 +67,10 @@ export async function GET(
   res.status(200).json(toApiKeyResponse(result))
 }
 
-export async function POST(
+const postHandler = async (
   req: AuthenticatedMedusaRequest<AdminPublishableKeyBodySchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const apiKeyService = req.scope.resolve<IApiKeyModuleService>(Modules.API_KEY)
   const lockingModule = req.scope.resolve<ILockingModule>(Modules.LOCKING)
   const result = await provisionPublishableKey({
@@ -86,3 +84,5 @@ export async function POST(
 
   res.status(200).json(toApiKeyResponse(result))
 }
+
+export { getHandler as GET, postHandler as POST }

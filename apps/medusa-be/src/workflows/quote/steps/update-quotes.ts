@@ -24,10 +24,11 @@ export const updateQuotesStep = createStep(
       { relations, select: selects },
     )
 
-    const updatedQuotes = await quoteModule.updateQuotes(data)
+    const updateContext = { data, dataBeforeUpdate }
+    const updatedQuotes = await quoteModule.updateQuotes(updateContext.data)
 
     return new StepResponse(updatedQuotes, {
-      dataBeforeUpdate,
+      dataBeforeUpdate: updateContext.dataBeforeUpdate,
       relations,
       selects,
     })

@@ -1,6 +1,7 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import { asValue } from "@medusajs/framework/awilix"
 import {
   ContainerRegistrationKeys,
+  createMedusaContainer,
   MedusaError,
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
@@ -20,26 +21,17 @@ vi.mock(import("../../../../src/links/customer-product-list"), () => ({
   },
 }))
 
-const asMedusaContainer = (value: {
-  resolve: (key: string) => unknown
-}): MedusaContainer => {
-  if (typeof value.resolve !== "function") {
-    throw new TypeError("mock container requires a resolve function")
-  }
-
-  return value as MedusaContainer
+interface QueryStub {
+  graph: () => Promise<{ data: unknown[] }>
 }
 
-const makeContainer = (query: { graph: ReturnType<typeof vi.fn> }) =>
-  asMedusaContainer({
-    resolve: vi.fn((key) => {
-      if (key === ContainerRegistrationKeys.QUERY) {
-        return query
-      }
-
-      throw new Error(`Unexpected dependency: ${String(key)}`)
-    }),
+const makeContainer = (query: QueryStub) => {
+  const container = createMedusaContainer()
+  container.register({
+    [ContainerRegistrationKeys.QUERY]: asValue(query),
   })
+  return container
+}
 
 describe(listCustomerProductListIds, () => {
   it("paginates customer product-list links and filters invalid records", async () => {
@@ -48,7 +40,7 @@ describe(listCustomerProductListIds, () => {
     }))
     const query = {
       graph: vi
-        .fn()
+        .fn<QueryStub["graph"]>()
         .mockResolvedValueOnce({ data: firstPageLinks })
         .mockResolvedValueOnce({
           data: [
@@ -74,7 +66,7 @@ describe(listCustomerProductListIds, () => {
 describe(assertCustomerOwnsProductList, () => {
   it("succeeds when the customer-product-list link exists", async () => {
     const query = {
-      graph: vi.fn().mockResolvedValue({
+      graph: vi.fn<QueryStub["graph"]>().mockResolvedValue({
         data: [{ product_list_id: "plist_1" }],
       }),
     }
@@ -86,7 +78,7 @@ describe(assertCustomerOwnsProductList, () => {
 
   it("throws NOT_FOUND when the ownership link is missing", async () => {
     const query = {
-      graph: vi.fn().mockResolvedValue({ data: [] }),
+      graph: vi.fn<QueryStub["graph"]>().mockResolvedValue({ data: [] }),
     }
 
     await expect(
