@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: input-usage
 description: >
   Use after component-usage-ux when an app needs the low-level @techsio/ui-kit Input atom, including valid size, variant, embedded button spacing, and token-first validation styling.

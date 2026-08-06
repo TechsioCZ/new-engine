@@ -1,8 +1,8 @@
-/**
+/*
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -105,13 +105,16 @@ const footerVariants = tv({
   },
 })
 
-interface FooterContextValue {
-  size?: "sm" | "md" | "lg" | undefined
-  sectionFlow?: "col" | "row" | undefined
-  layout?: "col" | "row" | undefined
-}
+type FooterVariants = VariantProps<typeof footerVariants>
+type FooterSize = NonNullable<FooterVariants["size"]>
+type FooterSectionFlow = NonNullable<FooterVariants["sectionFlow"]>
+type FooterLayout = NonNullable<FooterVariants["layout"]>
 
-const FooterContext = createContext<FooterContextValue>({})
+const FooterSizeContext = createContext<FooterSize | undefined>(undefined)
+const FooterSectionFlowContext = createContext<FooterSectionFlow | undefined>(
+  undefined,
+)
+const FooterLayoutContext = createContext<FooterLayout | undefined>(undefined)
 
 interface FooterProps
   extends HTMLAttributes<HTMLElement>, VariantProps<typeof footerVariants> {
@@ -136,23 +139,18 @@ interface FooterLinkBaseProps {
   className?: string | undefined
 }
 
-type FooterNativeLinkProps = FooterLinkBaseProps &
-  Omit<
-    ComponentPropsWithoutRef<"a">,
-    keyof FooterLinkBaseProps | "as" | "href"
-  > & {
-    as?: never
-    href: NonNullable<ComponentPropsWithoutRef<"a">["href"]>
-  }
+type FooterLinkRequirement<T extends ElementType> = T extends "a"
+  ? {
+      as?: never
+      href: NonNullable<ComponentPropsWithoutRef<"a">["href"]>
+    }
+  : {
+      as: Exclude<T, "a">
+    }
 
-type FooterCustomLinkProps<T extends ElementType> = FooterLinkBaseProps &
-  Omit<ComponentPropsWithoutRef<T>, keyof FooterLinkBaseProps | "as"> & {
-    as: Exclude<T, "a">
-  }
-
-type FooterLinkProps<T extends ElementType = "a"> = T extends "a"
-  ? FooterNativeLinkProps
-  : FooterCustomLinkProps<T>
+type FooterLinkProps<T extends ElementType = "a"> = FooterLinkBaseProps &
+  LinkProps<T> &
+  FooterLinkRequirement<T>
 
 interface FooterTextProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode
@@ -162,7 +160,7 @@ interface FooterListProps extends HTMLAttributes<HTMLUListElement> {
   children: ReactNode
 }
 
-interface FooterDividerProps extends HTMLAttributes<HTMLHRElement> {}
+type FooterDividerProps = HTMLAttributes<HTMLHRElement>
 
 interface FooterBottomProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
@@ -179,26 +177,29 @@ export const Footer = ({
   const { root } = footerVariants({ direction, size })
 
   return (
-    <FooterContext.Provider value={{ layout, sectionFlow, size }}>
-      <footer className={root({ className })}>{children}</footer>
-    </FooterContext.Provider>
+    <FooterSizeContext.Provider value={size}>
+      <FooterSectionFlowContext.Provider value={sectionFlow}>
+        <FooterLayoutContext.Provider value={layout}>
+          <footer className={root({ className })}>{children}</footer>
+        </FooterLayoutContext.Provider>
+      </FooterSectionFlowContext.Provider>
+    </FooterSizeContext.Provider>
   )
 }
 
-Footer.Container = function FooterContainer({
+Footer.Container = function Container({
   children,
   className,
 }: FooterContainerProps) {
-  const { size, layout } = useContext(FooterContext)
+  const size = useContext(FooterSizeContext)
+  const layout = useContext(FooterLayoutContext)
   const { container } = footerVariants({ layout, size })
   return <div className={container({ className })}>{children}</div>
 }
 
-Footer.Section = function FooterSection({
-  children,
-  className,
-}: FooterSectionProps) {
-  const { size, sectionFlow } = useContext(FooterContext)
+Footer.Section = function Section({ children, className }: FooterSectionProps) {
+  const size = useContext(FooterSizeContext)
+  const sectionFlow = useContext(FooterSectionFlowContext)
   const { section } = footerVariants({
     sectionFlow,
     size,
@@ -206,45 +207,33 @@ Footer.Section = function FooterSection({
   return <div className={section({ className })}>{children}</div>
 }
 
-Footer.Title = function FooterTitle({ children, className }: FooterTitleProps) {
-  const { size } = useContext(FooterContext)
+Footer.Title = function Title({ children, className }: FooterTitleProps) {
+  const size = useContext(FooterSizeContext)
   const { title } = footerVariants({ size })
   return <h3 className={title({ className })}>{children}</h3>
 }
 
-function FooterLink(props: FooterNativeLinkProps): ReactNode
-function FooterLink<T extends ElementType>(
-  props: FooterCustomLinkProps<T>,
-): ReactNode
-const FooterLink = <T extends ElementType = "a">({
-  children,
-  className,
-  ...linkProps
-}: FooterLinkProps<T>) => {
-  const { size } = useContext(FooterContext)
+const FooterLink = <T extends ElementType = "a">(props: FooterLinkProps<T>) => {
+  const size = useContext(FooterSizeContext)
   const { link } = footerVariants({ size })
 
-  return (
-    <Link className={link({ className })} {...(linkProps as LinkProps<T>)}>
-      {children}
-    </Link>
-  )
+  return <Link<T> {...props} className={link({ className: props.className })} />
 }
 
 Footer.Link = FooterLink
 
-Footer.Text = function FooterText({ children, className }: FooterTextProps) {
-  const { size } = useContext(FooterContext)
+Footer.Text = function Text({ children, className }: FooterTextProps) {
+  const size = useContext(FooterSizeContext)
   const { text } = footerVariants({ size })
   return <p className={text({ className })}>{children}</p>
 }
 
-Footer.List = function FooterList({
+Footer.List = function List({
   children,
   className,
   ...props
 }: FooterListProps) {
-  const { size } = useContext(FooterContext)
+  const size = useContext(FooterSizeContext)
   const { list } = footerVariants({ size })
   return (
     <ul className={list({ className })} {...props}>
@@ -253,21 +242,18 @@ Footer.List = function FooterList({
   )
 }
 
-Footer.Divider = function FooterDivider({
-  className,
-  ...props
-}: FooterDividerProps) {
-  const { size } = useContext(FooterContext)
+Footer.Divider = function Divider({ className, ...props }: FooterDividerProps) {
+  const size = useContext(FooterSizeContext)
   const { divider } = footerVariants({ size })
   return <hr className={divider({ className })} {...props} />
 }
 
-Footer.Bottom = function FooterBottom({
+Footer.Bottom = function Bottom({
   children,
   className,
   ...props
 }: FooterBottomProps) {
-  const { size } = useContext(FooterContext)
+  const size = useContext(FooterSizeContext)
   const { bottom } = footerVariants({ size })
   return (
     <div className={bottom({ className })} {...props}>

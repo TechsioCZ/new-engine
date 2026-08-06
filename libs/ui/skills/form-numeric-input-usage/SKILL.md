@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: form-numeric-input-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit FormNumericInput for labeled numeric fields using NumericInput compound children, validation status, help text, and number-specific constraints.

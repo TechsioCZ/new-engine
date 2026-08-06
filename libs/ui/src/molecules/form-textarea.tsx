@@ -1,8 +1,8 @@
-/**
+/*
  * FormTextarea — @techsio/ui-kit molecule.
  *
  * @component FormTextarea
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill form-textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,10 +13,11 @@ import type { ReactNode } from "react"
 
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import type { StatusTextProps } from "../atoms/status-text"
 import { Textarea } from "../atoms/textarea"
 import type { TextareaProps } from "../atoms/textarea"
 
-type ValidateStatus = "default" | "error" | "success" | "warning"
+type ValidateStatus = StatusTextProps["status"]
 
 interface FormTextareaRawProps extends TextareaProps {
   id: string
@@ -25,7 +26,7 @@ interface FormTextareaRawProps extends TextareaProps {
   helpText?: ReactNode | undefined
 }
 
-export function FormTextareaRaw({
+export const FormTextareaRaw = ({
   id,
   label,
   validateStatus = "default",
@@ -34,49 +35,51 @@ export function FormTextareaRaw({
   required,
   disabled,
   ...props
-}: FormTextareaRawProps) {
-  return (
-    <div className="flex flex-col gap-form-field-gap">
-      <Label disabled={disabled} htmlFor={id} required={required} size={size}>
-        {label}
-      </Label>
-      <Textarea
-        disabled={disabled}
-        id={id}
-        required={required}
-        size={size}
-        variant={validateStatus}
-        {...props}
-      />
+}: FormTextareaRawProps) => (
+  <div className="flex flex-col gap-form-field-gap">
+    <Label disabled={disabled} htmlFor={id} required={required} size={size}>
+      {label}
+    </Label>
+    <Textarea
+      disabled={disabled}
+      id={id}
+      required={required}
+      size={size}
+      variant={validateStatus}
+      {...props}
+    />
 
-      {helpText}
-    </div>
-  )
-}
+    {helpText}
+  </div>
+)
 
 type FormTextareaProps = FormTextareaRawProps & {
   showHelpTextIcon?: boolean | undefined
 }
 
-export function FormTextarea({
+export const FormTextarea = ({
   helpText,
   id,
   validateStatus = "default",
   showHelpTextIcon = validateStatus !== "default",
   size = "md",
   ...props
-}: FormTextareaProps) {
+}: FormTextareaProps) => {
+  const hasHelpText = Boolean(helpText)
+
   return (
     <FormTextareaRaw
       helpText={
-        helpText && (
+        hasHelpText ? (
           <StatusText
-            status={validateStatus}
             showIcon={showHelpTextIcon}
             size={size}
+            status={validateStatus}
           >
             {helpText}
           </StatusText>
+        ) : (
+          helpText
         )
       }
       id={id}

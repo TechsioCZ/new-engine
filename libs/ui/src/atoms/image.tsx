@@ -1,8 +1,8 @@
-/**
+/*
  * Image — @techsio/ui-kit atom.
  *
  * @component Image
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill image-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -62,15 +62,15 @@ export type ImageProps<T extends ElementType = "img"> = T extends "img"
   ? NativeImageProps & { as?: "img" }
   : CustomImageProps<T>
 
-export function Image<T extends ElementType = "img">({
+export const Image = <T extends ElementType = "img">({
   as,
   src,
   alt,
   size,
   className,
   ...props
-}: ImageProps<T>) {
-  const Component = (as || "img") as ElementType
+}: ImageProps<T>) => {
+  const Component = as ?? "img"
 
   return (
     <Component

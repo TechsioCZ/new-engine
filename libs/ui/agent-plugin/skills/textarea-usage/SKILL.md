@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: textarea-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Textarea for multi-line text entry with valid variant, size, resize, readonly styling, and token-first validation.

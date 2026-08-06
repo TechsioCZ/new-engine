@@ -1,8 +1,8 @@
-/**
+/*
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,11 +10,13 @@
  * the form-checkbox-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { connect, machine } from "@zag-js/checkbox"
+import type { CheckedState } from "@zag-js/checkbox"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import { useId } from "react"
 import type { ReactNode } from "react"
 
 import { StatusText } from "../atoms/status-text"
+import type { StatusTextProps } from "../atoms/status-text"
 import { tv } from "../utils"
 
 const checkboxVariants = tv({
@@ -82,14 +84,14 @@ export interface FormCheckboxProps {
   children?: ReactNode | undefined
   label?: ReactNode | undefined
   helpText?: ReactNode | undefined
-  validateStatus?: "default" | "error" | "success" | "warning" | undefined
+  validateStatus?: StatusTextProps["status"]
   showHelpTextIcon?: boolean | undefined
-  size?: "sm" | "md" | "lg" | undefined
+  size?: StatusTextProps["size"]
   className?: string | undefined
   onCheckedChange?: ((checked: boolean) => void) | undefined
 }
 
-export function FormCheckbox({
+export const FormCheckbox = ({
   id,
   name,
   value,
@@ -107,25 +109,25 @@ export function FormCheckbox({
   size = "md",
   className,
   onCheckedChange,
-}: FormCheckboxProps) {
+}: FormCheckboxProps) => {
   const generatedId = useId()
-  const uniqueId = id || generatedId
+  const uniqueId = id === undefined || id === "" ? generatedId : id
 
+  const resolvedChecked: CheckedState | undefined =
+    indeterminate === true ? "indeterminate" : checked
   const service = useMachine(machine, {
-    id: uniqueId,
-    ...(name !== undefined && { name }),
-    ...(value !== undefined && { value }),
-    ...(indeterminate
-      ? { checked: "indeterminate" as const }
-      : checked !== undefined && { checked }),
+    ...(resolvedChecked !== undefined && { checked: resolvedChecked }),
     ...(defaultChecked !== undefined && { defaultChecked }),
     disabled,
+    id: uniqueId,
     invalid: validateStatus === "error",
-    readOnly,
-    required,
+    ...(name !== undefined && { name }),
     onCheckedChange: (details) => {
       onCheckedChange?.(details.checked === true)
     },
+    readOnly,
+    required,
+    ...(value !== undefined && { value }),
   })
 
   const api = connect(service, normalizeProps)
@@ -144,14 +146,14 @@ export function FormCheckbox({
           className={styles.hiddenInput()}
           {...api.getHiddenInputProps()}
         />
-        {labelContent && (
+        {Boolean(labelContent) && (
           <span className={styles.label()} {...api.getLabelProps()}>
             {labelContent}
             {required && <span className="text-label-fg-required"> *</span>}
           </span>
         )}
       </label>
-      {helpText && (
+      {Boolean(helpText) && (
         <div className={styles.textIndented()} data-icon={showHelpTextIcon}>
           <StatusText
             showIcon={showHelpTextIcon}

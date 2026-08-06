@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: radio-card-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit RadioCard for prominent single-choice cards with Zag.js radio behavior, label, item, hidden input, control, text, description, addon, indicator, and status text.

@@ -1,8 +1,8 @@
-/**
+/*
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -18,6 +18,16 @@ import { StatusText } from "../atoms/status-text"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
+const falsyReactNodes = new Set<ReactNode>([
+  null,
+  undefined,
+  false,
+  "",
+  0,
+  0n,
+  Number.NaN,
+])
+
 interface FormNumericInputProps extends Omit<NumericInputProps, "children"> {
   id: string
   label: ReactNode
@@ -27,7 +37,7 @@ interface FormNumericInputProps extends Omit<NumericInputProps, "children"> {
   children: ReactNode
 }
 
-export function FormNumericInput({
+export const FormNumericInput = ({
   id,
   label,
   validateStatus = "default",
@@ -38,7 +48,9 @@ export function FormNumericInput({
   disabled,
   children,
   ...numericInputProps
-}: FormNumericInputProps) {
+}: FormNumericInputProps) => {
+  const hasHelpText = !falsyReactNodes.has(helpText)
+
   return (
     <div className="flex flex-col gap-form-field-gap">
       <Label disabled={disabled} htmlFor={id} required={required} size={size}>
@@ -56,7 +68,7 @@ export function FormNumericInput({
         {children}
       </NumericInput>
 
-      {helpText && (
+      {hasHelpText ? (
         <StatusText
           status={validateStatus}
           showIcon={showHelpTextIcon}
@@ -64,6 +76,8 @@ export function FormNumericInput({
         >
           {helpText}
         </StatusText>
+      ) : (
+        helpText
       )}
     </div>
   )

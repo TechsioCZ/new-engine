@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: accordion-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Accordion for collapsible sections using the Zag.js-backed compound anatomy, supported variant, shadow, size, value, multiple, and collapsible props.

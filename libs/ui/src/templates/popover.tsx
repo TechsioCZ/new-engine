@@ -1,8 +1,8 @@
-/**
+/*
  * Popover — @techsio/ui-kit template.
  *
  * @component Popover
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -71,8 +71,8 @@ export const PopoverTemplate = ({
       >
         {showCloseButton && <Popover.CloseTrigger />}
         {showArrow && <Popover.Arrow />}
-        {title && <Popover.Title>{title}</Popover.Title>}
-        {description && (
+        {Boolean(title) && <Popover.Title>{title}</Popover.Title>}
+        {Boolean(description) && (
           <Popover.Description>{description}</Popover.Description>
         )}
         {children}

@@ -1,16 +1,24 @@
-/**
+/*
  * Tooltip — @techsio/ui-kit atom.
  *
  * @component Tooltip
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill tooltip-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the tooltip-usage skill's component_version and a changelog entry. Bump all three together.
  */
+import { omitKeys } from "@techsio/std/object"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import * as tooltip from "@zag-js/tooltip"
+import {
+  connect as connectTooltip,
+  machine as tooltipMachine,
+} from "@zag-js/tooltip"
+import type {
+  PositioningOptions as TooltipPositioningOptions,
+  Props as TooltipMachineProps,
+} from "@zag-js/tooltip"
 import { useId } from "react"
 import type { ReactNode, Ref } from "react"
 import { tv } from "tailwind-variants"
@@ -54,18 +62,23 @@ const tooltipVariants = tv({
   },
 })
 
+const defaultTooltipOffset: NonNullable<TooltipPositioningOptions["offset"]> = {
+  crossAxis: 0,
+  mainAxis: 16,
+}
+
 export interface TooltipProps
   extends
     VariantProps<typeof tooltipVariants>,
-    Partial<tooltip.Props>,
-    Partial<tooltip.PositioningOptions> {
+    Partial<TooltipMachineProps>,
+    Partial<TooltipPositioningOptions> {
   ref?: Ref<HTMLSpanElement> | undefined
   content: ReactNode
   children: ReactNode
   className?: string | undefined
 }
 
-export function Tooltip({
+export const Tooltip = ({
   content,
   children,
   className,
@@ -88,31 +101,31 @@ export function Tooltip({
   closeOnClick,
 
   placement,
-  offset = { crossAxis: 0, mainAxis: 16 },
+  offset = defaultTooltipOffset,
   gutter,
   flip,
   sameWidth,
   boundary,
   listeners,
   strategy,
-}: TooltipProps) {
+}: TooltipProps) => {
   const generatedId = useId()
-  const id = MRAId || generatedId
+  const id = MRAId === undefined || MRAId === "" ? generatedId : MRAId
 
-  const service = useMachine(tooltip.machine, {
-    id,
-    dir,
-    openDelay,
+  const service = useMachine(tooltipMachine, {
     closeDelay,
-    interactive,
     closeOnEscape,
-    ...(open !== undefined && { open }),
-    ...(defaultOpen !== undefined && { defaultOpen }),
-    ...(disabled !== undefined && { disabled }),
+    dir,
+    id,
+    interactive,
+    openDelay,
+    ...(closeOnClick !== undefined && { closeOnClick }),
     ...(closeOnPointerDown !== undefined && { closeOnPointerDown }),
     ...(closeOnScroll !== undefined && { closeOnScroll }),
-    ...(closeOnClick !== undefined && { closeOnClick }),
+    ...(defaultOpen !== undefined && { defaultOpen }),
+    ...(disabled !== undefined && { disabled }),
     ...(onOpenChange !== undefined && { onOpenChange }),
+    ...(open !== undefined && { open }),
 
     positioning: {
       boundary,
@@ -126,7 +139,7 @@ export function Tooltip({
     },
   })
 
-  const api = tooltip.connect(service, normalizeProps)
+  const api = connectTooltip(service, normalizeProps)
   const {
     trigger,
     positioner,
@@ -137,9 +150,8 @@ export function Tooltip({
     variant,
   })
 
-  const triggerProps = api.getTriggerProps()
   // Exclude onBeforeInput: incompatible with span elements in React 19.2+
-  const { onBeforeInput: _onBeforeInput, ...spanCompatibleProps } = triggerProps
+  const spanCompatibleProps = omitKeys(api.getTriggerProps(), ["onBeforeInput"])
 
   return (
     <>

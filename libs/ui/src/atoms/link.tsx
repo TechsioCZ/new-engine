@@ -1,8 +1,8 @@
-/**
+/*
  * Link — @techsio/ui-kit atom.
  *
  * @component Link
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill link-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -38,14 +38,14 @@ export type LinkProps<T extends ElementType = "a"> = BaseLinkProps &
     as?: T | undefined
   }
 
-export function Link<T extends ElementType = "a">({
+export const Link = <T extends ElementType = "a">({
   as,
   children,
   external = false,
   className,
   ...props
-}: LinkProps<T>) {
-  const Component = as || "a"
+}: LinkProps<T>) => {
+  const Component = as ?? "a"
   const anchorProps: Partial<ComponentPropsWithoutRef<"a">> = props
   const { target } = anchorProps
   const { rel } = anchorProps

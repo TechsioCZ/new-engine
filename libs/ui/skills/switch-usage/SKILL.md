@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: switch-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Switch for boolean settings using Zag.js switch behavior, hidden input, label children, checked/defaultChecked, validation status, help text, required, disabled, and read-only state.

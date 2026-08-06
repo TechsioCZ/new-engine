@@ -1,15 +1,16 @@
-/**
+/*
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the rating-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as ratingGroup from "@zag-js/rating-group"
+import { connect, machine } from "@zag-js/rating-group"
+import type { IntlTranslations } from "@zag-js/rating-group"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import { useId } from "react"
 import type { HTMLAttributes } from "react"
@@ -82,12 +83,12 @@ export interface RatingProps
   allowHalf?: boolean | undefined
   name?: string | undefined
   dir?: "ltr" | "rtl" | undefined
-  translations?: ratingGroup.IntlTranslations | undefined
+  translations?: IntlTranslations | undefined
   onChange?: ((value: number) => void) | undefined
   onHoverChange?: ((value: number) => void) | undefined
 }
 
-export function Rating({
+export const Rating = ({
   value,
   defaultValue,
   count = 5,
@@ -103,30 +104,31 @@ export function Rating({
   size = "md",
   className,
   ...props
-}: RatingProps) {
+}: RatingProps) => {
   const generatedId = useId()
-  const uniqueId = props.id || generatedId
+  const uniqueId =
+    props.id !== undefined && props.id !== "" ? props.id : generatedId
 
-  const service = useMachine(ratingGroup.machine, {
-    id: uniqueId,
-    count,
-    disabled,
-    readOnly,
+  const service = useMachine(machine, {
     allowHalf,
+    count,
     dir,
-    ...(value !== undefined && { value }),
+    disabled,
+    id: uniqueId,
+    readOnly,
     ...(defaultValue !== undefined && { defaultValue }),
     ...(name !== undefined && { name }),
     ...(translations !== undefined && { translations }),
-    onValueChange: ({ value: newValue }) => {
-      onChange?.(newValue)
-    },
+    ...(value !== undefined && { value }),
     onHoverChange: ({ hoveredValue }) => {
       onHoverChange?.(hoveredValue)
     },
+    onValueChange: ({ value: newValue }) => {
+      onChange?.(newValue)
+    },
   })
 
-  const api = ratingGroup.connect(service, normalizeProps)
+  const api = connect(service, normalizeProps)
 
   const { root, control, itemWrapper, item } = rating({
     isInteractive: !(readOnly || disabled),
@@ -138,12 +140,14 @@ export function Rating({
       {...mergeProps(api.getRootProps(), props)}
       className={root({ className })}
     >
-      {labelText && <Label {...api.getLabelProps()}>{labelText}</Label>}
+      {labelText !== undefined && labelText !== "" && (
+        <Label {...api.getLabelProps()}>{labelText}</Label>
+      )}
       <input {...api.getHiddenInputProps()} />
-      <div className={control()} {...api.getControlProps()}>
+      <div {...api.getControlProps()} className={control()}>
         {api.items.map((index) => (
           <div className={itemWrapper()} key={`star-${index}`}>
-            <span className={item()} {...api.getItemProps({ index })} />
+            <span {...api.getItemProps({ index })} className={item()} />
           </div>
         ))}
       </div>

@@ -1,8 +1,8 @@
-/**
+/*
  * StatusText — @techsio/ui-kit atom.
  *
  * @component StatusText
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill status-text-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,12 +27,6 @@ const statusTextVariants = tv({
     icon: "",
   },
   variants: {
-    status: {
-      default: "text-status-text-fg",
-      error: "text-status-text-fg-error",
-      success: "text-status-text-fg-success",
-      warning: "text-status-text-fg-warning",
-    },
     /* for long text */
     align: {
       center: {},
@@ -52,11 +46,17 @@ const statusTextVariants = tv({
         base: "gap-status-text-sm text-status-text-sm",
       },
     },
+    status: {
+      default: "text-status-text-fg",
+      error: "text-status-text-fg-error",
+      success: "text-status-text-fg-success",
+      warning: "text-status-text-fg-warning",
+    },
   },
 })
 
 const ICON_MAP = {
-  default: undefined,
+  default: null,
   error: "token-icon-status-text-error",
   success: "token-icon-status-text-success",
   warning: "token-icon-status-text-warning",
@@ -70,7 +70,7 @@ export type StatusTextProps = HTMLAttributes<HTMLDivElement> &
     children: ReactNode
   }
 
-export function StatusText({
+export const StatusText = ({
   className,
   showIcon = false,
   status = "default",
@@ -80,7 +80,7 @@ export function StatusText({
   children,
   ref,
   ...props
-}: StatusTextProps) {
+}: StatusTextProps) => {
   const resolvedIcon = icon ?? ICON_MAP[status]
 
   const { base, icon: iconSlot } = statusTextVariants({
@@ -100,7 +100,7 @@ export function StatusText({
       ref={ref}
       {...props}
     >
-      {showIcon && resolvedIcon && (
+      {showIcon && resolvedIcon !== null && (
         <Icon className={iconSlot()} icon={resolvedIcon} size={size} />
       )}
       <span>{children}</span>

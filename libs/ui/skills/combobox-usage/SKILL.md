@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: combobox-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Combobox for searchable selection with Zag.js collection behavior, controlled value/input, multiple mode, validation status, clear trigger, and token styling.

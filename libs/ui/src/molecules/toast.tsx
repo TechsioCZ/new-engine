@@ -1,8 +1,8 @@
-/**
+/*
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,17 +10,36 @@
  * the toast-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import * as toast from "@zag-js/toast"
+import {
+  connect as connectToast,
+  group as toastGroup,
+  machine as toastMachine,
+} from "@zag-js/toast"
+import type { GroupService, Options, Placement } from "@zag-js/toast"
 import { useId } from "react"
 import type { ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { ActionIcon } from "../atoms/action-icon"
 import { tv } from "../utils"
+import { toaster } from "./toast-store"
+
+export { toaster } from "./toast-store"
 
 // Toast Item Variants
 const toastVariants = tv({
   slots: {
+    closeButton: ["ms-auto"],
+    description: ["mt-toast-description text-toast-description text-toast-fg"],
+    group: "relative flex flex-col",
+    header: "relative flex items-center gap-toast-content",
+    icon: [
+      "flex-shrink-0 text-toast-icon",
+      "data-[type=error]:token-icon-toast-error data-[type=error]:text-toast-error-icon",
+      "data-[type=success]:token-icon-toast-success data-[type=success]:text-toast-success-icon",
+      "data-[type=info]:token-icon-toast-info data-[type=info]:text-toast-info-icon",
+      "data-[type=warning]:token-icon-toast-warning data-[type=warning]:text-toast-warning-icon",
+    ],
     root: [
       "relative flex flex-col rounded-toast-root",
       "border-(length:--border-width-toast) bg-toast-bg shadow-lg",
@@ -37,15 +56,6 @@ const toastVariants = tv({
       "will-change-[translate,opacity,scale]",
       "transition-[translate,scale,opacity] duration-400 motion-reduce:transition-none",
     ],
-    group: "relative flex flex-col",
-    header: "relative flex items-center gap-toast-content",
-    icon: [
-      "flex-shrink-0 text-toast-icon",
-      "data-[type=error]:token-icon-toast-error data-[type=error]:text-toast-error-icon",
-      "data-[type=success]:token-icon-toast-success data-[type=success]:text-toast-success-icon",
-      "data-[type=info]:token-icon-toast-info data-[type=info]:text-toast-info-icon",
-      "data-[type=warning]:token-icon-toast-warning data-[type=warning]:text-toast-warning-icon",
-    ],
     title: [
       "font-toast-title text-toast-fg text-toast-title",
       "data-[type=error]:text-toast-error-title",
@@ -53,21 +63,18 @@ const toastVariants = tv({
       "data-[type=info]:text-toast-info-title",
       "data-[type=warning]:text-toast-warning-title",
     ],
-    description: ["mt-toast-description text-toast-description text-toast-fg"],
-    // Positioning only — ActionIcon owns size, glyph and neutral hover pill.
-    closeButton: ["ms-auto"],
   },
 })
 
 // Toast Item Component
 interface ToastProps {
-  actor: toast.Options<ReactNode>
+  actor: Options<ReactNode>
   index: number
-  parent: toast.GroupService
-  placement?: toast.Placement | undefined
+  parent: GroupService
+  placement?: Placement | undefined
 }
 
-export function Toast({ actor, index, parent, placement }: ToastProps) {
+export const Toast = ({ actor, index, parent, placement }: ToastProps) => {
   const composedProps = {
     ...Object.fromEntries(
       Object.entries(actor).filter(([, option]) => option !== undefined),
@@ -76,32 +83,32 @@ export function Toast({ actor, index, parent, placement }: ToastProps) {
     parent,
     ...(placement !== undefined && { placement }),
   }
-  const service = useMachine(toast.machine, composedProps)
-  const api = toast.connect(service, normalizeProps)
+  const service = useMachine(toastMachine, composedProps)
+  const api = connectToast(service, normalizeProps)
 
   const { root, header, icon, title, description, closeButton } =
     toastVariants()
 
   return (
-    <div className={root()} {...api.getRootProps()}>
+    <div {...api.getRootProps()} className={root()}>
       <span {...api.getGhostBeforeProps()} />
-      <div className={header()} {...api.getTitleProps()}>
+      <div {...api.getTitleProps()} className={header()}>
         <span className={icon()} data-type={api.type} />
         <div className={title()} data-type={api.type}>
           {api.type === "loading" ? "loading..." : api.title}
         </div>
         <ActionIcon
+          {...api.getCloseTriggerProps()}
+          aria-label="Close notification"
           className={closeButton()}
           icon="token-icon-toast-close"
           size="sm"
           tone="neutral"
-          {...api.getCloseTriggerProps()}
-          aria-label="Close notification"
         />
       </div>
       <div
-        className={description()}
         {...api.getDescriptionProps()}
+        className={description()}
         data-type={api.type}
       >
         {api.description}
@@ -115,32 +122,30 @@ export function Toast({ actor, index, parent, placement }: ToastProps) {
 export interface ToastContainerProps extends VariantProps<
   typeof toastVariants
 > {
-  placement?: toast.Placement | undefined
+  placement?: Placement | undefined
   gap?: number | undefined
   offsets?: string | undefined
   overlap?: boolean | undefined
   max?: number | undefined
 }
 
-// Create the global toast store
-export const toaster = toast.createStore({
-  gap: 16,
-  offsets: "24px",
-  placement: "bottom-end",
-})
-
-export function Toaster() {
-  const service = useMachine(toast.group.machine, {
+export const Toaster = () => {
+  const service = useMachine(toastGroup.machine, {
     id: useId(),
     store: toaster,
   })
-  const api = toast.group.connect(service, normalizeProps)
+  const api = toastGroup.connect(service, normalizeProps)
   const { group } = toastVariants()
   return (
     <Portal>
-      <div className={group()} {...api.getGroupProps()}>
-        {api.getToasts().map((toast, index) => (
-          <Toast actor={toast} index={index} key={toast.id} parent={service} />
+      <div {...api.getGroupProps()} className={group()}>
+        {api.getToasts().map((toastItem, index) => (
+          <Toast
+            actor={toastItem}
+            index={index}
+            key={toastItem.id}
+            parent={service}
+          />
         ))}
       </div>
     </Portal>
@@ -148,6 +153,4 @@ export function Toaster() {
 }
 
 // Hook for using toaster in components
-export function useToast() {
-  return toaster
-}
+export const useToast = () => toaster

@@ -1,15 +1,15 @@
-/**
+/*
  * Gallery — @techsio/ui-kit template.
  *
  * @component Gallery
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the gallery-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { ElementType, ReactNode } from "react"
+import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react"
 
 import type { IconType } from "../atoms/icon"
 import { Carousel } from "../molecules/carousel"
@@ -21,11 +21,11 @@ import type {
   GalleryRenderThumbnailParams,
 } from "../organisms/gallery"
 
-function resolveSlides(
+const resolveSlides = (
   items: GalleryItem[],
   renderSlide?: (params: { item: GalleryItem; index: number }) => ReactNode,
-) {
-  if (!renderSlide) {
+) => {
+  if (renderSlide === undefined) {
     return items
   }
 
@@ -61,7 +61,9 @@ export type GalleryTemplateProps<T extends ElementType = "img"> = Omit<
   showAutoplay?: boolean | undefined
   controlsClassName?: string | undefined
   indicatorsClassName?: string | undefined
-  controlPosition?: "top" | "bottom" | "side" | "unset" | undefined
+  controlPosition?:
+    | ComponentPropsWithoutRef<typeof Carousel.Control>["controlPosition"]
+    | undefined
   prevIcon?: IconType | undefined
   nextIcon?: IconType | undefined
   previousTriggerClassName?: string | undefined
@@ -77,7 +79,67 @@ export type GalleryTemplateProps<T extends ElementType = "img"> = Omit<
   onPageChange?: CarouselRootProps<T>["onPageChange"] | undefined
 }
 
-export function GalleryTemplate<T extends ElementType = "img">({
+interface GalleryControlsProps {
+  className?: string | undefined
+  controlPosition?:
+    | ComponentPropsWithoutRef<typeof Carousel.Control>["controlPosition"]
+    | undefined
+  indicatorsClassName?: string | undefined
+  items: GalleryItem[]
+  nextIcon: IconType
+  nextTriggerClassName?: string | undefined
+  previousIcon: IconType
+  previousTriggerClassName?: string | undefined
+  showControls: boolean
+  showIndicators: boolean
+}
+
+const GalleryControls = ({
+  className,
+  controlPosition,
+  indicatorsClassName,
+  items,
+  nextIcon,
+  nextTriggerClassName,
+  previousIcon,
+  previousTriggerClassName,
+  showControls,
+  showIndicators,
+}: GalleryControlsProps) => {
+  if (!(showControls || showIndicators)) {
+    return null
+  }
+
+  const showControlSpacer = showControls && showIndicators
+
+  return (
+    <Carousel.Control className={className} controlPosition={controlPosition}>
+      {showControls && (
+        <Carousel.Previous
+          className={previousTriggerClassName}
+          icon={previousIcon}
+        />
+      )}
+      {showControlSpacer && <div className="flex-1" />}
+      {showIndicators && (
+        <Carousel.Indicators className={indicatorsClassName}>
+          {items.map((item, index) => (
+            <Carousel.Indicator
+              index={index}
+              key={`gallery-indicator-${item.id}`}
+            />
+          ))}
+        </Carousel.Indicators>
+      )}
+      {showControlSpacer && <div className="flex-1" />}
+      {showControls && (
+        <Carousel.Next className={nextTriggerClassName} icon={nextIcon} />
+      )}
+    </Carousel.Control>
+  )
+}
+
+export const GalleryTemplate = <T extends ElementType = "img">({
   items,
   orientation,
   carouselWidth,
@@ -113,7 +175,7 @@ export function GalleryTemplate<T extends ElementType = "img">({
   onPageChange,
   thumbnailImageAs,
   ...galleryProps
-}: GalleryTemplateProps<T>) {
+}: GalleryTemplateProps<T>) => {
   const resolvedItems = resolveSlides(items, renderSlide)
   const resolvedOrientation = orientation ?? "vertical"
   const resolvedCarouselWidth =
@@ -152,37 +214,18 @@ export function GalleryTemplate<T extends ElementType = "img">({
       <Gallery.Main className={mainClassName}>
         <Gallery.Carousel>
           <Gallery.Slides className={slidesClassName} />
-          {(showControls || showIndicators) && (
-            <Carousel.Control
-              className={controlsClassName}
-              controlPosition={controlPosition}
-            >
-              {showControls && (
-                <Carousel.Previous
-                  className={previousTriggerClassName}
-                  icon={prevIcon}
-                />
-              )}
-              {showControls && showIndicators && <div className="flex-1" />}
-              {showIndicators && (
-                <Carousel.Indicators className={indicatorsClassName}>
-                  {resolvedItems.map((item, index) => (
-                    <Carousel.Indicator
-                      index={index}
-                      key={`gallery-indicator-${item.id}`}
-                    />
-                  ))}
-                </Carousel.Indicators>
-              )}
-              {showControls && showIndicators && <div className="flex-1" />}
-              {showControls && (
-                <Carousel.Next
-                  className={nextTriggerClassName}
-                  icon={nextIcon}
-                />
-              )}
-            </Carousel.Control>
-          )}
+          <GalleryControls
+            className={controlsClassName}
+            controlPosition={controlPosition}
+            indicatorsClassName={indicatorsClassName}
+            items={resolvedItems}
+            nextIcon={nextIcon}
+            nextTriggerClassName={nextTriggerClassName}
+            previousIcon={prevIcon}
+            previousTriggerClassName={previousTriggerClassName}
+            showControls={showControls}
+            showIndicators={showIndicators}
+          />
           {showAutoplay && (
             <Carousel.Autoplay className={autoplayTriggerClassName} />
           )}

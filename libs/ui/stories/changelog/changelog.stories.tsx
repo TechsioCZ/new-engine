@@ -12,6 +12,141 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Accordion v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### ActionIcon v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Badge v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Breadcrumb v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Button v0.3.3
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Carousel v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Checkbox v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### ColorSelect v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Combobox v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Dialog v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Footer v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### FormCheckbox v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### FormInput v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### FormNumericInput v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### FormTextarea v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Gallery v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Header v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Icon v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Image v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Input v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Label v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Link v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### LinkButton v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Menu v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### NumericInput v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Pagination v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### PhoneInput v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Popover v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### ProductCard v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### RadioCard v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### RadioGroup v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Rating v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### SearchForm v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Select v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Skeleton v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Slider v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### StatusText v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Steps v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Switch v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Table v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Tabs v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Textarea v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Toast v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Tooltip v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### TreeView v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
 ### Button v0.3.2
 - Introduced per-component versioning: the component now carries \`@componentVersion\` + \`@skill\`,
   paired 1:1 with the \`button-usage\` skill's \`component_version\` and this changelog entry,

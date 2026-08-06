@@ -1,8 +1,8 @@
-/**
+/*
  * Textarea — @techsio/ui-kit atom.
  *
  * @component Textarea
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,6 +13,8 @@ import type { Ref, TextareaHTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { tv } from "../utils"
+
+const validationBorderWidth = "border-(length:--border-width-validation)"
 
 const textareaVariants = tv({
   base: [
@@ -62,20 +64,20 @@ const textareaVariants = tv({
       ],
       default: "",
       error: [
-        "border-(length:--border-width-validation)",
+        validationBorderWidth,
         "border-textarea-border-danger-base",
         "hover:border-textarea-border-danger-hover",
         "focus:border-textarea-border-danger-focus",
         "placeholder:text-textarea-placeholder-danger",
       ],
       success: [
-        "border-(length:--border-width-validation)",
+        validationBorderWidth,
         "border-textarea-border-success-base",
         "hover:border-textarea-border-success-hover",
         "focus:border-textarea-border-success-focus",
       ],
       warning: [
-        "border-(length:--border-width-validation)",
+        validationBorderWidth,
         "border-textarea-border-warning-base",
         "hover:border-textarea-border-warning-hover",
         "focus:border-textarea-border-warning-focus",
@@ -91,7 +93,7 @@ export interface TextareaProps
   ref?: Ref<HTMLTextAreaElement> | undefined
 }
 
-export function Textarea({
+export const Textarea = ({
   size,
   resize,
   variant,
@@ -99,21 +101,19 @@ export function Textarea({
   className,
   ref,
   ...props
-}: TextareaProps) {
-  return (
-    <textarea
-      className={textareaVariants({
-        className,
-        readonly,
-        resize,
-        size,
-        variant,
-      })}
-      readOnly={readonly}
-      ref={ref}
-      {...props}
-    />
-  )
-}
+}: TextareaProps) => (
+  <textarea
+    className={textareaVariants({
+      className,
+      readonly,
+      resize,
+      size,
+      variant,
+    })}
+    readOnly={readonly}
+    ref={ref}
+    {...props}
+  />
+)
 
 Textarea.displayName = "Textarea"

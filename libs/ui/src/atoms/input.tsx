@@ -1,8 +1,8 @@
-/**
+/*
  * Input — @techsio/ui-kit atom.
  *
  * @component Input
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,6 +13,9 @@ import type { InputHTMLAttributes, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { tv } from "../utils"
+
+const VALIDATION_BORDER_WIDTH_CLASS =
+  "border-(length:--border-width-validation)"
 
 const inputVariants = tv({
   base: [
@@ -57,19 +60,19 @@ const inputVariants = tv({
     variant: {
       default: "",
       error: [
-        "border-(length:--border-width-validation)",
+        VALIDATION_BORDER_WIDTH_CLASS,
         "border-input-border-danger-base",
         "hover:border-input-border-danger-hover",
         "focus:border-input-border-danger-focus",
       ],
       success: [
-        "border-(length:--border-width-validation)",
+        VALIDATION_BORDER_WIDTH_CLASS,
         "border-input-border-success-base",
         "hover:border-input-border-success-hover",
         "focus:border-input-border-success-focus",
       ],
       warning: [
-        "border-(length:--border-width-validation)",
+        VALIDATION_BORDER_WIDTH_CLASS,
         "border-input-border-warning-base",
         "hover:border-input-border-warning-hover",
         "focus:border-input-border-warning-focus",
@@ -90,7 +93,7 @@ export interface InputProps
   ref?: Ref<HTMLInputElement> | undefined
 }
 
-export function Input({
+export const Input = ({
   size,
   variant,
   disabled,
@@ -98,19 +101,17 @@ export function Input({
   withButtonInside,
   className,
   ...props
-}: InputProps) {
-  return (
-    <input
-      className={inputVariants({
-        className,
-        disabled,
-        size,
-        variant,
-        withButtonInside,
-      })}
-      disabled={disabled}
-      ref={ref}
-      {...props}
-    />
-  )
-}
+}: InputProps) => (
+  <input
+    className={inputVariants({
+      className,
+      disabled,
+      size,
+      variant,
+      withButtonInside,
+    })}
+    disabled={disabled}
+    ref={ref}
+    {...props}
+  />
+)

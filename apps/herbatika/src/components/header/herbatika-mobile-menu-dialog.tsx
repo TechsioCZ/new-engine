@@ -12,7 +12,7 @@ import { HerbatikaMobileMenuNav } from "./herbatika-mobile-menu-nav"
 
 const HEADER_DESKTOP_MEDIA_QUERY = "(min-width: 896px)"
 
-export function HerbatikaMobileMenuDialog() {
+export const HerbatikaMobileMenuDialog = () => {
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useContext(HeaderContext)
 
   useEffect(() => {

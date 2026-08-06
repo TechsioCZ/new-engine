@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: label-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Label for form-control labels with valid size, disabled, required, and htmlFor usage.

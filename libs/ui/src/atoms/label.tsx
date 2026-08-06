@@ -1,8 +1,8 @@
-/**
+/*
  * Label — @techsio/ui-kit atom.
  *
  * @component Label
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill label-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -42,26 +42,26 @@ export interface LabelProps
   className?: string | undefined
 }
 
-export function Label({
+export const Label = ({
   size,
   disabled,
   required,
   children,
   className,
   ...props
-}: LabelProps) {
-  return (
-    <label
-      className={labelVariants({
-        className,
-        disabled,
-        size,
-      })}
-      {...props}
-      htmlFor={props.htmlFor}
-    >
-      {children}
-      {required && <span className="ms-1 text-label-fg-required">*</span>}
-    </label>
-  )
-}
+}: LabelProps) => (
+  <label
+    className={labelVariants({
+      className,
+      disabled,
+      size,
+    })}
+    {...props}
+    htmlFor={props.htmlFor}
+  >
+    {children}
+    {required === true && (
+      <span className="ms-1 text-label-fg-required">*</span>
+    )}
+  </label>
+)

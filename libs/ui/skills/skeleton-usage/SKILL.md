@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: skeleton-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Skeleton for loading placeholders using Root, Circle, Text, and Rectangle compound parts with token-backed variants, sizes, and animation speeds.

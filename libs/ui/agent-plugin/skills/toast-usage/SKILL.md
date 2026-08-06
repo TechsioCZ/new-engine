@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: toast-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Toast for transient CRUD feedback using the global Zag.js toaster store, Toaster portal, useToast, toast types, title, description, close trigger, and token styling.

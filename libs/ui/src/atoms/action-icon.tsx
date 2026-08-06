@@ -1,8 +1,8 @@
-/**
+/*
  * ActionIcon — @techsio/ui-kit atom.
  *
  * @component ActionIcon
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill action-icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -69,7 +69,7 @@ export type ActionIconProps = Omit<
     ref?: Ref<HTMLButtonElement> | undefined
   }
 
-export function ActionIcon({
+export const ActionIcon = ({
   icon,
   size,
   tone,
@@ -77,15 +77,29 @@ export function ActionIcon({
   className,
   ref,
   ...props
-}: ActionIconProps) {
+}: ActionIconProps) => {
+  const resolvedClassName = actionIconVariants({ className, size, tone })
+  const content = <Icon icon={icon} size="current" />
+
+  if (type === "submit") {
+    return (
+      <button className={resolvedClassName} ref={ref} type="submit" {...props}>
+        {content}
+      </button>
+    )
+  }
+
+  if (type === "reset") {
+    return (
+      <button className={resolvedClassName} ref={ref} type="reset" {...props}>
+        {content}
+      </button>
+    )
+  }
+
   return (
-    <button
-      className={actionIconVariants({ className, size, tone })}
-      ref={ref}
-      type={type}
-      {...props}
-    >
-      <Icon icon={icon} size="current" />
+    <button className={resolvedClassName} ref={ref} type="button" {...props}>
+      {content}
     </button>
   )
 }

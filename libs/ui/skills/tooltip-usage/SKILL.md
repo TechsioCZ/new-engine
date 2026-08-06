@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: tooltip-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Tooltip for supplemental hover/focus help using the Zag.js tooltip wrapper, supported timing, placement, interaction, controlled state, and token styling props.

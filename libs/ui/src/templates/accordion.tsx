@@ -1,8 +1,8 @@
-/**
+/*
  * Accordion — @techsio/ui-kit template.
  *
  * @component Accordion
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -29,7 +29,7 @@ export interface AccordionTemplateProps extends Omit<
   indicatorIcon?: IconType | undefined
 }
 
-export function AccordionTemplate({
+export const AccordionTemplate = ({
   items,
   showIndicator = true,
   indicatorIcon = "token-icon-accordion-chevron",
@@ -44,34 +44,32 @@ export function AccordionTemplate({
   ref,
   className,
   ...accordionProps
-}: AccordionTemplateProps) {
-  return (
-    <Accordion
-      className={className}
-      collapsible={collapsible}
-      defaultValue={defaultValue}
-      multiple={multiple}
-      onChange={onChange}
-      ref={ref}
-      shadow={shadow}
-      size={size}
-      value={value}
-      variant={variant}
-      {...accordionProps}
-    >
-      {items.map((item) => (
-        <Accordion.Item
-          disabled={item.disabled}
-          key={item.value}
-          value={item.value}
-        >
-          <Accordion.Header>
-            <Accordion.Title>{item.title}</Accordion.Title>
-            {showIndicator && <Accordion.Indicator icon={indicatorIcon} />}
-          </Accordion.Header>
-          <Accordion.Content>{item.content}</Accordion.Content>
-        </Accordion.Item>
-      ))}
-    </Accordion>
-  )
-}
+}: AccordionTemplateProps) => (
+  <Accordion
+    className={className}
+    collapsible={collapsible}
+    defaultValue={defaultValue}
+    multiple={multiple}
+    onChange={onChange}
+    ref={ref}
+    shadow={shadow}
+    size={size}
+    value={value}
+    variant={variant}
+    {...accordionProps}
+  >
+    {items.map((item) => (
+      <Accordion.Item
+        disabled={item.disabled}
+        key={item.value}
+        value={item.value}
+      >
+        <Accordion.Header>
+          <Accordion.Title>{item.title}</Accordion.Title>
+          {showIndicator && <Accordion.Indicator icon={indicatorIcon} />}
+        </Accordion.Header>
+        <Accordion.Content>{item.content}</Accordion.Content>
+      </Accordion.Item>
+    ))}
+  </Accordion>
+)

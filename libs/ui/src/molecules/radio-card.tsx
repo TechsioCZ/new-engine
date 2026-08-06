@@ -1,8 +1,8 @@
-/**
+/*
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,311 +16,23 @@ import type {
   Props as ZagRadioGroupProps,
 } from "@zag-js/radio-group"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import { createContext, useContext, useId } from "react"
+import { useId } from "react"
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
-import { Label } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
-import { tv } from "../utils"
-
-const radioCardVariants = tv({
-  defaultVariants: {
-    align: "start",
-    itemOrientation: "horizontal",
-    justify: "between",
-    size: "md",
-    variant: "outline",
-  },
-  slots: {
-    hiddenInput: "sr-only",
-    item: [
-      "relative flex min-w-0 flex-col overflow-hidden",
-      "rounded-radio-card-item",
-      "border-(length:--border-width-radio-card)",
-      "border-radio-card-item-border",
-      "bg-radio-card-item-bg",
-      "text-radio-card-item-fg",
-      "shadow-radio-card-item",
-      "transition-colors duration-200 motion-reduce:transition-none",
-      "data-hover:bg-radio-card-item-bg-hover",
-      "data-hover:border-radio-card-item-border-hover",
-      "data-disabled:cursor-not-allowed",
-      "data-disabled:bg-radio-card-item-bg-disabled",
-      "data-disabled:border-radio-card-item-border-disabled",
-      "data-disabled:text-radio-card-item-fg-disabled",
-      "data-disabled:data-[state=checked]:bg-radio-card-item-bg-disabled",
-      "data-disabled:data-[state=checked]:border-radio-card-item-border-disabled",
-      "data-disabled:data-[state=checked]:text-radio-card-item-fg-disabled",
-      "data-focus-visible:outline-(style:--default-ring-style)",
-      "data-focus-visible:outline-(length:--default-ring-width)",
-      "data-focus-visible:outline-radio-card-ring",
-      "data-focus-visible:outline-offset-(length:--default-ring-offset)",
-      "data-invalid:border-radio-card-item-border-error",
-    ],
-    itemAddon: [
-      "border-t-(length:--border-width-radio-card-addon)",
-      "border-radio-card-addon-border",
-      "font-radio-card-addon",
-      "text-radio-card-addon-fg",
-      "transition-colors duration-200 motion-reduce:transition-none",
-      "data-disabled:border-radio-card-addon-border-disabled",
-      "data-disabled:bg-radio-card-addon-bg-disabled",
-      "data-disabled:text-radio-card-addon-fg-disabled",
-      "data-disabled:data-[state=checked]:border-radio-card-addon-border-disabled",
-      "data-disabled:data-[state=checked]:bg-radio-card-addon-bg-disabled",
-      "data-disabled:data-[state=checked]:text-radio-card-addon-fg-disabled",
-    ],
-    itemContent: ["flex min-w-0 flex-col"],
-    itemControl: ["flex min-w-0 flex-1"],
-    itemDescription: [
-      "min-w-0",
-      "text-radio-card-item-description-fg",
-      "leading-normal",
-      "data-disabled:text-radio-card-item-description-fg-disabled",
-      "data-disabled:data-[state=checked]:text-radio-card-item-description-fg-disabled",
-    ],
-    itemIndicator: [
-      "inline-grid shrink-0 place-items-center",
-      "rounded-radio-card-indicator",
-      "border-(length:--border-width-radio-card-indicator)",
-      "border-radio-card-item-indicator-border",
-      "bg-radio-card-item-indicator-bg",
-      "transition-colors duration-200 motion-reduce:transition-none",
-      "data-disabled:border-radio-card-item-indicator-border-disabled",
-      "data-disabled:bg-radio-card-item-indicator-bg-disabled",
-      "data-disabled:data-[state=checked]:border-radio-card-item-indicator-border-disabled",
-      "data-disabled:data-[state=checked]:bg-radio-card-item-indicator-bg-disabled",
-    ],
-    itemIndicatorContent: [
-      "inline-grid place-items-center",
-      "text-radio-card-item-indicator-content-fg",
-      "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
-      "data-[state=checked]:opacity-100",
-      "data-disabled:data-[state=checked]:text-radio-card-item-indicator-content-fg-disabled",
-    ],
-    itemIndicatorMark: ["block leading-none", "token-icon-radio-card-checked"],
-    itemText: [
-      "min-w-0",
-      "font-radio-card-item",
-      "text-radio-card-item-fg",
-      "leading-snug",
-      "data-disabled:text-radio-card-item-fg-disabled",
-      "data-disabled:data-[state=checked]:text-radio-card-item-fg-disabled",
-    ],
-    root: ["flex w-full flex-col"],
-  },
-  variants: {
-    align: {
-      center: {
-        itemAddon: "text-center",
-        itemContent: "items-center",
-        itemControl: "items-center",
-        itemDescription: "text-center",
-        itemText: "text-center",
-      },
-      end: {
-        itemAddon: "text-right",
-        itemContent: "items-end",
-        itemControl: "items-end",
-        itemDescription: "text-right",
-        itemText: "text-right",
-      },
-      start: {
-        itemAddon: "text-left",
-        itemContent: "items-start",
-        itemControl: "items-start",
-        itemDescription: "text-left",
-        itemText: "text-left",
-      },
-    },
-    itemOrientation: {
-      horizontal: {
-        itemContent: "flex-1",
-        itemControl: "flex-row",
-        itemText: "flex-1",
-      },
-      vertical: {
-        itemControl: "flex-col",
-      },
-    },
-    justify: {
-      between: {
-        itemControl: "justify-between",
-      },
-      center: {
-        itemControl: "justify-center",
-      },
-      end: {
-        itemControl: "justify-end",
-      },
-      start: {
-        itemControl: "justify-start",
-      },
-    },
-    size: {
-      lg: {
-        itemAddon: ["p-radio-card-addon-lg", "text-radio-card-addon-lg"],
-        itemContent: "gap-radio-card-item-content-lg",
-        itemControl: [
-          "gap-radio-card-item-control-lg",
-          "p-radio-card-item-control-lg",
-        ],
-        itemDescription: "text-radio-card-item-description-lg",
-        itemIndicator: "size-radio-card-indicator-lg",
-        itemIndicatorMark: "size-radio-card-indicator-mark-lg",
-        itemText: "text-radio-card-item-lg",
-        root: "gap-radio-card-stack-lg",
-      },
-      md: {
-        itemAddon: ["p-radio-card-addon-md", "text-radio-card-addon-md"],
-        itemContent: "gap-radio-card-item-content-md",
-        itemControl: [
-          "gap-radio-card-item-control-md",
-          "p-radio-card-item-control-md",
-        ],
-        itemDescription: "text-radio-card-item-description-md",
-        itemIndicator: "size-radio-card-indicator-md",
-        itemIndicatorMark: "size-radio-card-indicator-mark-md",
-        itemText: "text-radio-card-item-md",
-        root: "gap-radio-card-stack-md",
-      },
-      sm: {
-        itemAddon: ["p-radio-card-addon-sm", "text-radio-card-addon-sm"],
-        itemContent: "gap-radio-card-item-content-sm",
-        itemControl: [
-          "gap-radio-card-item-control-sm",
-          "p-radio-card-item-control-sm",
-        ],
-        itemDescription: "text-radio-card-item-description-sm",
-        itemIndicator: "size-radio-card-indicator-sm",
-        itemIndicatorMark: "size-radio-card-indicator-mark-sm",
-        itemText: "text-radio-card-item-sm",
-        root: "gap-radio-card-stack-sm",
-      },
-    },
-    variant: {
-      outline: {
-        item: [
-          "data-[state=checked]:bg-radio-card-item-bg",
-          "data-[state=checked]:border-radio-card-item-border-outline-checked",
-          "data-hover:data-[state=checked]:bg-radio-card-item-bg-outline-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-card-item-border-outline-checked-hover",
-        ],
-        itemIndicator: [
-          "data-[state=checked]:border-radio-card-item-indicator-border-outline-checked",
-        ],
-        itemIndicatorContent: [
-          "data-[state=checked]:text-radio-card-item-indicator-content-fg-outline-checked",
-        ],
-      },
-      solid: {
-        item: [
-          "data-[state=checked]:bg-radio-card-item-bg-solid-checked",
-          "data-[state=checked]:border-radio-card-item-border-solid-checked",
-          "data-hover:data-[state=checked]:bg-radio-card-item-bg-solid-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-card-item-border-solid-checked-hover",
-        ],
-        itemAddon: [
-          "data-[state=checked]:border-radio-card-addon-border-solid-checked",
-          "data-[state=checked]:text-radio-card-addon-fg-solid-checked",
-        ],
-        itemDescription: [
-          "data-[state=checked]:text-radio-card-item-description-fg-solid-checked",
-        ],
-        itemIndicator: [
-          "data-[state=checked]:border-radio-card-item-indicator-border-solid-checked",
-          "data-[state=checked]:bg-radio-card-item-indicator-bg-solid-checked",
-        ],
-        itemIndicatorContent: [
-          "data-[state=checked]:text-radio-card-item-indicator-content-fg-solid-checked",
-        ],
-        itemText: [
-          "data-[state=checked]:text-radio-card-item-fg-solid-checked",
-        ],
-      },
-      subtle: {
-        item: [
-          "data-[state=checked]:bg-radio-card-item-bg-subtle-checked",
-          "data-[state=checked]:border-radio-card-item-border-subtle-checked",
-          "data-hover:data-[state=checked]:bg-radio-card-item-bg-subtle-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-card-item-border-subtle-checked-hover",
-        ],
-        itemAddon: [
-          "data-[state=checked]:border-radio-card-addon-border-subtle-checked",
-          "data-[state=checked]:text-radio-card-addon-fg-subtle-checked",
-        ],
-        itemDescription: [
-          "data-[state=checked]:text-radio-card-item-description-fg-subtle-checked",
-        ],
-        itemIndicator: [
-          "data-[state=checked]:border-radio-card-item-indicator-border-subtle-checked",
-        ],
-        itemIndicatorContent: [
-          "data-[state=checked]:text-radio-card-item-indicator-content-fg-subtle-checked",
-        ],
-        itemText: [
-          "data-[state=checked]:text-radio-card-item-fg-subtle-checked",
-        ],
-      },
-    },
-  },
-})
-
-type RadioCardVariant = NonNullable<
-  VariantProps<typeof radioCardVariants>["variant"]
->
-type RadioCardSize = NonNullable<VariantProps<typeof radioCardVariants>["size"]>
-type RadioCardItemOrientation = NonNullable<
-  VariantProps<typeof radioCardVariants>["itemOrientation"]
->
-type RadioCardAlign = NonNullable<
-  VariantProps<typeof radioCardVariants>["align"]
->
-type RadioCardJustify = NonNullable<
-  VariantProps<typeof radioCardVariants>["justify"]
->
-type RadioCardValidateStatus = "default" | "error" | "success" | "warning"
-
-interface RadioCardContextValue {
-  api: ReturnType<typeof connect>
-  variant: RadioCardVariant
-  size: RadioCardSize
-  itemOrientation: RadioCardItemOrientation
-  align: RadioCardAlign
-  justify: RadioCardJustify
-  disabled: boolean
-  required: boolean
-  validateStatus: RadioCardValidateStatus
-}
-
-const RadioCardContext = createContext<RadioCardContextValue | null>(null)
-
-function useRadioCardContext() {
-  const context = useContext(RadioCardContext)
-  if (!context) {
-    throw new Error("RadioCard components must be used within RadioCard")
-  }
-  return context
-}
-
-interface RadioCardItemContextValue {
-  itemProps: ItemProps
-}
-
-const RadioCardItemContext = createContext<RadioCardItemContextValue | null>(
-  null,
-)
-
-function useRadioCardItemContext() {
-  const context = useContext(RadioCardItemContext)
-  if (!context) {
-    throw new Error(
-      "RadioCard item components must be used within RadioCard.Item",
-    )
-  }
-  return context
-}
+import { Label as LabelPrimitive } from "../atoms/label"
+import { StatusText as StatusTextPrimitive } from "../atoms/status-text"
+import {
+  radioCardItemProvider as RadioCardItemProvider,
+  radioCardProvider as RadioCardProvider,
+  useRadioCardContext,
+  useRadioCardItemContext,
+} from "./radio-card-context"
+import { radioCardVariants } from "./radio-card-variants"
+import type {
+  RadioCardSize,
+  RadioCardValidateStatus,
+} from "./radio-card-variants"
 
 type RadioCardMachineProps = Omit<
   ZagRadioGroupProps,
@@ -380,36 +92,30 @@ export const RadioCard = ({
     size,
     variant,
   })
-  const rootProps = mergeProps(
-    {
-      "aria-describedby": ariaDescribedByProp,
-    },
-    api.getRootProps(),
-  )
-
+  const rootProps = mergeProps(api.getRootProps(), {
+    "aria-describedby": ariaDescribedByProp,
+  })
   return (
-    <RadioCardContext.Provider
-      value={{
-        align,
-        api,
-        disabled,
-        itemOrientation,
-        justify,
-        required,
-        size,
-        validateStatus,
-        variant,
-      }}
+    <RadioCardProvider
+      align={align}
+      api={api}
+      disabled={disabled}
+      itemOrientation={itemOrientation}
+      justify={justify}
+      required={required}
+      size={size}
+      validateStatus={validateStatus}
+      variant={variant}
     >
-      <div className={styles.root({ className })} ref={ref} {...rootProps}>
+      <div {...rootProps} className={styles.root({ className })} ref={ref}>
         {children}
       </div>
-    </RadioCardContext.Provider>
+    </RadioCardProvider>
   )
 }
 
 type RadioCardLabelProps = Omit<
-  ComponentPropsWithoutRef<typeof Label>,
+  ComponentPropsWithoutRef<typeof LabelPrimitive>,
   "disabled" | "required"
 > & {
   disabled?: boolean | undefined
@@ -417,7 +123,7 @@ type RadioCardLabelProps = Omit<
   ref?: Ref<HTMLLabelElement> | undefined
 }
 
-RadioCard.Label = function RadioCardLabel({
+RadioCard.Label = function Label({
   children,
   disabled,
   required,
@@ -433,14 +139,14 @@ RadioCard.Label = function RadioCardLabel({
   const labelProps = mergeProps(api.getLabelProps(), props)
 
   return (
-    <Label
+    <LabelPrimitive
+      {...labelProps}
       disabled={disabled ?? groupDisabled}
       required={required ?? groupRequired}
       size={sizeProp ?? size}
-      {...labelProps}
     >
       {children}
-    </Label>
+    </LabelPrimitive>
   )
 }
 
@@ -452,7 +158,7 @@ export type RadioCardItemProps = Omit<
     ref?: Ref<HTMLLabelElement> | undefined
   }
 
-RadioCard.Item = function RadioCardItem({
+RadioCard.Item = function Item({
   value,
   disabled,
   invalid,
@@ -467,15 +173,15 @@ RadioCard.Item = function RadioCardItem({
   const mergedItemProps = mergeProps(api.getItemProps(itemProps), props)
 
   return (
-    <RadioCardItemContext.Provider value={{ itemProps }}>
+    <RadioCardItemProvider itemProps={itemProps}>
       <label
+        {...mergedItemProps}
         className={styles.item({ className })}
         ref={ref}
-        {...mergedItemProps}
       >
         {children}
       </label>
-    </RadioCardItemContext.Provider>
+    </RadioCardItemProvider>
   )
 }
 
@@ -486,7 +192,7 @@ type RadioCardItemHiddenInputProps = Omit<
   ref?: Ref<HTMLInputElement> | undefined
 }
 
-RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
+RadioCard.ItemHiddenInput = function ItemHiddenInput({
   className,
   ref,
   ...props
@@ -501,9 +207,9 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
 
   return (
     <input
+      {...hiddenInputProps}
       className={styles.hiddenInput({ className })}
       ref={ref}
-      {...hiddenInputProps}
     />
   )
 }
@@ -512,7 +218,7 @@ type RadioCardItemControlProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioCard.ItemControl = function RadioCardItemControl({
+RadioCard.ItemControl = function ItemControl({
   children,
   className,
   ref,
@@ -532,9 +238,9 @@ RadioCard.ItemControl = function RadioCardItemControl({
 
   return (
     <div
+      {...itemControlProps}
       className={styles.itemControl({ className })}
       ref={ref}
-      {...itemControlProps}
     >
       {children}
     </div>
@@ -545,7 +251,7 @@ type RadioCardItemContentProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioCard.ItemContent = function RadioCardItemContent({
+RadioCard.ItemContent = function ItemContent({
   children,
   className,
   ref,
@@ -570,7 +276,7 @@ type RadioCardItemTextProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-RadioCard.ItemText = function RadioCardItemText({
+RadioCard.ItemText = function ItemText({
   children,
   className,
   ref,
@@ -588,9 +294,9 @@ RadioCard.ItemText = function RadioCardItemText({
 
   return (
     <span
+      {...itemTextProps}
       className={styles.itemText({ className })}
       ref={ref}
-      {...itemTextProps}
     >
       {children}
     </span>
@@ -601,7 +307,7 @@ type RadioCardItemDescriptionProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioCard.ItemDescription = function RadioCardItemDescription({
+RadioCard.ItemDescription = function ItemDescription({
   children,
   className,
   ref,
@@ -636,7 +342,7 @@ type RadioCardItemIndicatorProps = Omit<
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-RadioCard.ItemIndicator = function RadioCardItemIndicator({
+RadioCard.ItemIndicator = function ItemIndicator({
   className,
   ref,
   ...props
@@ -670,7 +376,7 @@ type RadioCardItemAddonProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioCard.ItemAddon = function RadioCardItemAddon({
+RadioCard.ItemAddon = function ItemAddon({
   children,
   className,
   ref,
@@ -699,7 +405,7 @@ RadioCard.ItemAddon = function RadioCardItemAddon({
 }
 
 type RadioCardStatusTextProps = Omit<
-  ComponentPropsWithoutRef<typeof StatusText>,
+  ComponentPropsWithoutRef<typeof StatusTextPrimitive>,
   "status" | "size"
 > & {
   status?: RadioCardValidateStatus | undefined
@@ -707,7 +413,7 @@ type RadioCardStatusTextProps = Omit<
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioCard.StatusText = function RadioCardStatusText({
+RadioCard.StatusText = function StatusText({
   status,
   size: sizeProp,
   showIcon,
@@ -719,17 +425,18 @@ RadioCard.StatusText = function RadioCardStatusText({
   const effectiveStatus = status ?? validateStatus
 
   return (
-    <StatusText
+    <StatusTextPrimitive
       showIcon={showIcon ?? effectiveStatus !== "default"}
       size={effectiveSize}
       status={effectiveStatus}
       {...props}
     >
       {children}
-    </StatusText>
+    </StatusTextPrimitive>
   )
 }
 
-export { radioCardVariants, useRadioCardContext }
+export { useRadioCardContext } from "./radio-card-context"
+export { radioCardVariants } from "./radio-card-variants"
 
 RadioCard.displayName = "RadioCard"

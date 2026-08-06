@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: form-input-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit FormInput for labeled single-line fields with Label, Input, StatusText, validation status, help text, required, disabled, and size props.

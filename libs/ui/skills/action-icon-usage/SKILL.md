@@ -5,7 +5,7 @@ description: >
 type: core
 library: "@techsio/ui-kit"
 component: ActionIcon
-component_version: "1.0.0"
+component_version: "1.0.1"
 ---
 
 # ActionIcon usage

@@ -1,8 +1,8 @@
-/**
+/*
  * NumericInput — @techsio/ui-kit template.
  *
  * @component NumericInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,7 +28,7 @@ export interface NumericInputTemplateProps extends Omit<
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-export function NumericInputTemplate({
+export const NumericInputTemplate = ({
   showControls = true,
   showScrubber = false,
   controlsPosition = "right",
@@ -37,7 +37,7 @@ export function NumericInputTemplate({
   className,
   ref,
   ...numericInputProps
-}: NumericInputTemplateProps) {
+}: NumericInputTemplateProps) => {
   // Layout for controls on the right (default)
   if (controlsPosition === "right") {
     return (

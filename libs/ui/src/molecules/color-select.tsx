@@ -1,14 +1,16 @@
-/**
+/*
  * ColorSelect — @techsio/ui-kit molecule.
  *
  * @component ColorSelect
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill color-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the color-select-usage skill's component_version and a changelog entry. Bump all three together.
  */
+import type { VariantProps } from "tailwind-variants"
+
 import { Button } from "../atoms/button"
 import { Icon } from "../atoms/icon"
 import { tv } from "../utils"
@@ -110,11 +112,13 @@ export interface ColorItem {
   disabled?: boolean | undefined
 }
 
+type ColorSelectVariantProps = VariantProps<typeof colorSelectVariants>
+
 interface ColorSelectProps {
   colors: ColorItem[]
-  layout?: "list" | "grid" | undefined
-  size?: "sm" | "md" | "lg" | "full" | undefined
-  radius?: "sm" | "md" | "lg" | "full" | undefined
+  layout?: ColorSelectVariantProps["layout"]
+  size?: ColorSelectVariantProps["size"]
+  radius?: ColorSelectVariantProps["radius"]
   disabled?: boolean | undefined
   onColorClick?: ((color: string) => void) | undefined
   selectionMode?: "single" | "multiple" | undefined
@@ -144,42 +148,53 @@ export const ColorSelect = ({
       className={group()}
       role={selectionMode === "single" ? "radiogroup" : "group"}
     >
-      {colors.map((colorItem) => (
-        <div className={cell()} key={colorItem.id || colorItem.color}>
-          <Button
-            aria-checked={!!colorItem.selected}
-            aria-label={`Select color ${colorItem.label ?? colorItem.color}`}
-            className={`${atom()} ${colorItem.disabled ? "select-disabled" : ""}`}
-            data-selected={colorItem.selected}
-            disabled={colorItem.disabled || disabled}
-            onClick={() => onColorClick?.(colorItem.color)}
-            role={selectionMode === "single" ? "radio" : "checkbox"}
-            theme="borderless"
-          >
-            <span
-              aria-hidden="true"
-              className={colorSlot()}
+      {colors.map((colorItem) => {
+        const hasLabel =
+          colorItem.label !== null && colorItem.label !== undefined
+        const hasCount =
+          colorItem.count !== null && colorItem.count !== undefined
+        const itemKey =
+          colorItem.id === undefined || colorItem.id === ""
+            ? colorItem.color
+            : colorItem.id
+
+        return (
+          <div className={cell()} key={itemKey}>
+            <Button
+              aria-checked={colorItem.selected === true}
+              aria-label={`Select color ${colorItem.label ?? colorItem.color}`}
+              className={`${atom()} ${colorItem.disabled === true ? "select-disabled" : ""}`}
               data-selected={colorItem.selected}
-              style={{ backgroundColor: colorItem.color }}
-            />
-            <Icon
-              className={icon()}
-              data-selected={colorItem.selected}
-              icon="token-icon-color-select"
-            />
-          </Button>
-          {(colorItem.label != null || colorItem.count != null) && (
-            <div className={labelContainer()}>
-              {colorItem.label && (
-                <span className={labelText()}>{colorItem.label}</span>
-              )}
-              {colorItem.count != null && (
-                <span className={countText()}>({colorItem.count})</span>
-              )}
-            </div>
-          )}
-        </div>
-      ))}
+              disabled={colorItem.disabled === true || disabled === true}
+              onClick={() => onColorClick?.(colorItem.color)}
+              role={selectionMode === "single" ? "radio" : "checkbox"}
+              theme="borderless"
+            >
+              <span
+                aria-hidden="true"
+                className={colorSlot()}
+                data-selected={colorItem.selected}
+                style={{ backgroundColor: colorItem.color }}
+              />
+              <Icon
+                className={icon()}
+                data-selected={colorItem.selected}
+                icon="token-icon-color-select"
+              />
+            </Button>
+            {(hasLabel || hasCount) && (
+              <div className={labelContainer()}>
+                {Boolean(colorItem.label) && (
+                  <span className={labelText()}>{colorItem.label}</span>
+                )}
+                {hasCount && (
+                  <span className={countText()}>({colorItem.count})</span>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

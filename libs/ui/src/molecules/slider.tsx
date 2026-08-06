@@ -1,8 +1,8 @@
-/**
+/*
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,13 +10,16 @@
  * the slider-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { normalizeProps, useMachine } from "@zag-js/react"
-import * as slider from "@zag-js/slider"
+import { connect, machine } from "@zag-js/slider"
 import { useId } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { slugify, tv } from "../utils"
+
+// Shared by the root, marker text and track slots, declared once so the utility is not repeated.
+const verticalFullHeightClass = "data-[orientation=vertical]:h-full"
 
 const sliderVariants = tv({
   defaultVariants: {
@@ -43,7 +46,7 @@ const sliderVariants = tv({
     markerText: [
       "absolute top-full",
       "data-[orientation=vertical]:top-0 data-[orientation=vertical]:left-full",
-      "data-[orientation=vertical]:h-full",
+      verticalFullHeightClass,
       "data-[orientation=vertical]:p-marker-text",
     ],
     range: [
@@ -56,7 +59,7 @@ const sliderVariants = tv({
     ],
     root: [
       "flex w-full flex-col gap-slider",
-      "data-[orientation=vertical]:h-full",
+      verticalFullHeightClass,
       "data-disabled:cursor-not-allowed",
     ],
     thumb: [
@@ -76,7 +79,7 @@ const sliderVariants = tv({
     track: [
       "flex-1 rounded-slider-track bg-slider-track-bg",
       "data-[orientation=horizontal]:w-full",
-      "data-[orientation=vertical]:h-full",
+      verticalFullHeightClass,
       "data-disabled:bg-slider-track-bg-disabled",
       "border-(length:--border-width-slider) border-slider-border",
       "data-disabled:border-slider-border-disabled",
@@ -111,11 +114,15 @@ const sliderVariants = tv({
   },
 })
 
+type SliderOrigin = "start" | "center" | "end"
+
+type SliderValidateStatus = "default" | "error" | "success" | "warning"
+
 export interface SliderProps extends VariantProps<typeof sliderVariants> {
   id?: string | undefined
   name?: string | undefined
   label?: string | undefined
-  validateStatus?: "default" | "error" | "success" | "warning" | undefined
+  validateStatus?: SliderValidateStatus | undefined
   helpText?: string | undefined
   showHelpTextIcon?: boolean | undefined
   value?: number[] | undefined
@@ -128,7 +135,7 @@ export interface SliderProps extends VariantProps<typeof sliderVariants> {
   readOnly?: boolean | undefined
   dir?: "ltr" | "rtl" | undefined
   orientation?: "horizontal" | "vertical" | undefined
-  origin?: "start" | "center" | "end" | undefined
+  origin?: SliderOrigin | undefined
   thumbAlignment?: "center" | "contain" | undefined
   showMarkers?: boolean | undefined
   markerCount?: number | undefined
@@ -139,6 +146,11 @@ export interface SliderProps extends VariantProps<typeof sliderVariants> {
   onChange?: ((values: number[]) => void) | undefined
   onChangeEnd?: ((values: number[]) => void) | undefined
 }
+
+// Stable module-level defaults so the prop fallbacks keep referential equality across renders.
+const defaultSliderValues: number[] = [25, 75]
+
+const formatSliderValue = (value: number) => value.toString()
 
 const resolveFiniteNumber = (
   value: number | undefined,
@@ -324,53 +336,71 @@ const normalizeSliderValues = (
   })
 }
 
-const apiValueFallback = (
-  value: number[] | undefined,
-  defaultValue: number[] | undefined,
-  fallbackValues: number[],
-) => {
-  if (Array.isArray(value) && value.length > 0) {
-    return value
+// Mirrors the original nested ternary: a caller-supplied range formatter wins outright, a two-thumb
+// slider renders "<start> - <end>", and every other shape renders an empty string. `api.value` is a
+// `number[]`, so the original object-truthiness guards were always satisfied and are dropped.
+const resolveValueText = (
+  values: number[],
+  formatRangeText: ((values: number[]) => string) | undefined,
+  formatValue: (value: number) => string,
+): string => {
+  if (formatRangeText !== undefined) {
+    return formatRangeText(values)
   }
 
-  if (Array.isArray(defaultValue) && defaultValue.length > 0) {
-    return defaultValue
+  const [start, end] = values
+
+  if (values.length === 2 && start !== undefined && end !== undefined) {
+    return `${formatValue(start)} - ${formatValue(end)}`
   }
 
-  return fallbackValues
+  return ""
 }
 
-export function Slider({
-  id,
-  name,
-  label,
-  validateStatus,
-  helpText,
-  showHelpTextIcon = true,
-  value,
-  origin,
-  thumbAlignment = "center",
-  defaultValue = [25, 75],
-  min = 0,
-  max = 100,
-  step = 1,
-  minStepsBetweenThumbs = 0,
-  disabled = false,
-  readOnly = false,
+interface SliderMachineOptions {
+  defaultValue: number[] | undefined
+  dir: "ltr" | "rtl" | undefined
+  disabled: boolean | undefined
+  id: string | undefined
+  max: number | undefined
+  min: number | undefined
+  minStepsBetweenThumbs: number | undefined
+  name: string | undefined
+  onChange: ((values: number[]) => void) | undefined
+  onChangeEnd: ((values: number[]) => void) | undefined
+  orientation: "horizontal" | "vertical"
+  origin: SliderOrigin | undefined
+  readOnly: boolean | undefined
+  step: number | undefined
+  thumbAlignment: "center" | "contain"
+  value: number[] | undefined
+}
+
+// Owns the bound/value normalisation and builds the Zag slider machine, returning its connected API
+// plus the resolved bounds the marker track reads. Optional machine props are spread conditionally
+// so an explicit `undefined` is never handed to the machine under `exactOptionalPropertyTypes`.
+const useSliderApi = ({
+  defaultValue = defaultSliderValues,
   dir = "ltr",
-  orientation = "horizontal",
-  size = "md",
-  showMarkers = false,
-  markerCount = 5,
-  showValueText = false,
-  formatRangeText,
-  formatValue = (val: number) => val.toString(),
-  className,
+  disabled = false,
+  id,
+  max = 100,
+  min = 0,
+  minStepsBetweenThumbs = 0,
+  name,
   onChange,
   onChangeEnd,
-}: SliderProps) {
+  orientation,
+  origin,
+  readOnly = false,
+  step = 1,
+  thumbAlignment,
+  value,
+}: SliderMachineOptions) => {
   const generatedId = useId()
-  const uniqueId = id || generatedId
+  // A caller-supplied id wins only when it is a usable string; a missing or empty id falls back to
+  // the generated one so the machine always has a stable, non-empty id.
+  const uniqueId = id === undefined || id === "" ? generatedId : id
   const thumbCount = resolveThumbCount(value, defaultValue)
   const resolvedConfig = resolveSliderConfig(
     min,
@@ -391,34 +421,78 @@ export function Slider({
   const resolvedDefaultValue = isControlled
     ? undefined
     : normalizeSliderValues(defaultValue, fallbackValues, resolvedConfig)
-  const valueTextValues = apiValueFallback(
-    resolvedValue,
-    resolvedDefaultValue,
-    fallbackValues,
-  )
 
-  const service = useMachine(slider.machine, {
+  const service = useMachine(machine, {
     id: uniqueId,
     ...(name !== undefined && { name }),
-    ...(resolvedValue !== undefined && { value: resolvedValue }),
+    ...(origin !== undefined && { origin }),
     ...(resolvedDefaultValue !== undefined && {
       defaultValue: resolvedDefaultValue,
     }),
-    min: resolvedConfig.min,
-    max: resolvedConfig.max,
-    ...(origin !== undefined && { origin }),
-    thumbAlignment,
-    step: resolvedConfig.step,
-    minStepsBetweenThumbs: resolvedConfig.minStepsBetweenThumbs,
-    disabled,
-    readOnly,
+    ...(resolvedValue !== undefined && { value: resolvedValue }),
     dir,
-    orientation,
+    disabled,
+    max: resolvedConfig.max,
+    min: resolvedConfig.min,
+    minStepsBetweenThumbs: resolvedConfig.minStepsBetweenThumbs,
     onValueChange: (details) => onChange?.(details.value),
     onValueChangeEnd: (details) => onChangeEnd?.(details.value),
+    orientation,
+    readOnly,
+    step: resolvedConfig.step,
+    thumbAlignment,
   })
 
-  const api = slider.connect(service, normalizeProps)
+  return { api: connect(service, normalizeProps), resolvedConfig }
+}
+
+export const Slider = ({
+  id,
+  name,
+  label,
+  validateStatus,
+  helpText,
+  showHelpTextIcon = true,
+  value,
+  origin,
+  thumbAlignment = "center",
+  defaultValue,
+  min,
+  max,
+  step,
+  minStepsBetweenThumbs,
+  disabled,
+  readOnly,
+  dir,
+  orientation = "horizontal",
+  size = "md",
+  showMarkers = false,
+  markerCount = 5,
+  showValueText = false,
+  formatRangeText,
+  formatValue = formatSliderValue,
+  className,
+  onChange,
+  onChangeEnd,
+}: SliderProps) => {
+  const { api, resolvedConfig } = useSliderApi({
+    defaultValue,
+    dir,
+    disabled,
+    id,
+    max,
+    min,
+    minStepsBetweenThumbs,
+    name,
+    onChange,
+    onChangeEnd,
+    orientation,
+    origin,
+    readOnly,
+    step,
+    thumbAlignment,
+    value,
+  })
 
   const {
     root,
@@ -438,39 +512,38 @@ export function Slider({
     size,
   })
 
+  // `label` and `helpText` are optional strings, so the render guards are narrowed to booleans while
+  // keeping the original truthy-only decision — an empty string still renders nothing.
+  const hasLabel = Boolean(label)
+  const hasHelpText = Boolean(helpText)
+  const hasHeader = hasLabel || showValueText
+
   return (
-    <div className={root({ className })} {...api.getRootProps()}>
-      {(label || showValueText) && (
+    <div {...api.getRootProps()} className={root({ className })}>
+      {hasHeader && (
         <div className={header()}>
-          <Label className={labelSlot()} {...api.getLabelProps()}>
+          <Label {...api.getLabelProps()} className={labelSlot()}>
             {label}
           </Label>
           {showValueText && (
-            <output className={valueSlot()} {...api.getValueTextProps()}>
+            <output {...api.getValueTextProps()} className={valueSlot()}>
               <b>
-                {formatRangeText
-                  ? formatRangeText(api.value || valueTextValues)
-                  : api.value &&
-                      api.value.length === 2 &&
-                      api.value[0] !== undefined &&
-                      api.value[1] !== undefined
-                    ? `${formatValue(api.value[0])} - ${formatValue(api.value[1])}`
-                    : ""}
+                {resolveValueText(api.value, formatRangeText, formatValue)}
               </b>{" "}
             </output>
           )}
         </div>
       )}
 
-      <div className={control()} {...api.getControlProps()}>
+      <div {...api.getControlProps()} className={control()}>
         <div
-          className={track()}
           {...api.getTrackProps()}
+          className={track()}
           data-invalid={validateStatus === "error"}
         >
           <div
-            className={range()}
             {...api.getRangeProps()}
+            className={range()}
             data-invalid={validateStatus === "error"}
           />
           {showMarkers && (
@@ -485,9 +558,9 @@ export function Slider({
                         index
                 return (
                   <div
+                    {...api.getMarkerProps({ value: markerValue })}
                     className={marker()}
                     key={slugify(`marker-${markerValue}`)}
-                    {...api.getMarkerProps({ value: markerValue })}
                   >
                     {/* hide first and last marker line, if thumb alignmetn is center */}
                     {!(
@@ -511,17 +584,17 @@ export function Slider({
             </div>
           )}
         </div>
-        {api.value.map((_, index) => (
+        {Array.from({ length: api.value.length }, (_, index) => (
           <div
+            {...api.getThumbProps({ index })}
             className={thumb()}
             key={`thumb-${index}`}
-            {...api.getThumbProps({ index })}
           >
             <input {...api.getHiddenInputProps({ index })} />
           </div>
         ))}
       </div>
-      {helpText && (
+      {hasHelpText && (
         <StatusText
           status={validateStatus}
           showIcon={showHelpTextIcon}

@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: color-select-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit ColorSelect for choosing color swatches with supported layout, size, radius, disabled state, selected state, labels, counts, and single/multiple roles.

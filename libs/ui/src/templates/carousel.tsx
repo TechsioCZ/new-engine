@@ -1,8 +1,8 @@
-/**
+/*
  * Carousel — @techsio/ui-kit template.
  *
  * @component Carousel
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,7 +27,7 @@ export interface CarouselTemplateProps<T extends ElementType> extends Omit<
   nextIcon?: IconType | undefined
 }
 
-export function CarouselTemplate<T extends ElementType>({
+export const CarouselTemplate = <T extends ElementType>({
   slides,
   showControls = true,
   showIndicators = true,
@@ -51,47 +51,45 @@ export function CarouselTemplate<T extends ElementType>({
   className,
   onPageChange,
   ...carouselProps
-}: CarouselTemplateProps<T>) {
-  return (
-    <Carousel
-      allowMouseDrag={allowMouseDrag}
-      aspectRatio={aspectRatio}
-      autoplay={autoplay}
-      className={className}
-      height={height}
-      imageAs={imageAs}
-      loop={loop}
-      objectFit={objectFit}
-      onPageChange={onPageChange}
-      orientation={orientation}
-      padding={padding}
-      size={size}
-      slideCount={slides.length}
-      slidesPerMove={slidesPerMove}
-      slidesPerPage={slidesPerPage}
-      spacing={spacing}
-      width={width}
-      {...carouselProps}
-    >
-      <Carousel.Slides imageAs={imageAs} slides={slides} />
+}: CarouselTemplateProps<T>) => (
+  <Carousel
+    allowMouseDrag={allowMouseDrag}
+    aspectRatio={aspectRatio}
+    autoplay={autoplay}
+    className={className}
+    height={height}
+    imageAs={imageAs}
+    loop={loop}
+    objectFit={objectFit}
+    onPageChange={onPageChange}
+    orientation={orientation}
+    padding={padding}
+    size={size}
+    slideCount={slides.length}
+    slidesPerMove={slidesPerMove}
+    slidesPerPage={slidesPerPage}
+    spacing={spacing}
+    width={width}
+    {...carouselProps}
+  >
+    <Carousel.Slides imageAs={imageAs} slides={slides} />
 
-      {(showControls || showIndicators) && (
-        <Carousel.Control>
-          {showControls && <Carousel.Previous icon={prevIcon} />}
-          {showControls && showIndicators && <div className="flex-1" />}
-          {showIndicators && (
-            <Carousel.Indicators>
-              {slides.map((slide, index) => (
-                <Carousel.Indicator index={index} key={slide.id} />
-              ))}
-            </Carousel.Indicators>
-          )}
-          {showControls && showIndicators && <div className="flex-1" />}
-          {showControls && <Carousel.Next icon={nextIcon} />}
-        </Carousel.Control>
-      )}
+    {(showControls || showIndicators) && (
+      <Carousel.Control>
+        {showControls && <Carousel.Previous icon={prevIcon} />}
+        {showControls && showIndicators && <div className="flex-1" />}
+        {showIndicators && (
+          <Carousel.Indicators>
+            {slides.map((slide, index) => (
+              <Carousel.Indicator index={index} key={slide.id} />
+            ))}
+          </Carousel.Indicators>
+        )}
+        {showControls && showIndicators && <div className="flex-1" />}
+        {showControls && <Carousel.Next icon={nextIcon} />}
+      </Carousel.Control>
+    )}
 
-      {showAutoplay && <Carousel.Autoplay />}
-    </Carousel>
-  )
-}
+    {showAutoplay && <Carousel.Autoplay />}
+  </Carousel>
+)

@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: dialog-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Dialog for modal dialogs, alert dialogs, drawers, actions, focus management, placement, size, and close behavior backed by Zag.js.

@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: icon-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or Iconify classes with the library's supported size and semantic color props.

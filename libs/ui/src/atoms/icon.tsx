@@ -1,8 +1,8 @@
-/**
+/*
  * Icon — @techsio/ui-kit atom.
  *
  * @component Icon
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -51,12 +51,10 @@ export interface IconProps
   className?: string | undefined
 }
 
-export function Icon({ icon, size, color, className, ...props }: IconProps) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`${iconVariants({ className, color, size })} ${icon}`}
-      {...props}
-    />
-  )
-}
+export const Icon = ({ icon, size, color, className, ...props }: IconProps) => (
+  <span
+    aria-hidden="true"
+    className={`${iconVariants({ className, color, size })} ${icon}`}
+    {...props}
+  />
+)

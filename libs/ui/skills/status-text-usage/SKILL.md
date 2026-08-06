@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: status-text-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit StatusText for inline validation, success, warning, or default status messages with optional token icons and size/alignment props.

@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: rating-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Rating for accessible rating capture or display using the Zag.js rating-group wrapper, supported value/count/allowHalf/readOnly/disabled props, and token styling.

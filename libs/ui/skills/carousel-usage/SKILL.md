@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: carousel-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Carousel for Zag.js-backed slides, images, controls, indicators, autoplay, sizing, aspect ratio, object fit, and framework image adapters.

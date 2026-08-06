@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: image-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Image or a framework image adapter such as NextImage through the Image atom's as prop.

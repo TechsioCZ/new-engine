@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: form-textarea-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit FormTextarea for labeled multi-line text fields with Textarea, Label, StatusText, validation status, help text, size, resize, required, and disabled props.

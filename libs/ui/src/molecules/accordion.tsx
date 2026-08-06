@@ -1,16 +1,16 @@
-/**
+/*
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the accordion-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as accordion from "@zag-js/accordion"
-import { normalizeProps, useMachine } from "@zag-js/react"
+import { connect, machine } from "@zag-js/accordion"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import { createContext, useContext, useId } from "react"
 import type { ComponentPropsWithoutRef, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -100,44 +100,45 @@ const accordionVariants = tv({
   },
 })
 
+type AccordionVariants = VariantProps<typeof accordionVariants>
+type AccordionVariant = NonNullable<AccordionVariants["variant"]>
+
 // Context for sharing state between sub-components
-interface AccordionContextValue {
-  api: ReturnType<typeof accordion.connect>
-  size?: "sm" | "md" | "lg" | undefined
-  shadow?: "sm" | "md" | "none" | undefined
-  styles: ReturnType<typeof accordionVariants>
-  variant?: "default" | "borderless" | "child" | undefined
-}
+const AccordionApiContext = createContext<ReturnType<typeof connect> | null>(
+  null,
+)
+const AccordionStylesContext = createContext<ReturnType<
+  typeof accordionVariants
+> | null>(null)
+const AccordionVariantContext = createContext<AccordionVariant | undefined>(
+  undefined,
+)
 
-const AccordionContext = createContext<AccordionContextValue | null>(null)
-
-function useAccordionContext() {
-  const context = useContext(AccordionContext)
-  if (!context) {
+const useAccordionContext = () => {
+  const api = useContext(AccordionApiContext)
+  const styles = useContext(AccordionStylesContext)
+  const variant = useContext(AccordionVariantContext)
+  if (api === null || styles === null) {
     throw new Error("Accordion components must be used within Accordion.Root")
   }
-  return context
+  return { api, styles, variant }
 }
 
 // Context for sharing item state
-interface AccordionItemContextValue {
-  value: string
-  disabled?: boolean | undefined
-  variant?: "default" | "borderless" | "child" | undefined
-}
-
-const AccordionItemContext = createContext<AccordionItemContextValue | null>(
-  null,
+const AccordionItemValueContext = createContext<string | null>(null)
+const AccordionItemDisabledContext = createContext<boolean | undefined>(
+  undefined,
 )
 
-function useAccordionItemContext() {
-  const context = useContext(AccordionItemContext)
-  if (!context) {
+const useAccordionItemContext = () => {
+  const value = useContext(AccordionItemValueContext)
+  const disabled = useContext(AccordionItemDisabledContext)
+  if (value === null) {
     throw new Error(
       "Accordion item components must be used within Accordion.Item",
     )
   }
-  return context
+  return { disabled, value }
 }
 
 // Root component
@@ -176,7 +177,7 @@ export const Accordion = ({
   const generatedId = useId()
   const uniqueId = id ?? generatedId
 
-  const service = useMachine(accordion.machine, {
+  const service = useMachine(machine, {
     collapsible,
     defaultValue,
     dir,
@@ -190,20 +191,22 @@ export const Accordion = ({
     value,
   })
 
-  const api = accordion.connect(service, normalizeProps)
+  const api = connect(service, normalizeProps)
   const styles = accordionVariants({ shadow, size, variant })
-
   return (
-    <AccordionContext.Provider value={{ api, shadow, size, styles, variant }}>
-      <div
-        className={styles.root({ className })}
-        ref={ref}
-        {...props}
-        {...api.getRootProps()}
-      >
-        {children}
-      </div>
-    </AccordionContext.Provider>
+    <AccordionApiContext.Provider value={api}>
+      <AccordionStylesContext.Provider value={styles}>
+        <AccordionVariantContext.Provider value={variant}>
+          <div
+            {...mergeProps(api.getRootProps(), props)}
+            className={styles.root({ className })}
+            ref={ref}
+          >
+            {children}
+          </div>
+        </AccordionVariantContext.Provider>
+      </AccordionStylesContext.Provider>
+    </AccordionApiContext.Provider>
   )
 }
 
@@ -214,7 +217,7 @@ interface AccordionItemProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Accordion.Item = function AccordionItem({
+Accordion.Item = function Item({
   value,
   disabled,
   children,
@@ -222,19 +225,20 @@ Accordion.Item = function AccordionItem({
   className,
   ...props
 }: AccordionItemProps) {
-  const { api, styles, variant } = useAccordionContext()
+  const { api, styles } = useAccordionContext()
 
   return (
-    <AccordionItemContext.Provider value={{ disabled, value, variant }}>
-      <div
-        ref={ref}
-        {...props}
-        {...api.getItemProps({ value })}
-        className={styles.item({ className })}
-      >
-        {children}
-      </div>
-    </AccordionItemContext.Provider>
+    <AccordionItemValueContext.Provider value={value}>
+      <AccordionItemDisabledContext.Provider value={disabled}>
+        <div
+          {...mergeProps(api.getItemProps({ value }), props)}
+          className={styles.item({ className })}
+          ref={ref}
+        >
+          {children}
+        </div>
+      </AccordionItemDisabledContext.Provider>
+    </AccordionItemValueContext.Provider>
   )
 }
 
@@ -243,7 +247,7 @@ interface AccordionHeaderProps extends ComponentPropsWithoutRef<"header"> {
   ref?: Ref<HTMLElement> | undefined
 }
 
-Accordion.Header = function AccordionHeader({
+Accordion.Header = function Header({
   children,
   ref,
   className,
@@ -255,12 +259,12 @@ Accordion.Header = function AccordionHeader({
   return (
     <header className={className} ref={ref} {...props}>
       <Button
+        {...api.getItemTriggerProps({ disabled, value })}
         className={styles.titleTrigger()}
+        data-disabled={disabled}
         size="current"
         theme="unstyled"
         type="button"
-        {...api.getItemTriggerProps({ disabled, value })}
-        data-disabled={disabled}
       >
         {children}
       </Button>
@@ -273,7 +277,7 @@ interface AccordionContentProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Accordion.Content = function AccordionContent({
+Accordion.Content = function Content({
   children,
   ref,
   className,
@@ -284,11 +288,10 @@ Accordion.Content = function AccordionContent({
 
   return (
     <div
+      {...mergeProps(api.getItemContentProps({ value }), props)}
       className={styles.content({ className })}
-      ref={ref}
-      {...props}
-      {...api.getItemContentProps({ value })}
       data-state={api.value.includes(value) ? "expanded" : "collapsed"}
+      ref={ref}
     >
       {children}
     </div>
@@ -302,7 +305,7 @@ type AccordionIndicatorProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Accordion.Indicator = function AccordionIndicator({
+Accordion.Indicator = function Indicator({
   icon = "token-icon-accordion-chevron",
   iconSize,
   ref,
@@ -331,7 +334,7 @@ interface AccordionTitleProps extends ComponentPropsWithoutRef<"span"> {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Accordion.Title = function AccordionTitle({
+Accordion.Title = function Title({
   children,
   ref,
   className,
@@ -351,7 +354,7 @@ interface AccordionSubtitleProps extends ComponentPropsWithoutRef<"span"> {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Accordion.Subtitle = function AccordionSubtitle({
+Accordion.Subtitle = function Subtitle({
   children,
   ref,
   className,

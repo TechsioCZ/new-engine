@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: numeric-input-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit NumericInput for accessible number entry with Zag.js spinbutton behavior, compound parts, numeric public values, locale formatting, min/max/step, and token-first styling.

@@ -1,8 +1,8 @@
-/**
+/*
  * Badge — @techsio/ui-kit atom.
  *
  * @component Badge
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill badge-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -86,33 +86,43 @@ type DynamicBadgeProps = BaseBadgeProps & {
 
 export type BadgeProps = DefaultBadgeProps | DynamicBadgeProps
 
-export function Badge({
-  variant,
-  size,
-  className,
-  children,
-  style,
-  ...props
-}: BadgeProps) {
-  const isDynamic = variant === "dynamic"
+export const Badge = (badgeProps: BadgeProps) => {
+  if (badgeProps.variant === "dynamic") {
+    const {
+      bgColor,
+      borderColor,
+      children,
+      className,
+      fgColor,
+      size,
+      style,
+      variant,
+      ...props
+    } = badgeProps
 
-  const { bgColor, fgColor, borderColor, ...restProps } =
-    props as Partial<DynamicBadgeProps>
+    return (
+      <span
+        {...props}
+        className={badgeVariants({ className, size, variant })}
+        style={{
+          ...style,
+          backgroundColor: bgColor,
+          borderColor,
+          color: fgColor,
+        }}
+      >
+        {children}
+      </span>
+    )
+  }
 
-  const dynamicStyles = isDynamic
-    ? {
-        ...style,
-        backgroundColor: bgColor,
-        borderColor,
-        color: fgColor,
-      }
-    : style
+  const { children, className, size, style, variant, ...props } = badgeProps
 
   return (
     <span
+      {...props}
       className={badgeVariants({ className, size, variant })}
-      style={dynamicStyles}
-      {...restProps}
+      style={style}
     >
       {children}
     </span>

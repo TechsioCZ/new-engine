@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: radio-group-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit RadioGroup for simple exclusive choices with Zag.js radio behavior, label, item group, hidden inputs, controls, text, descriptions, validation status, variants, and sizes.

@@ -1,8 +1,8 @@
-/**
+/*
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -88,22 +88,39 @@ const popoverVariants = tv({
   },
 })
 
+// Hoisted so the default positioning offset keeps a stable reference instead of being rebuilt on
+// every render of the root.
+const DEFAULT_OFFSET: NonNullable<PopoverPositioningOptions["offset"]> = {
+  crossAxis: 0,
+  mainAxis: 8,
+}
+
+type PopoverStyles = ReturnType<typeof popoverVariants>
+
 interface PopoverContextValue {
   api: PopoverApi
   placement: PopoverPlacement
-  styles: ReturnType<typeof popoverVariants>
+  styles: PopoverStyles
 }
 
-const PopoverContext = createContext<PopoverContextValue | null>(null)
+// One context per value so each provider receives an identifier rather than an object literal
+// constructed during render. `usePopoverContext` recomposes them for consumers.
+const PopoverApiContext = createContext<PopoverApi | null>(null)
+const PopoverPlacementContext = createContext<PopoverPlacement | null>(null)
+const PopoverStylesContext = createContext<PopoverStyles | null>(null)
 
-function usePopoverContext() {
-  const context = useContext(PopoverContext)
+const usePopoverContext = (): PopoverContextValue => {
+  const api = useContext(PopoverApiContext)
+  const placement = useContext(PopoverPlacementContext)
+  const styles = useContext(PopoverStylesContext)
 
-  if (!context) {
+  // All three are populated together by the root, so a missing one means the part was rendered
+  // outside `Popover.Root`.
+  if (api === null || placement === null || styles === null) {
     throw new Error("Popover components must be used within Popover.Root")
   }
 
-  return context
+  return { api, placement, styles }
 }
 
 export type PopoverRootProps = VariantProps<typeof popoverVariants> &
@@ -119,7 +136,7 @@ export type PopoverRootProps = VariantProps<typeof popoverVariants> &
     slide?: PopoverPositioningOptions["slide"] | undefined
   }
 
-export function Popover({
+export const Popover = ({
   autoFocus = true,
   border,
   children,
@@ -131,7 +148,7 @@ export function Popover({
   gutter = 8,
   id,
   modal = false,
-  offset = { crossAxis: 0, mainAxis: 8 },
+  offset = DEFAULT_OFFSET,
   onOpenChange,
   onPointerDownOutside,
   open,
@@ -143,9 +160,11 @@ export function Popover({
   size,
   slide = true,
   ...props
-}: PopoverRootProps) {
+}: PopoverRootProps) => {
   const generatedId = useId()
-  const uniqueId = id || generatedId
+  // A caller-supplied id wins only when it is a usable string; a missing or empty id falls back to
+  // the generated one so the machine always has a stable, non-empty id.
+  const uniqueId = id === undefined || id === "" ? generatedId : id
 
   const machineProps = Object.fromEntries(
     Object.entries(props).filter(([, option]) => option !== undefined),
@@ -178,15 +197,13 @@ export function Popover({
   const styles = popoverVariants({ border, shadow, size })
 
   return (
-    <PopoverContext.Provider
-      value={{
-        api,
-        placement,
-        styles,
-      }}
-    >
-      {children}
-    </PopoverContext.Provider>
+    <PopoverApiContext.Provider value={api}>
+      <PopoverPlacementContext.Provider value={placement}>
+        <PopoverStylesContext.Provider value={styles}>
+          {children}
+        </PopoverStylesContext.Provider>
+      </PopoverPlacementContext.Provider>
+    </PopoverApiContext.Provider>
   )
 }
 
@@ -194,7 +211,7 @@ export type PopoverAnchorProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Popover.Anchor = function PopoverAnchor({
+Popover.Anchor = function Anchor({
   className,
   ref,
   ...props
@@ -210,7 +227,7 @@ export type PopoverTriggerProps = ButtonProps & {
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Popover.Trigger = function PopoverTrigger({
+Popover.Trigger = function Trigger({
   children,
   className,
   clickBehavior = "toggle",
@@ -229,7 +246,9 @@ Popover.Trigger = function PopoverTrigger({
     ...machineTriggerProps
   } = api.getTriggerProps() as ComponentPropsWithoutRef<"button">
   const buttonProps = mergeProps(machineTriggerProps, props)
-  const isDisabled = Boolean(disabled || machineDisabled)
+  // Both flags are `boolean | undefined`, so the explicit comparisons keep the original
+  // "disabled when either side is truthy" result without a nullable conditional.
+  const isDisabled = disabled === true || machineDisabled === true
 
   return (
     <Button
@@ -258,7 +277,7 @@ export type PopoverIndicatorProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Popover.Indicator = function PopoverIndicator({
+Popover.Indicator = function Indicator({
   className,
   ref,
   ...props
@@ -281,7 +300,7 @@ export type PopoverPositionerProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Popover.Positioner = function PopoverPositioner({
+Popover.Positioner = function Positioner({
   children,
   className,
   forceMount = false,
@@ -316,7 +335,7 @@ type PopoverContentMergedProps = ComponentPropsWithoutRef<"div"> & {
   "data-placement"?: PopoverPlacement | undefined
 }
 
-Popover.Content = function PopoverContent({
+Popover.Content = function Content({
   children,
   className,
   ref,
@@ -353,7 +372,7 @@ export type PopoverArrowProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Popover.Arrow = function PopoverArrow({
+Popover.Arrow = function Arrow({
   children,
   className,
   ref,
@@ -373,7 +392,7 @@ export type PopoverArrowTipProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Popover.ArrowTip = function PopoverArrowTip({
+Popover.ArrowTip = function ArrowTip({
   className,
   ref,
   ...props
@@ -394,7 +413,7 @@ export type PopoverTitleProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Popover.Title = function PopoverTitle({
+Popover.Title = function Title({
   className,
   ref,
   ...props
@@ -411,7 +430,7 @@ export type PopoverDescriptionProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Popover.Description = function PopoverDescription({
+Popover.Description = function Description({
   className,
   ref,
   ...props
@@ -432,7 +451,7 @@ export type PopoverCloseTriggerProps = ButtonProps & {
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Popover.CloseTrigger = function PopoverCloseTrigger({
+Popover.CloseTrigger = function CloseTrigger({
   children,
   className,
   icon,
@@ -453,9 +472,12 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
       onMachineClick?.(event)
     }
   }
+  // `ReactNode` has mixed truthiness, so the branch guard is narrowed to a boolean while keeping
+  // the original truthy-only rendering decision.
+  const hasChildren = Boolean(children)
 
   // Icon-only close → shared ActionIcon (neutral pill). Labeled close keeps Button.
-  if (!children) {
+  if (!hasChildren) {
     return (
       <ActionIcon
         {...buttonProps}
@@ -491,9 +513,11 @@ export interface PopoverContextProps {
   children: (api: PopoverApi) => ReactNode
 }
 
-Popover.Context = function PopoverApiContext({
+// `ReactNode` includes `Promise<AwaitedReactNode>` under React 19 types, so the return type is
+// annotated explicitly to keep this render-prop bridge synchronous.
+Popover.Context = function Context({
   children,
-}: PopoverContextProps) {
+}: PopoverContextProps): ReactNode {
   const { api } = usePopoverContext()
 
   return children(api)

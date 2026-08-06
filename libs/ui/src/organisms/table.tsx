@@ -1,8 +1,8 @@
-/**
+/*
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -110,26 +110,47 @@ const tableVariants = tv({
 })
 
 // Context for sharing state between sub-components
-interface TableContextValue {
-  variant?: "line" | "outline" | "striped" | undefined
-  size?: "sm" | "md" | "lg" | undefined
-  interactive?: boolean | undefined
-  stickyHeader?: boolean | undefined
-  stickyFirstColumn?: boolean | undefined
-  showColumnBorder?: boolean | undefined
-  captionPlacement?: "top" | "bottom" | undefined
+type TableVariantProps = VariantProps<typeof tableVariants>
+type TableContextValue = TableVariantProps & {
   styles: ReturnType<typeof tableVariants>
 }
 
 const TableContext = createContext<TableContextValue | null>(null)
 
-function useTableContext() {
+const useTableContext = (): TableContextValue => {
   const context = useContext(TableContext)
-  if (!context) {
+  if (context === null) {
     throw new Error("Table components must be used within Table")
   }
   return context
 }
+
+const useTableContextValue = ({
+  captionPlacement,
+  interactive,
+  showColumnBorder,
+  size,
+  stickyFirstColumn,
+  stickyHeader,
+  variant,
+}: TableVariantProps): TableContextValue => ({
+  captionPlacement,
+  interactive,
+  showColumnBorder,
+  size,
+  stickyFirstColumn,
+  stickyHeader,
+  styles: tableVariants({
+    captionPlacement,
+    interactive,
+    showColumnBorder,
+    size,
+    stickyFirstColumn,
+    stickyHeader,
+    variant,
+  }),
+  variant,
+})
 
 // Root component
 interface TableProps
@@ -139,7 +160,7 @@ interface TableProps
   ref?: RefObject<HTMLTableElement> | undefined
 }
 
-export function Table({
+export const Table = ({
   variant,
   size,
   interactive,
@@ -151,8 +172,8 @@ export function Table({
   ref,
   className,
   ...props
-}: TableProps) {
-  const styles = tableVariants({
+}: TableProps) => {
+  const contextValue = useTableContextValue({
     captionPlacement,
     interactive,
     showColumnBorder,
@@ -161,20 +182,10 @@ export function Table({
     stickyHeader,
     variant,
   })
+  const { styles } = contextValue
 
   return (
-    <TableContext.Provider
-      value={{
-        captionPlacement,
-        interactive,
-        showColumnBorder,
-        size,
-        stickyFirstColumn,
-        stickyHeader,
-        styles,
-        variant,
-      }}
-    >
+    <TableContext.Provider value={contextValue}>
       <table className={styles.root({ className })} ref={ref} {...props}>
         {children}
       </table>
@@ -187,12 +198,12 @@ interface TableCaptionProps extends ComponentPropsWithoutRef<"caption"> {
   ref?: RefObject<HTMLTableCaptionElement> | undefined
 }
 
-Table.Caption = function TableCaption({
+const TableCaption = ({
   children,
   ref,
   className,
   ...props
-}: TableCaptionProps) {
+}: TableCaptionProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -207,12 +218,12 @@ interface TableHeaderProps extends ComponentPropsWithoutRef<"thead"> {
   ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
-Table.Header = function TableHeader({
+const TableHeader = ({
   children,
   ref,
   className,
   ...props
-}: TableHeaderProps) {
+}: TableHeaderProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -227,12 +238,7 @@ interface TableBodyProps extends ComponentPropsWithoutRef<"tbody"> {
   ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
-Table.Body = function TableBody({
-  children,
-  ref,
-  className,
-  ...props
-}: TableBodyProps) {
+const TableBody = ({ children, ref, className, ...props }: TableBodyProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -247,12 +253,12 @@ interface TableFooterProps extends ComponentPropsWithoutRef<"tfoot"> {
   ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
-Table.Footer = function TableFooter({
+const TableFooter = ({
   children,
   ref,
   className,
   ...props
-}: TableFooterProps) {
+}: TableFooterProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -268,13 +274,13 @@ interface TableRowProps extends ComponentPropsWithoutRef<"tr"> {
   selected?: boolean | undefined
 }
 
-Table.Row = function TableRow({
+const TableRow = ({
   children,
   ref,
   className,
   selected,
   ...props
-}: TableRowProps) {
+}: TableRowProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -295,13 +301,13 @@ interface TableColumnHeaderProps extends ComponentPropsWithoutRef<"th"> {
   numeric?: boolean | undefined
 }
 
-Table.ColumnHeader = function TableColumnHeader({
+const TableColumnHeader = ({
   children,
   ref,
   className,
   numeric,
   ...props
-}: TableColumnHeaderProps) {
+}: TableColumnHeaderProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -323,13 +329,13 @@ interface TableCellProps extends ComponentPropsWithoutRef<"td"> {
   numeric?: boolean | undefined
 }
 
-Table.Cell = function TableCell({
+const TableCell = ({
   children,
   ref,
   className,
   numeric,
   ...props
-}: TableCellProps) {
+}: TableCellProps) => {
   const { styles, stickyFirstColumn } = useTableContext()
 
   return (
@@ -343,6 +349,14 @@ Table.Cell = function TableCell({
     </td>
   )
 }
+
+Table.Caption = TableCaption
+Table.Header = TableHeader
+Table.Body = TableBody
+Table.Footer = TableFooter
+Table.Row = TableRow
+Table.ColumnHeader = TableColumnHeader
+Table.Cell = TableCell
 
 // Display name
 Table.displayName = "Table"

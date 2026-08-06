@@ -1,8 +1,8 @@
-/**
+/*
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -19,10 +19,10 @@ import type {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 
-import { Button } from "../atoms/button"
+import { Button as ButtonAtom } from "../atoms/button"
 import type { IconProps, IconType } from "../atoms/icon"
-import { Image } from "../atoms/image"
-import { Rating } from "../atoms/rating"
+import { Image as ImageAtom } from "../atoms/image"
+import { Rating as RatingAtom } from "../atoms/rating"
 import type { RatingProps } from "../atoms/rating"
 import { tv } from "../utils"
 
@@ -84,11 +84,9 @@ const productCardVariants = tv({
 })
 
 // === CONTEXT ===
-interface ProductCardContextValue {
-  layout?: "column" | "row" | undefined
-}
+type ProductCardLayout = VariantProps<typeof productCardVariants>["layout"]
 
-const ProductCardContext = createContext<ProductCardContextValue>({})
+const ProductCardContext = createContext<ProductCardLayout>(undefined)
 
 // === TYPE DEFINITIONS ===
 export interface ProductCardProps
@@ -114,9 +112,15 @@ interface ProductCardPriceProps extends HTMLAttributes<HTMLParagraphElement> {
   ref?: Ref<HTMLParagraphElement> | undefined
 }
 
+interface ProductCardStockStatuses {
+  "in-stock": unknown
+  "limited-stock": unknown
+  "out-of-stock": unknown
+}
+
 interface ProductCardStockProps extends HTMLAttributes<HTMLParagraphElement> {
   children: ReactNode
-  status?: "in-stock" | "limited-stock" | "out-of-stock" | undefined
+  status?: keyof ProductCardStockStatuses | undefined
   ref?: Ref<HTMLParagraphElement> | undefined
 }
 
@@ -139,24 +143,24 @@ interface ProductCardActionsProps extends HTMLAttributes<HTMLDivElement> {
 interface ProductCardButtonProps extends HTMLAttributes<HTMLButtonElement> {
   children?: ReactNode | undefined
   onClick?: (() => void) | undefined
-  buttonVariant?: "cart" | "detail" | "wishlist" | "custom" | undefined
+  buttonVariant?: VariantProps<typeof productCardVariants>["buttonVariant"]
   icon?: IconType | undefined
   iconSize?: IconProps["size"] | undefined
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
 // === ROOT COMPONENT ===
-export function ProductCard({
+export const ProductCard = ({
   children,
   layout = "column",
   className,
   ref,
   ...props
-}: ProductCardProps) {
+}: ProductCardProps) => {
   const { root } = productCardVariants({ layout })
 
   return (
-    <ProductCardContext.Provider value={{ layout }}>
+    <ProductCardContext.Provider value={layout}>
       <div className={root({ className })} ref={ref} {...props}>
         {children}
       </div>
@@ -165,29 +169,29 @@ export function ProductCard({
 }
 
 // === SUB-COMPONENTS ===
-ProductCard.Image = function ProductCardImage({
+ProductCard.Image = function Image({
   as,
   className,
   ref,
   ...props
 }: ProductCardImageProps) {
-  const context = useContext(ProductCardContext)
-  const { imageSlot } = productCardVariants({ layout: context.layout })
-  const ImageComponent = (as || Image) as ElementType
+  const layout = useContext(ProductCardContext)
+  const { imageSlot } = productCardVariants({ layout })
+  const ImageComponent = as ?? ImageAtom
 
   return (
     <ImageComponent className={imageSlot({ className })} ref={ref} {...props} />
   )
 }
 
-ProductCard.Name = function ProductCardName({
+ProductCard.Name = function Name({
   children,
   className,
   ref,
   ...props
 }: ProductCardNameProps) {
-  const context = useContext(ProductCardContext)
-  const { nameSlot } = productCardVariants({ layout: context.layout })
+  const layout = useContext(ProductCardContext)
+  const { nameSlot } = productCardVariants({ layout })
 
   return (
     <h3 className={nameSlot({ className })} ref={ref} {...props}>
@@ -196,14 +200,14 @@ ProductCard.Name = function ProductCardName({
   )
 }
 
-ProductCard.Price = function ProductCardPrice({
+ProductCard.Price = function Price({
   children,
   className,
   ref,
   ...props
 }: ProductCardPriceProps) {
-  const context = useContext(ProductCardContext)
-  const { priceSlot } = productCardVariants({ layout: context.layout })
+  const layout = useContext(ProductCardContext)
+  const { priceSlot } = productCardVariants({ layout })
 
   return (
     <p className={priceSlot({ className })} ref={ref} {...props}>
@@ -212,17 +216,15 @@ ProductCard.Price = function ProductCardPrice({
   )
 }
 
-ProductCard.Stock = function ProductCardStock({
+ProductCard.Stock = function Stock({
   children,
   className,
   ref,
   status = "in-stock",
   ...props
 }: ProductCardStockProps) {
-  const context = useContext(ProductCardContext)
-  const { stockStatusSlot } = productCardVariants({
-    layout: context.layout,
-  })
+  const layout = useContext(ProductCardContext)
+  const { stockStatusSlot } = productCardVariants({ layout })
 
   return (
     <p
@@ -236,14 +238,14 @@ ProductCard.Stock = function ProductCardStock({
   )
 }
 
-ProductCard.Badges = function ProductCardBadges({
+ProductCard.Badges = function Badges({
   children,
   className,
   ref,
   ...props
 }: ProductCardBadgesProps) {
-  const context = useContext(ProductCardContext)
-  const { badgesSlot } = productCardVariants({ layout: context.layout })
+  const layout = useContext(ProductCardContext)
+  const { badgesSlot } = productCardVariants({ layout })
 
   return (
     <div className={badgesSlot({ className })} ref={ref} {...props}>
@@ -252,33 +254,31 @@ ProductCard.Badges = function ProductCardBadges({
   )
 }
 
-ProductCard.Rating = function ProductCardRating({
+ProductCard.Rating = function Rating({
   children,
   className,
   rating,
   ref,
   ...props
 }: ProductCardRatingProps) {
-  const context = useContext(ProductCardContext)
-  const { ratingSlot } = productCardVariants({ layout: context.layout })
+  const layout = useContext(ProductCardContext)
+  const { ratingSlot } = productCardVariants({ layout })
 
   return (
     <div className={ratingSlot({ className })} ref={ref} {...props}>
-      {rating ? <Rating {...rating} /> : children}
+      {rating ? <RatingAtom {...rating} /> : children}
     </div>
   )
 }
 
-ProductCard.Actions = function ProductCardActions({
+ProductCard.Actions = function Actions({
   children,
   className,
   ref,
   ...props
 }: ProductCardActionsProps) {
-  const context = useContext(ProductCardContext)
-  const { actionsSlot } = productCardVariants({
-    layout: context.layout,
-  })
+  const layout = useContext(ProductCardContext)
+  const { actionsSlot } = productCardVariants({ layout })
 
   return (
     <div className={actionsSlot({ className })} ref={ref} {...props}>
@@ -287,7 +287,7 @@ ProductCard.Actions = function ProductCardActions({
   )
 }
 
-ProductCard.Button = function ProductCardButton({
+ProductCard.Button = function Button({
   children,
   onClick,
   icon,
@@ -300,7 +300,7 @@ ProductCard.Button = function ProductCardButton({
   const { button } = productCardVariants({ buttonVariant })
 
   return (
-    <Button
+    <ButtonAtom
       className={button({ className })}
       icon={icon}
       iconSize={iconSize}
@@ -310,6 +310,6 @@ ProductCard.Button = function ProductCardButton({
       {...props}
     >
       {children}
-    </Button>
+    </ButtonAtom>
   )
 }

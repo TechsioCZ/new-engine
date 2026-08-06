@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: pagination-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Pagination for link-based paginated navigation with Zag.js pagination, getPageUrl, LinkButton, NextLink adapters, compact mode, variants, and sizes.

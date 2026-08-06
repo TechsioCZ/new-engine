@@ -1,8 +1,8 @@
-/**
+/*
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,7 +10,8 @@
  * the tabs-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import * as tabs from "@zag-js/tabs"
+import { connect as connectTabs, machine as tabsMachine } from "@zag-js/tabs"
+import type { Api as TabsApi } from "@zag-js/tabs"
 import { createContext, useContext, useId } from "react"
 import type { ComponentPropsWithoutRef, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -126,23 +127,20 @@ const tabsVariants = tv({
 })
 
 // Context for sharing state between sub-components
-interface TabsContextValue {
-  api: ReturnType<typeof tabs.connect>
-  variant?: "default" | "line" | "solid" | "outline" | undefined
-  size?: "sm" | "md" | "lg" | undefined
-  fitted?: boolean | undefined
-  justify?: "start" | "center" | "end" | undefined
-  styles: ReturnType<typeof tabsVariants>
-}
+const TabsApiContext = createContext<TabsApi | null>(null)
+const TabsStylesContext = createContext<ReturnType<typeof tabsVariants> | null>(
+  null,
+)
 
-const TabsContext = createContext<TabsContextValue | null>(null)
+const useTabsContext = () => {
+  const api = useContext(TabsApiContext)
+  const styles = useContext(TabsStylesContext)
 
-function useTabsContext() {
-  const context = useContext(TabsContext)
-  if (!context) {
+  if (api === null || styles === null) {
     throw new Error("Tabs components must be used within Tabs")
   }
-  return context
+
+  return { api, styles }
 }
 
 // Root component
@@ -161,7 +159,7 @@ export interface TabsProps
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-export function Tabs({
+export const Tabs = ({
   id,
   defaultValue,
   value,
@@ -178,35 +176,35 @@ export function Tabs({
   ref,
   className,
   ...props
-}: TabsProps) {
+}: TabsProps) => {
   const generatedId = useId()
-  const uniqueId = id || generatedId
+  const uniqueId = id ?? generatedId
 
-  const service = useMachine(tabs.machine, {
+  const service = useMachine(tabsMachine, {
     activationMode,
     defaultValue,
     dir,
     id: uniqueId,
     loopFocus,
-    onValueChange: ({ value }) => {
-      onValueChange?.(value)
+    onValueChange: ({ value: nextValue }) => {
+      onValueChange?.(nextValue)
     },
     orientation,
     value,
   })
 
-  const api = tabs.connect(service, normalizeProps)
+  const api = connectTabs(service, normalizeProps)
   const styles = tabsVariants({ fitted, justify, size, variant })
   const rootProps = mergeProps(api.getRootProps(), props)
 
   return (
-    <TabsContext.Provider
-      value={{ api, fitted, justify, size, styles, variant }}
-    >
-      <div {...rootProps} className={styles.root({ className })} ref={ref}>
-        {children}
-      </div>
-    </TabsContext.Provider>
+    <TabsApiContext.Provider value={api}>
+      <TabsStylesContext.Provider value={styles}>
+        <div {...rootProps} className={styles.root({ className })} ref={ref}>
+          {children}
+        </div>
+      </TabsStylesContext.Provider>
+    </TabsApiContext.Provider>
   )
 }
 
@@ -215,7 +213,7 @@ interface TabsListProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Tabs.List = function TabsList({
+Tabs.List = function List({
   children,
   ref,
   className,
@@ -237,7 +235,7 @@ type TabsTriggerProps = Omit<ButtonProps, "value"> & {
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Tabs.Trigger = function TabsTrigger({
+Tabs.Trigger = function Trigger({
   value,
   disabled,
   children,
@@ -258,7 +256,7 @@ Tabs.Trigger = function TabsTrigger({
     <Button
       {...triggerProps}
       className={styles.trigger({ className })}
-      data-disabled={disabled || undefined}
+      data-disabled={disabled === true ? true : undefined}
       ref={ref}
       size={size}
       theme={theme}
@@ -275,7 +273,7 @@ interface TabsContentProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Tabs.Content = function TabsContent({
+Tabs.Content = function Content({
   value,
   children,
   ref,
@@ -297,7 +295,7 @@ interface TabsIndicatorProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Tabs.Indicator = function TabsIndicator({
+Tabs.Indicator = function Indicator({
   ref,
   className,
   ...props

@@ -1,8 +1,8 @@
-/**
+/*
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,73 +21,16 @@ import type { VariantProps } from "tailwind-variants"
 
 import { ActionIcon } from "../atoms/action-icon"
 import type { ActionIconProps } from "../atoms/action-icon"
-import { Button } from "../atoms/button"
+import { Button as ButtonAtom } from "../atoms/button"
 import type { ButtonProps } from "../atoms/button"
 import type { IconType } from "../atoms/icon"
-import { Input } from "../atoms/input"
+import { Input as InputAtom } from "../atoms/input"
 import type { InputProps } from "../atoms/input"
-import { Label } from "../atoms/label"
+import { Label as LabelAtom } from "../atoms/label"
 import type { LabelProps } from "../atoms/label"
-import { tv } from "../utils"
+import { searchFormVariants } from "./search-form-variants"
 
-const searchFormVariants = tv({
-  defaultVariants: {
-    gapped: false,
-    size: "md",
-  },
-  slots: {
-    // Layout-only wrapper. The input and button are composed side by side and
-    // each keep their own border, background, radius, and focus ring so they
-    // focus independently instead of sharing one ring around the whole group.
-    root: ["relative grid"],
-    control: ["flex items-stretch"],
-    // Positioning context for the absolutely-placed clear button, and the
-    // flex item that holds the input. `focus-within:z-10` lifts the focused
-    // input (and its outline) above the adjacent button so the focus ring is
-    // never painted underneath it.
-    inputWrapper: ["relative min-w-0 flex-1", "focus-within:z-10"],
-    // The input keeps its own styling/focus ring from the Input atom.
-    input: ["w-full"],
-    // The button keeps its own styling/focus ring from the Button atom.
-    // `focus-visible:z-10` mirrors the input so a focused button outline wins.
-    button: ["relative shrink-0", "focus-visible:z-10"],
-    // The clear button (an ActionIcon) lives inside the input, pinned to the
-    // trailing edge at the input's inline padding (set per size below) and
-    // vertically centered. ActionIcon owns its size, glyph and hover pill.
-    clearButton: ["-translate-y-1/2 absolute top-1/2"],
-  },
-  variants: {
-    gapped: {
-      // Joined: strip the touching corners so the two controls read as one.
-      false: {
-        button: "rounded-s-none",
-        input: "rounded-e-none",
-      },
-      // Detached: 8px gap and the controls keep their full rounded corners.
-      true: { control: "gap-search-form-gapped" },
-    },
-    size: {
-      // Pin the button to the shared form-control height so it always matches
-      // the input height — including `lg`, which the Button atom sizes by
-      // padding alone. The clear button trails the input by its inline padding.
-      sm: {
-        button: "h-form-control-sm",
-        clearButton: "end-(length:--padding-input-sm)",
-        root: "gap-search-form-sm",
-      },
-      md: {
-        button: "h-form-control-md",
-        clearButton: "end-(length:--padding-input-md)",
-        root: "gap-search-form-md",
-      },
-      lg: {
-        button: "h-form-control-lg",
-        clearButton: "end-(length:--padding-input-lg)",
-        root: "gap-search-form-lg",
-      },
-    },
-  },
-})
+export { searchFormVariants } from "./search-form-variants"
 
 export type SearchFormSize = "sm" | "md" | "lg"
 
@@ -111,9 +54,9 @@ interface SearchFormContextValue {
 
 const SearchFormContext = createContext<SearchFormContextValue | null>(null)
 
-function useSearchFormContext() {
+const useSearchFormContext = () => {
   const context = useContext(SearchFormContext)
-  if (!context) {
+  if (context === null) {
     throw new Error("SearchForm components must be used within SearchForm")
   }
   return context
@@ -130,18 +73,23 @@ export interface SearchFormProps
   ref?: Ref<HTMLFormElement> | undefined
 }
 
-export function SearchForm({
-  size = "md",
-  gapped = false,
-  children,
-  defaultValue = "",
-  value,
-  onValueChange,
-  className,
-  ref,
+interface UseSearchFormStateOptions {
+  defaultValue: string
+  gapped: boolean
+  onSubmit: SearchFormProps["onSubmit"]
+  onValueChange: SearchFormProps["onValueChange"]
+  size: SearchFormSize
+  value: SearchFormProps["value"]
+}
+
+const useSearchFormState = ({
+  defaultValue,
+  gapped,
   onSubmit,
-  ...props
-}: SearchFormProps) {
+  onValueChange,
+  size,
+  value,
+}: UseSearchFormStateOptions) => {
   const generatedId = useId()
   const inputId = `search-input-${generatedId}`
   const [internalValue, setInternalValue] = useState(defaultValue)
@@ -161,29 +109,53 @@ export function SearchForm({
     setInputValue("")
   }
 
-  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    onSubmit?.(e)
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    onSubmit?.(event)
   }
 
+  return {
+    contextValue: {
+      clearInput,
+      clearSlot,
+      gapped,
+      hasClearButton,
+      hasValue: inputValue.length > 0,
+      inputId,
+      inputValue,
+      setClearSlot,
+      setHasClearButton,
+      setInputValue,
+      size,
+    } satisfies SearchFormContextValue,
+    handleSubmit,
+  }
+}
+
+export const SearchForm = ({
+  size = "md",
+  gapped = false,
+  children,
+  defaultValue = "",
+  value,
+  onValueChange,
+  className,
+  ref,
+  onSubmit,
+  ...props
+}: SearchFormProps) => {
+  const { contextValue, handleSubmit } = useSearchFormState({
+    defaultValue,
+    gapped,
+    onSubmit,
+    onValueChange,
+    size,
+    value,
+  })
   const styles = searchFormVariants({ gapped, size })
 
   return (
-    <SearchFormContext.Provider
-      value={{
-        clearInput,
-        clearSlot,
-        gapped,
-        hasClearButton,
-        hasValue: inputValue.length > 0,
-        inputId,
-        inputValue,
-        setClearSlot,
-        setHasClearButton,
-        setInputValue,
-        size,
-      }}
-    >
+    <SearchFormContext.Provider value={contextValue}>
       <search>
         <form
           className={styles.root({ className })}
@@ -200,7 +172,7 @@ export function SearchForm({
 
 type SearchFormLabelProps = Omit<LabelProps, "htmlFor" | "size">
 
-SearchForm.Label = function SearchFormLabel({
+SearchForm.Label = function Label({
   children,
   className,
   ...props
@@ -208,9 +180,9 @@ SearchForm.Label = function SearchFormLabel({
   const { inputId, size } = useSearchFormContext()
 
   return (
-    <Label className={className} htmlFor={inputId} size={size} {...props}>
+    <LabelAtom className={className} htmlFor={inputId} size={size} {...props}>
       {children}
-    </Label>
+    </LabelAtom>
   )
 }
 
@@ -218,7 +190,7 @@ interface SearchFormControlProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-SearchForm.Control = function SearchFormControl({
+SearchForm.Control = function Control({
   children,
   className,
   ref,
@@ -239,7 +211,7 @@ type SearchFormInputProps = Omit<
   "size" | "value" | "onChange" | "withButtonInside"
 >
 
-SearchForm.Input = function SearchFormInput({
+SearchForm.Input = function Input({
   className,
   placeholder = "Search...",
   ref,
@@ -259,7 +231,7 @@ SearchForm.Input = function SearchFormInput({
 
   return (
     <div className={styles.inputWrapper()} ref={setClearSlot}>
-      <Input
+      <InputAtom
         aria-label={props["aria-label"] ?? "Search"}
         className={styles.input({ className })}
         id={inputId}
@@ -282,7 +254,7 @@ interface SearchFormButtonProps extends Omit<ButtonProps, "size"> {
   showSearchIcon?: boolean | undefined
 }
 
-SearchForm.Button = function SearchFormButton({
+SearchForm.Button = function Button({
   className,
   children,
   showSearchIcon = false,
@@ -298,7 +270,7 @@ SearchForm.Button = function SearchFormButton({
     icon ?? (showSearchIcon ? "token-icon-search" : undefined)
 
   return (
-    <Button
+    <ButtonAtom
       className={styles.button({ className })}
       icon={effectiveIcon}
       iconPosition={iconPosition}
@@ -307,7 +279,7 @@ SearchForm.Button = function SearchFormButton({
       {...props}
     >
       {children}
-    </Button>
+    </ButtonAtom>
   )
 }
 
@@ -318,7 +290,7 @@ type SearchFormClearButtonProps = Omit<
   icon?: IconType | undefined
 }
 
-SearchForm.ClearButton = function SearchFormClearButton({
+SearchForm.ClearButton = function ClearButton({
   className,
   icon = "token-icon-close",
   tone = "neutral",
@@ -364,6 +336,6 @@ SearchForm.ClearButton = function SearchFormClearButton({
   )
 }
 
-export { useSearchFormContext, searchFormVariants }
+export { useSearchFormContext }
 
 SearchForm.displayName = "SearchForm"

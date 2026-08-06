@@ -2,7 +2,7 @@
  * TreeView — @techsio/ui-kit molecule.
  *
  * @component TreeView
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill tree-view-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

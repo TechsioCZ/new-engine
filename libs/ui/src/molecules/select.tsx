@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

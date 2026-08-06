@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: slider-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Slider for single or range numeric adjustment with Zag.js slider behavior, label, markers, value text, orientation, min/max/step, validation status, and token styling.

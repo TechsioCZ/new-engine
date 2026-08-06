@@ -1,8 +1,8 @@
-/**
+/*
  * LinkButton — @techsio/ui-kit atom.
  *
  * @component LinkButton
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill link-button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -52,7 +52,12 @@ export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
     "as" | "ref" | "children" | keyof VariantProps<typeof linkButton>
   >
 
-export function LinkButton<T extends ElementType = "a">({
+const handleDisabledClick = (event: MouseEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+export const LinkButton = <T extends ElementType = "a">({
   href,
   icon,
   as,
@@ -70,14 +75,16 @@ export function LinkButton<T extends ElementType = "a">({
   onClick,
   tabIndex,
   ...props
-}: LinkButtonProps<T>) {
-  const handleClick = onClick as ((event: MouseEvent) => void) | undefined
+}: LinkButtonProps<T>) => {
+  const Component: ElementType = as ?? "a"
+  const hasIcon = icon !== undefined
+  const isDisabled = disabled === true
 
   return (
     <Link
       {...props}
       aria-disabled={disabled}
-      as={as as ElementType}
+      as={Component}
       className={linkButton({
         block,
         className,
@@ -86,25 +93,17 @@ export function LinkButton<T extends ElementType = "a">({
         uppercase,
         variant,
       })}
-      data-disabled={disabled || undefined}
+      data-disabled={isDisabled ? true : undefined}
       href={href}
-      onClick={(e: MouseEvent) => {
-        if (disabled) {
-          e.preventDefault()
-          e.stopPropagation()
-          return
-        }
-
-        handleClick?.(e)
-      }}
+      onClick={isDisabled ? handleDisabledClick : onClick}
       ref={ref}
-      tabIndex={disabled ? -1 : tabIndex}
+      tabIndex={isDisabled ? -1 : tabIndex}
     >
-      {icon && iconPosition === "left" && (
+      {hasIcon && iconPosition === "left" && (
         <Icon icon={icon} size={iconSize ?? size} />
       )}
       {children}
-      {icon && iconPosition === "right" && (
+      {hasIcon && iconPosition === "right" && (
         <Icon icon={icon} size={iconSize ?? size} />
       )}
     </Link>

@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,8 +11,8 @@
  */
 import { connect, machine } from "@zag-js/menu"
 import type { Api, Props as ZagMenuProps, Service } from "@zag-js/menu"
-import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { cloneElement, isValidElement, useEffect, useId } from "react"
+import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
+import { createElement, isValidElement, useEffect, useId } from "react"
 import type { ReactElement, ReactNode } from "react"
 import { tv } from "tailwind-variants"
 import type { VariantProps } from "tailwind-variants"
@@ -439,10 +439,11 @@ export const Menu = ({
   }
 
   const renderTrigger = () => {
-    if (isValidElement(customTrigger)) {
-      return cloneElement(customTrigger, {
-        ...api.getTriggerProps(),
-      })
+    if (isValidElement<Record<string, unknown>>(customTrigger)) {
+      return createElement(
+        customTrigger.type,
+        mergeProps(api.getTriggerProps(), customTrigger.props),
+      )
     }
 
     const hasCustomTrigger = Boolean(customTrigger)

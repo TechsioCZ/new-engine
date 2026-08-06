@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: link-button-usage
 description: >
   Use after component-usage-ux when navigation should look like a Button using @techsio/ui-kit LinkButton, including framework link adapters, href, disabled state, icons, and Button-compatible variants/themes/sizes.

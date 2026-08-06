@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: link-usage
 description: >
   Use after component-usage-ux when an app needs the low-level @techsio/ui-kit Link atom for inline or unstyled navigation, including external links and framework adapter usage.

@@ -1,8 +1,8 @@
-/**
+/*
  * Select — @techsio/ui-kit template.
  *
  * @component Select
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -40,7 +40,7 @@ export type SelectTemplateProps = Omit<SelectProps, "children"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-export function SelectTemplate({
+export const SelectTemplate = ({
   items,
   label,
   labelProps,
@@ -51,10 +51,12 @@ export function SelectTemplate({
   renderItem,
   ref,
   ...selectProps
-}: SelectTemplateProps) {
+}: SelectTemplateProps) => {
+  const hasLabel = Boolean(label)
+
   return (
     <Select items={items} ref={ref} {...selectProps}>
-      {label ? <Select.Label {...labelProps}>{label}</Select.Label> : null}
+      {hasLabel ? <Select.Label {...labelProps}>{label}</Select.Label> : null}
       <Select.Control>
         <Select.Trigger>
           <Select.ValueText placeholder={placeholder} {...valueTextProps}>
@@ -66,13 +68,13 @@ export function SelectTemplate({
         <Select.Content>
           {items.map((item) => (
             <Select.Item item={item} key={item.value}>
-              {renderItem ? (
+              {renderItem === undefined ? (
+                <Select.ItemText />
+              ) : (
                 <>
                   {renderItem(item)}
                   <Select.ItemText className="sr-only" />
                 </>
-              ) : (
-                <Select.ItemText />
               )}
               {showIndicator && <Select.ItemIndicator />}
             </Select.Item>

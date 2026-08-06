@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: product-card-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit ProductCard for product summaries with image adapter, name, price, stock, badges, rating, actions, and card button variants.

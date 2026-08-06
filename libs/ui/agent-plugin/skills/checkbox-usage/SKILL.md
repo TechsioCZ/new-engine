@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: checkbox-usage
 description: >
   Use after component-usage-ux when an app needs the low-level @techsio/ui-kit Checkbox atom, including invalid and indeterminate states, while preferring form molecules for labeled form rows.

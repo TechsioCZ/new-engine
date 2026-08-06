@@ -1,146 +1,30 @@
-/**
+/*
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the radio-group-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as zagRadioGroup from "@zag-js/radio-group"
+import { connect, machine } from "@zag-js/radio-group"
+import type {
+  ItemProps,
+  Props as RadioGroupMachineConfiguration,
+  ValueChangeDetails,
+} from "@zag-js/radio-group"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import { createContext, useContext, useId } from "react"
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
-import { Label } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
-import { tv } from "../utils"
+import { Label as AtomLabel } from "../atoms/label"
+import { StatusText as AtomStatusText } from "../atoms/status-text"
+import { radioGroupVariants } from "./radio-group-variants"
 
-const radioGroupVariants = tv({
-  defaultVariants: {
-    size: "md",
-    variant: "outline",
-  },
-  slots: {
-    hiddenInput: "sr-only",
-    item: [
-      "grid grid-cols-(--radio-group-item-grid) items-start",
-      "cursor-pointer select-none",
-      "data-disabled:cursor-not-allowed",
-      "data-readonly:cursor-default",
-    ],
-    itemContent: ["col-start-2 row-start-1 min-w-0 flex flex-col"],
-    itemControl: [
-      "row-start-1 self-center",
-      "inline-grid shrink-0 place-items-center rounded-radio-group-control",
-      "border-(length:--border-width-radio-group)",
-      "border-radio-group-item-border-base",
-      "bg-radio-group-item-bg",
-      "transition-colors duration-200 motion-reduce:transition-none",
-      "data-hover:bg-radio-group-item-bg-hover",
-      "data-hover:border-radio-group-item-border-hover",
-      "data-disabled:bg-radio-group-item-bg-disabled",
-      "data-disabled:border-radio-group-item-border-disabled",
-      "data-focus-visible:outline-(style:--default-ring-style)",
-      "data-focus-visible:outline-(length:--default-ring-width)",
-      "data-focus-visible:outline-radio-group-ring",
-      "data-focus-visible:outline-offset-(length:--default-ring-offset)",
-      "data-invalid:border-radio-group-item-border-error",
-      "data-invalid:outline-offset-(length:--default-ring-offset)",
-    ],
-    itemDescription: [
-      "col-start-2 row-start-2 min-w-0 text-radio-group-item-description leading-normal",
-      "data-disabled:text-radio-group-item-description-disabled",
-    ],
-    itemGroup: [
-      "relative flex",
-      "data-[orientation=horizontal]:flex-row",
-      "data-[orientation=horizontal]:flex-wrap",
-      "data-[orientation=vertical]:flex-col",
-    ],
-    itemIndicator: [
-      "pointer-events-none block leading-none",
-      "token-icon-radio-group-checked",
-      "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
-      "data-[state=checked]:opacity-100",
-      "data-disabled:data-[state=checked]:text-radio-group-item-indicator-disabled",
-    ],
-    itemText: [
-      "min-w-0 text-radio-group-item-fg leading-normal",
-      "data-disabled:text-radio-group-item-fg-disabled",
-    ],
-    root: ["flex w-full flex-col"],
-  },
-  variants: {
-    size: {
-      lg: {
-        item: "gap-x-radio-group-item-lg",
-        itemContent: "gap-radio-group-item-content-lg",
-        itemControl: "size-radio-group-control-lg",
-        itemDescription: "text-radio-group-item-description-lg",
-        itemGroup:
-          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-lg data-[orientation=vertical]:gap-radio-group-stack-vertical-lg",
-        itemIndicator: "size-radio-group-indicator-lg",
-        itemText: "text-radio-group-item-lg",
-        root: "gap-radio-group-stack-lg",
-      },
-      md: {
-        item: "gap-x-radio-group-item-md",
-        itemContent: "gap-radio-group-item-content-md",
-        itemControl: "size-radio-group-control-md",
-        itemDescription: "text-radio-group-item-description-md",
-        itemGroup:
-          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-md data-[orientation=vertical]:gap-radio-group-stack-vertical-md",
-        itemIndicator: "size-radio-group-indicator-md",
-        itemText: "text-radio-group-item-md",
-        root: "gap-radio-group-stack-md",
-      },
-      sm: {
-        item: "gap-x-radio-group-item-sm",
-        itemContent: "gap-radio-group-item-content-sm",
-        itemControl: "size-radio-group-control-sm",
-        itemDescription: "text-radio-group-item-description-sm",
-        itemGroup:
-          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-sm data-[orientation=vertical]:gap-radio-group-stack-vertical-sm",
-        itemIndicator: "size-radio-group-indicator-sm",
-        itemText: "text-radio-group-item-sm",
-        root: "gap-radio-group-stack-sm",
-      },
-    },
-    variant: {
-      outline: {
-        itemControl: [
-          "data-[state=checked]:bg-radio-group-item-bg-outline-checked",
-          "data-[state=checked]:border-radio-group-item-border-outline-checked",
-          "data-hover:data-[state=checked]:bg-radio-group-item-bg-outline-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-group-item-border-outline-checked-hover",
-        ],
-        itemIndicator: "text-radio-group-item-indicator-outline",
-      },
-      solid: {
-        itemControl: [
-          "data-[state=checked]:bg-radio-group-item-bg-solid-checked",
-          "data-[state=checked]:border-radio-group-item-border-solid-checked",
-          "data-hover:data-[state=checked]:bg-radio-group-item-bg-solid-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-group-item-border-solid-checked-hover",
-        ],
-        itemIndicator: "text-radio-group-item-indicator-solid",
-      },
-      subtle: {
-        itemControl: [
-          "data-[state=checked]:bg-radio-group-item-bg-subtle-checked",
-          "data-[state=checked]:border-radio-group-item-border-subtle-checked",
-          "data-hover:data-[state=checked]:bg-radio-group-item-bg-subtle-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-group-item-border-subtle-checked-hover",
-        ],
-        itemIndicator: "text-radio-group-item-indicator-subtle",
-      },
-    },
-  },
-})
+export { radioGroupVariants } from "./radio-group-variants"
 
 type RadioGroupVariant = NonNullable<
   VariantProps<typeof radioGroupVariants>["variant"]
@@ -152,46 +36,64 @@ type RadioGroupSize = NonNullable<
 
 type RadioGroupValidateStatus = "default" | "error" | "success" | "warning"
 
-interface RadioGroupContextValue {
-  api: ReturnType<typeof zagRadioGroup.connect>
-  variant: RadioGroupVariant
-  size: RadioGroupSize
-  orientation: "horizontal" | "vertical"
-  disabled: boolean
-  required: boolean
-  validateStatus: RadioGroupValidateStatus
-}
-
-const RadioGroupContext = createContext<RadioGroupContextValue | null>(null)
-
-function useRadioGroupContext() {
-  const context = useContext(RadioGroupContext)
-  if (!context) {
-    throw new Error("RadioGroup components must be used within RadioGroup")
-  }
-  return context
-}
-
-interface RadioGroupItemContextValue {
-  itemProps: zagRadioGroup.ItemProps
-}
-
-const RadioGroupItemContext = createContext<RadioGroupItemContextValue | null>(
+const RadioGroupApiContext = createContext<ReturnType<typeof connect> | null>(
   null,
 )
+const RadioGroupVariantContext = createContext<RadioGroupVariant>("outline")
+const RadioGroupSizeContext = createContext<RadioGroupSize>("md")
+const RadioGroupOrientationContext = createContext<"horizontal" | "vertical">(
+  "vertical",
+)
+const RadioGroupDisabledContext = createContext(false)
+const RadioGroupRequiredContext = createContext(false)
+const RadioGroupValidateStatusContext =
+  createContext<RadioGroupValidateStatus>("default")
 
-function useRadioGroupItemContext() {
-  const context = useContext(RadioGroupItemContext)
-  if (!context) {
+const useRadioGroupContext = () => {
+  const api = useContext(RadioGroupApiContext)
+  const variant = useContext(RadioGroupVariantContext)
+  const size = useContext(RadioGroupSizeContext)
+  const orientation = useContext(RadioGroupOrientationContext)
+  const disabled = useContext(RadioGroupDisabledContext)
+  const required = useContext(RadioGroupRequiredContext)
+  const validateStatus = useContext(RadioGroupValidateStatusContext)
+  if (api === null) {
+    throw new Error("RadioGroup components must be used within RadioGroup")
+  }
+  return {
+    api,
+    disabled,
+    orientation,
+    required,
+    size,
+    validateStatus,
+    variant,
+  }
+}
+
+const RadioGroupItemValueContext = createContext<string | null>(null)
+const RadioGroupItemDisabledContext = createContext<boolean | undefined>(
+  undefined,
+)
+const RadioGroupItemInvalidContext = createContext<boolean | undefined>(
+  undefined,
+)
+
+const useRadioGroupItemContext = () => {
+  const value = useContext(RadioGroupItemValueContext)
+  const disabled = useContext(RadioGroupItemDisabledContext)
+  const invalid = useContext(RadioGroupItemInvalidContext)
+  if (value === null) {
     throw new Error(
       "RadioGroup item components must be used within RadioGroup.Item",
     )
   }
-  return context
+  const itemProps: ItemProps = { disabled, invalid, value }
+  return { itemProps }
 }
 
 type RadioGroupMachineProps = Omit<
-  zagRadioGroup.Props,
+  RadioGroupMachineConfiguration,
   "id" | "invalid" | "onValueChange"
 >
 
@@ -223,46 +125,50 @@ export const RadioGroup = ({
   const id = providedId ?? generatedId
   const invalid = validateStatus === "error"
 
-  const service = useMachine(zagRadioGroup.machine, {
+  const service = useMachine(machine, {
     ...machineProps,
     disabled,
     id,
     invalid,
-    onValueChange: ({ value: nextValue }: zagRadioGroup.ValueChangeDetails) => {
+    onValueChange: ({ value: nextValue }: ValueChangeDetails) => {
       onValueChange?.(nextValue)
     },
     orientation,
     required,
   })
 
-  const api = zagRadioGroup.connect(service, normalizeProps)
+  const api = connect(service, normalizeProps)
   const styles = radioGroupVariants({ size, variant })
 
   return (
-    <RadioGroupContext.Provider
-      value={{
-        api,
-        disabled,
-        orientation,
-        required,
-        size,
-        validateStatus,
-        variant,
-      }}
-    >
-      <div
-        className={styles.root({ className })}
-        ref={ref}
-        {...api.getRootProps()}
-      >
-        {children}
-      </div>
-    </RadioGroupContext.Provider>
+    <RadioGroupApiContext.Provider value={api}>
+      <RadioGroupVariantContext.Provider value={variant}>
+        <RadioGroupSizeContext.Provider value={size}>
+          <RadioGroupOrientationContext.Provider value={orientation}>
+            <RadioGroupDisabledContext.Provider value={disabled}>
+              <RadioGroupRequiredContext.Provider value={required}>
+                <RadioGroupValidateStatusContext.Provider
+                  value={validateStatus}
+                >
+                  <div
+                    {...api.getRootProps()}
+                    className={styles.root({ className })}
+                    ref={ref}
+                  >
+                    {children}
+                  </div>
+                </RadioGroupValidateStatusContext.Provider>
+              </RadioGroupRequiredContext.Provider>
+            </RadioGroupDisabledContext.Provider>
+          </RadioGroupOrientationContext.Provider>
+        </RadioGroupSizeContext.Provider>
+      </RadioGroupVariantContext.Provider>
+    </RadioGroupApiContext.Provider>
   )
 }
 
 type RadioGroupLabelProps = Omit<
-  ComponentPropsWithoutRef<typeof Label>,
+  ComponentPropsWithoutRef<typeof AtomLabel>,
   "disabled" | "required"
 > & {
   disabled?: boolean | undefined
@@ -270,7 +176,7 @@ type RadioGroupLabelProps = Omit<
   ref?: Ref<HTMLLabelElement> | undefined
 }
 
-RadioGroup.Label = function RadioGroupLabel({
+RadioGroup.Label = function Label({
   children,
   disabled,
   required,
@@ -285,14 +191,14 @@ RadioGroup.Label = function RadioGroupLabel({
   } = useRadioGroupContext()
 
   return (
-    <Label
+    <AtomLabel
+      {...mergeProps(api.getLabelProps(), props)}
       disabled={disabled ?? groupDisabled}
       required={required ?? groupRequired}
       size={sizeProp ?? size}
-      {...mergeProps(api.getLabelProps(), props)}
     >
       {children}
-    </Label>
+    </AtomLabel>
   )
 }
 
@@ -300,7 +206,7 @@ type RadioGroupItemGroupProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioGroup.ItemGroup = function RadioGroupItemGroup({
+RadioGroup.ItemGroup = function ItemGroup({
   children,
   className,
   ref,
@@ -325,11 +231,11 @@ export type RadioGroupItemProps = Omit<
   ComponentPropsWithoutRef<"label">,
   "value"
 > &
-  zagRadioGroup.ItemProps & {
+  ItemProps & {
     ref?: Ref<HTMLLabelElement> | undefined
   }
 
-RadioGroup.Item = function RadioGroupItem({
+RadioGroup.Item = function Item({
   value,
   disabled,
   invalid,
@@ -340,18 +246,22 @@ RadioGroup.Item = function RadioGroupItem({
 }: RadioGroupItemProps) {
   const { api, size, variant } = useRadioGroupContext()
   const styles = radioGroupVariants({ size, variant })
-  const itemProps = { disabled, invalid, value }
+  const itemProps: ItemProps = { disabled, invalid, value }
 
   return (
-    <RadioGroupItemContext.Provider value={{ itemProps }}>
-      <label
-        className={styles.item({ className })}
-        ref={ref}
-        {...mergeProps(api.getItemProps(itemProps), props)}
-      >
-        {children}
-      </label>
-    </RadioGroupItemContext.Provider>
+    <RadioGroupItemValueContext.Provider value={value}>
+      <RadioGroupItemDisabledContext.Provider value={disabled}>
+        <RadioGroupItemInvalidContext.Provider value={invalid}>
+          <label
+            {...mergeProps(api.getItemProps(itemProps), props)}
+            className={styles.item({ className })}
+            ref={ref}
+          >
+            {children}
+          </label>
+        </RadioGroupItemInvalidContext.Provider>
+      </RadioGroupItemDisabledContext.Provider>
+    </RadioGroupItemValueContext.Provider>
   )
 }
 
@@ -362,7 +272,7 @@ type RadioGroupItemHiddenInputProps = Omit<
   ref?: Ref<HTMLInputElement> | undefined
 }
 
-RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
+RadioGroup.ItemHiddenInput = function ItemHiddenInput({
   className,
   ref,
   ...props
@@ -373,9 +283,9 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
 
   return (
     <input
+      {...mergeProps(api.getItemHiddenInputProps(itemProps), props)}
       className={styles.hiddenInput({ className })}
       ref={ref}
-      {...mergeProps(api.getItemHiddenInputProps(itemProps), props)}
     />
   )
 }
@@ -384,7 +294,7 @@ type RadioGroupItemControlProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-RadioGroup.ItemControl = function RadioGroupItemControl({
+RadioGroup.ItemControl = function ItemControl({
   children,
   className,
   ref,
@@ -397,9 +307,9 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
 
   return (
     <span
+      {...mergeProps(api.getItemControlProps(itemProps), props)}
       className={styles.itemControl({ className })}
       ref={ref}
-      {...mergeProps(api.getItemControlProps(itemProps), props)}
     >
       <span
         aria-hidden="true"
@@ -416,7 +326,7 @@ type RadioGroupItemContentProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioGroup.ItemContent = function RadioGroupItemContent({
+RadioGroup.ItemContent = function ItemContent({
   children,
   className,
   ref,
@@ -436,7 +346,7 @@ type RadioGroupItemTextProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-RadioGroup.ItemText = function RadioGroupItemText({
+RadioGroup.ItemText = function ItemText({
   children,
   className,
   ref,
@@ -448,9 +358,9 @@ RadioGroup.ItemText = function RadioGroupItemText({
 
   return (
     <span
+      {...mergeProps(api.getItemTextProps(itemProps), props)}
       className={styles.itemText({ className })}
       ref={ref}
-      {...mergeProps(api.getItemTextProps(itemProps), props)}
     >
       {children}
     </span>
@@ -461,7 +371,7 @@ type RadioGroupItemDescriptionProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioGroup.ItemDescription = function RadioGroupItemDescription({
+RadioGroup.ItemDescription = function ItemDescription({
   children,
   className,
   ref,
@@ -485,7 +395,7 @@ RadioGroup.ItemDescription = function RadioGroupItemDescription({
 }
 
 type RadioGroupStatusTextProps = Omit<
-  ComponentPropsWithoutRef<typeof StatusText>,
+  ComponentPropsWithoutRef<typeof AtomStatusText>,
   "status" | "size"
 > & {
   status?: RadioGroupValidateStatus | undefined
@@ -493,7 +403,7 @@ type RadioGroupStatusTextProps = Omit<
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-RadioGroup.StatusText = function RadioGroupStatusText({
+RadioGroup.StatusText = function StatusText({
   status,
   size: sizeProp,
   showIcon,
@@ -505,17 +415,17 @@ RadioGroup.StatusText = function RadioGroupStatusText({
   const effectiveStatus = status ?? validateStatus
 
   return (
-    <StatusText
+    <AtomStatusText
       showIcon={showIcon ?? effectiveStatus !== "default"}
       size={effectiveSize}
       status={effectiveStatus}
       {...props}
     >
       {children}
-    </StatusText>
+    </AtomStatusText>
   )
 }
 
-export { radioGroupVariants, useRadioGroupContext }
+export { useRadioGroupContext }
 
 RadioGroup.displayName = "RadioGroup"

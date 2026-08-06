@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: form-checkbox-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit FormCheckbox for labeled checkbox fields with Zag.js checked/indeterminate state, help text, validation status, required, disabled, and read-only props.

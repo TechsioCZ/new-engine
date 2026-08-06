@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: steps-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Steps for multi-step workflows using the Zag.js steps machine, compound list/items, panels, progress, navigation triggers, linear flow, controlled step, and variants.

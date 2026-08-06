@@ -6,7 +6,7 @@ type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
 component: Button
-component_version: "0.3.2"
+component_version: "0.3.3"
 requires:
   - component-usage-ux
   - app-token-overrides

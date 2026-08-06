@@ -1,8 +1,8 @@
-/**
+/*
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -14,8 +14,9 @@ import {
   connect as connectCombobox,
   collection as createComboboxCollection,
 } from "@zag-js/combobox"
+import type { Props as ZagComboboxProps } from "@zag-js/combobox"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { useEffect, useId, useState } from "react"
+import { useId, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { ActionIcon } from "../atoms/action-icon"
@@ -25,12 +26,12 @@ import type { IconProps, IconType } from "../atoms/icon"
 import { Input } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import type { StatusTextProps } from "../atoms/status-text"
 import { tv } from "../utils"
 
 const comboboxVariants = tv({
   compoundSlots: [
     {
-      slots: ["trigger"],
       class: [
         "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
         "focus-visible:outline-combobox-ring",
@@ -41,14 +42,25 @@ const comboboxVariants = tv({
         "hover:bg-combobox-trigger-bg-hover",
         "active:bg-combobox-trigger-bg-active",
       ],
+      slots: ["trigger"],
     },
   ],
   defaultVariants: {
     size: "md",
   },
   slots: {
-    root: ["relative flex w-full flex-col"],
-    label: ["block font-label text-label-md"],
+    content: [
+      "flex flex-col overflow-clip",
+      "rounded-combobox shadow-md",
+      "bg-combobox-content-bg",
+      "z-(--z-combobox-content) border border-combobox-border-base",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
+      "transition-discrete",
+      "starting:-translate-y-2 starting:opacity-0",
+      "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
+      "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
+      "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
+    ],
     control: [
       "form-control-base relative flex w-full items-center overflow-hidden",
       "bg-combobox-bg-base",
@@ -66,6 +78,11 @@ const comboboxVariants = tv({
       "data-[validation=warning]:border-(length:--border-width-validation)",
       "data-[validation=warning]:border-combobox-border-warning",
     ],
+    emptyState: ["text-combobox-fg-placeholder"],
+    helper: [
+      "data-[validation=success]:text-combobox-success-fg",
+      "data-[validation=warning]:text-combobox-warning-fg",
+    ],
     input: [
       "relative h-full min-w-0 flex-1 border-none bg-combobox-input-bg-base",
       "hover:bg-combobox-input-bg-hover focus-visible:outline-none",
@@ -74,28 +91,6 @@ const comboboxVariants = tv({
       "data-disabled:text-combobox-fg-disabled",
       "data-disabled:bg-combobox-bg-disabled",
     ],
-    // Trailing actions (clear + chevron) sit side by side with NO gap.
-    trigger: [
-      "group flex h-full shrink-0 items-center justify-center",
-      "font-normal",
-      "p-combobox-trigger",
-    ],
-    positioner: [
-      "z-(--z-index) w-full *:max-h-(--available-height) *:overflow-y-auto",
-    ],
-    content: [
-      "flex flex-col overflow-clip",
-      "rounded-combobox shadow-md",
-      "bg-combobox-content-bg",
-      "z-(--z-combobox-content) border border-combobox-border-base",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
-      "transition-discrete",
-      "starting:-translate-y-2 starting:opacity-0",
-      "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
-      "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
-      "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
-    ],
-    list: ["m-0 flex list-none flex-col"],
     item: [
       "flex items-center",
       "text-combobox-item-fg",
@@ -104,17 +99,24 @@ const comboboxVariants = tv({
       "data-[state=checked]:bg-combobox-item-bg-selected",
       "data-disabled:cursor-not-allowed data-disabled:text-combobox-fg-disabled",
     ],
-    emptyState: ["text-combobox-fg-placeholder"],
+    label: ["block font-label text-label-md"],
+    list: ["m-0 flex list-none flex-col"],
+    multiple: [],
+    positioner: [
+      "z-(--z-index) w-full *:max-h-(--available-height) *:overflow-y-auto",
+    ],
+    root: ["relative flex w-full flex-col"],
+    // Trailing actions (clear + chevron) sit side by side with NO gap.
+    trigger: [
+      "group flex h-full shrink-0 items-center justify-center",
+      "font-normal",
+      "p-combobox-trigger",
+    ],
     triggerIndicator: [
       "text-combobox-trigger-fg-base group-hover:text-combobox-trigger-fg-hover",
       "motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none",
       "rotate-0 group-data-[state=open]:rotate-180",
     ],
-    helper: [
-      "data-[validation=success]:text-combobox-success-fg",
-      "data-[validation=warning]:text-combobox-warning-fg",
-    ],
-    multiple: [],
   },
   variants: {
     size: {
@@ -157,6 +159,8 @@ export interface ComboboxItem<T = unknown> {
   data?: T | undefined
 }
 
+type ComboboxValue = string | string[]
+
 export interface ComboboxProps<T = unknown> extends VariantProps<
   typeof comboboxVariants
 > {
@@ -168,16 +172,16 @@ export interface ComboboxProps<T = unknown> extends VariantProps<
   readOnly?: boolean | undefined
   required?: boolean | undefined
   items: ComboboxItem<T>[]
-  value?: string | string[] | undefined
-  defaultValue?: string | string[] | undefined
+  value?: ComboboxValue | undefined
+  defaultValue?: ComboboxValue | undefined
   inputValue?: string | undefined
   multiple?: boolean | undefined
-  validateStatus?: "default" | "error" | "success" | "warning" | undefined
+  validateStatus?: StatusTextProps["status"]
   helpText?: string | undefined
   showHelpTextIcon?: boolean | undefined
   noResultsMessage?: string | undefined
   clearable?: boolean | undefined
-  selectionBehavior?: "replace" | "clear" | "preserve" | undefined
+  selectionBehavior?: ZagComboboxProps["selectionBehavior"]
   closeOnSelect?: boolean | undefined
   allowCustomValue?: boolean | undefined
   loopFocus?: boolean | undefined
@@ -185,139 +189,211 @@ export interface ComboboxProps<T = unknown> extends VariantProps<
   triggerIcon?: IconType | undefined
   triggerIconSize?: IconProps["size"] | undefined
   clearIcon?: IconType | undefined
-  onChange?: ((value: string | string[]) => void) | undefined
+  onChange?: ((value: ComboboxValue) => void) | undefined
   onInputValueChange?: ((value: string) => void) | undefined
   onOpenChange?: ((open: boolean) => void) | undefined
-  inputBehavior?: "autohighlight" | "autocomplete" | "none" | undefined
+  inputBehavior?: ZagComboboxProps["inputBehavior"]
 }
 
-export function Combobox<T = unknown>({
-  id,
-  name,
-  label,
-  size,
-  placeholder = "Select option",
-  disabled = false,
-  readOnly = false,
-  required = false,
-  items,
-  value,
-  defaultValue,
-  inputValue,
-  multiple = false,
-  validateStatus,
-  helpText,
-  showHelpTextIcon = true,
-  noResultsMessage = 'No results found for "{inputValue}"',
-  clearable = true,
-  selectionBehavior = "replace",
-  closeOnSelect = true,
-  allowCustomValue = false,
-  loopFocus = true,
-  autoFocus = false,
-  triggerIcon = "token-icon-combobox-chevron",
-  triggerIconSize,
-  clearIcon = "token-icon-combobox-clear",
-  inputBehavior = "autocomplete",
-  onChange,
-  onInputValueChange,
-  onOpenChange,
-}: ComboboxProps<T>) {
-  const generatedId = useId()
-  const uniqueId = id || generatedId
+type DefaultedComboboxKey =
+  | "allowCustomValue"
+  | "autoFocus"
+  | "clearable"
+  | "clearIcon"
+  | "closeOnSelect"
+  | "disabled"
+  | "inputBehavior"
+  | "loopFocus"
+  | "multiple"
+  | "noResultsMessage"
+  | "placeholder"
+  | "readOnly"
+  | "required"
+  | "selectionBehavior"
+  | "showHelpTextIcon"
+  | "triggerIcon"
 
-  const [options, setOptions] = useState(items)
-  useEffect(() => {
-    setOptions(items)
-  }, [items])
+type ResolvedComboboxProps<T> = ComboboxProps<T> & {
+  [Key in DefaultedComboboxKey]-?: NonNullable<ComboboxProps<T>[Key]>
+}
+
+interface ComboboxFilterState<T> {
+  query?: string | undefined
+  source: ComboboxItem<T>[]
+}
+
+const resolveComboboxProps = <T,>(
+  props: ComboboxProps<T>,
+): ResolvedComboboxProps<T> => ({
+  ...props,
+  allowCustomValue: props.allowCustomValue ?? false,
+  autoFocus: props.autoFocus ?? false,
+  clearIcon: props.clearIcon ?? "token-icon-combobox-clear",
+  clearable: props.clearable ?? true,
+  closeOnSelect: props.closeOnSelect ?? true,
+  disabled: props.disabled ?? false,
+  inputBehavior: props.inputBehavior ?? "autocomplete",
+  loopFocus: props.loopFocus ?? true,
+  multiple: props.multiple ?? false,
+  noResultsMessage:
+    props.noResultsMessage ?? 'No results found for "{inputValue}"',
+  placeholder: props.placeholder ?? "Select option",
+  readOnly: props.readOnly ?? false,
+  required: props.required ?? false,
+  selectionBehavior: props.selectionBehavior ?? "replace",
+  showHelpTextIcon: props.showHelpTextIcon ?? true,
+  triggerIcon: props.triggerIcon ?? "token-icon-combobox-chevron",
+})
+
+const normalizeComboboxValue = (value: ComboboxValue): string[] =>
+  typeof value === "string" ? [value] : value
+
+const useComboboxApi = <T,>(
+  props: ResolvedComboboxProps<T>,
+  uniqueId: string,
+) => {
+  const {
+    allowCustomValue,
+    autoFocus,
+    closeOnSelect,
+    defaultValue,
+    disabled,
+    inputBehavior,
+    inputValue,
+    items,
+    loopFocus,
+    multiple,
+    name,
+    onChange,
+    onInputValueChange,
+    onOpenChange,
+    readOnly,
+    selectionBehavior,
+    value,
+  } = props
+  const [filterState, setFilterState] = useState<ComboboxFilterState<T>>({
+    source: items,
+  })
+  const filterQuery =
+    filterState.source === items ? filterState.query : undefined
+  const normalizedQuery = filterQuery?.toLowerCase()
+  const options =
+    normalizedQuery === undefined
+      ? items
+      : items.filter((item) =>
+          item.label.toLowerCase().includes(normalizedQuery),
+        )
   const collection = createComboboxCollection({
-    isItemDisabled: (item) => !!item.disabled,
+    isItemDisabled: (item) => item.disabled === true,
     itemToString: (item) => item.label,
     itemToValue: (item) => item.value,
     items: options,
   })
 
   const service = useMachine(comboboxMachine, {
-    id: uniqueId,
-    name,
-    collection,
-    disabled,
-    readOnly,
-    closeOnSelect,
-    selectionBehavior,
     allowCustomValue,
     autoFocus,
-    inputBehavior,
-    loopFocus,
+    closeOnSelect,
+    collection,
+    ...(defaultValue !== undefined && {
+      defaultValue: normalizeComboboxValue(defaultValue),
+    }),
+    disabled,
+    id: uniqueId,
     ids: {
       control: `${uniqueId}-control`,
       input: `${uniqueId}-input`,
       label: `${uniqueId}-label`,
     },
-    multiple,
-    ...(value !== undefined && { value: value as string[] }),
-    ...(defaultValue !== undefined && {
-      defaultValue: defaultValue as string[],
-    }),
+    inputBehavior,
     ...(inputValue !== undefined && { inputValue }),
-    onValueChange: ({ value: selectedValue }) => {
-      onChange?.(selectedValue)
-    },
-    onInputValueChange: ({ inputValue: newItemInputValue }) => {
-      const filtered = items.filter((item) =>
-        item.label.toLowerCase().includes(newItemInputValue.toLowerCase()),
-      )
-      setOptions(filtered)
-      onInputValueChange?.(newItemInputValue)
+    loopFocus,
+    multiple,
+    ...(name !== undefined && { name }),
+    onInputValueChange: ({ inputValue: nextInputValue }) => {
+      setFilterState({ query: nextInputValue, source: items })
+      onInputValueChange?.(nextInputValue)
     },
     onOpenChange: ({ open }) => {
-      setOptions(items)
+      setFilterState({ source: items })
       onOpenChange?.(open)
     },
+    onValueChange: ({ value: nextValue }) => {
+      onChange?.(nextValue)
+    },
+    readOnly,
+    selectionBehavior,
+    ...(value !== undefined && { value: normalizeComboboxValue(value) }),
   })
 
-  const api = connectCombobox(service, normalizeProps)
+  return {
+    api: connectCombobox(service, normalizeProps),
+    options,
+  }
+}
 
-  const inputProps = api.getInputProps()
-  const { ...restInputProps } = inputProps
+export const Combobox = <T = unknown,>(rawProps: ComboboxProps<T>) => {
+  const props = resolveComboboxProps(rawProps)
+  const {
+    clearable,
+    clearIcon,
+    helpText,
+    id,
+    label,
+    name,
+    noResultsMessage,
+    placeholder,
+    required,
+    showHelpTextIcon,
+    size,
+    triggerIcon,
+    triggerIconSize,
+    validateStatus,
+  } = props
+  const generatedId = useId()
+  const uniqueId = id !== undefined && id !== "" ? id : generatedId
+  const { api, options } = useComboboxApi(props, uniqueId)
+  const restInputProps = api.getInputProps()
 
   const {
-    root,
-    label: labelStyles,
-    control,
-    input,
-    trigger,
-    positioner,
     content,
-    list,
-    item: itemSlot,
+    control,
     emptyState,
+    input,
+    item: itemSlot,
+    label: labelStyles,
+    list,
+    positioner,
+    root,
+    trigger,
     triggerIndicator,
   } = comboboxVariants({ size })
 
+  const hasHelpText = helpText !== undefined && helpText !== ""
+  const hasLabel = label !== undefined && label !== ""
   const hasOptions = api.collection.size > 0
-  const showEmptyState = !hasOptions && Boolean(api.inputValue)
+  const showEmptyState = !hasOptions && api.inputValue !== ""
 
   return (
     <div className={root()}>
-      {label && (
+      {hasLabel && (
         <Label
+          {...api.getLabelProps()}
           className={labelStyles()}
           required={required}
           size={size}
-          {...api.getLabelProps()}
         >
           {label}
         </Label>
       )}
       <div
-        className={control()}
         {...api.getControlProps()}
+        className={control()}
         data-validation={validateStatus}
       >
         <Input
-          className={input()}
           {...restInputProps}
+          className={input()}
           name={name}
           placeholder={placeholder}
           required={required}
@@ -326,10 +402,10 @@ export function Combobox<T = unknown>({
 
         {clearable && api.value.length > 0 && (
           <ActionIcon
+            {...api.getClearTriggerProps()}
             icon={clearIcon}
             size={size ?? "md"}
             tone="neutral"
-            {...api.getClearTriggerProps()}
           />
         )}
 
@@ -372,7 +448,7 @@ export function Combobox<T = unknown>({
         </div>
       </Portal>
 
-      {helpText && (
+      {hasHelpText && (
         <StatusText
           showIcon={showHelpTextIcon}
           size={size}

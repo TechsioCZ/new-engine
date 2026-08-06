@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: popover-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Popover for anchored non-blocking content using Zag.js compound parts, placement, portalling, close behavior, arrow, title, description, and close trigger.

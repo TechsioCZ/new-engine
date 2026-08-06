@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: header-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Header for responsive site header composition with desktop/mobile sections, containers, nav, nav items, actions, hamburger, active state, size, direction, and token styling.

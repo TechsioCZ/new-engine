@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: menu-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Menu for action, radio, checkbox, separator, or submenu items using the Zag.js menu wrapper, Button trigger, icons, and supported open/highlight/select props.

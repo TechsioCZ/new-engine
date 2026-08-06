@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: gallery-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Gallery for product or media image galleries with Carousel integration, thumbnails, controlled page, orientation, thumbnail image adapters, thumbnail aria labels, empty state, and NextImage support.
