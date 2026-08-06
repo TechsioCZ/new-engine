@@ -59,6 +59,13 @@ interface CategoryRecord {
   name?: string
 }
 
+interface FacetDefinition {
+  id: string
+  label: string
+}
+
+type CatalogProductRow = Parameters<typeof wrapProductsWithTaxPrices>[1][number]
+
 const FACETS_TO_FETCH = [
   "facet_status",
   "facet_form",
@@ -67,12 +74,39 @@ const FACETS_TO_FETCH = [
   "facet_price",
 ]
 
-const mapStatusFacets = (
+const isNonEmptyString = (value: string | undefined): value is string =>
+  value !== undefined && value !== ""
+
+const collectUndefinedFacetItems = (
   facetCounts: Map<string, number>,
+  usedIds: ReadonlySet<string>,
+  labelById: ReadonlyMap<string, string>,
+): FacetCountItem[] => {
+  const items: FacetCountItem[] = []
+
+  for (const [id, count] of facetCounts) {
+    if (usedIds.has(id)) {
+      continue
+    }
+
+    items.push({
+      count,
+      id,
+      label: labelById.get(id) ?? id,
+    })
+  }
+
+  return items
+}
+
+const mapDefinedFacets = (
+  definitions: readonly FacetDefinition[],
+  facetCounts: Map<string, number>,
+  labelById: ReadonlyMap<string, string>,
 ): FacetCountItem[] => {
   const usedIds = new Set<string>()
 
-  const result: FacetCountItem[] = STATUS_FACET_DEFINITIONS.map((item) => {
+  const result: FacetCountItem[] = definitions.map((item) => {
     usedIds.add(item.id)
 
     return {
@@ -83,47 +117,25 @@ const mapStatusFacets = (
   })
 
   const additionalItems = sortFacetCountItems(
-    [...facetCounts.entries()]
-      .filter(([id]) => !usedIds.has(id))
-      .map(([id, count]) => ({
-        count,
-        id,
-        label: STATUS_FACET_LABEL_BY_ID.get(id) ?? id,
-      })),
+    collectUndefinedFacetItems(facetCounts, usedIds, labelById),
   )
 
   return [...result, ...additionalItems]
 }
 
-const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] => {
-  const usedIds = new Set<string>()
-
-  const result: FacetCountItem[] = FORM_FACET_DEFINITIONS.map((item) => {
-    usedIds.add(item.id)
-
-    return {
-      count: facetCounts.get(item.id) ?? 0,
-      id: item.id,
-      label: item.label,
-    }
-  })
-
-  const additionalItems = sortFacetCountItems(
-    [...facetCounts.entries()]
-      .filter(([id]) => !usedIds.has(id))
-      .map(([id, count]) => ({
-        count,
-        id,
-        label: FORM_FACET_LABEL_BY_ID.get(id) ?? id,
-      })),
+const mapStatusFacets = (facetCounts: Map<string, number>): FacetCountItem[] =>
+  mapDefinedFacets(
+    STATUS_FACET_DEFINITIONS,
+    facetCounts,
+    STATUS_FACET_LABEL_BY_ID,
   )
 
-  return [...result, ...additionalItems]
-}
+const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] =>
+  mapDefinedFacets(FORM_FACET_DEFINITIONS, facetCounts, FORM_FACET_LABEL_BY_ID)
 
 const getProductIdFromHit = (hit: unknown): string | undefined => {
-  if (!hit || typeof hit !== "object" || Array.isArray(hit)) {
-    return
+  if (hit === null || typeof hit !== "object" || Array.isArray(hit)) {
+    return undefined
   }
 
   const { id } = hit as MeiliProductHit
@@ -134,7 +146,7 @@ const getProductIdFromHit = (hit: unknown): string | undefined => {
     return String(id)
   }
 
-  return
+  return undefined
 }
 
 const escapeMeiliFilterValue = (value: string): string =>
@@ -149,8 +161,8 @@ const getSalesChannelIds = (value: unknown): string[] => {
     return [value]
   }
 
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    const inValue = (value as Record<string, unknown>)["$in"]
+  if (value !== null && typeof value === "object") {
+    const inValue: unknown = Reflect.get(value, "$in")
     if (Array.isArray(inValue)) {
       return inValue.filter((item): item is string => typeof item === "string")
     }
@@ -165,12 +177,14 @@ const buildMeiliOrExpression = (
 ): string | undefined => {
   const uniqueValues = [...new Set(values.filter(Boolean))]
   if (uniqueValues.length === 0) {
-    return
+    return undefined
   }
 
   if (uniqueValues.length === 1) {
     const [value] = uniqueValues
-    return value ? `${field} = "${escapeMeiliFilterValue(value)}"` : undefined
+    return isNonEmptyString(value)
+      ? `${field} = "${escapeMeiliFilterValue(value)}"`
+      : undefined
   }
 
   return `(${uniqueValues
@@ -189,7 +203,7 @@ const buildVisibilityFilterExpressions = (
     getSalesChannelIds(salesChannelIdFilter),
   )
 
-  if (salesChannelExpression) {
+  if (isNonEmptyString(salesChannelExpression)) {
     expressions.push(salesChannelExpression)
   }
 
@@ -212,7 +226,7 @@ const resolveBrandFacetLabels = async (
     return labelsById
   }
 
-  const { data: brands } = await queryService.graph({
+  const { data: brands }: { data: BrandRecord[] } = await queryService.graph({
     entity: "brand",
     fields: ["handle", "title"],
     filters: {
@@ -223,16 +237,17 @@ const resolveBrandFacetLabels = async (
   })
 
   const brandTitleByHandle = new Map<string, string>()
-  for (const brand of brands as BrandRecord[]) {
-    if (!(brand.handle && brand.title)) {
+  for (const brand of brands) {
+    const { handle, title } = brand
+    if (!(isNonEmptyString(handle) && isNonEmptyString(title))) {
       continue
     }
-    brandTitleByHandle.set(brand.handle, brand.title)
+    brandTitleByHandle.set(handle, title)
   }
 
   for (const facetId of facetIds) {
     const handle = extractBrandHandleFromFacetId(facetId)
-    if (!handle) {
+    if (!isNonEmptyString(handle)) {
       continue
     }
 
@@ -262,27 +277,29 @@ const resolveIngredientFacetLabels = async (
     return labelsById
   }
 
-  const { data: categories } = await queryService.graph({
-    entity: "product_category",
-    fields: ["handle", "name"],
-    filters: {
-      handle: {
-        $in: handles,
+  const { data: categories }: { data: CategoryRecord[] } =
+    await queryService.graph({
+      entity: "product_category",
+      fields: ["handle", "name"],
+      filters: {
+        handle: {
+          $in: handles,
+        },
       },
-    },
-  })
+    })
 
   const categoryNameByHandle = new Map<string, string>()
-  for (const category of categories as CategoryRecord[]) {
-    if (!(category.handle && category.name)) {
+  for (const category of categories) {
+    const { handle, name } = category
+    if (!(isNonEmptyString(handle) && isNonEmptyString(name))) {
       continue
     }
-    categoryNameByHandle.set(category.handle, category.name)
+    categoryNameByHandle.set(handle, name)
   }
 
   for (const facetId of facetIds) {
     const handle = extractIngredientHandleFromFacetId(facetId)
-    if (!handle) {
+    if (!isNonEmptyString(handle)) {
       continue
     }
 
@@ -307,10 +324,10 @@ const mapDynamicFacets = (
     })),
   )
 
-export async function GET(
+export const GET = async (
   req: RequestWithContext<unknown, StoreCatalogProductsSchemaType>,
   res: MedusaResponse,
-) {
+): Promise<void> => {
   if (!isMeilisearchEnabled()) {
     res.status(503).json({
       message: "Catalog search is disabled",
@@ -389,9 +406,9 @@ export async function GET(
       ]
     : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
 
-  const { data: products } =
+  const { data: products }: { data: CatalogProductRow[] } =
     productIds.length === 0
-      ? { data: [] as Record<string, unknown>[] }
+      ? { data: [] }
       : await queryService.graph(
           definedProperties({
             entity: "product",
@@ -407,32 +424,22 @@ export async function GET(
                 status: ProductStatus.PUBLISHED,
               },
             ),
-            ...((pricingContext
-              ? {
-                  variants: {
-                    calculated_price: pricingContext,
-                  },
-                }
-              : undefined) === undefined
+            ...(pricingContext === undefined
               ? {}
               : {
-                  context: pricingContext
-                    ? {
-                        variants: {
-                          calculated_price: pricingContext,
-                        },
-                      }
-                    : undefined,
+                  context: {
+                    variants: {
+                      calculated_price: pricingContext,
+                    },
+                  },
                 }),
           }),
         )
 
   const productOrder = new Map(productIds.map((id, index) => [id, index]))
-  const orderedProducts = [...products].sort((left, right) => {
-    const leftId = typeof left.id === "string" ? left.id : ""
-    const rightId = typeof right.id === "string" ? right.id : ""
-    const leftIndex = productOrder.get(leftId) ?? Number.MAX_SAFE_INTEGER
-    const rightIndex = productOrder.get(rightId) ?? Number.MAX_SAFE_INTEGER
+  const orderedProducts = products.toSorted((left, right) => {
+    const leftIndex = productOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER
+    const rightIndex = productOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER
     return leftIndex - rightIndex
   })
 
@@ -469,13 +476,10 @@ export async function GET(
       ? searchResult.estimatedTotalHits
       : orderedProducts.length
   const totalPages = count > 0 ? Math.ceil(count / limit) : 0
-  await wrapProductsWithTaxPrices(
-    req,
-    orderedProducts as Parameters<typeof wrapProductsWithTaxPrices>[1],
-  )
+  await wrapProductsWithTaxPrices(req, orderedProducts)
   await decorateProductsWithMeasurements(
     req.scope,
-    orderedProducts as Parameters<typeof decorateProductsWithMeasurements>[1],
+    orderedProducts,
     measurementDecorationOptions,
   )
 
