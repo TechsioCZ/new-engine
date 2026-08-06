@@ -1,18 +1,92 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import type {
+  ensureProductExists,
+  ensureProductVariantBelongsToProduct,
+  getCanonicalProductMeasurement,
+  getCanonicalProductVariantMeasurement,
+  getCurrentProductMeasurement,
+  listProductMeasurementsForProduct,
+  retrieveActiveUnitOrThrow,
+} from "../../../../../src/workflows/measurement-unit/steps/helpers"
+import type { ProductMeasurementLinkIds } from "../../../../../src/workflows/measurement-unit/steps/measurement-link-mutations"
+import type {
+  ProductMeasurementLinkPlan,
+  ProductMeasurementTransitionPlan,
+  SetVariantMeasurementPlan,
+  VariantMeasurementMigrationPlan,
+} from "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
+import type {
+  SetProductMeasurementWorkflowInput,
+  SetProductVariantMeasurementWorkflowInput,
+} from "../../../../../src/workflows/measurement-unit/types"
+
+interface ProductVariantMeasurementFixture {
+  deleted_at?: Date | null
+  id: string
+  product_measurement_id?: string
+  product_unit_quantity: number | string
+  product_variant_id: string
+}
+
+interface ProductMeasurementFixture {
+  deleted_at?: Date | null
+  id: string
+  measurement_unit_id: string
+  product_id: string
+  variant_measurements: ProductVariantMeasurementFixture[]
+}
+
+interface VariantMeasurementMigrationInput {
+  previous_variant_measurements: ProductVariantMeasurementFixture[]
+  source_target_same: boolean
+  target_product_measurement_id: string
+}
+
+type ListProductMeasurementsFn = (
+  container: unknown,
+  productId: string,
+  options?: unknown,
+) => Promise<ProductMeasurementFixture[]>
+
+type ListProductVariantMeasurementsFn = (
+  filters: unknown,
+  options?: unknown,
+) => Promise<ProductVariantMeasurementFixture[]>
+
+type StepImplementation = (...args: unknown[]) => unknown
+
+type CreateStepFn = (
+  name: string,
+  invoke: StepImplementation,
+) => StepImplementation
+
+interface HelpersModuleActual {
+  ensureProductExists: typeof ensureProductExists
+  ensureProductVariantBelongsToProduct: typeof ensureProductVariantBelongsToProduct
+  getCanonicalProductMeasurement: typeof getCanonicalProductMeasurement
+  getCanonicalProductVariantMeasurement: typeof getCanonicalProductVariantMeasurement
+  getCurrentProductMeasurement: typeof getCurrentProductMeasurement
+  listProductMeasurementsForProduct: typeof listProductMeasurementsForProduct
+  retrieveActiveUnitOrThrow: typeof retrieveActiveUnitOrThrow
+}
+
 const { helpers, service } = vi.hoisted(() => ({
   helpers: {
-    ensureProductExists: vi.fn(),
-    ensureProductVariantBelongsToProduct: vi.fn(),
-    getCanonicalProductMeasurement: vi.fn(),
-    getCanonicalProductVariantMeasurement: vi.fn(),
-    getCurrentProductMeasurement: vi.fn(),
-    listProductMeasurementsForProduct: vi.fn(),
-    retrieveActiveUnitOrThrow: vi.fn(),
+    ensureProductExists: vi.fn<typeof ensureProductExists>(),
+    ensureProductVariantBelongsToProduct:
+      vi.fn<typeof ensureProductVariantBelongsToProduct>(),
+    getCanonicalProductMeasurement:
+      vi.fn<typeof getCanonicalProductMeasurement>(),
+    getCanonicalProductVariantMeasurement:
+      vi.fn<typeof getCanonicalProductVariantMeasurement>(),
+    getCurrentProductMeasurement: vi.fn<typeof getCurrentProductMeasurement>(),
+    listProductMeasurementsForProduct: vi.fn<ListProductMeasurementsFn>(),
+    retrieveActiveUnitOrThrow: vi.fn<typeof retrieveActiveUnitOrThrow>(),
   },
   service: {
-    listProductVariantMeasurements: vi.fn(),
+    listProductVariantMeasurements: vi.fn<ListProductVariantMeasurementsFn>(),
   },
 }))
 
@@ -24,7 +98,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.payload = payload
     }
   },
-  createStep: vi.fn((_name, invoke) => invoke),
+  createStep: vi.fn<CreateStepFn>((_name, invoke) => invoke),
 }))
 
 vi.mock(import("../../../../../src/links/product-measurement"), () => ({
@@ -40,9 +114,9 @@ vi.mock(import("../../../../../src/links/product-variant-measurement"), () => ({
 vi.mock(
   import("../../../../../src/workflows/measurement-unit/steps/helpers"),
   async () => {
-    const actual = await vi.importActual<
-      typeof import("../../../../../src/workflows/measurement-unit/steps/helpers")
-    >("../../../../../src/workflows/measurement-unit/steps/helpers")
+    const actual = await vi.importActual<HelpersModuleActual>(
+      "../../../../../src/workflows/measurement-unit/steps/helpers",
+    )
 
     return {
       ...actual,
@@ -52,31 +126,35 @@ vi.mock(
 )
 
 vi.mock(import("../../../../../src/utils/measurement-units"), () => ({
-  getMeasurementUnitService: vi.fn(() => service),
-  toNumber: (value: unknown) => Number(value),
+  getMeasurementUnitService: vi.fn<() => typeof service>(() => service),
+  toNumber: Number,
 }))
 
-type MockStep = (
-  input: unknown,
-  context: {
-    container: {
-      resolve: ReturnType<typeof vi.fn>
-    }
-  },
-) => Promise<{ payload: any }>
-
 const container = {
-  resolve: vi.fn(),
+  resolve: vi.fn<(key: unknown) => unknown>(),
 }
 
-const asMockStep = (candidate: unknown): MockStep => {
-  if (typeof candidate !== "function") {
+type MockStep<TInput, TOutput> = (
+  input: TInput,
+  context: { container: typeof container },
+) => Promise<{ payload: TOutput }>
+
+type GraphQueryFn = (input: unknown) => Promise<{ data: unknown[] }>
+
+const isMockStep = <TInput, TOutput>(
+  candidate: unknown,
+): candidate is MockStep<TInput, TOutput> => typeof candidate === "function"
+
+const asMockStep = <TInput, TOutput>(
+  candidate: unknown,
+): MockStep<TInput, TOutput> => {
+  if (!isMockStep<TInput, TOutput>(candidate)) {
     throw new TypeError(
       "Expected the imported workflow step to be a mocked function",
     )
   }
 
-  return candidate as MockStep
+  return candidate
 }
 
 describe("measurement transition preparation", () => {
@@ -116,7 +194,10 @@ describe("measurement transition preparation", () => {
     ])
     const { prepareProductMeasurementTransitionStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
-    const result = await asMockStep(prepareProductMeasurementTransitionStep)(
+    const result = await asMockStep<
+      SetProductMeasurementWorkflowInput,
+      ProductMeasurementTransitionPlan
+    >(prepareProductMeasurementTransitionStep)(
       {
         measurement_unit_id: "unit_new",
         product_id: "prod_1",
@@ -124,8 +205,8 @@ describe("measurement transition preparation", () => {
       { container },
     )
 
-    expect(result.payload.previous.id).toBe("pm_current")
-    expect(result.payload.existing_target.id).toBe("pm_target")
+    expect(result.payload.previous?.id).toBe("pm_current")
+    expect(result.payload.existing_target?.id).toBe("pm_target")
     expect(result.payload.previous_variant_measurements).toStrictEqual([
       expect.objectContaining({ id: "pvm_live" }),
     ])
@@ -144,7 +225,10 @@ describe("measurement transition preparation", () => {
     ])
     const { prepareVariantMeasurementMigrationStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
-    const result = await asMockStep(prepareVariantMeasurementMigrationStep)(
+    const result = await asMockStep<
+      VariantMeasurementMigrationInput,
+      VariantMeasurementMigrationPlan
+    >(prepareVariantMeasurementMigrationStep)(
       {
         previous_variant_measurements: [
           {
@@ -193,7 +277,10 @@ describe("measurement transition preparation", () => {
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      asMockStep(prepareVariantMeasurementMigrationStep)(
+      asMockStep<
+        VariantMeasurementMigrationInput,
+        VariantMeasurementMigrationPlan
+      >(prepareVariantMeasurementMigrationStep)(
         {
           previous_variant_measurements: [
             {
@@ -217,7 +304,10 @@ describe("measurement transition preparation", () => {
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      asMockStep(prepareSetProductVariantMeasurementStep)(
+      asMockStep<
+        SetProductVariantMeasurementWorkflowInput,
+        SetVariantMeasurementPlan
+      >(prepareSetProductVariantMeasurementStep)(
         {
           product_id: "prod_1",
           product_unit_quantity: Number.NaN,
@@ -237,7 +327,10 @@ describe("measurement transition preparation", () => {
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      asMockStep(prepareSetProductVariantMeasurementStep)(
+      asMockStep<
+        SetProductVariantMeasurementWorkflowInput,
+        SetVariantMeasurementPlan
+      >(prepareSetProductVariantMeasurementStep)(
         {
           product_id: "prod_1",
           product_unit_quantity: 2,
@@ -252,7 +345,7 @@ describe("measurement transition preparation", () => {
 
   it("creates the target link and dismisses another active link", async () => {
     container.resolve.mockReturnValue({
-      graph: vi.fn().mockResolvedValue({
+      graph: vi.fn<GraphQueryFn>().mockResolvedValue({
         data: [
           {
             deleted_at: null,
@@ -264,7 +357,10 @@ describe("measurement transition preparation", () => {
     })
     const { prepareProductMeasurementLinkPlanStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
-    const result = await asMockStep(prepareProductMeasurementLinkPlanStep)(
+    const result = await asMockStep<
+      ProductMeasurementLinkIds,
+      ProductMeasurementLinkPlan
+    >(prepareProductMeasurementLinkPlanStep)(
       {
         product_id: "prod_1",
         product_measurement_id: "pm_target",
@@ -289,7 +385,7 @@ describe("measurement transition preparation", () => {
 
   it("restores a soft-deleted target link", async () => {
     container.resolve.mockReturnValue({
-      graph: vi.fn().mockResolvedValue({
+      graph: vi.fn<GraphQueryFn>().mockResolvedValue({
         data: [
           {
             deleted_at: new Date("2026-01-01"),
@@ -301,7 +397,10 @@ describe("measurement transition preparation", () => {
     })
     const { prepareProductMeasurementLinkPlanStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
-    const result = await asMockStep(prepareProductMeasurementLinkPlanStep)(
+    const result = await asMockStep<
+      ProductMeasurementLinkIds,
+      ProductMeasurementLinkPlan
+    >(prepareProductMeasurementLinkPlanStep)(
       {
         product_id: "prod_1",
         product_measurement_id: "pm_target",
@@ -321,7 +420,7 @@ describe("measurement transition preparation", () => {
 
   it("rejects malformed custom-link query results", async () => {
     container.resolve.mockReturnValue({
-      graph: vi.fn().mockResolvedValue({
+      graph: vi.fn<GraphQueryFn>().mockResolvedValue({
         data: [{ product_id: "prod_1" }],
       }),
     })
@@ -329,7 +428,9 @@ describe("measurement transition preparation", () => {
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      asMockStep(prepareProductMeasurementLinkPlanStep)(
+      asMockStep<ProductMeasurementLinkIds, ProductMeasurementLinkPlan>(
+        prepareProductMeasurementLinkPlanStep,
+      )(
         {
           product_id: "prod_1",
           product_measurement_id: "pm_1",
