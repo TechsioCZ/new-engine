@@ -164,6 +164,8 @@ export interface BrandAdminI18nNamespace {
   >
 }
 
+const CZECH_BRAND_LOAD_FAILED = "Výrobce se nepodařilo načíst."
+
 export const brandAdminI18n = {
   cs: {
     actions: {
@@ -226,8 +228,8 @@ export const brandAdminI18n = {
       euResponsiblePersonRequired:
         "Odpovědná osoba v EU musí mít vyplněnou společnost, adresu a e-mail.",
       loadAttributeFailed: "Atribut se nepodařilo načíst.",
-      loadBrandFailed: "Výrobce se nepodařilo načíst.",
-      loadBrandsFailed: "Výrobce se nepodařilo načíst.",
+      loadBrandFailed: CZECH_BRAND_LOAD_FAILED,
+      loadBrandsFailed: CZECH_BRAND_LOAD_FAILED,
       productIdRequired: "ID produktu je povinné",
       removeProductFailed: "Produkt se nepodařilo odebrat",
       restoreAttributeFailed: "Atribut se nepodařilo obnovit",
@@ -343,7 +345,7 @@ export const brandAdminI18n = {
       empty: "Žádný výrobce není propojen.",
       inactiveSelectionWarning:
         "Aktuálně propojený výrobce je neaktivní. Propojení zůstane zachováno a nahradí se pouze výběrem nového aktivního výrobce.",
-      loadFailed: "Výrobce se nepodařilo načíst.",
+      loadFailed: CZECH_BRAND_LOAD_FAILED,
       manageTitle: "Spravovat výrobce",
       none: "Žádný",
       productDetailsDescription:

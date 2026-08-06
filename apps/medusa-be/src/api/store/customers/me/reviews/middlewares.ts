@@ -4,6 +4,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework"
 import type { MiddlewareRoute } from "@medusajs/framework/http"
+
 import {
   StoreGetCustomerReviewsSchema,
   StoreUpdateCustomerReviewSchema,
@@ -11,8 +12,8 @@ import {
 
 export const storeCustomerReviewRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/store/customers/me/reviews",
+    methods: ["GET"],
     middlewares: [
       authenticate("customer", ["session", "bearer"]),
       validateAndTransformQuery(StoreGetCustomerReviewsSchema, {
@@ -21,8 +22,8 @@ export const storeCustomerReviewRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["PATCH"],
     matcher: "/store/customers/me/reviews/:id",
+    methods: ["PATCH"],
     middlewares: [
       authenticate("customer", ["session", "bearer"]),
       validateAndTransformBody(StoreUpdateCustomerReviewSchema),

@@ -72,13 +72,13 @@ export const createShippingOptionsStep = createStep(
     )
 
     const missingOptions = input.filter(
-      (i) => !existingOptions.find((j) => j.name === i.name),
+      (i) => !existingOptions.some((j) => j.name === i.name),
     )
     const updateOptions = input.flatMap((inputOption) => {
       const existingOption = existingOptions.find(
         (existing) => existing.name === inputOption.name,
       )
-      if (existingOption) {
+      if (existingOption !== undefined) {
         return [
           {
             existing: existingOption,
@@ -99,7 +99,7 @@ export const createShippingOptionsStep = createStep(
           price_type: "flat" as const,
           prices: [
             ...option.prices.flatMap((price) =>
-              price.currencyCode
+              price.currencyCode !== undefined && price.currencyCode.length > 0
                 ? [{ amount: price.amount, currency_code: price.currencyCode }]
                 : [],
             ),
@@ -155,7 +155,8 @@ export const createShippingOptionsStep = createStep(
             price_type: "flat" as const,
             prices: [
               ...inputOption.prices.flatMap((price) =>
-                price.currencyCode
+                price.currencyCode !== undefined &&
+                price.currencyCode.length > 0
                   ? [
                       {
                         amount: price.amount,
@@ -182,7 +183,7 @@ export const createShippingOptionsStep = createStep(
               : { data: inputOption.data }),
           }
 
-          if (codeMatches && existingType) {
+          if (codeMatches && existingType !== undefined) {
             // Use type_id to reference existing type (will update it separately)
             return {
               ...baseInput,
@@ -213,28 +214,42 @@ export const createShippingOptionsStep = createStep(
       }
 
       // Update existing types where code matched with new values from input
-      const typesToUpdate = updateOptions.filter(
-        ({ existing, input: inputOption }) =>
-          existing.type?.code === inputOption.type.code && existing.type,
+      const typesToUpdate = updateOptions.flatMap(
+        ({ existing, input: inputOption }) => {
+          const existingType = existing.type
+          return existingType !== undefined &&
+            existingType.code === inputOption.type.code
+            ? [{ existingType, inputOption }]
+            : []
+        },
       )
 
-      if (typesToUpdate.length > 0) {
-        for (const { existing, input: inputOption } of typesToUpdate) {
-          logger.info(
-            `Updating existing shipping option type: ${inputOption.type.code}`,
-          )
-          await updateShippingOptionTypesWorkflow(container).run({
-            input: {
-              selector: { id: existing.type.id },
-              update: {
-                code: inputOption.type.code,
-                description: inputOption.type.description,
-                label: inputOption.type.label,
-              },
-            },
-          })
+      const processType = async function processType(
+        index: number,
+      ): Promise<void> {
+        const item = typesToUpdate[index]
+        if (item === undefined) {
+          return
         }
+
+        const { existingType, inputOption } = item
+        logger.info(
+          `Updating existing shipping option type: ${inputOption.type.code}`,
+        )
+        await updateShippingOptionTypesWorkflow(container).run({
+          input: {
+            selector: { id: existingType.id },
+            update: {
+              code: inputOption.type.code,
+              description: inputOption.type.description,
+              label: inputOption.type.label,
+            },
+          },
+        })
+        await processType(index + 1)
       }
+
+      await processType(0)
     }
 
     return new StepResponse({

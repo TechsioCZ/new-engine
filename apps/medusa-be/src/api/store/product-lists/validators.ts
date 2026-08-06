@@ -15,7 +15,7 @@ const nullableTrimmedString = z.preprocess(
 const optionalEmailString = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().trim().email().optional(),
+  z.string().trim().pipe(z.email()).optional(),
 )
 
 const metadataSchema = z.record(z.string(), z.unknown()).nullable().optional()
@@ -108,10 +108,15 @@ export const StoreCreateProductListCartSchema = z
     sales_channel_id: optionalTrimmedString,
   })
   .strict()
-  .refine((data) => data.region_id || data.country_code, {
-    error: () => "region_id or country_code is required",
-    path: ["region_id"],
-  })
+  .refine(
+    (data) =>
+      (data.region_id !== undefined && data.region_id.length > 0) ||
+      (data.country_code !== undefined && data.country_code.length > 0),
+    {
+      error: () => "region_id or country_code is required",
+      path: ["region_id"],
+    },
+  )
 
 export const StoreDeleteProductListItemParamsSchema = z
   .object({

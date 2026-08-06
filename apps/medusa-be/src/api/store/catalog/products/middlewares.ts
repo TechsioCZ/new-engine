@@ -22,8 +22,8 @@ export const storeCatalogProductsRoutesMiddlewares: MiddlewareRoute[] = [
         allowUnauthenticated: true,
       }),
       validateAndTransformQuery(StoreCatalogProductsSchema, {
-        defaults: STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
         allowed: STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS,
+        defaults: STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
         isList: true,
       }),
       filterByValidSalesChannels(),

@@ -29,7 +29,7 @@ describe("encryption utilities", () => {
   const originalEnv = process.env["SETTINGS_ENCRYPTION_KEY"]
 
   afterEach(() => {
-    if (originalEnv) {
+    if (originalEnv !== undefined && originalEnv.length > 0) {
       process.env["SETTINGS_ENCRYPTION_KEY"] = originalEnv
     } else {
       // required to truly unset env var for testing
@@ -41,7 +41,6 @@ describe("encryption utilities", () => {
     it.each([
       {
         expectedError: "SETTINGS_ENCRYPTION_KEY is required",
-        key: undefined,
         scenario: "key is missing",
       },
       {
@@ -127,7 +126,7 @@ describe("encryption utilities", () => {
       const tampered = Buffer.from(encrypted, "base64")
       const tamperedIndex = 20
       // XOR is intentional for tampering test
-      tampered[tamperedIndex] = (tampered[tamperedIndex] ?? 0) ^ 0xff
+      tampered[tamperedIndex] = 0xff - (tampered[tamperedIndex] ?? 0)
       const tamperedBase64 = tampered.toString("base64")
 
       expect(decryptValue(tamperedBase64)).toBe(tamperedBase64)

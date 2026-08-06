@@ -45,12 +45,12 @@ describe("brand GPSR request validation", () => {
       [field]: null,
     })
 
-    expect(result.success).toBeFalsy()
-    if (!result.success) {
-      expect(
-        result.error.issues.some((issue) => issue.path[0] === field),
-      ).toBeTruthy()
+    if (result.success) {
+      throw new Error(`Expected ${field} validation to fail`)
     }
+    expect(
+      result.error.issues.some((issue) => issue.path[0] === field),
+    ).toBeTruthy()
   })
 
   it("accepts a partial update for workflow effective-state validation", () => {
@@ -94,16 +94,16 @@ describe("Brand product delta request validation", () => {
       remove: ["prod_1"],
     })
 
-    expect(result.success).toBeFalsy()
-    if (!result.success) {
-      expect(result.error.issues).toStrictEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            path: ["remove"],
-          }),
-        ]),
-      )
+    if (result.success) {
+      throw new Error("Expected overlapping product ids to fail validation")
     }
+    expect(result.error.issues).toStrictEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: ["remove"],
+        }),
+      ]),
+    )
   })
 
   it("rejects the obsolete whole-set request contract", () => {

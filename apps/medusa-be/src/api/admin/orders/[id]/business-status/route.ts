@@ -13,14 +13,14 @@ import {
 } from "../../../order-business-statuses/utils"
 import type { PostAdminOrderBusinessStatusSchemaType } from "./validators"
 
-export async function POST(
+const updateOrderBusinessStatus = async (
   req: MedusaRequest<PostAdminOrderBusinessStatusSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { id } = req.params
   const { status } = req.validatedBody
 
-  if (!id) {
+  if (id === undefined || id.length === 0) {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Order id is missing")
   }
 
@@ -42,3 +42,5 @@ export async function POST(
     order: toOrderBusinessStatusSummary(updatedOrder ?? { ...order, metadata }),
   })
 }
+
+export { updateOrderBusinessStatus as POST }

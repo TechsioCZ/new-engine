@@ -16,8 +16,8 @@ import { useParams } from "react-router-dom"
 
 import type { QueryQuote } from "../../../../types"
 import { Form } from "../../../components/common/form"
-import { useCreateQuoteMessage } from "../../../hooks/api"
-import { QuoteItem } from "./quote-details"
+import { useCreateQuoteMessage } from "../../../hooks/api/quotes"
+import { QuoteItem } from "./quote-details/quote-items"
 
 export const CreateQuoteMessageForm = z.object({
   item_id: z.string().nullish(),
@@ -65,7 +65,7 @@ export const QuoteMessages = ({
   const { t } = useTranslation("quotes")
   const { quoteId } = useParams()
 
-  if (!quoteId) {
+  if (quoteId === undefined || quoteId.length === 0) {
     throw new Error(t("validation.missingQuoteId"))
   }
 
@@ -73,10 +73,10 @@ export const QuoteMessages = ({
    * FORM
    */
   const form = useForm<CreateQuoteMessageFormValues>({
-    defaultValues: () => ({
+    defaultValues: {
       item_id: null,
       text: "",
-    }),
+    },
     resolver: createQuoteMessageResolver,
   })
 
@@ -90,21 +90,29 @@ export const QuoteMessages = ({
     preview?.items?.map((item) => [item.id, item]),
   )
 
-  const handleSubmit = form.handleSubmit(async (data) => {
-    await createMessage(
-      {
-        text: data.text,
-        ...(data.item_id ? { item_id: data.item_id } : {}),
-      },
-      {
-        onError: (e) => toast.error(e.message),
-        onSuccess: () => {
-          form.reset()
-          toast.success(t("toasts.messageSent"))
+  const handleSubmit = form.handleSubmit(
+    async (data: CreateQuoteMessageFormValues) => {
+      await createMessage(
+        {
+          text: data.text,
+          ...(data.item_id !== null &&
+          data.item_id !== undefined &&
+          data.item_id.length > 0
+            ? { item_id: data.item_id }
+            : {}),
         },
-      },
-    )
-  })
+        {
+          onError: (error) => {
+            toast.error(error.message)
+          },
+          onSuccess: () => {
+            form.reset()
+            toast.success(t("toasts.messageSent"))
+          },
+        },
+      )
+    },
+  )
 
   return (
     <Container className="divide-y divide-dashed p-0">
@@ -124,19 +132,22 @@ export const QuoteMessages = ({
           return (
             <div
               className={clx("flex flex-col gap-y-2 px-6 py-4 text-sm", {
-                "!bg-ui-bg-subtle !inset-x-5 !inset-y-3": !!message.admin_id,
+                "!bg-ui-bg-subtle !inset-x-5 !inset-y-3":
+                  message.admin_id !== null && message.admin_id !== undefined,
               })}
               key={message.id}
             >
               <div className="txt-compact-small font-medium font-sans text-ui-fg-subtle">
-                {!!message.admin &&
-                  `${message.admin.first_name} ${message.admin.last_name}`}
+                {message.admin !== null && message.admin !== undefined
+                  ? `${message.admin.first_name} ${message.admin.last_name}`
+                  : null}
 
-                {!!message.customer &&
-                  `${message.customer.first_name} ${message.customer.last_name}`}
+                {message.customer !== null && message.customer !== undefined
+                  ? `${message.customer.first_name} ${message.customer.last_name}`
+                  : null}
               </div>
 
-              {!!previewItem && !!originalItem && (
+              {previewItem !== undefined && originalItem !== undefined ? (
                 <div className="my-2 border border-neutral-400 border-dashed">
                   <QuoteItem
                     currencyCode={quote.draft_order.currency_code}
@@ -144,7 +155,7 @@ export const QuoteMessages = ({
                     originalItem={originalItem}
                   />
                 </div>
-              )}
+              ) : null}
 
               <div>{message.text}</div>
             </div>
@@ -154,7 +165,12 @@ export const QuoteMessages = ({
 
       <div className="px-4 pt-5 pb-3">
         <Form {...form}>
-          <form className="flex flex-col gap-y-3" onSubmit={handleSubmit}>
+          <form
+            className="flex flex-col gap-y-3"
+            onSubmit={(event) => {
+              void handleSubmit(event)
+            }}
+          >
             <Form.Field
               control={form.control}
               name="item_id"

@@ -93,12 +93,9 @@ export const getStorefrontTextMarketConfiguration = (
     (configuration) => configuration.market === market,
   )
 
-type EqualTypes<Left, Right> =
-  (<Value>() => Value extends Left ? 1 : 2) extends <
-    Value,
-  >() => Value extends Right ? 1 : 2
-    ? true
-    : false
+type EqualTypes<Left, Right> = [Left, Right] extends [Right, Left]
+  ? true
+  : false
 
 type ExpectTrue<Value extends true> = Value
 

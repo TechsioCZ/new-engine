@@ -27,11 +27,11 @@ export const restoreBrandAttributeTypesStep = createStep(
       )
     }
 
-    const deletedIds = attributeTypes
-      .filter((attributeType) => !!attributeType.deleted_at)
-      .map((attributeType) => attributeType.id)
     const deletedAttributeTypes = attributeTypes.filter(
-      (attributeType) => !!attributeType.deleted_at,
+      (attributeType) => attributeType.deleted_at !== null,
+    )
+    const deletedIds = deletedAttributeTypes.map(
+      (attributeType) => attributeType.id,
     )
 
     if (deletedIds.length) {
@@ -82,7 +82,7 @@ export const restoreBrandAttributeTypesStep = createStep(
     )
   },
   async (restoredIds, { container }) => {
-    if (restoredIds?.length) {
+    if (restoredIds !== undefined && restoredIds.length > 0) {
       await getBrandService(container).softDeleteBrandAttributeTypes(
         restoredIds,
       )

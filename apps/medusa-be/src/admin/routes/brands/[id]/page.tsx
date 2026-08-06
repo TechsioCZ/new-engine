@@ -18,7 +18,8 @@ import {
 } from "@medusajs/ui"
 import type { DataTableColumnDef } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import type { TFunction } from "i18next"
+import { useState } from "react"
 import type { Dispatch, SetStateAction } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router-dom"
@@ -54,12 +55,20 @@ import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
 const PRODUCT_SELECTOR_PAGE_SIZE = 20
+const PRODUCTS_MANAGE_TITLE_KEY = "products.manageTitle"
+const PRODUCTS_TITLE_KEY = "products.title"
+const ATTRIBUTE_TYPES_PARAMS = {
+  include_deleted: true,
+  limit: 100,
+  offset: 0,
+  order_by: "name",
+}
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export const loader = async ({ params }: LoaderFunctionArgs) => {
   const { id } = params
 
-  if (!id) {
-    return { brand: undefined }
+  if (id === undefined || id.length === 0) {
+    return {}
   }
 
   return await retrieveBrand(id)
@@ -84,17 +93,112 @@ const productOptionColumnHelper =
   createDataTableColumnHelper<BrandProductOption>()
 const productColumnHelper = createDataTableColumnHelper<ProductSummary>()
 
-const ProductAssignmentDrawer = ({
+const getProductOptionColumns = (
+  brandId: string,
+  translate: TFunction<"brands">,
+): DataTableColumnDef<BrandProductOption>[] => [
+  productOptionColumnHelper.select({ header: () => null }),
+  productOptionColumnHelper.accessor(
+    (option) => option.product.title ?? option.product.id,
+    {
+      cell: ({ row }) => {
+        const assignedBrand = row.original.assigned_brand
+        const label = row.original.product.title ?? row.original.product.id
+        return !isProductOptionSelectable(row.original, brandId) &&
+          assignedBrand !== null &&
+          assignedBrand !== undefined ? (
+          <Tooltip
+            content={translate("products.alreadyLinkedTooltip", {
+              title: assignedBrand.title,
+            })}
+            side="right"
+          >
+            <span className="cursor-not-allowed opacity-60">{label}</span>
+          </Tooltip>
+        ) : (
+          label
+        )
+      },
+      header: translate("columns.product"),
+      id: "product",
+    },
+  ),
+  productOptionColumnHelper.accessor((option) => option.product.handle ?? "-", {
+    header: translate("columns.handle"),
+    id: "handle",
+  }),
+  productOptionColumnHelper.accessor((option) => option.product.status ?? "-", {
+    header: translate("columns.status"),
+    id: "status",
+  }),
+]
+
+const getProductColumns = ({
+  canManage,
+  onRemove,
+  removingProductId,
+  translate,
+}: {
+  canManage: boolean
+  onRemove: (product: ProductSummary) => void
+  removingProductId: string | undefined
+  translate: TFunction<"brands">
+}): DataTableColumnDef<ProductSummary>[] => [
+  productColumnHelper.accessor((product) => product.title ?? product.id, {
+    cell: ({ row }) => (
+      <Link to={`/products/${row.original.id}`}>
+        {row.original.title ?? row.original.id}
+      </Link>
+    ),
+    header: translate("columns.product"),
+    id: "product",
+  }),
+  productColumnHelper.accessor((product) => product.handle ?? "-", {
+    header: translate("columns.handle"),
+    id: "handle",
+  }),
+  productColumnHelper.accessor("status", {
+    cell: ({ row }) =>
+      row.original.status !== null && row.original.status !== undefined ? (
+        <Badge size="2xsmall">{row.original.status}</Badge>
+      ) : (
+        "-"
+      ),
+    header: translate("columns.status"),
+  }),
+  ...(canManage
+    ? [
+        productColumnHelper.action({
+          actions: ({ row }) =>
+            removingProductId === row.original.id
+              ? []
+              : [
+                  {
+                    icon: <Trash />,
+                    label: translate("actions.remove"),
+                    onClick: () => {
+                      onRemove(row.original)
+                    },
+                  },
+                ],
+        }),
+      ]
+    : []),
+]
+
+interface ProductAssignmentDrawerProps {
+  brandId: string
+  currentProductIds: string[]
+  onOpenChange: (open: boolean) => void
+  open: boolean
+}
+
+const ProductAssignmentDrawerContent = ({
   currentProductIds,
   onOpenChange,
   open,
   brandId,
-}: {
-  currentProductIds: string[]
-  onOpenChange: (open: boolean) => void
-  open: boolean
-  brandId: string
-}) => {
+}: ProductAssignmentDrawerProps) => {
   const { t } = useTranslation("brands")
   const queryClient = useQueryClient()
   const [pageIndex, setPageIndex] = useState(0)
@@ -103,12 +207,6 @@ const ProductAssignmentDrawer = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(currentProductIds),
   )
-
-  useEffect(() => {
-    if (open) {
-      setSelectedIds(new Set(currentProductIds))
-    }
-  }, [currentProductIds, open])
 
   const params = {
     limit: PRODUCT_SELECTOR_PAGE_SIZE,
@@ -173,55 +271,13 @@ const ProductAssignmentDrawer = ({
   const count = data?.count ?? 0
   const hasSearch = q.trim().length > 0
   const rowSelection = toRowSelection(selectedIds)
-  const isAssignedToAnotherBrand = (option: BrandProductOption) =>
-    !isProductOptionSelectable(option, brandId)
-  const columns: DataTableColumnDef<BrandProductOption>[] = [
-    productOptionColumnHelper.select({ header: () => null }),
-    productOptionColumnHelper.accessor(
-      (option) => option.product.title ?? option.product.id,
-      {
-        cell: ({ row }) => {
-          const assignedBrand = row.original.assigned_brand
-          const label = row.original.product.title ?? row.original.product.id
-
-          return isAssignedToAnotherBrand(row.original) && assignedBrand ? (
-            <Tooltip
-              content={t("products.alreadyLinkedTooltip", {
-                title: assignedBrand.title,
-              })}
-              side="right"
-            >
-              <span className="cursor-not-allowed opacity-60">{label}</span>
-            </Tooltip>
-          ) : (
-            label
-          )
-        },
-        header: t("columns.product"),
-        id: "product",
-      },
-    ),
-    productOptionColumnHelper.accessor(
-      (option) => option.product.handle ?? "-",
-      {
-        header: t("columns.handle"),
-        id: "handle",
-      },
-    ),
-    productOptionColumnHelper.accessor(
-      (option) => option.product.status ?? "-",
-      {
-        header: t("columns.status"),
-        id: "status",
-      },
-    ),
-  ]
+  const columns = getProductOptionColumns(brandId, t)
 
   return (
     <Drawer onOpenChange={handleOpenChange} open={open}>
       <Drawer.Content>
         <Drawer.Header>
-          <Drawer.Title>{t("products.manageTitle")}</Drawer.Title>
+          <Drawer.Title>{t(PRODUCTS_MANAGE_TITLE_KEY)}</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-4 overflow-y-auto">
           <Input
@@ -241,11 +297,11 @@ const ProductAssignmentDrawer = ({
                 description: hasSearch
                   ? t("products.emptySearch")
                   : t("products.emptyOptions"),
-                heading: t("products.manageTitle"),
+                heading: t(PRODUCTS_MANAGE_TITLE_KEY),
               },
               filtered: {
                 description: t("products.emptySearch"),
-                heading: t("products.manageTitle"),
+                heading: t(PRODUCTS_MANAGE_TITLE_KEY),
               },
             }}
             getRowId={(option) => option.product.id}
@@ -297,6 +353,15 @@ const ProductAssignmentDrawer = ({
   )
 }
 
+const ProductAssignmentDrawer = (props: ProductAssignmentDrawerProps) => (
+  <ProductAssignmentDrawerContent
+    {...props}
+    key={
+      props.open ? `open:${JSON.stringify(props.currentProductIds)}` : "closed"
+    }
+  />
+)
+
 const BrandProductsSection = ({
   canManage,
   count,
@@ -329,55 +394,19 @@ const BrandProductsSection = ({
   setProductQ: (value: string) => void
 }) => {
   const { t } = useTranslation("brands")
-  const columns: DataTableColumnDef<ProductSummary>[] = [
-    productColumnHelper.accessor((product) => product.title ?? product.id, {
-      cell: ({ row }) => (
-        <Link to={`/products/${row.original.id}`}>
-          {row.original.title ?? row.original.id}
-        </Link>
-      ),
-      header: t("columns.product"),
-      id: "product",
-    }),
-    productColumnHelper.accessor((product) => product.handle ?? "-", {
-      header: t("columns.handle"),
-      id: "handle",
-    }),
-    productColumnHelper.accessor("status", {
-      cell: ({ row }) =>
-        row.original.status ? (
-          <Badge size="2xsmall">{row.original.status}</Badge>
-        ) : (
-          "-"
-        ),
-      header: t("columns.status"),
-    }),
-    ...(canManage
-      ? [
-          productColumnHelper.action({
-            actions: ({ row }) =>
-              removingProductId === row.original.id
-                ? []
-                : [
-                    {
-                      icon: <Trash />,
-                      label: t("actions.remove"),
-                      onClick: () => {
-                        onRemove(row.original)
-                      },
-                    },
-                  ],
-          }),
-        ]
-      : []),
-  ]
+  const columns = getProductColumns({
+    canManage,
+    onRemove,
+    removingProductId,
+    translate: t,
+  })
 
   return (
     <Container className="divide-y p-0">
       <div className="flex flex-col gap-4 px-6 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <Heading level="h2">{t("products.title")}</Heading>
+            <Heading level="h2">{t(PRODUCTS_TITLE_KEY)}</Heading>
             <Text className="text-ui-fg-subtle" size="small">
               {t("detail.linkedProductsCount", { count })}
             </Text>
@@ -429,11 +458,11 @@ const BrandProductsSection = ({
         emptyState={{
           empty: {
             description: t("products.emptyLinked"),
-            heading: t("products.title"),
+            heading: t(PRODUCTS_TITLE_KEY),
           },
           filtered: {
             description: t("products.emptyLinked"),
-            heading: t("products.title"),
+            heading: t(PRODUCTS_TITLE_KEY),
           },
         }}
         getRowId={(product) => product.id}
@@ -514,8 +543,16 @@ const BrandDetailContent = ({
             </Link>
           </IconButton>
           <Heading level="h1">{brand.title}</Heading>
-          <StatusBadge color={brand.deleted_at ? "red" : "green"}>
-            {brand.deleted_at ? t("status.deleted") : t("status.active")}
+          <StatusBadge
+            color={
+              brand.deleted_at !== null && brand.deleted_at !== undefined
+                ? "red"
+                : "green"
+            }
+          >
+            {brand.deleted_at !== null && brand.deleted_at !== undefined
+              ? t("status.deleted")
+              : t("status.active")}
           </StatusBadge>
         </div>
 
@@ -527,7 +564,7 @@ const BrandDetailContent = ({
                 {brand.handle}
               </Text>
             </div>
-            {brand.deleted_at ? (
+            {brand.deleted_at !== null && brand.deleted_at !== undefined ? (
               <Button
                 isLoading={restorePending}
                 onClick={onRestore}
@@ -599,7 +636,7 @@ const BrandDetailContent = ({
                   {t("fields.gpsr_manufactured_outside_eu")}
                 </Text>
                 <Text size="small">
-                  {brand.gpsr_manufactured_outside_eu
+                  {brand.gpsr_manufactured_outside_eu === true
                     ? t("status.yes")
                     : t("status.no")}
                 </Text>
@@ -636,7 +673,7 @@ const BrandDetailContent = ({
           <div className="px-6 py-4">
             <Heading level="h2">{t("attributes.title")}</Heading>
             <div className="mt-3 grid gap-2">
-              {brand.attributes.length ? (
+              {brand.attributes.length > 0 ? (
                 brand.attributes.map((attribute) => (
                   <div
                     className="grid grid-cols-[160px_1fr_auto] gap-3"
@@ -646,7 +683,8 @@ const BrandDetailContent = ({
                       {attribute.name}
                     </Text>
                     <Text size="small">{attribute.value}</Text>
-                    {attribute.attribute_type_deleted_at ? (
+                    {attribute.attribute_type_deleted_at !== null &&
+                    attribute.attribute_type_deleted_at !== undefined ? (
                       <StatusBadge color="red">
                         {t("status.deleted")}
                       </StatusBadge>
@@ -686,7 +724,7 @@ const BrandDetailContent = ({
         onOpenChange={onEditOpenChange}
         open={!isDeleted && editOpen}
       />
-      {brandId ? (
+      {brandId !== undefined && brandId.length > 0 ? (
         <ProductAssignmentDrawer
           brandId={brandId}
           currentProductIds={productIds}
@@ -712,9 +750,9 @@ const BrandDetailPage = () => {
   const debouncedProductQ = useDebouncedValue(productQ)
 
   const brandQuery = useQuery({
-    enabled: !!id,
+    enabled: id !== undefined && id.length > 0,
     queryFn: async () => {
-      if (!id) {
+      if (id === undefined || id.length === 0) {
         throw new Error(t("errors.brandIdRequired"))
       }
       return await retrieveBrand(id)
@@ -722,7 +760,8 @@ const BrandDetailPage = () => {
     queryKey: brandQueryKeys.detail(id),
   })
   const brand = brandQuery.data?.brand
-  const isDeleted = !!brand?.deleted_at
+  const isDeleted =
+    brand?.deleted_at !== null && brand?.deleted_at !== undefined
 
   const productParams = {
     limit: PAGE_SIZE,
@@ -732,10 +771,10 @@ const BrandDetailPage = () => {
   }
 
   const productsQuery = useQuery({
-    enabled: !!id && !!brand,
+    enabled: id !== undefined && id.length > 0 && brand !== undefined,
     placeholderData: (previousData) => previousData,
     queryFn: async () => {
-      if (!id) {
+      if (id === undefined || id.length === 0) {
         throw new Error(t("errors.brandIdRequired"))
       }
       return await retrieveBrandProducts(id, productParams)
@@ -746,15 +785,9 @@ const BrandDetailPage = () => {
   const products = productsQuery.data?.products ?? []
   const productIds = productsQuery.data?.product_ids ?? []
   const count = productsQuery.data?.count ?? 0
-  const attributeTypesParams = {
-    include_deleted: true,
-    limit: 100,
-    offset: 0,
-    order_by: "name",
-  }
   const attributeTypesQuery = useQuery({
-    queryFn: async () => await listBrandAttributeTypes(attributeTypesParams),
-    queryKey: brandQueryKeys.attributeTypes(attributeTypesParams),
+    queryFn: async () => await listBrandAttributeTypes(ATTRIBUTE_TYPES_PARAMS),
+    queryKey: brandQueryKeys.attributeTypes(ATTRIBUTE_TYPES_PARAMS),
   })
   const attributeTypes = attributeTypesQuery.data?.attribute_types ?? []
   const restoreMutation = useMutation({
@@ -835,7 +868,7 @@ const BrandDetailPage = () => {
     }
   }
 
-  if (brandQuery.error) {
+  if (brandQuery.error !== null && brandQuery.error !== undefined) {
     return (
       <Container>
         <Alert variant="error">{t("errors.loadBrandFailed")}</Alert>
@@ -843,7 +876,7 @@ const BrandDetailPage = () => {
     )
   }
 
-  if (brandQuery.isLoading || !brand) {
+  if (brandQuery.isLoading || brand === undefined) {
     return (
       <Container className="flex items-center justify-center gap-2 py-8">
         <Spinner className="animate-spin" />
@@ -871,7 +904,9 @@ const BrandDetailPage = () => {
       onProductOrderByChange={setProductOrderBy}
       onProductQueryChange={setProductQ}
       onProductsOpenChange={setProductsOpen}
-      onRemove={handleRemoveProduct}
+      onRemove={(product) => {
+        void handleRemoveProduct(product)
+      }}
       onRestore={() => {
         restoreMutation.mutate(brand.id)
       }}

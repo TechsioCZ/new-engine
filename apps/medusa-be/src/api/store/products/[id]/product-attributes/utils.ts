@@ -1,4 +1,5 @@
 import type { Query } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 
 import type {
   ProductAttributeAssignmentRecord,
@@ -44,15 +45,85 @@ export type TranslatedProductAttributeAssignment = Omit<
   option?: ProductAttributeOptionRecord | null
 }
 
+type StoreProductAttributeProjection = Pick<
+  TranslatedProductAttributeAssignment,
+  "id" | "text_value"
+> & {
+  definition?: Pick<
+    ProductAttributeDefinitionRecord,
+    "id" | "input_type" | "is_public" | "key" | "label"
+  >
+  option?: Pick<ProductAttributeOptionRecord, "id" | "key" | "label"> | null
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const isUnknownArray = (value: unknown): value is unknown[] =>
+  Array.isArray(value)
+
+const isDefinitionProjection = (
+  value: unknown,
+): value is NonNullable<StoreProductAttributeProjection["definition"]> => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const { id, input_type: inputType, is_public: isPublic, key, label } = value
+  const hasValidInputType = inputType === "select" || inputType === "text"
+  const stringFieldsAreValid = [id, key, label].every(
+    (field) => typeof field === "string",
+  )
+  return (
+    stringFieldsAreValid && hasValidInputType && typeof isPublic === "boolean"
+  )
+}
+
+const isOptionProjection = (
+  value: unknown,
+): value is NonNullable<StoreProductAttributeProjection["option"]> => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const { id, key, label } = value
+  return (
+    typeof id === "string" &&
+    typeof key === "string" &&
+    typeof label === "string"
+  )
+}
+
+const isStoreProductAttributeProjection = (
+  value: unknown,
+): value is StoreProductAttributeProjection => {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
+    return false
+  }
+
+  const { definition, option, text_value: textValue } = value
+  if (definition !== undefined && !isDefinitionProjection(definition)) {
+    return false
+  }
+  if (option !== undefined && option !== null && !isOptionProjection(option)) {
+    return false
+  }
+
+  return textValue === null || typeof textValue === "string"
+}
+
 export const toPublicStoreProductAttributes = (
-  assignments: TranslatedProductAttributeAssignment[],
+  assignments: readonly StoreProductAttributeProjection[],
 ) =>
   assignments.flatMap((assignment) => {
     const { definition } = assignment
-    if (!definition?.is_public) {
+    if (definition?.is_public !== true) {
       return []
     }
-    if (definition.input_type === "select" && !assignment.option) {
+    if (
+      definition.input_type === "select" &&
+      (assignment.option === undefined || assignment.option === null)
+    ) {
       return []
     }
 
@@ -81,10 +152,12 @@ export const toPublicStoreProductAttributes = (
   })
 
 export const paginatePublicStoreProductAttributes = (
-  assignments: TranslatedProductAttributeAssignment[],
+  assignments: readonly StoreProductAttributeProjection[],
   pagination: { limit: number; offset: number },
 ) => {
-  const publicAssignments = toPublicStoreProductAttributes(assignments).sort(
+  const publicAssignments = toPublicStoreProductAttributes(
+    assignments,
+  ).toSorted(
     (left, right) =>
       left.definition.key.localeCompare(right.definition.key) ||
       left.id.localeCompare(right.id),
@@ -112,12 +185,16 @@ export const listPublicStoreProductAttributes = async ({
   productId: string
   query: Query
 }) => {
-  const assignments: TranslatedProductAttributeAssignment[] = []
+  const assignments: StoreProductAttributeProjection[] = []
   let sourceOffset = 0
   let sourceCount = Number.POSITIVE_INFINITY
 
-  while (sourceOffset < sourceCount) {
-    const { data, metadata } = await query.graph(
+  const processPage = async function processPage(): Promise<void> {
+    if (sourceOffset >= sourceCount) {
+      return
+    }
+
+    const result: unknown = await query.graph(
       {
         entity: "product_attribute",
         fields: PRODUCT_ATTRIBUTE_STORE_FIELDS,
@@ -130,13 +207,39 @@ export const listPublicStoreProductAttributes = async ({
       },
       locale === undefined ? {} : { locale },
     )
-    assignments.push(...(data as TranslatedProductAttributeAssignment[]))
-    sourceCount = metadata?.count ?? assignments.length
-    if (data.length === 0) {
-      break
+    if (!isRecord(result)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Product Attribute query returned an invalid result",
+      )
     }
-    sourceOffset += data.length
+
+    const { data: page, metadata } = result
+    if (!isUnknownArray(page)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Product Attribute query returned an invalid result",
+      )
+    }
+    if (!page.every(isStoreProductAttributeProjection)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Product Attribute query returned an invalid assignment",
+      )
+    }
+
+    assignments.push(...page)
+    sourceCount =
+      isRecord(metadata) && typeof metadata["count"] === "number"
+        ? metadata["count"]
+        : assignments.length
+    if (page.length === 0) {
+      return
+    }
+    sourceOffset += page.length
+    await processPage()
   }
 
+  await processPage()
   return paginatePublicStoreProductAttributes(assignments, { limit, offset })
 }

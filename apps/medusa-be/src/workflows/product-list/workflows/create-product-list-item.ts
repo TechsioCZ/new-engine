@@ -56,7 +56,10 @@ export const createProductListItemWorkflow = createWorkflow(
           },
         ]
 
-        if (workflowInput.variant_id) {
+        if (
+          workflowInput.variant_id !== undefined &&
+          workflowInput.variant_id.length > 0
+        ) {
           links.push({
             [PRODUCT_LIST_MODULE]: {
               product_list_item_id: createdItemResult.item.id,

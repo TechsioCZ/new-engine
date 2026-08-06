@@ -90,8 +90,8 @@ const option = buildOption({
   key: "2-roky",
   label: "2 roky",
 })
-const INACTIVE_OPTION_ERROR = /not an active option/
-const DUPLICATE_DEFINITION_ERROR = /occurs more than once/
+const INACTIVE_OPTION_ERROR = /not an active option/u
+const DUPLICATE_DEFINITION_ERROR = /occurs more than once/u
 
 describe("Product Attribute assignment validation", () => {
   it("accepts exactly one compatible value branch", () => {

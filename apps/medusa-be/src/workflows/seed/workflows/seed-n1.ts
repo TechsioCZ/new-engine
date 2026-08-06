@@ -43,6 +43,16 @@ import seedCategoriesWorkflow from "./seed-categories"
 import type { CategoryRaw } from "./seed-categories"
 
 const seedN1WorkflowId = "seed-n1-workflow"
+
+const getShippingOptionAmount = (
+  prices: CreateShippingOptionsStepSeedInput[number]["prices"],
+  currencyCode: string | undefined,
+  fallbackAmount: number,
+) =>
+  prices.find(
+    (price) =>
+      price.currencyCode?.toLowerCase() === currencyCode?.toLowerCase(),
+  )?.amount ?? fallbackAmount
 /** Raw product record from database - contains JSON strings for nested data */
 interface RawProductRecord {
   title: string
@@ -74,7 +84,7 @@ export interface SeedN1WorkflowInput {
   publishableKey: CreatePublishableKeyStepInput
 }
 
-function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
+const seedN1WorkflowComposer = (input: SeedN1WorkflowInput) => {
   // create sales channels
   const salesChannelsResult = createSalesChannelsStep(input.salesChannels)
 
@@ -172,13 +182,11 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
             data.input.workflowDefaults.fulfillmentProviderId,
           regions: data.createRegionsResult.result.map((region) => ({
             ...region,
-            amount:
-              option.prices.find(
-                (p) =>
-                  p.currencyCode?.toLowerCase() ===
-                  region.currency_code?.toLowerCase(),
-              )?.amount ??
+            amount: getShippingOptionAmount(
+              option.prices,
+              region.currency_code,
               data.input.workflowDefaults.shippingOptionPriceAmount,
+            ),
           })),
           rules: option.rules,
           serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,

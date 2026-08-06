@@ -39,12 +39,15 @@ const isReviewEntity = (
   typeof value === "object" && value !== null
 
 const ORDER_FIELDS = new Set(["created_at", "rating", "status", "updated_at"])
-const LEADING_DASH_REGEX = /^-/
+const LEADING_DASH_REGEX = /^-/u
 
 const serializeDate = (date: Date | string | undefined) =>
   date instanceof Date ? date.toISOString() : date
 
-export const normalizeReviewOrder = (value: string = "-created_at") => {
+const hasText = (value: string | undefined): value is string =>
+  value !== undefined && value.length > 0
+
+export const normalizeReviewOrder = (value = "-created_at") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
@@ -63,13 +66,13 @@ export const normalizeAdminReviewFilters = ({
   q,
   status,
 }: AdminGetReviewsSchemaType): Record<string, unknown> => {
-  const escapedQuery = q ? escapeLikePattern(q) : undefined
+  const escapedQuery = hasText(q) ? escapeLikePattern(q) : undefined
 
   return {
-    ...(customer_id ? { customer_id } : {}),
-    ...(product_id ? { product_id } : {}),
-    ...(status ? { status } : {}),
-    ...(escapedQuery
+    ...(hasText(customer_id) ? { customer_id } : {}),
+    ...(hasText(product_id) ? { product_id } : {}),
+    ...(hasText(status) ? { status } : {}),
+    ...(hasText(escapedQuery)
       ? {
           $or: [
             { title: { $ilike: `%${escapedQuery}%` } },
@@ -85,15 +88,25 @@ export const normalizeAdminReviewFilters = ({
 export const isProductRecord = (value: unknown): value is ProductRecord =>
   isReviewEntity(value) && typeof value["id"] === "string"
 
-export const isReviewRecord = (value: unknown): value is ReviewRecord =>
-  isReviewEntity(value) &&
-  typeof value["content"] === "string" &&
-  typeof value["customer_id"] === "string" &&
-  typeof value["id"] === "string" &&
-  typeof value["product_id"] === "string" &&
-  typeof value["rating"] === "number" &&
-  typeof value["status"] === "string" &&
-  typeof value["title"] === "string"
+export const isReviewRecord = (value: unknown): value is ReviewRecord => {
+  if (!isReviewEntity(value)) {
+    return false
+  }
+
+  const stringFields = [
+    "content",
+    "customer_id",
+    "id",
+    "product_id",
+    "status",
+    "title",
+  ] as const
+  if (stringFields.some((field) => typeof value[field] !== "string")) {
+    return false
+  }
+
+  return typeof value["rating"] === "number"
+}
 
 export const filterProductRecords = (products: unknown): ProductRecord[] =>
   Array.isArray(products) ? products.filter(isProductRecord) : []
@@ -115,7 +128,7 @@ export const normalizeAdminReview = (
 
 export const normalizeCustomerReview = (
   review: ReviewRecord,
-  productsById: Map<string, ProductRecord>
+  productsById: Map<string, ProductRecord>,
 ) => ({
   content: review.content,
   created_at: serializeDate(review.created_at),

@@ -48,19 +48,86 @@ export const ORDER_BUSINESS_STATUS_ORDER_FIELDS = [
   "shipping_methods.id",
 ]
 
-export async function fetchOrderBusinessStatusOrder(query: Query, id: string) {
-  const { data } = await query.graph({
-    entity: "order",
-    fields: ORDER_BUSINESS_STATUS_ORDER_FIELDS,
-    filters: { id },
-  })
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
 
-  return parseOrderBusinessStatusOrders(data)[0]
+const isNullableString = (value: unknown) =>
+  value === undefined || value === null || typeof value === "string"
+
+const isNullableDate = (value: unknown) =>
+  isNullableString(value) || value instanceof Date
+
+const isNullableTotal = (value: unknown) =>
+  isNullableString(value) || typeof value === "number"
+
+const isPaymentCollection = (value: unknown) =>
+  isRecord(value) && isNullableString(value["status"])
+
+const isFulfillment = (value: unknown) =>
+  isRecord(value) &&
+  isNullableDate(value["canceled_at"]) &&
+  isNullableDate(value["delivered_at"]) &&
+  isNullableDate(value["shipped_at"])
+
+const isNullableRecord = (value: unknown) =>
+  value === undefined || value === null || isRecord(value)
+
+const isNullableArrayOf = (
+  value: unknown,
+  predicate: (item: unknown) => boolean,
+) =>
+  value === undefined ||
+  value === null ||
+  (Array.isArray(value) && value.every(predicate))
+
+const isOrderBusinessStatusOrder = (
+  value: unknown,
+): value is OrderBusinessStatusOrder => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  if (typeof value["id"] !== "string") {
+    return false
+  }
+  const nullableStrings = [
+    value["currency_code"],
+    value["custom_display_id"],
+    value["customer_id"],
+    value["email"],
+    value["fulfillment_status"],
+    value["payment_status"],
+    value["status"],
+  ]
+  if (!nullableStrings.every(isNullableString)) {
+    return false
+  }
+  const displayId = value["display_id"]
+  if (
+    displayId !== undefined &&
+    displayId !== null &&
+    typeof displayId !== "number"
+  ) {
+    return false
+  }
+  if (
+    !isNullableDate(value["created_at"]) ||
+    !isNullableTotal(value["total"])
+  ) {
+    return false
+  }
+  if (
+    !isNullableArrayOf(value["fulfillments"], isFulfillment) ||
+    !isNullableArrayOf(value["payment_collections"], isPaymentCollection)
+  ) {
+    return false
+  }
+  return isNullableRecord(value["metadata"])
 }
 
-export function parseOrderBusinessStatusOrders(
+export const parseOrderBusinessStatusOrders = (
   value: unknown,
-): OrderBusinessStatusOrder[] {
+): OrderBusinessStatusOrder[] => {
   if (!Array.isArray(value)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
@@ -75,59 +142,47 @@ export function parseOrderBusinessStatusOrders(
         `Expected order business status query result at index ${index} to include a string id`,
       )
     }
-
     return order
   })
 }
 
-function isOrderBusinessStatusOrder(
-  value: unknown,
-): value is OrderBusinessStatusOrder {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    typeof value.id === "string"
-  )
+const normalizeDate = (value: OrderBusinessStatusOrder["created_at"]) =>
+  value instanceof Date ? value.toISOString() : (value ?? null)
+
+export const fetchOrderBusinessStatusOrder = async (
+  query: Query,
+  id: string,
+) => {
+  const result: unknown = await query.graph({
+    entity: "order",
+    fields: ORDER_BUSINESS_STATUS_ORDER_FIELDS,
+    filters: { id },
+  })
+  const data: unknown = isRecord(result) ? result["data"] : undefined
+  const [order] = parseOrderBusinessStatusOrders(data)
+  return order
 }
 
-export function toOrderBusinessStatusSummary(
+export const toOrderBusinessStatusSummary = (
   order: OrderBusinessStatusOrder,
-): OrderBusinessStatusSummary {
-  return {
-    business_status: resolveOrderBusinessStatus(order),
-    created_at: normalizeDate(order.created_at),
-    currency_code: order.currency_code ?? null,
-    ...(order.custom_display_id === undefined
-      ? {}
-      : { custom_display_id: order.custom_display_id }),
-    display_id: order.display_id ?? null,
-    email: order.email ?? null,
-    id: order.id,
-    manual_status: getManualOrderBusinessStatusId(order) ?? null,
-    total: order.total ?? null,
-  }
-}
+): OrderBusinessStatusSummary => ({
+  business_status: resolveOrderBusinessStatus(order),
+  created_at: normalizeDate(order.created_at),
+  currency_code: order.currency_code ?? null,
+  ...(order.custom_display_id === undefined
+    ? {}
+    : { custom_display_id: order.custom_display_id }),
+  display_id: order.display_id ?? null,
+  email: order.email ?? null,
+  id: order.id,
+  manual_status: getManualOrderBusinessStatusId(order) ?? null,
+  total: order.total ?? null,
+})
 
-export function buildOrderBusinessStatusMetadata(
+export const buildOrderBusinessStatusMetadata = (
   metadata: Record<string, unknown> | null | undefined,
   status: ManualOrderBusinessStatusId | null,
-) {
-  const nextMetadata = { ...metadata }
-
-  if (status === null) {
-    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = null
-  } else {
-    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = status
-  }
-
-  return nextMetadata
-}
-
-function normalizeDate(value: Date | string | null | undefined) {
-  if (value instanceof Date) {
-    return value.toISOString()
-  }
-
-  return value ?? null
-}
+) => ({
+  ...metadata,
+  [ORDER_BUSINESS_STATUS_METADATA_KEY]: status,
+})

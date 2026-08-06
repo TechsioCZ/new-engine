@@ -62,17 +62,20 @@ export const assertProductAttributeKeyAvailable = ({
   key: string
   kind: "definition" | "option"
 }) => {
-  if (!collision) {
+  if (collision === undefined) {
     return
   }
 
+  const hasDefinitionKey =
+    definitionKey !== undefined && definitionKey.length > 0
   const scope =
-    kind === "option" && definitionKey
+    kind === "option" && hasDefinitionKey
       ? ` for definition "${definitionKey}"`
       : ""
-  const guidance = collision.deleted_at
-    ? `Restore deleted ${kind} "${collision.id}" instead.`
-    : "Use a different key."
+  const guidance =
+    collision.deleted_at === null
+      ? "Use a different key."
+      : `Restore deleted ${kind} "${collision.id}" instead.`
 
   throw new MedusaError(
     MedusaError.Types.DUPLICATE_ERROR,
@@ -82,14 +85,20 @@ export const assertProductAttributeKeyAvailable = ({
 
 export const partitionProductAttributeRecordIds = (
   records: SoftDeletableRecord[],
-) => ({
-  active_ids: records
-    .filter((record) => !record.deleted_at)
-    .map((record) => record.id),
-  deleted_ids: records
-    .filter((record) => Boolean(record.deleted_at))
-    .map((record) => record.id),
-})
+) => {
+  const activeIds: string[] = []
+  const deletedIds: string[] = []
+
+  for (const record of records) {
+    if (record.deleted_at === null) {
+      activeIds.push(record.id)
+    } else {
+      deletedIds.push(record.id)
+    }
+  }
+
+  return { active_ids: activeIds, deleted_ids: deletedIds }
+}
 
 export const getProductAttributeService = (container: MedusaContainer) =>
   container.resolve<ProductAttributeModuleService>(PRODUCT_ATTRIBUTE_MODULE)
@@ -108,7 +117,7 @@ export const toUsageCountMap = (
       const count =
         typeof row.count === "number"
           ? row.count
-          : Number.parseInt(row.count, 10)
+          : Math.trunc(Number(row.count))
       return [row.id, Number.isFinite(count) ? count : 0] as const
     }),
   )

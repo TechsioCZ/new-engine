@@ -45,11 +45,11 @@ export const createFulfillmentSetStep = createStep(
       const createData: CreateFulfillmentSetDTO = {
         name: input.name,
         service_zones: input.serviceZones.map((i) => ({
-          name: i.name,
           geo_zones: i.geoZones.map((j) => ({
             country_code: j.countryCode,
             type: "country" as const,
           })),
+          name: i.name,
         })),
         type: input.type,
       }
@@ -60,10 +60,16 @@ export const createFulfillmentSetStep = createStep(
     } else {
       logger.info("Updating existing fulfillment sets...")
 
-      for (const existingFulfillmentSet of existingFulfillmentSets) {
+      const processSet = async function processSet(
+        index: number,
+      ): Promise<void> {
+        const existingFulfillmentSet = existingFulfillmentSets[index]
+        if (existingFulfillmentSet === undefined) {
+          return
+        }
+
         const existingZonesByName = new Map(
-          existingFulfillmentSet.service_zones?.map((sz) => [sz.name, sz]) ??
-            [],
+          existingFulfillmentSet.service_zones?.map((sz) => [sz.name, sz]),
         )
 
         const serviceZonesUpdate: UpdateFulfillmentSetDTO["service_zones"] =
@@ -72,14 +78,23 @@ export const createFulfillmentSetStep = createStep(
 
             if (existingZone) {
               // Existing zone found - include ID to preserve it and update geo_zones
-              const existingGeoZonesByCountryCode = new Map(
-                (existingZone.geo_zones ?? [])
-                  .filter((gz) => "country_code" in gz)
-                  .map((gz) => [
-                    (gz as { country_code: string }).country_code,
-                    gz,
-                  ]),
-              )
+              const existingGeoZonesByCountryCode = new Map<
+                string,
+                { id: string }
+              >()
+              for (const geoZone of existingZone.geo_zones ?? []) {
+                if (typeof geoZone !== "object" || geoZone === null) {
+                  continue
+                }
+                const countryCode: unknown = Reflect.get(
+                  geoZone,
+                  "country_code",
+                )
+                const id: unknown = Reflect.get(geoZone, "id")
+                if (typeof countryCode === "string" && typeof id === "string") {
+                  existingGeoZonesByCountryCode.set(countryCode, { id })
+                }
+              }
 
               return {
                 geo_zones: inputZone.geoZones.map((inputGz) => {
@@ -119,17 +134,20 @@ export const createFulfillmentSetStep = createStep(
         const updateResult =
           await fulfillmentModuleService.updateFulfillmentSets(updateData)
         result.push(updateResult)
+        await processSet(index + 1)
       }
+
+      await processSet(0)
     }
 
-    const fulfillmentSet = result[0]
+    const [fulfillmentSet] = result
     const serviceZone = fulfillmentSet?.service_zones?.[0]
 
     if (!fulfillmentSet) {
       throw new Error("Could not find fulfillment set")
     }
 
-    if (!serviceZone?.id) {
+    if (serviceZone?.id === undefined || serviceZone.id.length === 0) {
       throw new Error("Could not find service zone in fulfillment set")
     }
 

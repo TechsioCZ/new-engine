@@ -20,21 +20,22 @@ const HEADERS = [
   "description",
 ].join(";")
 const PARTIAL_RESPONSIBLE_PERSON_ERROR =
-  /Herbatika.*all European responsible-person fields/
-const INVALID_EMAIL_ERROR = /Herbatika \(manufacturer-1\).*invalid email/
-const INVALID_BOOLEAN_ERROR = /Herbatika \(manufacturer-1\).*invalid boolean/
-const NO_USABLE_CSV_ERROR = /no usable headers or rows/
-const MISSING_NAME_HEADER_ERROR = /missing required header.*name/
-const DUPLICATE_HEADER_ERROR = /duplicate header/
-const EMPTY_HEADER_ERROR = /empty header/
-const NO_DATA_ROWS_ERROR = /no usable data rows/
-const COLUMN_COUNT_ERROR = /expected 12 columns/
-const UNCLOSED_QUOTE_ERROR = /unclosed quoted field/
-const MISPLACED_QUOTE_ERROR = /quote must start/
-const NORMALIZED_ALIAS_COLLISION_ERROR = /alias collision.*Herbatika.*Hérbatika/
-const ALIAS_COLLISION_ERROR = /alias collision/
+  /Herbatika.*all European responsible-person fields/u
+const INVALID_EMAIL_ERROR = /Herbatika \(manufacturer-1\).*invalid email/u
+const INVALID_BOOLEAN_ERROR = /Herbatika \(manufacturer-1\).*invalid boolean/u
+const NO_USABLE_CSV_ERROR = /no usable headers or rows/u
+const MISSING_NAME_HEADER_ERROR = /missing required header.*name/u
+const DUPLICATE_HEADER_ERROR = /duplicate header/u
+const EMPTY_HEADER_ERROR = /empty header/u
+const NO_DATA_ROWS_ERROR = /no usable data rows/u
+const COLUMN_COUNT_ERROR = /expected 12 columns/u
+const UNCLOSED_QUOTE_ERROR = /unclosed quoted field/u
+const MISPLACED_QUOTE_ERROR = /quote must start/u
+const NORMALIZED_ALIAS_COLLISION_ERROR =
+  /alias collision.*Herbatika.*Hérbatika/u
+const ALIAS_COLLISION_ERROR = /alias collision/u
 
-function csvRow(overrides: Partial<Record<string, string>> = {}) {
+const csvRow = (overrides: Partial<Record<string, string>> = {}) => {
   const values: Record<string, string> = {
     contactEmail: "manufacturer@example.com",
     description: "Description",
@@ -98,9 +99,9 @@ describe(parseManufacturersCsv, () => {
   it.each(["1", "true", "TRUE", "yes", "on"])(
     "accepts true boolean spelling %s",
     (value) => {
-      const row = parseManufacturersCsv(
+      const [row] = parseManufacturersCsv(
         `${HEADERS}\n${csvRow({ inList: value })}`,
-      )[0]
+      )
       if (!row) {
         throw new Error("expected row")
       }
@@ -112,9 +113,9 @@ describe(parseManufacturersCsv, () => {
   it.each(["", "0", "false", "FALSE", "no", "off"])(
     "accepts false boolean spelling %s",
     (value) => {
-      const row = parseManufacturersCsv(
+      const [row] = parseManufacturersCsv(
         `${HEADERS}\n${csvRow({ inList: value })}`,
-      )[0]
+      )
       if (!row) {
         throw new Error("expected row")
       }
@@ -124,13 +125,13 @@ describe(parseManufacturersCsv, () => {
   )
 
   it("derives outside-EU only from a complete representative", () => {
-    const row = parseManufacturersCsv(
+    const [row] = parseManufacturersCsv(
       `${HEADERS}\n${csvRow({
         europeanResellerContactEmail: "representative@example.com",
         europeanResellerManufacturingCompanyName: "EU Representative",
         europeanResellerPostalAddress: "Prague",
       })}`,
-    )[0]
+    )
     if (!row) {
       throw new Error("expected row")
     }

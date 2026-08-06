@@ -66,7 +66,7 @@ export const restoreMeasurementUnitsStep = createStep(
     return new StepResponse(ids, idsToRestore)
   },
   async (restoredIds, { container }) => {
-    if (restoredIds?.length) {
+    if (restoredIds !== undefined && restoredIds.length > 0) {
       await getMeasurementUnitService(container).softDeleteMeasurementUnits(
         restoredIds,
       )

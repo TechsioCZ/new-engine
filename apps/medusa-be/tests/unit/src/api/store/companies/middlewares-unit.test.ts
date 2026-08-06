@@ -1,4 +1,13 @@
+import type { MiddlewareRoute } from "@medusajs/framework"
 import { describe, expect, it } from "vitest"
+
+const supportsMethod = (route: MiddlewareRoute, method: string) => {
+  const configuredMethods: unknown = Reflect.get(route, "method")
+  return (
+    configuredMethods === "ALL" ||
+    (Array.isArray(configuredMethods) && configuredMethods.includes(method))
+  )
+}
 
 describe("store company middlewares", () => {
   it("requires route company membership for company and employee read routes", async () => {
@@ -16,7 +25,7 @@ describe("store company middlewares", () => {
     for (const matcher of memberScopedRoutes) {
       const route = storeCompaniesMiddlewares.find(
         (middlewareRoute) =>
-          middlewareRoute.method?.includes("GET") &&
+          supportsMethod(middlewareRoute, "GET") &&
           middlewareRoute.matcher === matcher,
       )
 
@@ -31,7 +40,7 @@ describe("store company middlewares", () => {
 
     const deleteEmployeeRoute = storeCompaniesMiddlewares.find(
       (route) =>
-        route.method?.includes("DELETE") &&
+        supportsMethod(route, "DELETE") &&
         route.matcher === "/store/companies/:id/employees/:employee_id",
     )
 

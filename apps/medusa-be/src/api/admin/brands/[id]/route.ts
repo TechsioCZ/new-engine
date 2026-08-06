@@ -3,10 +3,8 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 
-import {
-  deleteBrandsWorkflow,
-  updateBrandsWorkflow,
-} from "../../../../workflows/brand"
+import { deleteBrandsWorkflow } from "../../../../workflows/brand/workflows/delete-brands"
+import { updateBrandsWorkflow } from "../../../../workflows/brand/workflows/update-brands"
 import {
   getBrandActiveProductCounts,
   retrieveBrandOrThrow,
@@ -14,10 +12,10 @@ import {
 } from "../utils"
 import type { AdminUpdateBrandSchemaType } from "../validators"
 
-export async function GET(
+const getBrand = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const brandId = req.params["id"] ?? ""
   const brand = await retrieveBrandOrThrow(req.scope, brandId, {
     withDeleted: true,
@@ -31,10 +29,10 @@ export async function GET(
   })
 }
 
-export async function POST(
+const updateBrand = async (
   req: AuthenticatedMedusaRequest<AdminUpdateBrandSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const brandId = req.params["id"] ?? ""
 
   const { result } = await updateBrandsWorkflow(req.scope).run({
@@ -46,7 +44,7 @@ export async function POST(
     },
   })
 
-  const updated = result[0]
+  const [updated] = result
   const brand = await retrieveBrandOrThrow(req.scope, updated?.id ?? brandId)
   const activeProductCounts = await getBrandActiveProductCounts(req.scope, [
     brand.id,
@@ -57,10 +55,10 @@ export async function POST(
   })
 }
 
-export async function DELETE(
+const deleteBrand = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const id = req.params["id"] ?? ""
 
   await deleteBrandsWorkflow(req.scope).run({
@@ -75,3 +73,5 @@ export async function DELETE(
     object: "brand",
   })
 }
+
+export { deleteBrand as DELETE, getBrand as GET, updateBrand as POST }

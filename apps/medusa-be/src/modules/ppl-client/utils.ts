@@ -39,10 +39,10 @@ export interface SyncAttemptInfo {
 /**
  * Check if fulfillment has exceeded timeout conditions
  */
-export function checkTimeoutConditions(
+export const checkTimeoutConditions = (
   fulfillment: PendingFulfillment,
   attemptInfo: SyncAttemptInfo,
-): { reason: string; message: string } | null {
+): { reason: string; message: string } | null => {
   if (attemptInfo.syncAttempts >= MAX_SYNC_ATTEMPTS) {
     return {
       message: `Batch ${fulfillment.data.batch_id} never completed after ${MAX_SYNC_ATTEMPTS} attempts`,
