@@ -1,3 +1,4 @@
+/** @public */
 export {
   buildDevHmrOrigins,
   buildStorefrontContentSecurityPolicy,

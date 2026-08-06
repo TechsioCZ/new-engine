@@ -6,7 +6,8 @@
       "entry": [
         "*.config.{js,mjs,ts,mts,cts}!",
         "scripts/**/*.{js,cjs,mjs,ts,mts,cts}",
-        "libs/storefront-security/**/*.mjs"
+        "libs/storefront-security/index.mjs",
+        "libs/storefront-security/**/*.test.mjs"
       ],
       "project": [
         "*.config.{js,mjs,ts,mts,cts}!",
