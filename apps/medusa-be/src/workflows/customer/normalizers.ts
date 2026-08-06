@@ -27,3 +27,22 @@ export function normalizeInactiveCustomerFirstName(firstName?: string | null) {
 
   return `${INACTIVE_CUSTOMER_NAME_PREFIX} ${normalizedFirstName}`
 }
+
+export function normalizeReactivatedCustomerFirstName(
+  firstName?: string | null
+) {
+  const normalizedFirstName = firstName?.trim()
+
+  if (!normalizedFirstName) {
+    return null
+  }
+
+  if (!normalizedFirstName.startsWith(INACTIVE_CUSTOMER_NAME_PREFIX)) {
+    return normalizedFirstName
+  }
+
+  return (
+    normalizedFirstName.slice(INACTIVE_CUSTOMER_NAME_PREFIX.length).trim() ||
+    null
+  )
+}

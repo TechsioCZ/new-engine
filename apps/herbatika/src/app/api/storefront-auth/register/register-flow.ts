@@ -140,6 +140,36 @@ const buildCustomerProfile = ({
     : {}),
 })
 
+const reactivateCustomerProfile = async ({
+  loginToken,
+  payload,
+}: {
+  loginToken: string
+  payload: Omit<ParsedRegisterPayload, "password">
+}) => {
+  const reactivateCustomerResponse = await fetch(
+    buildMedusaUrl("/store/customers/reactivate"),
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${loginToken}`,
+        ...getPublishableHeaders(),
+      },
+      body: JSON.stringify({
+        email: payload.email,
+        first_name: payload.firstName,
+        last_name: payload.lastName,
+      }),
+      cache: "no-store",
+    }
+  )
+
+  return reactivateCustomerResponse.ok
+    ? null
+    : buildErrorResponse(reactivateCustomerResponse)
+}
+
 export const createCustomerProfile = async ({
   loginToken,
   payload,
@@ -161,10 +191,15 @@ export const createCustomerProfile = async ({
     }
   )
 
-  const customerConflict = isConflictStatus(createCustomerResponse.status)
-  return createCustomerResponse.ok || customerConflict
-    ? null
-    : buildErrorResponse(createCustomerResponse)
+  if (createCustomerResponse.ok) {
+    return null
+  }
+
+  if (isConflictStatus(createCustomerResponse.status)) {
+    return reactivateCustomerProfile({ loginToken, payload })
+  }
+
+  return buildErrorResponse(createCustomerResponse)
 }
 
 export const createWholesaleProfile = async ({
