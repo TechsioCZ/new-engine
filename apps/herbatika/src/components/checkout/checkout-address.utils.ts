@@ -70,14 +70,14 @@ export const CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES =
 const hasRequiredAddressFields = (
   address: HttpTypes.StoreCartAddress | null | undefined,
 ) =>
-  Boolean(
-    address?.first_name &&
-    address?.last_name &&
-    address?.address_1 &&
-    address?.city &&
-    address?.postal_code &&
+  [
+    address?.first_name,
+    address?.last_name,
+    address?.address_1,
+    address?.city,
+    address?.postal_code,
     address?.country_code,
-  )
+  ].every((value) => typeof value === "string" && value.length > 0)
 
 export const resolveAddressFormsMatch = (
   left: Partial<CheckoutAddressValues> | null | undefined,
@@ -96,7 +96,7 @@ export const resolveAddressFormsMatch = (
 export const resolveHasStoredAddress = (
   cart: HttpTypes.StoreCart | null | undefined,
 ) => {
-  if (!cart?.email) {
+  if (cart?.email === undefined || cart.email.length === 0) {
     return false
   }
 

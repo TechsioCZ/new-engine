@@ -11,6 +11,18 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
+const PaymentSelectionMessage = ({ message }: { message: string }) => (
+  <StatusText
+    aria-live="polite"
+    className="text-xs leading-relaxed"
+    showIcon
+    size="sm"
+    status="error"
+  >
+    {message}
+  </StatusText>
+)
+
 interface PaymentProvider {
   id?: string | null
 }
@@ -44,11 +56,13 @@ const translatePaymentText = ({
   providerName?: string
   translate: CheckoutTranslator
 }) => {
-  if (!key) {
-    return
+  if (key === undefined || key.length === 0) {
+    return null
   }
 
-  return providerName ? translate(key, { providerName }) : translate(key)
+  return providerName !== undefined && providerName.length > 0
+    ? translate(key, { providerName })
+    : translate(key)
 }
 
 const createPaymentProviderOption = ({
@@ -89,15 +103,15 @@ const createPaymentProviderOption = ({
       : { providerName: displayTextKeys.providerName }),
     translate,
   })
-  const paymentHint = displayTextKeys.hintKey
-    ? translate(displayTextKeys.hintKey)
-    : displayTextKeys.hintValue
+  const paymentHint =
+    displayTextKeys.hintKey === undefined ||
+    displayTextKeys.hintKey.length === 0
+      ? displayTextKeys.hintValue
+      : translate(displayTextKeys.hintKey)
   const isProviderSelectable = Boolean(providerId && canInitiatePayment)
 
   return {
-    ...(paymentDescription === undefined
-      ? {}
-      : { bodyText: paymentDescription }),
+    ...(paymentDescription === null ? {} : { bodyText: paymentDescription }),
     disabled: isBusy || isInitiatingPayment || !isProviderSelectable,
     ...(paymentHint === undefined ? {} : { hint: paymentHint }),
     icon: resolvePaymentIcon(providerId),
@@ -118,6 +132,12 @@ export const CheckoutPaymentSection = ({
   selectionMessage,
 }: CheckoutPaymentSectionProps) => {
   const tCheckout = useTranslations("checkout")
+
+  const hasPaymentProviders = paymentProviders.length > 0
+  const hasSelectionMessage =
+    selectionMessage !== null &&
+    selectionMessage !== undefined &&
+    selectionMessage.length > 0
 
   return (
     <section className="space-y-250 rounded-sm p-550 font-rubik">
@@ -148,22 +168,10 @@ export const CheckoutPaymentSection = ({
         ) : (
           <SupportingText>{tCheckout("no_payment_methods")}</SupportingText>
         )}
-        {paymentProviders.length > 0 && selectionMessage ? (
+        {hasPaymentProviders && hasSelectionMessage ? (
           <PaymentSelectionMessage message={selectionMessage} />
         ) : null}
       </div>
     </section>
   )
 }
-
-const PaymentSelectionMessage = ({ message }: { message: string }) => (
-  <StatusText
-    aria-live="polite"
-    className="text-xs leading-relaxed"
-    showIcon
-    size="sm"
-    status="error"
-  >
-    {message}
-  </StatusText>
-)

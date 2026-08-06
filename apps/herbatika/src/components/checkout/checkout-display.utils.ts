@@ -3,19 +3,13 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { resolveCountryDisplayName } from "@/lib/forms/country-options"
 
 const normalizeProviderValue = (providerId: string) =>
-  providerId.toLowerCase().replaceAll(/[_-]+/g, " ")
+  providerId.toLowerCase().replaceAll(/[_-]+/gu, " ")
 
 const isQrPaymentProviderValue = (normalizedValue: string) =>
-  normalizedValue.includes("qr manual") ||
-  normalizedValue.includes("bank") ||
-  normalizedValue.includes("wire")
+  /qr manual|bank|wire/u.test(normalizedValue)
 
 const isOnlineCardProviderValue = (normalizedValue: string) =>
-  normalizedValue.includes("card") ||
-  normalizedValue.includes("stripe") ||
-  normalizedValue.includes("google") ||
-  normalizedValue.includes("apple") ||
-  normalizedValue.includes("gopay")
+  /card|stripe|google|apple|gopay/u.test(normalizedValue)
 
 const isStripePaymentProviderValue = (normalizedValue: string) =>
   normalizedValue.includes("stripe")
@@ -124,7 +118,7 @@ export const resolvePaymentDisplayTextKeys = (
 
 export const formatProviderLabel = (providerId: string) =>
   providerId
-    .replaceAll(/[_-]+/g, " ")
+    .replaceAll(/[_-]+/gu, " ")
     .split(" ")
     .filter((part) => part.length > 0)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -163,13 +157,7 @@ export const resolveShippingIcon = (option: {
   const normalizedValue =
     `${option.name ?? ""} ${option.id ?? ""}`.toLowerCase()
 
-  if (
-    normalizedValue.includes("gls") ||
-    normalizedValue.includes("packeta") ||
-    normalizedValue.includes("box") ||
-    normalizedValue.includes("pickup") ||
-    normalizedValue.includes("predaj")
-  ) {
+  if (/gls|packeta|box|pickup|predaj/u.test(normalizedValue)) {
     return "token-icon-box"
   }
 

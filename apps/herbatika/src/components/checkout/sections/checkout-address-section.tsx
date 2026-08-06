@@ -13,33 +13,37 @@ interface CheckoutAddressSectionProps {
   checkoutDetailsForm: CheckoutDetailsFormController
   countryItems: SelectItem[]
   fieldPrefix: string
-  isAuthenticated?: boolean
+  options: {
+    isAuthenticated: boolean
+    showCompanyFields: boolean
+    showCompanyPurchaseToggle: boolean
+    showContactFields: boolean
+    showCustomerNote: boolean
+    showLoginPrompt: boolean
+    showRegistrationOptIn: boolean
+    showRequiredNote: boolean
+  }
   scope: CheckoutAddressScope
-  showCompanyFields?: boolean
-  showCompanyPurchaseToggle?: boolean
-  showContactFields?: boolean
-  showCustomerNote?: boolean
-  showLoginPrompt?: boolean
-  showRegistrationOptIn?: boolean
-  showRequiredNote?: boolean
   title?: string
 }
 
-export function CheckoutAddressSection({
+export const CheckoutAddressSection = ({
   checkoutDetailsForm,
   countryItems,
   fieldPrefix,
-  isAuthenticated = false,
+  options: {
+    isAuthenticated,
+    showCompanyFields,
+    showCompanyPurchaseToggle,
+    showContactFields,
+    showCustomerNote,
+    showLoginPrompt,
+    showRegistrationOptIn,
+    showRequiredNote,
+  },
   scope,
-  showCompanyFields = false,
-  showCompanyPurchaseToggle = false,
-  showContactFields = true,
-  showCustomerNote = false,
-  showLoginPrompt = false,
-  showRegistrationOptIn = false,
-  showRequiredNote = false,
   title,
-}: CheckoutAddressSectionProps) {
+}: CheckoutAddressSectionProps) => {
   const tCheckout = useTranslations("checkout")
   const tForm = useTranslations("form")
   const fieldValidators = useCheckoutFieldValidators()
@@ -47,7 +51,7 @@ export function CheckoutAddressSection({
 
   return (
     <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
-      {title ? (
+      {title !== undefined && title.length > 0 ? (
         <header>
           <h2 className="font-medium text-fg-primary text-xl">{title}</h2>
         </header>
@@ -64,7 +68,9 @@ export function CheckoutAddressSection({
                 groupLabel={tCheckout("purchase_type")}
                 id={`${fieldPrefix}-purchase-type`}
                 isCompanyPurchase={checkoutDetailsForm.values.isCompanyPurchase}
-                onValueChange={checkoutDetailsForm.setCompanyPurchase}
+                onValueChange={(value) => {
+                  checkoutDetailsForm.setCompanyPurchase(value)
+                }}
                 privateLabel={tCheckout("private_purchase")}
               />
             ) : (

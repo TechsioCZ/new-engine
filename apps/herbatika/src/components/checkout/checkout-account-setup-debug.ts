@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 
 const CHECKOUT_ACCOUNT_SETUP_DEBUG_STORAGE_KEY =
   "herbatika_checkout_account_setup_debug"
@@ -19,15 +19,22 @@ const isCheckoutAccountSetupDebugEnabled = () => {
   )
 }
 
-export const useCheckoutAccountSetupDebugEnabled = () => {
-  const [enabled, setEnabled] = useState(false)
+const subscribeToDebugPreference = (onStoreChange: () => void) => {
+  window.addEventListener("popstate", onStoreChange)
+  window.addEventListener("storage", onStoreChange)
 
-  useEffect(() => {
-    setEnabled(isCheckoutAccountSetupDebugEnabled())
-  }, [])
-
-  return enabled
+  return () => {
+    window.removeEventListener("popstate", onStoreChange)
+    window.removeEventListener("storage", onStoreChange)
+  }
 }
+
+export const useCheckoutAccountSetupDebugEnabled = () =>
+  useSyncExternalStore(
+    subscribeToDebugPreference,
+    isCheckoutAccountSetupDebugEnabled,
+    () => false,
+  )
 
 export const logCheckoutAccountSetupDebug = (
   message: string,

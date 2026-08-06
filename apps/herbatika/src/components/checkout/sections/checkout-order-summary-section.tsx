@@ -26,7 +26,7 @@ interface CheckoutOrderSummarySectionProps {
   shippingAmount: number
 }
 
-export function CheckoutOrderSummarySection({
+export const CheckoutOrderSummarySection = ({
   cartItems,
   cartItemsWithoutTaxAmount,
   cartTaxAmount,
@@ -36,13 +36,16 @@ export function CheckoutOrderSummarySection({
   paymentLabel,
   shippingLabel,
   shippingAmount,
-}: CheckoutOrderSummarySectionProps) {
+}: CheckoutOrderSummarySectionProps) => {
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
   const detailsFontClass = detailsFont === "inter" ? "font-inter" : "font-rubik"
-  const shippingExclTaxLabel = shippingLabel
-    ? tCheckout("shipping_excl_tax_with_name", { shippingName: shippingLabel })
-    : tCart("shipping_excl_tax")
+  const shippingExclTaxLabel =
+    shippingLabel === undefined || shippingLabel.length === 0
+      ? tCart("shipping_excl_tax")
+      : tCheckout("shipping_excl_tax_with_name", {
+          shippingName: shippingLabel,
+        })
 
   return (
     <section className={`space-y-300 rounded-sm sm:p-550 ${detailsFontClass}`}>
@@ -155,7 +158,9 @@ export function CheckoutOrderSummarySection({
         </div>
         <div className="flex items-center justify-between py-200">
           <span className="text-fg-secondary">
-            {paymentLabel || tCheckout("payment")}
+            {paymentLabel !== undefined && paymentLabel.length > 0
+              ? paymentLabel
+              : tCheckout("payment")}
           </span>
           <p className="font-medium text-md text-success-fg">
             {tCheckout("free")}

@@ -3,10 +3,8 @@ import { appHref } from "@/lib/routing"
 import { CHECKOUT_STEPS } from "./checkout.constants"
 import type { CheckoutStepSlug } from "./checkout.constants"
 
-const CHECKOUT_STEP_SLUGS = new Set(CHECKOUT_STEPS.map((step) => step.slug))
-
 export const isCheckoutStepSlug = (value: string): value is CheckoutStepSlug =>
-  CHECKOUT_STEP_SLUGS.has(value as CheckoutStepSlug)
+  CHECKOUT_STEPS.some((step) => step.slug === value)
 
 export const resolveCheckoutStepHref = (step: CheckoutStepSlug) =>
   appHref(`/checkout/${step}`)

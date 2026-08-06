@@ -3,7 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
-import { useMemo, useRef, useState } from "react"
+import { useRef, useState } from "react"
 
 import {
   CARRIER_PICKUP_FAILURE_KEYS,
@@ -17,20 +17,55 @@ import type {
   PplAccessPoint,
   PplWidgetError,
   PplWidgetHandle,
+  PplWidgetConfig,
 } from "../ppl-widget.types"
+
+const buildPplShippingData = (
+  accessPoint: PplAccessPoint,
+  fallbackPointLabel: string,
+) => {
+  const { address } = accessPoint
+  const payload: Record<string, unknown> = {
+    access_point_city: address?.city,
+    access_point_country: address?.countryCode ?? address?.country,
+    access_point_id: accessPoint.code,
+    access_point_name:
+      accessPoint.name ?? accessPoint.code ?? fallbackPointLabel,
+    access_point_street: address?.street,
+    access_point_type: accessPoint.type,
+    access_point_zip: address?.zipCode,
+  }
+
+  return Object.fromEntries(
+    Object.entries(payload).filter(
+      ([, value]) => value !== null && value !== "",
+    ),
+  )
+}
+
+const formatPplAddress = (accessPoint: PplAccessPoint) => {
+  const { address } = accessPoint
+  const addressParts = [
+    address?.street,
+    address?.zipCode,
+    address?.city,
+  ].filter(Boolean)
+
+  return addressParts.length > 0 ? addressParts.join(", ") : null
+}
 
 interface CheckoutPplPickupSelectorProps {
   disabled: boolean
   onConfirm: (data: Record<string, unknown>) => void
 }
 
-const PPL_WIDGET_API_KEY =
-  process.env.NEXT_PUBLIC_PPL_WIDGET_API_KEY?.trim() ?? ""
+const { NEXT_PUBLIC_PPL_WIDGET_API_KEY } = process.env
+const PPL_WIDGET_API_KEY = NEXT_PUBLIC_PPL_WIDGET_API_KEY?.trim() ?? ""
 
-export function CheckoutPplPickupSelector({
+export const CheckoutPplPickupSelector = ({
   disabled,
   onConfirm,
-}: CheckoutPplPickupSelectorProps) {
+}: CheckoutPplPickupSelectorProps) => {
   const tCheckout = useTranslations("checkout")
   const marketContext = useMarketContext()
   const widgetRef = useRef<PplWidgetHandle | null>(null)
@@ -41,19 +76,16 @@ export function CheckoutPplPickupSelector({
   )
   const fallbackPointLabel = tCheckout("pickup_point_fallback")
 
-  const widgetConfig = useMemo(
-    () => ({
-      ...(selectedPoint?.code == null
-        ? {}
-        : { accessPointCode: selectedPoint.code }),
-      allowedCountries: [marketContext.countryCode.toUpperCase()],
-      countriesMenuDisabled: true,
-      defaultCountry: marketContext.countryCode.toUpperCase(),
-      defaultLang: resolveCarrierPickupWidgetLanguage(marketContext.locale),
-      viewMode: "modal" as const,
-    }),
-    [marketContext.countryCode, marketContext.locale, selectedPoint?.code],
-  )
+  const widgetConfig: PplWidgetConfig = {
+    ...(selectedPoint?.code === undefined || selectedPoint.code === null
+      ? {}
+      : { accessPointCode: selectedPoint.code }),
+    allowedCountries: [marketContext.countryCode.toUpperCase()],
+    countriesMenuDisabled: true,
+    defaultCountry: marketContext.countryCode.toUpperCase(),
+    defaultLang: resolveCarrierPickupWidgetLanguage(marketContext.locale),
+    viewMode: "modal",
+  }
 
   if (!PPL_WIDGET_API_KEY) {
     return (
@@ -74,7 +106,11 @@ export function CheckoutPplPickupSelector({
   }
 
   const handleSelect = (accessPoint: PplAccessPoint) => {
-    if (!accessPoint.code) {
+    if (
+      accessPoint.code === undefined ||
+      accessPoint.code === null ||
+      accessPoint.code.length === 0
+    ) {
       console.error("PPL pickup point selection is missing a code")
       setFailureReason("selection_failed")
       return
@@ -100,9 +136,9 @@ export function CheckoutPplPickupSelector({
                 selectedPoint.name ?? selectedPoint.code ?? fallbackPointLabel,
             })}
           </p>
-          {selectedPointAddress ? (
+          {selectedPointAddress === null ? null : (
             <p className="text-fg-secondary text-xs">{selectedPointAddress}</p>
-          ) : null}
+          )}
         </div>
       ) : null}
 
@@ -133,38 +169,4 @@ export function CheckoutPplPickupSelector({
       />
     </div>
   )
-}
-
-function buildPplShippingData(
-  accessPoint: PplAccessPoint,
-  fallbackPointLabel: string,
-) {
-  const { address } = accessPoint
-  const payload: Record<string, unknown> = {
-    access_point_city: address?.city,
-    access_point_country: address?.countryCode ?? address?.country,
-    access_point_id: accessPoint.code,
-    access_point_name:
-      accessPoint.name ?? accessPoint.code ?? fallbackPointLabel,
-    access_point_street: address?.street,
-    access_point_type: accessPoint.type,
-    access_point_zip: address?.zipCode,
-  }
-
-  return Object.fromEntries(
-    Object.entries(payload).filter(
-      ([, value]) => value != null && value !== "",
-    ),
-  )
-}
-
-function formatPplAddress(accessPoint: PplAccessPoint) {
-  const { address } = accessPoint
-  const addressParts = [
-    address?.street,
-    address?.zipCode,
-    address?.city,
-  ].filter(Boolean)
-
-  return addressParts.length > 0 ? addressParts.join(", ") : null
 }

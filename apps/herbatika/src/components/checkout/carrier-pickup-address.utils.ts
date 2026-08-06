@@ -1,5 +1,18 @@
 import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const readString = (value: unknown) => {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim()
+  }
+
+  return typeof value === "number" && Number.isFinite(value)
+    ? String(value)
+    : undefined
+}
+
 export interface CarrierPickupAddress {
   address: Pick<
     CheckoutAddressValues,
@@ -8,27 +21,33 @@ export interface CarrierPickupAddress {
   label: string
 }
 
-export function resolveCarrierPickupAddress(
+export const resolveCarrierPickupAddress = (
   data: unknown,
   fallbackCountryCode: string,
   fallbackLabel: string,
-): CarrierPickupAddress | null {
-  if (!(isRecord(data) && readString(data.access_point_id))) {
+): CarrierPickupAddress | null => {
+  if (
+    !(
+      isRecord(data) &&
+      readString(Reflect.get(data, "access_point_id")) !== undefined
+    )
+  ) {
     return null
   }
 
-  const label = readString(data.access_point_name) ?? fallbackLabel
-  const street = readString(data.access_point_street)
-  const city = readString(data.access_point_city) ?? ""
-  const postalCode = readString(data.access_point_zip) ?? ""
+  const label =
+    readString(Reflect.get(data, "access_point_name")) ?? fallbackLabel
+  const street = readString(Reflect.get(data, "access_point_street"))
+  const city = readString(Reflect.get(data, "access_point_city")) ?? ""
+  const postalCode = readString(Reflect.get(data, "access_point_zip")) ?? ""
   const countryCode = (
-    readString(data.access_point_country) ?? fallbackCountryCode
+    readString(Reflect.get(data, "access_point_country")) ?? fallbackCountryCode
   ).toUpperCase()
 
   return {
     address: {
       address1: label,
-      address2: street && street !== label ? street : "",
+      address2: street !== undefined && street !== label ? street : "",
       city,
       countryCode,
       postalCode,
@@ -37,7 +56,7 @@ export function resolveCarrierPickupAddress(
   }
 }
 
-export function formatCarrierPickupAddress(address: CarrierPickupAddress) {
+export const formatCarrierPickupAddress = (address: CarrierPickupAddress) => {
   const addressParts = [
     address.address.address2,
     address.address.postalCode,
@@ -47,18 +66,4 @@ export function formatCarrierPickupAddress(address: CarrierPickupAddress) {
   return addressParts.length > 0
     ? addressParts.join(", ")
     : address.address.countryCode
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-function readString(value: unknown) {
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value.trim()
-  }
-
-  return typeof value === "number" && Number.isFinite(value)
-    ? String(value)
-    : undefined
 }

@@ -16,7 +16,11 @@ const resolveProviderPaymentSession = (
   selectedPaymentProviderId: string,
 ) => {
   const paymentSessions = paymentCollection.payment_sessions
-  if (!paymentSessions?.length) {
+  if (
+    paymentSessions === undefined ||
+    paymentSessions === null ||
+    paymentSessions.length === 0
+  ) {
     return null
   }
 
@@ -24,7 +28,8 @@ const resolveProviderPaymentSession = (
     paymentSessions.find(
       (session) =>
         session.provider_id === selectedPaymentProviderId &&
-        (session as { is_selected?: unknown }).is_selected === true,
+        "is_selected" in session &&
+        session.is_selected === true,
     ) ??
     paymentSessions.find(
       (session) => session.provider_id === selectedPaymentProviderId,

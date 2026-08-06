@@ -15,12 +15,12 @@ interface HerbatikaCheckoutStepsProps {
   steps: readonly HerbatikaCheckoutStepItem[]
 }
 
-export function HerbatikaCheckoutSteps({
+export const HerbatikaCheckoutSteps = ({
   completedAriaLabel,
   onStepChange,
   step,
   steps,
-}: HerbatikaCheckoutStepsProps) {
+}: HerbatikaCheckoutStepsProps) => {
   const completionStepIndex = steps.length
   const visualStepCount = steps.length + 1
 

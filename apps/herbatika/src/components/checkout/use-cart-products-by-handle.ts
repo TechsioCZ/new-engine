@@ -10,29 +10,35 @@ const resolveCartProductHandles = (
 ) => {
   const seenHandles = new Set<string>()
 
-  return cartItems.reduce<string[]>((handles, item) => {
+  const handles: string[] = []
+  for (const item of cartItems) {
     const productHandle = resolveLineItemProductHandle(item)
-    if (!productHandle || seenHandles.has(productHandle)) {
-      return handles
+    if (
+      productHandle === undefined ||
+      productHandle === null ||
+      productHandle.length === 0 ||
+      seenHandles.has(productHandle)
+    ) {
+      continue
     }
 
     seenHandles.add(productHandle)
     handles.push(productHandle)
-    return handles
-  }, [])
+  }
+  return handles
 }
 
-export function useCartProductsByHandle(
+export const useCartProductsByHandle = (
   cartItems: HttpTypes.StoreCartLineItem[],
   fields = PRODUCT_CARD_FIELDS,
-) {
+) => {
   const productHandles = resolveCartProductHandles(cartItems)
   const productsQuery = useProducts({
-    page: 1,
-    limit: Math.max(productHandles.length, 1),
-    ...(productHandles.length > 0 ? { handle: productHandles } : {}),
-    fields,
     enabled: productHandles.length > 0,
+    fields,
+    ...(productHandles.length > 0 ? { handle: productHandles } : {}),
+    limit: Math.max(productHandles.length, 1),
+    page: 1,
   })
   const expectedHandles = new Set(productHandles)
   const products = productsQuery.products.filter(

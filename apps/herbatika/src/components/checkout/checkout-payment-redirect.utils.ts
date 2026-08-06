@@ -1,3 +1,11 @@
+const isRedirectUrl = (value: string) => {
+  try {
+    const url = new URL(value)
+    return url.protocol === "https:" || url.protocol === "http:"
+  } catch {
+    return false
+  }
+}
 const PAYMENT_URL_KEYS = [
   "payment_url",
   "paymentUrl",
@@ -35,7 +43,8 @@ const resolveSelectedSession = (sessions: unknown[]) =>
   sessions.find(
     (session) =>
       isObject(session) &&
-      (session.is_selected === true || session.selected === true),
+      (Reflect.get(session, "is_selected") === true ||
+        Reflect.get(session, "selected") === true),
   ) ?? sessions[0]
 
 const resolvePaymentUrlFromSessions = (
@@ -62,7 +71,7 @@ const resolvePaymentUrlFromPayments = (payments: unknown): string | null => {
     }
 
     const paymentUrl = resolvePaymentUrlFromRecord(payment)
-    if (paymentUrl) {
+    if (paymentUrl !== null) {
       return paymentUrl
     }
   }
@@ -76,25 +85,16 @@ export const resolvePaymentRedirectUrl = (value: unknown): string | null => {
   }
 
   const directPaymentUrl = resolvePaymentUrlFromRecord(value)
-  if (directPaymentUrl) {
+  if (directPaymentUrl !== null) {
     return directPaymentUrl
   }
 
   const sessionPaymentUrl = resolvePaymentUrlFromSessions(
-    value.payment_sessions,
+    Reflect.get(value, "payment_sessions"),
   )
-  if (sessionPaymentUrl) {
+  if (sessionPaymentUrl !== null) {
     return sessionPaymentUrl
   }
 
-  return resolvePaymentUrlFromPayments(value.payments)
-}
-
-function isRedirectUrl(value: string) {
-  try {
-    const url = new URL(value)
-    return url.protocol === "https:" || url.protocol === "http:"
-  } catch {
-    return false
-  }
+  return resolvePaymentUrlFromPayments(Reflect.get(value, "payments"))
 }

@@ -4,6 +4,7 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { useTranslations } from "next-intl"
+import type { ReactNode } from "react"
 
 import NextLink from "@/components/app-link"
 import {
@@ -17,18 +18,80 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
+const summaryCardClassName =
+  "rounded-sm border border-border-primary bg-surface space-y-300 p-300 sm:px-350"
+const summaryEditLinkClassName =
+  "gap-100 px-0 font-semibold text-fg-primary underline underline-offset-2 hover:text-primary"
+const summaryInlineLinkClassName =
+  "text-fg-primary underline underline-offset-2 hover:text-primary"
+
+const renderPrivacyLink = (chunks: ReactNode) => (
+  <NextLink
+    className={summaryInlineLinkClassName}
+    href="/#ochrana-osobnych-udajov"
+  >
+    {chunks}
+  </NextLink>
+)
+
+const renderTermsLink = (chunks: ReactNode) => (
+  <NextLink className={summaryInlineLinkClassName} href="/#obchodne-podmienky">
+    {chunks}
+  </NextLink>
+)
+
+const SummaryRecapCard = ({
+  editLabel,
+  href,
+  icon,
+  label,
+  tone = "default",
+}: {
+  editLabel: string
+  href: string
+  icon: IconType
+  label: string
+  tone?: "default" | "warning"
+}) => (
+  <div className={summaryCardClassName}>
+    <div className="flex items-center justify-between gap-200">
+      <div className="flex min-w-0 items-center gap-450">
+        <span className="flex h-600 w-600 shrink-0 items-center justify-center text-fg-primary">
+          <Icon icon={icon} size="lg" />
+        </span>
+        <p
+          className={
+            tone === "warning"
+              ? "font-medium text-sm text-warning"
+              : "font-medium text-fg-primary text-sm"
+          }
+        >
+          {label}
+        </p>
+      </div>
+
+      <LinkButton
+        as={NextLink}
+        className={summaryEditLinkClassName}
+        href={href}
+        icon="token-icon-pen"
+        iconSize="lg"
+        size="sm"
+        theme="unstyled"
+      >
+        {editLabel}
+      </LinkButton>
+    </div>
+  </div>
+)
+
 interface CheckoutCompleteSectionProps {
-  canCompleteOrder: boolean
   cartTotalAmount: number
   cartTaxAmount: number
   cartTotalWithoutTaxAmount: number
   currencyCode: string
   detailsStepHref: string
-  hasPayment: boolean
-  hasShipping: boolean
-  hasStoredAddress: boolean
   heurekaConsent: boolean
-  isCompletingOrder: boolean
   marketingConsent: boolean
   onHeurekaConsentChange: (value: boolean) => void
   onMarketingConsentChange: (value: boolean) => void
@@ -39,14 +102,14 @@ interface CheckoutCompleteSectionProps {
   shippingLabel?: string
   shippingOptionId?: string | null
   shippingStepHref: string
+  state: {
+    canCompleteOrder: boolean
+    hasPayment: boolean
+    hasShipping: boolean
+    hasStoredAddress: boolean
+    isCompletingOrder: boolean
+  }
 }
-
-const summaryCardClassName =
-  "rounded-sm border border-border-primary bg-surface space-y-300 p-300 sm:px-350"
-const summaryEditLinkClassName =
-  "gap-100 px-0 font-semibold text-fg-primary underline underline-offset-2 hover:text-primary"
-const summaryInlineLinkClassName =
-  "text-fg-primary underline underline-offset-2 hover:text-primary"
 
 const hasTextValue = (value: string) => value.trim().length > 0
 
@@ -120,18 +183,13 @@ const resolveAddressRows = (
 
 const resolveValue = (value: string) => (value.trim().length > 0 ? value : "—")
 
-export function CheckoutCompleteSection({
-  canCompleteOrder,
+export const CheckoutCompleteSection = ({
   cartTotalAmount,
   cartTaxAmount,
   cartTotalWithoutTaxAmount,
   currencyCode,
   detailsStepHref,
-  hasPayment,
-  hasShipping,
-  hasStoredAddress,
   heurekaConsent,
-  isCompletingOrder,
   marketingConsent,
   onHeurekaConsentChange,
   onMarketingConsentChange,
@@ -142,7 +200,14 @@ export function CheckoutCompleteSection({
   shippingLabel,
   shippingOptionId,
   shippingStepHref,
-}: CheckoutCompleteSectionProps) {
+  state: {
+    canCompleteOrder,
+    hasPayment,
+    hasShipping,
+    hasStoredAddress,
+    isCompletingOrder,
+  },
+}: CheckoutCompleteSectionProps) => {
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
   const tForm = useTranslations("form")
@@ -232,22 +297,8 @@ export function CheckoutCompleteSection({
 
           <p className="mx-auto max-w-[42rem] text-center text-fg-secondary text-xs leading-relaxed">
             {tCheckout.rich("review_legal_confirmation", {
-              privacy: (chunks) => (
-                <NextLink
-                  className={summaryInlineLinkClassName}
-                  href="/#ochrana-osobnych-udajov"
-                >
-                  {chunks}
-                </NextLink>
-              ),
-              terms: (chunks) => (
-                <NextLink
-                  className={summaryInlineLinkClassName}
-                  href="/#obchodne-podmienky"
-                >
-                  {chunks}
-                </NextLink>
-              ),
+              privacy: renderPrivacyLink,
+              terms: renderTermsLink,
             })}
           </p>
         </div>
@@ -313,52 +364,5 @@ export function CheckoutCompleteSection({
         )}
       </section>
     </section>
-  )
-}
-
-function SummaryRecapCard({
-  editLabel,
-  href,
-  icon,
-  label,
-  tone = "default",
-}: {
-  editLabel: string
-  href: string
-  icon: IconType
-  label: string
-  tone?: "default" | "warning"
-}) {
-  return (
-    <div className={summaryCardClassName}>
-      <div className="flex items-center justify-between gap-200">
-        <div className="flex min-w-0 items-center gap-450">
-          <span className="flex h-600 w-600 shrink-0 items-center justify-center text-fg-primary">
-            <Icon icon={icon} size="lg" />
-          </span>
-          <p
-            className={
-              tone === "warning"
-                ? "font-medium text-sm text-warning"
-                : "font-medium text-fg-primary text-sm"
-            }
-          >
-            {label}
-          </p>
-        </div>
-
-        <LinkButton
-          as={NextLink}
-          className={summaryEditLinkClassName}
-          href={href}
-          icon="token-icon-pen"
-          iconSize="lg"
-          size="sm"
-          theme="unstyled"
-        >
-          {editLabel}
-        </LinkButton>
-      </div>
-    </div>
   )
 }

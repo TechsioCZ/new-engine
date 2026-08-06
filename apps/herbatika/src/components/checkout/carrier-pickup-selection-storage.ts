@@ -6,26 +6,75 @@ export interface StoredCarrierPickupSelection {
 }
 
 const STORAGE_PREFIX = "herbatika.carrier-pickup"
+const createStorageKey = (cartId: string) => `${STORAGE_PREFIX}.${cartId}`
 
-export function readStoredCarrierPickupSelection({
+export const clearStoredCarrierPickupSelection = (cartId?: string | null) => {
+  if (
+    cartId === undefined ||
+    cartId === null ||
+    cartId.length === 0 ||
+    typeof window === "undefined"
+  ) {
+    return
+  }
+
+  window.sessionStorage.removeItem(createStorageKey(cartId))
+}
+
+const hasAccessPointId = (
+  data: Record<string, unknown> | null | undefined,
+): data is Record<string, unknown> => {
+  const accessPointId: unknown =
+    data === null || data === undefined
+      ? undefined
+      : Reflect.get(data, "access_point_id")
+  return typeof accessPointId === "string"
+    ? accessPointId.trim().length > 0
+    : typeof accessPointId === "number" && Number.isFinite(accessPointId)
+}
+
+const isStoredCarrierPickupSelection = (
+  value: unknown,
+): value is StoredCarrierPickupSelection => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const hasOptionId =
+    "optionId" in value &&
+    typeof value.optionId === "string" &&
+    value.optionId.trim().length > 0
+  const hasData =
+    "data" in value &&
+    typeof value.data === "object" &&
+    value.data !== null &&
+    !Array.isArray(value.data)
+
+  return hasOptionId && hasData
+}
+
+export const readStoredCarrierPickupSelection = ({
   cartId,
   optionId,
 }: {
   cartId?: string | null
   optionId?: string | null
-}): StoredCarrierPickupSelection | null {
-  if (!(cartId && optionId) || typeof window === "undefined") {
+}): StoredCarrierPickupSelection | null => {
+  const hasCartId = cartId !== undefined && cartId !== null && cartId.length > 0
+  const hasOptionId =
+    optionId !== undefined && optionId !== null && optionId.length > 0
+  if (!(hasCartId && hasOptionId) || typeof window === "undefined") {
     return null
   }
 
   try {
     const rawValue = window.sessionStorage.getItem(createStorageKey(cartId))
 
-    if (!rawValue) {
+    if (rawValue === null || rawValue.length === 0) {
       return null
     }
 
-    const parsedValue = JSON.parse(rawValue)
+    const parsedValue: unknown = JSON.parse(rawValue)
 
     if (!isStoredCarrierPickupSelection(parsedValue)) {
       return null
@@ -37,7 +86,7 @@ export function readStoredCarrierPickupSelection({
   }
 }
 
-export function writeStoredCarrierPickupSelection({
+export const writeStoredCarrierPickupSelection = ({
   cartId,
   data,
   optionId,
@@ -45,8 +94,13 @@ export function writeStoredCarrierPickupSelection({
   cartId?: string | null
   data?: Record<string, unknown>
   optionId: string
-}) {
-  if (!cartId || typeof window === "undefined") {
+}) => {
+  if (
+    cartId === undefined ||
+    cartId === null ||
+    cartId.length === 0 ||
+    typeof window === "undefined"
+  ) {
     return
   }
 
@@ -58,44 +112,5 @@ export function writeStoredCarrierPickupSelection({
   window.sessionStorage.setItem(
     createStorageKey(cartId),
     JSON.stringify({ data, optionId }),
-  )
-}
-
-export function clearStoredCarrierPickupSelection(cartId?: string | null) {
-  if (!cartId || typeof window === "undefined") {
-    return
-  }
-
-  window.sessionStorage.removeItem(createStorageKey(cartId))
-}
-
-function createStorageKey(cartId: string) {
-  return `${STORAGE_PREFIX}.${cartId}`
-}
-
-function hasAccessPointId(
-  data: Record<string, unknown> | null | undefined,
-): data is Record<string, unknown> {
-  return typeof data?.access_point_id === "string"
-    ? data.access_point_id.trim().length > 0
-    : typeof data?.access_point_id === "number" &&
-        Number.isFinite(data.access_point_id)
-}
-
-function isStoredCarrierPickupSelection(
-  value: unknown,
-): value is StoredCarrierPickupSelection {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false
-  }
-
-  const recordValue = value as Partial<StoredCarrierPickupSelection>
-
-  return (
-    typeof recordValue.optionId === "string" &&
-    recordValue.optionId.trim().length > 0 &&
-    typeof recordValue.data === "object" &&
-    recordValue.data !== null &&
-    !Array.isArray(recordValue.data)
   )
 }

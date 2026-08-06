@@ -70,7 +70,7 @@ export const resolveAvailabilityText = (
     asStorefrontString(topOffer?.availability_in_stock) ?? "Na sklade"
   const deliveryLabel = asStorefrontString(topOffer?.delivery_label)
 
-  return deliveryLabel
+  return deliveryLabel !== null && deliveryLabel.length > 0
     ? `${availabilityLabel}, ${deliveryLabel}`
     : availabilityLabel
 }

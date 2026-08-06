@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { useTranslations } from "next-intl"
+import type { ReactNode } from "react"
 
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
@@ -14,6 +15,10 @@ import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-acti
 import { useCartProductsByHandle } from "../use-cart-products-by-handle"
 import { CheckoutCartItemRow } from "./checkout-cart-item-row"
 
+const renderStrongText = (chunks: ReactNode) => (
+  <span className="font-semibold">{chunks}</span>
+)
+
 interface CheckoutCartStepSectionProps {
   cartId?: string
   cartItems: HttpTypes.StoreCartLineItem[]
@@ -21,12 +26,12 @@ interface CheckoutCartStepSectionProps {
   currencyCode: string
 }
 
-export function CheckoutCartStepSection({
+export const CheckoutCartStepSection = ({
   cartId,
   cartItems,
   cartItemsTotalAmount,
   currencyCode,
-}: CheckoutCartStepSectionProps) {
+}: CheckoutCartStepSectionProps) => {
   const tCheckout = useTranslations("checkout")
   const lineItemActions = useCartLineItemActions(
     cartId === undefined ? {} : { cartId },
@@ -72,25 +77,23 @@ export function CheckoutCartStepSection({
             {missingAmount > 0
               ? tCheckout.rich("free_shipping_remaining", {
                   missingAmount: missingAmountLabel ?? "",
-                  strong: (chunks) => (
-                    <span className="font-semibold">{chunks}</span>
-                  ),
+                  strong: renderStrongText,
                 })
               : tCheckout("free_shipping_qualified")}
           </p>
 
           <div className="relative mt-400 flex items-start">
-            <div
-              aria-label={tCheckout("free_shipping_progress_aria")}
-              aria-valuemax={100}
-              aria-valuemin={0}
-              aria-valuenow={Math.round(progressValue)}
-              className="relative mt-350 h-100 flex-1 overflow-hidden rounded-xs bg-border-primary"
-              role="progressbar"
-            >
+            <div className="relative mt-350 h-100 flex-1 overflow-hidden rounded-xs bg-border-primary">
+              <progress
+                aria-label={tCheckout("free_shipping_progress_aria")}
+                className="sr-only"
+                max={100}
+                value={progressValue}
+              />
               <div
-                className="h-full rounded-xs bg-success transition-all duration-300 ease-out"
-                style={{ width: `${progressValue}%` }}
+                aria-hidden
+                className="h-full origin-left rounded-xs bg-success transition-transform duration-300 ease-out"
+                style={{ transform: `scaleX(${progressValue / 100})` }}
               />
             </div>
 
@@ -125,8 +128,12 @@ export function CheckoutCartStepSection({
                 currencyCode={supportedCurrencyCode}
                 isPending={lineItemActions.isPending}
                 item={item}
-                onRemove={lineItemActions.removeItem}
-                onUpdateQuantity={lineItemActions.updateQuantity}
+                onRemove={(lineItemId) => {
+                  lineItemActions.removeItem(lineItemId)
+                }}
+                onUpdateQuantity={(lineItemId, quantity) => {
+                  lineItemActions.updateQuantity(lineItemId, quantity)
+                }}
                 {...(itemProduct === undefined ? {} : { product: itemProduct })}
               />
             </div>

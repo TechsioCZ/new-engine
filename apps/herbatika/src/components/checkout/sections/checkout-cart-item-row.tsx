@@ -43,11 +43,11 @@ interface CheckoutCartItemPriceProps {
   originalLineAmount: number | null
 }
 
-function CheckoutCartItemPrice({
+const CheckoutCartItemPrice = ({
   currencyCode,
   currentLineAmount,
   originalLineAmount,
-}: CheckoutCartItemPriceProps) {
+}: CheckoutCartItemPriceProps) => {
   const shouldShowOriginalAmount =
     typeof originalLineAmount === "number" &&
     originalLineAmount > currentLineAmount + 0.001
@@ -66,14 +66,14 @@ function CheckoutCartItemPrice({
   )
 }
 
-export function CheckoutCartItemRow({
+export const CheckoutCartItemRow = ({
   currencyCode,
   isPending,
   item,
   onRemove,
   onUpdateQuantity,
   product,
-}: CheckoutCartItemRowProps) {
+}: CheckoutCartItemRowProps) => {
   const tCart = useTranslations("cart")
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)

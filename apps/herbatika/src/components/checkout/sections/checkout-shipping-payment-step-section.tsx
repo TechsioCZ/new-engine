@@ -32,12 +32,12 @@ interface CheckoutShippingPaymentStepSectionProps {
   >["selectedPaymentProviderId"]
 }
 
-export function CheckoutShippingPaymentStepSection({
+export const CheckoutShippingPaymentStepSection = ({
   backStepHref,
   controller,
   nextStepHref,
   selectedPaymentProviderId,
-}: CheckoutShippingPaymentStepSectionProps) {
+}: CheckoutShippingPaymentStepSectionProps) => {
   const tCheckout = useTranslations("checkout")
   const [pendingPickupOptionId, setPendingPickupOptionId] = useState<
     string | null

@@ -18,15 +18,73 @@ import type { CheckoutController } from "@/components/checkout/use-checkout-cont
 
 import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section"
 
+const CheckoutStepLayout = ({
+  header,
+  aside,
+  children,
+  cartItems,
+}: {
+  header?: ReactNode
+  aside: ReactNode
+  children: ReactNode
+  cartItems?: HttpTypes.StoreCartLineItem[]
+}) => (
+  <div className="mx-auto w-full max-w-max-w space-y-900">
+    <div className="mx-auto grid w-full max-w-checkout gap-x-700 gap-y-400 xl:grid-cols-12 xl:items-start">
+      {header}
+      <div className="space-y-350 xl:col-span-7">{children}</div>
+      <aside className="space-y-300 xl:sticky xl:top-400 xl:col-span-5 xl:self-start">
+        {aside}
+      </aside>
+    </div>
+    {cartItems && <CheckoutInlineProductsSection cartItems={cartItems} />}
+  </div>
+)
+
 interface CheckoutStepContentProps {
   activeStep: CheckoutStepSlug
   controller: CheckoutController
 }
 
-export function CheckoutStepContent({
+type CheckoutTranslator = ReturnType<typeof useTranslations<"checkout">>
+
+const resolveSelectedPaymentLabel = ({
+  providerId,
+  translate,
+}: {
+  providerId: string | null | undefined
+  translate: CheckoutTranslator
+}) => {
+  if (
+    providerId === undefined ||
+    providerId === null ||
+    providerId.length === 0
+  ) {
+    return null
+  }
+
+  const displayTextKeys = resolvePaymentDisplayTextKeys(providerId)
+  if (
+    displayTextKeys.summaryLabelKey === undefined ||
+    displayTextKeys.summaryLabelKey.length === 0
+  ) {
+    return displayTextKeys.providerName ?? formatProviderLabel(providerId)
+  }
+  if (
+    displayTextKeys.providerName === undefined ||
+    displayTextKeys.providerName.length === 0
+  ) {
+    return translate(displayTextKeys.summaryLabelKey)
+  }
+  return translate(displayTextKeys.summaryLabelKey, {
+    providerName: displayTextKeys.providerName,
+  })
+}
+
+export const CheckoutStepContent = ({
   activeStep,
   controller,
-}: CheckoutStepContentProps) {
+}: CheckoutStepContentProps) => {
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
   const cartStepHref = resolveCheckoutStepHref("kosik")
@@ -38,26 +96,10 @@ export function CheckoutStepContent({
   const selectedShippingLabel = selectedShippingOption?.name ?? undefined
   const selectedShippingOptionId =
     controller.checkoutShippingQuery.selectedShippingMethodId
-  let selectedPaymentLabel: string | undefined
-  if (
-    typeof selectedPaymentProviderId === "string" &&
-    selectedPaymentProviderId.length > 0
-  ) {
-    const displayTextKeys = resolvePaymentDisplayTextKeys(
-      selectedPaymentProviderId,
-    )
-    selectedPaymentLabel =
-      displayTextKeys.providerName ??
-      formatProviderLabel(selectedPaymentProviderId)
-
-    if (displayTextKeys.summaryLabelKey) {
-      selectedPaymentLabel = displayTextKeys.providerName
-        ? tCheckout(displayTextKeys.summaryLabelKey, {
-            providerName: displayTextKeys.providerName,
-          })
-        : tCheckout(displayTextKeys.summaryLabelKey)
-    }
-  }
+  const selectedPaymentLabel = resolveSelectedPaymentLabel({
+    providerId: selectedPaymentProviderId,
+    translate: tCheckout,
+  })
   const orderSummaryDetailsFont = activeStep === "kosik" ? "rubik" : "inter"
   const orderSummaryAside = (
     <CheckoutOrderSummarySection
@@ -67,7 +109,7 @@ export function CheckoutStepContent({
       cartTotalAmount={controller.cartTotalAmount}
       currencyCode={controller.currencyCode}
       detailsFont={orderSummaryDetailsFont}
-      {...(selectedPaymentLabel === undefined
+      {...(selectedPaymentLabel === null
         ? {}
         : { paymentLabel: selectedPaymentLabel })}
       shippingAmount={controller.cartShippingSubtotalAmount}
@@ -142,25 +184,30 @@ export function CheckoutStepContent({
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutCompleteSection
-            canCompleteOrder={controller.canCompleteOrder}
             cartTaxAmount={controller.cartTaxAmount}
             cartTotalAmount={controller.cartTotalAmount}
             cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
             currencyCode={controller.currencyCode}
             detailsStepHref={detailsStepHref}
-            hasPayment={controller.hasPayment}
-            hasShipping={controller.hasShipping}
-            hasStoredAddress={controller.hasStoredAddress}
             heurekaConsent={controller.heurekaConsent}
-            isCompletingOrder={
-              controller.checkoutPaymentQuery.isInitiatingPayment ||
-              controller.completeCheckoutMutation.isPending
-            }
             marketingConsent={controller.marketingConsent}
             onCompleteOrder={controller.handleCompleteOrder}
-            onHeurekaConsentChange={controller.setHeurekaConsent}
-            onMarketingConsentChange={controller.setMarketingConsent}
-            {...(selectedPaymentLabel === undefined
+            onHeurekaConsentChange={(value) => {
+              controller.setHeurekaConsent(value)
+            }}
+            onMarketingConsentChange={(value) => {
+              controller.setMarketingConsent(value)
+            }}
+            state={{
+              canCompleteOrder: controller.canCompleteOrder,
+              hasPayment: controller.hasPayment,
+              hasShipping: controller.hasShipping,
+              hasStoredAddress: controller.hasStoredAddress,
+              isCompletingOrder:
+                controller.checkoutPaymentQuery.isInitiatingPayment ||
+                controller.completeCheckoutMutation.isPending,
+            }}
+            {...(selectedPaymentLabel === null
               ? {}
               : { paymentLabel: selectedPaymentLabel })}
             {...(selectedPaymentProviderId === undefined
@@ -183,29 +230,4 @@ export function CheckoutStepContent({
       throw new Error(`Unhandled checkout step: ${String(unhandledStep)}`)
     }
   }
-}
-
-function CheckoutStepLayout({
-  header,
-  aside,
-  children,
-  cartItems,
-}: {
-  header?: ReactNode
-  aside: ReactNode
-  children: ReactNode
-  cartItems?: HttpTypes.StoreCartLineItem[]
-}) {
-  return (
-    <div className="mx-auto w-full max-w-max-w space-y-900">
-      <div className="mx-auto grid w-full max-w-checkout gap-x-700 gap-y-400 xl:grid-cols-12 xl:items-start">
-        {header}
-        <div className="space-y-350 xl:col-span-7">{children}</div>
-        <aside className="space-y-300 xl:sticky xl:top-400 xl:col-span-5 xl:self-start">
-          {aside}
-        </aside>
-      </div>
-      {cartItems && <CheckoutInlineProductsSection cartItems={cartItems} />}
-    </div>
-  )
 }

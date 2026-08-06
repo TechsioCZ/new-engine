@@ -18,12 +18,12 @@ interface CheckoutPickupPointDetailsSectionProps {
   pickupAddress: CarrierPickupAddress
 }
 
-export function CheckoutPickupPointDetailsSection({
+export const CheckoutPickupPointDetailsSection = ({
   checkoutDetailsForm,
   countryItems,
   isAuthenticated,
   pickupAddress,
-}: CheckoutPickupPointDetailsSectionProps) {
+}: CheckoutPickupPointDetailsSectionProps) => {
   const tCheckout = useTranslations("checkout")
   const { isCompanyPurchase } = checkoutDetailsForm.values
   const tForm = useTranslations("form")
@@ -122,7 +122,9 @@ export function CheckoutPickupPointDetailsSection({
             groupLabel={tCheckout("purchase_type")}
             id="checkout-pickup-purchase-type"
             isCompanyPurchase={isCompanyPurchase}
-            onValueChange={checkoutDetailsForm.setCompanyPurchase}
+            onValueChange={(value) => {
+              checkoutDetailsForm.setCompanyPurchase(value)
+            }}
             privateLabel={tCheckout("private_purchase")}
           />
 

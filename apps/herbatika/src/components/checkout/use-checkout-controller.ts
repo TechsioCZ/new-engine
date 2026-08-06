@@ -1,43 +1,10 @@
 "use client"
 
-import { useQueryClient } from "@tanstack/react-query"
-import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useTranslations } from "next-intl"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useRef, useState } from "react"
 
 import { resolveEffectiveCheckoutAddressDetails } from "@/lib/forms/checkout/address.form"
-import type { CheckoutDetailsValues } from "@/lib/forms/checkout/address.form"
-import { useAuth } from "@/lib/storefront/auth"
-import {
-  useCart,
-  useUpdateCart,
-  useUpdateCartAddress,
-} from "@/lib/storefront/cart"
-import {
-  resolveCartItemsSubtotalAmount,
-  resolveCartItemsTotalAmount,
-  resolveCartShippingTotalAmount,
-  resolveCartTaxAmount,
-  resolveCartTotalAmount,
-  resolveCartTotalWithoutTaxAmount,
-} from "@/lib/storefront/cart-calculations"
-import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-calculations"
 import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter"
-import {
-  fetchPaymentProviders,
-  resolveSelectedPaymentProviderId,
-} from "@/lib/storefront/checkout"
-import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
-import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
-import { useMarketContext } from "@/lib/storefront/market-context-provider"
-import {
-  REGION_LIST_FIELDS,
-  REGION_LIST_LIMIT,
-} from "@/lib/storefront/region-query-config"
-import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
-import { useRegions } from "@/lib/storefront/regions"
-import { storefront } from "@/lib/storefront/storefront"
 
 import {
   buildAccountSetupRequestedMetadata,
@@ -45,158 +12,58 @@ import {
   readAccountSetupRequested,
 } from "./account-setup-metadata"
 import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
-import { resolveHasStoredAddress } from "./checkout-address.utils"
 import { resolveOrderId } from "./checkout-completion.utils"
 import {
   clearStoredPaymentProviderSelection,
-  useStoredPaymentProviderSelection,
   writeStoredPaymentProviderSelection,
 } from "./checkout-payment-selection-storage"
-import {
-  isCheckoutCountryAvailableForRegion,
-  resolveCheckoutCountryItemsForRegion,
-} from "./checkout.constants"
+import { resolveCheckoutSummary } from "./checkout-summary.utils"
+import { isCheckoutCountryAvailableForRegion } from "./checkout.constants"
 import { useCheckoutActions } from "./use-checkout-actions"
 import { useCheckoutDetailsForm } from "./use-checkout-details-form"
+import { useCheckoutRuntime } from "./use-checkout-runtime"
 
-const resolveCompleteResultOrderMetadata = (result: unknown) => {
-  if (!(isRecord(result) && isRecord(result.order))) {
+const resolveCompleteResultOrderMetadata = (result: unknown): unknown => {
+  if (!isRecord(result)) {
     return null
   }
-
-  return result.order.metadata
+  const order: unknown = Reflect.get(result, "order")
+  if (!isRecord(order)) {
+    return null
+  }
+  const metadata: unknown = Reflect.get(order, "metadata")
+  return metadata
 }
 
-export function useCheckoutController() {
-  const queryClient = useQueryClient()
-  const tCheckout = useTranslations("checkout")
-  const marketContext = useMarketContext()
-  const region = useRegionContext()
-  const regionCurrencyCode = resolveRegionCurrency(region)
-  const authQuery = useAuth()
+export const useCheckoutController = () => {
   const [allowCartAutoCreate, setAllowCartAutoCreate] = useState(true)
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null)
   const [marketingConsent, setMarketingConsent] = useState(false)
   const [heurekaConsent, setHeurekaConsent] = useState(false)
   const saveAddressSucceededRef = useRef(false)
-
-  const cartQuery = useCart({
-    autoCreate: allowCartAutoCreate && !completedOrderId,
-    ...(region?.region_id === undefined
-      ? {}
-      : { region_id: region?.region_id }),
-    ...(region?.country_code === undefined
-      ? {}
-      : { country_code: region?.country_code }),
-    enabled: Boolean(region?.region_id),
-  })
-  const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id
-  const regionsQuery = useRegions({
-    fields: REGION_LIST_FIELDS,
-    limit: REGION_LIST_LIMIT,
-  })
-
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
-  const updateCartAddressMutation = useUpdateCartAddress()
-  const updateCartMutation = useUpdateCart()
-  const completeCheckoutMutation = storefront.flows.cart.useCompleteCart()
-  const isUpdatingCartAddress = updateCartAddressMutation.isPending
-  const isUpdatingCart = updateCartMutation.isPending
-  const mutateCart = updateCartMutation.mutate
-
-  const checkoutShippingQuery = storefront.flows.checkout.useCheckoutShipping(
-    cartQuery.cart?.id,
-    cartQuery.cart,
-    {
-      enabled: Boolean(cartQuery.cart?.id),
-      onError: (error) => {
-        setCheckoutError(
-          resolveErrorMessage(error, tCheckout("shipping_update_failed")),
-        )
-      },
-    },
-  )
-
-  const checkoutPaymentQuery = storefront.flows.checkout.useCheckoutPayment(
-    cartQuery.cart?.id,
+  const {
     activeRegionId,
-    cartQuery.cart,
-    {
-      enabled: Boolean(activeRegionId),
-    },
-  )
-  const cartSelectedPaymentProviderId = resolveSelectedPaymentProviderId(
-    cartQuery.cart,
-  )
-  const storedPaymentProviderId = useStoredPaymentProviderSelection(
-    cartQuery.cart?.id,
-  )
-  const effectiveSelectedPaymentProviderId =
-    storedPaymentProviderId ?? cartSelectedPaymentProviderId
-
-  useEffect(() => {
-    const cartId = cartQuery.cart?.id
-    const regionCountryCode = region?.country_code?.toLowerCase()
-    const cartCountryCode =
-      cartQuery.cart?.shipping_address?.country_code?.toLowerCase() ?? null
-
-    if (!(cartId && regionCountryCode)) {
-      return
-    }
-
-    if (cartCountryCode || isUpdatingCartAddress || isUpdatingCart) {
-      return
-    }
-
-    mutateCart({
-      cartId,
-      country_code: regionCountryCode,
-    })
-  }, [
-    cartQuery.cart?.id,
-    cartQuery.cart?.shipping_address?.country_code,
-    region?.country_code,
-    isUpdatingCart,
-    isUpdatingCartAddress,
-    mutateCart,
-  ])
-
-  useEffect(() => {
-    if (!activeRegionId) {
-      return
-    }
-
-    runDetachedPromise(
-      fetchPaymentProviders(queryClient, activeRegionId),
-      () => {
-        // Best-effort prefetch only.
-      },
-    )
-  }, [activeRegionId, queryClient])
-
-  const countryItems = useMemo(
-    () =>
-      resolveCheckoutCountryItemsForRegion({
-        ...(region?.country_code === undefined
-          ? {}
-          : { activeCountryCode: region?.country_code }),
-        locale: marketContext.locale,
-        ...(activeRegionId === undefined ? {} : { regionId: activeRegionId }),
-        regions: regionsQuery.regions,
-      }),
-    [
-      activeRegionId,
-      marketContext.locale,
-      region?.country_code,
-      regionsQuery.regions,
-    ],
-  )
+    authQuery,
+    cartQuery,
+    checkoutError,
+    checkoutPaymentQuery,
+    checkoutShippingQuery,
+    completeCheckoutMutation,
+    countryItems,
+    effectiveSelectedPaymentProviderId,
+    region,
+    regionCurrencyCode,
+    regionsQuery,
+    setCheckoutError,
+    tCheckout,
+    updateCartAddressMutation,
+    updateCartMutation,
+  } = useCheckoutRuntime({ allowCartAutoCreate, completedOrderId })
 
   const actions = useCheckoutActions({
+    canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
     cart: cartQuery.cart,
     ...(cartQuery.cart?.id === undefined ? {} : { cartId: cartQuery.cart?.id }),
-    canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
-    completedOrderId,
     completeCart: async () => {
       logCheckoutAccountSetupDebug("complete cart invoked", {
         cart_id: cartQuery.cart?.id ?? null,
@@ -221,10 +88,12 @@ export function useCheckoutController() {
 
       return completeResult
     },
+    completedOrderId,
     initiatePayment: checkoutPaymentQuery.initiatePaymentAsync,
     itemCount: cartQuery.itemCount,
+    onCheckoutErrorChange: setCheckoutError,
     onCompletedOrderIdChange: (orderId) => {
-      if (orderId) {
+      if (orderId !== null && orderId.length > 0) {
         clearStoredPaymentProviderSelection(cartQuery.cart?.id)
       }
       setCompletedOrderId(orderId)
@@ -235,7 +104,6 @@ export function useCheckoutController() {
     onOrderCompletionStart: () => {
       setAllowCartAutoCreate(false)
     },
-    onCheckoutErrorChange: setCheckoutError,
     onPaymentProviderSelect: (providerId) => {
       writeStoredPaymentProviderSelection({
         ...(cartQuery.cart?.id === undefined
@@ -265,7 +133,7 @@ export function useCheckoutController() {
     isCartLoading: cartQuery.isLoading,
     isCustomerLoading: authQuery.isLoading,
     onSubmit: async (values) => {
-      if (!cartQuery.cart?.id) {
+      if (cartQuery.cart?.id === undefined || cartQuery.cart.id.length === 0) {
         setCheckoutError(tCheckout("cart_not_ready"))
         return
       }
@@ -312,15 +180,19 @@ export function useCheckoutController() {
         })
 
         const updatedCart = await updateCartAddressMutation.mutateAsync({
-          billingAddress: buildHerbatikaCheckoutAddressInput(
-            effectiveCheckoutDetails.billing,
-          ),
+          billingAddress: {
+            ...buildHerbatikaCheckoutAddressInput(
+              effectiveCheckoutDetails.billing,
+            ),
+          },
           cartId: cartQuery.cart.id,
           email: values.shipping.email.trim(),
           metadata: accountSetupMetadata,
-          shippingAddress: buildHerbatikaCheckoutAddressInput(
-            effectiveCheckoutDetails.shipping,
-          ),
+          shippingAddress: {
+            ...buildHerbatikaCheckoutAddressInput(
+              effectiveCheckoutDetails.shipping,
+            ),
+          },
           useSameAddress: effectiveCheckoutDetails.useSameAddress,
         })
 
@@ -358,7 +230,7 @@ export function useCheckoutController() {
   const syncAccountSetupPreference = async () => {
     const { cart } = cartQuery
 
-    if (!cart?.id) {
+    if (cart?.id === undefined || cart.id.length === 0) {
       setCheckoutError(tCheckout("cart_not_ready"))
       return false
     }
@@ -419,57 +291,45 @@ export function useCheckoutController() {
     await actions.handleCompleteOrder()
   }
 
-  const currencyCode = resolveSupportedCurrencyCode(
-    cartQuery.cart?.currency_code,
+  const {
+    canCompleteOrder,
+    cartItems,
+    cartItemsSubtotalAmount,
+    cartItemsTotalAmount,
+    cartShippingSubtotalAmount,
+    cartShippingTotalAmount,
+    cartTaxAmount,
+    cartTotalAmount,
+    cartTotalWithoutTaxAmount,
+    currencyCode,
+    hasItems,
+    hasPayment,
+    hasShipping,
+    hasStoredAddress,
+    isBusy,
+  } = resolveCheckoutSummary({
+    cart: cartQuery.cart,
+    effectiveSelectedPaymentProviderId,
+    itemCount: cartQuery.itemCount,
+    pendingStates: [
+      cartQuery.isFetching,
+      regionsQuery.isLoading,
+      regionsQuery.isFetching,
+      updateCartAddressMutation.isPending,
+      updateCartMutation.isPending,
+      checkoutShippingQuery.isSettingShipping,
+      checkoutPaymentQuery.isInitiatingPayment,
+      completeCheckoutMutation.isPending,
+    ],
     regionCurrencyCode,
-  )
-
-  const cartItems = cartQuery.cart?.items ?? []
-  const hasItems = cartQuery.itemCount > 0 || cartItems.length > 0
-  const hasStoredAddress = resolveHasStoredAddress(cartQuery.cart)
-  const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId)
-  const hasPayment = Boolean(effectiveSelectedPaymentProviderId)
-
-  const selectedShippingOptionPrice =
-    checkoutShippingQuery.selectedShippingMethodId
-      ? (checkoutShippingQuery.shippingPrices[
-          checkoutShippingQuery.selectedShippingMethodId
-        ] ?? 0)
-      : 0
-  const hasCartShippingMethods = Boolean(
-    cartQuery.cart?.shipping_methods?.length,
-  )
-  const cartItemsTotalAmount = resolveCartItemsTotalAmount(cartQuery.cart)
-  const cartShippingTotalAmount = hasCartShippingMethods
-    ? resolveCartShippingTotalAmount(cartQuery.cart)
-    : selectedShippingOptionPrice
-  const cartShippingSubtotalAmount = hasCartShippingMethods
-    ? resolveCartShippingSubtotalAmount(cartQuery.cart)
-    : selectedShippingOptionPrice
-  const cartTaxAmount = resolveCartTaxAmount(cartQuery.cart)
-  const cartTotalAmount = resolveCartTotalAmount(cartQuery.cart)
-  const cartTotalWithoutTaxAmount = resolveCartTotalWithoutTaxAmount(
-    cartQuery.cart,
-  )
-  const cartItemsSubtotalAmount = resolveCartItemsSubtotalAmount(cartQuery.cart)
-
-  const isBusy =
-    cartQuery.isFetching ||
-    regionsQuery.isLoading ||
-    regionsQuery.isFetching ||
-    updateCartAddressMutation.isPending ||
-    updateCartMutation.isPending ||
-    checkoutShippingQuery.isSettingShipping ||
-    checkoutPaymentQuery.isInitiatingPayment ||
-    completeCheckoutMutation.isPending
+    selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
+    shippingPrices: checkoutShippingQuery.shippingPrices,
+  })
 
   return {
     ...actions,
     billingAddressForm: checkoutDetailsForm.effectiveValues.billing,
-    canCompleteOrder:
-      !isBusy &&
-      Boolean(checkoutShippingQuery.selectedShippingMethodId) &&
-      Boolean(effectiveSelectedPaymentProviderId),
+    canCompleteOrder,
     cartItems,
     cartItemsSubtotalAmount,
     cartItemsTotalAmount,

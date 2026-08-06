@@ -4,16 +4,17 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { useState } from "react"
+import type { ChangeEvent } from "react"
 
 interface CheckoutGlsPickupSelectorProps {
   disabled: boolean
   onConfirm: (data: Record<string, unknown>) => void
 }
 
-export function CheckoutGlsPickupSelector({
+export const CheckoutGlsPickupSelector = ({
   disabled,
   onConfirm,
-}: CheckoutGlsPickupSelectorProps) {
+}: CheckoutGlsPickupSelectorProps) => {
   const [accessPointId, setAccessPointId] = useState("")
   const [accessPointName, setAccessPointName] = useState("")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -29,12 +30,9 @@ export function CheckoutGlsPickupSelector({
 
     setErrorMessage(null)
     onConfirm({
-      access_point_city: undefined,
       access_point_id: normalizedId,
-      access_point_name: normalizedName
-        ? normalizedName
-        : `GLS ${normalizedId}`,
-      access_point_zip: undefined,
+      access_point_name:
+        normalizedName.length > 0 ? normalizedName : `GLS ${normalizedId}`,
     })
   }
 
@@ -47,14 +45,16 @@ export function CheckoutGlsPickupSelector({
 
       <FormInput
         aria-describedby={
-          errorMessage ? "checkout-gls-access-point-error" : undefined
+          errorMessage !== null && errorMessage.length > 0
+            ? "checkout-gls-access-point-error"
+            : undefined
         }
         aria-invalid={Boolean(errorMessage)}
         disabled={disabled}
         helpText="ID ParcelShopu z GLS systému alebo mapy."
         id="checkout-gls-access-point-id"
         label="GLS výdajné miesto"
-        onChange={(event) => {
+        onChange={(event: ChangeEvent<HTMLInputElement>) => {
           setAccessPointId(event.target.value)
         }}
         placeholder="napr. SK12345"
@@ -67,7 +67,7 @@ export function CheckoutGlsPickupSelector({
         helpText="Voliteľné pomenovanie výdajného miesta pre adresu doručenia."
         id="checkout-gls-access-point-name"
         label="Názov výdajného miesta"
-        onChange={(event) => {
+        onChange={(event: ChangeEvent<HTMLInputElement>) => {
           setAccessPointName(event.target.value)
         }}
         placeholder="GLS ParcelShop"
@@ -75,7 +75,7 @@ export function CheckoutGlsPickupSelector({
         value={accessPointName}
       />
 
-      {errorMessage ? (
+      {errorMessage !== null && errorMessage.length > 0 ? (
         <StatusText
           id="checkout-gls-access-point-error"
           showIcon

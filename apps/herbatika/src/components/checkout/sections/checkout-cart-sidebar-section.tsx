@@ -21,7 +21,7 @@ interface CheckoutCartSidebarSectionProps {
   shippingLabel?: string
 }
 
-export function CheckoutCartSidebarSection({
+export const CheckoutCartSidebarSection = ({
   cartItemsTotalAmount,
   cartTaxAmount,
   cartTotalAmount,
@@ -30,12 +30,15 @@ export function CheckoutCartSidebarSection({
   nextStepHref,
   shippingAmount,
   shippingLabel,
-}: CheckoutCartSidebarSectionProps) {
+}: CheckoutCartSidebarSectionProps) => {
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
-  const shippingExclTaxLabel = shippingLabel
-    ? tCheckout("shipping_excl_tax_with_name", { shippingName: shippingLabel })
-    : tCart("shipping_excl_tax")
+  const shippingExclTaxLabel =
+    shippingLabel === undefined || shippingLabel.length === 0
+      ? tCart("shipping_excl_tax")
+      : tCheckout("shipping_excl_tax_with_name", {
+          shippingName: shippingLabel,
+        })
 
   return (
     <section className="w-full space-y-300 xl:max-w-header-search">

@@ -21,7 +21,7 @@ const EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE = "novinky"
 const EMPTY_CART_RECOMMENDATIONS_LIMIT = 10
 const EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT = 32
 
-export function CheckoutEmptyCartSection() {
+export const CheckoutEmptyCartSection = () => {
   const tCheckout = useTranslations("checkout")
   const region = useRegionContext()
   const categoriesQuery = useCategories({
@@ -46,14 +46,17 @@ export function CheckoutEmptyCartSection() {
     : []
 
   const recommendationsQuery = useProducts({
-    page: 1,
-    limit: EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT,
-    order: "-created_at",
-    fields: RELATED_PRODUCT_FIELDS,
     ...(recommendationCategoryIds.length > 0
       ? { category_id: recommendationCategoryIds }
       : {}),
-    enabled: Boolean(region?.region_id && recommendationCategoryIds.length > 0),
+    enabled:
+      region?.region_id !== undefined &&
+      region.region_id.length > 0 &&
+      recommendationCategoryIds.length > 0,
+    fields: RELATED_PRODUCT_FIELDS,
+    limit: EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT,
+    order: "-created_at",
+    page: 1,
   })
   const recommendedProducts = selectRecommendedProductRepresentatives(
     recommendationsQuery.products,

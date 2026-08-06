@@ -31,11 +31,11 @@ interface CheckoutDetailsStepSectionProps {
   nextStepHref: AppHref
 }
 
-export function CheckoutDetailsStepSection({
+export const CheckoutDetailsStepSection = ({
   backStepHref,
   controller,
   nextStepHref,
-}: CheckoutDetailsStepSectionProps) {
+}: CheckoutDetailsStepSectionProps) => {
   const router = useRouter()
   const tCheckout = useTranslations("checkout")
   const addressFormId = "checkout-address-form"
@@ -81,18 +81,19 @@ export function CheckoutDetailsStepSection({
               checkoutDetailsForm={controller.checkoutDetailsForm}
               countryItems={countryItems}
               fieldPrefix="checkout-shipping"
-              isAuthenticated={controller.isAuthenticated}
+              options={{
+                isAuthenticated: controller.isAuthenticated,
+                showCompanyFields:
+                  checkoutDetailsValues.useSameAddress &&
+                  checkoutDetailsValues.isCompanyPurchase,
+                showCompanyPurchaseToggle: checkoutDetailsValues.useSameAddress,
+                showContactFields: true,
+                showCustomerNote: true,
+                showLoginPrompt: true,
+                showRegistrationOptIn: !controller.isAuthenticated,
+                showRequiredNote: true,
+              }}
               scope="shipping"
-              showCompanyFields={
-                checkoutDetailsValues.useSameAddress &&
-                checkoutDetailsValues.isCompanyPurchase
-              }
-              showCompanyPurchaseToggle={checkoutDetailsValues.useSameAddress}
-              showContactFields
-              showCustomerNote
-              showLoginPrompt
-              showRegistrationOptIn={!controller.isAuthenticated}
-              showRequiredNote
             />
 
             <div className="rounded-sm border border-border-primary bg-surface px-550 py-350">
@@ -131,10 +132,17 @@ export function CheckoutDetailsStepSection({
                 checkoutDetailsForm={controller.checkoutDetailsForm}
                 countryItems={countryItems}
                 fieldPrefix="checkout-billing"
+                options={{
+                  isAuthenticated: controller.isAuthenticated,
+                  showCompanyFields: checkoutDetailsValues.isCompanyPurchase,
+                  showCompanyPurchaseToggle: true,
+                  showContactFields: false,
+                  showCustomerNote: false,
+                  showLoginPrompt: false,
+                  showRegistrationOptIn: false,
+                  showRequiredNote: false,
+                }}
                 scope="billing"
-                showCompanyFields={checkoutDetailsValues.isCompanyPurchase}
-                showCompanyPurchaseToggle
-                showContactFields={false}
                 title={tCheckout("billing_details")}
               />
             )}
@@ -158,7 +166,11 @@ export function CheckoutDetailsStepSection({
         </LinkButton>
         <Button
           className="w-full sm:w-auto sm:min-w-950"
-          disabled={controller.isBusy || !controller.cartQuery.cart?.id}
+          disabled={
+            controller.isBusy ||
+            controller.cartQuery.cart?.id === undefined ||
+            controller.cartQuery.cart.id.length === 0
+          }
           form={addressFormId}
           icon="token-icon-chevron-right"
           iconPosition="right"

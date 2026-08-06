@@ -9,7 +9,7 @@ import NextLink from "@/components/app-link"
 import { HerbatikaLogo } from "@/components/herbatika-logo"
 import { useAuth } from "@/lib/storefront/auth"
 
-export function CheckoutHeader() {
+export const CheckoutHeader = () => {
   const { isAuthenticated } = useAuth()
   const tAuth = useTranslations("auth")
   const tCheckout = useTranslations("checkout")

@@ -4,7 +4,6 @@ import { useEffect } from "react"
 import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
 import { resolveShippingIcon } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
-import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
 import { CheckoutCarrierPickupDetails } from "./checkout-carrier-pickup-details"
@@ -28,7 +27,7 @@ interface CheckoutShippingSectionProps {
   shippingPrices: Record<string, number>
 }
 
-export function CheckoutShippingSection({
+export const CheckoutShippingSection = ({
   currencyCode,
   isBusy,
   onSelectShipping,
@@ -37,7 +36,7 @@ export function CheckoutShippingSection({
   selectedShippingMethodId,
   shippingOptions,
   shippingPrices,
-}: CheckoutShippingSectionProps) {
+}: CheckoutShippingSectionProps) => {
   const tCheckout = useTranslations("checkout")
   const pickupRequirements = new Map(
     shippingOptions.flatMap((option) => {
@@ -49,7 +48,8 @@ export function CheckoutShippingSection({
 
   useEffect(() => {
     if (
-      pendingPickupOptionId &&
+      pendingPickupOptionId !== null &&
+      pendingPickupOptionId.length > 0 &&
       !shippingOptions.some((option) => option.id === pendingPickupOptionId)
     ) {
       onPendingPickupOptionIdChange(null)
@@ -83,7 +83,7 @@ export function CheckoutShippingSection({
               }
 
               onPendingPickupOptionIdChange(null)
-              runDetachedPromise(onSelectShipping(value))
+              onSelectShipping(value)
             }}
             options={shippingOptions.map((option) => {
               const optionPrice = shippingPrices[option.id] ?? 0
@@ -102,9 +102,7 @@ export function CheckoutShippingSection({
                           disabled={isBusy}
                           onConfirm={(data) => {
                             onPendingPickupOptionIdChange(null)
-                            runDetachedPromise(
-                              onSelectShipping(option.id, data),
-                            )
+                            onSelectShipping(option.id, data)
                           }}
                           requirement={pickupRequirement}
                         />

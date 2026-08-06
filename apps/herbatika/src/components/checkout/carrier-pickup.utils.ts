@@ -1,5 +1,8 @@
 import type { HerbatikaLocale } from "@/lib/storefront/market-context"
 
+const normalizeIdentifier = (value: unknown) =>
+  typeof value === "string" ? value.trim().toLowerCase() : ""
+
 export type CarrierPickupType = "gls" | "packeta" | "ppl"
 
 export type CarrierPickupFailureReason =
@@ -36,22 +39,28 @@ export const CARRIER_PICKUP_FAILURE_KEYS = {
   selector_unavailable: "pickup_selector_unavailable",
 } as const satisfies Record<CarrierPickupFailureReason, string>
 
-export function resolveCarrierPickupRequirement(
+export const resolveCarrierPickupRequirement = (
   option: ShippingOptionWithPickupData,
-): CarrierPickupRequirement | null {
+): CarrierPickupRequirement | null => {
   const optionData = option.data ?? {}
-  const optionCode = normalizeIdentifier(optionData.code)
-  const productType = normalizeIdentifier(optionData.product_type)
+  const optionCode = normalizeIdentifier(Reflect.get(optionData, "code"))
+  const productType = normalizeIdentifier(
+    Reflect.get(optionData, "product_type"),
+  )
   const providerId = normalizeIdentifier(option.provider_id)
   const optionName = normalizeIdentifier(option.name)
-  const looksLikePickupOption =
-    optionName.includes("pickup") ||
-    optionName.includes("parcel") ||
-    optionName.includes("parcelshop") ||
-    optionName.includes("výdaj") ||
-    optionName.includes("vyzdvih") ||
-    optionName.includes("z-point") ||
-    optionName.includes("zásielkov")
+  const pickupOptionMarkers = [
+    "pickup",
+    "parcel",
+    "parcelshop",
+    "výdaj",
+    "vyzdvih",
+    "z-point",
+    "zásielkov",
+  ]
+  const looksLikePickupOption = pickupOptionMarkers.some((marker) =>
+    optionName.includes(marker),
+  )
 
   if (
     providerId.includes("gls") &&
@@ -68,7 +77,7 @@ export function resolveCarrierPickupRequirement(
   }
 
   if (
-    optionData.requires_access_point === true ||
+    Reflect.get(optionData, "requires_access_point") === true ||
     PPL_PICKUP_PRODUCTS.has(productType) ||
     (providerId.includes("ppl") && looksLikePickupOption)
   ) {
@@ -78,9 +87,9 @@ export function resolveCarrierPickupRequirement(
   return null
 }
 
-export function resolveCarrierPickupHint(
+export const resolveCarrierPickupHint = (
   requirement: CarrierPickupRequirement,
-) {
+) => {
   if (requirement.carrier === "gls") {
     return "GLS výdaj"
   }
@@ -90,7 +99,3 @@ export function resolveCarrierPickupHint(
 
 export const resolveCarrierPickupWidgetLanguage = (locale: HerbatikaLocale) =>
   CARRIER_PICKUP_WIDGET_LANGUAGES[locale]
-
-function normalizeIdentifier(value: unknown) {
-  return typeof value === "string" ? value.trim().toLowerCase() : ""
-}
