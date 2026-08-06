@@ -1,17 +1,11 @@
 import { generateJwtToken, MedusaError } from "@medusajs/framework/utils"
-import { type JWTPayload, jwtVerify } from "jose"
+import { jwtVerify } from "jose"
 
 export const CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_EXPIRES_IN = "30m"
 export const CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_PURPOSE =
   "customer-account-deactivation"
 
 const TRAILING_SLASH_REGEX = /\/$/
-
-type CustomerAccountDeactivationTokenPayload = JWTPayload & {
-  customer_id?: unknown
-  email?: unknown
-  purpose?: unknown
-}
 
 export type VerifiedCustomerAccountDeactivationToken = {
   customer_id: string
@@ -70,7 +64,7 @@ export async function verifyCustomerAccountDeactivationToken(
     )
   }
 
-  let payload: JWTPayload
+  let payload: Awaited<ReturnType<typeof jwtVerify>>["payload"]
   try {
     const verified = await jwtVerify(token, new TextEncoder().encode(jwtSecret))
     payload = verified.payload
@@ -81,12 +75,9 @@ export async function verifyCustomerAccountDeactivationToken(
     )
   }
 
-  const deactivationPayload = payload as CustomerAccountDeactivationTokenPayload
-
   if (
-    deactivationPayload.purpose !==
-      CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_PURPOSE ||
-    typeof deactivationPayload.customer_id !== "string"
+    payload.purpose !== CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_PURPOSE ||
+    typeof payload.customer_id !== "string"
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -95,10 +86,7 @@ export async function verifyCustomerAccountDeactivationToken(
   }
 
   return {
-    customer_id: deactivationPayload.customer_id,
-    email:
-      typeof deactivationPayload.email === "string"
-        ? deactivationPayload.email
-        : undefined,
+    customer_id: payload.customer_id,
+    email: typeof payload.email === "string" ? payload.email : undefined,
   }
 }

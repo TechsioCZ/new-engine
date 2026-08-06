@@ -24,14 +24,14 @@ export const deactivateCustomerAccountWorkflow = createWorkflow(
       }))
     )
 
-    softDeleteCustomerStep(
+    const softDelete = softDeleteCustomerStep(
       transform({ inactiveMarker, prepared }, ({ prepared: payload }) => ({
         customer_id: payload.customer_id,
       }))
     )
 
     const authIdentityDeletion = deleteAuthIdentityStep(
-      transform({ prepared }, ({ prepared: payload }) => ({
+      transform({ prepared, softDelete }, ({ prepared: payload }) => ({
         auth_identity_id: payload.auth_identity_id,
       }))
     )

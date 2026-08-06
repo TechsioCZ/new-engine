@@ -34,6 +34,28 @@ const clearToken = () => {
 const fetchCustomer = (signal?: AbortSignal) =>
   authServiceBase.getCustomer(signal)
 
+const DEACTIVATED_SESSION_CLEANUP_TIMEOUT_MS = 3000
+
+const waitWithTimeout = async (
+  promise: Promise<unknown>,
+  timeoutMs: number
+) => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  try {
+    await Promise.race([
+      promise,
+      new Promise<void>((resolve) => {
+        timeoutId = setTimeout(resolve, timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+  }
+}
+
 const cleanupDeactivatedSession = async () => {
   const cleanupOperations = [authServiceBase.logout()]
 
@@ -41,8 +63,14 @@ const cleanupDeactivatedSession = async () => {
     cleanupOperations.push(requestLogoutProxy())
   }
 
-  await Promise.allSettled(cleanupOperations)
-  clearToken()
+  try {
+    await waitWithTimeout(
+      Promise.allSettled(cleanupOperations),
+      DEACTIVATED_SESSION_CLEANUP_TIMEOUT_MS
+    )
+  } finally {
+    clearToken()
+  }
 }
 
 const ensureSessionProxyToken = async (): Promise<string | null> => {

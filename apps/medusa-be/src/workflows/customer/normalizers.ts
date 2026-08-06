@@ -11,7 +11,7 @@ export function normalizeCustomerName(customer: CustomerNameInput) {
     .filter(Boolean)
     .join(" ")
 
-  return fullName || undefined
+  return fullName === "" ? undefined : fullName
 }
 
 export function normalizeInactiveCustomerFirstName(firstName?: string | null) {
@@ -41,8 +41,9 @@ export function normalizeReactivatedCustomerFirstName(
     return normalizedFirstName
   }
 
-  return (
-    normalizedFirstName.slice(INACTIVE_CUSTOMER_NAME_PREFIX.length).trim() ||
-    null
-  )
+  const reactivatedFirstName = normalizedFirstName
+    .slice(INACTIVE_CUSTOMER_NAME_PREFIX.length)
+    .trim()
+
+  return reactivatedFirstName === "" ? null : reactivatedFirstName
 }
