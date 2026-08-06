@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { validateEntityQuery } from "@/lib/routing/query-validation"
+import { validateRouteQuery } from "@/lib/routing/query-validation"
 import {
   CANONICALIZATION_REQUIRED_HEADER,
   ORIGINAL_PUBLIC_PATH_HEADER,
@@ -81,6 +81,7 @@ export type ProxyRoute =
     }
   | { type: "flow"; kind: FlowKind; normalizedPath: string }
   | { type: "system"; normalizedPath: string }
+  | { type: "bad-request" }
   | { type: "not-found" }
 
 const hasControlCharacter = (value: string, includeSpace: boolean) => {
@@ -233,18 +234,18 @@ export const scrubInternalHeaders = (source: Headers): Headers => {
   return headers
 }
 
-type ParsedPath = { decoded: string[] }
+type ParsedPath = { valid: true; decoded: string[] } | { valid: false }
 
-const parsePath = (pathname: string): ParsedPath | null => {
+const parsePath = (pathname: string): ParsedPath => {
   if (!pathname.startsWith("/")) {
-    return null
+    return { valid: false }
   }
   const raw = pathname.slice(1).split("/")
   while (raw.at(-1) === "") {
     raw.pop()
   }
   if (raw.some((segment) => segment.length === 0)) {
-    return null
+    return { valid: false }
   }
 
   try {
@@ -255,10 +256,10 @@ const parsePath = (pathname: string): ParsedPath | null => {
         segment.includes("/") ||
         segment.includes("\\")
     )
-      ? null
-      : { decoded }
+      ? { valid: false }
+      : { valid: true, decoded }
   } catch {
-    return null
+    return { valid: false }
   }
 }
 
@@ -373,8 +374,8 @@ export const resolveProxyRoute = (
   pathname: string
 ): ProxyRoute => {
   const parsed = parsePath(pathname)
-  if (!parsed) {
-    return { type: "not-found" }
+  if (!parsed.valid) {
+    return { type: "bad-request" }
   }
   const segments = parsed.decoded
   if (segments.length === 0) {
@@ -425,14 +426,24 @@ export const resolveProxyRoute = (
 }
 
 const canonicalUrl = (
-  request: NextRequest,
   binding: MarketHostBinding,
-  pathname: string
+  pathname: string,
+  searchParams: URLSearchParams
 ) => {
   const target = new URL(getMarketOrigin(binding.market))
   target.pathname = pathname
-  target.search = request.nextUrl.search
+  target.search = searchParams.toString()
   return target
+}
+
+const publicSearchParams = (request: NextRequest) => {
+  const searchParams = new URLSearchParams(request.nextUrl.searchParams)
+  if (request.headers.get("rsc") === "1") {
+    // Next Link navigation uses this cache-busting key internally when
+    // skipProxyUrlNormalize is enabled. It is not part of the public contract.
+    searchParams.delete("_rsc")
+  }
+  return searchParams
 }
 
 const isApiPath = (pathname: string) =>
@@ -459,6 +470,9 @@ export function proxy(request: NextRequest) {
   }
 
   const route = resolveProxyRoute(binding.market, request.nextUrl.pathname)
+  if (route.type === "bad-request") {
+    return new NextResponse("Bad Request", { status: 400 })
+  }
   if (route.type === "not-found") {
     return new NextResponse("Not Found", { status: 404 })
   }
@@ -469,14 +483,14 @@ export function proxy(request: NextRequest) {
     })
   }
 
-  if (route.type === "entity") {
-    const queryValidation = validateEntityQuery(
-      route.kind,
-      request.nextUrl.searchParams
-    )
-    if (!queryValidation.valid) {
-      return new NextResponse("Bad Request", { status: 400 })
-    }
+  const searchParams = publicSearchParams(request)
+  const queryValidation = validateRouteQuery(
+    binding.market,
+    route,
+    searchParams
+  )
+  if (!queryValidation.valid) {
+    return new NextResponse("Bad Request", { status: 400 })
   }
 
   const canonicalizationRequired =
@@ -489,7 +503,7 @@ export function proxy(request: NextRequest) {
     }
   } else if (canonicalizationRequired) {
     return NextResponse.redirect(
-      canonicalUrl(request, binding, route.normalizedPath),
+      canonicalUrl(binding, route.normalizedPath, searchParams),
       308
     )
   }

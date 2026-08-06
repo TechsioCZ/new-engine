@@ -6,8 +6,10 @@ const TRAILING_DOT_PATTERN = /\.$/
 const isMarket = (value: string): value is Market =>
   (MARKETS as readonly string[]).includes(value)
 
-const resolveAllowedMarkets = (): ReadonlySet<Market> => {
-  const configured = process.env.ALLOWED_MARKETS
+export const resolveAllowedMarkets = (
+  environment: Record<string, string | undefined> = process.env
+): ReadonlySet<Market> => {
+  const configured = environment.ALLOWED_MARKETS
   if (!configured?.trim()) {
     return new Set(MARKETS)
   }
@@ -69,30 +71,37 @@ export function normalizeRequestHost(
   return hostname
 }
 
-const configuredHosts = (market: Market): string[] =>
-  (process.env[`HERBATICA_ALLOWED_HOSTS_${market.toUpperCase()}`] ?? "")
+const configuredHosts = (
+  market: Market,
+  environment: Record<string, string | undefined>
+): string[] =>
+  (environment[`HERBATICA_ALLOWED_HOSTS_${market.toUpperCase()}`] ?? "")
     .split(",")
     .map((host) => normalizeRequestHost(host))
     .filter((host): host is string => host !== null)
 
 /** Resolve a deployment-enabled market exclusively from a validated Host. */
 export function resolveMarketFromHost(
-  value: string | null | undefined
+  value: string | null | undefined,
+  environment: Record<string, string | undefined> = process.env
 ): Market | null {
   const host = normalizeRequestHost(value)
   if (host === null) {
     return null
   }
 
-  const allowedMarkets = resolveAllowedMarkets()
+  const allowedMarkets = resolveAllowedMarkets(environment)
   const matches = MARKETS.filter((market) => {
     if (!allowedMarkets.has(market)) {
       return false
     }
-    const canonicalHost = new URL(getMarketOrigin(market)).hostname
+    const canonicalHost = new URL(getMarketOrigin(market, environment)).hostname
       .toLowerCase()
       .replace(TRAILING_DOT_PATTERN, "")
-    return host === canonicalHost || configuredHosts(market).includes(host)
+    return (
+      host === canonicalHost ||
+      configuredHosts(market, environment).includes(host)
+    )
   })
   return matches.length === 1 ? (matches[0] ?? null) : null
 }

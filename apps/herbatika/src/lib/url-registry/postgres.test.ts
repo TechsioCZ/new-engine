@@ -91,4 +91,104 @@ describe("PostgresUrlRegistry transaction orchestration", () => {
     expect(statements.at(-1)).toBe("ROLLBACK")
     expect(client.release).toHaveBeenCalledOnce()
   })
+  it("locks and syncs a renamed current with published metadata", async () => {
+    const statements: string[] = []
+    const client = {
+      query: vi.fn((sql: string) => {
+        statements.push(sql.replace(WHITESPACE_PATTERN, " ").trim())
+        if (sql.includes("SELECT") && sql.includes("FOR UPDATE")) {
+          return { rows: [row] }
+        }
+        if (sql.includes("INSERT INTO")) {
+          return {
+            rows: [
+              {
+                ...row,
+                id: "synced-current",
+                slug: "synced-slug",
+                equivalence_key: "product:prod_1:published",
+                indexable: false,
+              },
+            ],
+          }
+        }
+        return { rows: [] }
+      }),
+      release: vi.fn(),
+    }
+    const pool = Object.assign(Object.create(Pool.prototype), {
+      connect: vi.fn(() => Promise.resolve(client)),
+    }) as Pool
+    const registry = new PostgresUrlRegistry(pool)
+
+    await expect(
+      registry.sync({
+        market: "sk",
+        kind: "product",
+        slug: "synced-slug",
+        entityId: "prod_1",
+        equivalenceKey: "product:prod_1:published",
+        indexable: false,
+      })
+    ).resolves.toMatchObject({
+      slug: "synced-slug",
+      equivalenceKey: "product:prod_1:published",
+      indexable: false,
+    })
+
+    expect(statements[0]).toBe("BEGIN")
+    expect(statements[1]).toContain("FOR UPDATE")
+    expect(statements[1]).toContain(
+      "OR (market = $1 AND kind = $2 AND slug = $4)"
+    )
+    expect(
+      statements.findIndex((sql) => sql.startsWith("UPDATE"))
+    ).toBeLessThan(statements.findIndex((sql) => sql.startsWith("INSERT")))
+    expect(statements.at(-1)).toBe("COMMIT")
+    expect(client.release).toHaveBeenCalledOnce()
+  })
+
+  it("rolls back sync collisions without issuing a write", async () => {
+    const statements: string[] = []
+    const occupied = {
+      ...row,
+      id: "other-current",
+      slug: "reserved-slug",
+      entity_id: "prod_other",
+      equivalence_key: "product:prod_other",
+    }
+    const client = {
+      query: vi.fn((sql: string) => {
+        statements.push(sql.replace(WHITESPACE_PATTERN, " ").trim())
+        if (sql.includes("SELECT") && sql.includes("FOR UPDATE")) {
+          return { rows: [occupied] }
+        }
+        return { rows: [] }
+      }),
+      release: vi.fn(),
+    }
+    const pool = Object.assign(Object.create(Pool.prototype), {
+      connect: vi.fn(() => Promise.resolve(client)),
+    }) as Pool
+    const registry = new PostgresUrlRegistry(pool)
+
+    await expect(
+      registry.sync({
+        market: "sk",
+        kind: "product",
+        slug: "reserved-slug",
+        entityId: "prod_1",
+        equivalenceKey: "product:prod_1",
+        indexable: true,
+      })
+    ).rejects.toMatchObject({ code: "UNIQUE_VIOLATION" })
+
+    expect(statements.at(-1)).toBe("ROLLBACK")
+    expect(
+      statements.some(
+        (sql) => sql.startsWith("UPDATE") || sql.startsWith("INSERT")
+      )
+    ).toBe(false)
+    expect(client.release).toHaveBeenCalledOnce()
+  })
 })

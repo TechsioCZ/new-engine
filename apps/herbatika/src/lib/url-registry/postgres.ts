@@ -168,6 +168,12 @@ export class PostgresUrlRegistry implements UrlRegistry {
     }
   }
 
+  sync(input: CreateUrlRecordInput): Promise<UrlRecord> {
+    return this.withTransaction((client) =>
+      this.syncInTransaction(client, input)
+    )
+  }
+
   changeSlug(
     market: Market,
     kind: UrlKind,
@@ -247,6 +253,29 @@ export class PostgresUrlRegistry implements UrlRegistry {
     })
   }
 
+  async tombstoneAllMarkets(
+    kind: UrlKind,
+    entityId: string
+  ): Promise<UrlRecord[]> {
+    const result = await this.pool.query<UrlRow>(
+      `WITH current_ids AS (
+         SELECT id FROM url_registry.url_records
+         WHERE kind = $1 AND entity_id = $2 AND status = 'current'
+       ), updated AS (
+         UPDATE url_registry.url_records
+         SET status = 'tombstone', alias_of = NULL, updated_at = now()
+         WHERE kind = $1 AND entity_id = $2
+           AND EXISTS (SELECT 1 FROM current_ids)
+         RETURNING ${COLUMNS}
+       )
+       SELECT ${COLUMNS} FROM updated
+       WHERE id IN (SELECT id FROM current_ids)
+       ORDER BY market`,
+      [kind, entityId]
+    )
+    return result.rows.map(mapRow)
+  }
+
   async list(query: UrlRegistryListQuery = {}): Promise<UrlRegistryListResult> {
     const { limit, offset } = normalizeListBounds(query)
     const clauses: string[] = []
@@ -263,12 +292,17 @@ export class PostgresUrlRegistry implements UrlRegistry {
     add("entity_id", query.entityId)
     add("equivalence_key", query.equivalenceKey)
     add("status", query.status)
+    add("indexable", query.indexable)
     values.push(limit + 1, offset)
     const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : ""
+    const orderBy =
+      query.orderBy === "route"
+        ? "market ASC, kind ASC, slug ASC, id ASC"
+        : "updated_at DESC, id ASC"
     const result = await this.pool.query<UrlRow>(
       `SELECT ${COLUMNS} FROM url_registry.url_records
        ${where}
-       ORDER BY updated_at DESC, id ASC
+       ORDER BY ${orderBy}
        LIMIT $${values.length - 1} OFFSET $${values.length}`,
       values
     )
@@ -278,6 +312,177 @@ export class PostgresUrlRegistry implements UrlRegistry {
       offset,
       hasMore: result.rows.length > limit,
     }
+  }
+
+  async count(query: UrlRegistryListQuery = {}): Promise<number> {
+    const clauses: string[] = []
+    const values: unknown[] = []
+    const add = (column: string, value: unknown) => {
+      if (value !== undefined) {
+        values.push(value)
+        clauses.push(`${column} = $${values.length}`)
+      }
+    }
+    add("id", query.id)
+    add("market", query.market)
+    add("kind", query.kind)
+    add("entity_id", query.entityId)
+    add("equivalence_key", query.equivalenceKey)
+    add("status", query.status)
+    add("indexable", query.indexable)
+    const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : ""
+    const result = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM url_registry.url_records
+       ${where}`,
+      values
+    )
+    return Number(result.rows[0]?.count ?? 0)
+  }
+
+  private async syncInTransaction(
+    client: PoolClient,
+    input: CreateUrlRecordInput
+  ) {
+    const locked = await client.query<UrlRow>(
+      `SELECT ${COLUMNS} FROM url_registry.url_records
+       WHERE (market = $1 AND kind = $2 AND entity_id = $3)
+          OR (market = $1 AND kind = $2 AND slug = $4)
+       FOR UPDATE`,
+      [input.market, input.kind, input.entityId, input.slug]
+    )
+    const history = locked.rows.filter(
+      (row) =>
+        row.market === input.market &&
+        row.kind === input.kind &&
+        row.entity_id === input.entityId
+    )
+    const current = history.find((row) => row.status === "current")
+    const requestedRoute = locked.rows.find(
+      (row) =>
+        row.market === input.market &&
+        row.kind === input.kind &&
+        row.slug === input.slug
+    )
+
+    return current
+      ? this.syncExistingCurrent(client, input, current, requestedRoute)
+      : this.syncWithoutCurrent(client, input, history, requestedRoute)
+  }
+
+  private async syncExistingCurrent(
+    client: PoolClient,
+    input: CreateUrlRecordInput,
+    current: UrlRow,
+    requestedRoute: UrlRow | undefined
+  ) {
+    if (current.slug === input.slug) {
+      if (requestedRoute?.id !== current.id) {
+        throw this.routeCollision(input)
+      }
+      const updated = await client.query<UrlRow>(
+        `UPDATE url_registry.url_records
+         SET equivalence_key = $2, indexable = $3, updated_at = now()
+         WHERE id = $1
+         RETURNING ${COLUMNS}`,
+        [current.id, input.equivalenceKey, input.indexable]
+      )
+      return mapRow(updated.rows[0] as UrlRow)
+    }
+    if (requestedRoute) {
+      if (requestedRoute.entity_id !== input.entityId) {
+        throw this.routeCollision(input)
+      }
+      await client.query(
+        `UPDATE url_registry.url_records
+         SET status = 'alias', alias_of = $4, updated_at = now()
+         WHERE market = $1 AND kind = $2 AND entity_id = $3
+           AND id <> $4 AND status IN ('current', 'alias')`,
+        [input.market, input.kind, input.entityId, requestedRoute.id]
+      )
+      const reclaimed = await client.query<UrlRow>(
+        `UPDATE url_registry.url_records
+         SET equivalence_key = $2, indexable = $3, status = 'current',
+             alias_of = NULL, updated_at = now()
+         WHERE id = $1
+         RETURNING ${COLUMNS}`,
+        [requestedRoute.id, input.equivalenceKey, input.indexable]
+      )
+      return mapRow(reclaimed.rows[0] as UrlRow)
+    }
+
+    const newId = randomUUID()
+    await client.query(
+      `UPDATE url_registry.url_records
+       SET status = 'alias', alias_of = $4, updated_at = now()
+       WHERE market = $1 AND kind = $2 AND entity_id = $3
+         AND status IN ('current', 'alias')`,
+      [input.market, input.kind, input.entityId, newId]
+    )
+    return this.insertCurrent(client, input, newId)
+  }
+
+  private async syncWithoutCurrent(
+    client: PoolClient,
+    input: CreateUrlRecordInput,
+    history: UrlRow[],
+    requestedRoute: UrlRow | undefined
+  ) {
+    if (history.some((row) => row.status !== "tombstone")) {
+      throw new UrlRegistryError(
+        "UNIQUE_VIOLATION",
+        `Entity ${input.entityId} has incompatible active URL history`
+      )
+    }
+    if (!requestedRoute) {
+      return this.insertCurrent(client, input, randomUUID())
+    }
+    if (
+      requestedRoute.status !== "tombstone" ||
+      requestedRoute.entity_id !== input.entityId
+    ) {
+      throw this.routeCollision(input)
+    }
+
+    const restored = await client.query<UrlRow>(
+      `UPDATE url_registry.url_records
+       SET equivalence_key = $2, indexable = $3, status = 'current',
+           alias_of = NULL, updated_at = now()
+       WHERE id = $1
+       RETURNING ${COLUMNS}`,
+      [requestedRoute.id, input.equivalenceKey, input.indexable]
+    )
+    return mapRow(restored.rows[0] as UrlRow)
+  }
+
+  private async insertCurrent(
+    client: PoolClient,
+    input: CreateUrlRecordInput,
+    id: string
+  ) {
+    const inserted = await client.query<UrlRow>(
+      `INSERT INTO url_registry.url_records
+        (id, market, kind, slug, entity_id, equivalence_key, indexable, status, alias_of)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'current', NULL)
+       RETURNING ${COLUMNS}`,
+      [
+        id,
+        input.market,
+        input.kind,
+        input.slug,
+        input.entityId,
+        input.equivalenceKey,
+        input.indexable,
+      ]
+    )
+    return mapRow(inserted.rows[0] as UrlRow)
+  }
+
+  private routeCollision(route: Pick<UrlRecord, "market" | "kind" | "slug">) {
+    return new UrlRegistryError(
+      "UNIQUE_VIOLATION",
+      `URL ${route.market}/${route.kind}/${route.slug} is already reserved`
+    )
   }
 
   private async withTransaction<T>(

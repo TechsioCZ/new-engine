@@ -158,6 +158,25 @@ export class InMemoryUrlRegistry implements UrlRegistry {
     return cloneRecord(record)
   }
 
+  async sync(input: CreateUrlRecordInput): Promise<UrlRecord> {
+    await Promise.resolve()
+    const next = new Map(this.records)
+    const history = [...next.values()].filter((record) =>
+      sameEntity(record, input.market, input.kind, input.entityId)
+    )
+    const current = history.find((record) => record.status === "current")
+    const requestedRoute = [...next.values()].find(
+      (record) => routeKey(record) === routeKey(input)
+    )
+    const synced = current
+      ? this.syncExistingCurrent(next, input, current, requestedRoute)
+      : this.syncWithoutCurrent(next, input, history, requestedRoute)
+
+    this.assertInvariants(next)
+    this.records = next
+    return cloneRecord(synced)
+  }
+
   async changeSlug(
     market: Market,
     kind: UrlKind,
@@ -242,10 +261,72 @@ export class InMemoryUrlRegistry implements UrlRegistry {
     return cloneRecord(next.get(current.id) as UrlRecord)
   }
 
+  async tombstoneAllMarkets(
+    kind: UrlKind,
+    entityId: string
+  ): Promise<UrlRecord[]> {
+    await Promise.resolve()
+    const next = new Map(this.records)
+    const now = new Date()
+    const currentIds = new Set(
+      [...next.values()]
+        .filter(
+          (record) =>
+            record.kind === kind &&
+            record.entityId === entityId &&
+            record.status === "current"
+        )
+        .map((record) => record.id)
+    )
+    for (const [id, record] of next) {
+      if (record.kind === kind && record.entityId === entityId) {
+        next.set(id, {
+          ...record,
+          aliasOf: null,
+          status: "tombstone",
+          updatedAt: now,
+        })
+      }
+    }
+    this.assertInvariants(next)
+    this.records = next
+    return [...next.values()]
+      .filter((record) => currentIds.has(record.id))
+      .map(cloneRecord)
+  }
+
   async list(query: UrlRegistryListQuery = {}): Promise<UrlRegistryListResult> {
     await Promise.resolve()
     const { limit, offset } = normalizeListBounds(query)
-    const matching = [...this.records.values()]
+    const matching = this.matchingRecords(query).sort((left, right) => {
+      if (query.orderBy === "route") {
+        return (
+          left.market.localeCompare(right.market) ||
+          left.kind.localeCompare(right.kind) ||
+          left.slug.localeCompare(right.slug) ||
+          left.id.localeCompare(right.id)
+        )
+      }
+      return (
+        right.updatedAt.getTime() - left.updatedAt.getTime() ||
+        left.id.localeCompare(right.id)
+      )
+    })
+    return {
+      records: matching.slice(offset, offset + limit).map(cloneRecord),
+      limit,
+      offset,
+      hasMore: matching.length > offset + limit,
+    }
+  }
+
+  async count(query: UrlRegistryListQuery = {}): Promise<number> {
+    await Promise.resolve()
+    return this.matchingRecords(query).length
+  }
+
+  private matchingRecords(query: UrlRegistryListQuery): UrlRecord[] {
+    return [...this.records.values()]
       .filter((record) => !query.id || record.id === query.id)
       .filter((record) => !query.market || record.market === query.market)
       .filter((record) => !query.kind || record.kind === query.kind)
@@ -256,17 +337,151 @@ export class InMemoryUrlRegistry implements UrlRegistry {
           record.equivalenceKey === query.equivalenceKey
       )
       .filter((record) => !query.status || record.status === query.status)
-      .sort(
-        (left, right) =>
-          right.updatedAt.getTime() - left.updatedAt.getTime() ||
-          left.id.localeCompare(right.id)
+      .filter(
+        (record) =>
+          query.indexable === undefined || record.indexable === query.indexable
       )
-    return {
-      records: matching.slice(offset, offset + limit).map(cloneRecord),
-      limit,
-      offset,
-      hasMore: matching.length > offset + limit,
+  }
+
+  private syncExistingCurrent(
+    next: Map<string, UrlRecord>,
+    input: CreateUrlRecordInput,
+    current: UrlRecord,
+    requestedRoute: UrlRecord | undefined
+  ) {
+    const now = new Date()
+    if (current.slug === input.slug) {
+      if (requestedRoute?.id !== current.id) {
+        throw this.routeCollision(input)
+      }
+      const updated = {
+        ...current,
+        equivalenceKey: input.equivalenceKey,
+        indexable: input.indexable,
+        updatedAt: now,
+      }
+      next.set(updated.id, updated)
+      return updated
     }
+    if (requestedRoute) {
+      if (
+        !sameEntity(requestedRoute, input.market, input.kind, input.entityId)
+      ) {
+        throw this.routeCollision(input)
+      }
+      const reclaimed: UrlRecord = {
+        ...requestedRoute,
+        equivalenceKey: input.equivalenceKey,
+        indexable: input.indexable,
+        status: "current",
+        aliasOf: null,
+        updatedAt: now,
+      }
+      this.retargetActiveHistory(next, {
+        input,
+        currentId: current.id,
+        targetId: reclaimed.id,
+        updatedAt: now,
+      })
+      next.set(reclaimed.id, reclaimed)
+      return reclaimed
+    }
+
+    const inserted: UrlRecord = {
+      ...input,
+      id: randomUUID(),
+      status: "current",
+      aliasOf: null,
+      updatedAt: now,
+    }
+    this.retargetActiveHistory(next, {
+      input,
+      currentId: current.id,
+      targetId: inserted.id,
+      updatedAt: now,
+    })
+    next.set(inserted.id, inserted)
+    return inserted
+  }
+
+  private retargetActiveHistory(
+    next: Map<string, UrlRecord>,
+    {
+      input,
+      currentId,
+      targetId,
+      updatedAt,
+    }: {
+      input: CreateUrlRecordInput
+      currentId: string
+      targetId: string
+      updatedAt: Date
+    }
+  ) {
+    for (const [id, record] of next) {
+      if (
+        id !== targetId &&
+        sameEntity(record, input.market, input.kind, input.entityId) &&
+        (record.status === "alias" || record.id === currentId)
+      ) {
+        next.set(id, {
+          ...record,
+          aliasOf: targetId,
+          status: "alias",
+          updatedAt,
+        })
+      }
+    }
+  }
+
+  private syncWithoutCurrent(
+    next: Map<string, UrlRecord>,
+    input: CreateUrlRecordInput,
+    history: UrlRecord[],
+    requestedRoute: UrlRecord | undefined
+  ) {
+    const now = new Date()
+    if (history.some((record) => record.status !== "tombstone")) {
+      throw new UrlRegistryError(
+        "UNIQUE_VIOLATION",
+        `Entity ${input.entityId} has incompatible active URL history`
+      )
+    }
+    if (requestedRoute) {
+      if (
+        requestedRoute.status !== "tombstone" ||
+        !sameEntity(requestedRoute, input.market, input.kind, input.entityId)
+      ) {
+        throw this.routeCollision(input)
+      }
+      const restored: UrlRecord = {
+        ...requestedRoute,
+        equivalenceKey: input.equivalenceKey,
+        indexable: input.indexable,
+        status: "current",
+        aliasOf: null,
+        updatedAt: now,
+      }
+      next.set(restored.id, restored)
+      return restored
+    }
+
+    const inserted: UrlRecord = {
+      ...input,
+      id: randomUUID(),
+      status: "current",
+      aliasOf: null,
+      updatedAt: now,
+    }
+    next.set(inserted.id, inserted)
+    return inserted
+  }
+
+  private routeCollision(route: Pick<UrlRecord, "market" | "kind" | "slug">) {
+    return new UrlRegistryError(
+      "UNIQUE_VIOLATION",
+      `URL ${route.market}/${route.kind}/${route.slug} is already reserved`
+    )
   }
 
   private assertRouteAvailable(market: Market, kind: UrlKind, slug: string) {
@@ -275,10 +490,7 @@ export class InMemoryUrlRegistry implements UrlRegistry {
         (record) => routeKey(record) === routeKey({ market, kind, slug })
       )
     ) {
-      throw new UrlRegistryError(
-        "UNIQUE_VIOLATION",
-        `URL ${market}/${kind}/${slug} is already reserved`
-      )
+      throw this.routeCollision({ market, kind, slug })
     }
   }
 

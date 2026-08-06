@@ -9,15 +9,54 @@ import { normalizeStorefrontBrand, type StorefrontBrand } from "./brands"
 
 assertServerOnly("storefront/brands.server")
 
-type StoreBrandsResponse = {
-  brands?: Array<{
-    id?: string | null
-    title?: string | null
-    handle?: string | null
-  }>
+type StoreBrandPayload = {
+  id?: string | null
+  title?: string | null
+  handle?: string | null
 }
 
 const STORE_BRANDS_INDEX_LIMIT = 500
+const INVALID_BRANDS_RESPONSE_MESSAGE = "Invalid Medusa brands response"
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const readNullableString = (
+  input: Record<string, unknown>,
+  field: keyof StoreBrandPayload
+): string | null | undefined => {
+  const value = input[field]
+
+  if (value === undefined || value === null || typeof value === "string") {
+    return value
+  }
+
+  throw new Error(INVALID_BRANDS_RESPONSE_MESSAGE)
+}
+
+const parseStorefrontBrands = (payload: unknown): StorefrontBrand[] => {
+  if (!(isRecord(payload) && Array.isArray(payload.brands))) {
+    throw new Error(INVALID_BRANDS_RESPONSE_MESSAGE)
+  }
+
+  return payload.brands.map((input) => {
+    if (!isRecord(input)) {
+      throw new Error(INVALID_BRANDS_RESPONSE_MESSAGE)
+    }
+
+    const brand = normalizeStorefrontBrand({
+      id: readNullableString(input, "id"),
+      title: readNullableString(input, "title"),
+      handle: readNullableString(input, "handle"),
+    })
+
+    if (!brand) {
+      throw new Error(INVALID_BRANDS_RESPONSE_MESSAGE)
+    }
+
+    return brand
+  })
+}
 
 export const fetchStorefrontBrands = async (): Promise<StorefrontBrand[]> => {
   const url = new URL("/store/brands", MEDUSA_BACKEND_URL)
@@ -37,10 +76,7 @@ export const fetchStorefrontBrands = async (): Promise<StorefrontBrand[]> => {
     throw new Error(`Failed to load storefront brands: ${response.status}`)
   }
 
-  const data = (await response.json()) as StoreBrandsResponse
-  const brands = (data.brands ?? [])
-    .map((brand) => normalizeStorefrontBrand(brand))
-    .filter((brand): brand is StorefrontBrand => Boolean(brand))
+  const brands = parseStorefrontBrands(await response.json())
 
   const brandsBySlug = new Map<string, StorefrontBrand>()
   for (const brand of brands) {

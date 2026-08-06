@@ -9,6 +9,7 @@ import {
   resolveStorefrontRoute,
 } from "@/lib/routing/app/resolver"
 import { CANONICALIZATION_REQUIRED_HEADER } from "@/lib/routing/trusted-headers"
+import { resolveAllowedMarkets } from "@/lib/seo/market"
 import {
   buildEntityPageMetadata,
   buildIndexPageMetadata,
@@ -60,10 +61,9 @@ const homeMetadata = (market: Market): Metadata => ({
   alternates: {
     canonical: getMarketOrigin(market),
     languages: Object.fromEntries([
-      ...MARKETS.map((candidate) => [
-        HREF_LANG[candidate],
-        getMarketOrigin(candidate),
-      ]),
+      ...MARKETS.filter((candidate) =>
+        resolveAllowedMarkets().has(candidate)
+      ).map((candidate) => [HREF_LANG[candidate], getMarketOrigin(candidate)]),
     ]),
   },
   openGraph: { url: getMarketOrigin(market) },

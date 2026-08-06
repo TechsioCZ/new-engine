@@ -68,6 +68,29 @@ export type MedusaProductServiceConfig<
   createGlobalFetcher?: boolean
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const assertProductListResponse: (
+  response: unknown
+) => asserts response is HttpTypes.StoreProductListResponse = (response) => {
+  if (
+    !(
+      isRecord(response) &&
+      Array.isArray(response.products) &&
+      response.products.every(isRecord)
+    )
+  ) {
+    throw new Error("Invalid Medusa product list response")
+  }
+
+  for (const field of ["count", "limit", "offset"] as const) {
+    if (field in response && typeof response[field] !== "number") {
+      throw new Error("Invalid Medusa product list response")
+    }
+  }
+}
+
 const normalizeCountryCode = (
   query: MedusaProductListQuery
 ): MedusaProductListQuery => {
@@ -198,12 +221,13 @@ export function createMedusaProductService<
     signal?: AbortSignal
   ): Promise<ProductListResponse<TProduct>> => {
     const query = buildListQuery(params)
-    const response = await sdk.client.fetch<HttpTypes.StoreProductListResponse>(
-      listPath,
-      { query, signal }
-    )
+    const response = await sdk.client.fetch<unknown>(listPath, {
+      query,
+      signal,
+    })
+    assertProductListResponse(response)
 
-    const products = (response.products ?? []).map((product) =>
+    const products = response.products.map((product) =>
       mapListProduct(product, { params, query, response })
     )
 
@@ -224,12 +248,12 @@ export function createMedusaProductService<
       signal?: AbortSignal
     ): Promise<TProduct | null> {
       const query = buildDetailQuery(params)
-      const response =
-        await sdk.client.fetch<HttpTypes.StoreProductListResponse>(listPath, {
-          query,
-          signal,
-        })
-      const product = response.products?.[0]
+      const response = await sdk.client.fetch<unknown>(listPath, {
+        query,
+        signal,
+      })
+      assertProductListResponse(response)
+      const product = response.products[0]
       if (!product) {
         return null
       }

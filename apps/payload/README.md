@@ -33,7 +33,7 @@ Required:
 Optional (commonly used):
 
 - `PAYLOAD_SCHEMA_NAME`
-- `PAYLOAD_LOCALES`: comma-separated list, first entry is the default locale; defaults to `en`
+- `PAYLOAD_LOCALES`: comma-separated list, first entry is the default locale; defaults to `sk,cs,hu,ro` for the four Herbatika markets
 - `FEATURE_PAYLOAD_ARTICLES_ENABLED`, `FEATURE_PAYLOAD_PAGES_ENABLED`, `FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED`
 - `OPENAI_API_KEY`, `OPENAI_BASE_URL`
 - `MEDUSA_BACKEND_URL` (enables CMS cache invalidation in Medusa)
@@ -100,5 +100,4 @@ All endpoints are mounted under the Payload API base (default: `/api`):
 ## Notes
 
 - Postgres schema migrations live in `apps/payload/src/migrations`.
-- Localization is controlled by `PAYLOAD_LOCALES`; supported languages include: `en`, `cs`, `sk`, `pl`, `hu`, `ro`,
-  `sl`, `de`, `fr`, `es`.
+- Localization is controlled by `PAYLOAD_LOCALES`; the Herbatika URL registry integration supports exactly `sk`, `cs`, `hu`, and `ro`. Other locales do not publish storefront URLs.

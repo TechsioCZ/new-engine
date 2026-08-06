@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { resolveAllowedMarkets } from "@/lib/seo/market"
 import { buildAlternates, buildCanonical } from "@/lib/url/builder"
 import type { Market, UrlKind, UrlRecord } from "@/lib/url/types"
 
@@ -71,7 +72,10 @@ const buildLanguageAlternates = (
   const candidates = records.some((candidate) => candidate.id === record.id)
     ? records
     : [record, ...records]
-  const alternates = buildAlternates(candidates)
+  const allowedMarkets = resolveAllowedMarkets()
+  const alternates = buildAlternates(
+    candidates.filter((candidate) => allowedMarkets.has(candidate.market))
+  )
   if (alternates.length === 0) {
     return
   }
@@ -126,7 +130,10 @@ export function buildEntityPageMetadata(
     slug: input.record.slug,
     searchParams: input.query,
   })
-  const languages = buildLanguageAlternates(input.record, input.alternates)
+  const languages =
+    input.query && Object.keys(input.query).length > 0
+      ? undefined
+      : buildLanguageAlternates(input.record, input.alternates)
 
   return {
     ...pageCopy(input),
@@ -153,7 +160,10 @@ export function buildIndexPageMetadata(
   }
   const filterCount =
     countQueryValues(query, "znacka") + countQueryValues(query, "kategorie")
-  const queryNoindex = filterCount >= 2 || hasQueryKey(query, "razeni")
+  const queryNoindex =
+    filterCount >= 2 ||
+    hasQueryKey(query, "razeni") ||
+    (input.kind === "article" && hasQueryKey(query, "tema"))
   const canonical = buildCanonical({
     market: input.market,
     kind: input.kind,
@@ -172,17 +182,24 @@ export function buildIndexPageMetadata(
   const languages = hasLocalizedFilter
     ? undefined
     : Object.fromEntries(
-        (["sk", "cz", "hu", "ro"] as const).map((market) => [
-          ({ sk: "sk-SK", cz: "cs-CZ", hu: "hu-HU", ro: "ro-RO" } as const)[
-            market
-          ],
-          buildCanonical({
-            market,
-            kind: input.kind,
-            searchParams:
-              page === undefined ? undefined : { strana: String(page) },
-          }),
-        ])
+        (["sk", "cz", "hu", "ro"] as const)
+          .filter((market) => resolveAllowedMarkets().has(market))
+          .map((market) => [
+            (
+              {
+                sk: "sk-SK",
+                cz: "cs-CZ",
+                hu: "hu-HU",
+                ro: "ro-RO",
+              } as const
+            )[market],
+            buildCanonical({
+              market,
+              kind: input.kind,
+              searchParams:
+                page === undefined ? undefined : { strana: String(page) },
+            }),
+          ])
       )
 
   return {

@@ -10,7 +10,9 @@ import { InMemoryUrlRegistry } from "@/lib/url-registry/memory"
 import { GET as getDetail } from "./[id]/route"
 import { POST as createRecord, GET as listRecords } from "./route"
 import { POST as changeSlug } from "./slug-change/route"
+import { POST as syncRecord } from "./sync/route"
 import { POST as tombstone } from "./tombstone/route"
+import { POST as tombstoneAll } from "./tombstone-all/route"
 
 const TOKEN = "integration-secret"
 const jsonRequest = (path: string, body: unknown, authenticated = true) =>
@@ -55,6 +57,10 @@ describe("URL registry admin handlers", () => {
       (await createRecord(jsonRequest("/api/url-registry", entity, false)))
         .status
     ).toBe(401)
+    expect(
+      (await syncRecord(jsonRequest("/api/url-registry/sync", entity, false)))
+        .status
+    ).toBe(401)
   })
 
   it("creates, lists, and reads a stable Payload document ID", async () => {
@@ -81,6 +87,28 @@ describe("URL registry admin handlers", () => {
       { params: Promise.resolve({ id: createdBody.record.id }) }
     )
     expect(detail.status).toBe(200)
+  })
+
+  it("syncs a published record idempotently with a 200 response", async () => {
+    const initial = await syncRecord(
+      jsonRequest("/api/url-registry/sync", entity)
+    )
+    expect(initial.status).toBe(200)
+    const initialBody = await initial.json()
+
+    const updated = await syncRecord(
+      jsonRequest("/api/url-registry/sync", {
+        ...entity,
+        equivalenceKey: "page:payload-page-42:published",
+        indexable: false,
+      })
+    )
+    expect(updated.status).toBe(200)
+    expect((await updated.json()).record).toMatchObject({
+      id: initialBody.record.id,
+      equivalenceKey: "page:payload-page-42:published",
+      indexable: false,
+    })
   })
 
   it("changes slugs atomically without alias chains", async () => {
@@ -130,6 +158,31 @@ describe("URL registry admin handlers", () => {
       await expect(registry.lookup("sk", "page", slug)).resolves.toMatchObject({
         type: "tombstone",
       })
+    }
+  })
+
+  it("tombstones all markets through one authenticated operation", async () => {
+    for (const market of ["sk", "cz", "hu", "ro"] as const) {
+      await syncRecord(
+        jsonRequest("/api/url-registry/sync", {
+          ...entity,
+          market,
+          slug: `page-${market}`,
+        })
+      )
+    }
+    const response = await tombstoneAll(
+      jsonRequest("/api/url-registry/tombstone-all", {
+        kind: "page",
+        entityId: entity.entityId,
+      })
+    )
+    expect(response.status).toBe(200)
+    expect((await response.json()).records).toHaveLength(4)
+    for (const market of ["sk", "cz", "hu", "ro"] as const) {
+      await expect(
+        registry.lookup(market, "page", `page-${market}`)
+      ).resolves.toMatchObject({ type: "tombstone" })
     }
   })
 

@@ -32,6 +32,7 @@ const CmsPageCategorySchema = passthroughObject({
   slug: z.string(),
   pages: z.array(
     passthroughObject({
+      id: z.number(),
       title: z.string(),
       slug: z.string().nullable().optional(),
     })
@@ -57,6 +58,7 @@ const CmsArticleCategorySchema = passthroughObject({
   slug: z.string(),
   articles: z.array(
     passthroughObject({
+      id: z.number(),
       title: z.string(),
       slug: z.string().nullable().optional(),
       excerpt: z.string().nullable().optional(),

@@ -18,6 +18,8 @@ export type UrlRegistryListQuery = {
   entityId?: string
   equivalenceKey?: string
   status?: UrlRecord["status"]
+  indexable?: boolean
+  orderBy?: "updated" | "route"
   limit?: number
   offset?: number
 }
@@ -39,6 +41,7 @@ export interface UrlRegistry {
   ): Promise<UrlRecord | null>
   findAlternates(equivalenceKey: string): Promise<UrlRecord[]>
   create(input: CreateUrlRecordInput): Promise<UrlRecord>
+  sync(input: CreateUrlRecordInput): Promise<UrlRecord>
   changeSlug(
     market: Market,
     kind: UrlKind,
@@ -46,7 +49,9 @@ export interface UrlRegistry {
     newSlug: string
   ): Promise<UrlRecord>
   tombstone(market: Market, kind: UrlKind, entityId: string): Promise<UrlRecord>
+  tombstoneAllMarkets(kind: UrlKind, entityId: string): Promise<UrlRecord[]>
   list(query?: UrlRegistryListQuery): Promise<UrlRegistryListResult>
+  count(query?: UrlRegistryListQuery): Promise<number>
 }
 
 export const DEFAULT_LIST_LIMIT = 50

@@ -19,6 +19,7 @@ type MediaDoc = {
 
 /** Minimal article record used to group by category. */
 type ArticleDoc = {
+  id: number
   title: unknown
   slug?: unknown
   excerpt?: unknown
@@ -49,6 +50,7 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
           : {}),
       },
       select: {
+        id: true,
         title: true,
         slug: true,
         excerpt: true,
@@ -65,6 +67,7 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
         title: unknown
         slug: unknown
         articles: {
+          id: number
           title: unknown
           slug?: unknown
           excerpt?: unknown
@@ -82,6 +85,7 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
         articles: [],
       }
       entry.articles.push({
+        id: article.id,
         title: article.title,
         slug: article.slug,
         excerpt: article.excerpt,

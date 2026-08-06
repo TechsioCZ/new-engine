@@ -11,8 +11,8 @@ import type { RequestServerContext } from "../market-context.server"
 import { PLP_PAGE_SIZE } from "../plp-config"
 import type { PlpQueryState } from "../plp-query-state"
 import {
+  fetchServerCatalogProducts,
   fetchServerCategories,
-  prefetchServerCatalogProducts,
 } from "../storefront-server"
 import { getRegionServerContext } from "./context"
 
@@ -40,6 +40,7 @@ export const prefetchCategoryPageStorefrontData = async (
     categoryResponse.categories.find((category) => category.handle === slug) ??
     null
 
+  let availableProductCount: number | null = null
   if (region && activeCategory) {
     const categoryIds = [
       activeCategory.id,
@@ -56,15 +57,20 @@ export const prefetchCategoryPageStorefrontData = async (
       countryCode: region.country_code,
     })
 
-    await prefetchServerCatalogProducts(
+    const catalog = await fetchServerCatalogProducts(
       queryClient,
       catalogListParams,
       requestContext
     )
+    availableProductCount =
+      typeof catalog.count === "number"
+        ? catalog.count
+        : (catalog.products?.length ?? 0)
   }
 
   return {
     region,
+    availableProductCount,
     dehydratedState: dehydrate(queryClient),
   }
 }

@@ -1,4 +1,8 @@
-import { buildAbsoluteUrl, getMarketOrigin } from "@/lib/url/builder"
+import {
+  buildAbsoluteUrl,
+  buildIndexUrl,
+  getMarketOrigin,
+} from "@/lib/url/builder"
 import {
   type Market,
   URL_KINDS,
@@ -13,7 +17,18 @@ const SITEMAP_SCAN_LIMIT = SITEMAP_SHARD_SIZE * MAX_SITEMAP_SHARDS_PER_KIND
 const REGISTRY_PAGE_SIZE = 100
 const SITEMAP_SHARD_PATTERN = /^([a-z]+)-([1-9]\d*)\.xml$/
 
-export const SITEMAP_KINDS = ["home", ...URL_KINDS] as const
+const INDEXABLE_INDEX_KINDS = [
+  "product",
+  "category",
+  "brand",
+  "collection",
+  "article",
+] as const satisfies readonly UrlKind[]
+const SITEMAP_ENTITY_KINDS = URL_KINDS.filter(
+  (kind): kind is Exclude<UrlKind, "campaign"> => kind !== "campaign"
+)
+
+export const SITEMAP_KINDS = ["home", "index", ...SITEMAP_ENTITY_KINDS] as const
 export type SitemapKind = (typeof SITEMAP_KINDS)[number]
 export type SitemapShard = { kind: SitemapKind; page: number }
 
@@ -48,49 +63,45 @@ export function parseSitemapShard(value: string): SitemapShard | null {
   return { kind: kind as SitemapKind, page }
 }
 
-async function listCurrentIndexableRecords(
-  registry: UrlRegistry,
-  market: Market,
+async function listCurrentIndexableRecords({
+  registry,
+  market,
+  kind,
+  start,
+  limit,
+}: {
+  registry: UrlRegistry
+  market: Market
   kind: UrlKind
-): Promise<UrlRecord[]> {
+  start: number
+  limit: number
+}): Promise<UrlRecord[]> {
+  if (start < 0 || limit < 1 || start + limit > SITEMAP_SCAN_LIMIT) {
+    throw new SitemapLimitError("Sitemap registry scan exceeded its bound")
+  }
   const records: UrlRecord[] = []
-  let offset = 0
-  let scanned = 0
+  let offset = start
 
-  while (true) {
+  while (records.length < limit) {
     const page = await registry.list({
       market,
       kind,
       status: "current",
-      limit: REGISTRY_PAGE_SIZE,
+      indexable: true,
+      orderBy: "route",
+      limit: Math.min(REGISTRY_PAGE_SIZE, limit - records.length),
       offset,
     })
-    scanned += page.records.length
-    if (scanned > SITEMAP_SCAN_LIMIT) {
-      throw new SitemapLimitError("Sitemap registry scan exceeded its bound")
-    }
-
-    for (const record of page.records) {
-      if (
-        record.market === market &&
-        record.kind === kind &&
-        record.status === "current" &&
-        record.indexable
-      ) {
-        records.push(record)
-      }
-    }
-
+    records.push(...page.records)
     if (!page.hasMore) {
-      return records.sort((left, right) =>
-        buildAbsoluteUrl(left).localeCompare(buildAbsoluteUrl(right))
-      )
+      return records
     }
-    if (page.records.length === 0 || scanned === SITEMAP_SCAN_LIMIT) {
-      throw new SitemapLimitError("Registry pagination exceeded its bound")
+    if (page.records.length === 0) {
+      throw new SitemapLimitError("Registry pagination did not advance")
     }
     offset += page.records.length
   }
+  return records
 }
 
 export async function buildSitemapIndexXml(
@@ -98,11 +109,18 @@ export async function buildSitemapIndexXml(
   market: Market
 ): Promise<string> {
   const origin = getMarketOrigin(market)
-  const shardNames = ["home-1.xml"]
+  const shardNames = ["home-1.xml", "index-1.xml"]
 
-  for (const kind of URL_KINDS) {
-    const count = (await listCurrentIndexableRecords(registry, market, kind))
-      .length
+  for (const kind of SITEMAP_ENTITY_KINDS) {
+    const count = await registry.count({
+      market,
+      kind,
+      status: "current",
+      indexable: true,
+    })
+    if (count > SITEMAP_SCAN_LIMIT) {
+      throw new SitemapLimitError("Sitemap registry count exceeded its bound")
+    }
     const shardCount = Math.ceil(count / SITEMAP_SHARD_SIZE)
     for (let page = 1; page <= shardCount; page += 1) {
       shardNames.push(`${kind}-${page}.xml`)
@@ -134,17 +152,32 @@ export async function buildSitemapShardXml(
     )
   }
 
-  const records = await listCurrentIndexableRecords(
+  if (shard.kind === "index") {
+    if (shard.page !== 1) {
+      return null
+    }
+    const origin = getMarketOrigin(market)
+    const entries = INDEXABLE_INDEX_KINDS.map(
+      (kind) =>
+        `  <url><loc>${escapeXml(`${origin}${buildIndexUrl({ market, kind })}`)}</loc></url>`
+    ).join("\n")
+    return xmlDocument(
+      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>`
+    )
+  }
+
+  const start = (shard.page - 1) * SITEMAP_SHARD_SIZE
+  const records = await listCurrentIndexableRecords({
     registry,
     market,
-    shard.kind
-  )
-  const start = (shard.page - 1) * SITEMAP_SHARD_SIZE
-  if (start >= records.length) {
+    kind: shard.kind,
+    start,
+    limit: SITEMAP_SHARD_SIZE,
+  })
+  if (records.length === 0) {
     return null
   }
   const entries = records
-    .slice(start, start + SITEMAP_SHARD_SIZE)
     .map(
       (record) =>
         `  <url><loc>${escapeXml(buildAbsoluteUrl(record))}</loc><lastmod>${record.updatedAt.toISOString()}</lastmod></url>`

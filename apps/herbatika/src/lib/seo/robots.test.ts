@@ -11,9 +11,11 @@ const hosts = {
 describe("per-market robots", () => {
   it.each(
     Object.entries(hosts)
-  )("blocks only internal/API paths and localizes sitemap for %s", (market, host) => {
-    expect(buildRobotsTxt(market as keyof typeof hosts)).toBe(
-      `User-agent: *\nDisallow: /~sf/\nDisallow: /api/\n\nSitemap: https://${host}/sitemap.xml\n`
-    )
+  )("blocks internal/API and localized public flows for %s", (market, host) => {
+    const robots = buildRobotsTxt(market as keyof typeof hosts)
+    expect(robots).toContain("Disallow: /~sf/")
+    expect(robots).toContain("Disallow: /api/")
+    expect(robots.match(/Disallow:/g)).toHaveLength(6)
+    expect(robots).toContain(`Sitemap: https://${host}/sitemap.xml`)
   })
 })

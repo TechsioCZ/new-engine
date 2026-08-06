@@ -18,20 +18,24 @@ const createProduct = (
   handle = id
 ): HttpTypes.StoreProduct => ({ id, title, handle }) as HttpTypes.StoreProduct
 
+function createSdkMockWithResponse(response: unknown): SdkLike {
+  return {
+    client: {
+      fetch: vi.fn().mockResolvedValue(response),
+    },
+  }
+}
+
 function createSdkMock(
   response?: Partial<HttpTypes.StoreProductListResponse>
 ): SdkLike {
-  return {
-    client: {
-      fetch: vi.fn().mockResolvedValue({
-        products: [],
-        count: 0,
-        limit: 0,
-        offset: 0,
-        ...response,
-      }),
-    },
-  }
+  return createSdkMockWithResponse({
+    products: [],
+    count: 0,
+    limit: 0,
+    offset: 0,
+    ...response,
+  })
 }
 
 describe("createMedusaProductService", () => {
@@ -108,12 +112,7 @@ describe("createMedusaProductService", () => {
   })
 
   it("applies default detail fields and returns null when handle is not found", async () => {
-    const sdk = createSdkMock({
-      products: [],
-      count: 0,
-      limit: 1,
-      offset: 0,
-    })
+    const sdk = createSdkMockWithResponse({ products: [] })
     const service = createMedusaProductService(sdk as never, {
       defaultDetailFields: "id,title,handle,description",
     })
@@ -135,6 +134,19 @@ describe("createMedusaProductService", () => {
       signal: undefined,
     })
     expect(result).toBeNull()
+  })
+
+  it.each([
+    ["a missing products field", {}],
+    ["a non-array products field", { products: {} }],
+    ["a malformed product entry", { products: [null] }],
+  ])("throws for a successful detail response with %s", async (_case, payload) => {
+    const sdk = createSdkMockWithResponse(payload)
+    const service = createMedusaProductService(sdk as never)
+
+    await expect(
+      service.getProductByHandle({ handle: "test-product" })
+    ).rejects.toThrow("Invalid Medusa product list response")
   })
 
   it("supports custom detail query normalization and detail transforms", async () => {

@@ -17,12 +17,15 @@ import {
 import { createLexicalEditor } from "../lib/editors/lexical"
 import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 import { generateSlugFromTitle } from "../lib/hooks/slug"
+import { createUrlRegistrySyncHook } from "../lib/hooks/url-registry-sync"
 import { shouldReturnHtmlForRequest } from "../lib/utils/request"
 
 /** Collection slug for pages. */
 const COLLECTION_SLUG = "pages"
 /** Hook to invalidate Medusa cache when pages change. */
 const invalidatePagesCache = createMedusaCacheHook(COLLECTION_SLUG)
+/** Hook to synchronize pages with the Herbatika URL registry. */
+const syncPagesUrlRegistry = createUrlRegistrySyncHook("page")
 
 /** Payload collection config for pages. */
 export const Pages: CollectionConfig = {
@@ -90,8 +93,8 @@ export const Pages: CollectionConfig = {
         return data
       },
     ],
-    afterChange: [invalidatePagesCache],
-    afterDelete: [invalidatePagesCache],
+    afterChange: [invalidatePagesCache, syncPagesUrlRegistry],
+    afterDelete: [invalidatePagesCache, syncPagesUrlRegistry],
     afterRead: [
       ({ doc, req }) => {
         if (!shouldReturnHtmlForRequest(req)) {

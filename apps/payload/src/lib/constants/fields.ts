@@ -1,5 +1,5 @@
 import type { DateField, RichTextField, SelectField, TextField } from "payload"
-
+import { validateUrlRegistrySlug } from "../hooks/slug"
 import { fieldLabels } from "./labels"
 import { statusOptions } from "./status-options"
 
@@ -51,6 +51,8 @@ export const createSlugField = (options: SlugFieldOptions): TextField => ({
   type: "text",
   required: true,
   unique: true,
+  maxLength: 80,
+  validate: validateUrlRegistrySlug,
   localized: options.localized ?? true,
   label: options.label ?? fieldLabels.slug,
   admin: {

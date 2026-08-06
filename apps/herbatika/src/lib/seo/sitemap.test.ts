@@ -66,6 +66,9 @@ describe("sitemap XML", () => {
     )
     expect(xml).toContain("<loc>https://herbatica.sk/sitemaps/home-1.xml</loc>")
     expect(xml).toContain(
+      "<loc>https://herbatica.sk/sitemaps/index-1.xml</loc>"
+    )
+    expect(xml).toContain(
       "<loc>https://herbatica.sk/sitemaps/product-1.xml</loc>"
     )
     expect(xml).toContain(
@@ -73,6 +76,20 @@ describe("sitemap XML", () => {
     )
     expect(xml).not.toContain("brand-1.xml")
     expect(xml).not.toContain("herbatica.cz")
+  })
+
+  it("publishes functional index roots and excludes embargoed campaigns", async () => {
+    const xml = await buildSitemapShardXml(registry, "sk", {
+      kind: "index",
+      page: 1,
+    })
+    expect(xml).toContain("<loc>https://herbatica.sk/produkty</loc>")
+    expect(xml).toContain("<loc>https://herbatica.sk/kategorie</loc>")
+    expect(xml).toContain("<loc>https://herbatica.sk/znacky</loc>")
+    expect(xml).toContain("<loc>https://herbatica.sk/kolekcie</loc>")
+    expect(xml).toContain("<loc>https://herbatica.sk/poradna</loc>")
+    expect(xml).not.toContain("/akcie")
+    expect(parseSitemapShard("campaign-1.xml")).toBeNull()
   })
 
   it("contains only current, indexable records for requested market and kind", async () => {

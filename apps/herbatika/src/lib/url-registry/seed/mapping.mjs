@@ -1,4 +1,12 @@
-import { slugify, validateSlug } from "../../url/slug.ts"
+import {
+  MAX_SLUG_LENGTH,
+  SlugError,
+  slugify,
+  validateSlug,
+} from "../../url/slug.ts"
+
+const TRAILING_SEGMENT_PATTERN = /-[^-]*$/
+const TRAILING_HYPHENS_PATTERN = /-+$/
 
 const sourceGroups = (source) => [
   {
@@ -33,12 +41,32 @@ const sourceGroups = (source) => [
   },
 ]
 
-const sourceSlug = (entity) => {
-  const candidate = entity.slug?.trim() || entity.handle?.trim()
+const boundedProductSlug = (title) => {
+  try {
+    return slugify(title)
+  } catch (error) {
+    if (!(error instanceof SlugError && error.reason === "too-long")) {
+      throw error
+    }
+    const bounded = error.value.slice(0, MAX_SLUG_LENGTH)
+    return validateSlug(
+      bounded.replace(TRAILING_SEGMENT_PATTERN, "") ||
+        bounded.replace(TRAILING_HYPHENS_PATTERN, "")
+    )
+  }
+}
+
+const sourceSlug = (entity, kind) => {
+  const candidate =
+    entity.slug?.trim() ||
+    (kind === "product" ? entity.title?.trim() : undefined) ||
+    entity.handle?.trim()
   if (!candidate) {
     throw new Error(`Seed entity ${entity.id} has no slug or handle`)
   }
-  return validateSlug(slugify(candidate))
+  return kind === "product"
+    ? boundedProductSlug(candidate)
+    : validateSlug(slugify(candidate))
 }
 
 export const mapSeedSources = (sources) => {
@@ -62,7 +90,7 @@ export const mapSeedSources = (sources) => {
           continue
         }
 
-        const slug = sourceSlug(entity)
+        const slug = sourceSlug(entity, group.kind)
         validateSlug(slug, { existingSlugs })
         existingSlugs.add(slug)
         entityKeys.add(entityKey)

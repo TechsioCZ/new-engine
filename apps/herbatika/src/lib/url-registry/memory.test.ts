@@ -132,6 +132,29 @@ describe("InMemoryUrlRegistry", () => {
     }
   })
 
+  it("inserts a new current while preserving tombstone history", async () => {
+    const registry = new InMemoryUrlRegistry([record()])
+    await registry.tombstone("sk", "product", "prod_1")
+
+    const current = await registry.sync({
+      market: "sk",
+      kind: "product",
+      slug: "uplne-novy-caj",
+      entityId: "prod_1",
+      equivalenceKey: "product:prod_1:restored",
+      indexable: false,
+    })
+
+    expect(current).toMatchObject({
+      slug: "uplne-novy-caj",
+      status: "current",
+      indexable: false,
+    })
+    await expect(
+      registry.lookup("sk", "product", "caj")
+    ).resolves.toMatchObject({ type: "tombstone", record: { aliasOf: null } })
+  })
+
   it("returns only current alternates and enforces bounded lists", async () => {
     const registry = new InMemoryUrlRegistry([
       record(),

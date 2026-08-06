@@ -1,9 +1,9 @@
+import { resolveMarketFromHost } from "@/lib/seo/market"
 import { assertServerOnly } from "@/lib/server-guard"
 import {
   getHerbatikaMarketContext,
   type HerbatikaMarketCode,
   type HerbatikaMarketContext,
-  resolveMarketContext,
 } from "./market-context"
 
 assertServerOnly("storefront/market-context.server")
@@ -26,6 +26,7 @@ export type MarketServerContextInput = {
   host?: string | null
   market?: HerbatikaMarketCode | null
   trustedMarket?: string | null
+  environment?: Record<string, string | undefined>
 }
 
 /**
@@ -64,22 +65,35 @@ export const resolveMarketServerContext = ({
   host,
   market,
   trustedMarket,
+  environment = process.env,
 }: MarketServerContextInput): HerbatikaServerMarketContext => {
+  const hostMarket = host ? resolveMarketFromHost(host, environment) : null
+  const hostContext = hostMarket ? getHerbatikaMarketContext(hostMarket) : null
+  if (host && !hostContext) {
+    throw new Error("Unknown storefront host; market context is unavailable")
+  }
+
   let marketContext: HerbatikaMarketContext | null
   if (market) {
     marketContext = getHerbatikaMarketContext(market)
   } else if (isMarketCode(trustedMarket)) {
     marketContext = getHerbatikaMarketContext(trustedMarket)
   } else {
-    marketContext = resolveMarketContext({ host })
+    marketContext = hostContext
   }
 
   if (!marketContext) {
     throw new Error("Unknown storefront host; market context is unavailable")
   }
+  if (hostContext && hostContext.code !== marketContext.code) {
+    throw new Error("Trusted storefront market does not match the request Host")
+  }
 
   return {
     ...marketContext,
-    salesChannelId: resolveMarketSalesChannelId(marketContext.code),
+    salesChannelId: resolveMarketSalesChannelId(
+      marketContext.code,
+      environment
+    ),
   }
 }

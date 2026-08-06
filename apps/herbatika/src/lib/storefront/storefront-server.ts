@@ -5,6 +5,7 @@ import type {
   MedusaCategoryDetailInput,
   MedusaCategoryListInput,
 } from "@techsio/storefront-data/categories/medusa-service"
+import type { MedusaCollectionListInput } from "@techsio/storefront-data/collections/medusa-service"
 import { createMedusaStorefrontServerReadPreset } from "@techsio/storefront-data/medusa/server-read"
 import type { MedusaProductAttributesInput } from "@techsio/storefront-data/product-attributes/medusa-service"
 import type {
@@ -172,6 +173,25 @@ export const fetchServerCategories = (
 ) =>
   queryClient.fetchQuery(
     storefrontServerRead.queries.categories.getListQueryOptions(listParams)
+  )
+
+export const fetchServerCollections = (
+  queryClient: QueryClient,
+  listParams: MedusaCollectionListInput
+) =>
+  queryClient.fetchQuery(
+    storefrontServerRead.queries.collections.getListQueryOptions(listParams)
+  )
+
+export const fetchServerCatalogProducts = async (
+  queryClient: QueryClient,
+  listParams: CatalogListParams,
+  requestContext: RequestServerContext
+) =>
+  queryClient.fetchQuery(
+    storefrontServerRead.queries.catalog.getListQueryOptions(
+      withMarketSalesChannel(listParams, requestContext)
+    )
   )
 
 export const prefetchServerCatalogProducts = async (

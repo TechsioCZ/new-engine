@@ -44,6 +44,7 @@ import type {
 import { createRegionQueryKeys } from "@techsio/storefront-data/regions/query-keys"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
 import { createProductReviewQueryKeys } from "@techsio/storefront-data/reviews/query-keys"
+import { slugifyProductTitle } from "@/lib/url/product-slug"
 import { buildHerbatikaPaymentSessionData } from "./payment-session"
 import {
   PRODUCT_CARD_FIELDS,
@@ -206,6 +207,15 @@ export const storefrontQueryKeys = {
   ),
 }
 
+const withCanonicalProductHandle = (
+  product: HttpTypes.StoreProduct
+): HttpTypes.StoreProduct => ({
+  ...product,
+  handle: product.title?.trim()
+    ? slugifyProductTitle(product.title)
+    : product.handle,
+})
+
 export const storefrontProductServiceConfig: MedusaProductServiceConfig<
   HttpTypes.StoreProduct,
   MedusaProductListInput,
@@ -213,6 +223,7 @@ export const storefrontProductServiceConfig: MedusaProductServiceConfig<
 > = {
   defaultListFields: PRODUCT_CARD_FIELDS,
   defaultDetailFields: PRODUCT_DETAIL_FIELDS,
+  transformProduct: withCanonicalProductHandle,
 }
 
 export const storefrontCategoryServiceConfig: MedusaCategoryServiceConfig<
@@ -231,6 +242,7 @@ export const storefrontCatalogServiceConfig: MedusaCatalogServiceConfig<
 > = {
   defaultLimit: CATALOG_DEFAULT_LIMIT,
   defaultSort: CATALOG_DEFAULT_SORT,
+  transformProduct: withCanonicalProductHandle,
 }
 
 export const storefrontOrderServiceConfig: MedusaOrderServiceConfig = {

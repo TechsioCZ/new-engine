@@ -10,6 +10,7 @@ const DEFAULT_MAX_PAGES = 500
 
 /** Minimal page record used to group by category. */
 type PageDoc = {
+  id: number
   title: string | null
   slug?: string | null
   category?: number | CategoryDoc | null
@@ -38,6 +39,7 @@ export const pageCategoriesWithPagesEndpoint: Endpoint = {
           : {}),
       },
       select: {
+        id: true,
         title: true,
         slug: true,
         category: true,
@@ -51,7 +53,7 @@ export const pageCategoriesWithPagesEndpoint: Endpoint = {
         id: number
         title: string | null
         slug: string | null
-        pages: { title: string | null; slug?: string | null }[]
+        pages: { id: number; title: string | null; slug?: string | null }[]
       }
     >()
     for (const page of pagesResult.docs as PageDoc[]) {
@@ -63,7 +65,7 @@ export const pageCategoriesWithPagesEndpoint: Endpoint = {
         ...category,
         pages: [],
       }
-      entry.pages.push({ title: page.title, slug: page.slug })
+      entry.pages.push({ id: page.id, title: page.title, slug: page.slug })
       categoriesById.set(category.id, entry)
     }
 

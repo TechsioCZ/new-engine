@@ -10,17 +10,8 @@ export async function GET(request: Request) {
   const query = (searchParams.get("q") ?? "")
     .trim()
     .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
-  const countryCode = searchParams.get("country")
-  const currencyCode = searchParams.get("currency")
-  const regionId = searchParams.get("region")
-
   try {
-    const response = await fetchSearchAutocomplete({
-      query,
-      countryCode,
-      currencyCode,
-      regionId,
-    })
+    const response = await fetchSearchAutocomplete({ query })
     return NextResponse.json(response)
   } catch (error) {
     console.error("Search autocomplete failed", error)

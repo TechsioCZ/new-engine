@@ -98,8 +98,11 @@ function normalizeOrigin(value: string, market: Market): string {
 }
 
 /** Read the server-only market origin at call time so one build serves all markets. */
-export function getMarketOrigin(market: Market): string {
-  const configured = process.env[MARKET_ORIGIN_ENV[market]]
+export function getMarketOrigin(
+  market: Market,
+  environment: Record<string, string | undefined> = process.env
+): string {
+  const configured = environment[MARKET_ORIGIN_ENV[market]]
   return normalizeOrigin(
     configured?.trim() || DEFAULT_MARKET_ORIGINS[market],
     market

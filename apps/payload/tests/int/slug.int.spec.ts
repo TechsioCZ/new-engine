@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { generateSlug, generateSlugFromTitle } from "@/lib/hooks/slug"
+import {
+  generateSlug,
+  generateSlugFromTitle,
+  validateUrlRegistrySlug,
+} from "@/lib/hooks/slug"
 
 describe("slug utilities", () => {
   describe("generateSlug", () => {
@@ -12,7 +16,7 @@ describe("slug utilities", () => {
     })
 
     it("removes special characters", () => {
-      expect(generateSlug("hello@world#test!")).toBe("helloworldtest")
+      expect(generateSlug("hello@world#test!")).toBe("hello-world-test")
     })
 
     it("collapses multiple hyphens into one", () => {
@@ -153,6 +157,28 @@ describe("slug utilities", () => {
     it("handles title with only whitespace", () => {
       expect(generateSlugFromTitle("   ", { fallback: "default" })).toBe(
         "default"
+      )
+    })
+  })
+
+  describe("validateUrlRegistrySlug", () => {
+    it("accepts canonical URL-registry slugs", () => {
+      expect(validateUrlRegistrySlug("bezpecny-slug-42")).toBe(true)
+    })
+
+    it.each([
+      "Uppercase",
+      "with_underscore",
+      "two--hyphens",
+      "žltý",
+    ])("rejects a non-canonical slug: %s", (slug) => {
+      expect(validateUrlRegistrySlug(slug)).toEqual(expect.any(String))
+    })
+
+    it("rejects reserved and overlong slugs", () => {
+      expect(validateUrlRegistrySlug("api")).toEqual(expect.any(String))
+      expect(validateUrlRegistrySlug("a".repeat(81))).toEqual(
+        expect.any(String)
       )
     })
   })

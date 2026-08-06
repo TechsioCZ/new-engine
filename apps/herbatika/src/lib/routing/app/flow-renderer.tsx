@@ -1,5 +1,5 @@
 import { HydrationBoundary } from "@tanstack/react-query"
-import { redirect } from "next/navigation"
+import { permanentRedirect } from "next/navigation"
 import type { ReactNode } from "react"
 import { ForgotPasswordPanel } from "@/app/auth/forgot-password/forgot-password-panel"
 import { ResetPasswordPanel } from "@/app/auth/reset-password/reset-password-panel"
@@ -129,7 +129,7 @@ export async function renderFlowRoute({
 
   if (route.type === "checkout") {
     if (route.route === "root") {
-      redirect(buildCheckoutUrl(market, "checkout.contact"))
+      permanentRedirect(buildCheckoutUrl(market, "checkout.contact"))
     }
     if (route.route === "payment-return") {
       return (

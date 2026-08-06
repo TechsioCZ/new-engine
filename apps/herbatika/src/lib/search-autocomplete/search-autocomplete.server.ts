@@ -1,10 +1,14 @@
 import { assertServerOnly } from "@/lib/server-guard"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
-import { getMarketServerContext } from "@/lib/storefront/market-context.app"
+import {
+  getAppRequestServerContext,
+  getMarketServerContext,
+} from "@/lib/storefront/market-context.app"
 import {
   MEDUSA_BACKEND_URL,
   MEDUSA_PUBLISHABLE_KEY,
 } from "@/lib/storefront/ssr/constants"
+import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import { normalizeString } from "./search-autocomplete-normalizers"
 import { createProductSuggestions } from "./search-autocomplete-product-normalizers"
 import {
@@ -31,9 +35,6 @@ type CatalogAutocompleteResponse = {
 
 type FetchSearchAutocompleteInput = {
   query: string
-  countryCode?: string | null
-  currencyCode?: string | null
-  regionId?: string | null
 }
 
 const PRODUCT_LIMIT = 5
@@ -50,11 +51,13 @@ const createCatalogAutocompleteUrl = ({
   currencyCode,
   query,
   regionId,
+  salesChannelId,
 }: {
-  countryCode?: string | null
+  countryCode: string
   currencyCode: string
   query: string
-  regionId?: string | null
+  regionId: string
+  salesChannelId: string
 }) => {
   const url = new URL("/store/catalog/products", MEDUSA_BACKEND_URL)
   url.searchParams.set("q", query)
@@ -62,6 +65,7 @@ const createCatalogAutocompleteUrl = ({
   url.searchParams.set("limit", String(CANDIDATE_LIMIT))
   url.searchParams.set("sort", "recommended")
   url.searchParams.set("currency_code", currencyCode.toLowerCase())
+  url.searchParams.set("sales_channel_id", salesChannelId)
 
   const normalizedRegionId = normalizeString(regionId)
   if (normalizedRegionId) {
@@ -81,11 +85,13 @@ const fetchCatalogCandidates = async ({
   currencyCode,
   query,
   regionId,
+  salesChannelId,
 }: {
-  countryCode?: string | null
+  countryCode: string
   currencyCode: string
   query: string
-  regionId?: string | null
+  regionId: string
+  salesChannelId: string
 }) => {
   const abortController = new AbortController()
   const timeoutId = setTimeout(() => {
@@ -107,6 +113,7 @@ const fetchCatalogCandidates = async ({
         currencyCode,
         query,
         regionId,
+        salesChannelId,
       }),
       {
         cache: "no-store",
@@ -134,23 +141,29 @@ const fetchCatalogCandidates = async ({
 }
 
 export const fetchSearchAutocomplete = async ({
-  countryCode,
-  currencyCode,
   query,
-  regionId,
 }: FetchSearchAutocompleteInput): Promise<SearchAutocompleteResponse> => {
   const normalizedQuery = normalizeSearchAutocompleteQuery(query)
   if (normalizedQuery.length < SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH) {
     return createEmptySearchAutocompleteResponse(normalizedQuery)
   }
 
-  const market = (await getMarketServerContext()).code
-  const safeCurrencyCode = resolveSupportedCurrencyCode(currencyCode)
+  const [requestContext, marketContext] = await Promise.all([
+    getAppRequestServerContext(),
+    getMarketServerContext(),
+  ])
+  const { region } = await getRegionServerContext(requestContext)
+  if (!region?.region_id) {
+    throw new Error("Search autocomplete requires an active storefront region")
+  }
+  const market = marketContext.code
+  const safeCurrencyCode = resolveSupportedCurrencyCode(region.currency_code)
   const catalogResponse = await fetchCatalogCandidates({
-    countryCode,
+    countryCode: marketContext.countryCode,
     currencyCode: safeCurrencyCode,
     query: normalizedQuery,
-    regionId,
+    regionId: region.region_id,
+    salesChannelId: marketContext.salesChannelId,
   })
   const productHits = catalogResponse.products ?? []
 

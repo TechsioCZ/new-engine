@@ -75,20 +75,12 @@ const MARKET_CONFIG = {
 const HOST_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
   "herbatica.sk": "sk",
   "www.herbatica.sk": "sk",
-  "herbatika.sk": "sk",
-  "www.herbatika.sk": "sk",
   "herbatica.cz": "cz",
   "www.herbatica.cz": "cz",
-  "herbatika.cz": "cz",
-  "www.herbatika.cz": "cz",
   "herbatica.hu": "hu",
   "www.herbatica.hu": "hu",
-  "herbatika.hu": "hu",
-  "www.herbatika.hu": "hu",
   "herbatica.ro": "ro",
   "www.herbatica.ro": "ro",
-  "herbatika.ro": "ro",
-  "www.herbatika.ro": "ro",
 }
 
 export const DEFAULT_MARKET_CODE: HerbatikaMarketCode = "sk"

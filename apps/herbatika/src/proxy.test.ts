@@ -181,6 +181,17 @@ describe("static public path recognition", () => {
   })
 
   it.each([
+    "/%",
+    "/%zz",
+    "/produkty%2Fzeleny-caj",
+    "/produkty%5Czeleny-caj",
+  ])("classifies malformed or separator-decoding path %s as a bad request", (pathname) => {
+    expect(resolveProxyRoute("cz", pathname)).toEqual({
+      type: "bad-request",
+    })
+  })
+
+  it.each([
     "/sk/product/example",
     "/~sf/cz/product/example",
     "/%7Esf/cz/product/example",
@@ -234,6 +245,28 @@ describe("proxy ingress behavior", () => {
     }
   })
 
+  it("accepts Next Link RSC cache keys without making them public query keys", () => {
+    for (const pathname of [
+      "/produkty?_rsc=index-cache-key",
+      "/produkty/green-tea?varianta=SKU-1&_rsc=detail-cache-key",
+    ]) {
+      const response = proxy(request(pathname, { headers: { rsc: "1" } }))
+      expect(passThroughSummary(response)).toEqual(EXPECTED_PASS_THROUGH)
+    }
+
+    expect(proxy(request("/produkty?_rsc=public-value")).status).toBe(400)
+  })
+
+  it("strips the internal RSC key from canonical redirects", () => {
+    const response = proxy(
+      request("/PRODUKTY/?_rsc=cache-key", { headers: { rsc: "1" } })
+    )
+    expect(response.status).toBe(308)
+    expect(response.headers.get("location")).toBe(
+      "https://herbatica.cz/produkty"
+    )
+  })
+
   it("uses one static 308 for index, flow, and system normalization", () => {
     for (const [source, expected] of [
       ["/PRODUKTY/", "https://herbatica.cz/produkty"],
@@ -266,11 +299,73 @@ describe("proxy ingress behavior", () => {
     }
   })
 
-  it("returns 400 for an unknown entity query key", () => {
-    const response = proxy(request("/produkty?not-allowed=1"))
+  it.each([
+    "/%zz",
+    "/produkty%2Fzeleny-caj",
+    "/produkty%5Czeleny-caj",
+  ])("returns a static 400 for malformed path %s", (pathname) => {
+    const response = proxy(request(pathname))
     expect(response.status).toBe(400)
     expect(response.headers.get("location")).toBeNull()
     expect(response.headers.get("x-middleware-rewrite")).toBeNull()
+  })
+
+  it("enforces entity queries by route shape", () => {
+    for (const pathname of [
+      "/produkty/zeleny-caj?varianta=SKU-1&reviews_page=2",
+      "/kategorie/caje?strana=2&razeni=price-asc&znacka=pukka",
+      "/kategorie/caje?page=2&sort=price-asc&brand=pukka",
+      "/poradna?tema=fitness&strana=2",
+    ]) {
+      expect(proxy(request(pathname)).status).toBe(200)
+    }
+
+    for (const pathname of [
+      "/produkty?varianta=SKU-1",
+      "/produkty/zeleny-caj?not-allowed=1",
+      "/produkty/zeleny-caj?varianta=SKU-1&varianta=SKU-2",
+      "/kategorie/caje?strana=0",
+      "/poradna/clanek?tema=fitness",
+      "/informace/kontakt?strana=2",
+    ]) {
+      expect(proxy(request(pathname)).status).toBe(400)
+    }
+  })
+
+  it("enforces flow-specific query contracts", () => {
+    for (const pathname of [
+      "/vyhledavani?q=caj&page=2&sort=price-asc&status=in-stock&brand=pukka",
+      "/vyhledavani?q=caj&strana=2&razeni=price-asc&znacka=pukka",
+      "/ucet/objednavky?page=2",
+      "/ucet/seznamy?list=list_1",
+      "/ucet/prihlaseni?next=%2Fucet",
+      "/ucet/obnova-hesla?token=Token-AbC&email=a%40example.com&flow=reset-password",
+      "/recenze/produkt/Token-AbC?product_id=prod_1",
+      "/pokladna/navrat-z-platby?cart_id=cart_1&provider_id=pp_test&payment_cancelled=true",
+    ]) {
+      expect(proxy(request(pathname)).status).toBe(200)
+    }
+
+    for (const pathname of [
+      "/?q=caj",
+      "/kosik?q=caj",
+      "/vyhledavani?q=caj&q=tea",
+      "/vyhledavani?q=caj&page=01",
+      "/vyhledavani?q=caj&sort=PRICE-ASC",
+      "/ucet/objednavky?q=caj",
+      "/pokladna/kontakt?cart_id=cart_1",
+      "/pokladna/navrat-z-platby?cart_id=cart_1&utm_source=x",
+    ]) {
+      expect(proxy(request(pathname)).status).toBe(400)
+    }
+  })
+
+  it("keeps an allowed query through path canonicalization", () => {
+    const response = proxy(request("/VYHLEDAVANI/?q=Green+Tea"))
+    expect(response.status).toBe(308)
+    expect(response.headers.get("location")).toBe(
+      "https://herbatica.cz/vyhledavani?q=Green+Tea"
+    )
   })
 
   it("does not redirect unsupported public HTML methods", () => {

@@ -3,7 +3,7 @@ import { assertServerOnly } from "@/lib/server-guard"
 import { buildCatalogProductsParams } from "../catalog-query-state"
 import type { RequestServerContext } from "../market-context.server"
 import { PLP_PAGE_SIZE, type PlpQueryState } from "../plp-query-state"
-import { prefetchServerCatalogProducts } from "../storefront-server"
+import { fetchServerCatalogProducts } from "../storefront-server"
 import { getRegionServerContext } from "./context"
 
 assertServerOnly("storefront/ssr/prefetch-brand")
@@ -15,9 +15,10 @@ export const prefetchBrandPageStorefrontData = async (
 ) => {
   const { queryClient, region } = await getRegionServerContext(requestContext)
 
+  let availableProductCount: number | null = null
   if (region) {
-    await Promise.all([
-      prefetchServerCatalogProducts(
+    const [, availability] = await Promise.all([
+      fetchServerCatalogProducts(
         queryClient,
         buildCatalogProductsParams({
           queryState: {
@@ -30,7 +31,7 @@ export const prefetchBrandPageStorefrontData = async (
         }),
         requestContext
       ),
-      prefetchServerCatalogProducts(
+      fetchServerCatalogProducts(
         queryClient,
         buildCatalogProductsParams({
           queryState: {
@@ -51,10 +52,15 @@ export const prefetchBrandPageStorefrontData = async (
         requestContext
       ),
     ])
+    availableProductCount =
+      typeof availability.count === "number"
+        ? availability.count
+        : (availability.products?.length ?? 0)
   }
 
   return {
     region,
+    availableProductCount,
     dehydratedState: dehydrate(queryClient),
   }
 }

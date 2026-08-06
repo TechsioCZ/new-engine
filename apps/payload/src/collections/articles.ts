@@ -17,6 +17,7 @@ import {
 import { createLexicalEditor } from "../lib/editors/lexical"
 import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 import { generateSlugFromTitle } from "../lib/hooks/slug"
+import { createUrlRegistrySyncHook } from "../lib/hooks/url-registry-sync"
 import { estimateReadingTime } from "../lib/utils/reading-time"
 import { shouldReturnHtmlForRequest } from "../lib/utils/request"
 
@@ -24,6 +25,8 @@ import { shouldReturnHtmlForRequest } from "../lib/utils/request"
 const COLLECTION_SLUG = "articles"
 /** Hook to invalidate Medusa cache when articles change. */
 const invalidateArticlesCache = createMedusaCacheHook(COLLECTION_SLUG)
+/** Hook to synchronize articles with the Herbatika URL registry. */
+const syncArticlesUrlRegistry = createUrlRegistrySyncHook("article")
 
 /** Payload collection config for articles. */
 export const Articles: CollectionConfig = {
@@ -122,7 +125,7 @@ export const Articles: CollectionConfig = {
       label: fieldLabels.analytics,
       type: "group",
       admin: {
-        condition: (data: any) => data?.status === "published",
+        condition: (data: { status?: unknown }) => data.status === "published",
       },
       fields: [
         {
@@ -159,7 +162,7 @@ export const Articles: CollectionConfig = {
   ],
   hooks: {
     beforeChange: [
-      ({ data, req }: any) => {
+      ({ data, req }) => {
         // Auto-generate slug from title if not provided
         if (data.title && !data.slug) {
           const slug = generateSlugFromTitle(data.title, {
@@ -181,8 +184,8 @@ export const Articles: CollectionConfig = {
         return data
       },
     ],
-    afterChange: [invalidateArticlesCache],
-    afterDelete: [invalidateArticlesCache],
+    afterChange: [invalidateArticlesCache, syncArticlesUrlRegistry],
+    afterDelete: [invalidateArticlesCache, syncArticlesUrlRegistry],
     afterRead: [
       ({ doc, req }) => {
         if (!shouldReturnHtmlForRequest(req)) {

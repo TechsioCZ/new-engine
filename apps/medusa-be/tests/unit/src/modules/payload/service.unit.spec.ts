@@ -164,6 +164,9 @@ describe("PayloadModuleService", () => {
       expect(parsedUrl.searchParams.get("where[status][equals]")).toBe(
         "published"
       )
+      expect(parsedUrl.searchParams.get("where[visibility][equals]")).toBe(
+        "public"
+      )
       expect(parsedUrl.searchParams.get("limit")).toBe("1")
       expect(parsedUrl.searchParams.get("locale")).toBe("en")
       expect(parsedUrl.searchParams.get("fallbackLocale")).toBe("none")
@@ -195,6 +198,32 @@ describe("PayloadModuleService", () => {
         key: "cms:pages:missing:default",
       })
       expect(cacheService.set).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("getPublishedPageById", () => {
+    it("requires a published public page at the stable document ID", async () => {
+      const { service, cacheService } = createServiceWithCache()
+      const page = { id: 42, slug: "legal", title: "Legal" }
+
+      cacheService.get.mockResolvedValue(null)
+      fetchMock.mockResolvedValue(
+        createFetchResponse(createBulkResponse([page]))
+      )
+
+      await expect(service.getPublishedPageById("42", "cs")).resolves.toEqual(
+        page
+      )
+
+      const [url] = fetchMock.mock.calls[0] as [string, RequestInit]
+      const parsedUrl = new URL(url)
+      expect(parsedUrl.searchParams.get("where[id][equals]")).toBe("42")
+      expect(parsedUrl.searchParams.get("where[status][equals]")).toBe(
+        "published"
+      )
+      expect(parsedUrl.searchParams.get("where[visibility][equals]")).toBe(
+        "public"
+      )
     })
   })
 
@@ -563,7 +592,7 @@ describe("PayloadModuleService", () => {
           id: 1,
           title: "News",
           slug: "news",
-          articles: [{ title: "Article 1", slug: "article-1" }],
+          articles: [{ id: 11, title: "Article 1", slug: "article-1" }],
         },
       ]
 

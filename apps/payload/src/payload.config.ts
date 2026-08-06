@@ -24,7 +24,6 @@ import { Media } from "./collections/media"
 import { PageCategories } from "./collections/page-categories"
 import { Pages } from "./collections/pages"
 import { Users } from "./collections/users"
-import { migrations } from "./migrations"
 import { articleCategoriesWithArticlesEndpoint } from "./lib/endpoints/article-categories-with-articles"
 import { articleImportEndpoint } from "./lib/endpoints/article-import"
 import { healthEndpoint } from "./lib/endpoints/health"
@@ -36,13 +35,19 @@ import {
   isEnabled,
   resolveEnvLocales,
 } from "./lib/utils/env"
+import { migrations } from "./migrations"
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 const secret = getEnv("PAYLOAD_SECRET", true)
 const databaseUrl = getEnv("DATABASE_URL", true)
-const { locales, defaultLocale } = resolveEnvLocales("PAYLOAD_LOCALES", ["en"])
+const { locales, defaultLocale } = resolveEnvLocales("PAYLOAD_LOCALES", [
+  "sk",
+  "cs",
+  "hu",
+  "ro",
+])
 const isArticlesEnabled = isEnabled("FEATURE_PAYLOAD_ARTICLES_ENABLED")
 const isPagesEnabled = isEnabled("FEATURE_PAYLOAD_PAGES_ENABLED")
 const isHeroCarouselsEnabled = isEnabled(

@@ -9,6 +9,10 @@ import { CategoryListing } from "@/components/category-listing"
 import { CmsPageSurface } from "@/components/cms/cms-page-surface"
 import { HerbatikaHomepage } from "@/components/herbatika-homepage"
 import { ProductDetail } from "@/components/product-detail"
+import {
+  type RegistryIndexItem,
+  RegistryIndexPage,
+} from "@/components/registry-index-page"
 import { upstreamError } from "@/lib/routing/app/errors"
 import type { ResolvedStorefrontRoute } from "@/lib/routing/app/resolver"
 import {
@@ -45,10 +49,13 @@ import {
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import {
   fetchServerCategories,
+  fetchServerCollections,
   fetchServerProducts,
 } from "@/lib/storefront/storefront-server"
+import { buildUrl } from "@/lib/url/builder"
 import { getSegmentLabel, ROUTABLE_SEGMENT_KEYS } from "@/lib/url/segments"
-import type { Market } from "@/lib/url/types"
+import type { Market, UrlKind, UrlRecord } from "@/lib/url/types"
+import { getUrlRegistry } from "@/lib/url-registry/factory"
 
 type SearchParams = Record<string, string | string[] | undefined>
 
@@ -92,35 +99,166 @@ async function renderHome() {
   )
 }
 
+const REGISTRY_PAGE_SIZE = 100
+const REGISTRY_INDEX_LIMIT = 100
+
+async function listCurrentRecords(
+  market: Market,
+  kind: UrlKind
+): Promise<UrlRecord[]> {
+  const registry = await getUrlRegistry()
+  const records: UrlRecord[] = []
+  for (
+    let offset = 0;
+    offset < REGISTRY_INDEX_LIMIT;
+    offset += REGISTRY_PAGE_SIZE
+  ) {
+    const page = await registry.list({
+      market,
+      kind,
+      status: "current",
+      limit: REGISTRY_PAGE_SIZE,
+      offset,
+    })
+    records.push(
+      ...page.records.filter(
+        (record) =>
+          record.market === market &&
+          record.kind === kind &&
+          record.status === "current"
+      )
+    )
+    if (!page.hasMore) {
+      return records
+    }
+  }
+  return records
+}
+
+const registryItem = (record: UrlRecord, title: string): RegistryIndexItem => ({
+  href: buildUrl(record),
+  id: record.id,
+  title,
+})
+
+async function renderRegistryIndex(
+  market: Market,
+  kind: "product" | "category" | "collection" | "page"
+): Promise<ReactNode> {
+  const records = await listCurrentRecords(market, kind)
+  const title = getSegmentLabel(market, ROUTABLE_SEGMENT_KEYS[kind])
+  if (!records.length) {
+    return <RegistryIndexPage emptyLabel={title} items={[]} title={title} />
+  }
+
+  const requestContext = await getAppRequestServerContext()
+  const { queryClient, region } = await getRegionServerContext(requestContext)
+  let items: RegistryIndexItem[]
+
+  if (kind === "product") {
+    if (!region) {
+      throw new Error("Product index requires an active storefront region")
+    }
+    const response = await fetchServerProducts(
+      queryClient,
+      {
+        id: records.map((record) => record.entityId),
+        fields: "id,title",
+        limit: records.length,
+        region_id: region.region_id,
+        country_code: region.country_code,
+      },
+      requestContext
+    )
+    const titles = new Map(
+      response.products.map((product) => [product.id, product.title])
+    )
+    items = records.flatMap((record) => {
+      const sourceTitle = titles.get(record.entityId)
+      return sourceTitle ? [registryItem(record, sourceTitle)] : []
+    })
+  } else if (kind === "category") {
+    const response = await fetchServerCategories(queryClient, {
+      id: records.map((record) => record.entityId),
+      fields: "id,name",
+      limit: records.length,
+    })
+    const titles = new Map(
+      response.categories.map((category) => [category.id, category.name])
+    )
+    items = records.flatMap((record) => {
+      const sourceTitle = titles.get(record.entityId)
+      return sourceTitle ? [registryItem(record, sourceTitle)] : []
+    })
+  } else if (kind === "collection") {
+    const response = await fetchServerCollections(queryClient, {
+      id: records.map((record) => record.entityId),
+      fields: "id,title",
+      limit: records.length,
+    })
+    const titles = new Map(
+      response.collections.map((collection) => [
+        collection.id,
+        collection.title,
+      ])
+    )
+    items = records.flatMap((record) => {
+      const sourceTitle = titles.get(record.entityId)
+      return sourceTitle ? [registryItem(record, sourceTitle)] : []
+    })
+  } else {
+    items = records.map((record) => registryItem(record, record.slug))
+  }
+
+  return <RegistryIndexPage emptyLabel={title} items={items} title={title} />
+}
+
 async function renderIndex(
   market: Market,
   kind: Extract<ResolvedStorefrontRoute, { type: "index" }>["kind"],
   searchParams: SearchParams
 ): Promise<ReactNode | null> {
   if (kind === "brand") {
-    return (
-      <BrandIndexPage brands={await fetchStorefrontBrands()} market={market} />
+    const [brands, records] = await Promise.all([
+      fetchStorefrontBrands(),
+      listCurrentRecords(market, "brand"),
+    ])
+    const recordsByEntity = new Map(
+      records.map((record) => [record.entityId, record])
     )
+    const currentBrands = brands.flatMap((brand) => {
+      const record = recordsByEntity.get(brand.id)
+      return record ? [{ ...brand, slug: record.slug }] : []
+    })
+    return <BrandIndexPage brands={currentBrands} market={market} />
   }
 
   if (kind === "article") {
     const marketContext = await getMarketServerContext()
-    const posts = await fetchCmsBlogPosts(marketContext.locale)
+    const [posts, records] = await Promise.all([
+      fetchCmsBlogPosts(marketContext.locale),
+      listCurrentRecords(market, "article"),
+    ])
+    const slugsByEntity = new Map(
+      records.map((record) => [record.entityId, record.slug])
+    )
+    const currentPosts = posts.flatMap((post) => {
+      const slug = slugsByEntity.get(post.id)
+      return slug ? [{ ...post, slug }] : []
+    })
     const listing = resolveBlogListing({
       page: parsePositivePage(firstSearchParam(searchParams.strana)),
-      posts: posts.length ? posts : undefined,
+      posts: currentPosts,
       topic: parseBlogTopic(firstSearchParam(searchParams.tema)),
     })
     return <BlogListingPage listing={listing} />
   }
 
-  return (
-    <main className="mx-auto min-h-[50dvh] w-full max-w-max-w p-500">
-      <h1 className="font-bold text-4xl text-fg-primary">
-        {getSegmentLabel(market, ROUTABLE_SEGMENT_KEYS[kind])}
-      </h1>
-    </main>
-  )
+  if (kind === "campaign") {
+    return null
+  }
+
+  return renderRegistryIndex(market, kind)
 }
 
 async function renderProductEntity(entityId: string) {
@@ -190,15 +328,82 @@ async function renderBrandEntity(
   if (!brand) {
     return null
   }
-  const { dehydratedState } = await prefetchBrandPageStorefrontData(
-    await getAppRequestServerContext(),
-    brand.facetId,
-    parsePlpQueryStateFromSearchParams(searchParams)
-  )
+  const { availableProductCount, dehydratedState, region } =
+    await prefetchBrandPageStorefrontData(
+      await getAppRequestServerContext(),
+      brand.facetId,
+      parsePlpQueryStateFromSearchParams(searchParams)
+    )
+  if (!region) {
+    throw new Error("Brand rendering requires an active storefront region")
+  }
+  if (availableProductCount === 0) {
+    return null
+  }
   return (
     <HydrationBoundary state={dehydratedState}>
       <BrandListing brandFacetId={brand.facetId} brandTitle={brand.title} />
     </HydrationBoundary>
+  )
+}
+
+async function renderCollectionEntity(
+  market: Market,
+  entityId: string
+): Promise<ReactNode | null> {
+  const requestContext = await getAppRequestServerContext()
+  const { queryClient, region } = await getRegionServerContext(requestContext)
+  if (!region) {
+    throw new Error("Collection rendering requires an active storefront region")
+  }
+  const [collectionResponse, productResponse] = await Promise.all([
+    fetchServerCollections(queryClient, {
+      id: [entityId],
+      limit: 1,
+      fields: "id,title,handle",
+    }),
+    fetchServerProducts(
+      queryClient,
+      {
+        collection_id: [entityId],
+        limit: 24,
+        fields: "id,title",
+        region_id: region.region_id,
+        country_code: region.country_code,
+      },
+      requestContext
+    ),
+  ])
+  const collection = collectionResponse.collections.find(
+    (candidate) => candidate.id === entityId
+  )
+  if (!collection || productResponse.products.length === 0) {
+    return null
+  }
+
+  const registry = await getUrlRegistry()
+  const productItems = (
+    await Promise.all(
+      productResponse.products.map(async (product) => {
+        const record = await registry.findByEntity(
+          market,
+          "product",
+          product.id
+        )
+        if (record?.status !== "current") {
+          return null
+        }
+        return registryItem(record, product.title)
+      })
+    )
+  ).filter((item): item is RegistryIndexItem => item !== null)
+
+  return (
+    <RegistryIndexPage
+      emptyLabel={collection.title}
+      items={productItems}
+      title={collection.title}
+    />
   )
 }
 
@@ -231,6 +436,9 @@ async function renderCmsEntity(
     const page = await fetchCmsPageById(entityId, marketContext.locale)
     return page ? <CmsPageSurface page={page} /> : null
   }
+  if (route.kind === "campaign") {
+    return null
+  }
   throw upstreamError(
     "medusa",
     "configuration",
@@ -254,11 +462,18 @@ async function renderEntity(
     if (!source) {
       return null
     }
-    const { dehydratedState } = await prefetchCategoryPageStorefrontData(
-      source.requestContext,
-      source.category.handle,
-      parsePlpQueryStateFromSearchParams(searchParams)
-    )
+    const { availableProductCount, dehydratedState, region } =
+      await prefetchCategoryPageStorefrontData(
+        source.requestContext,
+        source.category.handle,
+        parsePlpQueryStateFromSearchParams(searchParams)
+      )
+    if (!region) {
+      throw new Error("Category rendering requires an active storefront region")
+    }
+    if (availableProductCount === 0) {
+      return null
+    }
     return (
       <HydrationBoundary state={dehydratedState}>
         <CategoryListing slug={source.category.handle} />
@@ -267,6 +482,9 @@ async function renderEntity(
   }
   if (route.kind === "brand") {
     return renderBrandEntity(entityId, searchParams)
+  }
+  if (route.kind === "collection") {
+    return renderCollectionEntity(route.resolution.record.market, entityId)
   }
   return renderCmsEntity(route, entityId)
 }

@@ -92,6 +92,16 @@ export const parseEntityActionInput = (value: unknown) => {
   }
 }
 
+export const parseTombstoneAllInput = (value: unknown) => {
+  if (!isObject(value)) {
+    throw new SyntaxError("Request body must be an object")
+  }
+  return {
+    kind: parseKind(value.kind),
+    entityId: requiredString(value.entityId, "entityId"),
+  }
+}
+
 export const parseSlugChangeInput = (value: unknown) => {
   const entity = parseEntityActionInput(value)
   const input = value as Record<string, unknown>

@@ -1,7 +1,23 @@
-import { getMarketOrigin } from "@/lib/url/builder"
+import {
+  buildAccountUrl,
+  buildCartUrl,
+  buildCheckoutUrl,
+  buildSearchUrl,
+  getMarketOrigin,
+} from "@/lib/url/builder"
 import type { Market } from "@/lib/url/types"
 
-/** Internal and API routes are blocked; noindex public flows remain crawlable. */
+/** Internal/API surfaces and non-indexable storefront flows are blocked. */
 export function buildRobotsTxt(market: Market): string {
-  return `User-agent: *\nDisallow: /~sf/\nDisallow: /api/\n\nSitemap: ${getMarketOrigin(market)}/sitemap.xml\n`
+  const disallowed = [
+    "/~sf/",
+    "/api/",
+    buildCartUrl(market),
+    buildCheckoutUrl(market),
+    buildAccountUrl(market),
+    buildSearchUrl(market),
+  ]
+    .map((path) => `Disallow: ${path}`)
+    .join("\n")
+  return `User-agent: *\n${disallowed}\n\nSitemap: ${getMarketOrigin(market)}/sitemap.xml\n`
 }
