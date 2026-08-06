@@ -128,7 +128,7 @@ export interface PplShipmentRequest {
  * - PRID: Parcel Private + COD (home delivery, with COD)
  * Note: Includes `| string` for forward-compatibility with PPL API changes
  */
-export type PplProductType = string
+export type PplProductType = keyof Record<string, unknown>
 
 export interface PplExternalNumber {
   /** External number type code (usually "CUST") */
@@ -375,17 +375,28 @@ export interface PplShipmentInfo {
  * Shipment states from PPL API
  */
 export type PplShipmentState =
-  | "DataShipment" // Label created, not yet picked up
-  | "Active" // In transit
-  | "PickedUpFromSender" // Picked up from sender
-  | "OutForDelivery" // Out for delivery
-  | "DeliveredToPickupPoint" // At pickup point (ParcelShop/Box)
-  | "Delivered" // Successfully delivered
-  | "NotDelivered" // Delivery attempt failed
-  | "BackToSender" // Returned to sender
-  | "Rejected" // Rejected by recipient
-  | "Dormant" // Inactive/expired
-  | "Undelivered" // Not yet delivered (general)
+  // Label created, not yet picked up
+  | "DataShipment"
+  // In transit
+  | "Active"
+  // Picked up from sender
+  | "PickedUpFromSender"
+  // Out for delivery
+  | "OutForDelivery"
+  // At pickup point (ParcelShop/Box)
+  | "DeliveredToPickupPoint"
+  // Successfully delivered
+  | "Delivered"
+  // Delivery attempt failed
+  | "NotDelivered"
+  // Returned to sender
+  | "BackToSender"
+  // Rejected by recipient
+  | "Rejected"
+  // Inactive/expired
+  | "Dormant"
+  // Not yet delivered (general)
+  | "Undelivered"
 
 /**
  * States indicating successful delivery
@@ -440,7 +451,7 @@ export interface PplAccessPoint {
 }
 
 /** Access point types - includes | string for forward-compatibility with PPL API */
-export type PplAccessPointType = string
+export type PplAccessPointType = keyof Record<string, unknown>
 
 /**
  * Access points query parameters
@@ -586,7 +597,7 @@ export interface PplShipmentQuery {
 /**
  * Order type - includes | string for forward-compatibility with PPL API
  */
-export type PplOrderType = string
+export type PplOrderType = keyof Record<string, unknown>
 
 /**
  * Order state

@@ -521,13 +521,16 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       return
     }
 
-    requirePaykitOptions("PayKit Stripe", options, ["apiKey", "webhookSecret"])
+    requirePaykitOptions("PayKit Stripe", { ...options }, [
+      "apiKey",
+      "webhookSecret",
+    ])
   }
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
     const options = await resolveStripeRuntimeOptions(
-      this.container_,
-      this.options_,
+      this.providerContainer,
+      this.providerOptions,
     )
     const { client, provider } = await createPaykitClientWithProvider(
       "@paykit-sdk/stripe",

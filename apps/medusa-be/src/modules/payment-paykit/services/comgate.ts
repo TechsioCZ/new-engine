@@ -92,7 +92,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
     const options = await resolveComgateRuntimeOptions(
-      this.container_,
+      this.providerContainer,
       this.#comgateOptions,
     )
 

@@ -40,7 +40,27 @@ import { STOREFRONT_PRODUCT_LIST_TEXT_DEFINITIONS } from "./definitions/product-
 import { STOREFRONT_SEARCH_TEXT_DEFINITIONS } from "./definitions/search"
 import { STOREFRONT_SEARCH_RESULTS_TEXT_DEFINITIONS } from "./definitions/search-results"
 
-export * from "./configuration"
+export {
+  getStorefrontTextMarketConfiguration,
+  isStorefrontTextLocale,
+  isStorefrontTextMarket,
+  isStorefrontTextMarketLocalePair,
+  isStorefrontTextNamespace,
+  isStorefrontTextStatus,
+  STOREFRONT_TEXT_LOCALES,
+  STOREFRONT_TEXT_MARKET_IDS,
+  STOREFRONT_TEXT_MARKETS,
+  STOREFRONT_TEXT_NAMESPACES,
+  STOREFRONT_TEXT_STATUSES,
+} from "./configuration"
+export type {
+  StorefrontTextDefinition,
+  StorefrontTextLocale,
+  StorefrontTextMarket,
+  StorefrontTextNamespace,
+  StorefrontTextRegistryAssertions,
+  StorefrontTextStatus,
+} from "./configuration"
 
 export const STOREFRONT_TEXT_DEFINITIONS = [
   {
@@ -380,6 +400,9 @@ const STOREFRONT_TEXT_KEYS = new Set<string>(
   STOREFRONT_TEXT_DEFINITIONS.map((definition) => definition.key),
 )
 
+const isStorefrontTextKey = (value: unknown): value is StorefrontTextKey =>
+  typeof value === "string" && STOREFRONT_TEXT_KEYS.has(value)
+
 const validateCatalogKeys = (
   messages: Record<string, string>,
   label: string,
@@ -407,15 +430,15 @@ const validateCatalogKeys = (
   return messages
 }
 
-const STOREFRONT_TEXT_DEFAULT_MESSAGES = Object.fromEntries(
-  STOREFRONT_TEXT_MARKETS.map((market) => [
-    market.market,
-    validateCatalogKeys(
-      getFlatStorefrontTextCatalog(market.locale),
-      market.locale,
-    ),
-  ]),
-) as Record<StorefrontTextMarket, Record<StorefrontTextKey, string>>
+const STOREFRONT_TEXT_DEFAULT_MESSAGES: Record<
+  StorefrontTextMarket,
+  Record<StorefrontTextKey, string>
+> = {
+  cz: validateCatalogKeys(getFlatStorefrontTextCatalog("cs-CZ"), "cs-CZ"),
+  hu: validateCatalogKeys(getFlatStorefrontTextCatalog("hu-HU"), "hu-HU"),
+  ro: validateCatalogKeys(getFlatStorefrontTextCatalog("ro-RO"), "ro-RO"),
+  sk: validateCatalogKeys(getFlatStorefrontTextCatalog("sk-SK"), "sk-SK"),
+}
 
 export const parseStorefrontTextCatalog = (
   catalog: unknown,
@@ -515,24 +538,32 @@ export const getStorefrontTextSeedRows = ({
   market,
 }: {
   market?: StorefrontTextMarket
-} = {}): StorefrontTextSeedRow[] =>
-  STOREFRONT_TEXT_DEFINITIONS.flatMap((definition) =>
-    STOREFRONT_TEXT_MARKETS.filter(
-      (configuration) => !market || configuration.market === market,
-    ).map((configuration) => ({
-      country: configuration.country,
-      default_value:
-        STOREFRONT_TEXT_DEFAULT_MESSAGES[configuration.market][definition.key],
-      description: definition.description,
-      domain: configuration.domain,
-      key: definition.key,
-      locale: configuration.locale,
-      market: configuration.market,
-      namespace: definition.namespace,
-      override_value: null,
-      status: "active",
-    })),
-  )
+} = {}): StorefrontTextSeedRow[] => {
+  const rows: StorefrontTextSeedRow[] = []
+  for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
+    for (const configuration of STOREFRONT_TEXT_MARKETS) {
+      if (market !== undefined && configuration.market !== market) {
+        continue
+      }
+      rows.push({
+        country: configuration.country,
+        default_value:
+          STOREFRONT_TEXT_DEFAULT_MESSAGES[configuration.market][
+            definition.key
+          ],
+        description: definition.description,
+        domain: configuration.domain,
+        key: definition.key,
+        locale: configuration.locale,
+        market: configuration.market,
+        namespace: definition.namespace,
+        override_value: null,
+        status: "active",
+      })
+    }
+  }
+  return rows
+}
 
 export const getStorefrontTextDefaultMessages = ({
   market,
@@ -563,21 +594,31 @@ export const findStorefrontTextDefault = ({
   key: string
   locale: unknown
   market: unknown
-}) => {
+}):
+  | {
+      locale: StorefrontTextLocale
+      market: StorefrontTextMarket
+      value: string
+    }
+  | undefined => {
+  let result:
+    | {
+        locale: StorefrontTextLocale
+        market: StorefrontTextMarket
+        value: string
+      }
+    | undefined
   if (
-    !(
-      isStorefrontTextMarket(market) &&
-      isStorefrontTextLocale(locale) &&
-      isStorefrontTextMarketLocalePair(market, locale) &&
-      STOREFRONT_TEXT_KEYS.has(key)
-    )
+    isStorefrontTextMarket(market) &&
+    isStorefrontTextLocale(locale) &&
+    isStorefrontTextMarketLocalePair(market, locale) &&
+    isStorefrontTextKey(key)
   ) {
-    return
+    result = {
+      locale,
+      market,
+      value: STOREFRONT_TEXT_DEFAULT_MESSAGES[market][key],
+    }
   }
-
-  return {
-    locale,
-    market,
-    value: STOREFRONT_TEXT_DEFAULT_MESSAGES[market][key as StorefrontTextKey],
-  }
+  return result
 }

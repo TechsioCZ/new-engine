@@ -28,15 +28,17 @@ const RESERVED_CATALOG_SEGMENTS = new Set([
   "constructor",
   "prototype",
 ])
+const INVALID_DATA_TYPE = MedusaError.Types.INVALID_DATA
 
 const isCatalogGroup = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
 const isValidCatalogSegment = (segment: string) =>
-  !!segment && !segment.includes(".") && !RESERVED_CATALOG_SEGMENTS.has(segment)
+  segment !== "" &&
+  !segment.includes(".") &&
+  !RESERVED_CATALOG_SEGMENTS.has(segment)
 
-const createCatalogGroup = (): StorefrontTextCatalog =>
-  Object.create(null) as StorefrontTextCatalog
+const createCatalogGroup = (): StorefrontTextCatalog => ({})
 
 const hasOwn = (value: object, key: PropertyKey) => Object.hasOwn(value, key)
 
@@ -47,7 +49,7 @@ const flattenCatalogGroup = (
 ) => {
   if (!isCatalogGroup(catalog)) {
     throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
+      INVALID_DATA_TYPE,
       "Storefront text catalog must be a JSON object",
     )
   }
@@ -55,7 +57,7 @@ const flattenCatalogGroup = (
   for (const [key, value] of Object.entries(catalog)) {
     if (!isValidCatalogSegment(key)) {
       throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
+        INVALID_DATA_TYPE,
         `Invalid storefront text catalog key "${key}"`,
       )
     }
@@ -69,7 +71,7 @@ const flattenCatalogGroup = (
 
     if (!isCatalogGroup(value) || Object.keys(value).length === 0) {
       throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
+        INVALID_DATA_TYPE,
         `Storefront text catalog value "${messageKey}" must be a string or non-empty object`,
       )
     }
@@ -81,7 +83,7 @@ const flattenCatalogGroup = (
 export const flattenStorefrontTextCatalog = (
   catalog: unknown,
 ): Record<string, string> => {
-  const messages = Object.create(null) as Record<string, string>
+  const messages: Record<string, string> = {}
   flattenCatalogGroup(catalog, "", messages)
   return messages
 }
@@ -96,11 +98,12 @@ export const nestStorefrontTextMessages = (
     const leaf = segments.pop()
 
     if (
-      !(leaf && isValidCatalogSegment(leaf)) ||
+      leaf === undefined ||
+      !isValidCatalogSegment(leaf) ||
       segments.some((segment) => !isValidCatalogSegment(segment))
     ) {
       throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
+        INVALID_DATA_TYPE,
         `Invalid storefront text message key "${messageKey}"`,
       )
     }
@@ -112,12 +115,12 @@ export const nestStorefrontTextMessages = (
 
       if (typeof existing === "string") {
         throw new MedusaError(
-          MedusaError.Types.INVALID_DATA,
+          INVALID_DATA_TYPE,
           `Storefront text message key "${messageKey}" conflicts with "${segment}"`,
         )
       }
 
-      if (existing) {
+      if (existing !== undefined) {
         group = existing
         continue
       }
@@ -129,7 +132,7 @@ export const nestStorefrontTextMessages = (
 
     if (hasOwn(group, leaf)) {
       throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
+        INVALID_DATA_TYPE,
         `Duplicate storefront text message key "${messageKey}"`,
       )
     }

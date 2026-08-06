@@ -145,8 +145,12 @@ const getCaptureAmount = (
 const isProviderNotSupportedError = (error: unknown): boolean =>
   error instanceof Error && error.name === "ProviderNotSupportedError"
 
+const preserveWebhookAmount = (
+  amount: BigNumberValue | undefined,
+): BigNumberValue | undefined => amount
+
 const noAccountHolderCreated = (): CreateAccountHolderOutput =>
-  Object.create(null)
+  Object.defineProperty({ id: "" }, "id", { enumerable: false })
 
 const joinName = (...values: unknown[]): string | undefined => {
   const name = values
@@ -368,9 +372,14 @@ const NOT_SUPPORTED_ACTION: WebhookActionResult["action"] =
 export abstract class PaykitPaymentProviderBase<
   TOptions extends PaykitAdapterOptions = PaykitAdapterOptions,
 > extends AbstractPaymentProvider<TOptions> {
-  protected readonly container_: PaykitInjectedDependencies
-  protected readonly options_: TOptions
+  protected readonly providerContainer: PaykitInjectedDependencies
+  protected readonly providerOptions: TOptions
   private clientPromise: Promise<PaykitPaymentClient> | undefined
+  private readonly customerDataKey = "customer"
+  private readonly invalidDataType = MedusaError.Types.INVALID_DATA
+  private readonly providerMetadataKey = "provider_metadata"
+  private readonly providerPaymentIdKey = "id"
+  private readonly normalizeDefaultWebhookAmount = preserveWebhookAmount
 
   protected constructor(
     container: PaykitInjectedDependencies,
@@ -378,14 +387,14 @@ export abstract class PaykitPaymentProviderBase<
   ) {
     super(container, options)
 
-    this.container_ = container
-    this.options_ = options
+    this.providerContainer = container
+    this.providerOptions = options
   }
 
   protected abstract createDefaultClient(): Promise<PaykitPaymentClient>
 
   protected async getClient(): Promise<PaykitPaymentClient> {
-    const configuredClient = await resolveConfiguredClient(this.options_)
+    const configuredClient = await resolveConfiguredClient(this.providerOptions)
     if (configuredClient) {
       this.clientPromise ??= Promise.resolve(configuredClient)
       return await this.clientPromise
@@ -397,11 +406,11 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   protected getProviderPaymentId(data?: Record<string, unknown>): string {
-    const id = data?.["id"]
+    const id = data?.[this.providerPaymentIdKey]
 
     if (typeof id !== "string" || id.length === 0) {
       throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
+        this.invalidDataType,
         "PayKit payment id is missing from payment data.id",
       )
     }
@@ -431,7 +440,7 @@ export abstract class PaykitPaymentProviderBase<
     _payment: PaykitPayment,
     _event: PaykitWebhookEvent,
   ): BigNumberValue | undefined {
-    return amount
+    return this.normalizeDefaultWebhookAmount(amount)
   }
 
   protected normalizeNumericAmount(
@@ -444,7 +453,7 @@ export abstract class PaykitPaymentProviderBase<
         : Number(amount)
 
     if (!Number.isFinite(normalized)) {
-      throw new MedusaError(MedusaError.Types.INVALID_DATA, message)
+      throw new MedusaError(this.invalidDataType, message)
     }
 
     return normalized
@@ -465,7 +474,8 @@ export abstract class PaykitPaymentProviderBase<
   protected getProviderMetadata(
     data: Record<string, unknown>,
   ): Record<string, unknown> {
-    return isRecord(data["provider_metadata"]) ? data["provider_metadata"] : {}
+    const providerMetadata = data[this.providerMetadataKey]
+    return isRecord(providerMetadata) ? providerMetadata : {}
   }
 
   protected getCreateProviderMetadata(
@@ -485,7 +495,7 @@ export abstract class PaykitPaymentProviderBase<
     input: InitiatePaymentInput,
     data: Record<string, unknown>,
   ): CreatePaymentSchema["customer"] {
-    const dataCustomer = data["customer"]
+    const dataCustomer = data[this.customerDataKey]
 
     if (typeof dataCustomer === "string" && dataCustomer.length > 0) {
       return isEmailValue(dataCustomer)
@@ -562,7 +572,7 @@ export abstract class PaykitPaymentProviderBase<
       return captureMethod
     }
 
-    return this.options_.capture === true ? "automatic" : "manual"
+    return this.providerOptions.capture === true ? "automatic" : "manual"
   }
 
   async initiatePayment(

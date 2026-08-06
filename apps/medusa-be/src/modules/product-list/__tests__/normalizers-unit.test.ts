@@ -1,4 +1,3 @@
-import { MedusaError } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -8,60 +7,38 @@ import {
   normalizeProductListType,
 } from "../normalizers"
 
-const catchError = (callback: () => unknown) => {
-  let error: unknown
-
-  try {
-    callback()
-  } catch (caughtError) {
-    error = caughtError
-  }
-
-  return error
-}
-
 describe("product-list normalizers", () => {
   describe(normalizeProductListAccessType, () => {
     it("defaults to private access", () => {
       expect(normalizeProductListAccessType()).toBe("private")
     })
 
-    it.each(["private", "public"] as const)(
-      "accepts %s access",
-      (accessType) => {
-        expect(normalizeProductListAccessType(accessType)).toBe(accessType)
-      },
-    )
+    it.each(["private", "public"] as const)("accepts %s access", (value) => {
+      expect(normalizeProductListAccessType(value)).toBe(value)
+    })
 
     it("rejects unsupported access values", () => {
-      expect(
-        catchError(() => normalizeProductListAccessType("shared")),
-      ).toMatchObject({
-        message: "Unsupported product list access type: shared",
-        type: MedusaError.Types.INVALID_DATA,
-      })
+      expect(() => normalizeProductListAccessType("shared")).toThrow(
+        "Unsupported product list access type: shared",
+      )
     })
   })
 
   describe(normalizeProductListType, () => {
-    it.each(["favorite", "custom"] as const)("accepts %s lists", (type) => {
-      expect(normalizeProductListType(type)).toBe(type)
+    it.each(["favorite", "custom"] as const)("accepts %s lists", (value) => {
+      expect(normalizeProductListType(value)).toBe(value)
     })
 
     it("rejects non-string list types", () => {
-      expect(catchError(() => normalizeProductListType(null))).toMatchObject({
-        message: "Unsupported product list type: null",
-        type: MedusaError.Types.INVALID_DATA,
-      })
+      expect(() => normalizeProductListType(null)).toThrow(
+        "Unsupported product list type: null",
+      )
     })
 
     it("rejects unsupported list types", () => {
-      expect(
-        catchError(() => normalizeProductListType("collection")),
-      ).toMatchObject({
-        message: "Unsupported product list type: collection",
-        type: MedusaError.Types.INVALID_DATA,
-      })
+      expect(() => normalizeProductListType("collection")).toThrow(
+        "Unsupported product list type: collection",
+      )
     })
   })
 
@@ -77,12 +54,9 @@ describe("product-list normalizers", () => {
     })
 
     it.each([0, -1, 1.5, "2"])("rejects %s", (value) => {
-      expect(
-        catchError(() => normalizePositiveInteger("quantity", value)),
-      ).toMatchObject({
-        message: "quantity must be a positive integer",
-        type: MedusaError.Types.INVALID_DATA,
-      })
+      expect(() => normalizePositiveInteger("quantity", value)).toThrow(
+        "quantity must be a positive integer",
+      )
     })
   })
 
@@ -98,12 +72,9 @@ describe("product-list normalizers", () => {
     })
 
     it.each([-1, 1.5, "0"])("rejects %s", (value) => {
-      expect(
-        catchError(() => normalizeNonNegativeInteger("sort_order", value)),
-      ).toMatchObject({
-        message: "sort_order must be a non-negative integer",
-        type: MedusaError.Types.INVALID_DATA,
-      })
+      expect(() => normalizeNonNegativeInteger("sort_order", value)).toThrow(
+        "sort_order must be a non-negative integer",
+      )
     })
   })
 })

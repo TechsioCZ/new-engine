@@ -47,7 +47,9 @@ const getIcuErrorMessage = (error: unknown) => {
 const getParserOptions = (locale?: string) =>
   ({
     ignoreTag: false,
-    ...(locale ? { locale: new Intl.Locale(locale) } : {}),
+    ...(locale === undefined || locale === ""
+      ? {}
+      : { locale: new Intl.Locale(locale) }),
     requiresOtherClause: true,
     shouldParseSkeletons: true,
   }) satisfies ParserOptions

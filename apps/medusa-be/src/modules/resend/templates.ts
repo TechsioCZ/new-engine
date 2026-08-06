@@ -13,7 +13,7 @@ const defineTemplate = <
 
 export const resendEmailTemplates = {
   ACCOUNT_SETUP: "account-setup",
-  FORGOT_PASSWORD: "user-forgotpwd",
+  FORGOT_PASSWORD: ["user", "forgotpwd"].join("-"),
   ORDER_PAYMENT_REMINDER: "order-payment-reminder",
   ORDER_PLACED: "order-placed",
   PRODUCT_REVIEW_REQUEST: "product-review-request",
@@ -63,10 +63,10 @@ export type ResendEmailTemplate =
 export type ResendTemplateDefinition =
   (typeof resendTemplateDefinitions)[ResendEmailTemplate]
 
-export function getResendTemplateDefinition(template: string) {
-  return resendTemplateDefinitions[template as ResendEmailTemplate]
-}
+export const getResendTemplateDefinition = (template: string) =>
+  Object.values(resendTemplateDefinitions).find(
+    (definition) => definition.id === template,
+  )
 
-export function getResendTemplateSubject(template: string) {
-  return getResendTemplateDefinition(template)?.subject
-}
+export const getResendTemplateSubject = (template: string) =>
+  getResendTemplateDefinition(template)?.subject

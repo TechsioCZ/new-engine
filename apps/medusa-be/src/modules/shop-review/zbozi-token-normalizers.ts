@@ -1,22 +1,22 @@
-export type ZboziApiStoreTokenSource = {
-  access_token_expires_at?: Date | string | null
+type OptionalTokenDate = Date | string | null
+
+export interface ZboziApiStoreTokenSource {
+  access_token_expires_at?: OptionalTokenDate
   api_key?: string | null
   credentials?: Record<string, unknown> | null
   name?: string
 }
 
 export const normalizeSecret = (value: unknown): string | null =>
-  typeof value === "string" && value.trim() ? value.trim() : null
+  typeof value === "string" && value.trim() !== "" ? value.trim() : null
 
 export const getCredentialValue = (
   credentials: Record<string, unknown> | null | undefined,
-  key: string
+  key: string,
 ): string | null => normalizeSecret(credentials?.[key])
 
-export const toValidDate = (
-  value: Date | string | null | undefined
-): Date | null => {
-  if (!value) {
+export const toValidDate = (value?: OptionalTokenDate): Date | null => {
+  if (value === null || value === undefined || value === "") {
     return null
   }
 

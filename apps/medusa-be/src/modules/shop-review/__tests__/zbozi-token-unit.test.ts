@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+
 import {
   ACCESS_TOKEN_API_STORE_NAME,
   calculateNextRefreshDelayMs,
@@ -21,7 +22,7 @@ describe("zbozi token helpers", () => {
         api_key: " refresh-token ",
         credentials: { refresh_token: "ignored" },
         name: REFRESH_TOKEN_API_STORE_NAME,
-      })
+      }),
     ).toBe("refresh-token")
   })
 
@@ -31,7 +32,7 @@ describe("zbozi token helpers", () => {
         api_key: null,
         credentials: { refresh_token: "do-not-use" },
         name: REFRESH_TOKEN_API_STORE_NAME,
-      })
+      }),
     ).toThrow('API store config "Zboží" must contain api_key')
   })
 
@@ -43,8 +44,8 @@ describe("zbozi token helpers", () => {
           api_key: " access-token ",
           name: ACCESS_TOKEN_API_STORE_NAME,
         },
-        new Date("2026-01-01T00:00:00.000Z")
-      )
+        new Date("2026-01-01T00:00:00.000Z"),
+      ),
     ).toBe("access-token")
   })
 
@@ -56,8 +57,8 @@ describe("zbozi token helpers", () => {
           api_key: "access-token",
           name: ACCESS_TOKEN_API_STORE_NAME,
         },
-        new Date("2026-01-01T00:00:01.000Z")
-      )
+        new Date("2026-01-01T00:00:01.000Z"),
+      ),
     ).toThrow("Zboží access token is missing or expired")
   })
 
@@ -65,9 +66,9 @@ describe("zbozi token helpers", () => {
     expect(
       parseZboziTokenResponse(
         { access_token: "abc", expires_in: 3600 },
-        new Date("2026-01-01T00:00:00.000Z")
-      )
-    ).toEqual({
+        new Date("2026-01-01T00:00:00.000Z"),
+      ),
+    ).toStrictEqual({
       accessToken: "abc",
       expiresAt: new Date("2026-01-01T01:00:00.000Z"),
     })
@@ -77,8 +78,8 @@ describe("zbozi token helpers", () => {
     expect(() =>
       parseZboziTokenResponse(
         { access_token: "abc" },
-        new Date("2026-01-01T00:00:00.000Z")
-      )
+        new Date("2026-01-01T00:00:00.000Z"),
+      ),
     ).toThrow("Zboží access token response must contain expires_in")
   })
 
@@ -87,8 +88,8 @@ describe("zbozi token helpers", () => {
       shouldRefreshZboziAccessToken({
         expiresAt: new Date("2026-01-01T00:01:59.000Z"),
         now: new Date("2026-01-01T00:00:00.000Z"),
-      })
-    ).toBe(true)
+      }),
+    ).toBeTruthy()
   })
 
   it("schedules refresh 2 minutes before expiry", () => {
@@ -96,22 +97,22 @@ describe("zbozi token helpers", () => {
       calculateNextRefreshDelayMs({
         expiresAt: new Date("2026-01-01T01:00:00.000Z"),
         now: new Date("2026-01-01T00:00:00.000Z"),
-      })
+      }),
     ).toBe(58 * 60 * 1000)
   })
 
   it("warns and returns immediate delay when the refresh time is already due", () => {
-    const warn = vi.fn()
+    const warn = vi.fn<(message: string) => void>()
 
     expect(
       calculateNextRefreshDelayMs({
         expiresAt: new Date("2026-01-01T00:01:00.000Z"),
         now: new Date("2026-01-01T00:00:00.000Z"),
         warn,
-      })
+      }),
     ).toBe(0)
     expect(warn).toHaveBeenCalledWith(
-      "Zboží access token refresh time is already due or in the past; scheduling immediate refresh."
+      "Zboží access token refresh time is already due or in the past; scheduling immediate refresh.",
     )
   })
 })

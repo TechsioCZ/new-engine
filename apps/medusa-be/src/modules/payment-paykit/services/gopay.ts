@@ -59,8 +59,8 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
     const options = await resolveGopayRuntimeOptions(
-      this.container_,
-      this.options_,
+      this.providerContainer,
+      this.providerOptions,
     )
 
     return await createPaykitClient(

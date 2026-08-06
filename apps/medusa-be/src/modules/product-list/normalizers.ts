@@ -28,7 +28,7 @@ const isProductListAccessType = (
   value: unknown,
 ): value is ProductListAccessType =>
   typeof value === "string" &&
-  PRODUCT_LIST_ACCESS_TYPES.includes(value as ProductListAccessType)
+  PRODUCT_LIST_ACCESS_TYPES.some((accessType) => accessType === value)
 
 export const normalizeProductListAccessType = (value: unknown) => {
   if (value === undefined) {
@@ -53,8 +53,11 @@ export const normalizeProductListType = (value: unknown): ProductListType => {
     )
   }
 
-  if (PRODUCT_LIST_TYPES.includes(value as ProductListType)) {
-    return value as ProductListType
+  const productListType = PRODUCT_LIST_TYPES.find(
+    (candidate) => candidate === value,
+  )
+  if (productListType !== undefined) {
+    return productListType
   }
 
   throw new MedusaError(

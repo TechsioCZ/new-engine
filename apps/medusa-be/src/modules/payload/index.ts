@@ -10,5 +10,20 @@ export default Module(PAYLOAD_MODULE, {
   service: PayloadModuleService,
 })
 
-export * from "./service"
-export type * from "./types"
+export type {
+  CmsArticleCategoryDTO,
+  CmsArticleDTO,
+  CmsCategoryListOptions,
+  CmsHeroCarouselDTO,
+  CmsListOptions,
+  CmsPageCategoryDTO,
+  CmsPageDTO,
+  CmsSeo,
+  CmsStatus,
+  CmsVisibility,
+  PayloadApiResponse,
+  PayloadBulkResult,
+  PayloadItemResult,
+  PayloadModuleOptions,
+  PayloadQueryOptions,
+} from "./types"

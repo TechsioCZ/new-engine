@@ -1,3 +1,2 @@
-export function isMeilisearchEnabled(): boolean {
-  return process.env["MEILISEARCH_ENABLED"] === "1"
-}
+export const isMeilisearchEnabled = (): boolean =>
+  process.env["MEILISEARCH_ENABLED"] === "1"
