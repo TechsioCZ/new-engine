@@ -7,6 +7,7 @@ import { createMedusaCategoryService } from "../src/categories/medusa-service"
 import { createMedusaCollectionService } from "../src/collections/medusa-service"
 import type { CreateMedusaStorefrontPresetConfig } from "../src/medusa/preset"
 import type { ProductListHooks } from "../src/product-lists/hooks"
+import { createMedusaProductListService } from "../src/product-lists/medusa-service"
 import type { ProductListCartLike } from "../src/product-lists/types"
 import type { ProductHooks } from "../src/products/hooks"
 import { createMedusaProductService } from "../src/products/medusa-service"
@@ -24,13 +25,14 @@ export const validPricePerUnitAmount: number | undefined =
 export const validPricePerUnitSymbol: string | undefined =
   pricePerUnit?.unit_symbol
 // @ts-expect-error the shared contract must reject fields not returned by the API
-export const invalidPricePerUnitField = pricePerUnit?.amount
+export const invalidPricePerUnitField: unknown = pricePerUnit?.amount
 
 export const defaultProductService = createMedusaProductService(sdk)
 export const defaultCatalogService = createMedusaCatalogService(sdk)
 export const defaultCategoryService = createMedusaCategoryService(sdk)
 export const defaultCollectionService = createMedusaCollectionService(sdk)
 export const defaultReviewService = createMedusaProductReviewService(sdk)
+export const defaultProductListService = createMedusaProductListService(sdk)
 
 export const unsafeCustomProductService =
   // @ts-expect-error custom product output requires a transform
@@ -51,6 +53,10 @@ export const unsafeCustomCollectionService =
 export const unsafeCustomReviewService =
   // @ts-expect-error custom review output requires a transform
   createMedusaProductReviewService<{ slug: string }>(sdk)
+
+export const unsafeCustomProductListService =
+  // @ts-expect-error custom product-list output requires a transform
+  createMedusaProductListService<{ slug: string }>(sdk)
 
 export const customProductService = createMedusaProductService<{
   slug: string
@@ -76,6 +82,11 @@ export const customReviewService = createMedusaProductReviewService<{
   slug: string
 }>(sdk, {
   transformReview: (review) => ({ slug: review.id }),
+})
+export const customProductListService = createMedusaProductListService<{
+  slug: string
+}>(sdk, {
+  transformProductList: (productList) => ({ slug: productList.id }),
 })
 
 type ExtendedCatalogFacets = CatalogFacets & {
@@ -168,13 +179,13 @@ export const validSuspenseProductDetailInput: SuspenseProductDetailInput = {
 }
 
 export const invalidSuspenseProductListInput = {
-  page: 1,
   // @ts-expect-error suspense product list input must not expose enabled
   enabled: false,
+  page: 1,
 } satisfies SuspenseProductListQueryInput
 
 export const invalidSuspenseProductDetailInput = {
-  handle: "hoodie",
   // @ts-expect-error suspense product detail input must not expose enabled
   enabled: false,
+  handle: "hoodie",
 } satisfies SuspenseProductDetailInput

@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createProductListHooks } from "../src/product-lists/hooks"
@@ -38,11 +38,14 @@ type Service = ProductListService<
   DetailParams
 >
 
-const createWrapper =
-  (client: QueryClient) =>
-  ({ children }: { children: ReactNode }) => (
-    <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
-  )
+const createWrapper = (client: QueryClient) =>
+  function StorefrontDataTestWrapper({ children }: { children: ReactNode }) {
+    return (
+      <StorefrontDataProvider client={client}>
+        {children}
+      </StorefrontDataProvider>
+    )
+  }
 
 const buildListParams = (input: ProductListListInputBase): ListParams => {
   const limit = input.limit ?? 20
@@ -54,24 +57,43 @@ const buildDetailParams = (input: ProductListDetailInputBase): DetailParams =>
   input.id === undefined ? {} : { id: input.id }
 
 const createService = (overrides: Partial<Service> = {}): Service => ({
-  addFavoriteProductListItem: async () => null,
-  addProductListItem: async () => null,
-  changeProductListItemQuantity: async () => null,
-  createCustomProductList: async () => null,
-  createFavoriteProductList: async () => null,
-  createProductListCart: async () => ({ id: "cart_1" }),
-  deleteProductList: async (input) => ({ deleted: true, id: input.listId }),
-  deleteProductListItem: async (input) => ({ deleted: true, id: input.itemId }),
-  getProductList: async () => null,
-  incrementProductListItem: async () => null,
-  listProductLists: async (params) => ({
-    productLists: [],
-    count: 0,
-    limit: params.limit,
-    offset: params.offset,
-  }),
-  updateProductList: async () => null,
-  updateProductListItem: async () => null,
+  addFavoriteProductListItem: vi
+    .fn<Service["addFavoriteProductListItem"]>()
+    .mockResolvedValue(null),
+  addProductListItem: vi
+    .fn<Service["addProductListItem"]>()
+    .mockResolvedValue(null),
+  changeProductListItemQuantity: vi
+    .fn<Service["changeProductListItemQuantity"]>()
+    .mockResolvedValue(null),
+  createCustomProductList: vi
+    .fn<Service["createCustomProductList"]>()
+    .mockResolvedValue(null),
+  createFavoriteProductList: vi
+    .fn<Service["createFavoriteProductList"]>()
+    .mockResolvedValue(null),
+  createProductListCart: vi
+    .fn<Service["createProductListCart"]>()
+    .mockResolvedValue({ id: "cart_1" }),
+  deleteProductList: vi
+    .fn<Service["deleteProductList"]>()
+    .mockResolvedValue({ deleted: true, id: "list_1" }),
+  deleteProductListItem: vi
+    .fn<Service["deleteProductListItem"]>()
+    .mockResolvedValue({ deleted: true, id: "item_1" }),
+  getProductList: vi.fn<Service["getProductList"]>().mockResolvedValue(null),
+  incrementProductListItem: vi
+    .fn<Service["incrementProductListItem"]>()
+    .mockResolvedValue(null),
+  listProductLists: vi
+    .fn<Service["listProductLists"]>()
+    .mockResolvedValue({ count: 0, limit: 20, offset: 0, productLists: [] }),
+  updateProductList: vi
+    .fn<Service["updateProductList"]>()
+    .mockResolvedValue(null),
+  updateProductListItem: vi
+    .fn<Service["updateProductListItem"]>()
+    .mockResolvedValue(null),
   ...overrides,
 })
 
@@ -84,6 +106,7 @@ describe("product-list prefetch hooks", () => {
     >("test-product-list-prefetch")
     const service = createService({
       listProductLists: async (params) => {
+        await Promise.resolve()
         fetchCount += 1
         return {
           count: 1,
@@ -174,8 +197,13 @@ describe("product-list prefetch hooks", () => {
     >("test-product-list-detail-prefetch")
     const service = createService({
       getProductList: async (params) => {
+        await Promise.resolve()
         fetchCount += 1
-        return params.id ? { id: params.id } : null
+        return params.id === undefined ||
+          params.id === null ||
+          params.id.length === 0
+          ? null
+          : { id: params.id }
       },
     })
     const { usePrefetchProductList } = createProductListHooks<

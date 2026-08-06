@@ -5,7 +5,7 @@ import { createTestMedusaSdk } from "./medusa-fixtures"
 
 const createSdkMock = (response: unknown = {}) => {
   const sdk = createTestMedusaSdk()
-  const fetch = vi.fn().mockResolvedValue(response)
+  const fetch = vi.fn<typeof sdk.client.fetch>().mockResolvedValue(response)
   Object.defineProperty(sdk.client, "fetch", { value: fetch })
   return { fetch, sdk }
 }

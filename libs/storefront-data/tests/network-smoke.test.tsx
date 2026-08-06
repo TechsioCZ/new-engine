@@ -1,8 +1,9 @@
 import { QueryClient } from "@tanstack/react-query"
+import { isRecord } from "@techsio/std/object"
 import { renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
-import { beforeEach, afterEach, describe, expect, it } from "vitest"
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest"
 
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createProductHooks } from "../src/products/hooks"
@@ -36,7 +37,9 @@ const buildListParams = (input: ProductListInputBase): ProductListParams => {
   return {
     limit,
     offset,
-    ...(input.region_id ? { region_id: input.region_id } : {}),
+    ...(input.region_id === undefined || input.region_id.length === 0
+      ? {}
+      : { region_id: input.region_id }),
   }
 }
 
@@ -49,13 +52,6 @@ const createTestClient = (
   trackedClients.push(client)
   return client
 }
-
-afterEach(() => {
-  for (const client of trackedClients) {
-    client.clear()
-  }
-  trackedClients.length = 0
-})
 
 describe("storefront-data network smoke", () => {
   const baseUrl = "https://storefront.test"
@@ -78,7 +74,7 @@ describe("storefront-data network smoke", () => {
           offset,
           products: [
             {
-              id: `prod_${regionId || "default"}`,
+              id: `prod_${regionId.length > 0 ? regionId : "default"}`,
               title: "Network Product",
             },
           ],
@@ -89,13 +85,28 @@ describe("storefront-data network smoke", () => {
     )
   })
 
+  afterEach(() => {
+    for (const client of trackedClients) {
+      client.clear()
+    }
+    trackedClients.length = 0
+  })
+
   it("fetches products through network and caches the result", async () => {
     const service: ProductService<
       TestProduct,
       ProductListParams,
       ProductDetailParams
     > = {
-      getProductByHandle: async () => null,
+      getProductByHandle: vi
+        .fn<
+          ProductService<
+            TestProduct,
+            ProductListParams,
+            ProductDetailParams
+          >["getProductByHandle"]
+        >()
+        .mockResolvedValue(null),
       getProducts: async (params) => {
         const query = new URLSearchParams({
           limit: String(params.limit),
@@ -103,12 +114,42 @@ describe("storefront-data network smoke", () => {
           region_id: params.region_id ?? "",
         })
         const response = await fetch(`${baseUrl}/products?${query}`)
-        return await (response.json() as Promise<{
-          products: TestProduct[]
-          count: number
-          limit: number
-          offset: number
-        }>)
+        const payload: unknown = await response.json()
+        if (!isRecord(payload)) {
+          throw new TypeError("Invalid product list response")
+        }
+        const {
+          count,
+          limit: responseLimit,
+          offset: responseOffset,
+          products: productPayloads,
+        } = payload
+        if (!Array.isArray(productPayloads)) {
+          throw new TypeError("Invalid product list products")
+        }
+        if (
+          typeof count !== "number" ||
+          typeof responseLimit !== "number" ||
+          typeof responseOffset !== "number"
+        ) {
+          throw new TypeError("Invalid product list pagination")
+        }
+        const products = productPayloads.map((product: unknown) => {
+          if (
+            !isRecord(product) ||
+            typeof product["id"] !== "string" ||
+            typeof product["title"] !== "string"
+          ) {
+            throw new TypeError("Invalid product response")
+          }
+          return { id: product["id"], title: product["title"] }
+        })
+        return {
+          count,
+          limit: responseLimit,
+          offset: responseOffset,
+          products,
+        }
       },
     }
 

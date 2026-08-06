@@ -52,7 +52,7 @@ export interface OrderQueryOptionsFactory<
   ) => QueryFactoryOptions<TOrder | null>
 }
 
-export function createOrderQueryOptionsFactory<
+export const createOrderQueryOptionsFactory = <
   TOrder,
   TListInput extends OrderListInputBase,
   TListParams,
@@ -71,7 +71,7 @@ export function createOrderQueryOptionsFactory<
   TListParams,
   TDetailInput,
   TDetailParams
->): OrderQueryOptionsFactory<TOrder, TListInput, TDetailInput> {
+>): OrderQueryOptionsFactory<TOrder, TListInput, TDetailInput> => {
   const resolvedQueryKeys =
     queryKeys ??
     createOrderQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)

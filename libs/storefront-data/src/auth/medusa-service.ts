@@ -6,6 +6,8 @@ import { toComparableTimestamp } from "../shared/date-utils"
 import { isAuthError } from "../shared/medusa-errors"
 import type { AuthService } from "./types"
 
+const MULTI_STEP_AUTH_UNSUPPORTED = "Multi-step authentication not supported"
+
 export interface MedusaAuthCredentials {
   email: string
   password: string
@@ -88,7 +90,7 @@ const defaultReportLogoutError = (
  * })
  * ```
  */
-export function createMedusaAuthService(
+export const createMedusaAuthService = (
   sdk: Medusa,
   config?: MedusaAuthServiceConfig,
 ): AuthService<
@@ -99,12 +101,12 @@ export function createMedusaAuthService(
   unknown,
   string,
   string
-> {
+> => {
   const reportLogoutError = (
     error: unknown,
     context: MedusaLogoutErrorContext,
   ) => {
-    if (config?.onLogoutError) {
+    if (config?.onLogoutError !== undefined) {
       try {
         config.onLogoutError(error, context)
         return
@@ -137,7 +139,7 @@ export function createMedusaAuthService(
     })
 
     if (typeof sessionToken !== "string") {
-      throw new TypeError("Multi-step authentication not supported")
+      throw new TypeError(MULTI_STEP_AUTH_UNSUPPORTED)
     }
 
     return sessionToken
@@ -151,17 +153,22 @@ export function createMedusaAuthService(
             "/store/customers/me",
             { signal: signal ?? null },
           )
-        if (!customer) {
-          return null
-        }
-
-        // Sort addresses by creation date (oldest first)
-        if (customer.addresses?.length) {
-          customer.addresses = [...customer.addresses].sort(
-            (a, b) =>
-              toComparableTimestamp(a.created_at) -
-              toComparableTimestamp(b.created_at),
-          )
+        // Sort addresses by creation date (oldest first) without mutating the SDK array.
+        if (customer.addresses !== undefined && customer.addresses.length > 0) {
+          const sortedAddresses: HttpTypes.StoreCustomerAddress[] = []
+          for (const address of customer.addresses) {
+            const insertionIndex = sortedAddresses.findIndex(
+              (candidate) =>
+                toComparableTimestamp(candidate.created_at) >
+                toComparableTimestamp(address.created_at),
+            )
+            if (insertionIndex === -1) {
+              sortedAddresses.push(address)
+            } else {
+              sortedAddresses.splice(insertionIndex, 0, address)
+            }
+          }
+          customer.addresses = sortedAddresses
         }
         return customer
       } catch (error) {
@@ -178,7 +185,7 @@ export function createMedusaAuthService(
 
       // Handle OAuth redirects
       if (typeof token !== "string") {
-        throw new TypeError("Multi-step authentication not supported")
+        throw new TypeError(MULTI_STEP_AUTH_UNSUPPORTED)
       }
 
       return token
@@ -213,7 +220,7 @@ export function createMedusaAuthService(
         // This guard lives inside the cleanup scope so we always attempt logout
         // when register created an auth identity but we cannot continue.
         if (typeof registrationToken !== "string") {
-          throw new TypeError("Multi-step authentication not supported")
+          throw new TypeError(MULTI_STEP_AUTH_UNSUPPORTED)
         }
 
         // Step 2: Login to establish the standard customer auth state before
@@ -224,7 +231,7 @@ export function createMedusaAuthService(
           password: data.password,
         })
         if (typeof loginToken !== "string") {
-          throw new TypeError("Multi-step authentication not supported")
+          throw new TypeError(MULTI_STEP_AUTH_UNSUPPORTED)
         }
 
         // Step 3: CREATE customer profile (not update!)

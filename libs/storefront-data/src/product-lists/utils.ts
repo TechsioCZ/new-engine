@@ -49,7 +49,7 @@ const normalizeVariantId = (variantId?: string | null) => {
   }
 
   const trimmedVariantId = variantId.trim()
-  return trimmedVariantId || null
+  return trimmedVariantId.length > 0 ? trimmedVariantId : null
 }
 
 export const productListItemMatchesSelection = (
@@ -64,11 +64,11 @@ export const productListItemMatchesSelection = (
   const requestedVariantId = normalizeVariantId(variantId)
   const itemVariantId = normalizeVariantId(getProductListItemVariantId(item))
 
-  if (requestedVariantId) {
+  if (requestedVariantId !== null) {
     return itemVariantId === requestedVariantId
   }
 
-  return !itemVariantId
+  return itemVariantId === null
 }
 
 export const isProductInProductList = <TItem extends ProductListItemBase>(

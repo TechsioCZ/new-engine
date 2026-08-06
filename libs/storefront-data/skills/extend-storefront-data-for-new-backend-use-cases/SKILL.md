@@ -12,8 +12,8 @@ sources:
   - "TechsioCZ/new-engine:libs/storefront-data/src/medusa/preset.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/shared/query-keys.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/orders/medusa-service.ts"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/medusa.preset.test.tsx"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/medusa.flow.test.tsx"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/medusa-preset.test.tsx"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/medusa-flow.test.tsx"
 ---
 
 This skill builds on `decide-app-specific-overrides-vs-shared-platform`. Use it only after deciding the behavior should become shared.
@@ -183,7 +183,7 @@ Correct:
 
 The library now treats tests as part of the consumer-facing contract. Missing regression coverage pushes risk back into each storefront.
 
-Source: `libs/storefront-data/tests/medusa.preset.test.tsx`, `libs/storefront-data/tests/medusa.flow.test.tsx`
+Source: `libs/storefront-data/tests/medusa-preset.test.tsx`, `libs/storefront-data/tests/medusa-flow.test.tsx`
 
 ## References
 

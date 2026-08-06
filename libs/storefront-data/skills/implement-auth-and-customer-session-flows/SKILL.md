@@ -12,7 +12,7 @@ sources:
   - "TechsioCZ/new-engine:libs/storefront-data/src/auth/medusa-service.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/auth/query-keys.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/medusa/preset.ts"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/auth.medusa-service.test.ts"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/auth-medusa-service.test.ts"
 ---
 
 ## Setup
@@ -167,7 +167,7 @@ storefront.hooks.auth.useLogin().mutate({
 
 The current Medusa auth adapter rejects multi-step flows. The obvious generic-provider shape is misleading here.
 
-Source: `libs/storefront-data/src/auth/medusa-service.ts`, `libs/storefront-data/tests/auth.medusa-service.test.ts`
+Source: `libs/storefront-data/src/auth/medusa-service.ts`, `libs/storefront-data/tests/auth-medusa-service.test.ts`
 
 ### HIGH Putting UX callbacks into shared auth code
 

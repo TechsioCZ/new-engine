@@ -5,6 +5,7 @@ export const createTestMedusaSdk = (): Medusa =>
   new Medusa({ baseUrl: "https://storefront.test" })
 
 const rawZero = { value: 0 }
+const TEST_TIMESTAMP = "2026-01-01T00:00:00.000Z"
 
 const cartTotals = {
   credit_line_total: 0,
@@ -88,7 +89,7 @@ export const createStoreCartShippingMethod = (
 ): HttpTypes.StoreCartShippingMethod => ({
   amount: 0,
   cart_id: cartId,
-  created_at: "2026-01-01T00:00:00.000Z",
+  created_at: TEST_TIMESTAMP,
   discount_tax_total: 0,
   discount_total: 0,
   id: "shipping_method_1",
@@ -100,7 +101,7 @@ export const createStoreCartShippingMethod = (
   subtotal: 0,
   tax_total: 0,
   total: 0,
-  updated_at: "2026-01-01T00:00:00.000Z",
+  updated_at: TEST_TIMESTAMP,
   ...overrides,
 })
 
@@ -194,7 +195,7 @@ export const createStoreCustomerAddress = (
   city: null,
   company: null,
   country_code: null,
-  created_at: "2026-01-01T00:00:00.000Z",
+  created_at: TEST_TIMESTAMP,
   customer_id: "customer_1",
   first_name: null,
   id,
@@ -205,40 +206,8 @@ export const createStoreCustomerAddress = (
   phone: null,
   postal_code: null,
   province: null,
-  updated_at: "2026-01-01T00:00:00.000Z",
+  updated_at: TEST_TIMESTAMP,
   ...overrides,
-})
-
-export const createStoreShippingOptionWithServiceZone = (
-  id: string,
-): HttpTypes.StoreCartShippingOptionWithServiceZone => ({
-  ...createStoreShippingOption(id),
-  service_zone: {
-    fulfillment_set: {
-      id: "fulfillment_set_1",
-      location: {
-        address: {
-          address_1: null,
-          address_2: null,
-          city: null,
-          company: null,
-          country_code: null,
-          created_at: "2026-01-01T00:00:00.000Z",
-          deleted_at: null,
-          id: "address_1",
-          metadata: null,
-          phone: null,
-          postal_code: null,
-          province: null,
-          updated_at: "2026-01-01T00:00:00.000Z",
-        },
-        id: "location_1",
-      },
-      type: "shipping",
-    },
-    fulfillment_set_id: "fulfillment_set_1",
-    id: "service_zone_1",
-  },
 })
 
 export const createStoreShippingOption = (
@@ -287,11 +256,43 @@ export const createStoreShippingOption = (
   ...overrides,
 })
 
+export const createStoreShippingOptionWithServiceZone = (
+  id: string,
+): HttpTypes.StoreCartShippingOptionWithServiceZone => ({
+  ...createStoreShippingOption(id),
+  service_zone: {
+    fulfillment_set: {
+      id: "fulfillment_set_1",
+      location: {
+        address: {
+          address_1: null,
+          address_2: null,
+          city: null,
+          company: null,
+          country_code: null,
+          created_at: TEST_TIMESTAMP,
+          deleted_at: null,
+          id: "address_1",
+          metadata: null,
+          phone: null,
+          postal_code: null,
+          province: null,
+          updated_at: TEST_TIMESTAMP,
+        },
+        id: "location_1",
+      },
+      type: "shipping",
+    },
+    fulfillment_set_id: "fulfillment_set_1",
+    id: "service_zone_1",
+  },
+})
+
 export const createStoreOrder = (
   id: string,
   overrides: Partial<HttpTypes.StoreOrder> = {},
 ): HttpTypes.StoreOrder => ({
-  created_at: "2026-01-01T00:00:00.000Z",
+  created_at: TEST_TIMESTAMP,
   currency_code: "czk",
   customer_id: null,
   email: null,
@@ -312,7 +313,7 @@ export const createStoreOrder = (
     refunded_total: 0,
     transaction_total: 0,
   },
-  updated_at: "2026-01-01T00:00:00.000Z",
+  updated_at: TEST_TIMESTAMP,
   ...orderTotals,
   ...overrides,
 })

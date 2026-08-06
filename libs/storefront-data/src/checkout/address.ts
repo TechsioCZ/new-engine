@@ -1,4 +1,4 @@
-import { omitUndefined } from "@techsio/std/object"
+import { omitKeys, omitUndefined } from "@techsio/std/object"
 import {
   hasTrimmedString,
   normalizePresentTrimmedString,
@@ -148,23 +148,23 @@ const normalizeCountryCode = (
 ): string | undefined => {
   const trimmedCountryCode = countryCode?.trim()
   let transformed: string | undefined
-  if (trimmedCountryCode) {
+  if (trimmedCountryCode !== undefined && trimmedCountryCode.length > 0) {
     transformed = options?.countryCodeTransform
       ? options.countryCodeTransform(trimmedCountryCode)
       : trimmedCountryCode
   }
   const normalized = transformed?.trim()
 
-  if (normalized) {
+  if (normalized !== undefined && normalized.length > 0) {
     return normalized.toLowerCase()
   }
 
   const defaultCountryCode = options?.defaultCountryCode?.trim()
-  if (defaultCountryCode) {
+  if (defaultCountryCode !== undefined && defaultCountryCode.length > 0) {
     return defaultCountryCode.toLowerCase()
   }
 
-  return
+  return undefined
 }
 
 const normalizePatchCountryCode = (
@@ -188,53 +188,63 @@ const normalizePatchCountryCode = (
   return normalized ? normalized.toLowerCase() : ""
 }
 
-const normalizeCheckoutAddressInput = (
-  address: CheckoutAddressInput,
-): NormalizedCheckoutAddress => {
-  const normalized = omitUndefined({
-    ...address,
-    city: normalizeTrimmedString(address.city),
-    company: normalizeTrimmedString(address.company),
-    country: normalizeTrimmedString(address.country),
-    firstName: normalizeTrimmedString(address.firstName),
-    lastName: normalizeTrimmedString(address.lastName),
-    phone: normalizeTrimmedString(address.phone),
-    postalCode: normalizeTrimmedString(address.postalCode),
-    province: normalizeTrimmedString(address.province),
-    street: normalizeTrimmedString(address.street),
-    street2: normalizeTrimmedString(address.street2),
-  })
+const checkoutAddressStringFields = [
+  "firstName",
+  "lastName",
+  "street",
+  "street2",
+  "city",
+  "postalCode",
+  "country",
+  "province",
+  "company",
+  "phone",
+] as const satisfies readonly CheckoutAddressStringField[]
 
-  return normalized
+const normalizeCheckoutAddressInput = <TAddress extends CheckoutAddressInput>(
+  address: TAddress,
+): TAddress => {
+  const normalizedAddress = { ...address }
+  const normalizedAddressBase: CheckoutAddressInput = normalizedAddress
+
+  for (const field of checkoutAddressStringFields) {
+    Reflect.deleteProperty(normalizedAddressBase, field)
+  }
+
+  Object.assign(
+    normalizedAddressBase,
+    omitUndefined({
+      city: normalizeTrimmedString(address.city),
+      company: normalizeTrimmedString(address.company),
+      country: normalizeTrimmedString(address.country),
+      firstName: normalizeTrimmedString(address.firstName),
+      lastName: normalizeTrimmedString(address.lastName),
+      phone: normalizeTrimmedString(address.phone),
+      postalCode: normalizeTrimmedString(address.postalCode),
+      province: normalizeTrimmedString(address.province),
+      street: normalizeTrimmedString(address.street),
+      street2: normalizeTrimmedString(address.street2),
+    }),
+  )
+
+  return normalizedAddress
 }
 
 const normalizeCheckoutAddressPatch = <
-  TAddress extends Partial<CheckoutAddressInput> & Record<string, unknown>,
+  TAddress extends Partial<CheckoutAddressInput>,
 >(
   address: TAddress,
 ): TAddress => {
-  const normalized: Record<string, unknown> = {
-    ...address,
-  }
+  const normalizedAddress = { ...address }
+  const normalizedRecord: Record<string, unknown> = normalizedAddress
 
-  for (const field of [
-    "firstName",
-    "lastName",
-    "street",
-    "street2",
-    "city",
-    "postalCode",
-    "country",
-    "province",
-    "company",
-    "phone",
-  ] as const) {
+  for (const field of checkoutAddressStringFields) {
     if (Object.hasOwn(address, field)) {
-      normalized[field] = normalizePresentTrimmedString(address[field])
+      normalizedRecord[field] = normalizePresentTrimmedString(address[field])
     }
   }
 
-  return normalized as TAddress
+  return normalizedAddress
 }
 
 const getMissingCheckoutAddressFields = (
@@ -243,8 +253,8 @@ const getMissingCheckoutAddressFields = (
 ): CheckoutAddressStringField[] =>
   requiredFields.filter((field) => !hasTrimmedString(address[field]))
 
-const getCheckoutAddressFieldIssues = <TAddress extends CheckoutAddressInput>(
-  address: TAddress,
+const getCheckoutAddressFieldIssues = (
+  address: CheckoutAddressInput,
   options?: {
     scope?: CheckoutAddressValidationScope
     requiredFields?: readonly CheckoutAddressStringField[]
@@ -260,10 +270,8 @@ const getCheckoutAddressFieldIssues = <TAddress extends CheckoutAddressInput>(
   )
 }
 
-const getCheckoutAddressPatchFieldIssues = <
-  TAddress extends Partial<CheckoutAddressInput> & Record<string, unknown>,
->(
-  address: TAddress,
+const getCheckoutAddressPatchFieldIssues = (
+  address: Partial<CheckoutAddressInput>,
   options?: {
     scope?: CheckoutAddressValidationScope
     requiredFields?: readonly CheckoutAddressStringField[]
@@ -274,13 +282,16 @@ const getCheckoutAddressPatchFieldIssues = <
     options?.requiredFields ?? defaultCheckoutAddressRequiredFields
   const normalizedAddress = normalizeCheckoutAddressPatch(address)
 
-  return requiredFields
-    .filter(
-      (field) =>
-        Object.hasOwn(address, field) &&
-        !hasTrimmedString(normalizedAddress[field]),
-    )
-    .map((field) => createRequiredIssue(scope, field))
+  const issues: CheckoutAddressValidationIssue[] = []
+  for (const field of requiredFields) {
+    if (
+      Object.hasOwn(address, field) &&
+      !hasTrimmedString(normalizedAddress[field])
+    ) {
+      issues.push(createRequiredIssue(scope, field))
+    }
+  }
+  return issues
 }
 
 export const getCheckoutAddressValidationIssues = <
@@ -313,7 +324,10 @@ export const getCheckoutAddressValidationIssues = <
   }
 
   const normalizedEmail = normalizeTrimmedString(data.email)
-  if (requireEmail && !normalizedEmail) {
+  if (
+    requireEmail &&
+    (normalizedEmail === undefined || normalizedEmail.length === 0)
+  ) {
     issues.push({
       code: "required",
       field: "email",
@@ -325,32 +339,25 @@ export const getCheckoutAddressValidationIssues = <
   return issues
 }
 
-export const mapCheckoutAddressToMedusaCartAddress = <
-  TAddress extends CheckoutAddressInput,
->(
-  address: TAddress,
+export const mapCheckoutAddressToMedusaCartAddress = (
+  address: CheckoutAddressInput,
   options?: BuildCheckoutCartAddressInputOptions,
-): MedusaCartAddressPayload => {
-  const normalized = normalizeCheckoutAddressInput(address)
-
-  return omitUndefined({
-    address_1: normalized.street,
-    address_2: normalized.street2,
-    city: normalized.city,
-    company: normalized.company,
-    country_code: normalizeCountryCode(normalized.country, options),
-    first_name: normalized.firstName,
-    last_name: normalized.lastName,
-    phone: normalized.phone,
-    postal_code: normalized.postalCode,
-    province: normalized.province,
+): MedusaCartAddressPayload =>
+  omitUndefined({
+    address_1: normalizeTrimmedString(address.street),
+    address_2: normalizeTrimmedString(address.street2),
+    city: normalizeTrimmedString(address.city),
+    company: normalizeTrimmedString(address.company),
+    country_code: normalizeCountryCode(address.country, options),
+    first_name: normalizeTrimmedString(address.firstName),
+    last_name: normalizeTrimmedString(address.lastName),
+    phone: normalizeTrimmedString(address.phone),
+    postal_code: normalizeTrimmedString(address.postalCode),
+    province: normalizeTrimmedString(address.province),
   })
-}
 
-const mapCheckoutAddressToMedusaCustomerAddress = <
-  TAddress extends CheckoutAddressInput,
->(
-  address: TAddress,
+const mapCheckoutAddressToMedusaCustomerAddress = (
+  address: CheckoutAddressInput,
   options?: BuildCheckoutCartAddressInputOptions,
 ): MedusaCustomerAddressCreateInput =>
   omitUndefined({
@@ -381,7 +388,7 @@ const checkoutAddressPatchStringFieldMap = [
 ][]
 
 const mapCheckoutAddressPatchToMedusaCustomerAddress = (
-  address: Partial<CheckoutAddressInput> & Record<string, unknown>,
+  address: Partial<CheckoutAddressInput>,
   options?: BuildCheckoutCartAddressInputOptions,
 ): MedusaCustomerAddressUpdateInput => {
   const normalized = normalizeCheckoutAddressPatch(address)
@@ -420,12 +427,10 @@ const mapCheckoutAddressPatchToMedusaCustomerAddress = (
   return payload
 }
 
-export const mapMedusaAddressToCheckoutAddress = <
-  TAddress extends CheckoutAddressInput = CheckoutAddressInput,
->(
+export const mapMedusaAddressToCheckoutAddress = (
   address?: MedusaAddressLike | null,
-): NormalizedCheckoutAddress<TAddress> =>
-  ({
+): NormalizedCheckoutAddress =>
+  omitUndefined({
     city: normalizeTrimmedString(address?.city),
     company: normalizeTrimmedString(address?.company),
     country: normalizeTrimmedString(address?.country_code),
@@ -445,24 +450,24 @@ export const mapMedusaAddressToCheckoutAddress = <
     province: normalizeTrimmedString(address?.province),
     street: normalizeTrimmedString(address?.address_1),
     street2: normalizeTrimmedString(address?.address_2),
-  }) as NormalizedCheckoutAddress<TAddress>
+  })
 
 export const createCheckoutCartAddressAdapter = <
   TAddress extends CheckoutAddressInput = CheckoutAddressInput,
 >(
   options?: CheckoutCartAddressAdapterOptions,
 ): StorefrontCartAddressAdapter<TAddress, MedusaCartAddressPayload> => ({
-  normalize: (input) => normalizeCheckoutAddressInput(input) as TAddress,
+  normalize: (input) => normalizeCheckoutAddressInput(input),
   toPayload: (input) => mapCheckoutAddressToMedusaCartAddress(input, options),
   validate: (input, context) =>
     getCheckoutAddressFieldIssues(
       input,
       omitUndefined({
-        scope: context.scope,
         requiredFields:
           context.scope === "shipping"
             ? options?.shippingRequiredFields
             : options?.billingRequiredFields,
+        scope: context.scope,
       }),
     ),
 })
@@ -479,31 +484,29 @@ export const createCheckoutCustomerAddressAdapter = <
   TUpdateInput,
   MedusaCustomerAddressUpdateInput
 > => ({
-  normalizeCreate: (input) => normalizeCheckoutAddressInput(input) as TAddress,
+  normalizeCreate: (input) => normalizeCheckoutAddressInput(input),
   normalizeUpdate: (input) => normalizeCheckoutAddressPatch(input),
   toCreateParams: (input) =>
     mapCheckoutAddressToMedusaCustomerAddress(input, options),
-  toUpdateParams: (input) => {
-    const { addressId: _addressId, ...rest } = input
-    return mapCheckoutAddressPatchToMedusaCustomerAddress(
-      omitUndefined(rest),
+  toUpdateParams: (input) =>
+    mapCheckoutAddressPatchToMedusaCustomerAddress(
+      omitUndefined(omitKeys(input, ["addressId"])),
       options,
-    )
-  },
+    ),
   validateCreate: (input) =>
     getCheckoutAddressFieldIssues(
       input,
       omitUndefined({
-        scope: "customer" as const,
         requiredFields: options?.requiredFields,
+        scope: "customer" as const,
       }),
     ),
   validateUpdate: (input) =>
     getCheckoutAddressPatchFieldIssues(
       input,
       omitUndefined({
-        scope: "customer" as const,
         requiredFields: options?.requiredFields,
+        scope: "customer" as const,
       }),
     ),
 })

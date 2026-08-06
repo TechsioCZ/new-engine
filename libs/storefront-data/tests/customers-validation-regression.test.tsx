@@ -10,11 +10,14 @@ import type { CustomerAddressAdapter } from "../src/customers/types"
 import { StorefrontAddressValidationError } from "../src/shared/address"
 import type { StorefrontAddressValidationIssue } from "../src/shared/address"
 
-const createWrapper =
-  (client: QueryClient) =>
-  ({ children }: { children: ReactNode }) => (
-    <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
-  )
+const createWrapper = (client: QueryClient) =>
+  function StorefrontDataTestWrapper({ children }: { children: ReactNode }) {
+    return (
+      <StorefrontDataProvider client={client}>
+        {children}
+      </StorefrontDataProvider>
+    )
+  }
 
 type DefaultCustomerAddressAdapter = CustomerAddressAdapter<{
   city?: string
@@ -47,17 +50,19 @@ describe("customer validation regression", () => {
   }
 
   const createService = () => ({
-    createAddress: vi.fn(async (params: CreateParams) => ({
-      id: "addr_1",
-      ...params,
-    })),
-    deleteAddress: vi.fn(async () => {}),
-    getAddresses: vi.fn(async () => ({ addresses: [] as Address[] })),
-    updateAddress: vi.fn(async (id: string, params: UpdateParams) => ({
-      id,
-      ...params,
-    })),
-    updateCustomer: vi.fn(async () => ({ id: "cus_1" })),
+    createAddress: vi
+      .fn<(params: CreateParams) => Promise<Address>>()
+      .mockResolvedValue({ id: "addr_1" }),
+    deleteAddress: vi.fn<() => Promise<void>>().mockResolvedValue(),
+    getAddresses: vi
+      .fn<() => Promise<{ addresses: Address[] }>>()
+      .mockResolvedValue({ addresses: [] }),
+    updateAddress: vi
+      .fn<(id: string, params: UpdateParams) => Promise<Address>>()
+      .mockResolvedValue({ city: "Prague", id: "addr_1" }),
+    updateCustomer: vi
+      .fn<() => Promise<Customer>>()
+      .mockResolvedValue({ id: "cus_1" }),
   })
 
   it("keeps addressId in the default customer adapter update input type", () => {
@@ -76,8 +81,11 @@ describe("customer validation regression", () => {
     }
 
     const service = createService()
-    const toUpdateParams = vi.fn((input: UpdateInput) =>
-      input.city ? { city: input.city } : {},
+    const toUpdateParams = vi.fn<(input: UpdateInput) => UpdateParams>(
+      (input) =>
+        input.city === undefined || input.city.length === 0
+          ? {}
+          : { city: input.city },
     )
     const { useUpdateCustomerAddress } = createCustomerHooks<
       Customer,
@@ -148,23 +156,23 @@ describe("customer validation regression", () => {
       addressAdapter: {
         validateCreate: (input) => {
           const issues: StorefrontAddressValidationIssue[] = []
-          if (!input.address_1) {
+          if (input.address_1 === undefined || input.address_1.length === 0) {
             issues.push({
-              scope: "customer",
+              code: "required",
               field: "address_1",
-              code: "required",
               message: "address_1 is required",
-            })
-          }
-          if (!input.city) {
-            issues.push({
               scope: "customer",
-              field: "city",
-              code: "required",
-              message: "city is required",
             })
           }
-          return issues.length ? issues : null
+          if (input.city === undefined || input.city.length === 0) {
+            issues.push({
+              code: "required",
+              field: "city",
+              message: "city is required",
+              scope: "customer",
+            })
+          }
+          return issues.length > 0 ? issues : null
         },
       },
       buildListParams: () => ({}),
@@ -260,13 +268,9 @@ describe("customer validation regression", () => {
     }
 
     const service = createService()
-    const updateAddress = vi.fn(
-      async (id: string, params: SharedUpdateParams) => ({
-        id,
-        ...(params.address_1 ? { address_1: params.address_1 } : {}),
-        ...(params.city ? { city: params.city } : {}),
-      }),
-    )
+    const updateAddress = vi
+      .fn<(id: string, params: SharedUpdateParams) => Promise<Address>>()
+      .mockResolvedValue({ id: "addr_1" })
     const { useUpdateCustomerAddress } = createCustomerHooks<
       Customer,
       Address,

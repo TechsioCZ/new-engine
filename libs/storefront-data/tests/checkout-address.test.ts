@@ -211,28 +211,21 @@ describe("checkout address defaults", () => {
     ).toStrictEqual({
       billingAddress: {
         address_1: "Billing 2",
-        address_2: undefined as const,
         city: "Brno",
-        company: undefined as const,
         country_code: "sk",
         first_name: "Bill",
         last_name: "Buyer",
-        phone: undefined as const,
         postal_code: "60200",
-        province: undefined as const,
       },
       email: "jan@example.com",
       shippingAddress: {
         address_1: "Main 1",
-        address_2: undefined as const,
         city: "Prague",
         company: "ACME",
         country_code: "cz",
         first_name: "Jan",
         last_name: "Novak",
-        phone: undefined as const,
         postal_code: "11000",
-        province: undefined as const,
       },
       useSameAddress: false,
     })
@@ -253,28 +246,20 @@ describe("checkout address defaults", () => {
     ).toStrictEqual({
       billingAddress: {
         address_1: "Main 1",
-        address_2: undefined as const,
         city: "Prague",
-        company: undefined as const,
         country_code: "cz",
         first_name: "Jan",
         last_name: "Novak",
-        phone: undefined as const,
         postal_code: "11000",
-        province: undefined as const,
       },
       email: "jan@example.com",
       shippingAddress: {
         address_1: "Main 1",
-        address_2: undefined as const,
         city: "Prague",
-        company: undefined as const,
         country_code: "cz",
         first_name: "Jan",
         last_name: "Novak",
-        phone: undefined as const,
         postal_code: "11000",
-        province: undefined as const,
       },
       useSameAddress: true,
     })
@@ -295,19 +280,23 @@ describe("checkout address defaults", () => {
       }),
     ).toStrictEqual({
       city: "Prague",
-      company: undefined as const,
       country: "cz",
       firstName: "Jan",
-      isDefaultBilling: undefined as const,
       isDefaultShipping: true,
       lastName: "Novak",
       metadata: { source: "test" },
-      phone: undefined as const,
       postalCode: "11000",
-      province: undefined as const,
       street: "Main 1",
       street2: "Floor 2",
     })
+  })
+
+  it("does not invent subtype-only fields when mapping Medusa addresses", () => {
+    const mappedAddress = mapMedusaAddressToCheckoutAddress({
+      address_1: "Main 1",
+    })
+
+    expect(mappedAddress).not.toHaveProperty("deliveryNote")
   })
 
   it("builds sane default cart and customer adapters", () => {
@@ -376,15 +365,11 @@ describe("checkout address defaults", () => {
       ),
     ).toStrictEqual({
       address_1: "Main 1",
-      address_2: undefined as const,
       city: "Prague",
-      company: undefined as const,
       country_code: "cz",
       first_name: "Jan",
       last_name: "Novak",
-      phone: undefined as const,
       postal_code: "11000",
-      province: undefined as const,
     })
 
     expect(
@@ -409,16 +394,13 @@ describe("checkout address defaults", () => {
       address_1: "Main 1",
       address_2: "Floor 2",
       city: "Prague",
-      company: undefined as const,
       country_code: "cz",
       first_name: "Jan",
       is_default_billing: false,
       is_default_shipping: true,
       last_name: "Novak",
       metadata: { source: "test" },
-      phone: undefined as const,
       postal_code: "11000",
-      province: undefined as const,
     })
   })
 

@@ -14,8 +14,8 @@ sources:
   - "TechsioCZ/new-engine:libs/storefront-data/src/shared/checkout-flow-utils.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/medusa/cart-flow.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/medusa/checkout-flow.ts"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/cart.cache-sync.test.ts"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/medusa.flow.test.tsx"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/cart-cache-sync.test.ts"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/medusa-flow.test.tsx"
 ---
 
 ## Setup
@@ -193,7 +193,7 @@ const providerId = resolveSelectedPaymentProviderId(cart)
 
 Checkout now derives the active provider from selected payment-session semantics, not whichever session happens to be first.
 
-Source: `libs/storefront-data/src/shared/checkout-flow-utils.ts`, `libs/storefront-data/tests/medusa.flow.test.tsx`
+Source: `libs/storefront-data/src/shared/checkout-flow-utils.ts`, `libs/storefront-data/tests/medusa-flow.test.tsx`
 
 ### HIGH Latest local cart argument is always authoritative
 
@@ -234,6 +234,6 @@ syncCartCaches(queryClient, storefront.queryKeys.cart, cart)
 
 Active-cart matching is now shared platform behavior. Hand-written heuristics drift from the tested cache contract.
 
-Source: `libs/storefront-data/src/shared/cart-cache-sync.ts`, `libs/storefront-data/tests/cart.cache-sync.test.ts`
+Source: `libs/storefront-data/src/shared/cart-cache-sync.ts`, `libs/storefront-data/tests/cart-cache-sync.test.ts`
 
 See also: `configure-pagination-prefetch-and-cache-policy` for shared query-key behavior and cache semantics.

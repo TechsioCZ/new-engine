@@ -23,7 +23,7 @@ ensureServerEnvironment()
  * is returned throughout a single server request. This allows
  * multiple server components to share prefetched data.
  *
- * @remarks
+ *
  * React's `cache()` memoization applies only when called during a React Server
  * Component render. Calling `getServerQueryClient()` outside an RSC context
  * (for example in route handlers or standalone server utilities) bypasses this

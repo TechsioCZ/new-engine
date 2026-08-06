@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { omitKeys } from "@techsio/std/object"
 
 import { getErrorStatus } from "../shared/medusa-errors"
 import type { CartService } from "./types"
@@ -29,8 +30,8 @@ const defaultIsNotFoundError = (error: unknown): boolean =>
 const buildCartSelectParams = (
   fields?: string,
 ): HttpTypes.SelectParams | undefined => {
-  if (!fields) {
-    return
+  if (fields === undefined || fields.length === 0) {
+    return undefined
   }
 
   return { fields }
@@ -38,16 +39,7 @@ const buildCartSelectParams = (
 
 const sanitizeCartWriteParams = <TParams extends MedusaCartWriteParams>(
   params: TParams,
-): TParams => {
-  if (!("country_code" in params)) {
-    return params
-  }
-
-  const { country_code: _countryCode, ...rest } = params as TParams & {
-    country_code?: unknown
-  }
-  return rest as TParams
-}
+) => ("country_code" in params ? omitKeys(params, ["country_code"]) : params)
 
 /**
  * Creates a CartService for Medusa SDK
@@ -77,10 +69,10 @@ export type MedusaCartService = Required<
   >
 >
 
-export function createMedusaCartService(
+export const createMedusaCartService = (
   sdk: Medusa,
   config?: MedusaCartServiceConfig,
-): MedusaCartService {
+): MedusaCartService => {
   const cartQuery = buildCartSelectParams(config?.cartFields)
   const isNotFoundError = (error: unknown): boolean =>
     defaultIsNotFoundError(error) || Boolean(config?.isNotFoundError?.(error))
@@ -93,7 +85,7 @@ export function createMedusaCartService(
       const { cart } = cartQuery
         ? await sdk.store.cart.createLineItem(cartId, params, cartQuery)
         : await sdk.store.cart.createLineItem(cartId, params)
-      if (!cart) {
+      if (typeof cart !== "object" || cart === null) {
         throw new Error("Failed to add item to cart")
       }
       return cart
@@ -111,7 +103,7 @@ export function createMedusaCartService(
       const { cart } = cartQuery
         ? await sdk.store.cart.create(sanitizedParams, cartQuery)
         : await sdk.store.cart.create(sanitizedParams)
-      if (!cart) {
+      if (typeof cart !== "object" || cart === null) {
         throw new Error("Failed to create cart")
       }
       return cart
@@ -124,7 +116,7 @@ export function createMedusaCartService(
       const { parent } = cartQuery
         ? await sdk.store.cart.deleteLineItem(cartId, lineItemId, cartQuery)
         : await sdk.store.cart.deleteLineItem(cartId, lineItemId)
-      if (!parent) {
+      if (typeof parent !== "object" || parent === null) {
         throw new Error("Failed to remove line item")
       }
       return parent
@@ -155,7 +147,7 @@ export function createMedusaCartService(
       const { cart } = cartQuery
         ? await sdk.store.cart.transferCart(cartId, cartQuery)
         : await sdk.store.cart.transferCart(cartId)
-      if (!cart) {
+      if (typeof cart !== "object" || cart === null) {
         throw new Error("Failed to transfer cart")
       }
       return cart
@@ -169,7 +161,7 @@ export function createMedusaCartService(
       const { cart } = cartQuery
         ? await sdk.store.cart.update(cartId, sanitizedParams, cartQuery)
         : await sdk.store.cart.update(cartId, sanitizedParams)
-      if (!cart) {
+      if (typeof cart !== "object" || cart === null) {
         throw new Error("Failed to update cart")
       }
       return cart
@@ -188,7 +180,7 @@ export function createMedusaCartService(
             cartQuery,
           )
         : await sdk.store.cart.updateLineItem(cartId, lineItemId, params)
-      if (!cart) {
+      if (typeof cart !== "object" || cart === null) {
         throw new Error("Failed to update line item")
       }
       return cart

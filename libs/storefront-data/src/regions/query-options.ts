@@ -52,7 +52,7 @@ export interface RegionQueryOptionsFactory<
   ) => QueryFactoryOptions<TRegion | null>
 }
 
-export function createRegionQueryOptionsFactory<
+export const createRegionQueryOptionsFactory = <
   TRegion,
   TListInput extends RegionListInputBase,
   TListParams,
@@ -71,7 +71,7 @@ export function createRegionQueryOptionsFactory<
   TListParams,
   TDetailInput,
   TDetailParams
->): RegionQueryOptionsFactory<TRegion, TListInput, TDetailInput> {
+>): RegionQueryOptionsFactory<TRegion, TListInput, TDetailInput> => {
   const resolvedQueryKeys =
     queryKeys ??
     createRegionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)

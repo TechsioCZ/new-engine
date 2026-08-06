@@ -47,14 +47,14 @@ export type MedusaOrderDetailHookInput = MedusaOrderDetailInput & {
  * })
  * ```
  */
-export function createMedusaOrderService(
+export const createMedusaOrderService = (
   sdk: Medusa,
   config?: MedusaOrderServiceConfig,
 ): OrderService<
   HttpTypes.StoreOrder,
   MedusaOrderListInput,
   MedusaOrderDetailInput
-> {
+> => {
   const {
     defaultFields,
     defaultListFields,
@@ -71,7 +71,7 @@ export function createMedusaOrderService(
       params: MedusaOrderDetailInput,
       signal?: AbortSignal,
     ): Promise<HttpTypes.StoreOrder | null> {
-      if (!params.id) {
+      if (params.id === undefined || params.id.length === 0) {
         return null
       }
 
@@ -104,16 +104,16 @@ export function createMedusaOrderService(
         {
           query: {
             fields: listFields,
-            order: defaultOrder,
             limit: params.limit,
             offset: params.offset,
+            order: defaultOrder,
           },
           signal: signal ?? null,
         },
       )
       return {
-        orders: response.orders ?? [],
         count: response.count,
+        orders: response.orders ?? [],
       }
     },
   }

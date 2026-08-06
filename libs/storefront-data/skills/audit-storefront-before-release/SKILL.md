@@ -13,8 +13,8 @@ sources:
   - "TechsioCZ/new-engine:libs/storefront-data/README.md"
   - "TechsioCZ/new-engine:libs/storefront-data/tests/ssr-hydration-smoke.test.tsx"
   - "TechsioCZ/new-engine:libs/storefront-data/tests/shared-browser-storage.test.ts"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/cart.cache-sync.test.ts"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/medusa.flow.test.tsx"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/cart-cache-sync.test.ts"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/medusa-flow.test.tsx"
 ---
 
 This skill builds on the SSR, cart/checkout, and cache-policy skills. Use it when the app is already wired and you want a release-time audit.
@@ -152,7 +152,7 @@ Test selected-session reuse, missing-session cases, and staged checkout errors.
 
 The hard checkout failures live in selected-session and stage-specific behavior, not only in the happy path.
 
-Source: `libs/storefront-data/tests/medusa.flow.test.tsx`
+Source: `libs/storefront-data/tests/medusa-flow.test.tsx`
 
 ### HIGH Ignoring storage degradation and cross-tab behavior
 

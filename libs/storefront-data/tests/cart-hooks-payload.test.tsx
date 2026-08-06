@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { createCartHooks } from "../src/cart/hooks"
 import { StorefrontDataProvider } from "../src/client/provider"
@@ -12,22 +12,23 @@ interface Cart {
   items?: { quantity?: number }[]
 }
 
-const createWrapper =
-  (client: QueryClient) =>
-  ({ children }: { children: ReactNode }) => (
-    <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
-  )
+const createWrapper = (client: QueryClient) =>
+  function StorefrontDataTestWrapper({ children }: { children: ReactNode }) {
+    return (
+      <StorefrontDataProvider client={client}>
+        {children}
+      </StorefrontDataProvider>
+    )
+  }
 
 describe("createCartHooks payload normalization", () => {
   it("maps create cart salesChannelId to sales_channel_id", async () => {
-    let createPayload: Record<string, unknown> | null = null
-
+    const createCart = vi
+      .fn<(params: Record<string, unknown>) => Promise<Cart>>()
+      .mockResolvedValue({ id: "cart_1", region_id: "reg_1" })
     const service = {
-      createCart: async (params: Record<string, unknown>) => {
-        createPayload = params
-        return { id: "cart_1", region_id: "reg_1" } as Cart
-      },
-      retrieveCart: async () => null as Cart | null,
+      createCart,
+      retrieveCart: vi.fn<() => Promise<Cart | null>>().mockResolvedValue(null),
     }
 
     const { useCreateCart } = createCartHooks({
@@ -49,27 +50,24 @@ describe("createCartHooks payload normalization", () => {
       })
     })
 
-    expect(createPayload).toMatchObject({
+    expect(createCart).toHaveBeenCalledWith({
       country_code: "cz",
       email: "user@example.com",
       region_id: "reg_1",
       sales_channel_id: "sc_1",
     })
-    expect(createPayload).not.toHaveProperty("salesChannelId")
   })
 
   it("strips cartId from update cart payload", async () => {
-    let receivedCartId: string | null = null
-    let updatePayload: Record<string, unknown> | null = null
-
+    const updateCart = vi
+      .fn<(cartId: string, params: Record<string, unknown>) => Promise<Cart>>()
+      .mockResolvedValue({ id: "cart_1", region_id: "reg_1" })
     const service = {
-      createCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
-      retrieveCart: async () => null as Cart | null,
-      updateCart: async (cartId: string, params: Record<string, unknown>) => {
-        receivedCartId = cartId
-        updatePayload = params
-        return { id: cartId, region_id: "reg_1" } as Cart
-      },
+      createCart: vi
+        .fn<() => Promise<Cart>>()
+        .mockResolvedValue({ id: "cart_1", region_id: "reg_1" }),
+      retrieveCart: vi.fn<() => Promise<Cart | null>>().mockResolvedValue(null),
+      updateCart,
     }
 
     const { useUpdateCart } = createCartHooks({
@@ -91,28 +89,25 @@ describe("createCartHooks payload normalization", () => {
       })
     })
 
-    expect(receivedCartId).toBe("cart_1")
-    expect(updatePayload).toMatchObject({
+    expect(updateCart).toHaveBeenCalledWith("cart_1", {
       country_code: "cz",
       region_id: "reg_1",
       sales_channel_id: "sc_2",
     })
-    expect(updatePayload).not.toHaveProperty("cartId")
-    expect(updatePayload).not.toHaveProperty("salesChannelId")
   })
 
   it("strips transient add line item keys from payload", async () => {
-    let receivedCartId: string | null = null
-    let addPayload: Record<string, unknown> | null = null
-
+    const addLineItem = vi
+      .fn<(cartId: string, params: Record<string, unknown>) => Promise<Cart>>()
+      .mockResolvedValue({ id: "cart_1", region_id: "reg_1" })
     const service = {
-      addLineItem: async (cartId: string, params: Record<string, unknown>) => {
-        receivedCartId = cartId
-        addPayload = params
-        return { id: cartId, region_id: "reg_1" } as Cart
-      },
-      createCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
-      retrieveCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
+      addLineItem,
+      createCart: vi
+        .fn<() => Promise<Cart>>()
+        .mockResolvedValue({ id: "cart_1", region_id: "reg_1" }),
+      retrieveCart: vi
+        .fn<() => Promise<Cart | null>>()
+        .mockResolvedValue({ id: "cart_1", region_id: "reg_1" }),
     }
 
     const { useAddLineItem } = createCartHooks({
@@ -137,36 +132,30 @@ describe("createCartHooks payload normalization", () => {
       })
     })
 
-    expect(receivedCartId).toBe("cart_1")
-    expect(addPayload).toMatchObject({
+    expect(addLineItem).toHaveBeenCalledWith("cart_1", {
       quantity: 2,
       variantId: "variant_1",
     })
-    expect(addPayload).not.toHaveProperty("cartId")
-    expect(addPayload).not.toHaveProperty("autoCreate")
-    expect(addPayload).not.toHaveProperty("region_id")
-    expect(addPayload).not.toHaveProperty("country_code")
-    expect(addPayload).not.toHaveProperty("salesChannelId")
   })
 
   it("strips cart and line item identifiers from update line item payload", async () => {
-    let receivedCartId: string | null = null
-    let receivedLineItemId: string | null = null
-    let updateItemPayload: Record<string, unknown> | null = null
-
+    const updateLineItem = vi
+      .fn<
+        (
+          cartId: string,
+          lineItemId: string,
+          params: Record<string, unknown>,
+        ) => Promise<Cart>
+      >()
+      .mockResolvedValue({ id: "cart_1", region_id: "reg_1" })
     const service = {
-      createCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
-      retrieveCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
-      updateLineItem: async (
-        cartId: string,
-        lineItemId: string,
-        params: Record<string, unknown>,
-      ) => {
-        receivedCartId = cartId
-        receivedLineItemId = lineItemId
-        updateItemPayload = params
-        return { id: cartId, region_id: "reg_1" } as Cart
-      },
+      createCart: vi
+        .fn<() => Promise<Cart>>()
+        .mockResolvedValue({ id: "cart_1", region_id: "reg_1" }),
+      retrieveCart: vi
+        .fn<() => Promise<Cart | null>>()
+        .mockResolvedValue({ id: "cart_1", region_id: "reg_1" }),
+      updateLineItem,
     }
 
     const { useUpdateLineItem } = createCartHooks({
@@ -187,10 +176,8 @@ describe("createCartHooks payload normalization", () => {
       })
     })
 
-    expect(receivedCartId).toBe("cart_1")
-    expect(receivedLineItemId).toBe("item_1")
-    expect(updateItemPayload).toStrictEqual({ quantity: 3 })
-    expect(updateItemPayload).not.toHaveProperty("cartId")
-    expect(updateItemPayload).not.toHaveProperty("lineItemId")
+    expect(updateLineItem).toHaveBeenCalledWith("cart_1", "item_1", {
+      quantity: 3,
+    })
   })
 })

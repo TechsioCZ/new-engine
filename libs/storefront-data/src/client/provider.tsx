@@ -16,11 +16,11 @@ export type StorefrontDataProviderProps = PropsWithChildren<{
   clientConfig?: QueryClientConfig
 }>
 
-export function StorefrontDataProvider({
+export const StorefrontDataProvider = ({
   children,
   client,
   clientConfig,
-}: StorefrontDataProviderProps) {
+}: StorefrontDataProviderProps) => {
   const queryClient = client ?? getQueryClient(clientConfig)
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

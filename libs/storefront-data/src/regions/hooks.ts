@@ -23,9 +23,9 @@ import type {
 
 export interface CreateRegionHooksConfig<
   TRegion,
-  TListInput extends RegionListInputBase,
+  TListInput extends RegionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends RegionDetailInputBase,
+  TDetailInput extends RegionDetailInputBase & TDetailParams,
   TDetailParams,
 > {
   service: RegionService<TRegion, TListParams, TDetailParams>
@@ -37,11 +37,11 @@ export interface CreateRegionHooksConfig<
   defaultPageSize?: number
 }
 
-export function createRegionHooks<
+export const createRegionHooks = <
   TRegion,
-  TListInput extends RegionListInputBase,
+  TListInput extends RegionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends RegionDetailInputBase,
+  TDetailInput extends RegionDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -57,17 +57,15 @@ export function createRegionHooks<
   TListParams,
   TDetailInput,
   TDetailParams
->) {
+>) => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
     createRegionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
   const buildList =
-    buildListParams ??
-    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
+    buildListParams ?? ((input: TListInput): TListParams => input)
   const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => ({ ...input }) as TDetailInput & TDetailParams)
+    buildDetailParams ?? ((input: TDetailInput): TDetailParams => input)
   const { getListQueryOptions, getDetailQueryOptions } =
     createRegionQueryOptionsFactory({
       buildDetailParams: buildDetail,
@@ -91,10 +89,10 @@ export function createRegionHooks<
     resolvedQueryKeys,
   })
 
-  function useRegions(
+  const useRegions = (
     input: TListInput,
     options?: { queryOptions?: ReadQueryOptions<RegionListResponse<TRegion>> },
-  ): UseRegionsResult<TRegion> {
+  ): UseRegionsResult<TRegion> => {
     const { items, ...result } = simpleHooks.useList(input, options)
     return {
       ...result,
@@ -102,12 +100,12 @@ export function createRegionHooks<
     }
   }
 
-  function useSuspenseRegions(
+  const useSuspenseRegions = (
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<RegionListResponse<TRegion>>
     },
-  ): UseSuspenseRegionsResult<TRegion> {
+  ): UseSuspenseRegionsResult<TRegion> => {
     const { items, ...result } = simpleHooks.useSuspenseList(input, options)
     return {
       ...result,
@@ -115,10 +113,10 @@ export function createRegionHooks<
     }
   }
 
-  function useRegion(
+  const useRegion = (
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TRegion | null> },
-  ): UseRegionResult<TRegion> {
+  ): UseRegionResult<TRegion> => {
     const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
       ...result,
@@ -126,10 +124,10 @@ export function createRegionHooks<
     }
   }
 
-  function useSuspenseRegion(
+  const useSuspenseRegion = (
     input: TDetailInput,
     options?: { queryOptions?: SuspenseQueryOptions<TRegion | null> },
-  ): UseSuspenseRegionResult<TRegion> {
+  ): UseSuspenseRegionResult<TRegion> => {
     const { item, ...result } = simpleHooks.useSuspenseDetail(input, options)
     return {
       ...result,
@@ -137,12 +135,12 @@ export function createRegionHooks<
     }
   }
 
-  function usePrefetchRegions(options?: {
+  const usePrefetchRegions = (options?: {
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const { prefetchList, ...result } = simpleHooks.usePrefetchList(options)
 
     return {
@@ -151,12 +149,12 @@ export function createRegionHooks<
     }
   }
 
-  function usePrefetchRegion(options?: {
+  const usePrefetchRegion = (options?: {
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const { prefetchDetail, ...result } = simpleHooks.usePrefetchDetail(options)
 
     return {
@@ -179,9 +177,9 @@ export function createRegionHooks<
 
 export type RegionHooks<
   TRegion,
-  TListInput extends RegionListInputBase,
+  TListInput extends RegionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends RegionDetailInputBase,
+  TDetailInput extends RegionDetailInputBase & TDetailParams,
   TDetailParams,
 > = ReturnType<
   typeof createRegionHooks<

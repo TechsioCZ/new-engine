@@ -2,10 +2,10 @@ import type { QueryNamespace } from "../shared/query-keys"
 import { createQueryKey } from "../shared/query-keys"
 import type { AuthQueryKeys } from "./types"
 
-export function createAuthQueryKeys(namespace: QueryNamespace): AuthQueryKeys {
-  return {
-    all: () => createQueryKey(namespace, "auth"),
-    customer: () => createQueryKey(namespace, "auth", "customer"),
-    session: () => createQueryKey(namespace, "auth", "session"),
-  }
-}
+export const createAuthQueryKeys = (
+  namespace: QueryNamespace,
+): AuthQueryKeys => ({
+  all: () => createQueryKey(namespace, "auth"),
+  customer: () => createQueryKey(namespace, "auth", "customer"),
+  session: () => createQueryKey(namespace, "auth", "session"),
+})

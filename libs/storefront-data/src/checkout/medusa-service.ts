@@ -22,8 +22,8 @@ export interface MedusaCheckoutServiceConfig {
 const buildCartSelectParams = (
   fields?: string,
 ): HttpTypes.SelectParams | undefined => {
-  if (!fields) {
-    return
+  if (fields === undefined || fields.length === 0) {
+    return undefined
   }
 
   return { fields }
@@ -54,10 +54,10 @@ export type MedusaCheckoutService = Required<
   >
 >
 
-export function createMedusaCheckoutService(
+export const createMedusaCheckoutService = (
   sdk: Medusa,
   config?: MedusaCheckoutServiceConfig,
-): MedusaCheckoutService {
+): MedusaCheckoutService => {
   const cartQuery = buildCartSelectParams(config?.cartFields)
 
   return {
@@ -69,14 +69,14 @@ export function createMedusaCheckoutService(
       const response = cartQuery
         ? await sdk.store.cart.addShippingMethod(
             cartId,
-            omitUndefined({ option_id: optionId, data }),
+            omitUndefined({ data, option_id: optionId }),
             cartQuery,
           )
         : await sdk.store.cart.addShippingMethod(
             cartId,
-            omitUndefined({ option_id: optionId, data }),
+            omitUndefined({ data, option_id: optionId }),
           )
-      if (!response.cart) {
+      if (typeof response.cart !== "object" || response.cart === null) {
         throw new Error("Failed to add shipping method")
       }
       return response.cart
@@ -91,11 +91,11 @@ export function createMedusaCheckoutService(
         await sdk.client.fetch<HttpTypes.StoreShippingOptionResponse>(
           `/store/shipping-options/${optionId}/calculate`,
           {
-            method: "POST",
             body: {
               cart_id: input.cart_id,
               data: input.data,
             },
+            method: "POST",
             signal: signal ?? null,
           },
         )
@@ -105,7 +105,7 @@ export function createMedusaCheckoutService(
     async completeCart(
       cartId: string,
     ): Promise<HttpTypes.StoreCompleteCartResponse> {
-      return sdk.store.cart.complete(cartId)
+      return await sdk.store.cart.complete(cartId)
     },
 
     async initiatePaymentSession(
@@ -113,12 +113,14 @@ export function createMedusaCheckoutService(
       providerId: string,
       cart?: HttpTypes.StoreCart | null,
     ): Promise<HttpTypes.StorePaymentCollection> {
-      const resolvedCart =
-        cart ??
-        (cartQuery
-          ? (await sdk.store.cart.retrieve(cartId, cartQuery)).cart
-          : (await sdk.store.cart.retrieve(cartId)).cart)
-      if (!resolvedCart) {
+      let resolvedCart = cart
+      if (resolvedCart === undefined || resolvedCart === null) {
+        const retrievedCartResponse = cartQuery
+          ? await sdk.store.cart.retrieve(cartId, cartQuery)
+          : await sdk.store.cart.retrieve(cartId)
+        resolvedCart = retrievedCartResponse.cart
+      }
+      if (resolvedCart === undefined || resolvedCart === null) {
         throw new Error("Failed to load cart for payment")
       }
 
@@ -132,10 +134,15 @@ export function createMedusaCheckoutService(
         resolvedCart,
         {
           provider_id: providerId,
-          ...(paymentSessionData ? { data: paymentSessionData } : {}),
+          ...(paymentSessionData === undefined
+            ? {}
+            : { data: paymentSessionData }),
         },
       )
-      if (!response.payment_collection) {
+      if (
+        typeof response.payment_collection !== "object" ||
+        response.payment_collection === null
+      ) {
         throw new Error("Failed to initiate payment session")
       }
       return response.payment_collection
