@@ -1,6 +1,6 @@
 import { model } from "@medusajs/framework/utils"
 
-import { Employee } from "./employee"
+let employeeReference: typeof Employee
 
 export const Company = model.define("company", {
   address: model.text().nullable(),
@@ -8,7 +8,7 @@ export const Company = model.define("company", {
   country: model.text().nullable(),
   currency_code: model.text().nullable(),
   email: model.text(),
-  employees: model.hasMany(() => Employee),
+  employees: model.hasMany(() => employeeReference),
   id: model
     .id({
       prefix: "comp",
@@ -23,3 +23,22 @@ export const Company = model.define("company", {
   state: model.text().nullable(),
   zip: model.text().nullable(),
 })
+
+export const Employee = model.define("employee", {
+  company: model.belongsTo(() => Company, {
+    mappedBy: "employees",
+  }),
+  id: model
+    .id({
+      prefix: "emp",
+    })
+    .primaryKey(),
+  is_admin: model.boolean().default(false),
+  spending_limit: model.bigNumber().default(0),
+})
+
+const initializeEmployeeReference = () => {
+  employeeReference = Employee
+}
+
+initializeEmployeeReference()
