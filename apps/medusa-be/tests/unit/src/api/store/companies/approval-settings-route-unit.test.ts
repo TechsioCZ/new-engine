@@ -21,10 +21,20 @@ const workflowMocks = vi.hoisted(() => {
   }
 })
 
-vi.mock(import("../../../../../../src/workflows/approval/workflows"), () => ({
-  ensureApprovalSettingsWorkflow: workflowMocks.ensureApprovalSettingsWorkflow,
-  updateApprovalSettingsWorkflow: workflowMocks.updateApprovalSettingsWorkflow,
-}))
+vi.mock(
+  import("../../../../../../src/workflows/approval/workflows/ensure-approval-settings"),
+  () => ({
+    ensureApprovalSettingsWorkflow:
+      workflowMocks.ensureApprovalSettingsWorkflow,
+  }),
+)
+vi.mock(
+  import("../../../../../../src/workflows/approval/workflows/update-approval-settings"),
+  () => ({
+    updateApprovalSettingsWorkflow:
+      workflowMocks.updateApprovalSettingsWorkflow,
+  }),
+)
 
 /**
  * Asserts that a plain mock object contains the given keys before narrowing
