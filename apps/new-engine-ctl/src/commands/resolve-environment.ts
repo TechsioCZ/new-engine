@@ -1,11 +1,31 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { resolveEnvironmentCommandInputSchema } from "../contracts/resolve-environment.js"
 import { appendGitHubOutput, warnGitHub } from "../github-actions.js"
 import { executeResolveEnvironment } from "../orchestration/resolve-environment.js"
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
-export function createResolveEnvironmentCommand(): Command {
+const resolveEnvironmentOptionsSchema = z.object({
+  apiToken: z.unknown().optional(),
+  baseUrl: z.unknown().optional(),
+  dryRun: z.unknown().optional(),
+  dryRunCreated: z.unknown().optional(),
+  environmentName: z.unknown().optional(),
+  lane: z.unknown().optional(),
+  outputJson: z.unknown().optional(),
+  prNumber: z.unknown().optional(),
+  previewClonedServiceIdsCsv: z.unknown().optional(),
+  previewExcludedServiceIdsCsv: z.unknown().optional(),
+  previewGitBranch: z.unknown().optional(),
+  projectSlug: z.unknown().optional(),
+  reconcileServiceIdsCsv: z.unknown().optional(),
+  sourceEnvironmentName: z.unknown().optional(),
+  stackInputsPath: z.unknown().optional(),
+  stackManifestPath: z.unknown().optional(),
+})
+
+export const createResolveEnvironmentCommand = (): Command => {
   const command = new Command("resolve-environment")
 
   command
@@ -34,9 +54,10 @@ export function createResolveEnvironmentCommand(): Command {
     )
     .option("--dry-run", "", false)
     .option("--dry-run-created", "", false)
-    .action(async (options) => {
+    .action(async (rawOptions: unknown) => {
+      const options = resolveEnvironmentOptionsSchema.parse(rawOptions)
       const parsedPrNumber =
-        typeof options.prNumber === "string" && options.prNumber.trim()
+        typeof options.prNumber === "string" && options.prNumber.trim() !== ""
           ? Number(options.prNumber)
           : undefined
       const input = resolveEnvironmentCommandInputSchema.parse({
@@ -53,7 +74,7 @@ export function createResolveEnvironmentCommand(): Command {
         previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
         previewGitBranch:
           typeof options.previewGitBranch === "string" &&
-          options.previewGitBranch.trim()
+          options.previewGitBranch.trim() !== ""
             ? options.previewGitBranch.trim()
             : (process.env.ZANE_PREVIEW_GIT_BRANCH?.trim() ?? ""),
         projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
