@@ -8,14 +8,17 @@ interface ReadPreviewCommitStateDeps {
   config: AppConfig
 }
 
-export async function handleReadPreviewCommitState(
+export const handleReadPreviewCommitState = async (
   request: Request,
   deps: ReadPreviewCommitStateDeps,
-): Promise<Response> {
+): Promise<Response> => {
   try {
-    const rawBody = await request.json().catch(() => {
+    let rawBody: unknown
+    try {
+      rawBody = await request.json()
+    } catch {
       throw new BadRequestError("request body must be valid JSON")
-    })
+    }
 
     const client = new ZaneClient(deps.config)
     const payload = parseReadPreviewCommitStateInput(rawBody)

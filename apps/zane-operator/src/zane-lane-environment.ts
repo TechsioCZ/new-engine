@@ -1,20 +1,19 @@
 import { UpstreamHttpError } from "./zane-errors"
 
-const REPO_PREVIEW_ENVIRONMENT_NAME = /^pr-\d+$/
+const REPO_PREVIEW_ENVIRONMENT_NAME = /^pr-\d+$/u
 
 interface LaneEnvironment {
   is_preview: boolean
   name: string
 }
 
-function isRepoPreviewEnvironmentName(environmentName: string): boolean {
-  return REPO_PREVIEW_ENVIRONMENT_NAME.test(environmentName)
-}
+const isRepoPreviewEnvironmentName = (environmentName: string): boolean =>
+  REPO_PREVIEW_ENVIRONMENT_NAME.test(environmentName)
 
-export function assertEnvironmentMatchesLane(
+export const assertEnvironmentMatchesLane = (
   environment: LaneEnvironment,
   lane: "preview" | "main",
-): void {
+): void => {
   const isRepoPreview = isRepoPreviewEnvironmentName(environment.name)
 
   if (lane === "main" && (environment.is_preview || isRepoPreview)) {

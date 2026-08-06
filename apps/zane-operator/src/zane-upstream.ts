@@ -1,8 +1,11 @@
+import { getErrorMessage, isRecord } from "@techsio/std/object"
+
 import type { AppConfig } from "./config"
 import { BadRequestError } from "./db"
 import { UpstreamHttpError } from "./zane-errors"
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
+export type ResponseDecoder<T> = (payload: unknown) => T
 
 export interface ZaneSession {
   cookies: Map<string, string>
@@ -22,76 +25,78 @@ const SESSION_CACHE_TTL_MS = 10 * 60 * 1000
 const cachedSessions = new Map<string, CachedZaneSession>()
 const pendingSessionInitializations = new Map<string, Promise<ZaneSession>>()
 
-function buildCookieHeader(cookies: Map<string, string>): string {
-  return [...cookies.entries()]
-    .map(([name, value]) => `${name}=${value}`)
-    .join("; ")
-}
+const buildCookieHeader = (cookies: Map<string, string>): string =>
+  [...cookies.entries()].map(([name, value]) => `${name}=${value}`).join("; ")
 
-function getSetCookieHeaders(headers: Headers): string[] {
-  const withGetSetCookie = headers as Headers & {
-    getSetCookie?: () => string[]
-  }
-
-  if (typeof withGetSetCookie.getSetCookie === "function") {
-    return withGetSetCookie.getSetCookie()
+const getSetCookieHeaders = (headers: Headers): string[] => {
+  const splitHeaders = headers.getSetCookie()
+  if (splitHeaders.length > 0) {
+    return splitHeaders
   }
 
   const header = headers.get("set-cookie")
-  return header ? [header] : []
+  return header === null || header === "" ? [] : [header]
 }
 
-export function updateCookiesFromHeaders(
+const parseCookiePair = (headerValue: string): [string, string] | null => {
+  const [cookiePair] = headerValue.split(";", 1)
+  if (cookiePair === undefined || cookiePair === "") {
+    return null
+  }
+
+  const separatorIndex = cookiePair.indexOf("=")
+  if (separatorIndex <= 0) {
+    return null
+  }
+
+  const name = cookiePair.slice(0, separatorIndex).trim()
+  return name === ""
+    ? null
+    : [name, cookiePair.slice(separatorIndex + 1).trim()]
+}
+
+export const updateCookiesFromHeaders = (
   cookies: Map<string, string>,
   headers: Headers,
-): void {
+): void => {
   for (const headerValue of getSetCookieHeaders(headers)) {
-    const cookiePair = headerValue.split(";", 1)[0]
-    if (!cookiePair) {
-      continue
-    }
-
-    const separatorIndex = cookiePair.indexOf("=")
-    if (separatorIndex <= 0) {
-      continue
-    }
-
-    const name = cookiePair.slice(0, separatorIndex).trim()
-    const value = cookiePair.slice(separatorIndex + 1).trim()
-    if (name) {
-      cookies.set(name, value)
+    const cookiePair = parseCookiePair(headerValue)
+    if (cookiePair !== null) {
+      cookies.set(...cookiePair)
     }
   }
 }
 
-export function parseErrorMessage(payload: unknown, fallback: string): string {
-  if (!payload || typeof payload !== "object") {
+export const parseErrorMessage = (
+  payload: unknown,
+  fallback: string,
+): string => {
+  if (!isRecord(payload)) {
     return fallback
   }
 
-  const object = payload as Record<string, unknown>
-  if (typeof object.detail === "string" && object.detail.trim()) {
-    return object.detail
-  }
-  if (typeof object.message === "string" && object.message.trim()) {
-    return object.message
+  const { detail } = payload
+  if (typeof detail === "string" && detail.trim() !== "") {
+    return detail
   }
 
-  if (Array.isArray(object.errors) && object.errors.length > 0) {
-    const firstError = object.errors[0]
-    if (firstError && typeof firstError === "object") {
-      const firstErrorObject = firstError as Record<string, unknown>
-      if (
-        typeof firstErrorObject.detail === "string" &&
-        firstErrorObject.detail.trim()
-      ) {
-        return firstErrorObject.detail
+  const { message } = payload
+  if (typeof message === "string" && message.trim() !== "") {
+    return message
+  }
+
+  const { errors } = payload
+  if (Array.isArray(errors)) {
+    const firstError: unknown = errors.at(0)
+    if (isRecord(firstError)) {
+      const firstDetail = firstError.detail
+      if (typeof firstDetail === "string" && firstDetail.trim() !== "") {
+        return firstDetail
       }
-      if (
-        typeof firstErrorObject.message === "string" &&
-        firstErrorObject.message.trim()
-      ) {
-        return firstErrorObject.message
+
+      const firstMessage = firstError.message
+      if (typeof firstMessage === "string" && firstMessage.trim() !== "") {
+        return firstMessage
       }
     }
   }
@@ -99,23 +104,25 @@ export function parseErrorMessage(payload: unknown, fallback: string): string {
   return fallback
 }
 
-function requireZaneDeployConfig(config: AppConfig): {
+const requireZaneDeployConfig = (
+  config: AppConfig,
+): {
   connectBaseUrl: string
   connectHostHeader: string | null
   username: string
   password: string
-} {
-  if (!config.zaneBaseUrl) {
+} => {
+  if (config.zaneBaseUrl === null || config.zaneBaseUrl === "") {
     throw new BadRequestError(
       "ZANE_BASE_URL is required for deploy orchestration",
     )
   }
-  if (!config.zaneUsername) {
+  if (config.zaneUsername === null || config.zaneUsername === "") {
     throw new BadRequestError(
       "ZANE_USERNAME is required for deploy orchestration",
     )
   }
-  if (!config.zanePassword) {
+  if (config.zanePassword === null || config.zanePassword === "") {
     throw new BadRequestError(
       "ZANE_PASSWORD is required for deploy orchestration",
     )
@@ -123,7 +130,7 @@ function requireZaneDeployConfig(config: AppConfig): {
 
   return {
     connectBaseUrl: (config.zaneConnectBaseUrl ?? config.zaneBaseUrl).replace(
-      /\/+$/,
+      /\/+$/u,
       "",
     ),
     connectHostHeader: config.zaneConnectHostHeader,
@@ -162,18 +169,18 @@ export class ZaneUpstreamClient {
       "Content-Type": "application/json",
     }
 
-    if (session) {
+    if (session !== undefined) {
       const cookieHeader = buildCookieHeader(session.cookies)
-      if (cookieHeader) {
+      if (cookieHeader !== "") {
         headers.Cookie = cookieHeader
       }
     }
 
-    if (method !== "GET" && csrfToken) {
+    if (method !== "GET" && csrfToken !== undefined && csrfToken !== "") {
       headers["X-CSRFToken"] = csrfToken
     }
 
-    if (this.#connectHostHeader) {
+    if (this.#connectHostHeader !== null && this.#connectHostHeader !== "") {
       headers.Host = this.#connectHostHeader
     }
 
@@ -188,7 +195,7 @@ export class ZaneUpstreamClient {
       }
 
       const pending = pendingSessionInitializations.get(this.#sessionCacheKey)
-      if (pending) {
+      if (pending !== undefined) {
         return await pending
       }
     }
@@ -212,6 +219,7 @@ export class ZaneUpstreamClient {
     session: ZaneSession,
     method: HttpMethod,
     path: string,
+    decodeResponse: ResponseDecoder<T>,
     payload?: unknown,
     options?: ZaneRequestOptions,
   ): Promise<T | null> {
@@ -226,7 +234,7 @@ export class ZaneUpstreamClient {
 
     updateCookiesFromHeaders(session.cookies, response.headers)
 
-    if (options?.allowNotFound && response.status === 404) {
+    if (options?.allowNotFound === true && response.status === 404) {
       return null
     }
 
@@ -236,10 +244,17 @@ export class ZaneUpstreamClient {
     ) {
       this.invalidateSessionCache()
       const freshSession = await this.authenticate(true)
-      return await this.request(freshSession, method, path, payload, {
-        ...options,
-        retryOnAuthFailure: false,
-      })
+      return await this.request(
+        freshSession,
+        method,
+        path,
+        decodeResponse,
+        payload,
+        {
+          ...options,
+          retryOnAuthFailure: false,
+        },
+      )
     }
 
     if (!response.ok) {
@@ -260,7 +275,24 @@ export class ZaneUpstreamClient {
       return null
     }
 
-    return (await response.json()) as T
+    const responsePayload: unknown = await response.json()
+    try {
+      return decodeResponse(responsePayload)
+    } catch (error: unknown) {
+      const context = `${method} ${path} (HTTP ${response.status})`
+      if (error instanceof UpstreamHttpError) {
+        throw new UpstreamHttpError(
+          error.status,
+          error.errorCode,
+          `${error.message}; response context: ${context}`,
+        )
+      }
+      throw new UpstreamHttpError(
+        502,
+        "zane_response_invalid",
+        `ZaneOps response decode failed for ${context}: ${getErrorMessage(error)}`,
+      )
+    }
   }
 
   private async initializeSession(): Promise<ZaneSession> {
@@ -283,7 +315,7 @@ export class ZaneUpstreamClient {
     }
 
     const csrfToken = session.cookies.get("csrftoken")
-    if (!csrfToken) {
+    if (csrfToken === undefined || csrfToken === "") {
       throw new UpstreamHttpError(
         502,
         "zane_csrf_missing",
@@ -318,7 +350,7 @@ export class ZaneUpstreamClient {
       )
     }
 
-    if (!session.cookies.get("sessionid")) {
+    if ((session.cookies.get("sessionid") ?? "") === "") {
       throw new UpstreamHttpError(
         502,
         "zane_session_missing",

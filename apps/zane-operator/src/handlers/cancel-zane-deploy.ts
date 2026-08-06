@@ -8,14 +8,17 @@ interface CancelZaneDeployDeps {
   config: AppConfig
 }
 
-export async function handleCancelZaneDeploy(
+export const handleCancelZaneDeploy = async (
   request: Request,
   deps: CancelZaneDeployDeps,
-): Promise<Response> {
+): Promise<Response> => {
   try {
-    const rawBody = await request.json().catch(() => {
+    let rawBody: unknown
+    try {
+      rawBody = await request.json()
+    } catch {
       throw new BadRequestError("request body must be valid JSON")
-    })
+    }
 
     const client = new ZaneClient(deps.config)
     const payload = parseCancelDeployInput(rawBody)

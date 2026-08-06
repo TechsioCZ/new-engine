@@ -1,9 +1,10 @@
 import { sleep } from "@techsio/std/async"
+import { isRecord } from "@techsio/std/object"
 
 import { computeEffectiveEnvVariables } from "./zane-effective-service-state"
 import { UpstreamHttpError } from "./zane-errors"
 import { parseErrorMessage } from "./zane-upstream"
-import type { ZaneSession } from "./zane-upstream"
+import type { ResponseDecoder, ZaneSession } from "./zane-upstream"
 
 interface ResolveTargetInput {
   service_id: string
@@ -123,12 +124,19 @@ interface ZaneDeployOpsDeps {
     session: ZaneSession,
     method: "PUT" | "DELETE",
     path: string,
+    decodeResponse: ResponseDecoder<T>,
     payload?: unknown,
     options?: {
       allowNotFound?: boolean
       retryOnAuthFailure?: boolean
     },
   ) => Promise<T | null>
+}
+
+const decodeMutationResponse = (payload: unknown): void => {
+  if (!isRecord(payload)) {
+    throw new TypeError("mutation response must be an object")
+  }
 }
 
 const coercePendingEnvVariable = (
@@ -555,6 +563,7 @@ export class ZaneDeployOps {
       `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
         input.environmentName,
       )}/request-service-changes/${encodeURIComponent(input.target.service_slug)}/`,
+      decodeMutationResponse,
       requestBody,
     )
 
@@ -585,6 +594,7 @@ export class ZaneDeployOps {
       `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(
         environmentName,
       )}/cancel-service-changes/${encodeURIComponent(serviceSlug)}/${encodeURIComponent(changeId)}/`,
+      decodeMutationResponse,
     )
   }
 
@@ -675,6 +685,7 @@ export class ZaneDeployOps {
       )}/cancel-deployment/${encodeURIComponent(input.serviceSlug)}/${encodeURIComponent(
         input.deploymentHash,
       )}/`,
+      decodeMutationResponse,
       {},
     )
 

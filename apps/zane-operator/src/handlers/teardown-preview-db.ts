@@ -7,10 +7,10 @@ interface TeardownPreviewDbDeps {
   sql: Bun.SQL
 }
 
-export async function handleTeardownPreviewDb(
+export const handleTeardownPreviewDb = async (
   prNumberParam: string,
   deps: TeardownPreviewDbDeps,
-): Promise<Response> {
+): Promise<Response> => {
   try {
     const prNumber = parsePrNumber(prNumberParam, "pr_number path parameter")
     const result = await teardownPreviewDatabase(

@@ -1,3 +1,5 @@
+import { isRecord } from "@techsio/std/object"
+
 import type { AppConfig } from "../config"
 import { BadRequestError, ensurePreviewDatabase, parsePrNumber } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
@@ -11,16 +13,12 @@ interface EnsurePreviewDbPayload {
   pr_number: unknown
 }
 
-function parsePayload(rawPayload: unknown): EnsurePreviewDbPayload {
-  if (
-    !rawPayload ||
-    typeof rawPayload !== "object" ||
-    Array.isArray(rawPayload)
-  ) {
+const parsePayload = (rawPayload: unknown): EnsurePreviewDbPayload => {
+  if (!isRecord(rawPayload)) {
     throw new BadRequestError("request body must be a JSON object")
   }
 
-  const payload = rawPayload as Record<string, unknown>
+  const payload = rawPayload
   if (!("pr_number" in payload)) {
     throw new BadRequestError("request body is missing pr_number")
   }
@@ -38,14 +36,17 @@ function parsePayload(rawPayload: unknown): EnsurePreviewDbPayload {
   }
 }
 
-export async function handleEnsurePreviewDb(
+export const handleEnsurePreviewDb = async (
   request: Request,
   deps: EnsurePreviewDbDeps,
-): Promise<Response> {
+): Promise<Response> => {
   try {
-    const rawBody = await request.json().catch(() => {
+    let rawBody: unknown
+    try {
+      rawBody = await request.json()
+    } catch {
       throw new BadRequestError("request body must be valid JSON")
-    })
+    }
 
     const payload = parsePayload(rawBody)
     const prNumber = parsePrNumber(payload.pr_number)

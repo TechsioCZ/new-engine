@@ -75,14 +75,17 @@ export interface SyncPreviewSharedEnvInput {
   }[]
 }
 
+type PreviewRuntimeValueSourceKind = keyof {
+  literal: never
+  service_network_alias: never
+  service_global_network_alias: never
+  service_public_origin: never
+  service_internal_origin: never
+  service_internal_bucket_url: never
+}
+
 export interface PreviewRuntimeValueSourceInput {
-  kind:
-    | "literal"
-    | "service_network_alias"
-    | "service_global_network_alias"
-    | "service_public_origin"
-    | "service_internal_origin"
-    | "service_internal_bucket_url"
+  kind: PreviewRuntimeValueSourceKind
   value?: string
   serviceSlug?: string
   sourceEnvironmentName?: string

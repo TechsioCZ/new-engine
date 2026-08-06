@@ -39,7 +39,7 @@ import { UpstreamHttpError } from "./zane-errors"
 import { ZaneMedusaPublishableKeyProvisioner } from "./zane-medusa-publishable-key"
 import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
 import { ZaneUpstreamClient } from "./zane-upstream"
-import type { HttpMethod, ZaneSession } from "./zane-upstream"
+import type { HttpMethod, ResponseDecoder, ZaneSession } from "./zane-upstream"
 
 export type {
   ArchiveEnvironmentInput,
@@ -550,6 +550,150 @@ const normalizeServiceDetails = (
   }
 }
 
+interface CreatedEnvironmentVariableResponse {
+  id?: string
+  key?: string
+  value?: string
+}
+
+const decodeEnvironmentVariables = (
+  payload: unknown,
+  label: string,
+): ZaneEnvVariable[] => {
+  if (!Array.isArray(payload)) {
+    throw new TypeError(`${label} must be an array`)
+  }
+
+  return payload.map((entry, index) => {
+    const variable = assertObject(entry, `${label}[${index}]`)
+    const { id, key, value } = variable
+    return {
+      id: assertString(id, `${label}[${index}].id`),
+      key: assertString(key, `${label}[${index}].key`),
+      value: assertString(value, `${label}[${index}].value`),
+    }
+  })
+}
+
+const decodeEnvironmentWithVariables = (
+  payload: unknown,
+): ZaneEnvironmentWithVariables => {
+  const environment = assertObject(payload, "environment")
+  const { id, is_preview: isPreview, name, variables } = environment
+  if (typeof isPreview !== "boolean") {
+    throw new TypeError("environment.is_preview must be a boolean")
+  }
+
+  return {
+    id: assertString(id, "environment.id"),
+    is_preview: isPreview,
+    name: assertString(name, "environment.name"),
+    variables: decodeEnvironmentVariables(variables, "environment.variables"),
+  }
+}
+
+const decodeCreatedEnvironmentVariable = (
+  payload: unknown,
+): CreatedEnvironmentVariableResponse => {
+  const variable = assertObject(payload, "created_environment_variable")
+  const { id, key, value } = variable
+  return {
+    ...(id === undefined
+      ? {}
+      : { id: assertString(id, "created_environment_variable.id") }),
+    ...(key === undefined
+      ? {}
+      : { key: assertString(key, "created_environment_variable.key") }),
+    ...(value === undefined
+      ? {}
+      : {
+          value: assertString(value, "created_environment_variable.value"),
+        }),
+  }
+}
+
+const decodeMutationResponse = (payload: unknown): void => {
+  assertObject(payload, "mutation_response")
+}
+
+const decodeDeployment = (payload: unknown): ZaneDeployment => {
+  const deployment = assertObject(payload, "deployment")
+  const {
+    commit_sha: commitSha,
+    hash,
+    is_current_production: isCurrentProduction,
+    service_snapshot: serviceSnapshotValue,
+    status,
+    status_reason: statusReason,
+  } = deployment
+  let serviceSnapshot: ZaneDeployment["service_snapshot"]
+  if (serviceSnapshotValue !== undefined && serviceSnapshotValue !== null) {
+    const serviceSnapshotRecord = assertObject(
+      serviceSnapshotValue,
+      "deployment.service_snapshot",
+    )
+    const { env_variables: envVariables } = serviceSnapshotRecord
+    serviceSnapshot = {
+      env_variables: decodeEnvironmentVariables(
+        envVariables,
+        "deployment.service_snapshot.env_variables",
+      ),
+    }
+  }
+
+  if (
+    isCurrentProduction !== undefined &&
+    typeof isCurrentProduction !== "boolean"
+  ) {
+    throw new TypeError("deployment.is_current_production must be a boolean")
+  }
+  if (
+    commitSha !== undefined &&
+    commitSha !== null &&
+    typeof commitSha !== "string"
+  ) {
+    throw new TypeError("deployment.commit_sha must be a string or null")
+  }
+  if (
+    statusReason !== undefined &&
+    statusReason !== null &&
+    typeof statusReason !== "string"
+  ) {
+    throw new TypeError("deployment.status_reason must be a string or null")
+  }
+
+  return {
+    hash: assertString(hash, "deployment.hash"),
+    status: assertString(status, "deployment.status"),
+    ...(typeof isCurrentProduction === "boolean"
+      ? { is_current_production: isCurrentProduction }
+      : {}),
+    ...(typeof commitSha === "string" || commitSha === null
+      ? { commit_sha: commitSha }
+      : {}),
+    ...(typeof statusReason === "string" || statusReason === null
+      ? { status_reason: statusReason }
+      : {}),
+    ...(serviceSnapshot === undefined
+      ? {}
+      : { service_snapshot: serviceSnapshot }),
+  }
+}
+
+const decodeDeploymentList = (payload: unknown): ZaneDeploymentListResponse => {
+  const list = assertObject(payload, "deployment_list")
+  const { results } = list
+  if (results === undefined) {
+    return {}
+  }
+  if (!Array.isArray(results)) {
+    throw new TypeError("deployment_list.results must be an array")
+  }
+  return {
+    results: results.map((deployment) => decodeDeployment(deployment)),
+  }
+}
+
 const previewRandomOnceSecretPersistsToZaneEnv = (secret: {
   persistTo?: string
 }): boolean => (secret.persistTo ?? "zane_env") === "zane_env"
@@ -569,13 +713,21 @@ export class ZaneClient {
     session: ZaneSession,
     method: HttpMethod,
     path: string,
+    decodeResponse: ResponseDecoder<T>,
     payload?: unknown,
     options?: {
       allowNotFound?: boolean
       retryOnAuthFailure?: boolean
     },
   ): Promise<T | null> {
-    return await this.#upstream.request(session, method, path, payload, options)
+    return await this.#upstream.request(
+      session,
+      method,
+      path,
+      decodeResponse,
+      payload,
+      options,
+    )
   }
 
   private createEnvironmentManager(): ZaneEnvironmentManager {
@@ -600,8 +752,22 @@ export class ZaneClient {
         ),
       listServiceCards: async (session, projectSlug, environmentName) =>
         await this.listServiceCards(session, projectSlug, environmentName),
-      request: async (session, method, path, payload, options) =>
-        await this.request(session, method, path, payload, options),
+      request: async (
+        session,
+        method,
+        path,
+        decodeResponse,
+        payload,
+        options,
+      ) =>
+        await this.request(
+          session,
+          method,
+          path,
+          decodeResponse,
+          payload,
+          options,
+        ),
     })
   }
 
@@ -651,8 +817,22 @@ export class ZaneClient {
         ),
       listServiceCards: async (session, projectSlug, environmentName) =>
         await this.listServiceCards(session, projectSlug, environmentName),
-      request: async (session, method, path, payload, options) =>
-        await this.request(session, method, path, payload, options),
+      request: async (
+        session,
+        method,
+        path,
+        decodeResponse,
+        payload,
+        options,
+      ) =>
+        await this.request(
+          session,
+          method,
+          path,
+          decodeResponse,
+          payload,
+          options,
+        ),
     })
   }
 
@@ -1422,10 +1602,11 @@ export class ZaneClient {
     projectSlug: string,
     environmentName: string,
   ): Promise<ZaneEnvironmentWithVariables | null> {
-    return await this.request<ZaneEnvironmentWithVariables>(
+    return await this.request(
       session,
       "GET",
       `/api/projects/${encodeURIComponent(projectSlug)}/environment-details/${encodeURIComponent(environmentName)}/`,
+      decodeEnvironmentWithVariables,
       undefined,
       { allowNotFound: true },
     )
@@ -1468,6 +1649,7 @@ export class ZaneClient {
         `/api/projects/${encodeURIComponent(
           input.projectSlug,
         )}/${encodeURIComponent(input.environmentName)}/variables/${encodeURIComponent(existing.id)}/`,
+        decodeMutationResponse,
         payload,
       )
       input.envByKey.set(input.key, {
@@ -1477,16 +1659,13 @@ export class ZaneClient {
       return input.value
     }
 
-    const created = await this.request<{
-      id?: string
-      key?: string
-      value?: string
-    }>(
+    const created = await this.request(
       input.session,
       "POST",
       `/api/projects/${encodeURIComponent(
         input.projectSlug,
       )}/${encodeURIComponent(input.environmentName)}/variables/`,
+      decodeCreatedEnvironmentVariable,
       payload,
     )
 
@@ -1742,13 +1921,14 @@ export class ZaneClient {
     projectSlug: string,
     environmentName: string,
   ): Promise<ZaneServiceCard[]> {
-    const cardsPayload = await this.request<unknown>(
+    const cards = await this.request(
       session,
       "GET",
       `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(environmentName)}/service-list/`,
+      normalizeServiceCards,
     )
 
-    return normalizeServiceCards(cardsPayload ?? [])
+    return cards ?? []
   }
 
   private async getServiceDetails(
@@ -1757,12 +1937,17 @@ export class ZaneClient {
     environmentName: string,
     serviceSlug: string,
   ): Promise<ZaneServiceDetails> {
-    const detailsPayload = await this.request<unknown>(
+    const detailsPayload = await this.request(
       session,
       "GET",
       `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(
         environmentName,
       )}/service-details/${encodeURIComponent(serviceSlug)}/`,
+      (payload) =>
+        normalizeServiceDetails(
+          payload,
+          `${projectSlug}/${environmentName}/${serviceSlug}.service_details`,
+        ),
     )
 
     if (detailsPayload === null) {
@@ -1773,10 +1958,7 @@ export class ZaneClient {
       )
     }
 
-    return normalizeServiceDetails(
-      detailsPayload,
-      `${projectSlug}/${environmentName}/${serviceSlug}.service_details`,
-    )
+    return detailsPayload
   }
 
   private async getDeployment(
@@ -1786,12 +1968,13 @@ export class ZaneClient {
     serviceSlug: string,
     deploymentHash: string,
   ): Promise<ZaneDeployment> {
-    const deployment = await this.request<ZaneDeployment>(
+    const deployment = await this.request(
       session,
       "GET",
       `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(
         environmentName,
       )}/service-details/${encodeURIComponent(serviceSlug)}/deployments/${encodeURIComponent(deploymentHash)}/`,
+      decodeDeployment,
     )
 
     if (!deployment) {
@@ -1811,12 +1994,13 @@ export class ZaneClient {
     environmentName: string,
     serviceSlug: string,
   ): Promise<ZaneDeployment[]> {
-    const payload = await this.request<ZaneDeploymentListResponse>(
+    const payload = await this.request(
       session,
       "GET",
       `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(
         environmentName,
       )}/service-details/${encodeURIComponent(serviceSlug)}/deployments/`,
+      decodeDeploymentList,
     )
 
     return Array.isArray(payload?.results) ? payload.results : []

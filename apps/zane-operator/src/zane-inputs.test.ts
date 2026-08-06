@@ -1,4 +1,4 @@
-import { expect, test } from "vitest"
+import { describe, expect, test } from "vitest"
 
 import { BadRequestError } from "./db"
 import { parseResolveEnvironmentInput } from "./zane-inputs"
@@ -14,82 +14,84 @@ const resolveEnvironmentPayload = {
   targets: [],
 }
 
-test("normalizes service reconciliation specs", () => {
-  const parsed = parseResolveEnvironmentInput({
-    ...resolveEnvironmentPayload,
-    service_specs: [
+describe(parseResolveEnvironmentInput, () => {
+  test("normalizes service reconciliation specs", () => {
+    const parsed = parseResolveEnvironmentInput({
+      ...resolveEnvironmentPayload,
+      service_specs: [
+        {
+          builder: {
+            build_stage_target: null,
+            sync_from_source: true,
+          },
+          git_source: {
+            branch_name: null,
+            sync_from_source: true,
+          },
+          healthcheck: {
+            sync_from_source: true,
+          },
+          ignored: "value",
+          resource_limits: null,
+          service_id: " medusa-be ",
+          service_slug: " api ",
+        },
+      ],
+    })
+
+    expect(parsed.serviceSpecs).toStrictEqual([
       {
         builder: {
           build_stage_target: null,
           sync_from_source: true,
         },
         git_source: {
-          branch_name: null,
+          commit_sha: "HEAD",
           sync_from_source: true,
         },
         healthcheck: {
           sync_from_source: true,
         },
-        ignored: "value",
-        resource_limits: null,
-        service_id: " medusa-be ",
-        service_slug: " api ",
+        service_id: "medusa-be",
+        service_slug: "api",
       },
-    ],
+    ])
   })
 
-  expect(parsed.serviceSpecs).toStrictEqual([
-    {
-      builder: {
-        build_stage_target: null,
-        sync_from_source: true,
-      },
-      git_source: {
-        commit_sha: "HEAD",
-        sync_from_source: true,
-      },
-      healthcheck: {
-        sync_from_source: true,
-      },
-      service_id: "medusa-be",
-      service_slug: "api",
-    },
-  ])
-})
-
-test("rejects malformed service reconciliation sync flags", () => {
-  expect(() =>
-    parseResolveEnvironmentInput({
-      ...resolveEnvironmentPayload,
-      service_specs: [
-        {
-          builder: {
-            sync_from_source: "true",
+  test("rejects malformed service reconciliation sync flags", () => {
+    expect(() =>
+      parseResolveEnvironmentInput({
+        ...resolveEnvironmentPayload,
+        service_specs: [
+          {
+            builder: {
+              sync_from_source: "true",
+            },
+            service_id: "medusa-be",
+            service_slug: "api",
           },
-          service_id: "medusa-be",
-          service_slug: "api",
-        },
-      ],
-    }),
-  ).toThrow(BadRequestError)
-})
+        ],
+      }),
+    ).toThrow(BadRequestError)
+  })
 
-test("defaults missing service reconciliation specs to an empty list", () => {
-  expect(
-    parseResolveEnvironmentInput(resolveEnvironmentPayload).serviceSpecs,
-  ).toStrictEqual([])
-})
+  test("defaults missing service reconciliation specs to an empty list", () => {
+    expect(
+      parseResolveEnvironmentInput(resolveEnvironmentPayload).serviceSpecs,
+    ).toStrictEqual([])
+  })
 
-test("rejects invalid service reconciliation specs", () => {
-  expect(() =>
-    parseResolveEnvironmentInput({
-      ...resolveEnvironmentPayload,
-      service_specs: [
-        {
-          service_id: "medusa-be",
-          service_slug: "",
-        },
-      ],
-    }),
-  ).toThrow(BadRequestError)
+  test("rejects invalid service reconciliation specs", () => {
+    expect(() =>
+      parseResolveEnvironmentInput({
+        ...resolveEnvironmentPayload,
+        service_specs: [
+          {
+            service_id: "medusa-be",
+            service_slug: "",
+          },
+        ],
+      }),
+    ).toThrow(BadRequestError)
+  })
 })

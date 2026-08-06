@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto"
 
 import { jsonError } from "./http"
 
-function safeTokenCompare(expected: string, actual: string): boolean {
+const safeTokenCompare = (expected: string, actual: string): boolean => {
   const expectedBytes = Buffer.from(expected)
   const actualBytes = Buffer.from(actual)
 
@@ -13,13 +13,13 @@ function safeTokenCompare(expected: string, actual: string): boolean {
   return timingSafeEqual(expectedBytes, actualBytes)
 }
 
-export function enforceBearerToken(
+export const enforceBearerToken = (
   request: Request,
   expectedToken: string,
-): Response | null {
+): Response | null => {
   const authorization = request.headers.get("authorization")
 
-  if (!authorization) {
+  if (authorization === null || authorization === "") {
     return jsonError(
       401,
       "missing_authorization",
@@ -27,7 +27,7 @@ export function enforceBearerToken(
     )
   }
 
-  const tokenMatch = /^Bearer\s+(.+)$/i.exec(authorization)
+  const tokenMatch = /^Bearer\s+(?<token>.+)$/iu.exec(authorization)
   if (!tokenMatch) {
     return jsonError(
       401,
@@ -36,8 +36,9 @@ export function enforceBearerToken(
     )
   }
 
-  const token = tokenMatch[1]?.trim()
-  if (!token) {
+  const { token: rawToken } = tokenMatch.groups ?? {}
+  const token = rawToken?.trim()
+  if (token === undefined || token === "") {
     return jsonError(
       401,
       "invalid_authorization",

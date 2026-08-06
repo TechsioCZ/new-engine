@@ -1,3 +1,5 @@
+import { isRecord } from "@techsio/std/object"
+
 import type {
   ZaneServiceReconciliationSpec,
   ZaneServiceDetails,
@@ -16,7 +18,7 @@ import { computeEffectiveUrls } from "./zane-effective-service-urls"
 import { UpstreamHttpError } from "./zane-errors"
 import { assertEnvironmentMatchesLane } from "./zane-lane-environment"
 import { parseErrorMessage, updateCookiesFromHeaders } from "./zane-upstream"
-import type { HttpMethod, ZaneSession } from "./zane-upstream"
+import type { HttpMethod, ResponseDecoder, ZaneSession } from "./zane-upstream"
 
 interface ResolveEnvironmentWarning {
   code: "preview_excluded_services_present" | "preview_extra_services_present"
@@ -86,12 +88,71 @@ interface ZaneEnvironmentDeps {
     session: ZaneSession,
     method: HttpMethod,
     path: string,
+    decodeResponse: ResponseDecoder<T>,
     payload?: unknown,
     options?: {
       allowNotFound?: boolean
       retryOnAuthFailure?: boolean
     },
   ) => Promise<T | null>
+}
+
+const decodeRequiredString = (value: unknown, label: string): string => {
+  if (typeof value !== "string" || value === "") {
+    throw new TypeError(`${label} must be a non-empty string`)
+  }
+  return value
+}
+
+const decodeEnvironmentResponse = (
+  payload: unknown,
+): ZaneEnvironmentWithVariables => {
+  if (!isRecord(payload)) {
+    throw new TypeError("environment response must be an object")
+  }
+  const {
+    id,
+    is_preview: isPreview,
+    name,
+    variables: variableEntries,
+  } = payload
+  if (typeof isPreview !== "boolean") {
+    throw new TypeError("environment.is_preview must be a boolean")
+  }
+  if (!Array.isArray(variableEntries)) {
+    throw new TypeError("environment.variables must be an array")
+  }
+
+  const variables = variableEntries.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new TypeError(`environment.variables[${index}] must be an object`)
+    }
+    const { id: variableId, key, value } = entry
+    return {
+      id: decodeRequiredString(
+        variableId,
+        `environment.variables[${index}].id`,
+      ),
+      key: decodeRequiredString(key, `environment.variables[${index}].key`),
+      value: decodeRequiredString(
+        value,
+        `environment.variables[${index}].value`,
+      ),
+    }
+  })
+
+  return {
+    id: decodeRequiredString(id, "environment.id"),
+    is_preview: isPreview,
+    name: decodeRequiredString(name, "environment.name"),
+    variables,
+  }
+}
+
+const decodeMutationResponse = (payload: unknown): void => {
+  if (!isRecord(payload)) {
+    throw new TypeError("mutation response must be an object")
+  }
 }
 
 interface ResolvedEnvironmentState {
@@ -500,12 +561,13 @@ export class ZaneEnvironmentManager {
       )
     }
 
-    const cloned = await this.#deps.request<ZaneEnvironmentWithVariables>(
+    const cloned = await this.#deps.request(
       session,
       "POST",
       `/api/projects/${encodeURIComponent(input.projectSlug)}/clone-environment/${encodeURIComponent(
         input.sourceEnvironmentName,
       )}/`,
+      decodeEnvironmentResponse,
       {
         deploy_after_clone: false,
         name: input.environmentName,
@@ -742,6 +804,7 @@ export class ZaneEnvironmentManager {
       `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
         input.environmentName,
       )}/create-service/git/`,
+      decodeMutationResponse,
       createPayload,
     )
 
@@ -1464,6 +1527,7 @@ export class ZaneEnvironmentManager {
       `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
         input.environmentName,
       )}/request-service-changes/${encodeURIComponent(serviceSlug)}/`,
+      decodeMutationResponse,
       payload,
     )
   }
@@ -1482,6 +1546,7 @@ export class ZaneEnvironmentManager {
       )}/cancel-service-changes/${encodeURIComponent(serviceSlug)}/${encodeURIComponent(
         changeId,
       )}/`,
+      decodeMutationResponse,
     )
   }
 
@@ -1500,7 +1565,7 @@ export class ZaneEnvironmentManager {
             input.environmentName,
           )}/archive-service/docker/${encodeURIComponent(serviceSlug)}/`
 
-    await this.#deps.request(session, "DELETE", path)
+    await this.#deps.request(session, "DELETE", path, decodeMutationResponse)
   }
 
   private async buildResolvedEnvironmentState(

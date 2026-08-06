@@ -1,3 +1,5 @@
+import { isRecord } from "@techsio/std/object"
+
 import type {
   ZaneServiceDetails,
   ZaneServiceHealthcheck,
@@ -24,10 +26,10 @@ export interface EffectiveBuilder {
   build_stage_target: string | null
 }
 
-function getLastPendingFieldChange(
+const getLastPendingFieldChange = (
   serviceDetails: Pick<ZaneServiceDetails, "unapplied_changes">,
   field: string,
-): PendingFieldChange | null {
+): PendingFieldChange | null => {
   const matchingChanges = (serviceDetails.unapplied_changes ?? []).filter(
     (change) => change.field === field,
   )
@@ -35,32 +37,37 @@ function getLastPendingFieldChange(
   return matchingChanges.at(-1) ?? null
 }
 
-function normalizeString(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value.trim() : null
-}
+const normalizeString = (value: unknown): string | null =>
+  typeof value === "string" && value.trim() !== "" ? value.trim() : null
 
-function normalizeHealthcheck(value: unknown): ZaneServiceHealthcheck | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+const normalizeHealthcheck = (
+  value: unknown,
+): ZaneServiceHealthcheck | null => {
+  if (!isRecord(value)) {
     return null
   }
 
-  const record = value as Record<string, unknown>
-  const type = normalizeString(record.type)
-  const path = normalizeString(record.value)
-  const timeoutSeconds =
-    typeof record.timeout_seconds === "number" ? record.timeout_seconds : null
+  const type = normalizeString(value.type)
+  const path = normalizeString(value.value)
+  const timeoutValue = value.timeout_seconds
+  const intervalValue = value.interval_seconds
+  const associatedPortValue = value.associated_port
+  const timeoutSeconds = typeof timeoutValue === "number" ? timeoutValue : null
   const intervalSeconds =
-    typeof record.interval_seconds === "number" ? record.interval_seconds : null
+    typeof intervalValue === "number" ? intervalValue : null
 
-  if (!type || !path || timeoutSeconds === null || intervalSeconds === null) {
+  if (
+    type === null ||
+    path === null ||
+    timeoutSeconds === null ||
+    intervalSeconds === null
+  ) {
     return null
   }
 
   return {
     associated_port:
-      typeof record.associated_port === "number"
-        ? record.associated_port
-        : null,
+      typeof associatedPortValue === "number" ? associatedPortValue : null,
     interval_seconds: intervalSeconds,
     timeout_seconds: timeoutSeconds,
     type,
@@ -68,39 +75,36 @@ function normalizeHealthcheck(value: unknown): ZaneServiceHealthcheck | null {
   }
 }
 
-function normalizeResourceLimits(
+const normalizeResourceLimits = (
   value: unknown,
-): ZaneServiceResourceLimits | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+): ZaneServiceResourceLimits | null => {
+  if (!isRecord(value)) {
     return null
   }
 
-  const record = value as Record<string, unknown>
-  const memory =
-    record.memory &&
-    typeof record.memory === "object" &&
-    !Array.isArray(record.memory)
-      ? (record.memory as { unit?: string; value?: number | string | null })
-      : null
+  const { cpus: cpuValue, memory: memoryValue } = value
+  const memory = isRecord(memoryValue) ? memoryValue : null
+  let normalizedMemory: ZaneServiceResourceLimits["memory"] = null
+  if (memory !== null) {
+    const { unit, value: memoryAmount } = memory
+    normalizedMemory = {
+      ...(typeof unit === "string" ? { unit } : {}),
+      ...(typeof memoryAmount === "number" || typeof memoryAmount === "string"
+        ? { value: memoryAmount }
+        : {}),
+    }
+  }
 
   return {
     cpus:
-      typeof record.cpus === "number" || typeof record.cpus === "string"
-        ? record.cpus
+      typeof cpuValue === "number" || typeof cpuValue === "string"
+        ? cpuValue
         : null,
-    memory: memory
-      ? {
-          ...(typeof memory.unit === "string" ? { unit: memory.unit } : {}),
-          ...(typeof memory.value === "number" ||
-          typeof memory.value === "string"
-            ? { value: memory.value }
-            : {}),
-        }
-      : null,
+    memory: normalizedMemory,
   }
 }
 
-export function computeEffectiveGitSource(
+export const computeEffectiveGitSource = (
   serviceDetails: Pick<
     ZaneServiceDetails,
     | "repository_url"
@@ -109,11 +113,11 @@ export function computeEffectiveGitSource(
     | "git_app"
     | "unapplied_changes"
   >,
-): EffectiveGitSource {
+): EffectiveGitSource => {
   const pending = getLastPendingFieldChange(serviceDetails, "git_source")
   const pendingValue = pending?.new_value
 
-  if (pendingValue) {
+  if (pendingValue !== undefined && pendingValue !== null) {
     return {
       branch_name: normalizeString(pendingValue.branch_name),
       commit_sha: normalizeString(pendingValue.commit_sha),
@@ -130,16 +134,16 @@ export function computeEffectiveGitSource(
   }
 }
 
-export function computeEffectiveBuilder(
+export const computeEffectiveBuilder = (
   serviceDetails: Pick<
     ZaneServiceDetails,
     "builder" | "dockerfile_builder_options" | "unapplied_changes"
   >,
-): EffectiveBuilder {
+): EffectiveBuilder => {
   const pending = getLastPendingFieldChange(serviceDetails, "builder")
   const pendingValue = pending?.new_value
 
-  if (pendingValue) {
+  if (pendingValue !== undefined && pendingValue !== null) {
     return {
       build_context_dir: normalizeString(pendingValue.build_context_dir),
       build_stage_target: normalizeString(pendingValue.build_stage_target),
@@ -162,23 +166,23 @@ export function computeEffectiveBuilder(
   }
 }
 
-export function computeEffectiveHealthcheck(
+export const computeEffectiveHealthcheck = (
   serviceDetails: Pick<ZaneServiceDetails, "healthcheck" | "unapplied_changes">,
-): ZaneServiceHealthcheck | null {
+): ZaneServiceHealthcheck | null => {
   const pending = getLastPendingFieldChange(serviceDetails, "healthcheck")
-  return pending?.new_value
+  return pending?.new_value !== undefined && pending.new_value !== null
     ? normalizeHealthcheck(pending.new_value)
     : normalizeHealthcheck(serviceDetails.healthcheck)
 }
 
-export function computeEffectiveResourceLimits(
+export const computeEffectiveResourceLimits = (
   serviceDetails: Pick<
     ZaneServiceDetails,
     "resource_limits" | "unapplied_changes"
   >,
-): ZaneServiceResourceLimits | null {
+): ZaneServiceResourceLimits | null => {
   const pending = getLastPendingFieldChange(serviceDetails, "resource_limits")
-  return pending?.new_value
+  return pending?.new_value !== undefined && pending.new_value !== null
     ? normalizeResourceLimits(pending.new_value)
     : normalizeResourceLimits(serviceDetails.resource_limits)
 }

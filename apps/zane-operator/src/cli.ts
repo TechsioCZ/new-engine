@@ -10,7 +10,7 @@ interface CliArgs {
   allowProdBroadGrants: boolean
 }
 
-function printUsage(): void {
+const printUsage = (): void => {
   console.error("Usage:")
   console.error(
     "  bun src/cli.ts create-dev-user --username <name> --password-env <ENV_VAR> [--no-grant-connect-all-dbs] [--allow-prod-broad-grants]",
@@ -20,15 +20,15 @@ function printUsage(): void {
   )
 }
 
-function readFlagValue(args: string[], index: number, flag: string): string {
+const readFlagValue = (args: string[], index: number, flag: string): string => {
   const value = args[index + 1]
-  if (!value || value.startsWith("--")) {
+  if (value === undefined || value === "" || value.startsWith("--")) {
     throw new BadRequestError(`${flag} requires a value`)
   }
   return value
 }
 
-function parseCreateDevUserArgs(args: string[]): CliArgs {
+const parseCreateDevUserArgs = (args: string[]): CliArgs => {
   let username = ""
   let passwordEnvVar = ""
   let grantConnectToAllDatabases = true
@@ -39,39 +39,27 @@ function parseCreateDevUserArgs(args: string[]): CliArgs {
     if (arg === "--username") {
       username = readFlagValue(args, index, "--username")
       index += 1
-      continue
-    }
-
-    if (arg === "--password-env") {
+    } else if (arg === "--password-env") {
       passwordEnvVar = readFlagValue(args, index, "--password-env")
       index += 1
-      continue
-    }
-
-    if (arg === "--password") {
+    } else if (arg === "--password") {
       throw new BadRequestError(
         "plaintext --password is not supported; use --password-env <ENV_VAR>",
       )
-    }
-
-    if (arg === "--no-grant-connect-all-dbs") {
+    } else if (arg === "--no-grant-connect-all-dbs") {
       grantConnectToAllDatabases = false
-      continue
-    }
-
-    if (arg === "--allow-prod-broad-grants") {
+    } else if (arg === "--allow-prod-broad-grants") {
       allowProdBroadGrants = true
-      continue
+    } else {
+      throw new BadRequestError(`unknown argument: ${arg}`)
     }
-
-    throw new BadRequestError(`unknown argument: ${arg}`)
   }
 
-  if (!username) {
+  if (username === "") {
     throw new BadRequestError("--username is required")
   }
 
-  if (!passwordEnvVar) {
+  if (passwordEnvVar === "") {
     throw new BadRequestError("--password-env is required")
   }
 
@@ -96,7 +84,7 @@ function parseCreateDevUserArgs(args: string[]): CliArgs {
   }
 }
 
-async function runCreateDevUser(args: string[]): Promise<void> {
+const runCreateDevUser = async (args: string[]): Promise<void> => {
   const parsed = parseCreateDevUserArgs(args)
   const isProduction = process.env.NODE_ENV === "production"
   if (
@@ -146,7 +134,7 @@ async function runCreateDevUser(args: string[]): Promise<void> {
   }
 }
 
-async function main(argv: string[]): Promise<void> {
+const main = async (argv: string[]): Promise<void> => {
   const [command, ...args] = argv
   if (command !== "create-dev-user") {
     printUsage()

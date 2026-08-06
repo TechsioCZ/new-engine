@@ -1,89 +1,114 @@
 import type { ZaneServiceDetails, ZaneServiceUrl } from "./zane-contract"
 
-function coercePendingUrl(
+const coercePendingUrl = (
   value: Record<string, unknown> | null | undefined,
-): ZaneServiceUrl | null {
-  if (!value || typeof value.domain !== "string") {
+): ZaneServiceUrl | null => {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value.domain !== "string"
+  ) {
     return null
   }
 
+  const associatedPort = value.associated_port
+  const basePath = value.base_path
+  const { id } = value
+  const redirectTo = value.redirect_to
+  const stripPrefix = value.strip_prefix
+
   return {
-    ...(typeof value.id === "string" ? { id: value.id } : {}),
-    associated_port:
-      typeof value.associated_port === "number" ? value.associated_port : null,
+    ...(typeof id === "string" ? { id } : {}),
+    associated_port: typeof associatedPort === "number" ? associatedPort : null,
     base_path:
-      typeof value.base_path === "string" && value.base_path.trim()
-        ? value.base_path
-        : "/",
+      typeof basePath === "string" && basePath.trim() !== "" ? basePath : "/",
     domain: value.domain,
-    redirect_to:
-      typeof value.redirect_to === "string" ? value.redirect_to : null,
-    strip_prefix:
-      typeof value.strip_prefix === "boolean" ? value.strip_prefix : true,
+    redirect_to: typeof redirectTo === "string" ? redirectTo : null,
+    strip_prefix: typeof stripPrefix === "boolean" ? stripPrefix : true,
   }
 }
 
-export function computeEffectiveUrls(
+const applyPendingUrlChange = (
+  urls: ZaneServiceUrl[],
+  change: NonNullable<ZaneServiceDetails["unapplied_changes"]>[number],
+): void => {
+  if (change.field !== "urls" || typeof change.type !== "string") {
+    return
+  }
+
+  const itemId = change.item_id
+  if (
+    change.type === "DELETE" &&
+    itemId !== undefined &&
+    itemId !== null &&
+    itemId !== ""
+  ) {
+    const index = urls.findIndex((url) => url.id === itemId)
+    if (index !== -1) {
+      urls.splice(index, 1)
+    }
+    return
+  }
+
+  const pendingUrl = coercePendingUrl(change.new_value)
+  if (pendingUrl === null) {
+    return
+  }
+
+  if (
+    change.type === "UPDATE" &&
+    itemId !== undefined &&
+    itemId !== null &&
+    itemId !== ""
+  ) {
+    const index = urls.findIndex((url) => url.id === itemId)
+    const nextUrl = {
+      ...(index === -1 ? {} : urls[index]),
+      ...pendingUrl,
+      id: itemId,
+    }
+    if (index === -1) {
+      urls.push(nextUrl)
+    } else {
+      urls[index] = nextUrl
+    }
+    return
+  }
+
+  if (change.type === "ADD") {
+    urls.push(pendingUrl)
+  }
+}
+
+export const computeEffectiveUrls = (
   serviceDetails: Pick<ZaneServiceDetails, "urls" | "unapplied_changes">,
-): ZaneServiceUrl[] {
-  const urls = [...(serviceDetails.urls ?? [])]
+): ZaneServiceUrl[] => {
+  const urls = [...serviceDetails.urls]
 
   for (const change of serviceDetails.unapplied_changes ?? []) {
-    if (change.field !== "urls" || typeof change.type !== "string") {
-      continue
-    }
-
-    if (change.type === "DELETE" && change.item_id) {
-      const index = urls.findIndex((url) => url.id === change.item_id)
-      if (index !== -1) {
-        urls.splice(index, 1)
-      }
-      continue
-    }
-
-    const pendingUrl = coercePendingUrl(change.new_value)
-    if (!pendingUrl) {
-      continue
-    }
-
-    if (change.type === "UPDATE" && change.item_id) {
-      const index = urls.findIndex((url) => url.id === change.item_id)
-      if (index !== -1) {
-        urls[index] = {
-          ...urls[index],
-          ...pendingUrl,
-          id: change.item_id,
-        }
-      } else {
-        urls.push({
-          ...pendingUrl,
-          id: change.item_id,
-        })
-      }
-      continue
-    }
-
-    if (change.type === "ADD") {
-      urls.push(pendingUrl)
-    }
+    applyPendingUrlChange(urls, change)
   }
 
   return urls
 }
 
-export function buildServicePublicUrls(
+export const buildServicePublicUrls = (
   serviceDetails: Pick<ZaneServiceDetails, "urls" | "unapplied_changes">,
-): string[] {
-  return computeEffectiveUrls(serviceDetails)
-    .map((url) => {
-      const basePath =
-        typeof url.base_path === "string" && url.base_path.trim()
-          ? url.base_path.trim()
-          : "/"
-      return new URL(
-        basePath.startsWith("/") ? basePath : `/${basePath}`,
-        `https://${url.domain}`,
-      ).toString()
-    })
-    .filter((value, index, array) => array.indexOf(value) === index)
+): string[] => {
+  const publicUrls: string[] = []
+  const seenUrls = new Set<string>()
+
+  for (const url of computeEffectiveUrls(serviceDetails)) {
+    const basePath = url.base_path.trim() === "" ? "/" : url.base_path.trim()
+    const publicUrl = new URL(
+      basePath.startsWith("/") ? basePath : `/${basePath}`,
+      `https://${url.domain}`,
+    ).toString()
+    if (!seenUrls.has(publicUrl)) {
+      seenUrls.add(publicUrl)
+      publicUrls.push(publicUrl)
+    }
+  }
+
+  return publicUrls
 }
