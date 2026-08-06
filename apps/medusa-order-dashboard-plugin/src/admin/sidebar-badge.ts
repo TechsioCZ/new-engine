@@ -14,83 +14,35 @@ let lastFetchAt = 0
 let refreshInFlight = false
 let started = false
 
-export function startOrderDashboardSidebarBadge() {
-  if (
-    started ||
-    typeof window === "undefined" ||
-    typeof document === "undefined"
-  ) {
-    return
-  }
+const getOrderDashboardSidebarLink = () =>
+  document.querySelector<HTMLAnchorElement>(
+    ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR,
+  ) ?? null
 
-  started = true
+const canRefreshOrderDashboardSidebarBadge = () =>
+  Date.now() - lastFetchAt >= ORDER_DASHBOARD_SIDEBAR_BADGE_RETRY_COOLDOWN_MS
 
-  const render = () => {
-    if (
-      !hasInitialRefreshRun &&
-      getOrderDashboardSidebarLink() &&
-      canRefreshOrderDashboardSidebarBadge()
-    ) {
-      queueOrderDashboardSidebarBadgeRefresh()
-    }
-
-    renderOrderDashboardSidebarBadge(currentCount)
-  }
-
-  render()
-
-  const observer = new MutationObserver(render)
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  })
-
-  window.setInterval(
-    queueOrderDashboardSidebarBadgeRefresh,
-    ORDER_DASHBOARD_SIDEBAR_BADGE_REFRESH_MS,
-  )
-  window.addEventListener("focus", queueOrderDashboardSidebarBadgeRefresh)
-}
-
-export function setOrderDashboardSidebarBadgeCount(
+const normalizeOrderDashboardSidebarBadgeCount = (
   count: number | null | undefined,
-) {
-  currentCount = normalizeOrderDashboardSidebarBadgeCount(count)
-  renderOrderDashboardSidebarBadge(currentCount)
+) => (typeof count === "number" && Number.isFinite(count) ? count : null)
+
+const removeOrderDashboardSidebarBadge = () => {
+  document.querySelector(`#${ORDER_DASHBOARD_SIDEBAR_BADGE_ID}`)?.remove()
 }
 
-async function refreshOrderDashboardSidebarBadge() {
-  if (refreshInFlight || !canRefreshOrderDashboardSidebarBadge()) {
-    return
-  }
+const getOrderDashboardSidebarBadgeLabel = (count: number) => {
+  const language = document.documentElement.lang
+  const dictionary = language.toLowerCase().startsWith("cs")
+    ? orderDashboardAdminI18n.cs
+    : orderDashboardAdminI18n.en
 
-  hasInitialRefreshRun = true
-  lastFetchAt = Date.now()
-  refreshInFlight = true
-
-  try {
-    const summary = await sdk.client.fetch<OrderDashboardSummaryResponse>(
-      "/admin/order-expedition/summary",
-    )
-    setOrderDashboardSidebarBadgeCount(summary.pending_unpaid_count)
-  } catch {
-    renderOrderDashboardSidebarBadge(currentCount)
-  } finally {
-    refreshInFlight = false
-  }
-}
-
-function queueOrderDashboardSidebarBadgeRefresh() {
-  void refreshOrderDashboardSidebarBadge()
-}
-
-function canRefreshOrderDashboardSidebarBadge() {
-  return (
-    Date.now() - lastFetchAt >= ORDER_DASHBOARD_SIDEBAR_BADGE_RETRY_COOLDOWN_MS
+  return dictionary.sidebar.actionRequiredOrders.replace(
+    "{{count}}",
+    String(count),
   )
 }
 
-function renderOrderDashboardSidebarBadge(count: number | null | undefined) {
+const renderOrderDashboardSidebarBadge = (count: number | null | undefined) => {
   if (typeof document === "undefined") {
     return
   }
@@ -103,7 +55,9 @@ function renderOrderDashboardSidebarBadge(count: number | null | undefined) {
     return
   }
 
-  let badge = document.querySelector(`#${ORDER_DASHBOARD_SIDEBAR_BADGE_ID}`)
+  let badge = document.querySelector<HTMLSpanElement>(
+    `#${ORDER_DASHBOARD_SIDEBAR_BADGE_ID}`,
+  )
 
   if (!badge) {
     badge = document.createElement("span")
@@ -143,32 +97,72 @@ function renderOrderDashboardSidebarBadge(count: number | null | undefined) {
   }
 }
 
-function normalizeOrderDashboardSidebarBadgeCount(
+export const setOrderDashboardSidebarBadgeCount = (
   count: number | null | undefined,
-) {
-  return typeof count === "number" && Number.isFinite(count) ? count : null
+) => {
+  currentCount = normalizeOrderDashboardSidebarBadgeCount(count)
+  renderOrderDashboardSidebarBadge(currentCount)
 }
 
-function removeOrderDashboardSidebarBadge() {
-  document.querySelector(`#${ORDER_DASHBOARD_SIDEBAR_BADGE_ID}`)?.remove()
+const refreshOrderDashboardSidebarBadge = async () => {
+  if (refreshInFlight || !canRefreshOrderDashboardSidebarBadge()) {
+    return
+  }
+
+  hasInitialRefreshRun = true
+  lastFetchAt = Date.now()
+  refreshInFlight = true
+
+  try {
+    const summary = await sdk.client.fetch<OrderDashboardSummaryResponse>(
+      "/admin/order-expedition/summary",
+    )
+    setOrderDashboardSidebarBadgeCount(summary.pending_unpaid_count)
+  } catch {
+    renderOrderDashboardSidebarBadge(currentCount)
+  } finally {
+    refreshInFlight = false
+  }
 }
 
-function getOrderDashboardSidebarLink() {
-  return (
-    document.querySelector<HTMLAnchorElement>(
-      ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR,
-    ) ?? null
+const queueOrderDashboardSidebarBadgeRefresh = () => {
+  void refreshOrderDashboardSidebarBadge()
+}
+
+export const startOrderDashboardSidebarBadge = () => {
+  if (
+    started ||
+    typeof window === "undefined" ||
+    typeof document === "undefined"
+  ) {
+    return
+  }
+
+  started = true
+
+  const render = () => {
+    if (
+      !hasInitialRefreshRun &&
+      getOrderDashboardSidebarLink() &&
+      canRefreshOrderDashboardSidebarBadge()
+    ) {
+      queueOrderDashboardSidebarBadgeRefresh()
+    }
+
+    renderOrderDashboardSidebarBadge(currentCount)
+  }
+
+  render()
+
+  const observer = new MutationObserver(render)
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  })
+
+  window.setInterval(
+    queueOrderDashboardSidebarBadgeRefresh,
+    ORDER_DASHBOARD_SIDEBAR_BADGE_REFRESH_MS,
   )
-}
-
-function getOrderDashboardSidebarBadgeLabel(count: number) {
-  const language = document.documentElement.lang
-  const dictionary = language.toLowerCase().startsWith("cs")
-    ? orderDashboardAdminI18n.cs
-    : orderDashboardAdminI18n.en
-
-  return dictionary.sidebar.actionRequiredOrders.replace(
-    "{{count}}",
-    String(count),
-  )
+  window.addEventListener("focus", queueOrderDashboardSidebarBadgeRefresh)
 }
