@@ -33,10 +33,6 @@ interface BannerProps extends VariantProps<typeof bannerVariants> {
   className?: string
 }
 
-export function Banner({ children, variant, size, className }: BannerProps) {
-  return (
-    <div className={bannerVariants({ className, size, variant })}>
-      {children}
-    </div>
-  )
-}
+export const Banner = ({ children, variant, size, className }: BannerProps) => (
+  <div className={bannerVariants({ className, size, variant })}>{children}</div>
+)

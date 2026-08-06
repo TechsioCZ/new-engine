@@ -20,8 +20,8 @@ import { OrdersSummary } from "./orders/orders-summary"
 const MIN_ORDERS_COUNT = 5
 const PAGE_SIZE = 5
 
-function parsePageParam(value: string | null) {
-  if (!value) {
+const parsePageParam = (value: string | null) => {
+  if ((value?.length ?? 0) === 0) {
     return 1
   }
 
@@ -29,21 +29,11 @@ function parsePageParam(value: string | null) {
   return Number.isFinite(parsedPage) ? Math.trunc(parsedPage) : 1
 }
 
-export function OrderList() {
-  return (
-    <ErrorBoundary fallback={<OrdersError />}>
-      <Suspense fallback={<OrdersSkeleton itemsCount={MIN_ORDERS_COUNT} />}>
-        <OrderListContent />
-      </Suspense>
-    </ErrorBoundary>
-  )
-}
-
-function OrderListContent() {
+const OrderListContent = () => {
   const searchParams = useSearchParams()
   const { data: ordersData } = useSuspenseOrders()
 
-  const orders = ordersData?.orders || []
+  const orders = ordersData?.orders ?? []
   const totalPages = Math.max(1, Math.ceil(orders.length / PAGE_SIZE))
   const requestedPage = parsePageParam(searchParams.get("ordersPage"))
   const page = Math.min(Math.max(requestedPage, 1), totalPages)
@@ -125,3 +115,11 @@ function OrderListContent() {
     </div>
   )
 }
+
+export const OrderList = () => (
+  <ErrorBoundary fallback={<OrdersError />}>
+    <Suspense fallback={<OrdersSkeleton itemsCount={MIN_ORDERS_COUNT} />}>
+      <OrderListContent />
+    </Suspense>
+  </ErrorBoundary>
+)

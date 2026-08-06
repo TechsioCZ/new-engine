@@ -9,9 +9,9 @@ interface CartItemRowProps {
   currencyCode: string
 }
 
-export function CartItemRow({ item, currencyCode }: CartItemRowProps) {
+export const CartItemRow = ({ item, currencyCode }: CartItemRowProps) => {
   const taxRate = item.tax_lines?.[0]?.rate
-  const tax = taxRate ? taxRate * 0.01 : 0
+  const tax = typeof taxRate === "number" ? taxRate * 0.01 : 0
   const price = formatToTaxIncluded({
     amount: item.unit_price,
     currency: currencyCode,
@@ -19,7 +19,7 @@ export function CartItemRow({ item, currencyCode }: CartItemRowProps) {
   })
   return (
     <div className="flex gap-200">
-      {item.thumbnail && (
+      {typeof item.thumbnail === "string" && item.thumbnail.length > 0 && (
         <Image
           alt={item.title}
           className="h-cart-thumbnail w-cart-thumbnail rounded object-cover"

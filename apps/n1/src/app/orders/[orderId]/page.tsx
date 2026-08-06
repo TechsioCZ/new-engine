@@ -11,21 +11,23 @@ import { queryKeys } from "@/lib/query-keys"
 import { useAnalytics } from "@/providers/analytics-provider"
 import { getOrderById } from "@/services/order-service"
 
-export default function OrderPage() {
+const { NEXT_PUBLIC_HEUREKA_API_KEY } = process.env
+
+const OrderPage = () => {
   const params = useParams()
   const searchParams = useSearchParams()
-  const orderId = params.orderId as string
+  const { orderId: orderIdParam } = params
+  if (typeof orderIdParam !== "string" || orderIdParam.length === 0) {
+    throw new Error("Order ID je povinné")
+  }
+  const orderId = orderIdParam
   const showSuccessBanner = searchParams.get("success") === "true"
 
   const analytics = useAnalytics()
   const purchaseTracked = useRef(false)
 
-  if (!orderId) {
-    throw new Error("Order ID je povinné")
-  }
-
   const { data: order } = useSuspenseQuery({
-    queryFn: async () => getOrderById(orderId),
+    queryFn: async () => await getOrderById(orderId),
     queryKey: queryKeys.orders.detail(orderId),
     retry: (failureCount, error) => {
       if (error instanceof Error && error.message?.includes("nenalezena")) {
@@ -39,45 +41,46 @@ export default function OrderPage() {
   // Unified analytics - Purchase tracking (sends to Meta, Google, Leadhub)
   // Only on new purchases with success=true
   useEffect(() => {
-    if (!(showSuccessBanner && order) || purchaseTracked.current) {
+    if (!showSuccessBanner || purchaseTracked.current) {
       return
     }
 
     purchaseTracked.current = true
 
-    const items = order.items || []
+    const items = order.items ?? []
     const currency = (order.currency_code ?? "CZK").toUpperCase()
     const value = order.total ?? 0
 
+    const { email } = order
     analytics.trackPurchase({
       currency,
       numItems: items.reduce((sum, item) => sum + (item.quantity || 0), 0),
       orderId: order.id,
       products: items.map((item) => ({
-        id: item.variant_id || "",
+        currency,
+        id: item.variant_id ?? "",
         name: item.title || "",
         price: item.unit_price ?? 0,
-        currency,
         quantity: item.quantity || 1,
       })),
       value,
-      ...(order.email ? { email: order.email } : {}),
+      ...(typeof email === "string" && email.length > 0 ? { email } : {}),
     })
   }, [showSuccessBanner, order, analytics])
 
   return (
     <div className="container mx-auto min-h-screen p-500">
       {/* Heureka conversion tracking - standalone, SDK loads here */}
-      {showSuccessBanner && order && (
+      {showSuccessBanner && (
         <HeurekaOrder
-          apiKey={process.env.NEXT_PUBLIC_HEUREKA_API_KEY ?? ""}
+          apiKey={NEXT_PUBLIC_HEUREKA_API_KEY ?? ""}
           country="cz"
           currency={(order.currency_code ?? "CZK").toUpperCase()}
           debug
           orderId={order.id}
           products={
             order.items?.map((item) => ({
-              id: item.variant_id || "",
+              id: item.variant_id ?? "",
               name: item.title || "",
               priceWithVat: item.unit_price ?? 0,
               quantity: item.quantity || 1,
@@ -102,3 +105,5 @@ export default function OrderPage() {
     </div>
   )
 }
+
+export default OrderPage

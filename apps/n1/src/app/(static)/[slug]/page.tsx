@@ -10,9 +10,9 @@ interface CmsDynamicPageProps {
   }>
 }
 
-export async function generateMetadata({
+export const generateMetadata = async ({
   params,
-}: CmsDynamicPageProps): Promise<Metadata> {
+}: CmsDynamicPageProps): Promise<Metadata> => {
   const { slug } = await params
   const page = await getCmsPage(slug)
 
@@ -26,7 +26,7 @@ export async function generateMetadata({
   }
 }
 
-export default async function CmsDynamicPage({ params }: CmsDynamicPageProps) {
+const CmsDynamicPage = async ({ params }: CmsDynamicPageProps) => {
   const { slug } = await params
   const page = await getCmsPage(slug)
 
@@ -36,3 +36,5 @@ export default async function CmsDynamicPage({ params }: CmsDynamicPageProps) {
 
   return <CmsPageArticle page={page} />
 }
+
+export default CmsDynamicPage

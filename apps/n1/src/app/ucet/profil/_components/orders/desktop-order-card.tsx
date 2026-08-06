@@ -12,11 +12,11 @@ import {
 import { formatAmount } from "@/utils/format/format-product"
 import { truncateText } from "@/utils/truncate-text"
 
-export function DesktopOrderCard({ order }: { order: StoreOrder }) {
+export const DesktopOrderCard = ({ order }: { order: StoreOrder }) => {
   const statusVariant = getOrderStatusColor(order.status)
 
   const correctWord = () => {
-    const itemsCount = order.items?.length || 0
+    const itemsCount = order.items?.length ?? 0
     if (itemsCount === 1) {
       return "položka"
     }
@@ -44,7 +44,11 @@ export function DesktopOrderCard({ order }: { order: StoreOrder }) {
       {/* Date */}
       <div className="col-span-2 flex items-center">
         <p className="text-fg-secondary text-sm">
-          {formatDateString(order.created_at as string)}
+          {formatDateString(
+            typeof order.created_at === "string"
+              ? order.created_at
+              : order.created_at.toISOString(),
+          )}
         </p>
       </div>
 
@@ -59,15 +63,16 @@ export function DesktopOrderCard({ order }: { order: StoreOrder }) {
                 key={item.id}
                 style={{ zIndex: 3 - index }}
               >
-                {item.thumbnail && (
-                  <Image
-                    alt={item.product_title || ""}
-                    className="object-cover"
-                    height={40}
-                    src={item.thumbnail}
-                    width={40}
-                  />
-                )}
+                {typeof item.thumbnail === "string" &&
+                  item.thumbnail.length > 0 && (
+                    <Image
+                      alt={item.product_title ?? ""}
+                      className="object-cover"
+                      height={40}
+                      src={item.thumbnail}
+                      width={40}
+                    />
+                  )}
               </div>
             ))}
             {order.items && order.items.length > 3 && (
@@ -84,10 +89,10 @@ export function DesktopOrderCard({ order }: { order: StoreOrder }) {
             <p className="line-clamp-1 text-fg-primary">
               {order.items?.[0] &&
                 order.items.length < 2 &&
-                truncateText(order.items[0].product_title || "")}
+                truncateText(order.items[0].product_title ?? "")}
             </p>
             <p className="text-fg-tertiary text-sm">
-              {order.items?.length || 0} {correctWord()}
+              {order.items?.length ?? 0} {correctWord()}
             </p>
           </div>
         </div>

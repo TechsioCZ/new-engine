@@ -8,8 +8,8 @@ import { cacheConfig } from "@/lib/cache-config"
 
 import { PrefetchManager } from "./prefetch-manager"
 
-function createQueryClient() {
-  return new QueryClient({
+const createQueryClient = () =>
+  new QueryClient({
     defaultOptions: {
       queries: {
         retry: 3,
@@ -19,11 +19,10 @@ function createQueryClient() {
       },
     },
   })
-}
 
 let browserQueryClient: QueryClient | undefined
 
-function getQueryClient() {
+const getQueryClient = () => {
   if (typeof window === "undefined") {
     return createQueryClient()
   }

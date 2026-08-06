@@ -79,30 +79,40 @@ export const OrderDetail = ({ order }: OrderDetailProps) => (
           <div>
             <p className="text-fg-tertiary text-sm">Vytvořeno</p>
             <p className="font-medium text-fg-primary">
-              {formatDateString(order.created_at as string, {
-                day: "numeric",
-                month: "numeric",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatDateString(
+                typeof order.created_at === "string"
+                  ? order.created_at
+                  : order.created_at.toISOString(),
+                {
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  month: "numeric",
+                  year: "numeric",
+                },
+              )}
             </p>
           </div>
-          {order.updated_at && (
+          {order.updated_at !== undefined && order.updated_at !== null && (
             <div>
               <p className="text-fg-tertiary text-sm">Poslední aktualizace</p>
               <p className="font-medium text-fg-primary">
-                {formatDateString(order.updated_at as string, {
-                  day: "numeric",
-                  month: "numeric",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatDateString(
+                  typeof order.updated_at === "string"
+                    ? order.updated_at
+                    : order.updated_at.toISOString(),
+                  {
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    month: "numeric",
+                    year: "numeric",
+                  },
+                )}
               </p>
             </div>
           )}
-          {order.email && (
+          {(order.email?.length ?? 0) > 0 && (
             <div>
               <p className="text-fg-tertiary text-sm">E-mail</p>
               <p className="font-medium text-fg-primary">{order.email}</p>

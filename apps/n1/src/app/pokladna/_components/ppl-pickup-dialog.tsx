@@ -27,13 +27,13 @@ interface PplPickupDialogProps {
  *
  * Widget remounts automatically via conditional render {open && ...}
  */
-export function PplPickupDialog({
+export const PplPickupDialog = ({
   open,
   selectedPoint,
   onSelect,
   onClose,
   address,
-}: PplPickupDialogProps) {
+}: PplPickupDialogProps) => {
   const handleSelect = (data: PplAccessPointData) => {
     if (process.env.NODE_ENV === "development") {
       console.log("[PplPickupDialog] Access point selected:", data)

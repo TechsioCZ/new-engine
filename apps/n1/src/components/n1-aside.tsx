@@ -16,12 +16,12 @@ interface N1AsideProps {
   currentCategory?: Category | undefined
 }
 
-export function N1Aside({
+export const N1Aside = ({
   categories,
   categoryMap,
   label,
   currentCategory,
-}: N1AsideProps) {
+}: N1AsideProps) => {
   const router = useRouter()
   const treeData = transformToTree(categories)
 
@@ -30,8 +30,9 @@ export function N1Aside({
   const expandedPath = getCategoryPath(currentCategory, categoryMap)
 
   const handleSelect = (details: TreeType.SelectionChangeDetails) => {
-    if (details.focusedValue) {
-      const node = findNodeById(treeData, details.focusedValue)
+    const { focusedValue } = details
+    if (typeof focusedValue === "string" && focusedValue.length > 0) {
+      const node = findNodeById(treeData, focusedValue)
       if (node) {
         router.push(`/kategorie/${node.handle}`)
       }
@@ -59,7 +60,10 @@ export function N1Aside({
               key={node.id}
               node={node}
               onNodeHover={(hoveredNode) => {
-                prefetchOnHover(hoveredNode["handle"] as string)
+                const { handle: hoveredHandle } = hoveredNode
+                if (typeof hoveredHandle === "string") {
+                  prefetchOnHover(hoveredHandle)
+                }
               }}
               onNodeLeave={() => {
                 cancelHover()

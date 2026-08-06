@@ -3,20 +3,21 @@ import Link from "next/link"
 
 import { addDays, formatDateShort, formatDay } from "@/utils/format/format-date"
 
+const tooltipContent = (
+  <article>
+    <Link className="font-bold underline" href="/doprava-a-platba">
+      PPL Doručení do výdejních míst
+    </Link>
+    <p>
+      Vyzvedněte si zásilku, kde je vám to blízké, v PPL Parcelboxu nebo PPL
+      Parcelshopu.
+    </p>
+  </article>
+)
+
 export const DeliveryDate = () => {
   const deliveryDate = addDays(3)
 
-  const tooltipContent = (
-    <article>
-      <Link className="font-bold underline" href="/doprava-a-platba">
-        PPL Doručení do výdejních míst
-      </Link>
-      <p>
-        Vyzvedněte si zásilku, kde je vám to blízké, v PPL Parcelboxu nebo PPL
-        Parcelshopu.
-      </p>
-    </article>
-  )
   return (
     <div className="flex items-center gap-150">
       <Tooltip

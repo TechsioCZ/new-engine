@@ -32,7 +32,7 @@ export const ProductGrid = ({
   skeletonCount = 12,
 }: ProductGridProps) => {
   const { delayedPrefetch } = usePrefetchProduct()
-  const totalPages = Math.ceil((totalCount || products.length) / pageSize)
+  const totalPages = Math.ceil((totalCount ?? products.length) / pageSize)
   const skeletonKeys = Array.from(
     { length: skeletonCount },
     (_, index) => `product-skeleton-${index}`,
@@ -144,7 +144,7 @@ export const ProductGrid = ({
         <div className="mt-700 flex justify-end">
           <Pagination
             className="sm:hidden"
-            count={totalCount || products.length}
+            count={totalCount ?? products.length}
             getPageUrl={getPageUrl}
             linkAs={Link}
             page={currentPage}
@@ -153,7 +153,7 @@ export const ProductGrid = ({
           />
           <Pagination
             className="hidden sm:flex"
-            count={totalCount || products.length}
+            count={totalCount ?? products.length}
             getPageUrl={getPageUrl}
             linkAs={Link}
             page={currentPage}

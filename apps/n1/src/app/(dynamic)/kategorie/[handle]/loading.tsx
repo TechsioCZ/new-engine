@@ -7,14 +7,14 @@ const SKELETON_KEYS = Array.from(
   (_, index) => `skeleton-${index}`,
 )
 
-export default function Loading() {
-  return (
-    <div className="mx-auto w-full max-w-max-w px-400 py-400">
-      <div className="grid grid-cols-2 gap-200 md:grid-cols-4">
-        {SKELETON_KEYS.map((key) => (
-          <ProductCardSkeleton key={key} />
-        ))}
-      </div>
+const Loading = () => (
+  <div className="mx-auto w-full max-w-max-w px-400 py-400">
+    <div className="grid grid-cols-2 gap-200 md:grid-cols-4">
+      {SKELETON_KEYS.map((key) => (
+        <ProductCardSkeleton key={key} />
+      ))}
     </div>
-  )
-}
+  </div>
+)
+
+export default Loading

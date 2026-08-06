@@ -12,7 +12,7 @@ import { AddressList } from "./_components/address-list"
 import { OrderList } from "./_components/order-list"
 import { ProfileForm } from "./_components/profile-form"
 
-export default function ProfilePage() {
+const ProfilePage = () => {
   const router = useRouter()
   const toast = useAuthToast()
   const searchParams = useSearchParams()
@@ -136,3 +136,5 @@ export default function ProfilePage() {
     </>
   )
 }
+
+export default ProfilePage

@@ -29,45 +29,49 @@ export const metadata: Metadata = {
   title: "Create Next App",
 }
 
-export default function RootLayout({
+const {
+  NEXT_PUBLIC_GOOGLE_ADS_ID,
+  NEXT_PUBLIC_LEADHUB_TRACKING_ID,
+  NEXT_PUBLIC_META_PIXEL_ID,
+} = process.env
+
+const RootLayout = ({
   children,
 }: Readonly<{
   children: ReactNode
-}>) {
-  return (
-    <html lang="cs">
-      <body
-        className={`${openSans.variable} ${openSans.className} antialiased`}
-      >
-        <MetaPixel
-          debug={analyticsDebug}
-          pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID ?? ""}
-        />
-        <GoogleTag
-          adsId={process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? ""}
-          debug={analyticsDebug}
-        />
-        <LeadhubPixel
-          debug={analyticsDebug}
-          trackingId={process.env.NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""}
-        />
-        <Providers>
-          <AnalyticsProvider>
+}>) => (
+  <html lang="cs">
+    <body className={`${openSans.variable} ${openSans.className} antialiased`}>
+      <MetaPixel
+        debug={analyticsDebug}
+        pixelId={NEXT_PUBLIC_META_PIXEL_ID ?? ""}
+      />
+      <GoogleTag
+        adsId={NEXT_PUBLIC_GOOGLE_ADS_ID ?? ""}
+        debug={analyticsDebug}
+      />
+      <LeadhubPixel
+        debug={analyticsDebug}
+        trackingId={NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""}
+      />
+      <Providers>
+        <AnalyticsProvider>
+          <Suspense fallback={null}>
+            <PageviewTracker />
+          </Suspense>
+          <div className="grid min-h-dvh grid-rows-[auto_1fr_auto]">
             <Suspense fallback={null}>
-              <PageviewTracker />
+              <HeaderProvider>
+                <N1Header />
+              </HeaderProvider>
             </Suspense>
-            <div className="grid min-h-dvh grid-rows-[auto_1fr_auto]">
-              <Suspense fallback={null}>
-                <HeaderProvider>
-                  <N1Header />
-                </HeaderProvider>
-              </Suspense>
-              {children}
-              <N1Footer />
-            </div>
-          </AnalyticsProvider>
-        </Providers>
-      </body>
-    </html>
-  )
-}
+            {children}
+            <N1Footer />
+          </div>
+        </AnalyticsProvider>
+      </Providers>
+    </body>
+  </html>
+)
+
+export default RootLayout

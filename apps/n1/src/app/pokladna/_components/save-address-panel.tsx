@@ -1,8 +1,7 @@
 "use client"
 
-import { useStore } from "@tanstack/react-form"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 
 import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
 import { AddressValidationError } from "@/lib/errors"
@@ -12,16 +11,30 @@ import {
   useCheckoutForm,
 } from "../_context/checkout-context"
 
+enum SaveStatus {
+  Error = "error",
+  Idle = "idle",
+  Saving = "saving",
+  Success = "success",
+}
+
 export const SaveAddressPanel = () => {
   const { customer, selectedAddressId } = useCheckoutContext()
   const form = useCheckoutForm()
 
-  const isDirty = useStore(form.store, (state) => state.isDirty)
+  const isDirty = useSyncExternalStore(
+    (onStoreChange) => {
+      const subscription = form.store.subscribe(onStoreChange)
+      return () => {
+        subscription.unsubscribe()
+      }
+    },
+    () => form.store.state.isDirty,
+    () => form.store.state.isDirty,
+  )
   const shouldShowSavePanel = Boolean(customer) && isDirty
 
-  const [saveStatus, setSaveStatus] = useState<
-    "idle" | "saving" | "success" | "error"
-  >("idle")
+  const [saveStatus, setSaveStatus] = useState(SaveStatus.Idle)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const { mutateAsync: createAddressAsync } = useCreateAddress()
@@ -33,15 +46,15 @@ export const SaveAddressPanel = () => {
 
   const handleSaveNew = async () => {
     const currentValues = form.getFieldValue("billingAddress")
-    setSaveStatus("saving")
+    setSaveStatus(SaveStatus.Saving)
     setErrorMessage(null)
     try {
       await createAddressAsync(currentValues)
       // Reset with current values to clear isDirty without losing data
       form.reset({ ...form.state.values, billingAddress: currentValues })
-      setSaveStatus("success")
+      setSaveStatus(SaveStatus.Success)
       setTimeout(() => {
-        setSaveStatus("idle")
+        setSaveStatus(SaveStatus.Idle)
       }, 2000)
     } catch (error) {
       if (AddressValidationError.isAddressValidationError(error)) {
@@ -49,20 +62,23 @@ export const SaveAddressPanel = () => {
       } else {
         setErrorMessage("Nepodařilo se uložit adresu")
       }
-      setSaveStatus("error")
+      setSaveStatus(SaveStatus.Error)
       setTimeout(() => {
-        setSaveStatus("idle")
+        setSaveStatus(SaveStatus.Idle)
         setErrorMessage(null)
       }, 4000)
     }
   }
 
   const handleUpdate = async () => {
-    if (!selectedAddressId) {
+    if (
+      typeof selectedAddressId !== "string" ||
+      selectedAddressId.length === 0
+    ) {
       return
     }
     const currentValues = form.getFieldValue("billingAddress")
-    setSaveStatus("saving")
+    setSaveStatus(SaveStatus.Saving)
     setErrorMessage(null)
     try {
       await updateAddressAsync({
@@ -71,9 +87,9 @@ export const SaveAddressPanel = () => {
       })
       // Reset with current values to clear isDirty without losing data
       form.reset({ ...form.state.values, billingAddress: currentValues })
-      setSaveStatus("success")
+      setSaveStatus(SaveStatus.Success)
       setTimeout(() => {
-        setSaveStatus("idle")
+        setSaveStatus(SaveStatus.Idle)
       }, 2000)
     } catch (error) {
       if (AddressValidationError.isAddressValidationError(error)) {
@@ -81,9 +97,9 @@ export const SaveAddressPanel = () => {
       } else {
         setErrorMessage("Nepodařilo se aktualizovat adresu")
       }
-      setSaveStatus("error")
+      setSaveStatus(SaveStatus.Error)
       setTimeout(() => {
-        setSaveStatus("idle")
+        setSaveStatus(SaveStatus.Idle)
         setErrorMessage(null)
       }, 4000)
     }
@@ -92,26 +108,37 @@ export const SaveAddressPanel = () => {
   return (
     <div className="mt-400 flex flex-wrap items-center gap-300 rounded border border-info bg-info-light/20 p-300">
       <span
-        className={`text-sm ${saveStatus === "error" ? "text-danger" : "text-fg-secondary"}`}
+        className={`text-sm ${saveStatus === SaveStatus.Error ? "text-danger" : "text-fg-secondary"}`}
       >
-        {saveStatus === "saving" && "Ukládání..."}
-        {saveStatus === "success" && "✓ Uloženo"}
-        {saveStatus === "idle" && "Uložit změny do profilu?"}
+        {saveStatus === SaveStatus.Saving && "Ukládání..."}
+        {saveStatus === SaveStatus.Success && "✓ Uloženo"}
+        {saveStatus === SaveStatus.Idle && "Uložit změny do profilu?"}
       </span>
 
-      {saveStatus === "idle" && (
+      {saveStatus === SaveStatus.Idle && (
         <div className="flex gap-200">
-          <Button onClick={handleSaveNew} size="sm">
+          <Button
+            onClick={() => {
+              void handleSaveNew()
+            }}
+            size="sm"
+          >
             Uložit jako novou adresu
           </Button>
-          {selectedAddressId && (
-            <Button onClick={handleUpdate} size="sm">
+          {(selectedAddressId?.length ?? 0) > 0 && (
+            <Button
+              onClick={() => {
+                void handleUpdate()
+              }}
+              size="sm"
+            >
               Aktualizovat
             </Button>
           )}
         </div>
       )}
-      {saveStatus === "error" && (errorMessage ?? "Nepodařilo se uložit")}
+      {saveStatus === SaveStatus.Error &&
+        (errorMessage ?? "Nepodařilo se uložit")}
     </div>
   )
 }

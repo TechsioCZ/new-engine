@@ -10,7 +10,7 @@ interface ErrorProps {
   reset: () => void
 }
 
-export default function ErrorProduct({ reset }: ErrorProps) {
+const ErrorProduct = ({ reset }: ErrorProps) => {
   const queryClient = useQueryClient()
 
   const handleRetry = async () => {
@@ -32,7 +32,9 @@ export default function ErrorProduct({ reset }: ErrorProps) {
         </p>
         <div className="flex justify-center">
           <Button
-            onClick={handleRetry}
+            onClick={() => {
+              void handleRetry()
+            }}
             size="sm"
             theme="solid"
             variant="secondary"
@@ -44,3 +46,5 @@ export default function ErrorProduct({ reset }: ErrorProps) {
     </div>
   )
 }
+
+export default ErrorProduct

@@ -27,7 +27,7 @@ export const AddToCartSection = ({
 
   const handleAddToCart = () => {
     // Validate region context
-    if (!regionId) {
+    if ((regionId?.length ?? 0) === 0) {
       toast.cartError("Nelze přidat do košíku bez regionálního kontextu")
       return
     }
@@ -136,7 +136,7 @@ export const AddToCartSection = ({
         <NumericInput.IncrementTrigger />
       </NumericInput>
       <Button
-        disabled={(isPending ?? !selectedVariant?.id) || !regionId}
+        disabled={isPending || (regionId?.length ?? 0) === 0}
         onClick={handleAddToCart}
         variant="secondary"
       >

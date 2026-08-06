@@ -3,7 +3,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useReducer } from "react"
 
 import { useDebounce } from "@/hooks/use-debounce"
 import type { CartLineItem } from "@/services/cart-service"
@@ -17,23 +17,23 @@ interface CartItemProps {
   isOptimistic?: boolean
 }
 
-export const CartItem = ({
+const CartItemContent = ({
   item,
   onUpdateQuantity,
   onRemove,
   isPending = false,
   isOptimistic = false,
 }: CartItemProps) => {
-  const [localQuantity, setLocalQuantity] = useState(item.quantity)
-  const title = item.product_title || item.title || "Unknown Product"
+  const [localQuantity, setLocalQuantity] = useReducer(
+    (_current: number, next: number) => next,
+    item.quantity,
+  )
+  const title = (item.product_title ?? item.title) || "Unknown Product"
   const variantTitle = item.variant_title
   const { thumbnail } = item
+  const { inventory_quantity: inventoryQuantity } = item.metadata ?? {}
   const effectiveMax =
-    (item.metadata?.inventory_quantity as number | undefined) ?? 10
-
-  useEffect(() => {
-    setLocalQuantity(item.quantity)
-  }, [item.quantity])
+    typeof inventoryQuantity === "number" ? inventoryQuantity : 10
 
   const debouncedUpdate = useDebounce((quantity: number) => {
     onUpdateQuantity(quantity)
@@ -58,7 +58,7 @@ export const CartItem = ({
       `}
     >
       <div className="h-cart-thumbnail w-cart-thumbnail flex-shrink-0 overflow-hidden rounded-md">
-        {thumbnail ? (
+        {typeof thumbnail === "string" && thumbnail.length > 0 ? (
           <Image
             alt={title}
             className="h-full w-full object-cover"
@@ -84,7 +84,7 @@ export const CartItem = ({
           </h4>
         </Link>
 
-        {variantTitle && variantTitle !== "Default" && (
+        {(variantTitle?.length ?? 0) > 0 && variantTitle !== "Default" && (
           <p className="truncate text-fg-secondary text-xs">{variantTitle}</p>
         )}
 
@@ -133,3 +133,7 @@ export const CartItem = ({
     </div>
   )
 }
+
+export const CartItem = (props: CartItemProps) => (
+  <CartItemContent key={props.item.quantity} {...props} />
+)

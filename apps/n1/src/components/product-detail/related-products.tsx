@@ -17,7 +17,7 @@ export const RelatedProducts = ({ categories }: RelatedProductsProps) => {
     <div>
       <h3 className="font-bold text-lg">PODOBNÉ PRODUKTY</h3>
       <div className="flex max-w-max-w justify-around">
-        {products && <ProductGrid products={products} />}
+        <ProductGrid products={products} />
       </div>
     </div>
   )

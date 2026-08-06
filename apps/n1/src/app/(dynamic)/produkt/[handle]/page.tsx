@@ -5,7 +5,7 @@ import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
 import { GalleryTemplate } from "@techsio/ui-kit/templates/gallery"
 import Image from "next/image"
 import { useParams, useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useRef } from "react"
 
 import { Heading } from "@/components/heading"
 import { ProductInfoPanel } from "@/components/product-detail/product-info-panel"
@@ -16,6 +16,7 @@ import { RelatedProducts } from "@/components/product-detail/related-products"
 import { useSuspenseProduct } from "@/hooks/use-product"
 import { CATEGORY_MAP_BY_ID } from "@/lib/constants"
 import { useAnalytics } from "@/providers/analytics-provider"
+import type { ProductDetail, ProductVariantDetail } from "@/types/product"
 import {
   buildBreadcrumbs,
   buildProductBreadcrumbs,
@@ -23,49 +24,37 @@ import {
 import { selectVariant } from "@/utils/select-variant"
 import { transformProductDetail } from "@/utils/transform/transform-product"
 
-export default function ProductPage() {
-  const params = useParams()
-  const searchParams = useSearchParams()
-  const handle = params.handle as string
-  const variantParam = searchParams.get("variant")
+type RawProduct = NonNullable<ReturnType<typeof useSuspenseProduct>["data"]>
 
-  const { data: rawProduct } = useSuspenseProduct({ handle })
+interface ProductContentProps {
+  handle: string
+  rawProduct: RawProduct
+  variantParam: string | null
+}
+
+interface TrackProductViewOptions {
+  categoryName: string | undefined
+  detail: ProductDetail
+  selectedVariant: ProductVariantDetail | null
+}
+
+const useTrackProductView = ({
+  categoryName,
+  detail,
+  selectedVariant,
+}: TrackProductViewOptions) => {
   const analytics = useAnalytics()
-
-  // Track which variant we've already tracked to prevent duplicates
   const trackedVariantId = useRef<string | null>(null)
 
-  const detail = rawProduct ? transformProductDetail(rawProduct) : null
-  const selectedVariant = selectVariant(detail?.variants, variantParam)
-
-  // Transformed items carry only id and src, but the gallery renders each
-  // slide through next/image, which throws without width/height or fill.
-  // The carousel slide is positioned, so fill resolves against it.
-  const galleryImages = useMemo(
-    () =>
-      detail?.images?.map((image) => ({
-        ...image,
-        imageProps: { fill: true, sizes: "(max-width: 448px) 100vw, 448px" },
-      })) ?? [],
-    [detail?.images],
-  )
-
-  const title = selectedVariant
-    ? `${detail?.title} - ${selectedVariant.title}`
-    : detail?.title
-  const quantity = selectedVariant?.inventory_quantity ?? 0
-
-  // Unified analytics - ViewContent tracking (sends to Meta, Google, Leadhub)
   useEffect(() => {
-    if (!(detail && selectedVariant)) {
-      return
-    }
-    if (trackedVariantId.current === selectedVariant.id) {
+    if (
+      selectedVariant === null ||
+      trackedVariantId.current === selectedVariant.id
+    ) {
       return
     }
 
     trackedVariantId.current = selectedVariant.id
-
     analytics.trackViewContent({
       currency: (
         selectedVariant.calculated_price?.currency_code ?? "CZK"
@@ -73,27 +62,39 @@ export default function ProductPage() {
       productId: selectedVariant.id,
       productName: detail.title,
       value: selectedVariant.calculated_price?.calculated_amount_with_tax ?? 0,
-      ...(rawProduct?.categories?.[0]?.name
-        ? { category: rawProduct.categories[0].name }
+      ...(typeof categoryName === "string" && categoryName.length > 0
+        ? { category: categoryName }
         : {}),
     })
-  }, [
-    detail?.id,
-    selectedVariant?.id,
-    analytics,
-    rawProduct?.categories,
-    detail,
-    selectedVariant?.calculated_price?.calculated_amount_with_tax,
-    selectedVariant,
-  ])
+  }, [analytics, categoryName, detail.title, selectedVariant])
+}
 
-  if (!(rawProduct && detail)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-fg-secondary">Produkt nebyl nalezen</p>
-      </div>
-    )
-  }
+const ProductContent = ({
+  handle,
+  rawProduct,
+  variantParam,
+}: ProductContentProps) => {
+  const detail = transformProductDetail(rawProduct)
+  const selectedVariant = selectVariant(detail.variants, variantParam)
+  useTrackProductView({
+    categoryName: rawProduct.categories?.[0]?.name,
+    detail,
+    selectedVariant,
+  })
+
+  // Transformed items carry only id and src, but the gallery renders each
+  // slide through next/image, which throws without width/height or fill.
+  // The carousel slide is positioned, so fill resolves against it.
+  const galleryImages =
+    detail?.images?.map((image) => ({
+      ...image,
+      imageProps: { fill: true, sizes: "(max-width: 448px) 100vw, 448px" },
+    })) ?? []
+
+  const title = selectedVariant
+    ? `${detail?.title} - ${selectedVariant.title}`
+    : detail?.title
+  const quantity = selectedVariant?.inventory_quantity ?? 0
 
   const breadcrumbPath = buildProductBreadcrumbs(
     rawProduct.categories?.[0]?.id,
@@ -192,3 +193,31 @@ export default function ProductPage() {
     </div>
   )
 }
+
+const ProductPage = () => {
+  const params = useParams()
+  const searchParams = useSearchParams()
+  const { handle: handleParam } = params
+  if (typeof handleParam !== "string" || handleParam.length === 0) {
+    throw new Error("Handle produktu je povinný")
+  }
+
+  const { data: rawProduct } = useSuspenseProduct({ handle: handleParam })
+  if (rawProduct === undefined || rawProduct === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-fg-secondary">Produkt nebyl nalezen</p>
+      </div>
+    )
+  }
+
+  return (
+    <ProductContent
+      handle={handleParam}
+      rawProduct={rawProduct}
+      variantParam={searchParams.get("variant")}
+    />
+  )
+}
+
+export default ProductPage

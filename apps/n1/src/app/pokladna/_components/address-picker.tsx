@@ -27,12 +27,12 @@ const isAddressSelectItem = (item: SelectItem): item is AddressSelectItem =>
   "address" in item &&
   "isDefault" in item
 
-export function AddressPicker({
+export const AddressPicker = ({
   addresses,
   selectedId,
   onSelect,
   disabled,
-}: AddressPickerProps) {
+}: AddressPickerProps) => {
   const items: AddressSelectItem[] = addresses.map((address, index) => ({
     address,
     displayValue: `${address.city}, ${address.address_1}`,
@@ -52,8 +52,8 @@ export function AddressPicker({
       items={items}
       label="Vyberte z vašich adres"
       onValueChange={(details) => {
-        const newId = details.value[0]
-        if (!newId) {
+        const [newId] = details.value
+        if ((newId?.length ?? 0) === 0) {
           return
         }
         const address = addresses.find((a) => a.id === newId)
@@ -78,7 +78,7 @@ export function AddressPicker({
               </span>
               <span className="truncate font-normal text-fg-secondary text-xs">
                 {addressItem.address.address_1}
-                {addressItem.address.address_2
+                {(addressItem.address.address_2?.length ?? 0) > 0
                   ? `, ${addressItem.address.address_2}`
                   : ""}
               </span>
@@ -92,7 +92,11 @@ export function AddressPicker({
         )
       }}
       size="lg"
-      value={selectedId ? [selectedId] : []}
+      value={
+        typeof selectedId === "string" && selectedId.length > 0
+          ? [selectedId]
+          : []
+      }
     />
   )
 }

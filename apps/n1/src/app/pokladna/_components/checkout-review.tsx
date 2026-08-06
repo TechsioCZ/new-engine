@@ -19,7 +19,73 @@ interface CheckoutReviewProps {
   order: StoreOrder
 }
 
-export function CheckoutReview({ order }: CheckoutReviewProps) {
+const OrderItems = ({ items }: { items: StoreOrder["items"] }) => (
+  <div className="[&>*+*]:mt-300">
+    {items?.map((item) => (
+      <div className="flex gap-200" key={item.id}>
+        {typeof item.thumbnail === "string" && item.thumbnail.length > 0 && (
+          <Image
+            alt={item.title}
+            className="h-cart-thumbnail w-cart-thumbnail rounded object-cover"
+            height={64}
+            src={item.thumbnail}
+            width={64}
+          />
+        )}
+        <div className="flex flex-1 flex-col">
+          <Link
+            className="font-medium text-fg-primary text-sm underline hover:no-underline"
+            href={`/produkt/${item.product_handle}?variant=${item.subtitle}`}
+          >
+            {item.title}
+          </Link>
+          {(item.variant_title?.length ?? 0) > 0 && (
+            <span className="text-fg-secondary text-xs">
+              {item.variant_title}
+            </span>
+          )}
+          <span className="text-fg-secondary text-xs">
+            Kusů: {item.quantity}
+          </span>
+        </div>
+        <div className="text-right">
+          <p className="font-semibold text-fg-primary text-sm">
+            {formatAmount(item.total || 0)}
+          </p>
+        </div>
+      </div>
+    ))}
+  </div>
+)
+
+const ShippingAddress = ({
+  address,
+}: {
+  address: NonNullable<StoreOrder["shipping_address"]>
+}) => (
+  <div className="mb-500 rounded-lg border border-border-secondary bg-surface p-400">
+    <h2 className="mb-400 font-semibold text-fg-primary text-lg">
+      Doručovací adresa
+    </h2>
+    <div className="text-fg-secondary text-sm">
+      <p className="font-medium text-fg-primary">
+        {address.first_name} {address.last_name}
+      </p>
+      {(address.company?.length ?? 0) > 0 && <p>{address.company}</p>}
+      <p>{address.address_1}</p>
+      {(address.address_2?.length ?? 0) > 0 && <p>{address.address_2}</p>}
+      <p>
+        {address.city}, {address.postal_code}
+      </p>
+      <p className="uppercase">{address.country_code}</p>
+      {(address.phone?.length ?? 0) > 0 && (
+        <p className="mt-200">{address.phone}</p>
+      )}
+    </div>
+  </div>
+)
+
+export const CheckoutReview = ({ order }: CheckoutReviewProps) => {
   const statusInfo = {
     label: getOrderStatusLabel(order.status),
     variant: getOrderStatusColor(order.status),
@@ -42,19 +108,24 @@ export function CheckoutReview({ order }: CheckoutReviewProps) {
               Objednávka #{order.display_id}
             </h1>
             <p className="mt-100 text-fg-secondary text-sm">
-              {formatDateString(order.created_at as string, {
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                month: "long",
-                year: "numeric",
-              })}
+              {formatDateString(
+                typeof order.created_at === "string"
+                  ? order.created_at
+                  : order.created_at.toISOString(),
+                {
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                },
+              )}
             </p>
           </div>
           <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
         </div>
 
-        {order.email && (
+        {(order.email?.length ?? 0) > 0 && (
           <p className="text-fg-secondary text-sm">
             Potvrzení odesláno na: <strong>{order.email}</strong>
           </p>
@@ -66,73 +137,14 @@ export function CheckoutReview({ order }: CheckoutReviewProps) {
         <h2 className="mb-400 font-semibold text-fg-primary text-lg">
           Položky objednávky
         </h2>
-        <div className="[&>*+*]:mt-300">
-          {order.items?.map((item) => (
-            <div className="flex gap-200" key={item.id}>
-              {item.thumbnail && (
-                <Image
-                  alt={item.title}
-                  className="h-cart-thumbnail w-cart-thumbnail rounded object-cover"
-                  height={64}
-                  src={item.thumbnail}
-                  width={64}
-                />
-              )}
-              <div className="flex flex-1 flex-col">
-                <Link
-                  className="font-medium text-fg-primary text-sm underline hover:no-underline"
-                  href={`/produkt/${item.product_handle}?variant=${item.subtitle}`}
-                >
-                  {item.title}
-                </Link>
-                {item.variant_title && (
-                  <span className="text-fg-secondary text-xs">
-                    {item.variant_title}
-                  </span>
-                )}
-                <span className="text-fg-secondary text-xs">
-                  Kusů: {item.quantity}
-                </span>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-fg-primary text-sm">
-                  {formatAmount(item.total || 0)}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <OrderItems items={order.items} />
       </div>
 
       {/* Shipping Address */}
-      {order.shipping_address && (
-        <div className="mb-500 rounded-lg border border-border-secondary bg-surface p-400">
-          <h2 className="mb-400 font-semibold text-fg-primary text-lg">
-            Doručovací adresa
-          </h2>
-          <div className="text-fg-secondary text-sm">
-            <p className="font-medium text-fg-primary">
-              {order.shipping_address.first_name}{" "}
-              {order.shipping_address.last_name}
-            </p>
-            {order.shipping_address.company && (
-              <p>{order.shipping_address.company}</p>
-            )}
-            <p>{order.shipping_address.address_1}</p>
-            {order.shipping_address.address_2 && (
-              <p>{order.shipping_address.address_2}</p>
-            )}
-            <p>
-              {order.shipping_address.city},{" "}
-              {order.shipping_address.postal_code}
-            </p>
-            <p className="uppercase">{order.shipping_address.country_code}</p>
-            {order.shipping_address.phone && (
-              <p className="mt-200">{order.shipping_address.phone}</p>
-            )}
-          </div>
-        </div>
-      )}
+      {order.shipping_address !== undefined &&
+        order.shipping_address !== null && (
+          <ShippingAddress address={order.shipping_address} />
+        )}
 
       {/* Shipping Method */}
       {primaryShippingMethod && (

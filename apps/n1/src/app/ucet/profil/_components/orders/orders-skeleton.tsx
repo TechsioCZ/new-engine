@@ -1,6 +1,6 @@
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 
-export function OrdersSkeleton({ itemsCount }: { itemsCount: number }) {
+export const OrdersSkeleton = ({ itemsCount }: { itemsCount: number }) => {
   const maxItemsCount = Math.min(itemsCount, 10)
   const skeletonKeys = Array.from(
     { length: maxItemsCount },

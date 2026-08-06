@@ -31,22 +31,35 @@ import { transformProduct } from "@/utils/transform/transform-product"
 
 type Category = (typeof allCategories)[number]
 
-function getCategoryPath(category: Category) {
+const categoryById = new Map(
+  allCategories.map((category) => [category.id, category]),
+)
+
+const getCategoryPath = (category: Category) => {
   const path: string[] = []
   let current: Category | undefined = category
 
-  while (current) {
+  while (current !== undefined) {
     path.unshift(current.name)
-    current = allCategories.find((c) => c.id === current?.parent_category_id)
+    const parentCategoryId: string | null | undefined =
+      current.parent_category_id
+    current =
+      typeof parentCategoryId === "string" && parentCategoryId.length > 0
+        ? categoryById.get(parentCategoryId)
+        : undefined
   }
 
   return path.join(" > ")
 }
 
-export default function CategoryPage() {
+const CategoryPage = () => {
   const params = useParams()
   const searchParams = useSearchParams()
-  const handle = params.handle as string
+  const { handle: handleParam } = params
+  if (typeof handleParam !== "string" || handleParam.length === 0) {
+    throw new Error("Handle kategorie je povinný")
+  }
+  const handle = handleParam
   const { regionId, countryCode } = useSuspenseRegion()
   const analytics = useAnalytics()
 
@@ -101,15 +114,17 @@ export default function CategoryPage() {
   })
 
   usePrefetchPages({
-    enabled: isCurrentPageReady,
+    category_id: categoryIds,
+    countryCode,
     currentPage: responsePage,
+    enabled: isCurrentPageReady,
     hasNextPage,
     hasPrevPage,
-    totalPages,
     pageSize: PRODUCT_LIMIT,
-    category_id: categoryIds,
-    ...(regionId ? { regionId } : {}),
-    countryCode,
+    ...(typeof regionId === "string" && regionId.length > 0
+      ? { regionId }
+      : {}),
+    totalPages,
   })
 
   usePrefetchCategoryChildren({
@@ -188,3 +203,5 @@ export default function CategoryPage() {
     </div>
   )
 }
+
+export default CategoryPage

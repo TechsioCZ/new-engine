@@ -2,13 +2,13 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 
 import type { PplAccessPointData } from "./ppl-widget"
 
-export function SelectedParcelCard({
+export const SelectedParcelCard = ({
   accessPoint,
   onChangeClick,
 }: {
   accessPoint: PplAccessPointData
   onChangeClick: () => void
-}) {
+}) => {
   const { address } = accessPoint
 
   return (

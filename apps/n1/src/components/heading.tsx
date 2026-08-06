@@ -12,13 +12,13 @@ const sizes = {
   h3: "text-lg",
 } as const
 
-export function Heading({
+export const Heading = ({
   as,
   children,
   variant = "h1",
   ...props
-}: HeadingProps) {
-  const Component = as || "h1"
+}: HeadingProps) => {
+  const Component = as ?? "h1"
   const size = sizes[variant]
 
   return (

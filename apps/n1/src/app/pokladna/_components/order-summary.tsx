@@ -17,7 +17,7 @@ interface OrderSummaryProps {
   onComplete: () => void
 }
 
-export function OrderSummary({
+export const OrderSummary = ({
   cart,
   selectedShipping,
   errorMessage,
@@ -25,7 +25,7 @@ export function OrderSummary({
   isCompletingCart,
   onBack,
   onComplete,
-}: OrderSummaryProps) {
+}: OrderSummaryProps) => {
   const itemsSubtotal = formatAmount(cart.original_item_subtotal)
   const delivery = formatAmount(cart.shipping_total)
   const discount = formatAmount(cart.discount_total)
@@ -70,7 +70,7 @@ export function OrderSummary({
         <PriceSummaryRow label="Celkem" value={total} variant="bold" />
       </div>
 
-      {errorMessage && (
+      {(errorMessage?.length ?? 0) > 0 && (
         <div className="mb-400 text-danger">
           <p className="text-sm">{errorMessage}</p>
         </div>

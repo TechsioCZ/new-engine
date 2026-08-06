@@ -2,10 +2,10 @@
 
 import { LoginForm } from "@/components/forms/login-form"
 
-export default function LoginPage() {
-  return (
-    <div className="mx-auto w-md max-w-full py-600">
-      <LoginForm showForgotPasswordLink showRegisterLink />
-    </div>
-  )
-}
+const LoginPage = () => (
+  <div className="mx-auto w-md max-w-full py-600">
+    <LoginForm showForgotPasswordLink showRegisterLink />
+  </div>
+)
+
+export default LoginPage

@@ -16,7 +16,7 @@ export interface ConfirmDialogProps {
   onCancel?: () => void
 }
 
-export function ConfirmDialog({
+export const ConfirmDialog = ({
   open,
   onOpenChange,
   title,
@@ -28,7 +28,7 @@ export function ConfirmDialog({
   loadingText,
   onConfirm,
   onCancel,
-}: ConfirmDialogProps) {
+}: ConfirmDialogProps) => {
   const handleCancel = () => {
     onCancel?.()
     onOpenChange(false)
@@ -56,7 +56,7 @@ export function ConfirmDialog({
             size="sm"
             variant={confirmVariant}
           >
-            {isLoading ? loadingText || confirmText : confirmText}
+            {isLoading ? (loadingText ?? confirmText) : confirmText}
           </Button>
         </>
       }

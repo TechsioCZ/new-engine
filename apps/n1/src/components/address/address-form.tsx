@@ -18,11 +18,11 @@ interface AddressFormProps {
   onSuccess: () => void
 }
 
-export function AddressForm({
+export const AddressForm = ({
   address,
   onCancel,
   onSuccess,
-}: AddressFormProps) {
+}: AddressFormProps) => {
   const createAddress = useCreateAddress()
   const updateAddress = useUpdateAddress()
   const toaster = useToast()
@@ -76,9 +76,9 @@ export function AddressForm({
   return (
     <form
       className="space-y-400"
-      onSubmit={async (e) => {
-        e.preventDefault()
-        await form.handleSubmit()
+      onSubmit={(event) => {
+        event.preventDefault()
+        void form.handleSubmit()
       }}
     >
       <AddressFormFields disabled={isPending} form={form} />

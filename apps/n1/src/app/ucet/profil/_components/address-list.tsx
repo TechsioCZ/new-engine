@@ -13,6 +13,80 @@ import { formatPostalCode } from "@/utils/format/format-postal-code"
 
 import { useAccountContext } from "../../context/account-context"
 
+const AddressCard = ({
+  address,
+  onEdit,
+}: {
+  address: StoreCustomerAddress
+  onEdit: () => void
+}) => {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const deleteAddress = useDeleteAddress()
+  const toaster = useToast()
+
+  const handleDelete = () => {
+    deleteAddress.mutate(address.id, {
+      onError: () => {
+        toaster.create({ title: "Chyba při mazání", type: "error" })
+      },
+      onSuccess: () => {
+        toaster.create({ title: "Adresa smazána", type: "success" })
+        setIsDeleteDialogOpen(false)
+      },
+    })
+  }
+
+  return (
+    <div className="contents">
+      <div className="font-medium">
+        {address.first_name} {address.last_name}
+      </div>
+      <div className="text-fg-secondary text-sm">
+        {(address.company?.length ?? 0) > 0 && <div>{address.company}</div>}
+        <div>{address.address_1}</div>
+        {(address.address_2?.length ?? 0) > 0 && <div>{address.address_2}</div>}
+        <div>
+          {formatPostalCode(address.postal_code ?? "")} {address.city}
+        </div>
+        {typeof address.country_code === "string" &&
+          address.country_code.length > 0 &&
+          address.country_code.toLowerCase() !== "cz" && (
+            <div>{address.country_code.toUpperCase()}</div>
+          )}
+        {typeof address.phone === "string" && address.phone.length > 0 && (
+          <div>{formatPhoneNumber(address.phone)}</div>
+        )}
+      </div>
+      <div className="flex items-end gap-100 pt-100">
+        <Button onClick={onEdit} size="sm" variant="secondary">
+          Upravit
+        </Button>
+        <Button
+          onClick={() => {
+            setIsDeleteDialogOpen(true)
+          }}
+          size="sm"
+          variant="danger"
+        >
+          Smazat
+        </Button>
+      </div>
+
+      <ConfirmDialog
+        confirmText="Smazat"
+        confirmVariant="danger"
+        description={`Opravdu chcete smazat adresu "${address.address_1}, ${address.city}"? Tato akce je nevratná.`}
+        isLoading={deleteAddress.isPending}
+        loadingText="Mažu..."
+        onConfirm={handleDelete}
+        onOpenChange={setIsDeleteDialogOpen}
+        open={isDeleteDialogOpen}
+        title="Smazat adresu?"
+      />
+    </div>
+  )
+}
+
 export const AddressList = () => {
   const { customer } = useAccountContext()
   const [isAdding, setIsAdding] = useState(false)
@@ -23,10 +97,12 @@ export const AddressList = () => {
   }
 
   const { addresses } = customer
+  const canAddAddress =
+    !isAdding && (editingId?.length ?? 0) === 0 && addresses.length > 0
 
   return (
     <div className="space-y-250">
-      {!(isAdding || editingId) && addresses.length > 0 && (
+      {canAddAddress && (
         <div className="flex justify-end">
           <Button
             onClick={() => {
@@ -103,77 +179,6 @@ export const AddressList = () => {
           </Button>
         </div>
       )}
-    </div>
-  )
-}
-
-const AddressCard = ({
-  address,
-  onEdit,
-}: {
-  address: StoreCustomerAddress
-  onEdit: () => void
-}) => {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const deleteAddress = useDeleteAddress()
-  const toaster = useToast()
-
-  const handleDelete = () => {
-    deleteAddress.mutate(address.id, {
-      onError: () => {
-        toaster.create({ title: "Chyba při mazání", type: "error" })
-      },
-      onSuccess: () => {
-        toaster.create({ title: "Adresa smazána", type: "success" })
-        setIsDeleteDialogOpen(false)
-      },
-    })
-  }
-
-  return (
-    <div className="contents">
-      <div className="font-medium">
-        {address.first_name} {address.last_name}
-      </div>
-      <div className="text-fg-secondary text-sm">
-        {address.company && <div>{address.company}</div>}
-        <div>{address.address_1}</div>
-        {address.address_2 && <div>{address.address_2}</div>}
-        <div>
-          {formatPostalCode(address.postal_code ?? "")} {address.city}
-        </div>
-        {address.country_code &&
-          address.country_code.toLowerCase() !== "cz" && (
-            <div>{address.country_code.toUpperCase()}</div>
-          )}
-        {address.phone && <div>{formatPhoneNumber(address.phone)}</div>}
-      </div>
-      <div className="flex items-end gap-100 pt-100">
-        <Button onClick={onEdit} size="sm" variant="secondary">
-          Upravit
-        </Button>
-        <Button
-          onClick={() => {
-            setIsDeleteDialogOpen(true)
-          }}
-          size="sm"
-          variant="danger"
-        >
-          Smazat
-        </Button>
-      </div>
-
-      <ConfirmDialog
-        confirmText="Smazat"
-        confirmVariant="danger"
-        description={`Opravdu chcete smazat adresu "${address.address_1}, ${address.city}"? Tato akce je nevratná.`}
-        isLoading={deleteAddress.isPending}
-        loadingText="Mažu..."
-        onConfirm={handleDelete}
-        onOpenChange={setIsDeleteDialogOpen}
-        open={isDeleteDialogOpen}
-        title="Smazat adresu?"
-      />
     </div>
   )
 }

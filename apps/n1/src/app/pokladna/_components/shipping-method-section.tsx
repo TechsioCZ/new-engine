@@ -1,7 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import type { ReactNode } from "react"
 
 import type { UseCheckoutShippingReturn } from "@/hooks/use-checkout-shipping"
 import type { ShippingMethodData } from "@/services/cart-service"
@@ -29,14 +27,14 @@ interface ShippingOptionCardProps {
   onOpenPickupDialog: (optionId: string) => void
 }
 
-function ShippingOptionCard({
+const ShippingOptionCard = ({
   option,
   selected,
   isUpdating,
   selectedAccessPoint,
   onSelect,
   onOpenPickupDialog,
-}: ShippingOptionCardProps) {
+}: ShippingOptionCardProps) => {
   const formattedPrice = formatToTaxIncluded({
     amount: option.amount,
     currency: option.calculated_price.currency_code ?? "czk",
@@ -59,43 +57,46 @@ function ShippingOptionCard({
   }
 
   return (
-    <Button
-      aria-checked={selected}
-      aria-label={`${option.name}, ${formattedPrice || "zdarma"}`}
-      className="flex w-full items-center gap-300 text-left data-[selected=true]:border-border-primary/30 data-[selected=true]:bg-overlay-light"
+    <label
+      className="relative flex w-full cursor-pointer items-center gap-300 rounded border border-border-secondary bg-base px-300 py-200 text-left has-disabled:cursor-not-allowed has-disabled:opacity-50 has-focus-visible:outline-2 has-focus-visible:outline-border-primary data-[selected=true]:border-border-primary/30 data-[selected=true]:bg-overlay-light"
       data-selected={selected}
-      disabled={isUpdating}
-      onClick={handleClick}
-      role="radio"
-      theme="outlined"
-      type="button"
-      variant="secondary"
     >
+      <input
+        aria-label={`${option.name}, ${formattedPrice.length > 0 ? formattedPrice : "zdarma"}`}
+        checked={selected}
+        className="sr-only"
+        disabled={isUpdating}
+        name="shipping-method"
+        onClick={handleClick}
+        readOnly
+        type="radio"
+        value={option.id}
+      />
       <div className="flex-1 text-left">
         <p className="font-medium text-fg-primary text-sm">{option.name}</p>
         <StatusText size="sm">Dodání 2-3 dny</StatusText>
       </div>
-      <span>{formattedPrice || "Zdarma"}</span>
-    </Button>
+      <span>{formattedPrice.length > 0 ? formattedPrice : "Zdarma"}</span>
+    </label>
   )
 }
 
-export function ShippingMethodSection({
+export const ShippingMethodSection = ({
   shipping,
   selectedAccessPoint,
   onOpenPickupDialog,
-}: ShippingMethodSectionProps) {
-  let content: ReactNode
-
+}: ShippingMethodSectionProps) => {
   const { selectedOption } = shipping
 
   const showParcelCard =
-    selectedOption &&
+    selectedOption !== undefined &&
     isPPLParcelOption(selectedOption.name) &&
-    selectedAccessPoint
+    selectedAccessPoint !== null
 
-  if (shipping.shippingOptions && shipping.shippingOptions.length > 0) {
-    content = (
+  const handleShippingSelect = shipping.setShipping
+  const content =
+    shipping.shippingOptions !== undefined &&
+    shipping.shippingOptions.length > 0 ? (
       <div
         aria-label="Vyberte způsob dopravy"
         className="grid grid-cols-1 gap-200 md:grid-cols-2"
@@ -107,22 +108,19 @@ export function ShippingMethodSection({
             isUpdating={shipping.isSettingShipping}
             key={option.id}
             onOpenPickupDialog={onOpenPickupDialog}
-            onSelect={shipping.setShipping}
+            onSelect={handleShippingSelect}
             option={option}
             selected={shipping.selectedShippingMethodId === option.id}
             selectedAccessPoint={selectedAccessPoint}
           />
         ))}
       </div>
-    )
-  } else {
-    content = (
+    ) : (
       <StatusText showIcon size="md" status="error">
         Žádné způsoby dopravy nejsou momentálně k dispozici. Zkuste to prosím
         později.
       </StatusText>
     )
-  }
 
   return (
     <section className="rounded border border-border-secondary bg-surface-light p-400">

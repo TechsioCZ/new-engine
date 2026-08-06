@@ -75,7 +75,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
     <div className="flex flex-col gap-400">
       <div className="max-h-sm divide-y divide-border-secondary overflow-y-auto">
         {cart.items.map((item) => {
-          const itemTitle = item.product_title || item.title || "Product"
+          const itemTitle = (item.product_title ?? item.title) || "Product"
           const itemOptimistic = getOptimisticFlag(item)
 
           return (

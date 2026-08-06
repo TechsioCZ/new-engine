@@ -1,13 +1,13 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
 
+import { queryKeys } from "@/lib/query-keys"
 import { getOrderById } from "@/services/order-service"
-import type { StoreOrder } from "@/services/order-service"
 import { formatDateString } from "@/utils/format/format-date"
 import {
   getOrderStatusColor,
@@ -18,37 +18,14 @@ import { OrderDetail } from "./order-detail"
 
 export const OrderDetailClient = () => {
   const { id } = useParams<{ id: string }>()
-  const [order, setOrder] = useState<StoreOrder | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    let active = true
-    setIsLoading(true)
-    setError(null)
-
-    getOrderById(id)
-      .then((data) => {
-        if (active) {
-          setOrder(data)
-        }
-      })
-      .catch((error: unknown) => {
-        if (!active) {
-          return
-        }
-        setError(error instanceof Error ? error.message : "Chyba při načítání")
-      })
-      .finally(() => {
-        if (active) {
-          setIsLoading(false)
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [id])
+  const {
+    data: order,
+    error,
+    isLoading,
+  } = useQuery({
+    queryFn: async () => await getOrderById(id),
+    queryKey: queryKeys.orders.detail(id),
+  })
 
   if (isLoading) {
     return (
@@ -58,11 +35,13 @@ export const OrderDetailClient = () => {
     )
   }
 
-  if (error || !order) {
+  if (error !== null || order === undefined) {
     return (
       <div className="mx-auto max-w-max-w px-400">
         <p className="text-fg-secondary">
-          {error ?? "Objednávka nebyla nalezena"}
+          {error instanceof Error
+            ? error.message
+            : "Objednávka nebyla nalezena"}
         </p>
         <LinkButton
           as={Link}
@@ -98,11 +77,16 @@ export const OrderDetailClient = () => {
               Objednávka #{order.display_id}
             </h1>
             <p className="text-fg-secondary">
-              {formatDateString(order.created_at as string, {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
+              {formatDateString(
+                typeof order.created_at === "string"
+                  ? order.created_at
+                  : order.created_at.toISOString(),
+                {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                },
+              )}
             </p>
           </div>
           <div className="flex flex-wrap gap-200">

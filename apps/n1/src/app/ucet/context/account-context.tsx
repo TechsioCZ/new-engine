@@ -14,14 +14,16 @@ interface AccountContextType {
   customer: StoreCustomer | null
 }
 
-const AccountContext = createContext<AccountContextType | undefined>(undefined)
+const AccountContext = createContext<
+  AccountContextType["customer"] | undefined
+>(undefined)
 
 export const useAccountContext = () => {
-  const context = useContext(AccountContext)
-  if (!context) {
+  const customer = useContext(AccountContext)
+  if (customer === undefined) {
     throw new Error("useAccountContext must be used within AccountProvider")
   }
-  return context
+  return { customer }
 }
 
 export const AccountProvider = ({ children }: { children: ReactNode }) => {
@@ -32,7 +34,6 @@ export const AccountProvider = ({ children }: { children: ReactNode }) => {
     if (!customer) {
       return
     }
-    // Prefetch orders for order-list
     void queryClient.prefetchQuery({
       queryFn: async () => await getOrders({ limit: 20, offset: 0 }),
       queryKey: queryKeys.orders.list({ limit: 20, offset: 0 }),
@@ -40,9 +41,5 @@ export const AccountProvider = ({ children }: { children: ReactNode }) => {
     })
   }, [customer, queryClient])
 
-  const contextValue = {
-    customer,
-  }
-
-  return <AccountContext value={contextValue}>{children}</AccountContext>
+  return <AccountContext value={customer}>{children}</AccountContext>
 }

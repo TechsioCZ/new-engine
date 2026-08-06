@@ -15,12 +15,12 @@ import {
 import { AddressPicker } from "./address-picker"
 import { SaveAddressPanel } from "./save-address-panel"
 
-export function BillingAddressSection() {
+export const BillingAddressSection = () => {
   const { customer, selectedAddressId, setSelectedAddressId, isCompleting } =
     useCheckoutContext()
   const form = useCheckoutForm()
 
-  const addresses = customer?.addresses || []
+  const addresses = customer?.addresses ?? []
 
   const handleAddressSelect = (address: AddressFormData, id: string) => {
     form.setFieldValue("billingAddress", address)

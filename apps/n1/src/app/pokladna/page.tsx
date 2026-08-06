@@ -18,15 +18,7 @@ import {
   useCheckoutContext,
 } from "./_context/checkout-context"
 
-export default function CheckoutPage() {
-  return (
-    <CheckoutProvider>
-      <CheckoutContent />
-    </CheckoutProvider>
-  )
-}
-
-function CheckoutContent() {
+const CheckoutContent = () => {
   const {
     cart,
     hasItems,
@@ -59,14 +51,14 @@ function CheckoutContent() {
 
     trackedCartId.current = cart.id
 
-    const items = cart.items || []
+    const items = cart.items ?? []
     const currency = (cart.currency_code ?? "CZK").toUpperCase()
     const value = cart.total ?? 0
 
     analytics.trackInitiateCheckout({
       currency,
       numItems: items.reduce((sum, item) => sum + (item.quantity || 0), 0),
-      productIds: items.map((item) => item.variant_id || ""),
+      productIds: items.map((item) => item.variant_id ?? ""),
       value,
     })
   }, [cart, hasItems, analytics])
@@ -91,7 +83,11 @@ function CheckoutContent() {
   const handleAccessPointSelect = (accessPoint: PplAccessPointData | null) => {
     setSelectedAccessPoint(accessPoint)
     // If we have a pending option, set the shipping with the access point data
-    if (pendingOptionId && accessPoint) {
+    if (
+      typeof pendingOptionId === "string" &&
+      pendingOptionId.length > 0 &&
+      accessPoint !== null
+    ) {
       shipping.setShipping(
         pendingOptionId,
         accessPointToShippingData(accessPoint),
@@ -117,13 +113,15 @@ function CheckoutContent() {
         <div>
           <OrderSummary
             cart={cart}
-            errorMessage={error || ""}
+            errorMessage={error ?? ""}
             isCompletingCart={isCompleting}
             isReady={isReady}
             onBack={() => {
               router.back()
             }}
-            onComplete={completeCheckout}
+            onComplete={() => {
+              void completeCheckout()
+            }}
             selectedShipping={selectedShipping}
           />
         </div>
@@ -137,3 +135,11 @@ function CheckoutContent() {
     </div>
   )
 }
+
+const CheckoutPage = () => (
+  <CheckoutProvider>
+    <CheckoutContent />
+  </CheckoutProvider>
+)
+
+export default CheckoutPage

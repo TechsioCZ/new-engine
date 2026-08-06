@@ -36,6 +36,13 @@ const variantButton = tv({
   },
 })
 
+const decorationStyle = {
+  backgroundColor: "var(--color-success)",
+  clipPath: "polygon(0 0, 100% 100%, 100% 0)",
+  height: "0.5rem",
+  width: "0.5rem",
+}
+
 interface ProductVariantSelectProps {
   detail: ProductDetail
   selectedVariant: ProductVariantDetail | null
@@ -46,46 +53,37 @@ export const ProductVariantSelect = ({
   detail,
   selectedVariant,
   handle,
-}: ProductVariantSelectProps) => {
-  const decorationStyle = {
-    backgroundColor: "var(--color-success)",
-    clipPath: "polygon(0 0, 100% 100%, 100% 0)",
-    height: "0.5rem",
-    width: "0.5rem",
-  }
-
-  return (
-    <div className="flex flex-wrap gap-200">
-      {detail.variants?.length > 1 &&
-        detail.variants.map((variant) => (
-          <Tooltip
-            content={
-              <TooltipContent
-                quantity={variant.inventory_quantity ?? 0}
-                title={detail.title}
-                variant={variant.title}
-              />
-            }
-            key={variant.id}
-            offset={{ crossAxis: 4, mainAxis: 4 }}
-            placement="bottom-start"
-            variant="outline"
+}: ProductVariantSelectProps) => (
+  <div className="flex flex-wrap gap-200">
+    {detail.variants?.length > 1 &&
+      detail.variants.map((variant) => (
+        <Tooltip
+          content={
+            <TooltipContent
+              quantity={variant.inventory_quantity ?? 0}
+              title={detail.title}
+              variant={variant.title}
+            />
+          }
+          key={variant.id}
+          offset={{ crossAxis: 4, mainAxis: 4 }}
+          placement="bottom-start"
+          variant="outline"
+        >
+          <LinkButton
+            as={Link}
+            className={variantButton({ size: "current", variant: "outline" })}
+            data-selected={variant.id === selectedVariant?.id}
+            href={`/produkt/${handle}?variant=${variant.title.toLowerCase()}`}
           >
-            <LinkButton
-              as={Link}
-              className={variantButton({ size: "current", variant: "outline" })}
-              data-selected={variant.id === selectedVariant?.id}
-              href={`/produkt/${handle}?variant=${variant.title.toLowerCase()}`}
-            >
-              {variant.title}
-              <span
-                aria-hidden="true"
-                className="absolute top-0 right-0"
-                style={decorationStyle}
-              />
-            </LinkButton>
-          </Tooltip>
-        ))}
-    </div>
-  )
-}
+            {variant.title}
+            <span
+              aria-hidden="true"
+              className="absolute top-0 right-0"
+              style={decorationStyle}
+            />
+          </LinkButton>
+        </Tooltip>
+      ))}
+  </div>
+)

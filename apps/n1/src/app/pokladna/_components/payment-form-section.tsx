@@ -13,7 +13,7 @@ interface PaymentFormSectionProps {
 
 const CASH_ON_DELIVERY_PROVIDER = "pp_system_default"
 
-export function PaymentFormSection({ cart }: PaymentFormSectionProps) {
+export const PaymentFormSection = ({ cart }: PaymentFormSectionProps) => {
   const { regionId } = useSuspenseRegion()
   const [selectedProvider, setSelectedProvider] = useState<string>("")
 
@@ -25,7 +25,7 @@ export function PaymentFormSection({ cart }: PaymentFormSectionProps) {
     initiatePayment,
   } = useCheckoutPayment(cart.id, regionId, cart)
 
-  function handleProviderSelect(providerId: string) {
+  const handleProviderSelect = (providerId: string) => {
     if (selectedProvider !== providerId) {
       setSelectedProvider(providerId)
       initiatePayment(providerId)

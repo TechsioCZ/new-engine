@@ -15,9 +15,9 @@ export const ItemCard = ({ item }: { item: StoreOrderLineItem }) => (
   >
     {/* Product Image with Quantity Badge */}
     <div className="relative">
-      {item.thumbnail ? (
+      {typeof item.thumbnail === "string" && item.thumbnail.length > 0 ? (
         <ProductCard.Image
-          alt={item.product_title || item.title || ""}
+          alt={(item.product_title ?? item.title) || ""}
           as={Image}
           className="aspect-square w-full object-cover"
           height={300}
@@ -47,16 +47,17 @@ export const ItemCard = ({ item }: { item: StoreOrderLineItem }) => (
         href={`/produkty/${item.product_handle}?variant=${item.subtitle?.trim()}`}
       >
         <ProductCard.Name>
-          {truncateText(item.product_title || item.title || "")}
+          {truncateText((item.product_title ?? item.title) || "")}
         </ProductCard.Name>
       </Link>
 
       {/* Variant */}
-      {item.variant_title && item.variant_title !== "Default" && (
-        <p className="text-fg-secondary text-sm">
-          Varianta: {item.variant_title}
-        </p>
-      )}
+      {(item.variant_title?.length ?? 0) > 0 &&
+        item.variant_title !== "Default" && (
+          <p className="text-fg-secondary text-sm">
+            Varianta: {item.variant_title}
+          </p>
+        )}
 
       {/* Prices */}
       <div className="flex items-end justify-between">

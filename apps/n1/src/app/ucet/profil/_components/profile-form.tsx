@@ -60,9 +60,9 @@ export const ProfileForm = () => {
   return (
     <form
       className="space-y-200"
-      onSubmit={async (e) => {
-        e.preventDefault()
-        await form.handleSubmit()
+      onSubmit={(event) => {
+        event.preventDefault()
+        void form.handleSubmit()
       }}
     >
       <div className="grid gap-200 md:grid-cols-2">
