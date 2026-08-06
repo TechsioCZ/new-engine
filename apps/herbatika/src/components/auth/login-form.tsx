@@ -3,7 +3,6 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Label } from "@techsio/ui-kit/atoms/label"
 import { useTranslations } from "next-intl"
-import { useMemo } from "react"
 
 import NextLink from "@/components/app-link"
 import { useAppToast } from "@/hooks/use-app-toast"
@@ -32,21 +31,17 @@ export const LoginForm = ({
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
   const toast = useAppToast()
-  const loginValidators = useMemo(
-    () =>
-      createLoginValidators({
-        emailInvalid: tForm("validation.email_invalid"),
-        emailRequired: tForm("validation.email_required"),
-        passwordRequired: tAuth("validation.password_required"),
-      }),
-    [tAuth, tForm],
-  )
+  const loginValidators = createLoginValidators({
+    emailInvalid: tForm("validation.email_invalid"),
+    emailRequired: tForm("validation.email_required"),
+    passwordRequired: tAuth("validation.password_required"),
+  })
 
   const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value }) => {
       const error = await onSubmit(value)
-      if (error) {
+      if (error !== null && error.length > 0) {
         toast.error({ title: error })
       }
     },

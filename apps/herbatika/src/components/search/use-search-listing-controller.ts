@@ -20,12 +20,13 @@ import {
   useCatalogListingPageBounds,
 } from "@/lib/storefront/use-catalog-listing-interactions"
 
-export function useSearchListingController() {
+export const useSearchListingController = () => {
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers)
   const query = queryState.q.trim()
-  const isSearchQueryEnabled = Boolean(region?.region_id && query.length > 0)
+  const isSearchQueryEnabled =
+    region?.region_id !== undefined && query.length > 0
 
   const catalogProductsInput = buildCatalogProductsParams({
     limit: PLP_PAGE_SIZE,
@@ -98,7 +99,8 @@ export function useSearchListingController() {
       isSearchQueryEnabled &&
       (catalogQuery.isLoading || catalogFacetSeedQuery.isLoading),
     isResultsLoading:
-      query.length > 0 && (!region?.region_id || catalogQuery.isLoading),
+      query.length > 0 &&
+      (region?.region_id === undefined || catalogQuery.isLoading),
     isResultsRefreshing:
       catalogQuery.isFetching &&
       (catalogQuery.products.length > 0 ||

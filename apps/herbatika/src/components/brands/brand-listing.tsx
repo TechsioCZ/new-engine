@@ -16,10 +16,23 @@ interface BrandListingProps {
   brandTitle: string
 }
 
-export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
+export const BrandListing = ({
+  brandFacetId,
+  brandTitle,
+}: BrandListingProps) => {
   const t = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const controller = useBrandListingController({ brandFacetId })
+  const handleAddToCart = controller.onAddToCart
+  const handleBrandToggle = controller.onBrandToggle
+  const handleFormToggle = controller.onFormToggle
+  const handleIngredientToggle = controller.onIngredientToggle
+  const handlePriceRangeCommit = controller.onPriceRangeCommit
+  const handleProductHoverEnd = controller.onProductHoverEnd
+  const handleProductHoverStart = controller.onProductHoverStart
+  const handleResetFilters = controller.onResetFilters
+  const handleSortChange = controller.onSortChange
+  const handleStatusToggle = controller.onStatusToggle
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-brand-listing-page-gap p-brand-listing-page font-rubik 2xl:p-brand-listing-page-lg">
@@ -50,12 +63,12 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
             formItems={controller.asideFormItems}
             ingredientItems={controller.asideIngredientItems}
             isLoading={controller.isFiltersLoading}
-            onBrandToggle={controller.onBrandToggle}
-            onFormToggle={controller.onFormToggle}
-            onIngredientToggle={controller.onIngredientToggle}
-            onPriceRangeCommit={controller.onPriceRangeCommit}
-            onReset={controller.onResetFilters}
-            onStatusToggle={controller.onStatusToggle}
+            onBrandToggle={handleBrandToggle}
+            onFormToggle={handleFormToggle}
+            onIngredientToggle={handleIngredientToggle}
+            onPriceRangeCommit={handlePriceRangeCommit}
+            onReset={handleResetFilters}
+            onStatusToggle={handleStatusToggle}
             priceBounds={controller.priceBounds}
             selectedPriceRange={controller.selectedPriceRange}
             showBrandFilter={false}
@@ -73,10 +86,10 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
             isProductAdding={controller.isProductAdding}
             isRefreshing={controller.isResultsRefreshing}
             layout="catalog"
-            onAddToCart={controller.onAddToCart}
-            onProductHoverEnd={controller.onProductHoverEnd}
-            onProductHoverStart={controller.onProductHoverStart}
-            onSortChange={controller.onSortChange}
+            onAddToCart={handleAddToCart}
+            onProductHoverEnd={handleProductHoverEnd}
+            onProductHoverStart={handleProductHoverStart}
+            onSortChange={handleSortChange}
             page={controller.page}
             pageSize={PLP_PAGE_SIZE}
             products={controller.products}

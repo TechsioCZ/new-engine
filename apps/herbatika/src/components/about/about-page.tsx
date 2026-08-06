@@ -13,7 +13,7 @@ import {
 } from "./about-page-sections"
 import { AboutHero } from "./about-page-top"
 
-export function AboutPage() {
+export const AboutPage = () => {
   const tContent = useTranslations("content")
   const tNavigation = useTranslations("navigation")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [

@@ -14,7 +14,7 @@ interface BenefitsSectionProps {
   benefits: readonly BenefitItem[]
 }
 
-export function BenefitsSection({ benefits }: BenefitsSectionProps) {
+export const BenefitsSection = ({ benefits }: BenefitsSectionProps) => {
   const tContent = useTranslations("content")
 
   return (

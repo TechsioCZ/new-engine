@@ -11,7 +11,7 @@ interface BuildRegisterDefaultsOptions {
 }
 
 export const resolveSafeRedirectHref = (value?: string): AppHref | null => {
-  if (!value) {
+  if (value === undefined || value.length === 0) {
     return null
   }
 
@@ -26,7 +26,7 @@ export const buildAuthRouteHref = (
   path: "/auth/login" | "/auth/register",
   next?: string,
 ) => {
-  if (!next) {
+  if (next === null || next === undefined || next.length === 0) {
     return path
   }
 

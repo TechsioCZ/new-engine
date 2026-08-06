@@ -30,15 +30,14 @@ const SIZE_CLASS_NAMES: Record<
   },
 }
 
-function joinClassNames(...classNames: (string | undefined)[]) {
-  return classNames.filter(Boolean).join(" ")
-}
+const joinClassNames = (...classNames: (string | undefined)[]) =>
+  classNames.filter(Boolean).join(" ")
 
-export function ReviewTrustBadges({
+export const ReviewTrustBadges = ({
   sources = REVIEW_TRUST_SOURCES,
   size = "sm",
   className,
-}: ReviewTrustBadgesProps) {
+}: ReviewTrustBadgesProps) => {
   const tCatalog = useTranslations("catalog")
 
   if (sources.length === 0) {

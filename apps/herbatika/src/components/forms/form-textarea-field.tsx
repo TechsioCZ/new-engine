@@ -2,7 +2,7 @@
 
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
 import { useState } from "react"
-import type { ComponentPropsWithoutRef, ReactNode } from "react"
+import type { ChangeEvent, ComponentPropsWithoutRef, ReactNode } from "react"
 
 import {
   resolveVisibleFieldFeedback,
@@ -57,7 +57,7 @@ export const FormTextareaField = ({
         field.handleBlur()
         setHasChangedSinceBlur(false)
       }}
-      onChange={(event) => {
+      onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
         const nextValue = event.target.value
         if (
           shouldTrackLiveFieldFeedback({

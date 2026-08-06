@@ -3,7 +3,7 @@
 import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { useTranslations } from "next-intl"
 
-export function AboutReviewRating() {
+export const AboutReviewRating = () => {
   const tContent = useTranslations("content")
 
   return (

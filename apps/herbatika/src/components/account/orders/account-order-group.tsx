@@ -22,10 +22,10 @@ interface AccountOrderGroupProps {
   onPrefetchOrderDetail: (orderId: string) => void
 }
 
-export function AccountOrderGroup({
+export const AccountOrderGroup = ({
   order,
   onPrefetchOrderDetail,
-}: AccountOrderGroupProps) {
+}: AccountOrderGroupProps) => {
   const locale = useLocale()
   const tAuth = useTranslations("auth")
   const translateOrderStatus: OrderStatusTranslator = (group, status) =>
@@ -85,7 +85,7 @@ export function AccountOrderGroup({
         </section>
 
         <div className="flex flex-wrap gap-order-group-md lg:justify-self-end">
-          {invoiceUrl && (
+          {invoiceUrl !== null && invoiceUrl.length > 0 && (
             <LinkButton
               as={NextLink}
               href={invoiceUrl}
@@ -138,7 +138,7 @@ export function AccountOrderGroup({
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-order-group-lg">
-                    {item.thumbnail ? (
+                    {item.thumbnail !== null && item.thumbnail.length > 0 ? (
                       <NextImage
                         alt={
                           item.title ?? tAuth("account.orders.product_fallback")
@@ -155,7 +155,8 @@ export function AccountOrderGroup({
                       <p className="line-clamp-2 font-medium text-order-group-fg-primary text-order-group-secondary-size">
                         {item.title ?? "-"}
                       </p>
-                      {item.variant_title ? (
+                      {item.variant_title !== null &&
+                      item.variant_title.length > 0 ? (
                         <p className="line-clamp-1 text-order-group-fg-secondary text-order-group-tertiary-size">
                           {item.variant_title}
                         </p>
@@ -214,7 +215,7 @@ export function AccountOrderGroup({
                 key={item.id}
               >
                 <div className="flex items-start gap-order-group-lg">
-                  {item.thumbnail ? (
+                  {item.thumbnail !== null && item.thumbnail.length > 0 ? (
                     <NextImage
                       alt={
                         item.title ?? tAuth("account.orders.product_fallback")
@@ -233,11 +234,12 @@ export function AccountOrderGroup({
                         <p className="line-clamp-2 font-medium text-order-group-fg-primary text-order-group-secondary-size">
                           {item.title ?? "-"}
                         </p>
-                        {item.variant_title && (
-                          <p className="text-order-group-fg-secondary text-order-group-tertiary-size">
-                            {item.variant_title}
-                          </p>
-                        )}
+                        {item.variant_title !== null &&
+                          item.variant_title.length > 0 && (
+                            <p className="text-order-group-fg-secondary text-order-group-tertiary-size">
+                              {item.variant_title}
+                            </p>
+                          )}
                       </div>
 
                       <p className="shrink-0 font-semibold text-order-group-fg-primary text-order-group-secondary-size">

@@ -11,10 +11,20 @@ import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
 
 import { useSearchListingController } from "./search/use-search-listing-controller"
 
-export function SearchResults() {
+export const SearchResults = () => {
   const t = useTranslations("search")
   const controller = useSearchListingController()
   const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1)
+  const handleAddToCart = controller.onAddToCart
+  const handleBrandToggle = controller.onBrandToggle
+  const handleFormToggle = controller.onFormToggle
+  const handleIngredientToggle = controller.onIngredientToggle
+  const handlePriceRangeCommit = controller.onPriceRangeCommit
+  const handleProductHoverEnd = controller.onProductHoverEnd
+  const handleProductHoverStart = controller.onProductHoverStart
+  const handleResetFilters = controller.onResetFilters
+  const handleSortChange = controller.onSortChange
+  const handleStatusToggle = controller.onStatusToggle
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-search-page-gap p-search-page font-rubik 2xl:p-search-page-lg">
@@ -54,12 +64,12 @@ export function SearchResults() {
               formItems={controller.asideFormItems}
               ingredientItems={controller.asideIngredientItems}
               isLoading={controller.isFiltersLoading}
-              onBrandToggle={controller.onBrandToggle}
-              onFormToggle={controller.onFormToggle}
-              onIngredientToggle={controller.onIngredientToggle}
-              onPriceRangeCommit={controller.onPriceRangeCommit}
-              onReset={controller.onResetFilters}
-              onStatusToggle={controller.onStatusToggle}
+              onBrandToggle={handleBrandToggle}
+              onFormToggle={handleFormToggle}
+              onIngredientToggle={handleIngredientToggle}
+              onPriceRangeCommit={handlePriceRangeCommit}
+              onReset={handleResetFilters}
+              onStatusToggle={handleStatusToggle}
               priceBounds={controller.priceBounds}
               selectedPriceRange={controller.selectedPriceRange}
               statusItems={controller.asideStatusItems}
@@ -76,10 +86,10 @@ export function SearchResults() {
               isProductAdding={controller.isProductAdding}
               isRefreshing={controller.isResultsRefreshing}
               layout="catalog"
-              onAddToCart={controller.onAddToCart}
-              onProductHoverEnd={controller.onProductHoverEnd}
-              onProductHoverStart={controller.onProductHoverStart}
-              onSortChange={controller.onSortChange}
+              onAddToCart={handleAddToCart}
+              onProductHoverEnd={handleProductHoverEnd}
+              onProductHoverStart={handleProductHoverStart}
+              onSortChange={handleSortChange}
               page={controller.page}
               pageSize={PLP_PAGE_SIZE}
               products={controller.products}

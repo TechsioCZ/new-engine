@@ -1,34 +1,30 @@
 "use client"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 
-function AuthPageSkeletonCard() {
-  return (
-    <section className="space-y-400 p-550">
-      <Skeleton.Text noOfLines={2} size="sm" />
-      <div className="space-y-250">
-        {Array.from({ length: 2 }, (_, index) => (
-          <div className="space-y-150" key={`auth-field-skeleton-${index + 1}`}>
-            <Skeleton.Text
-              containerClassName="w-skeleton-control"
-              noOfLines={1}
-              size="sm"
-            />
-            <Skeleton.Rectangle className="h-skeleton-heading-lg rounded-sm" />
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-300">
-        <Skeleton.Rectangle className="h-600 w-skeleton-control rounded-xs" />
-        <Skeleton.Rectangle className="h-600 w-skeleton-control rounded-xs" />
-      </div>
-    </section>
-  )
-}
+const AuthPageSkeletonCard = () => (
+  <section className="space-y-400 p-550">
+    <Skeleton.Text noOfLines={2} size="sm" />
+    <div className="space-y-250">
+      {Array.from({ length: 2 }, (_, index) => (
+        <div className="space-y-150" key={`auth-field-skeleton-${index + 1}`}>
+          <Skeleton.Text
+            containerClassName="w-skeleton-control"
+            noOfLines={1}
+            size="sm"
+          />
+          <Skeleton.Rectangle className="h-skeleton-heading-lg rounded-sm" />
+        </div>
+      ))}
+    </div>
+    <div className="flex gap-300">
+      <Skeleton.Rectangle className="h-600 w-skeleton-control rounded-xs" />
+      <Skeleton.Rectangle className="h-600 w-skeleton-control rounded-xs" />
+    </div>
+  </section>
+)
 
-export function AuthPageSkeleton() {
-  return (
-    <main className="mx-auto w-full max-w-auth-content p-auth-page 2xl:p-auth-page-lg">
-      <AuthPageSkeletonCard />
-    </main>
-  )
-}
+export const AuthPageSkeleton = () => (
+  <main className="mx-auto w-full max-w-auth-content p-auth-page 2xl:p-auth-page-lg">
+    <AuthPageSkeletonCard />
+  </main>
+)

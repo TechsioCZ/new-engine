@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { createResetPasswordValidators } from "@/lib/auth/auth-form-validators"
@@ -41,24 +41,20 @@ export const ResetPasswordForm = ({
   const tAuth = useTranslations("auth")
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
-  const resetPasswordValidators = useMemo(
-    () =>
-      createResetPasswordValidators({
-        confirmPasswordRequired: tAuth("validation.confirm_password_required"),
-        passwordMinLength: tAuth("validation.password_min_length"),
-        passwordMismatch: tAuth("validation.password_mismatch"),
-        passwordNumber: tAuth("validation.password_number"),
-        passwordRequired: tAuth("validation.password_required"),
-      }),
-    [tAuth],
-  )
+  const resetPasswordValidators = createResetPasswordValidators({
+    confirmPasswordRequired: tAuth("validation.confirm_password_required"),
+    passwordMinLength: tAuth("validation.password_min_length"),
+    passwordMismatch: tAuth("validation.password_mismatch"),
+    passwordNumber: tAuth("validation.password_number"),
+    passwordRequired: tAuth("validation.password_required"),
+  })
 
   const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value }) => {
       setSubmitError(null)
       const error = await onSubmit(value)
-      if (error) {
+      if (error !== null && error.length > 0) {
         setSubmitError(error)
         return
       }
@@ -106,7 +102,7 @@ export const ResetPasswordForm = ({
         runDetachedPromise(form.handleSubmit())
       }}
     >
-      {submitError && (
+      {submitError !== null && submitError.length > 0 && (
         <StatusText showIcon status="error">
           {submitError}
         </StatusText>
@@ -129,7 +125,7 @@ export const ResetPasswordForm = ({
               type="password"
               validationMode="blur"
             />
-            <PasswordRequirements password={String(field.state.value ?? "")} />
+            <PasswordRequirements password={field.state.value ?? ""} />
           </div>
         )}
       </form.AppField>

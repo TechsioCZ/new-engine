@@ -14,7 +14,7 @@ interface HomepageBlogSectionProps {
   posts: BlogTeaserItem[]
 }
 
-export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
+export const HomepageBlogSection = ({ posts }: HomepageBlogSectionProps) => {
   const locale = useLocale()
   const tContent = useTranslations("content")
 

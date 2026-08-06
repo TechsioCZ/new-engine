@@ -46,6 +46,7 @@ const ProductListsEmptyState = ({
 export const AccountProductLists = () => {
   const tAuth = useTranslations("auth")
   const accountLists = useAccountProductLists()
+  const handleCreateList = accountLists.openCreateListDialog
 
   if (accountLists.listsQuery.isLoading) {
     return (
@@ -57,7 +58,10 @@ export const AccountProductLists = () => {
     )
   }
 
-  if (accountLists.listsQuery.error) {
+  if (
+    accountLists.listsQuery.error !== null &&
+    accountLists.listsQuery.error.length > 0
+  ) {
     return (
       <AccountSurface className="space-y-400">
         <p className="text-danger text-sm">
@@ -92,9 +96,7 @@ export const AccountProductLists = () => {
       <RemoveListDialog accountLists={accountLists} />
 
       {accountLists.sortedLists.length === 0 ? (
-        <ProductListsEmptyState
-          onCreateList={accountLists.openCreateListDialog}
-        />
+        <ProductListsEmptyState onCreateList={handleCreateList} />
       ) : (
         <ProductListTabs accountLists={accountLists} />
       )}

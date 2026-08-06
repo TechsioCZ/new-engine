@@ -23,10 +23,10 @@ interface InlineProductsSlidesProps {
   slidesPerPage: number
 }
 
-function InlineProductsSlides({
+const InlineProductsSlides = ({
   slides,
   slidesPerPage,
-}: InlineProductsSlidesProps) {
+}: InlineProductsSlidesProps) => {
   const hasOverflow = slides.length > slidesPerPage
 
   return (
@@ -51,7 +51,7 @@ function InlineProductsSlides({
   )
 }
 
-export function InlineProductsCarousel({
+export const InlineProductsCarousel = ({
   products,
   keyPrefix = "inline-product",
   onProductHoverStart,
@@ -59,7 +59,7 @@ export function InlineProductsCarousel({
   slidesSm = 1,
   slidesMd = 2,
   slidesLg = 4,
-}: InlineProductsCarouselProps) {
+}: InlineProductsCarouselProps) => {
   const region = useRegionContext()
   const addToCart = useAddProductToCartAction({
     ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
@@ -80,12 +80,8 @@ export function InlineProductsCarousel({
       <HerbatikaProductCard
         isAdding={Boolean(product.id) && addToCart.isProductAdding(product.id)}
         onAddToCart={handleAddToCart}
-        {...(onProductHoverEnd === undefined
-          ? {}
-          : { onProductHoverEnd: onProductHoverEnd })}
-        {...(onProductHoverStart === undefined
-          ? {}
-          : { onProductHoverStart: onProductHoverStart })}
+        {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
+        {...(onProductHoverStart === undefined ? {} : { onProductHoverStart })}
         product={product}
       />
     ),

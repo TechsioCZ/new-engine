@@ -21,7 +21,7 @@ import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-bui
 
 const ORDER_PAGE_SIZE = 10
 
-export function AccountOrdersList() {
+export const AccountOrdersList = () => {
   const tAuth = useTranslations("auth")
   const queryClient = useQueryClient()
   const authQuery = useAuth()
@@ -70,7 +70,7 @@ export function AccountOrdersList() {
     return <AccountOrdersSkeleton />
   }
 
-  if (ordersQuery.error) {
+  if (ordersQuery.error !== null && ordersQuery.error.length > 0) {
     return (
       <AccountSurface className="space-y-400">
         <StatusText showIcon status="error">

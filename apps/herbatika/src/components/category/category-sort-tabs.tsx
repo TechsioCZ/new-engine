@@ -11,11 +11,11 @@ interface CategorySortTabsProps {
   totalProducts: number
 }
 
-export function CategorySortTabs({
+export const CategorySortTabs = ({
   activeSort,
   onSortChange,
   totalProducts,
-}: CategorySortTabsProps) {
+}: CategorySortTabsProps) => {
   const t = useTranslations("catalog")
 
   return (

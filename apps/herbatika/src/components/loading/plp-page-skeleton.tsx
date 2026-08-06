@@ -8,34 +8,28 @@ interface PlpPageSkeletonProps {
   variant: "search" | "category" | "brand"
 }
 
-function CategoryDescriptionSkeleton() {
-  return (
-    <section className="space-y-350">
-      <div className="space-y-150">
-        <Skeleton.Text noOfLines={4} size="sm" />
-        <Skeleton.Rectangle className="h-450 w-900 rounded-full" />
-      </div>
+const CategoryDescriptionSkeleton = () => (
+  <section className="space-y-350">
+    <div className="space-y-150">
+      <Skeleton.Text noOfLines={4} size="sm" />
+      <Skeleton.Rectangle className="h-450 w-900 rounded-full" />
+    </div>
 
-      <div className="grid gap-250 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 8 }, (_, index) => (
-          <div
-            className="flex min-h-750 items-center gap-200 rounded-lg border border-border-secondary bg-surface px-300 py-200"
-            key={`category-context-skeleton-${index + 1}`}
-          >
-            <Skeleton.Circle className="h-skeleton-control w-skeleton-control shrink-0" />
-            <Skeleton.Text
-              containerClassName="w-full"
-              noOfLines={1}
-              size="sm"
-            />
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
+    <div className="grid gap-250 sm:grid-cols-2 lg:grid-cols-4">
+      {Array.from({ length: 8 }, (_, index) => (
+        <div
+          className="flex min-h-750 items-center gap-200 rounded-lg border border-border-secondary bg-surface px-300 py-200"
+          key={`category-context-skeleton-${index + 1}`}
+        >
+          <Skeleton.Circle className="h-skeleton-control w-skeleton-control shrink-0" />
+          <Skeleton.Text containerClassName="w-full" noOfLines={1} size="sm" />
+        </div>
+      ))}
+    </div>
+  </section>
+)
 
-export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
+export const PlpPageSkeleton = ({ variant }: PlpPageSkeletonProps) => {
   const isSearch = variant === "search"
   const isCategory = variant === "category"
 

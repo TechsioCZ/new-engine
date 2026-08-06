@@ -7,7 +7,7 @@ interface TextActionLinkProps {
   text?: string
 }
 
-export function TextActionLink({ href, text }: TextActionLinkProps) {
+export const TextActionLink = ({ href, text }: TextActionLinkProps) => {
   const tContent = useTranslations("content")
 
   return (

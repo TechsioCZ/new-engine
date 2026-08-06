@@ -14,12 +14,12 @@ export type HerbatikaProductCardCompactProps = HerbatikaProductCardBaseProps & {
   ) => void
 }
 
-export function HerbatikaProductCardCompact({
+export const HerbatikaProductCardCompact = ({
   product,
   onCompactImageError,
   onProductHoverEnd,
   onProductHoverStart,
-}: HerbatikaProductCardCompactProps) {
+}: HerbatikaProductCardCompactProps) => {
   const tCatalog = useTranslations("catalog")
   const { handleImageError, imageSrc, price, productHref, title } =
     useHerbatikaProductCardState(product, {

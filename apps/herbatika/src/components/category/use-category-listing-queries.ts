@@ -53,7 +53,7 @@ const resolveBreadcrumbItems = (
   while (currentCategory) {
     trail.unshift(currentCategory)
 
-    if (!currentCategory.parent_category_id) {
+    if (currentCategory.parent_category_id === null) {
       break
     }
 
@@ -63,7 +63,7 @@ const resolveBreadcrumbItems = (
 
   for (let index = 0; index < trail.length; index += 1) {
     const category = trail[index]
-    if (!category) {
+    if (category === undefined) {
       continue
     }
     const label = normalizeCategoryName(category.name)
@@ -85,10 +85,10 @@ interface UseCategoryListingQueriesProps {
   slug: string
 }
 
-export function useCategoryListingQueries({
+export const useCategoryListingQueries = ({
   queryState,
   slug,
-}: UseCategoryListingQueriesProps) {
+}: UseCategoryListingQueriesProps) => {
   const locale = useLocale()
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
@@ -124,8 +124,13 @@ export function useCategoryListingQueries({
     : []
 
   const topLevelCategories = categoriesQuery.categories
-    .filter((category) => !category.parent_category_id && category.handle)
-    .sort((left, right) => {
+    .filter(
+      (category) =>
+        category.parent_category_id === null &&
+        category.handle !== undefined &&
+        category.handle.length > 0,
+    )
+    .toSorted((left, right) => {
       const rankDifference =
         resolveCategoryRank(left) - resolveCategoryRank(right)
       if (rankDifference !== 0) {
@@ -151,7 +156,8 @@ export function useCategoryListingQueries({
     queryState,
   })
 
-  const isCatalogQueryEnabled = Boolean(region?.region_id && activeCategory?.id)
+  const isCatalogQueryEnabled =
+    region?.region_id !== undefined && activeCategory?.id !== undefined
 
   const catalogQuery = useCatalogProducts({
     ...catalogProductsInput,

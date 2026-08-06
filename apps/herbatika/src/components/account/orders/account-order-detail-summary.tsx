@@ -80,7 +80,7 @@ const resolveOrderAmountSummary = (
   }
 }
 
-function OrderAddressBlock({
+const OrderAddressBlock = ({
   address,
   title,
   unavailableText,
@@ -88,31 +88,32 @@ function OrderAddressBlock({
   address: OrderAddress
   title: string
   unavailableText: string
-}) {
-  return (
-    <article className="space-y-150">
-      <h3 className="font-semibold">{title}</h3>
-      {address ? (
-        <div className="space-y-50 text-fg-secondary text-sm">
-          {address.fullName && (
+}) => (
+  <article className="space-y-150">
+    <h3 className="font-semibold">{title}</h3>
+    {address ? (
+      <div className="space-y-50 text-fg-secondary text-sm">
+        {typeof address.fullName === "string" &&
+          address.fullName.length > 0 && (
             <p className="font-medium text-fg-primary">{address.fullName}</p>
           )}
-          {address.company && <p>{address.company}</p>}
-          {address.lines.map((line) => (
-            <p key={line}>{line}</p>
-          ))}
-        </div>
-      ) : (
-        <p className="text-fg-secondary text-sm">{unavailableText}</p>
-      )}
-    </article>
-  )
-}
+        {typeof address.company === "string" && address.company.length > 0 && (
+          <p>{address.company}</p>
+        )}
+        {address.lines.map((line) => (
+          <p key={line}>{line}</p>
+        ))}
+      </div>
+    ) : (
+      <p className="text-fg-secondary text-sm">{unavailableText}</p>
+    )}
+  </article>
+)
 
-export function AccountOrderDetailSummary({
+export const AccountOrderDetailSummary = ({
   order,
   customerEmail,
-}: AccountOrderDetailSummaryProps) {
+}: AccountOrderDetailSummaryProps) => {
   const locale = useLocale()
   const tAuth = useTranslations("auth")
   const tCart = useTranslations("cart")
@@ -155,7 +156,7 @@ export function AccountOrderDetailSummary({
 
         <div className="flex flex-wrap items-center gap-200">
           <Badge variant={orderProgress.variant}>{orderProgress.label}</Badge>
-          {invoiceUrl && (
+          {typeof invoiceUrl === "string" && invoiceUrl.length > 0 && (
             <LinkButton
               as={NextLink}
               href={invoiceUrl}
@@ -242,13 +243,14 @@ export function AccountOrderDetailSummary({
             {shippingMethod ??
               tAuth("account.orders.detail.shipping_unavailable")}
           </p>
-          {fulfillmentStatus && (
-            <p className="text-fg-secondary text-sm">
-              {tAuth("account.orders.detail.status", {
-                status: fulfillmentStatus,
-              })}
-            </p>
-          )}
+          {typeof fulfillmentStatus === "string" &&
+            fulfillmentStatus.length > 0 && (
+              <p className="text-fg-secondary text-sm">
+                {tAuth("account.orders.detail.status", {
+                  status: fulfillmentStatus,
+                })}
+              </p>
+            )}
         </article>
 
         <article className="space-y-100">
@@ -259,7 +261,7 @@ export function AccountOrderDetailSummary({
             {paymentMethod ??
               tAuth("account.orders.detail.payment_unavailable")}
           </p>
-          {paymentStatus && (
+          {typeof paymentStatus === "string" && paymentStatus.length > 0 && (
             <p className="text-fg-secondary text-sm">
               {tAuth("account.orders.detail.status", {
                 status: paymentStatus,

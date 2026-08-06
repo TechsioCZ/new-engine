@@ -6,7 +6,7 @@ import type { BlogPost } from "@/lib/storefront/blog-content"
 
 import { InlineProductsCarousel } from "./inline-products-carousel"
 
-export function BlogTableOfContents({ post }: { post: BlogPost }) {
+export const BlogTableOfContents = ({ post }: { post: BlogPost }) => {
   if (post.sections.length === 0) {
     return null
   }
@@ -50,54 +50,52 @@ export function BlogTableOfContents({ post }: { post: BlogPost }) {
   )
 }
 
-export function BlogArticleContent({ post }: { post: BlogPost }) {
-  return (
-    <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-500">
-      {post.contentHtml ? (
-        <CategoryRichText
-          className="text-md [&_p+p]:mt-300"
-          html={post.contentHtml}
-        />
-      ) : (
-        post.sections.map((section) => (
-          <section className="space-y-250" key={section.title}>
-            <h2 className="text-fg-primary text-xl leading-tight">
-              {section.title}
-            </h2>
-            {section.paragraphs.map((paragraph) => (
-              <p
-                className="text-fg-primary text-md leading-relaxed"
-                key={paragraph}
-              >
-                {paragraph}
-              </p>
-            ))}
-            {section.bulletPoints ? (
-              <ul className="space-y-100 pl-350">
-                {section.bulletPoints.map((item) => (
-                  <li
-                    className="list-disc text-fg-primary text-md leading-relaxed marker:text-primary"
-                    key={item}
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
-        ))
-      )}
-    </article>
-  )
-}
+export const BlogArticleContent = ({ post }: { post: BlogPost }) => (
+  <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-500">
+    {typeof post.contentHtml === "string" && post.contentHtml.length > 0 ? (
+      <CategoryRichText
+        className="text-md [&_p+p]:mt-300"
+        html={post.contentHtml}
+      />
+    ) : (
+      post.sections.map((section) => (
+        <section className="space-y-250" key={section.title}>
+          <h2 className="text-fg-primary text-xl leading-tight">
+            {section.title}
+          </h2>
+          {section.paragraphs.map((paragraph) => (
+            <p
+              className="text-fg-primary text-md leading-relaxed"
+              key={paragraph}
+            >
+              {paragraph}
+            </p>
+          ))}
+          {section.bulletPoints ? (
+            <ul className="space-y-100 pl-350">
+              {section.bulletPoints.map((item) => (
+                <li
+                  className="list-disc text-fg-primary text-md leading-relaxed marker:text-primary"
+                  key={item}
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ))
+    )}
+  </article>
+)
 
-export function BlogProductHighlights({
+export const BlogProductHighlights = ({
   post,
   products,
 }: {
   post: BlogPost
   products: HttpTypes.StoreProduct[]
-}) {
+}) => {
   if (products.length === 0 && post.bulletPoints.length === 0) {
     return null
   }

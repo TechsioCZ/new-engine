@@ -18,7 +18,7 @@ interface AccountOrderDetailProps {
   orderId: string
 }
 
-export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
+export const AccountOrderDetail = ({ orderId }: AccountOrderDetailProps) => {
   const tAuth = useTranslations("auth")
   const tNavigation = useTranslations("navigation")
   const authQuery = useAuth()
@@ -31,7 +31,7 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
     return <OrderSkeleton />
   }
 
-  if (orderQuery.error) {
+  if (orderQuery.error !== null && orderQuery.error.length > 0) {
     return (
       <AccountSurface className="space-y-400">
         <StatusText showIcon status="error">

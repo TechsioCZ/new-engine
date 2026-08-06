@@ -6,151 +6,139 @@ import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-pro
 
 import { ReviewSkeleton } from "./review-skeleton"
 
-function HeroCardSkeleton({ index }: { index: number }) {
-  return (
-    <div
-      className="relative aspect-home-hero"
-      key={`home-route-hero-${index + 1}`}
-    >
-      <Skeleton.Rectangle className="absolute inset-0 rounded-md" />
-      <div className="absolute inset-x-0 bottom-0 space-y-200 p-400">
-        <Skeleton.Rectangle className="h-skeleton-control w-skeleton-short rounded-full bg-skeleton-bg-highlight" />
-        <Skeleton.Text
-          className="bg-skeleton-bg-highlight"
-          noOfLines={3}
-          size="sm"
-        />
-      </div>
-    </div>
-  )
-}
-
-function PurposeCategoryCardSkeleton({ index }: { index: number }) {
-  return (
-    <Skeleton.Rectangle
-      className="flex aspect-square flex-col items-center justify-center gap-300 rounded-md bg-surface"
-      key={`home-route-purpose-${index + 1}`}
-      speed="slow"
-    >
-      <Skeleton.Circle className="size-14" />
+const HeroCardSkeleton = ({ index }: { index: number }) => (
+  <div
+    className="relative aspect-home-hero"
+    key={`home-route-hero-${index + 1}`}
+  >
+    <Skeleton.Rectangle className="absolute inset-0 rounded-md" />
+    <div className="absolute inset-x-0 bottom-0 space-y-200 p-400">
+      <Skeleton.Rectangle className="h-skeleton-control w-skeleton-short rounded-full bg-skeleton-bg-highlight" />
       <Skeleton.Text
-        containerClassName="w-2/3"
-        noOfLines={1}
+        className="bg-skeleton-bg-highlight"
+        noOfLines={3}
         size="sm"
-        speed="fast"
       />
-    </Skeleton.Rectangle>
-  )
-}
+    </div>
+  </div>
+)
 
-function PurposeCategoriesSkeleton() {
-  return (
-    <section className="space-y-350">
-      <div className="flex items-center justify-between gap-300">
-        <Skeleton.Text
-          containerClassName="w-full max-w-xl"
-          noOfLines={1}
-          size="md"
-        />
-        <Skeleton.Rectangle className="hidden h-skeleton-control w-skeleton-caption rounded-sm sm:block" />
-      </div>
+const PurposeCategoryCardSkeleton = ({ index }: { index: number }) => (
+  <Skeleton.Rectangle
+    className="flex aspect-square flex-col items-center justify-center gap-300 rounded-md bg-surface"
+    key={`home-route-purpose-${index + 1}`}
+    speed="slow"
+  >
+    <Skeleton.Circle className="size-14" />
+    <Skeleton.Text
+      containerClassName="w-2/3"
+      noOfLines={1}
+      size="sm"
+      speed="fast"
+    />
+  </Skeleton.Rectangle>
+)
 
-      <div className="space-y-200">
-        <div className="md:hidden">
-          <div className="relative p-200">
-            <div className="grid grid-cols-3 gap-250">
-              {Array.from({ length: 3 }, (_, index) => (
-                <PurposeCategoryCardSkeleton
-                  index={index}
-                  key={`home-route-purpose-mobile-${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+const PurposeCategoriesSkeleton = () => (
+  <section className="space-y-350">
+    <div className="flex items-center justify-between gap-300">
+      <Skeleton.Text
+        containerClassName="w-full max-w-xl"
+        noOfLines={1}
+        size="md"
+      />
+      <Skeleton.Rectangle className="hidden h-skeleton-control w-skeleton-caption rounded-sm sm:block" />
+    </div>
 
-        <div className="hidden md:block xl:hidden">
-          <div className="relative p-200">
-            <div className="grid grid-cols-5 gap-250">
-              {Array.from({ length: 5 }, (_, index) => (
-                <PurposeCategoryCardSkeleton
-                  index={index}
-                  key={`home-route-purpose-tablet-${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="hidden xl:block">
-          <div className="relative p-200">
-            <div className="grid grid-cols-7 gap-250">
-              {Array.from({ length: 7 }, (_, index) => (
-                <PurposeCategoryCardSkeleton
-                  index={index}
-                  key={`home-route-purpose-desktop-${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-export function HomeRouteSkeleton() {
-  return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-homepage-gap p-homepage font-rubik 2xl:p-homepage-lg">
-      <section className="p-300">
-        <div className="relative">
-          <div className="grid grid-cols-2 gap-300 lg:grid-cols-4">
-            {Array.from({ length: 4 }, (_, index) => (
-              <HeroCardSkeleton
+    <div className="space-y-200">
+      <div className="md:hidden">
+        <div className="relative p-200">
+          <div className="grid grid-cols-3 gap-250">
+            {Array.from({ length: 3 }, (_, index) => (
+              <PurposeCategoryCardSkeleton
                 index={index}
-                key={`home-route-hero-card-${index + 1}`}
+                key={`home-route-purpose-mobile-${index + 1}`}
               />
             ))}
           </div>
-
-          <Skeleton.Circle className="-translate-y-1/2 absolute top-1/2 left-400 hidden size-14 bg-skeleton-bg-highlight lg:block" />
-          <Skeleton.Circle className="-translate-y-1/2 absolute top-1/2 right-400 hidden size-14 bg-skeleton-bg-highlight lg:block" />
         </div>
-      </section>
+      </div>
 
-      <PurposeCategoriesSkeleton />
-
-      <section className="grid gap-300 bg-skeleton-bg-secondary p-200 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }, (_, index) => (
-          <div
-            className="flex min-h-benefit-skeleton items-center gap-300 p-300"
-            key={`home-route-benefit-${index + 1}`}
-          >
-            <Skeleton.Circle className="size-16 shrink-0" />
-            <Skeleton.Text
-              containerClassName="w-full"
-              noOfLines={2}
-              size="sm"
-            />
+      <div className="hidden md:block xl:hidden">
+        <div className="relative p-200">
+          <div className="grid grid-cols-5 gap-250">
+            {Array.from({ length: 5 }, (_, index) => (
+              <PurposeCategoryCardSkeleton
+                index={index}
+                key={`home-route-purpose-tablet-${index + 1}`}
+              />
+            ))}
           </div>
-        ))}
-      </section>
+        </div>
+      </div>
 
-      <section className="space-y-400">
-        <HerbatikaProductGridSkeleton layout="collection" />
-      </section>
+      <div className="hidden xl:block">
+        <div className="relative p-200">
+          <div className="grid grid-cols-7 gap-250">
+            {Array.from({ length: 7 }, (_, index) => (
+              <PurposeCategoryCardSkeleton
+                index={index}
+                key={`home-route-purpose-desktop-${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+)
 
-      <section className="space-y-400 p-500">
-        <div className="grid gap-300 lg:grid-cols-3">
-          {Array.from({ length: 3 }, (_, index) => (
-            <ReviewSkeleton key={`home-route-review-${index + 1}`} />
+export const HomeRouteSkeleton = () => (
+  <main className="mx-auto flex w-full max-w-max-w flex-col gap-homepage-gap p-homepage font-rubik 2xl:p-homepage-lg">
+    <section className="p-300">
+      <div className="relative">
+        <div className="grid grid-cols-2 gap-300 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, index) => (
+            <HeroCardSkeleton
+              index={index}
+              key={`home-route-hero-card-${index + 1}`}
+            />
           ))}
         </div>
-      </section>
 
-      <section className="space-y-400">
-        <HerbatikaProductGridSkeleton layout="collection" />
-      </section>
-    </main>
-  )
-}
+        <Skeleton.Circle className="-translate-y-1/2 absolute top-1/2 left-400 hidden size-14 bg-skeleton-bg-highlight lg:block" />
+        <Skeleton.Circle className="-translate-y-1/2 absolute top-1/2 right-400 hidden size-14 bg-skeleton-bg-highlight lg:block" />
+      </div>
+    </section>
+
+    <PurposeCategoriesSkeleton />
+
+    <section className="grid gap-300 bg-skeleton-bg-secondary p-200 md:grid-cols-2 xl:grid-cols-4">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div
+          className="flex min-h-benefit-skeleton items-center gap-300 p-300"
+          key={`home-route-benefit-${index + 1}`}
+        >
+          <Skeleton.Circle className="size-16 shrink-0" />
+          <Skeleton.Text containerClassName="w-full" noOfLines={2} size="sm" />
+        </div>
+      ))}
+    </section>
+
+    <section className="space-y-400">
+      <HerbatikaProductGridSkeleton layout="collection" />
+    </section>
+
+    <section className="space-y-400 p-500">
+      <div className="grid gap-300 lg:grid-cols-3">
+        {Array.from({ length: 3 }, (_, index) => (
+          <ReviewSkeleton key={`home-route-review-${index + 1}`} />
+        ))}
+      </div>
+    </section>
+
+    <section className="space-y-400">
+      <HerbatikaProductGridSkeleton layout="collection" />
+    </section>
+  </main>
+)

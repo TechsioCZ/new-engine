@@ -4,18 +4,10 @@ import type { HttpTypes } from "@medusajs/types"
 
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
 
-const CATALOG_PRODUCT_GRID_CLASSNAME =
-  "grid grid-cols-1 gap-300 sm:grid-cols-2 xl:grid-cols-3"
-const COLLECTION_PRODUCT_GRID_CLASSNAME =
-  "grid grid-cols-1 gap-400 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
+import { HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME } from "./herbatika-product-grid.constants"
+import type { HerbatikaProductGridLayout } from "./herbatika-product-grid.constants"
 
-export const HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME = {
-  catalog: CATALOG_PRODUCT_GRID_CLASSNAME,
-  collection: COLLECTION_PRODUCT_GRID_CLASSNAME,
-} as const
-
-export type HerbatikaProductGridLayout =
-  keyof typeof HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME
+export type { HerbatikaProductGridLayout } from "./herbatika-product-grid.constants"
 
 interface HerbatikaProductGridProps {
   products: HttpTypes.StoreProduct[]
@@ -28,7 +20,7 @@ interface HerbatikaProductGridProps {
   keyPrefix?: string
 }
 
-export function HerbatikaProductGrid({
+export const HerbatikaProductGrid = ({
   products,
   onAddToCart,
   layout,
@@ -37,24 +29,18 @@ export function HerbatikaProductGrid({
   onProductHoverEnd,
   getDescriptionOverride,
   keyPrefix,
-}: HerbatikaProductGridProps) {
-  return (
-    <div
-      className={`${HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME[layout]} min-w-0`}
-    >
-      {products.map((product, index) => (
-        <HerbatikaProductCard
-          descriptionOverride={getDescriptionOverride?.(product) ?? null}
-          isAdding={isProductAdding?.(product) ?? false}
-          key={`${keyPrefix ?? layout}-${product.id}-${index}`}
-          onAddToCart={onAddToCart}
-          {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
-          {...(onProductHoverStart === undefined
-            ? {}
-            : { onProductHoverStart })}
-          product={product}
-        />
-      ))}
-    </div>
-  )
-}
+}: HerbatikaProductGridProps) => (
+  <div className={`${HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME[layout]} min-w-0`}>
+    {products.map((product) => (
+      <HerbatikaProductCard
+        descriptionOverride={getDescriptionOverride?.(product) ?? null}
+        isAdding={isProductAdding?.(product) ?? false}
+        key={`${keyPrefix ?? layout}-${product.id}`}
+        onAddToCart={onAddToCart}
+        {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
+        {...(onProductHoverStart === undefined ? {} : { onProductHoverStart })}
+        product={product}
+      />
+    ))}
+  </div>
+)

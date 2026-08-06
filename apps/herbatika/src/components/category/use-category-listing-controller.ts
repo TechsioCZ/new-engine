@@ -20,9 +20,9 @@ interface UseCategoryListingControllerProps {
   slug: string
 }
 
-export function useCategoryListingController({
+export const useCategoryListingController = ({
   slug,
-}: UseCategoryListingControllerProps) {
+}: UseCategoryListingControllerProps) => {
   const region = useRegionContext()
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers)
 

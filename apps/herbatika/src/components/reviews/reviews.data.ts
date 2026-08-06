@@ -1,16 +1,18 @@
 import googleLogo from "@/assets/third-parties/google.avif"
 import heurekaLogo from "@/assets/third-parties/heureka.avif"
-import verifiedCustomerBadge from "@/assets/third-parties/overeny-zakaznik.avif"
 import zboziLogo from "@/assets/third-parties/zbozi-seznam.avif"
 import type {
   ReviewItem,
   ReviewTrustSource,
 } from "@/components/reviews/reviews.types"
 
+const REVIEW_AUTHOR_DENISA = "Denisa Sczyrzická"
+const REVIEW_DATE_LABEL = "26.11.2025"
+
 export const PRODUCT_REVIEWS: readonly ReviewItem[] = [
   {
-    author: "Denisa Sczyrzická",
-    dateLabel: "26.11.2025",
+    author: REVIEW_AUTHOR_DENISA,
+    dateLabel: REVIEW_DATE_LABEL,
     id: "review-denisa",
     message:
       "Veľmi som spokojná s Vilcacorou, účinky sú viditeľné už po týždni používania.",
@@ -19,14 +21,14 @@ export const PRODUCT_REVIEWS: readonly ReviewItem[] = [
   },
   {
     author: "Anonymne",
-    dateLabel: "26.11.2025",
+    dateLabel: REVIEW_DATE_LABEL,
     id: "review-anonymous",
     message: "Funguje",
     rating: 5,
   },
   {
     author: "Maria Marton",
-    dateLabel: "26.11.2025",
+    dateLabel: REVIEW_DATE_LABEL,
     id: "review-maria",
     message: "Som spokojna s formulou oleja v globulkach.",
     rating: 5,
@@ -34,7 +36,7 @@ export const PRODUCT_REVIEWS: readonly ReviewItem[] = [
   },
   {
     author: "Jozef Sokolovský",
-    dateLabel: "26.11.2025",
+    dateLabel: REVIEW_DATE_LABEL,
     id: "review-jozef",
     message: "Produkt je kvalitný a veľmi rýchle dodanie odporúčam.",
     rating: 5,
@@ -44,8 +46,8 @@ export const PRODUCT_REVIEWS: readonly ReviewItem[] = [
 
 export const HEUREKA_REVIEWS: readonly ReviewItem[] = [
   {
-    author: "Denisa Sczyrzická",
-    dateLabel: "26.11.2025",
+    author: REVIEW_AUTHOR_DENISA,
+    dateLabel: REVIEW_DATE_LABEL,
     id: "heureka-review-denisa-delivery",
     message:
       "Veľmi som spokojná s Vilcacorou, účinky sú viditeľné už po týždni používania. Ďakujem!",
@@ -53,23 +55,23 @@ export const HEUREKA_REVIEWS: readonly ReviewItem[] = [
     title: "Rýchle doručenie",
   },
   {
-    author: "Denisa Sczyrzická",
-    dateLabel: "26.11.2025",
+    author: REVIEW_AUTHOR_DENISA,
+    dateLabel: REVIEW_DATE_LABEL,
     id: "heureka-review-denisa-packaging",
     message: "Funguje",
     rating: 5,
     title: "dobre zabalené",
   },
   {
-    author: "Denisa Sczyrzická",
-    dateLabel: "26.11.2025",
+    author: REVIEW_AUTHOR_DENISA,
+    dateLabel: REVIEW_DATE_LABEL,
     id: "heureka-review-denisa-ok",
     message: "Ok",
     rating: 5,
   },
   {
-    author: "Denisa Sczyrzická",
-    dateLabel: "26.11.2025",
+    author: REVIEW_AUTHOR_DENISA,
+    dateLabel: REVIEW_DATE_LABEL,
     id: "heureka-review-denisa-vilcacora",
     message:
       "Veľmi som spokojná s Vilcacorou, účinky sú viditeľné už po týždni používania. Ďakujem vám Herbatica!",
@@ -105,4 +107,4 @@ export const REVIEW_TRUST_SOURCES: readonly ReviewTrustSource[] = [
   },
 ]
 
-export const REVIEW_VERIFIED_CUSTOMER_BADGE = verifiedCustomerBadge
+export { default as REVIEW_VERIFIED_CUSTOMER_BADGE } from "@/assets/third-parties/overeny-zakaznik.avif"

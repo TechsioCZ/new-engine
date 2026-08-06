@@ -6,7 +6,7 @@ import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import { FaqAccordion } from "./faq-accordion"
 import { faqItemCount, faqItems } from "./faq-page.data"
 
-export function FaqPage() {
+export const FaqPage = () => {
   const tContent = useTranslations("content")
   const tNavigation = useTranslations("navigation")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
