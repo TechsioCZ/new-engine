@@ -6,6 +6,16 @@ export const StoreDeactivateCustomerAccountSchema = z
   })
   .strict()
 
+export const StoreConfirmDeactivateCustomerAccountSchema = z
+  .object({
+    token: z.string().min(1),
+  })
+  .strict()
+
 export type StoreDeactivateCustomerAccountSchemaType = z.infer<
   typeof StoreDeactivateCustomerAccountSchema
+>
+
+export type StoreConfirmDeactivateCustomerAccountSchemaType = z.infer<
+  typeof StoreConfirmDeactivateCustomerAccountSchema
 >

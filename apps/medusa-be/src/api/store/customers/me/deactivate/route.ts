@@ -2,22 +2,23 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import { deactivateCustomerAccountWorkflow } from "../../../../../workflows/customer/workflows/deactivate-customer-account"
+import { requestCustomerAccountDeactivationWorkflow } from "../../../../../workflows/customer/workflows/request-customer-account-deactivation"
 import type { StoreDeactivateCustomerAccountSchemaType } from "../../validators"
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreDeactivateCustomerAccountSchemaType>,
   res: MedusaResponse
 ) {
-  const { result } = await deactivateCustomerAccountWorkflow(req.scope).run({
+  const { result } = await requestCustomerAccountDeactivationWorkflow(
+    req.scope
+  ).run({
     input: {
       customer_id: req.auth_context.actor_id,
     },
   })
 
   res.status(200).json({
-    auth_identity_deleted: result.auth_identity_deleted,
     customer_id: result.customer_id,
-    deleted: result.deleted,
+    sent: result.sent,
   })
 }
