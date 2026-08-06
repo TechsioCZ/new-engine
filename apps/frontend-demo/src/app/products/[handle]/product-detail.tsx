@@ -6,7 +6,7 @@ import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
 import { GalleryTemplate } from "@techsio/ui-kit/templates/gallery"
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
 import { ProductGrid } from "@/components/organisms/product-grid"
@@ -15,21 +15,28 @@ import { ProductTabs } from "@/components/organisms/product-tabs"
 import { useProduct, useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
 import { truncateProductTitle } from "@/lib/order-utils"
-import type { Product } from "@/types/product"
+import type { ProductVariant } from "@/types/product"
 import { formatPrice } from "@/utils/price-utils"
 
 interface ProductDetailProps {
   handle: string
 }
 
-function getProductBadges(metadata: Product["metadata"]): BadgeProps[] {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const getProductBadges = (metadata: unknown): BadgeProps[] => {
   const badges: BadgeProps[] = []
 
-  if (metadata?.isNew) {
+  if (!isRecord(metadata)) {
+    return badges
+  }
+
+  const { discount, isNew } = metadata
+  if (isNew === true) {
     badges.push({ children: "New", variant: "info" })
   }
 
-  const discount = metadata?.discount
   if (typeof discount === "number" || typeof discount === "string") {
     badges.push({
       children: `${discount}% OFF`,
@@ -40,94 +47,120 @@ function getProductBadges(metadata: Product["metadata"]): BadgeProps[] {
   return badges
 }
 
-export default function ProductDetail({ handle }: ProductDetailProps) {
+interface ProductDetailErrorProps {
+  message: string
+}
+
+const ProductDetailLoading = () => (
+  <div className="min-h-screen bg-product-detail-bg">
+    <div className="mx-auto max-w-product-detail-max-w px-product-detail-container-x py-product-detail-container-y">
+      <div>
+        <SkeletonLoader className="mb-8 w-48" size="md" variant="text" />
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <SkeletonLoader className="aspect-square w-full" variant="box" />
+          <div className="space-y-4">
+            <SkeletonLoader className="w-3/4" size="xl" variant="text" />
+            <SkeletonLoader className="w-1/4" size="lg" variant="text" />
+            <SkeletonLoader className="h-24 w-full" variant="box" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
+const ProductDetailError = ({ message }: ProductDetailErrorProps) => (
+  <div className="min-h-screen bg-product-detail-bg">
+    <div className="mx-auto max-w-product-detail-max-w px-product-detail-container-x py-product-detail-container-y text-center">
+      <h1 className="mb-4 font-semibold text-2xl">Product not found</h1>
+      <StatusText showIcon status="error">
+        {message}
+      </StatusText>
+    </div>
+  </div>
+)
+
+const getFormattedVariantPrices = (
+  variant: ProductVariant | null,
+  currencyCode: string | null | undefined,
+) => {
+  if (currencyCode === null || currencyCode === undefined) {
+    return {}
+  }
+
+  const amount = variant?.calculated_price?.calculated_amount
+  const amountWithTax = variant?.calculated_price?.calculated_amount_with_tax
+
+  return {
+    ...(typeof amount === "number"
+      ? { price: formatPrice(amount, currencyCode) }
+      : {}),
+    ...(typeof amountWithTax === "number"
+      ? { priceWithTax: formatPrice(amountWithTax, currencyCode) }
+      : {}),
+  }
+}
+
+const ProductDetail = ({ handle }: ProductDetailProps) => {
   const { selectedRegion } = useRegions()
-  const { product, isLoading, error } = useProduct(handle, selectedRegion?.id)
-  const [selectedVariant, setSelectedVariant] = useState(
-    product?.variants?.[0] || null,
+  const regionId = selectedRegion?.id
+  const { product, isLoading, error } = useProduct(handle, regionId)
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    null,
   )
-  const titleQuery = product?.title.split(" ").slice(0, 2).join(" ") || ""
-  // Update selected variant when product loads or changes
-  useEffect(() => {
-    if (product?.variants?.[0]) {
-      setSelectedVariant(product.variants[0])
-    }
-  }, [product])
+  const productVariants = product?.variants ?? []
+  const selectedVariant =
+    productVariants.find((variant) => variant.id === selectedVariantId) ??
+    productVariants[0] ??
+    null
+  const titleQuery = product?.title.split(" ").slice(0, 2).join(" ") ?? ""
+  const hasRegionId = typeof regionId === "string" && regionId.length > 0
 
   const { products: relatedProducts } = useProducts({
-    enabled: !!titleQuery && !!selectedRegion?.id,
+    enabled: titleQuery.length > 0 && hasRegionId,
     limit: 5,
     q: titleQuery,
-    region_id: selectedRegion?.id,
+    region_id: regionId,
     sort: "newest",
   })
 
   // Filter out the current product from related products
   const filteredRelatedProducts = relatedProducts
-    ?.filter((p) => p.handle !== handle)
+    .filter((p) => p.handle !== handle)
     .slice(0, 4)
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-product-detail-bg">
-        <div className="mx-auto max-w-product-detail-max-w px-product-detail-container-x py-product-detail-container-y">
-          <div>
-            <SkeletonLoader className="mb-8 w-48" size="md" variant="text" />
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-              <SkeletonLoader className="aspect-square w-full" variant="box" />
-              <div className="space-y-4">
-                <SkeletonLoader className="w-3/4" size="xl" variant="text" />
-                <SkeletonLoader className="w-1/4" size="lg" variant="text" />
-                <SkeletonLoader className="h-24 w-full" variant="box" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    return <ProductDetailLoading />
   }
 
   // Error state
-  if (error || !product) {
+  if (error !== null || product === undefined) {
     return (
-      <div className="min-h-screen bg-product-detail-bg">
-        <div className="mx-auto max-w-product-detail-max-w px-product-detail-container-x py-product-detail-container-y text-center">
-          <h1 className="mb-4 font-semibold text-2xl">Product not found</h1>
-          <StatusText showIcon status="error">
-            {error || "The product you are looking for does not exist."}
-          </StatusText>
-        </div>
-      </div>
+      <ProductDetailError
+        message={error ?? "The product you are looking for does not exist."}
+      />
     )
   }
 
-  // Get price for selected variant and region
-  // Find the price that matches the current currency
-  const variantPrice = selectedRegion?.currency_code
-    ? selectedVariant?.calculated_price
-    : null
-
   // Prices from Medusa are already in dollars/euros, NOT cents
-  const price =
-    variantPrice?.calculated_amount &&
-    formatPrice(variantPrice.calculated_amount, selectedRegion?.currency_code)
-
-  const priceWithTax =
-    variantPrice?.calculated_amount_with_tax &&
-    formatPrice(
-      variantPrice.calculated_amount_with_tax,
-      selectedRegion?.currency_code,
-    )
+  const { price, priceWithTax } = getFormattedVariantPrices(
+    selectedVariant,
+    selectedRegion?.currency_code,
+  )
   // Get badges for the product
   const badges = getProductBadges(product.metadata)
 
   const galleryImages =
     product.images?.map((img, idx) => ({
-      alt: img.alt || product.title,
+      alt: img.alt ?? product.title,
       id: `image-${idx}`,
       imageProps: { fill: true, sizes: "400px" },
       src: img.url,
-    })) || []
+    })) ?? []
+
+  const handleVariantChange = (variant: ProductVariant) => {
+    setSelectedVariantId(variant.id)
+  }
 
   return (
     <div className="min-h-screen bg-product-detail-bg">
@@ -166,9 +199,9 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
           {/* Info Section */}
           <ProductInfo
             badges={badges}
-            onVariantChange={setSelectedVariant}
-            price={price || "Cena není k dispozici"}
-            {...(priceWithTax && { priceWithTax })}
+            onVariantChange={handleVariantChange}
+            price={price ?? "Cena není k dispozici"}
+            {...(priceWithTax === undefined ? {} : { priceWithTax })}
             product={product}
             selectedVariant={selectedVariant}
           />
@@ -192,3 +225,5 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
     </div>
   )
 }
+
+export default ProductDetail

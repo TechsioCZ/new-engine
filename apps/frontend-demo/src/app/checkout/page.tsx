@@ -26,7 +26,7 @@ interface CheckoutStep {
   value: number
 }
 
-function useMediaQuery(query: string) {
+const useMediaQuery = (query: string) => {
   const [matches, setMatches] = useState(false)
 
   useEffect(() => {
@@ -46,7 +46,7 @@ function useMediaQuery(query: string) {
   return matches
 }
 
-export default function CheckoutPage() {
+const CheckoutPage = () => {
   const { cart, isLoading } = useCart()
 
   const {
@@ -71,23 +71,6 @@ export default function CheckoutPage() {
   const [showOrderSummary, setShowOrderSummary] = useState(false)
   const isDesktopSteps = useMediaQuery("(min-width: 640px)")
 
-  // Redirect if cart is empty and no completed order
-  useEffect(() => {
-    // Wait for cart to load before checking
-    if (!isLoading) {
-      const hasCompletedOrder = orderHelpers.getOrderData(null) !== null
-
-      // Only redirect if cart is empty AND no completed order exists
-      if (
-        (!cart || cart.items?.length === 0) &&
-        !hasCompletedOrder &&
-        !isOrderComplete
-      ) {
-        //  router.push('/cart')
-      }
-    }
-  }, [cart, isLoading, isOrderComplete])
-
   // Show loading state while cart is loading
   if (isLoading) {
     return <LoadingPage />
@@ -96,7 +79,11 @@ export default function CheckoutPage() {
   // Get order data (either from cart or saved completed order)
   const orderData = orderHelpers.getOrderData(cart)
 
-  if (!orderData?.items || orderData.items.length === 0) {
+  if (
+    orderData?.items === null ||
+    orderData?.items === undefined ||
+    orderData.items.length === 0
+  ) {
     return null
   }
 
@@ -107,24 +94,45 @@ export default function CheckoutPage() {
     (m) => m.id === selectedPayment,
   )
   const shippingPrice =
-    selectedShippingMethod?.calculated_price.calculated_amount || 0
+    selectedShippingMethod?.calculated_price.calculated_amount ?? 0
 
-  const paymentFee = selectedPaymentMethod?.fee || 0
+  const paymentFee = selectedPaymentMethod?.fee ?? 0
 
-  const handleComplete = async () => {
-    // For other payment methods, process directly
+  const completeOrder = async () => {
     try {
       const order = await processOrder()
-      if (order) {
-        setOrderNumber(
-          String(order.display_id) || `CZ${Date.now().toString().slice(-8)}`,
-        )
-        setIsOrderComplete(true)
-        setCurrentStep(3)
+      if (order === undefined) {
+        return
       }
-    } catch {
-      // Error already handled in hook
+
+      const displayId = order.display_id
+      setOrderNumber(
+        displayId === null || displayId === undefined
+          ? `CZ${Date.now().toString().slice(-8)}`
+          : String(displayId),
+      )
+      setIsOrderComplete(true)
+      setCurrentStep(3)
+    } catch (error: unknown) {
+      console.error("Checkout completion failed:", error)
     }
+  }
+
+  const handleComplete = () => {
+    void completeOrder()
+  }
+
+  const updateShippingMethod = async (method: string) => {
+    try {
+      await addShippingMethod(method)
+    } catch (error: unknown) {
+      console.error("Checkout shipping update failed:", error)
+    }
+  }
+
+  const handleShippingSelect = (method: string) => {
+    setSelectedShipping(method)
+    void updateShippingMethod(method)
   }
 
   const steps: CheckoutStep[] = [
@@ -135,8 +143,8 @@ export default function CheckoutPage() {
             try {
               await updateAddresses(data)
               setCurrentStep(1)
-            } catch {
-              // Error already handled in hook
+            } catch (error: unknown) {
+              console.error("Checkout address update failed:", error)
             }
           }}
         />
@@ -149,14 +157,7 @@ export default function CheckoutPage() {
         <ShippingSelection
           currentStep={currentStep}
           isLoading={isLoadingShipping}
-          onSelect={async (method) => {
-            setSelectedShipping(method)
-            try {
-              await addShippingMethod(method)
-            } catch {
-              // Error already handled in hook
-            }
-          }}
+          onSelect={handleShippingSelect}
           selected={selectedShipping}
           setCurrentStep={setCurrentStep}
           shippingMethods={shippingMethods}
@@ -320,3 +321,5 @@ export default function CheckoutPage() {
     </div>
   )
 }
+
+export default CheckoutPage

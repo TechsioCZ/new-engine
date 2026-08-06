@@ -30,7 +30,7 @@ interface AccountLayoutProps {
   children: ReactNode
 }
 
-export default function AccountLayout({ children }: AccountLayoutProps) {
+const AccountLayout = ({ children }: AccountLayoutProps) => {
   const pathname = usePathname()
   const { logout } = useAuth()
 
@@ -84,3 +84,5 @@ export default function AccountLayout({ children }: AccountLayoutProps) {
     </div>
   )
 }
+
+export default AccountLayout

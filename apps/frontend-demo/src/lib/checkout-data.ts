@@ -1,5 +1,7 @@
 import type { Country, PaymentMethod, ShippingMethod } from "@/types/checkout"
 
+const STANDARD_DELIVERY_MESSAGE = "Doručení za 2-3 pracovní dny"
+
 const getDeliveryDate = (daysToAdd: number) => {
   const date = new Date()
   date.setDate(date.getDate() + daysToAdd)
@@ -12,7 +14,7 @@ const getDeliveryDate = (daysToAdd: number) => {
 
 export const SHIPPING_METHODS: ShippingMethod[] = [
   {
-    delivery: "Doručení za 2-3 pracovní dny",
+    delivery: STANDARD_DELIVERY_MESSAGE,
     deliveryDate: `Doručení ${getDeliveryDate(2)} - ${getDeliveryDate(3)}`,
     description: "Doručení na adresu",
     id: "ppl",
@@ -32,7 +34,7 @@ export const SHIPPING_METHODS: ShippingMethod[] = [
     priceFormatted: "129 Kč",
   },
   {
-    delivery: "Doručení za 2-3 pracovní dny",
+    delivery: STANDARD_DELIVERY_MESSAGE,
     deliveryDate: `Doručení ${getDeliveryDate(2)} - ${getDeliveryDate(3)}`,
     description: "Výdejní místa po celé ČR",
     id: "zasilkovna",
@@ -42,7 +44,7 @@ export const SHIPPING_METHODS: ShippingMethod[] = [
     priceFormatted: "65 Kč",
   },
   {
-    delivery: "Doručení za 2-3 pracovní dny",
+    delivery: STANDARD_DELIVERY_MESSAGE,
     deliveryDate: `Doručení ${getDeliveryDate(2)} - ${getDeliveryDate(3)}`,
     description: "Široká síť výdejních míst",
     id: "balikovna",

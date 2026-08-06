@@ -11,7 +11,7 @@ interface ProductDisplayData {
   displayBadges: BadgeProps[]
 }
 
-export function extractProductData(product: Product): ProductDisplayData {
+export const extractProductData = (product: Product): ProductDisplayData => {
   // For API products, find the price that matches the current currency
   const { primaryVariant } = product
 
@@ -19,7 +19,11 @@ export function extractProductData(product: Product): ProductDisplayData {
   const badges: BadgeProps[] = []
 
   // New badge - check if product was created recently (within 7 days)
-  if (product.created_at) {
+  if (
+    product.created_at !== undefined &&
+    product.created_at !== null &&
+    product.created_at !== ""
+  ) {
     const createdDate = new Date(product.created_at)
     const daysSinceCreated =
       (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -29,13 +33,13 @@ export function extractProductData(product: Product): ProductDisplayData {
   }
 
   if (primaryVariant) {
-    if (!primaryVariant.manage_inventory) {
+    if (primaryVariant.manage_inventory !== true) {
       badges.push({ children: "Skladem", variant: "success" as const })
     } else if (typeof primaryVariant.inventory_quantity === "number") {
       if (primaryVariant.inventory_quantity > 0) {
         badges.push({ children: "Skladem", variant: "success" as const })
       }
-    } else if (primaryVariant.allow_backorder) {
+    } else if (primaryVariant.allow_backorder === true) {
       badges.push({ children: "Na objednávku", variant: "warning" as const })
     } else {
       badges.push({ children: "Vyprodáno", variant: "danger" as const })
@@ -53,6 +57,5 @@ export function extractProductData(product: Product): ProductDisplayData {
 /**
  * Get product URL path
  */
-export function getProductPath(handle: string): Route<`/products/${string}`> {
-  return `/products/${handle}`
-}
+export const getProductPath = (handle: string): Route<`/products/${string}`> =>
+  `/products/${handle}`

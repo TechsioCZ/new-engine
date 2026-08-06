@@ -13,7 +13,8 @@ interface TeamMember {
 interface CompanyValue {
   title: string
   description: string
-  icon: IconType // SVG path data
+  // SVG path data
+  icon: IconType
 }
 
 interface CompanyStat {
@@ -64,10 +65,10 @@ export const aboutContent: AboutContent = {
     title: "Náš příběh",
   },
   stats: [
-    { value: "50K+", label: "Spokojených zákazníků" },
-    { value: "100%", label: "Udržitelné materiály" },
-    { value: "25+", label: "Partnerských řemeslníků" },
-    { value: "4.9★", label: "Hodnocení zákazníků" },
+    { label: "Spokojených zákazníků", value: "50K+" },
+    { label: "Udržitelné materiály", value: "100%" },
+    { label: "Partnerských řemeslníků", value: "25+" },
+    { label: "Hodnocení zákazníků", value: "4.9★" },
   ],
   story: {
     image:
@@ -83,14 +84,14 @@ export const aboutContent: AboutContent = {
   team: {
     members: [
       {
+        image: petrImg,
         name: "Petr Glaser",
         role: "Founder",
-        image: petrImg,
       },
       {
+        image: pavelImg,
         name: "Pavel Koudelka",
         role: "Co-Founder",
-        image: pavelImg,
       },
     ],
     title: "Poznejte náš tým",
@@ -98,36 +99,36 @@ export const aboutContent: AboutContent = {
   values: {
     items: [
       {
-        title: "Udržitelnost",
         description: "Každé rozhodnutí děláme s ohledem na planetu",
         icon: "token-icon-earth",
+        title: "Udržitelnost",
       },
       {
-        title: "Nekompromisní kvalita",
         description:
           "Pečlivě vybíráme materiály pro maximální životnost produktů",
         icon: "token-icon-check-circle",
+        title: "Nekompromisní kvalita",
       },
       {
-        title: "Spravedlivý obchod",
         description: "Transparentní dodavatelský řetězec od vlákna po výrobek",
         icon: "token-icon-present",
+        title: "Spravedlivý obchod",
       },
       {
-        title: "Inovace",
         description: "Experimentujeme s materiály šetrnými k přírodě i lidem",
         icon: "token-icon-light",
+        title: "Inovace",
       },
       {
-        title: "Komunita",
         description:
           "Vybudovali jsme komunitu lidí se zápalem, která sdílí své nápady",
         icon: "token-icon-group",
+        title: "Komunita",
       },
       {
-        title: "Globální dopad",
         description: "Z českého ateliéru jsme přerostli do zahraničních trhů",
         icon: "token-icon-global",
+        title: "Globální dopad",
       },
     ],
     title: "Za čím si stojíme",

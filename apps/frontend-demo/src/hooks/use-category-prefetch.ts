@@ -9,10 +9,11 @@ import { getProducts } from "@/services/product-service"
 interface UseCategoryPrefetchOptions {
   enabled?: boolean
   cacheStrategy?: keyof typeof cacheConfig
-  prefetchLimit?: number // Custom limit for prefetch vs normal queries
+  // Use a custom limit for prefetches without changing normal queries.
+  prefetchLimit?: number
 }
 
-export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
+export const useCategoryPrefetch = (options?: UseCategoryPrefetchOptions) => {
   const { selectedRegion } = useRegions()
   const queryClient = useQueryClient()
   const enabled = options?.enabled ?? true
@@ -22,7 +23,13 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
   const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   const prefetchCategoryProducts = async (categoryIds: string[]) => {
-    if (!(enabled && selectedRegion?.id) || categoryIds.length === 0) {
+    const regionId = selectedRegion?.id
+    if (
+      !enabled ||
+      regionId === undefined ||
+      regionId.length === 0 ||
+      categoryIds.length === 0
+    ) {
       return
     }
 
@@ -31,7 +38,7 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
       filters: { categories: categoryIds, sizes: [] },
       limit: prefetchLimit,
       page: 1,
-      region_id: selectedRegion.id,
+      region_id: regionId,
       sort: "newest",
     })
 
@@ -39,24 +46,20 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
     const queryState = queryClient.getQueryState(queryKey)
 
     // Only prefetch if data is not in cache or is stale
-    if (!cachedData || queryState?.isInvalidated) {
-      //  console.log(`[Prefetch] Executing prefetch for ${categoryIds.length} categories`)
-
+    if (cachedData === undefined || queryState?.isInvalidated === true) {
       await queryClient.prefetchQuery({
         queryFn: async () =>
-          getProducts({
+          await getProducts({
             filters: { categories: categoryIds, sizes: [] },
             limit: prefetchLimit,
             offset: 0,
-            region_id: selectedRegion.id,
+            region_id: regionId,
             sort: "newest",
           }),
         queryKey,
         ...cacheConfig[cacheStrategy],
       })
-    } /* else {
-        console.log(`[Prefetch] Skipping - already in cache for ${categoryIds.length} categories`)
-      }*/
+    }
   }
 
   // Delayed prefetch with cancellation support
@@ -65,30 +68,40 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
     delay = 800,
     prefetchId?: string,
   ) => {
-    const id = prefetchId || `prefetch_${Date.now()}_${Math.random()}`
+    const id = prefetchId ?? `prefetch_${Date.now()}_${crypto.randomUUID()}`
 
     // Cancel any existing timeout for this ID
     const existingTimeout = timeoutsRef.current.get(id)
-    if (existingTimeout) {
+    if (existingTimeout !== undefined) {
       clearTimeout(existingTimeout)
+    }
+
+    const runPrefetch = async () => {
+      try {
+        await prefetchCategoryProducts(categoryIds)
+      } catch (error) {
+        console.error("Category prefetch failed:", error)
+      } finally {
+        timeoutsRef.current.delete(id)
+      }
     }
 
     // Create new timeout
     const timeoutId = setTimeout(() => {
-      prefetchCategoryProducts(categoryIds).catch(console.error)
-      timeoutsRef.current.delete(id)
+      void runPrefetch()
     }, delay)
 
     // Store timeout for potential cancellation
     timeoutsRef.current.set(id, timeoutId)
 
-    return id // Return ID for potential cancellation
+    // Return the ID so the caller can cancel this prefetch.
+    return id
   }
 
   // Cancel specific prefetch by ID
   const cancelPrefetch = (prefetchId: string) => {
     const timeout = timeoutsRef.current.get(prefetchId)
-    if (timeout) {
+    if (timeout !== undefined) {
       clearTimeout(timeout)
       timeoutsRef.current.delete(prefetchId)
       return true

@@ -20,12 +20,12 @@ export const authFormFields = {
   }),
 
   email: (props?: Partial<FormInputProps>): FormInputProps => ({
+    autoComplete: "email",
     id: props?.id ?? "email",
     label: "E-mail",
-    type: "email",
     placeholder: AUTH_FORM_CONFIG.EMAIL_PLACEHOLDER,
     required: true,
-    autoComplete: "email",
+    type: "email",
     //extraText: AUTH_FORM_CONFIG.EMAIL_HELP_TEXT,
     ...props,
   }),
@@ -47,12 +47,12 @@ export const authFormFields = {
   }),
 
   newPassword: (props?: Partial<FormInputProps>): FormInputProps => ({
+    autoComplete: "new-password",
     id: props?.id ?? "password",
     label: "Heslo",
-    type: "password",
     placeholder: AUTH_FORM_CONFIG.PASSWORD_PLACEHOLDER,
     required: true,
-    autoComplete: "new-password",
+    type: "password",
     //extraText: AUTH_FORM_CONFIG.PASSWORD_HELP_TEXT,
     ...props,
   }),
@@ -71,12 +71,10 @@ export const authFormFields = {
 /**
  * Helper to apply loading state to form field
  */
-export function withLoading(
+export const withLoading = (
   fieldProps: FormInputProps,
   isLoading: boolean,
-): FormInputProps {
-  return {
-    ...fieldProps,
-    disabled: isLoading,
-  }
-}
+): FormInputProps => ({
+  ...fieldProps,
+  disabled: isLoading,
+})

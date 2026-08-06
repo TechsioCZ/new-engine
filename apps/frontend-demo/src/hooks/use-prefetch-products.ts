@@ -14,20 +14,27 @@ interface UsePrefetchProductsOptions {
 
 const DEFAULT_LIMIT = 12
 
-export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
+export const usePrefetchProducts = (options?: UsePrefetchProductsOptions) => {
   const { selectedRegion } = useRegions()
   const queryClient = useQueryClient()
   const enabled = options?.enabled ?? true
   const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
   const prefetchProducts = (params?: Omit<ProductListParams, "region_id">) => {
-    if (!(enabled && selectedRegion?.id)) {
+    const regionId = selectedRegion?.id
+    if (!enabled || regionId === undefined || regionId.length === 0) {
       return
     }
 
+    const offset = params?.offset ?? 0
+    const paginationLimit =
+      params?.limit === undefined || params.limit === 0
+        ? DEFAULT_LIMIT
+        : params.limit
+    const page = offset === 0 ? 1 : Math.floor(offset / paginationLimit) + 1
     const queryParams = {
       ...params,
-      region_id: selectedRegion.id,
+      region_id: regionId,
     }
 
     void queryClient.prefetchQuery({
@@ -36,11 +43,9 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
         category: params?.category,
         filters: params?.filters,
         limit: params?.limit,
-        page: params?.offset
-          ? Math.floor(params.offset / (params.limit || DEFAULT_LIMIT)) + 1
-          : 1,
+        page,
         q: params?.q,
-        region_id: selectedRegion.id,
+        region_id: regionId,
         sort: params?.sort,
       }),
       ...cacheConfig[cacheStrategy],
@@ -66,7 +71,8 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
       category: categoryHandle,
       limit: DEFAULT_LIMIT,
       offset: 0,
-      sort: "newest", // Add default sort
+      // Keep category prefetches aligned with the default product sort.
+      sort: "newest",
     })
   }
 
@@ -75,7 +81,10 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
     currentParams: ProductListParams,
     currentPage: number,
   ) => {
-    const limit = currentParams.limit || DEFAULT_LIMIT
+    const limit =
+      currentParams.limit === undefined || currentParams.limit === 0
+        ? DEFAULT_LIMIT
+        : currentParams.limit
     prefetchProducts({
       ...currentParams,
       offset: currentPage * limit,

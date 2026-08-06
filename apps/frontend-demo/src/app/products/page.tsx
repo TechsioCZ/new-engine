@@ -1,5 +1,6 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
+import type { PaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination"
 import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import Link from "next/link"
@@ -14,6 +15,7 @@ import { useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
 import { useUrlFilters } from "@/hooks/use-url-filters"
 import type { ExtendedSortOption } from "@/hooks/use-url-filters"
+import type { Product } from "@/types/product"
 
 const SORT_OPTIONS: { value: ExtendedSortOption; label: string }[] = [
   { label: "Nejnovější", value: "newest" },
@@ -21,7 +23,81 @@ const SORT_OPTIONS: { value: ExtendedSortOption; label: string }[] = [
   { label: "Název: Z-A", value: "name-desc" },
 ]
 
-function ProductsContent() {
+const isExtendedSortOption = (value: unknown): value is ExtendedSortOption => {
+  switch (value) {
+    case "name-asc":
+    case "name-desc":
+    case "newest":
+    case "relevance": {
+      return true
+    }
+    default: {
+      return false
+    }
+  }
+}
+
+interface ProductResultsProps {
+  currentPage: number
+  hasNextPage: boolean
+  isFetchingNextPage: boolean
+  isLoading: boolean
+  onLoadMore: () => void
+  pageSize: number
+  products: Product[]
+  totalCount: number
+  getPageUrl: PaginationGetPageUrl
+}
+
+const ProductResults = ({
+  currentPage,
+  getPageUrl,
+  hasNextPage,
+  isFetchingNextPage,
+  isLoading,
+  onLoadMore,
+  pageSize,
+  products,
+  totalCount,
+}: ProductResultsProps) => {
+  if (isLoading) {
+    return <ProductGridSkeleton numberOfItems={12} />
+  }
+
+  if (products.length === 0) {
+    return (
+      <div className="py-12 text-center">
+        <p className="text-gray-500">Žádné produkty nenalezeny</p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <ProductGrid
+        currentPage={currentPage}
+        getPageUrl={getPageUrl}
+        pageSize={pageSize}
+        products={products}
+        totalCount={totalCount}
+      />
+      <div className="mt-8 flex justify-center">
+        <Button
+          disabled={!hasNextPage || isFetchingNextPage}
+          onClick={onLoadMore}
+          size="sm"
+          variant="primary"
+        >
+          {isFetchingNextPage
+            ? `Načítání dalších ${pageSize}...`
+            : `Načíst dalších ${pageSize} produktů`}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+const ProductsContent = () => {
   const { selectedRegion } = useRegions()
   const pageSize = 12
   const previousPageRef = useRef(1)
@@ -46,7 +122,7 @@ function ProductsContent() {
     filters: productFilters,
     limit: pageSize,
     pageRange: urlFilters.pageRange,
-    q: urlFilters.searchQuery || undefined,
+    q: urlFilters.searchQuery.length === 0 ? undefined : urlFilters.searchQuery,
     region_id: selectedRegion?.id,
     sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
   })
@@ -62,11 +138,12 @@ function ProductsContent() {
     hasNextPage,
     hasPrevPage,
   } = useProducts({
-    enabled: !urlFilters.pageRange.isRange, // Disable when in range mode
+    // Disable when in range mode.
+    enabled: !urlFilters.pageRange.isRange,
     filters: productFilters,
     limit: pageSize,
     page: urlFilters.page,
-    q: urlFilters.searchQuery || undefined,
+    q: urlFilters.searchQuery.length === 0 ? undefined : urlFilters.searchQuery,
     region_id: selectedRegion?.id,
     sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
   })
@@ -121,6 +198,20 @@ function ProductsContent() {
     totalPages: effectiveTotalPages,
   })
 
+  const handleFiltersChange = urlFilters.setFilters
+  const loadMore = async () => {
+    try {
+      await fetchNextPage()
+      urlFilters.extendPageRange()
+    } catch (error: unknown) {
+      console.error("Loading more products failed:", error)
+    }
+  }
+
+  const handleLoadMore = () => {
+    void loadMore()
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-product-listing-header-margin">
@@ -138,7 +229,7 @@ function ProductsContent() {
       <div className="sticky top-16 z-40 mb-4 sm:static lg:hidden">
         <ProductFilters
           filters={urlFilters.filters}
-          onFiltersChange={urlFilters.setFilters}
+          onFiltersChange={handleFiltersChange}
         />
       </div>
 
@@ -146,7 +237,7 @@ function ProductsContent() {
         <aside className="sticky top-20 hidden h-[calc(100vh-5rem)] w-64 flex-shrink-0 overflow-y-auto lg:block">
           <ProductFilters
             filters={urlFilters.filters}
-            onFiltersChange={urlFilters.setFilters}
+            onFiltersChange={handleFiltersChange}
           />
         </aside>
         <main className="w-full flex-1">
@@ -159,63 +250,38 @@ function ProductsContent() {
               items={SORT_OPTIONS}
               label="Řadit podle"
               onValueChange={(details) => {
-                const value = details.value[0] as ExtendedSortOption | undefined
-                if (value) {
+                const value: unknown = details.value[0]
+                if (isExtendedSortOption(value)) {
                   urlFilters.setSortBy(value)
                 }
               }}
               placeholder="Vybrat Řazení"
               size="sm"
-              value={[urlFilters.sortBy || "newest"]}
+              value={[urlFilters.sortBy]}
             />
           </div>
 
-          {isLoading ? (
-            <ProductGridSkeleton numberOfItems={12} />
-          ) : products.length > 0 ? (
-            <div>
-              <ProductGrid
-                currentPage={currentPage}
-                getPageUrl={urlFilters.getPageUrl}
-                pageSize={pageSize}
-                products={products}
-                totalCount={totalCount}
-              />
-              {
-                <div className="mt-8 flex justify-center">
-                  <Button
-                    disabled={!infiniteHasNextPage || isFetchingNextPage}
-                    onClick={async () => {
-                      // First fetch the next page data
-                      await fetchNextPage()
-                      // Then update URL without navigation
-                      urlFilters.extendPageRange()
-                    }}
-                    size="sm"
-                    variant="primary"
-                  >
-                    {isFetchingNextPage
-                      ? `Načítání dalších ${pageSize}...`
-                      : `Načíst dalších ${pageSize} produktů`}
-                  </Button>
-                </div>
-              }
-            </div>
-          ) : (
-            <div className="py-12 text-center">
-              <p className="text-gray-500">Žádné produkty nenalezeny</p>
-            </div>
-          )}
+          <ProductResults
+            currentPage={currentPage}
+            getPageUrl={urlFilters.getPageUrl}
+            hasNextPage={infiniteHasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            isLoading={isLoading}
+            onLoadMore={handleLoadMore}
+            pageSize={pageSize}
+            products={products}
+            totalCount={totalCount}
+          />
         </main>
       </div>
     </div>
   )
 }
 
-export default function ProductsPage() {
-  return (
-    <Suspense fallback={<ProductGridSkeleton numberOfItems={12} />}>
-      <ProductsContent />
-    </Suspense>
-  )
-}
+const ProductsPage = () => (
+  <Suspense fallback={<ProductGridSkeleton numberOfItems={12} />}>
+    <ProductsContent />
+  </Suspense>
+)
+
+export default ProductsPage

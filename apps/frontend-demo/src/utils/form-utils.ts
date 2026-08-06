@@ -1,12 +1,12 @@
-import type { FormEvent } from "react"
+import type { SyntheticEvent } from "react"
 
 /**
  * Simple form submit handler with preventDefault
  */
-export function handleFormSubmit(
-  event: FormEvent<HTMLFormElement>,
-  callback: () => void,
-) {
+export const handleFormSubmit = (
+  event: SyntheticEvent<HTMLFormElement>,
+  onSubmit: () => void,
+): void => {
   event.preventDefault()
-  callback()
+  onSubmit()
 }

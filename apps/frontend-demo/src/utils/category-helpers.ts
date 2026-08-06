@@ -3,12 +3,10 @@ import { categoryMap } from "@/lib/static-data/categories"
 
 const categoriesById: Record<string, Category> = categoryMap
 
-export function getCategoryIdByHandle(handle: string): string | undefined {
-  return Object.values(categoriesById).find((cat) => cat.handle === handle)?.id
-}
+export const getCategoryIdByHandle = (handle: string): string | undefined =>
+  Object.values(categoriesById).find((cat) => cat.handle === handle)?.id
 
-export function getCategoryIdsByHandles(handles: string[]): string[] {
-  return handles
+export const getCategoryIdsByHandles = (handles: string[]): string[] =>
+  handles
     .map((handle) => getCategoryIdByHandle(handle))
     .filter((id) => id !== undefined)
-}

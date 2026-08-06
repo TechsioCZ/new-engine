@@ -732,66 +732,66 @@ const faqData: FaqItem[] = [
   },
 ]
 
-export default function FAQ() {
-  return (
-    <div className="min-h-screen py-700">
-      <div className="mx-auto max-w-layout-max px-400">
-        <div className="mb-800 text-center">
-          <div className="mb-400 flex items-center justify-center">
-            <h1 className="font-bold text-3xl text-fg-primary">
-              Často kladené otázky
-            </h1>
-          </div>
-          <p className="mx-auto max-w-layout-lg text-fg-secondary text-lg leading-relaxed">
-            Najděte odpovědi na nejčastější otázky ohledně našich e-commerce
-            řešení. Pokud nenajdete odpověď na svou otázku, neváhejte nás
-            kontaktovat.
-          </p>
+const FAQ = () => (
+  <div className="min-h-screen py-700">
+    <div className="mx-auto max-w-layout-max px-400">
+      <div className="mb-800 text-center">
+        <div className="mb-400 flex items-center justify-center">
+          <h1 className="font-bold text-3xl text-fg-primary">
+            Často kladené otázky
+          </h1>
         </div>
-        <div className="rounded-lg">
-          <Accordion collapsible multiple shadow="sm">
-            {faqData.map((item) => (
-              <Accordion.Item key={item.id} value={item.value}>
-                <Accordion.Header>
-                  <div className="p-200">{item.title}</div>
-                  <Accordion.Indicator />
-                </Accordion.Header>
-                <Accordion.Content>{item.content}</Accordion.Content>
-              </Accordion.Item>
-            ))}
-          </Accordion>
-        </div>
+        <p className="mx-auto max-w-layout-lg text-fg-secondary text-lg leading-relaxed">
+          Najděte odpovědi na nejčastější otázky ohledně našich e-commerce
+          řešení. Pokud nenajdete odpověď na svou otázku, neváhejte nás
+          kontaktovat.
+        </p>
+      </div>
+      <div className="rounded-lg">
+        <Accordion collapsible multiple shadow="sm">
+          {faqData.map((item) => (
+            <Accordion.Item key={item.id} value={item.value}>
+              <Accordion.Header>
+                <div className="p-200">{item.title}</div>
+                <Accordion.Indicator />
+              </Accordion.Header>
+              <Accordion.Content>{item.content}</Accordion.Content>
+            </Accordion.Item>
+          ))}
+        </Accordion>
+      </div>
 
-        {/* Contact CTA */}
-        <div className="mt-800 text-center">
-          <div className="rounded-lg bg-surface p-600 shadow-primary">
-            <div className="mb-400 flex items-center justify-center">
-              <Icon
-                className="mr-250 text-2xl text-secondary"
-                icon="icon-[ic--outline-message]"
-              />
-              <h3 className="font-semibold text-fg-primary text-xl">
-                Máte další otázky?
-              </h3>
-            </div>
-            <p className="mx-auto mb-500 max-w-layout-md text-fg-secondary">
-              Máte dotaz, který zde není zodpovězený? Ozvěte se nám – budeme
-              rádi, když vám můžeme poradit a najít společně ideální řešení pro
-              vaši situaci.
-            </p>
-            <div className="flex flex-col justify-center gap-card-padding sm:flex-row">
-              <LinkButton
-                className="px-250 py-150"
-                href="/contact"
-                theme="solid"
-                variant="primary"
-              >
-                Kontaktujte nás
-              </LinkButton>
-            </div>
+      {/* Contact CTA */}
+      <div className="mt-800 text-center">
+        <div className="rounded-lg bg-surface p-600 shadow-primary">
+          <div className="mb-400 flex items-center justify-center">
+            <Icon
+              className="mr-250 text-2xl text-secondary"
+              icon="icon-[ic--outline-message]"
+            />
+            <h3 className="font-semibold text-fg-primary text-xl">
+              Máte další otázky?
+            </h3>
+          </div>
+          <p className="mx-auto mb-500 max-w-layout-md text-fg-secondary">
+            Máte dotaz, který zde není zodpovězený? Ozvěte se nám – budeme rádi,
+            když vám můžeme poradit a najít společně ideální řešení pro vaši
+            situaci.
+          </p>
+          <div className="flex flex-col justify-center gap-card-padding sm:flex-row">
+            <LinkButton
+              className="px-250 py-150"
+              href="/contact"
+              theme="solid"
+              variant="primary"
+            >
+              Kontaktujte nás
+            </LinkButton>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  </div>
+)
+
+export default FAQ

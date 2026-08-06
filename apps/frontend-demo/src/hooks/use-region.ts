@@ -2,16 +2,16 @@
 
 import type { StoreRegion } from "@medusajs/types"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useStore } from "@tanstack/react-store"
+import { useSelector } from "@tanstack/react-store"
 import { useEffect } from "react"
 
 import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
 import { regionStore, setSelectedRegionId } from "@/stores/region-store"
 
-export function useRegions() {
+export const useRegions = () => {
   const queryClient = useQueryClient()
-  const selectedRegionId = useStore(
+  const selectedRegionId = useSelector(
     regionStore,
     (state) => state.selectedRegionId,
   )
@@ -21,36 +21,39 @@ export function useRegions() {
     isLoading,
     error,
   } = useQuery({
-    gcTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
+    // Retain region data for 24 hours.
+    gcTime: 24 * 60 * 60 * 1000,
     queryFn: async () => {
       const response = await sdk.store.region.list()
       return response.regions
     },
     queryKey: queryKeys.regions(),
-    staleTime: Number.POSITIVE_INFINITY, // Regions rarely change
+    // Regions change rarely, so cached data remains fresh.
+    staleTime: Number.POSITIVE_INFINITY,
   })
 
   // Initialize selected region from regions list or default to USD
   useEffect(() => {
-    if (regions.length === 0 || selectedRegionId) {
+    if (regions.length === 0 || selectedRegionId !== null) {
       return
     }
 
     // Default to USD region if no stored preference
     const defaultRegion =
-      regions.find((r) => r.currency_code === "czk") ||
-      regions.find((r) => r.currency_code === "eur") ||
-      regions[0]
+      regions.find((region) => region.currency_code === "czk") ??
+      regions.find((region) => region.currency_code === "eur") ??
+      regions.at(0)
 
-    if (defaultRegion) {
+    if (defaultRegion !== undefined) {
       setSelectedRegionId(defaultRegion.id)
     }
   }, [regions, selectedRegionId])
 
-  const selectedRegion = regions.find((r) => r.id === selectedRegionId) || null
+  const selectedRegion =
+    regions.find((region) => region.id === selectedRegionId) ?? null
 
   const setSelectedRegion = async (region: StoreRegion) => {
-    if (region?.id && region.id !== selectedRegionId) {
+    if (region.id.length > 0 && region.id !== selectedRegionId) {
       setSelectedRegionId(region.id)
       // Invalidate queries that depend on region
       await Promise.all([
@@ -60,12 +63,7 @@ export function useRegions() {
     }
   }
 
-  let errorMessage: string | null = null
-  if (error instanceof Error) {
-    errorMessage = error.message
-  } else if (error) {
-    errorMessage = String(error)
-  }
+  const errorMessage = error?.message ?? null
 
   return {
     error: errorMessage,

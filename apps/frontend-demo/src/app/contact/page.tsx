@@ -15,7 +15,11 @@ import { useContactForm } from "@/hooks/use-contact-form"
 
 import contactImage from "../../../assets/hero/contact.webp"
 
-export default function ContactPage() {
+const isIconType = (value: string): value is IconType =>
+  value.startsWith("token-icon-") ||
+  (value.startsWith("icon-[") && value.endsWith("]"))
+
+const ContactPage = () => {
   const { hero, form, info, help } = contactContent
   const { formData, updateField, handleSubmit, isSubmitting } = useContactForm()
   const subjectItems: SelectItem[] = form.subjects.map((subject) => ({
@@ -34,6 +38,7 @@ export default function ContactPage() {
           objectFit="cover"
           placeholder="blur"
           priority={true}
+          sizes="100vw"
           src={contactImage}
         />
         <div className="inset-0 mx-auto max-w-container-max px-container-x text-white">
@@ -148,34 +153,39 @@ export default function ContactPage() {
                 <h3 className="mb-contact-info-title-bottom font-contact-info-title text-contact-info-title-fg text-contact-info-title-size">
                   {info.title}
                 </h3>
-                {info.items.map((item) => (
-                  <div
-                    className="mb-contact-info-item-gap flex items-start space-x-contact-info-icon-gap"
-                    key={slugify(item.label)}
-                  >
-                    <Icon
-                      className="h-6 text-md"
-                      icon={item.icon as IconType}
-                    />
-                    <div>
-                      <p className="text-contact-info-text-fg text-contact-info-text-size">
-                        {item.label}
-                      </p>
-                      {item.link ? (
-                        <a
-                          className="text-contact-info-link-fg transition-colors hover:text-contact-info-link-fg-hover"
-                          href={item.link}
-                        >
-                          {item.value}
-                        </a>
-                      ) : (
-                        <p className="whitespace-pre-line text-contact-info-text-fg text-contact-info-text-size">
-                          {item.value}
+                {info.items.map((item) => {
+                  const icon = isIconType(item.icon)
+                    ? item.icon
+                    : "token-icon-info"
+                  const hasLink =
+                    item.link !== undefined && item.link.length > 0
+
+                  return (
+                    <div
+                      className="mb-contact-info-item-gap flex items-start space-x-contact-info-icon-gap"
+                      key={slugify(item.label)}
+                    >
+                      <Icon className="h-6 text-md" icon={icon} />
+                      <div>
+                        <p className="text-contact-info-text-fg text-contact-info-text-size">
+                          {item.label}
                         </p>
-                      )}
+                        {hasLink ? (
+                          <a
+                            className="text-contact-info-link-fg transition-colors hover:text-contact-info-link-fg-hover"
+                            href={item.link}
+                          >
+                            {item.value}
+                          </a>
+                        ) : (
+                          <p className="whitespace-pre-line text-contact-info-text-fg text-contact-info-text-size">
+                            {item.value}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {/* FAQ Link */}
@@ -203,3 +213,5 @@ export default function ContactPage() {
     </>
   )
 }
+
+export default ContactPage

@@ -80,6 +80,14 @@ interface ShippingMethod {
   provider_id: string
 }
 
+type PaymentCollectionStatus = keyof {
+  authorized: never
+  awaiting: never
+  not_paid: never
+  paid: never
+  partially_authorized: never
+}
+
 interface PaymentCollection {
   id: string
   currency_code: string
@@ -87,12 +95,7 @@ interface PaymentCollection {
   authorized_amount: number
   captured_amount: number
   refunded_amount: number
-  status:
-    | "not_paid"
-    | "awaiting"
-    | "authorized"
-    | "partially_authorized"
-    | "paid"
+  status: PaymentCollectionStatus
 }
 
 interface Fulfillment {

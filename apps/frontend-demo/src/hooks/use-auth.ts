@@ -2,7 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useStore } from "@tanstack/react-store"
+import { useSelector } from "@tanstack/react-store"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -11,8 +11,8 @@ import { AUTH_MESSAGES } from "@/lib/auth/constants"
 import { queryKeys } from "@/lib/query-keys"
 import { authHelpers, authStore } from "@/stores/auth-store"
 
-export function useAuth() {
-  const authState = useStore(authStore)
+export const useAuth = () => {
+  const authState = useSelector(authStore)
   const router = useRouter()
   const toast = useToast()
   const queryClient = useQueryClient()
@@ -22,7 +22,8 @@ export function useAuth() {
     queryFn: authHelpers.fetchUser,
     queryKey: queryKeys.auth.customer(),
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes,
+    // Cache the authenticated customer for five minutes.
+    staleTime: 5 * 60 * 1000,
   })
 
   // Update store when query data changes
@@ -49,7 +50,9 @@ export function useAuth() {
       password: string
       firstName?: string
       lastName?: string
-    }) => await authHelpers.login(email, password, firstName, lastName),
+    }) => {
+      await authHelpers.login(email, password, firstName, lastName)
+    },
     onError: (error: Error) => {
       toast.create({
         ...AUTH_MESSAGES.LOGIN_ERROR,
@@ -130,8 +133,9 @@ export function useAuth() {
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: Partial<HttpTypes.StoreCustomer>) =>
-      authHelpers.updateProfile(data),
+    mutationFn: async (data: Partial<HttpTypes.StoreCustomer>) => {
+      await authHelpers.updateProfile(data)
+    },
     onError: (error: Error) => {
       toast.create({
         ...AUTH_MESSAGES.UPDATE_ERROR,
@@ -157,17 +161,17 @@ export function useAuth() {
     authState.validationErrors.find((e) => e.field === field)?.message
 
   return {
-    // Auth state
-    user: authState.user,
+    clearErrors: authHelpers.clearErrors,
+    clearFieldError: authHelpers.clearFieldError,
+    error: authState.error,
+    getFieldError,
+    isFormLoading: loginMutation.isPending || registerMutation.isPending,
+    isInitialized: authState.isInitialized,
     isLoading:
       authState.isLoading ||
       loginMutation.isPending ||
       registerMutation.isPending ||
       updateProfileMutation.isPending,
-    isInitialized: authState.isInitialized,
-    error: authState.error,
-
-    // Auth actions with mutations
     login: (
       email: string,
       password: string,
@@ -179,6 +183,16 @@ export function useAuth() {
         password,
         ...(firstName !== undefined && { firstName }),
         ...(lastName !== undefined && { lastName }),
+      })
+    },
+    loginMutation,
+    logout: () => {
+      logoutMutation.mutate()
+    },
+    logoutMutation,
+    refetch: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.customer(),
       })
     },
     register: (
@@ -194,30 +208,14 @@ export function useAuth() {
         ...(lastName !== undefined && { lastName }),
       })
     },
-    logout: () => {
-      logoutMutation.mutate()
-    },
+    registerMutation,
+    setFieldError: authHelpers.setFieldError,
+    setValidationErrors: authHelpers.setValidationErrors,
     updateProfile: (data: Partial<HttpTypes.StoreCustomer>) => {
       updateProfileMutation.mutate(data)
     },
-    refetch: async () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() }),
-
-    // Mutation states
-    loginMutation,
-    registerMutation,
-    logoutMutation,
     updateProfileMutation,
-
-    // Form state
-    isFormLoading: loginMutation.isPending || registerMutation.isPending,
+    user: authState.user,
     validationErrors: authState.validationErrors,
-
-    // Form actions
-    setFieldError: authHelpers.setFieldError,
-    setValidationErrors: authHelpers.setValidationErrors,
-    clearErrors: authHelpers.clearErrors,
-    clearFieldError: authHelpers.clearFieldError,
-    getFieldError,
   }
 }

@@ -1,22 +1,14 @@
 "use client"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { redirect } from "next/navigation"
 
 import { ProfileForm } from "@/components/organisms/profile-form"
 import { useAuth } from "@/hooks/use-auth"
 import { useCustomer } from "@/hooks/use-customer"
 
-export default function ProfilePage() {
+const ProfilePage = () => {
   const { user, isLoading, isInitialized } = useAuth()
-  const router = useRouter()
 
   const { address, isLoading: isAddressLoading } = useCustomer()
-
-  useEffect(() => {
-    if (isInitialized && !user) {
-      router.push("/auth/login")
-    }
-  }, [isInitialized, user, router])
 
   if (isLoading || !isInitialized) {
     return (
@@ -29,18 +21,23 @@ export default function ProfilePage() {
     )
   }
 
-  if (!user) {
-    return null
+  if (user === null || user === undefined) {
+    redirect("/auth/login")
+  }
+
+  let profileKey = "new"
+  if (isAddressLoading) {
+    profileKey = "loading"
+  } else if (address !== null && address !== undefined) {
+    profileKey = "exists"
   }
 
   return (
     <div className="mx-auto max-w-layout-max">
       <h1 className="mb-8 font-semibold text-2xl">Profil</h1>
-      <ProfileForm
-        initialAddress={address}
-        key={isAddressLoading ? "loading" : address ? "exists" : "new"}
-        user={user}
-      />
+      <ProfileForm initialAddress={address} key={profileKey} user={user} />
     </div>
   )
 }
+
+export default ProfilePage

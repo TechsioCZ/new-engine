@@ -5,16 +5,17 @@ export const revalidate = 60
 
 // Don't pre-generate any products at build time
 // They will be generated on-demand
-export async function generateStaticParams() {
-  return []
-}
+const generateStaticParams = () => []
 
-export default async function ProductDetailPage({
+const ProductDetailPage = async ({
   params,
 }: {
   params: Promise<{ handle: string }>
-}) {
+}) => {
   const resolvedParams = await params
 
   return <ProductDetail handle={resolvedParams.handle} />
 }
+
+export { generateStaticParams }
+export default ProductDetailPage

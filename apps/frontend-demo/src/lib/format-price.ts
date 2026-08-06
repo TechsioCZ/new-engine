@@ -1,4 +1,4 @@
-export function formatPrice(amount: number, currencyCode = "CZK"): string {
+export const formatPrice = (amount: number, currencyCode = "CZK"): string => {
   // Convert from cents to currency units
   const price = amount
 

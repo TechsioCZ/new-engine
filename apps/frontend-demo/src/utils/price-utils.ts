@@ -18,7 +18,7 @@ const currencySymbols: Record<string, string> = {
  * @param currencyCode - ISO currency code (e.g., 'EUR', 'USD')
  * @returns Formatted price string
  */
-export function formatPrice(amount: number, currencyCode = "CZK"): string {
+export const formatPrice = (amount: number, currencyCode = "CZK"): string => {
   const symbol = currencySymbols[currencyCode.toUpperCase()] || currencyCode
 
   // For currencies that typically place symbol after (Nordic, Czech, Polish)

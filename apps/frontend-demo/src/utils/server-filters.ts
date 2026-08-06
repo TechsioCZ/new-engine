@@ -5,6 +5,8 @@
 
 import type { ProductFilters } from "@/services/product-service"
 
+const VARIANTS_QUERY_KEY = "variants"
+
 export interface MedusaProductQuery {
   limit?: number
   offset?: number
@@ -22,10 +24,10 @@ export interface MedusaProductQuery {
 /**
  * Build Medusa query parameters from our filter interface
  */
-export function buildMedusaQuery(
+export const buildMedusaQuery = (
   filters: ProductFilters | undefined,
   baseQuery: Partial<MedusaProductQuery> = {},
-): MedusaProductQuery {
+): MedusaProductQuery => {
   const query: MedusaProductQuery = { ...baseQuery }
 
   if (!filters) {
@@ -33,33 +35,31 @@ export function buildMedusaQuery(
   }
 
   // Category filtering - Medusa supports this natively
-  if (filters.categories?.length) {
-    const [onlyCategory] = filters.categories
+  const categories = filters.categories ?? []
+  if (categories.length > 0) {
     query.category_id =
-      filters.categories.length === 1 && onlyCategory !== undefined
-        ? onlyCategory
-        : filters.categories
+      categories.length === 1 ? categories.join("") : categories
   }
 
   // Size filtering via variant options - Medusa v2 supports this!
-  if (filters.sizes?.length) {
-    // For single size
-    if (filters.sizes.length === 1) {
-      query.variants = {
-        options: {
-          value: filters.sizes[0],
-        },
-      }
-    } else {
-      // For multiple sizes, we need to use $in operator
-      query.variants = {
-        options: {
-          value: {
-            $in: filters.sizes,
-          },
-        },
-      }
-    }
+  const sizes = filters.sizes ?? []
+  if (sizes.length > 0) {
+    query[VARIANTS_QUERY_KEY] =
+      sizes.length === 1
+        ? {
+            // For a single size, use an exact option value.
+            options: {
+              value: sizes.join(""),
+            },
+          }
+        : {
+            // For multiple sizes, use the $in operator.
+            options: {
+              value: {
+                $in: sizes,
+              },
+            },
+          }
   }
 
   // Color filtering - if needed in the future

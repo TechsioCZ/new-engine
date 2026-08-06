@@ -6,14 +6,7 @@
  */
 
 export const cacheConfig = {
-  // categories, regions
-  static: {
-    gcTime: 7 * 24 * 60 * 60 * 1000,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    staleTime: 24 * 60 * 60 * 1000,
-  },
-
+  // Categories.
   categories: {
     gcTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
@@ -22,15 +15,7 @@ export const cacheConfig = {
     staleTime: Number.POSITIVE_INFINITY,
   },
 
-  // product catalog, shipping options
-  semiStatic: {
-    gcTime: 24 * 60 * 60 * 1000,
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-    staleTime: 60 * 60 * 1000,
-  },
-
-  // product detail, search
+  // Product detail and search.
   dynamic: {
     gcTime: 30 * 60 * 1000,
     refetchOnMount: true,
@@ -38,7 +23,15 @@ export const cacheConfig = {
     staleTime: 5 * 60 * 1000,
   },
 
-  // Real-time data (cart, inventory)
+  // No cache for sensitive data.
+  noCache: {
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  },
+
+  // Real-time data such as cart and inventory.
   realtime: {
     gcTime: 5 * 60 * 1000,
     refetchOnMount: "always",
@@ -46,17 +39,25 @@ export const cacheConfig = {
     staleTime: 30 * 1000,
   },
 
-  // User-specific data (profile, preferences)
-  user: {
-    gcTime: 10 * 60 * 1000,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    staleTime: 0,
+  // Product catalog and shipping options.
+  semiStatic: {
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 60 * 1000,
   },
 
-  // No cache (sensitive data)
-  noCache: {
-    gcTime: 0,
+  // Regions and other static data.
+  static: {
+    gcTime: 7 * 24 * 60 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    staleTime: 24 * 60 * 60 * 1000,
+  },
+
+  // User-specific data such as profile and preferences.
+  user: {
+    gcTime: 10 * 60 * 1000,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     staleTime: 0,

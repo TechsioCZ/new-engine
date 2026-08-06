@@ -3,14 +3,14 @@ import { AUTH_ERRORS } from "./constants"
 /**
  * Maps error messages to user-friendly messages
  */
-export function getAuthErrorMessage(error: unknown): string {
-  const message =
-    error &&
-    typeof error === "object" &&
-    "message" in error &&
-    typeof error.message === "string"
-      ? error.message
-      : ""
+export const getAuthErrorMessage = (error: unknown): string => {
+  let message = ""
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const candidateMessage = error.message
+    if (typeof candidateMessage === "string") {
+      message = candidateMessage
+    }
+  }
 
   // Email validation errors
   if (message.includes("Invalid email")) {
@@ -33,7 +33,7 @@ export function getAuthErrorMessage(error: unknown): string {
   }
 
   // Return original message if it's specific enough
-  if (message && !message.includes("Error:")) {
+  if (message.length > 0 && !message.includes("Error:")) {
     return message
   }
 

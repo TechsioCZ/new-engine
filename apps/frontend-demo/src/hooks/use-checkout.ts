@@ -1,5 +1,6 @@
 "use client"
 
+import type { HttpTypes } from "@medusajs/types"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useState } from "react"
@@ -14,7 +15,7 @@ import type { CheckoutAddressData, UseCheckoutReturn } from "@/types/checkout"
 import { useCart } from "./use-cart"
 import { useCustomer } from "./use-customer"
 
-export function useCheckout(): UseCheckoutReturn {
+export const useCheckout = (): UseCheckoutReturn => {
   const { cart, refetch, clearCart } = useCart()
   const { address } = useCustomer()
   const toast = useToast()
@@ -30,12 +31,13 @@ export function useCheckout(): UseCheckoutReturn {
 
   // Update addresses in cart
   const updateAddresses = async (data: CheckoutAddressData) => {
-    if (!cart?.id) {
+    const cartId = cart?.id
+    if (cartId === undefined || cartId.length === 0) {
       return
     }
 
     try {
-      await sdk.store.cart.update(cart.id, {
+      await sdk.store.cart.update(cartId, {
         billing_address: data.useSameAddress
           ? {
               address_1: data.shipping.street,
@@ -85,13 +87,14 @@ export function useCheckout(): UseCheckoutReturn {
     isLoading: isLoadingShipping,
     error: shippingError,
   } = useQuery({
-    enabled: !!cart?.id,
+    enabled: cart?.id !== undefined && cart.id.length > 0,
     queryFn: async () => {
-      if (!cart?.id) {
+      const cartId = cart?.id
+      if (cartId === undefined || cartId.length === 0) {
         throw new Error("No cart ID available")
       }
       const response = await sdk.store.fulfillment.listCartOptions({
-        cart_id: cart.id,
+        cart_id: cartId,
       })
 
       const reducedShippingMethods = response.shipping_options.map((o) => ({
@@ -107,12 +110,13 @@ export function useCheckout(): UseCheckoutReturn {
 
   // Add shipping method to cart
   const addShippingMethod = async (methodId: string) => {
-    if (!cart?.id) {
+    const cartId = cart?.id
+    if (cartId === undefined || cartId.length === 0) {
       return
     }
 
     try {
-      await sdk.store.cart.addShippingMethod(cart.id, {
+      await sdk.store.cart.addShippingMethod(cartId, {
         option_id: methodId,
       })
       await refetch()
@@ -128,16 +132,18 @@ export function useCheckout(): UseCheckoutReturn {
   }
 
   // Process order
-  const processOrder = async () => {
-    if (!cart?.id) {
-      return
+  const processOrder: UseCheckoutReturn["processOrder"] = async () => {
+    let completedOrder: HttpTypes.StoreOrder | undefined
+    const cartId = cart?.id
+    if (cartId === undefined || cartId.length === 0) {
+      return completedOrder
     }
 
     setIsProcessingPayment(true)
 
     try {
       // Get fresh cart state
-      const { cart: currentCart } = await sdk.store.cart.retrieve(cart.id)
+      const { cart: currentCart } = await sdk.store.cart.retrieve(cartId)
 
       // Check shipping method
       if (
@@ -150,18 +156,21 @@ export function useCheckout(): UseCheckoutReturn {
           type: "error",
         })
         setCurrentStep(1)
-        return
+        return completedOrder
       }
 
       // Initialize payment if needed
       if (!currentCart.payment_collection) {
-        if (!currentCart.region_id) {
+        if (
+          currentCart.region_id === undefined ||
+          currentCart.region_id.length === 0
+        ) {
           toast.create({
             description: "Košík nemá nastavenou region",
             title: "Chyba",
             type: "error",
           })
-          return
+          return completedOrder
         }
 
         const providers = await sdk.store.payment.listPaymentProviders({
@@ -169,7 +178,7 @@ export function useCheckout(): UseCheckoutReturn {
         })
 
         const [provider] = providers.payment_providers ?? []
-        if (provider) {
+        if (provider !== undefined) {
           await sdk.store.payment.initiatePaymentSession(currentCart, {
             provider_id: provider.id,
           })
@@ -177,7 +186,7 @@ export function useCheckout(): UseCheckoutReturn {
       }
 
       // Refresh cart to get payment collection
-      const { cart: latestCart } = await sdk.store.cart.retrieve(cart.id)
+      const { cart: latestCart } = await sdk.store.cart.retrieve(cartId)
 
       // Create payment session if needed
       if (
@@ -190,15 +199,14 @@ export function useCheckout(): UseCheckoutReturn {
       }
 
       // Complete order
-      const result = await sdk.store.cart.complete(cart.id)
+      const result = await sdk.store.cart.complete(cartId)
 
       if (result.type === "order") {
         const { order } = result
+        completedOrder = order
 
         // Save completed order data
-        if (currentCart) {
-          orderHelpers.saveCompletedOrder(currentCart)
-        }
+        orderHelpers.saveCompletedOrder(currentCart)
 
         // Clear cart from localStorage
         if (typeof window !== "undefined") {
@@ -213,10 +221,10 @@ export function useCheckout(): UseCheckoutReturn {
         })
 
         // Return success with order data
-        return order
+        return completedOrder
       }
 
-      return
+      return completedOrder
     } catch (error) {
       console.error("Order creation error:", error)
       toast.create({
@@ -238,15 +246,19 @@ export function useCheckout(): UseCheckoutReturn {
     switch (step) {
       case 1: {
         // Shipping
-        return !!address
+        return address !== null
       }
       case 2: {
         // Payment
-        return !!address && !!selectedShipping
+        return address !== null && selectedShipping.length > 0
       }
       case 3: {
         // Summary
-        return !!address && !!selectedShipping && !!selectedPayment
+        return (
+          address !== null &&
+          selectedShipping.length > 0 &&
+          selectedPayment.length > 0
+        )
       }
       default: {
         return true
@@ -255,24 +267,21 @@ export function useCheckout(): UseCheckoutReturn {
   }
 
   return {
-    // State
+    addShippingMethod,
+    addressData,
+    canProceedToStep,
     currentStep,
+    isLoadingShipping,
+    isProcessingPayment,
+    processOrder,
     selectedPayment,
     selectedShipping,
-    addressData,
-    isProcessingPayment,
-    shippingMethods,
-    isLoadingShipping,
-    shippingError,
-
-    // Actions
+    setAddressData,
     setCurrentStep,
     setSelectedPayment,
     setSelectedShipping,
-    setAddressData,
+    shippingError,
+    shippingMethods,
     updateAddresses,
-    addShippingMethod,
-    processOrder,
-    canProceedToStep,
   }
 }

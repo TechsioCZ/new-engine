@@ -1,7 +1,9 @@
-// Re-export all auth utilities
-
-export * from "./constants"
-export * from "./error-handler"
-export * from "./form-config"
-export * from "./validation"
-// hooks are now in the unified useAuth hook
+export { AUTH_ERRORS, AUTH_FORM_CONFIG, AUTH_MESSAGES } from "./constants"
+export { getAuthErrorMessage } from "./error-handler"
+export { authFormFields, withLoading } from "./form-config"
+export {
+  type PasswordValidationResult,
+  type ValidationError,
+  validateEmail,
+  validatePassword,
+} from "./validation"

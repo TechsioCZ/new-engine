@@ -14,7 +14,7 @@ import { getCategoryIdByHandle } from "@/utils/category-helpers"
 
 import homeImage from "../../assets/hero/home.webp"
 
-export default function Home() {
+const Home = () => {
   const { prefetchDefaultProducts } = usePrefetchProducts()
   const { selectedRegion } = useRegions()
   const {
@@ -112,3 +112,5 @@ export default function Home() {
     </div>
   )
 }
+
+export default Home

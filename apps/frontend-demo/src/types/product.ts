@@ -30,6 +30,7 @@ export interface ProductVariant extends Omit<
   HttpTypes.StoreProductVariant,
   "inventory_quantity"
 > {
-  inventory_quantity?: number | null // deprecated, keeping for backward compatibility
+  // Deprecated; retained for backward compatibility.
+  inventory_quantity?: number | null
   colorHex?: string
 }

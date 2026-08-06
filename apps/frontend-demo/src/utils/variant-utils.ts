@@ -2,10 +2,10 @@ import type { ProductVariant } from "@/types/product"
 
 const SIZE_ORDER = ["xs", "s", "m", "l", "xl", "2x", "3x", "4x"]
 
-export function sortVariantsBySize(
+export const sortVariantsBySize = (
   variants: ProductVariant[],
-): ProductVariant[] {
-  return [...variants].sort((a, b) => {
+): ProductVariant[] =>
+  variants.toSorted((a, b) => {
     const aTitle = a.title ?? ""
     const bTitle = b.title ?? ""
     const aIndex = SIZE_ORDER.indexOf(aTitle.toLowerCase())
@@ -24,4 +24,3 @@ export function sortVariantsBySize(
 
     return aIndex - bIndex
   })
-}
