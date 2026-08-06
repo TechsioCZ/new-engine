@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process"
+import type { ExecFileException, ExecFileOptions } from "node:child_process"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { promisify } from "node:util"
@@ -6,7 +7,16 @@ import { promisify } from "node:util"
 import type { PreviewSharedEnvVariableInput } from "../../contracts/preview-shared-env.js"
 import { repoRoot } from "../../paths.js"
 
-const execFileAsync = promisify(execFile)
+const execFileAsync = promisify(
+  (
+    file: string,
+    args: readonly string[],
+    options: ExecFileOptions,
+    settle: (error: ExecFileException | null, stdout: string) => void,
+  ) => {
+    execFile(file, args, options, settle)
+  },
+)
 const loopbackUrlPattern =
   /^(?<scheme>https?:\/\/)?(?<host>localhost|127\.0\.0\.1)(?<port>:\d+)?(?<path>\/.*)?$/u
 const trailingSlashPattern = /\/+$/u
@@ -28,7 +38,7 @@ export const firstNonEmpty = (
 
 const readGitValue = async (args: string[]): Promise<string | undefined> => {
   try {
-    const { stdout } = await execFileAsync("git", args, {
+    const stdout = await execFileAsync("git", args, {
       cwd: repoRoot,
     })
     const value = stdout.trim()
