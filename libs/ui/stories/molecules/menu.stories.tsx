@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { fn } from "storybook/test"
 
 import { Menu } from "../../src/molecules/menu"
 import type { MenuItem } from "../../src/molecules/menu"
@@ -26,6 +27,8 @@ const meta: Meta<typeof Menu> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+const separatorId = "separator-1"
+
 const basicItems: MenuItem[] = [
   {
     icon: "token-icon-plus",
@@ -39,7 +42,7 @@ const basicItems: MenuItem[] = [
     type: "action",
     value: "open",
   },
-  { id: "separator-1", type: "separator" },
+  { id: separatorId, type: "separator" },
   { icon: "token-icon-save", label: "Save", type: "action", value: "save" },
   {
     icon: "token-icon-save",
@@ -118,7 +121,7 @@ export const WithDisabledItems: Story = {
 const contextMenuItems: MenuItem[] = [
   { icon: "token-icon-undo", label: "Undo", type: "action", value: "undo" },
   { icon: "token-icon-redo", label: "Redo", type: "action", value: "redo" },
-  { id: "separator-1", type: "separator" },
+  { id: separatorId, type: "separator" },
   { icon: "token-icon-scissors", label: "Cut", type: "action", value: "cut" },
   { icon: "token-icon-copy", label: "Copy", type: "action", value: "copy" },
   {
@@ -141,7 +144,10 @@ export const ContextMenu: Story = {
 export const CustomTrigger: Story = {
   args: {
     customTrigger: (
-      <button className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
+      <button
+        className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+        type="button"
+      >
         Custom Trigger
       </button>
     ),
@@ -152,9 +158,7 @@ export const CustomTrigger: Story = {
 export const WithSelectHandler: Story = {
   args: {
     items: basicItems,
-    onSelect: (details: { value: string }) => {
-      alert(`You selected: ${details.value}`)
-    },
+    onSelect: fn<(details: { value: string }) => void>(),
     triggerText: "Actions",
   },
 }
@@ -178,7 +182,7 @@ const viewMenuItems: MenuItem[] = [
     type: "checkbox",
     value: "show-statusbar",
   },
-  { id: "separator-1", type: "separator" },
+  { id: separatorId, type: "separator" },
   {
     checked: true,
     label: "List View",
@@ -205,7 +209,7 @@ const viewMenuItems: MenuItem[] = [
 export const WithOptionsMenu: Story = {
   args: {
     items: viewMenuItems,
-    onCheckedChange: (_item: MenuItem, _checked: boolean) => {},
+    onCheckedChange: fn<(item: MenuItem, checked: boolean) => void>(),
     triggerText: "View",
   },
 }
@@ -263,6 +267,8 @@ export const DifferentPlacements: Story = {
 }
 
 // Story pro mixed content
+const settingsIcon = "token-icon-settings"
+
 const mixedContentItems: MenuItem[] = [
   {
     icon: "token-icon-user",
@@ -271,7 +277,7 @@ const mixedContentItems: MenuItem[] = [
     value: "profile",
   },
   {
-    icon: "token-icon-settings",
+    icon: settingsIcon,
     label: "Settings",
     type: "action",
     value: "settings",
@@ -393,9 +399,9 @@ const nestedMenuItems: MenuItem[] = [
       {
         icon: "token-icon-share",
         items: [
-          { type: "action", value: "twitter", label: "Twitter" },
-          { type: "action", value: "facebook", label: "Facebook" },
-          { type: "action", value: "linkedin", label: "LinkedIn" },
+          { label: "Twitter", type: "action", value: "twitter" },
+          { label: "Facebook", type: "action", value: "facebook" },
+          { label: "LinkedIn", type: "action", value: "linkedin" },
         ],
         label: "Social Media",
         type: "submenu",
@@ -419,7 +425,7 @@ const nestedMenuItems: MenuItem[] = [
 export const NestedMenu: Story = {
   args: {
     items: nestedMenuItems,
-    onSelect: (_details: { value: string }) => {},
+    onSelect: fn<(details: { value: string }) => void>(),
     triggerText: "File",
   },
   parameters: {
@@ -440,19 +446,19 @@ const categoryMenuItems: MenuItem[] = [
     items: [
       {
         items: [
-          { type: "action", value: "laptops", label: "Laptops" },
-          { type: "action", value: "desktops", label: "Desktop Computers" },
-          { type: "action", value: "tablets", label: "Tablets" },
+          { label: "Laptops", type: "action", value: "laptops" },
+          { label: "Desktop Computers", type: "action", value: "desktops" },
+          { label: "Tablets", type: "action", value: "tablets" },
           {
+            items: [
+              { label: "Keyboards", type: "action", value: "keyboards" },
+              { label: "Mice & Trackpads", type: "action", value: "mice" },
+              { label: "Monitors", type: "action", value: "monitors" },
+              { label: "Webcams", type: "action", value: "webcams" },
+            ],
+            label: "Computer Accessories",
             type: "submenu",
             value: "accessories",
-            label: "Computer Accessories",
-            items: [
-              { type: "action", value: "keyboards", label: "Keyboards" },
-              { type: "action", value: "mice", label: "Mice & Trackpads" },
-              { type: "action", value: "monitors", label: "Monitors" },
-              { type: "action", value: "webcams", label: "Webcams" },
-            ],
           },
         ],
         label: "Computers & Tablets",
@@ -461,10 +467,10 @@ const categoryMenuItems: MenuItem[] = [
       },
       {
         items: [
-          { type: "action", value: "smartphones", label: "Smartphones" },
-          { type: "action", value: "cases", label: "Phone Cases" },
-          { type: "action", value: "chargers", label: "Chargers & Cables" },
-          { type: "action", value: "headphones", label: "Headphones" },
+          { label: "Smartphones", type: "action", value: "smartphones" },
+          { label: "Phone Cases", type: "action", value: "cases" },
+          { label: "Chargers & Cables", type: "action", value: "chargers" },
+          { label: "Headphones", type: "action", value: "headphones" },
         ],
         label: "Phones & Accessories",
         type: "submenu",
@@ -481,10 +487,10 @@ const categoryMenuItems: MenuItem[] = [
     items: [
       {
         items: [
-          { type: "action", value: "mens-shirts", label: "Shirts" },
-          { type: "action", value: "mens-pants", label: "Pants" },
-          { type: "action", value: "mens-shoes", label: "Shoes" },
-          { type: "action", value: "mens-accessories", label: "Accessories" },
+          { label: "Shirts", type: "action", value: "mens-shirts" },
+          { label: "Pants", type: "action", value: "mens-pants" },
+          { label: "Shoes", type: "action", value: "mens-shoes" },
+          { label: "Accessories", type: "action", value: "mens-accessories" },
         ],
         label: "Men's Clothing",
         type: "submenu",
@@ -492,10 +498,10 @@ const categoryMenuItems: MenuItem[] = [
       },
       {
         items: [
-          { type: "action", value: "womens-dresses", label: "Dresses" },
-          { type: "action", value: "womens-tops", label: "Tops" },
-          { type: "action", value: "womens-shoes", label: "Shoes" },
-          { type: "action", value: "womens-bags", label: "Bags & Purses" },
+          { label: "Dresses", type: "action", value: "womens-dresses" },
+          { label: "Tops", type: "action", value: "womens-tops" },
+          { label: "Shoes", type: "action", value: "womens-shoes" },
+          { label: "Bags & Purses", type: "action", value: "womens-bags" },
         ],
         label: "Women's Clothing",
         type: "submenu",
@@ -525,9 +531,7 @@ const categoryMenuItems: MenuItem[] = [
 export const CategoryMenu: Story = {
   args: {
     items: categoryMenuItems,
-    onSelect: (details: { value: string }) => {
-      alert(`Navigate to category: ${details.value}`)
-    },
+    onSelect: fn<(details: { value: string }) => void>(),
     triggerIcon: "token-icon-grid",
     triggerText: "Shop by Category",
   },
@@ -569,25 +573,25 @@ const mixedNestedItems: MenuItem[] = [
       {
         items: [
           {
-            type: "radio",
-            value: "light",
+            checked: true,
             label: "Light",
             name: "theme",
-            checked: true,
+            type: "radio",
+            value: "light",
           },
           {
-            type: "radio",
-            value: "dark",
+            checked: false,
             label: "Dark",
             name: "theme",
-            checked: false,
+            type: "radio",
+            value: "dark",
           },
           {
-            type: "radio",
-            value: "system",
+            checked: false,
             label: "System",
             name: "theme",
-            checked: false,
+            type: "radio",
+            value: "system",
           },
         ],
         label: "Theme",
@@ -597,25 +601,25 @@ const mixedNestedItems: MenuItem[] = [
       {
         items: [
           {
-            type: "radio",
-            value: "comfortable",
+            checked: true,
             label: "Comfortable",
             name: "layout",
-            checked: true,
+            type: "radio",
+            value: "comfortable",
           },
           {
-            type: "radio",
-            value: "compact",
+            checked: false,
             label: "Compact",
             name: "layout",
-            checked: false,
+            type: "radio",
+            value: "compact",
           },
           {
-            type: "radio",
-            value: "spacious",
+            checked: false,
             label: "Spacious",
             name: "layout",
-            checked: false,
+            type: "radio",
+            value: "spacious",
           },
         ],
         label: "Layout",
@@ -628,7 +632,7 @@ const mixedNestedItems: MenuItem[] = [
     value: "view",
   },
   {
-    icon: "token-icon-settings",
+    icon: settingsIcon,
     items: [
       {
         icon: "token-icon-download",
@@ -644,7 +648,7 @@ const mixedNestedItems: MenuItem[] = [
       },
       { id: "sep-tools", type: "separator" },
       {
-        icon: "token-icon-settings",
+        icon: settingsIcon,
         label: "Preferences...",
         type: "action",
         value: "preferences",
@@ -661,8 +665,8 @@ const mixedNestedItems: MenuItem[] = [
 export const MixedNestedMenu: Story = {
   args: {
     items: mixedNestedItems,
-    onCheckedChange: (_item: MenuItem, _checked: boolean) => {},
-    onSelect: (_details: { value: string }) => {},
+    onCheckedChange: fn<(item: MenuItem, checked: boolean) => void>(),
+    onSelect: fn<(details: { value: string }) => void>(),
     triggerText: "Application",
   },
   parameters: {
