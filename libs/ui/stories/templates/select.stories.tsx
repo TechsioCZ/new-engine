@@ -1,7 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import type { ComponentProps } from "react"
 
 import type { SelectItem } from "../../src/molecules/select"
 import { SelectTemplate } from "../../src/templates/select"
+
+const selectSizes: NonNullable<
+  ComponentProps<typeof SelectTemplate>["size"]
+>[] = ["xs", "sm", "md", "lg"]
 
 const defaultItems: SelectItem[] = [
   { label: "Czech Republic", value: "cz" },
@@ -101,7 +106,7 @@ type Story = StoryObj<typeof SelectTemplate>
 
 export const Playground: Story = {
   args: {
-    items: [...defaultItems, { value: "es", label: "Spain", disabled: true }],
+    items: [...defaultItems, { disabled: true, label: "Spain", value: "es" }],
     label: "Country",
     placeholder: "Select a country",
     size: "md",
@@ -122,7 +127,7 @@ export const Default: Story = {
 export const Sizes: Story = {
   render: () => (
     <div className="flex w-full max-w-sm flex-col gap-300">
-      {(["xs", "sm", "md", "lg"] as const).map((size) => (
+      {selectSizes.map((size) => (
         <SelectTemplate
           defaultValue={["cz"]}
           items={defaultItems}

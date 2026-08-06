@@ -71,6 +71,10 @@ TreeView is fully keyboard accessible following WAI-ARIA tree pattern:
 export default meta
 type Story = StoryObj<typeof TreeView>
 
+const buttonFileName = "button.tsx"
+const dialogFileName = "dialog.tsx"
+const helpersFileName = "helpers.ts"
+
 // Sample data
 const fileSystemData: TreeNode[] = [
   {
@@ -79,7 +83,7 @@ const fileSystemData: TreeNode[] = [
         children: [
           {
             children: [
-              { id: "button.tsx", name: "button.tsx" },
+              { id: buttonFileName, name: buttonFileName },
               { id: "input.tsx", name: "input.tsx" },
               { id: "icon.tsx", name: "icon.tsx" },
             ],
@@ -88,7 +92,7 @@ const fileSystemData: TreeNode[] = [
           },
           {
             children: [
-              { id: "dialog.tsx", name: "dialog.tsx" },
+              { id: dialogFileName, name: dialogFileName },
               { id: "combobox.tsx", name: "combobox.tsx" },
               { id: "tree-comp.tsx", name: "tree-comp.tsx" },
             ],
@@ -101,7 +105,7 @@ const fileSystemData: TreeNode[] = [
       },
       {
         children: [
-          { id: "helpers.ts", name: "helpers.ts" },
+          { id: helpersFileName, name: helpersFileName },
           { id: "constants.ts", name: "constants.ts" },
         ],
         disabled: true,
@@ -224,6 +228,56 @@ export const Playground: Story = {
   ),
 }
 
+const RenderNode = ({
+  node,
+  indexPath,
+}: {
+  node: TreeNode
+  indexPath: number[]
+}) => (
+  <TreeView.NodeProvider node={node} indexPath={indexPath}>
+    {node.children ? (
+      <TreeView.Branch>
+        <TreeView.BranchTrigger>
+          <TreeView.BranchControl>
+            <TreeView.NodeIcon />
+            <TreeView.BranchText />
+            <Badge variant="secondary" className="ml-100">
+              {String(node.children.length)}
+            </Badge>
+          </TreeView.BranchControl>
+          <TreeView.BranchIndicator />
+        </TreeView.BranchTrigger>
+        <TreeView.BranchContent>
+          <TreeView.IndentGuide />
+          {node.children?.map((child, idx) => (
+            <RenderNode
+              key={child.id}
+              node={child}
+              indexPath={[...indexPath, idx]}
+            />
+          ))}
+        </TreeView.BranchContent>
+      </TreeView.Branch>
+    ) : (
+      <TreeView.Item>
+        <TreeView.NodeIcon />
+        <TreeView.ItemText />
+        {node.name.endsWith(".tsx") && (
+          <Badge variant="info" className="ml-auto">
+            TSX
+          </Badge>
+        )}
+        {node.name.endsWith(".ts") && !node.name.endsWith(".tsx") && (
+          <Badge variant="warning" className="ml-auto">
+            TS
+          </Badge>
+        )}
+      </TreeView.Item>
+    )}
+  </TreeView.NodeProvider>
+)
+
 export const CustomComposition: Story = {
   parameters: {
     docs: {
@@ -237,61 +291,9 @@ export const CustomComposition: Story = {
     <TreeView data={fileSystemData} className="w-md" selectionMode="multiple">
       <TreeView.Label>Project Structure</TreeView.Label>
       <TreeView.Tree>
-        {fileSystemData.map((node, index) => {
-          const RenderNode = ({
-            node,
-            indexPath,
-          }: {
-            node: TreeNode
-            indexPath: number[]
-          }) => (
-            <TreeView.NodeProvider node={node} indexPath={indexPath}>
-              {node.children ? (
-                <TreeView.Branch>
-                  <TreeView.BranchTrigger>
-                    <TreeView.BranchControl>
-                      <TreeView.NodeIcon />
-                      <TreeView.BranchText />
-                      {node.children && (
-                        <Badge variant="secondary" className="ml-100">
-                          {String(node.children.length)}
-                        </Badge>
-                      )}
-                    </TreeView.BranchControl>
-                    <TreeView.BranchIndicator />
-                  </TreeView.BranchTrigger>
-                  <TreeView.BranchContent>
-                    <TreeView.IndentGuide />
-                    {node.children?.map((child, idx) => (
-                      <RenderNode
-                        key={child.id}
-                        node={child}
-                        indexPath={[...indexPath, idx]}
-                      />
-                    ))}
-                  </TreeView.BranchContent>
-                </TreeView.Branch>
-              ) : (
-                <TreeView.Item>
-                  <TreeView.NodeIcon />
-                  <TreeView.ItemText />
-                  {node.name.endsWith(".tsx") && (
-                    <Badge variant="info" className="ml-auto">
-                      TSX
-                    </Badge>
-                  )}
-                  {node.name.endsWith(".ts") && !node.name.endsWith(".tsx") && (
-                    <Badge variant="warning" className="ml-auto">
-                      TS
-                    </Badge>
-                  )}
-                </TreeView.Item>
-              )}
-            </TreeView.NodeProvider>
-          )
-
-          return <RenderNode key={node.id} node={node} indexPath={[index]} />
-        })}
+        {fileSystemData.map((node, index) => (
+          <RenderNode key={node.id} node={node} indexPath={[index]} />
+        ))}
       </TreeView.Tree>
     </TreeView>
   ),
@@ -431,6 +433,90 @@ export const SelectionBehaviors: Story = {
   ),
 }
 
+const ControlledExample = () => {
+  const [expanded, setExpanded] = useState<string[]>(["src", "components"])
+  const [selected, setSelected] = useState<string[]>([buttonFileName])
+
+  return (
+    <div className="flex gap-300">
+      <TreeView
+        className="w-md"
+        data={fileSystemData}
+        selectionMode="multiple"
+        expandedValue={expanded}
+        selectedValue={selected}
+        onExpandedChange={(details) => {
+          setExpanded(details.expandedValue)
+        }}
+        onSelectionChange={(details) => {
+          setSelected(details.selectedValue)
+        }}
+      >
+        <TreeView.Label>Controlled Tree</TreeView.Label>
+        <TreeView.Tree>
+          {fileSystemData.map((node, index) => (
+            <TreeView.Node key={node.id} node={node} indexPath={[index]} />
+          ))}
+        </TreeView.Tree>
+      </TreeView>
+
+      <div className="flex flex-col gap-100">
+        <div className="p-100 bg-overlay rounded-md">
+          <h4 className="text-sm font-semibold mb-100">Expanded Nodes:</h4>
+          <ul className="text-xs space-y-100">
+            {expanded.map((id) => (
+              <li key={id} className="text-fg-secondary">
+                {id}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="p-100 bg-overlay rounded-md">
+          <h4 className="text-sm font-semibold mb-100">Selected Nodes:</h4>
+          <ul className="text-xs space-y-100">
+            {selected.map((id) => (
+              <li key={id} className="text-fg-secondary">
+                {id}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex flex-col gap-50">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setExpanded(["src", "components", "atoms"])
+            }}
+          >
+            Expand Some
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setExpanded([])
+            }}
+          >
+            Collapse All
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setSelected([])
+            }}
+          >
+            Clear Selection
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export const Controlled: Story = {
   parameters: {
     docs: {
@@ -440,94 +526,50 @@ export const Controlled: Story = {
       },
     },
   },
-  render: () => {
-    const ControlledExample = () => {
-      const [expanded, setExpanded] = useState<string[]>(["src", "components"])
-      const [selected, setSelected] = useState<string[]>(["button.tsx"])
-
-      return (
-        <div className="flex gap-300">
-          <TreeView
-            className="w-md"
-            data={fileSystemData}
-            selectionMode="multiple"
-            expandedValue={expanded}
-            selectedValue={selected}
-            onExpandedChange={(details) => {
-              setExpanded(details.expandedValue)
-            }}
-            onSelectionChange={(details) => {
-              setSelected(details.selectedValue)
-            }}
-          >
-            <TreeView.Label>Controlled Tree</TreeView.Label>
-            <TreeView.Tree>
-              {fileSystemData.map((node, index) => (
-                <TreeView.Node key={node.id} node={node} indexPath={[index]} />
-              ))}
-            </TreeView.Tree>
-          </TreeView>
-
-          <div className="flex flex-col gap-100">
-            <div className="p-100 bg-overlay rounded-md">
-              <h4 className="text-sm font-semibold mb-100">Expanded Nodes:</h4>
-              <ul className="text-xs space-y-100">
-                {expanded.map((id) => (
-                  <li key={id} className="text-fg-secondary">
-                    {id}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="p-100 bg-overlay rounded-md">
-              <h4 className="text-sm font-semibold mb-100">Selected Nodes:</h4>
-              <ul className="text-xs space-y-100">
-                {selected.map((id) => (
-                  <li key={id} className="text-fg-secondary">
-                    {id}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex flex-col gap-50">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  setExpanded(["src", "components", "atoms"])
-                }}
-              >
-                Expand Some
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  setExpanded([])
-                }}
-              >
-                Collapse All
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  setSelected([])
-                }}
-              >
-                Clear Selection
-              </Button>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    return <ControlledExample />
-  },
+  render: ControlledExample,
 }
+
+const CustomNode = ({
+  node,
+  indexPath,
+}: {
+  node: TreeNode
+  indexPath: number[]
+}) => (
+  <TreeView.NodeProvider node={node} indexPath={indexPath}>
+    {node.children ? (
+      <TreeView.Branch className="data-disabled:opacity-40">
+        <TreeView.BranchTrigger className="hover:bg-primary/10 rounded-sm transition-colors">
+          <TreeView.BranchControl>
+            <span className="text-primary">
+              <TreeView.NodeIcon />
+            </span>
+            <TreeView.BranchText className="font-semibold text-fg-primary" />
+          </TreeView.BranchControl>
+          <TreeView.BranchIndicator className="text-secondary" />
+        </TreeView.BranchTrigger>
+        <TreeView.BranchContent>
+          <div className="ml-250 pl-150 border-l-2 border-border-secondary/30">
+            {node.children?.map((child, idx) => (
+              <CustomNode
+                key={child.id}
+                node={child}
+                indexPath={[...indexPath, idx]}
+              />
+            ))}
+          </div>
+        </TreeView.BranchContent>
+      </TreeView.Branch>
+    ) : (
+      <TreeView.Item className="hover:bg-secondary/10 rounded-sm transition-colors ml-150">
+        <span className="text-secondary">
+          <TreeView.NodeIcon />
+        </span>
+        <TreeView.ItemText className="text-fg-secondary" />
+      </TreeView.Item>
+    )}
+  </TreeView.NodeProvider>
+)
 
 export const CustomStyling: Story = {
   parameters: {
@@ -548,51 +590,9 @@ export const CustomStyling: Story = {
         🎨 Styled File Explorer
       </h2>
       <TreeView.Tree className="bg-white/50 dark:bg-black/20 backdrop-blur-sm">
-        {fileSystemData.map((node, index) => {
-          const CustomNode = ({
-            node,
-            indexPath,
-          }: {
-            node: TreeNode
-            indexPath: number[]
-          }) => (
-            <TreeView.NodeProvider node={node} indexPath={indexPath}>
-              {node.children ? (
-                <TreeView.Branch className="data-disabled:opacity-40">
-                  <TreeView.BranchTrigger className="hover:bg-primary/10 rounded-sm transition-colors">
-                    <TreeView.BranchControl>
-                      <span className="text-primary">
-                        <TreeView.NodeIcon />
-                      </span>
-                      <TreeView.BranchText className="font-semibold text-fg-primary" />
-                    </TreeView.BranchControl>
-                    <TreeView.BranchIndicator className="text-secondary" />
-                  </TreeView.BranchTrigger>
-                  <TreeView.BranchContent>
-                    <div className="ml-250 pl-150 border-l-2 border-border-secondary/30">
-                      {node.children?.map((child, idx) => (
-                        <CustomNode
-                          key={child.id}
-                          node={child}
-                          indexPath={[...indexPath, idx]}
-                        />
-                      ))}
-                    </div>
-                  </TreeView.BranchContent>
-                </TreeView.Branch>
-              ) : (
-                <TreeView.Item className="hover:bg-secondary/10 rounded-sm transition-colors ml-150">
-                  <span className="text-secondary">
-                    <TreeView.NodeIcon />
-                  </span>
-                  <TreeView.ItemText className="text-fg-secondary" />
-                </TreeView.Item>
-              )}
-            </TreeView.NodeProvider>
-          )
-
-          return <CustomNode key={node.id} node={node} indexPath={[index]} />
-        })}
+        {fileSystemData.map((node, index) => (
+          <CustomNode key={node.id} node={node} indexPath={[index]} />
+        ))}
       </TreeView.Tree>
     </TreeView>
   ),
@@ -612,7 +612,7 @@ export const DefaultExpanded: Story = {
       data={fileSystemData}
       selectionMode="single"
       defaultExpandedValue={["src", "components", "atoms"]}
-      defaultSelectedValue={["button.tsx"]}
+      defaultSelectedValue={[buttonFileName]}
       className="w-md"
     >
       <TreeView.Label>With Default State</TreeView.Label>
@@ -625,6 +625,81 @@ export const DefaultExpanded: Story = {
   ),
 }
 
+const SelectionModesExample = () => {
+  const [singleSelected, setSingleSelected] = useState<string[]>([
+    buttonFileName,
+  ])
+  const [multiSelected, setMultiSelected] = useState<string[]>([
+    buttonFileName,
+    dialogFileName,
+    helpersFileName,
+  ])
+
+  return (
+    <div className="flex gap-300">
+      <div className="flex-1">
+        <TreeView
+          data={fileSystemData}
+          selectionMode="single"
+          selectedValue={singleSelected}
+          onSelectionChange={(details) => {
+            setSingleSelected(details.selectedValue)
+          }}
+          defaultExpandedValue={["src", "components", "atoms"]}
+          className="w-full"
+        >
+          <TreeView.Label>Single Selection</TreeView.Label>
+          <TreeView.Tree>
+            {fileSystemData.map((node, index) => (
+              <TreeView.Node key={node.id} node={node} indexPath={[index]} />
+            ))}
+          </TreeView.Tree>
+        </TreeView>
+        <div className="mt-100 p-100 bg-overlay rounded-md">
+          <p className="text-xs font-semibold mb-50">Selected:</p>
+          <p className="text-xs text-fg-secondary">
+            {singleSelected.join(", ") || "None"}
+          </p>
+          <p className="text-xs text-fg-secondary mt-50">
+            Click any item to select it
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1">
+        <TreeView
+          data={fileSystemData}
+          selectionMode="multiple"
+          selectedValue={multiSelected}
+          onSelectionChange={(details) => {
+            setMultiSelected(details.selectedValue)
+          }}
+          defaultExpandedValue={["src", "components", "molecules"]}
+          className="w-full"
+        >
+          <TreeView.Label>Multiple Selection</TreeView.Label>
+          <TreeView.Tree>
+            {fileSystemData.map((node, index) => (
+              <TreeView.Node key={node.id} node={node} indexPath={[index]} />
+            ))}
+          </TreeView.Tree>
+        </TreeView>
+        <div className="mt-100 p-100 bg-overlay rounded-md">
+          <p className="text-xs font-semibold mb-50">
+            Selected ({multiSelected.length}):
+          </p>
+          <p className="text-xs text-fg-secondary">
+            {multiSelected.join(", ") || "None"}
+          </p>
+          <p className="text-xs text-fg-secondary mt-50">
+            Use Ctrl+Click (Cmd+Click on Mac) to select multiple items
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export const SelectionModes: Story = {
   parameters: {
     docs: {
@@ -634,92 +709,125 @@ export const SelectionModes: Story = {
       },
     },
   },
-  render: () => {
-    const SelectionModesExample = () => {
-      const [singleSelected, setSingleSelected] = useState<string[]>([
-        "button.tsx",
-      ])
-      const [multiSelected, setMultiSelected] = useState<string[]>([
-        "button.tsx",
-        "dialog.tsx",
-        "helpers.ts",
-      ])
+  render: SelectionModesExample,
+}
 
-      return (
-        <div className="flex gap-300">
-          <div className="flex-1">
-            <TreeView
-              data={fileSystemData}
-              selectionMode="single"
-              selectedValue={singleSelected}
-              onSelectionChange={(details) => {
-                setSingleSelected(details.selectedValue)
-              }}
-              defaultExpandedValue={["src", "components", "atoms"]}
-              className="w-full"
-            >
-              <TreeView.Label>Single Selection</TreeView.Label>
-              <TreeView.Tree>
-                {fileSystemData.map((node, index) => (
-                  <TreeView.Node
-                    key={node.id}
-                    node={node}
-                    indexPath={[index]}
-                  />
-                ))}
-              </TreeView.Tree>
-            </TreeView>
-            <div className="mt-100 p-100 bg-overlay rounded-md">
-              <p className="text-xs font-semibold mb-50">Selected:</p>
-              <p className="text-xs text-fg-secondary">
-                {singleSelected.join(", ") || "None"}
-              </p>
-              <p className="text-xs text-fg-secondary mt-50">
-                Click any item to select it
-              </p>
-            </div>
-          </div>
+const InteractiveTest = () => {
+  const [logs, setLogs] = useState<string[]>([])
 
-          <div className="flex-1">
-            <TreeView
-              data={fileSystemData}
-              selectionMode="multiple"
-              selectedValue={multiSelected}
-              onSelectionChange={(details) => {
-                setMultiSelected(details.selectedValue)
-              }}
-              defaultExpandedValue={["src", "components", "molecules"]}
-              className="w-full"
-            >
-              <TreeView.Label>Multiple Selection</TreeView.Label>
-              <TreeView.Tree>
-                {fileSystemData.map((node, index) => (
-                  <TreeView.Node
-                    key={node.id}
-                    node={node}
-                    indexPath={[index]}
-                  />
-                ))}
-              </TreeView.Tree>
-            </TreeView>
-            <div className="mt-100 p-100 bg-overlay rounded-md">
-              <p className="text-xs font-semibold mb-50">
-                Selected ({multiSelected.length}):
-              </p>
-              <p className="text-xs text-fg-secondary">
-                {multiSelected.join(", ") || "None"}
-              </p>
-              <p className="text-xs text-fg-secondary mt-50">
-                Use Ctrl+Click (Cmd+Click on Mac) to select multiple items
-              </p>
-            </div>
-          </div>
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString("en-US", {
+      fractionalSecondDigits: 3,
+      hour: "2-digit",
+      hour12: false,
+      minute: "2-digit",
+      second: "2-digit",
+    })
+    setLogs((prev) => [`[${timestamp}] ${message}`, ...prev].slice(0, 15))
+  }
+
+  return (
+    <div className="space-y-200">
+      <div className="p-100 bg-overlay rounded-md">
+        <h4 className="text-sm font-semibold mb-50">Test Instructions:</h4>
+        <ul className="text-xs space-y-50 text-fg-secondary">
+          <li>
+            • Click the <strong>chevron arrow</strong> → should ONLY
+            expand/collapse
+          </li>
+          <li>
+            • Click the <strong>folder/file name</strong> → should select (and
+            expand if expandOnClick=true)
+          </li>
+          <li>• Try keyboard: Arrow keys to navigate, Space/Enter to select</li>
+        </ul>
+      </div>
+
+      <div className="flex gap-300">
+        <div className="flex-1">
+          <TreeView
+            data={fileSystemData}
+            selectionMode="single"
+            expandOnClick={false}
+            onExpandedChange={(details) => {
+              addLog(
+                `🔽 EXPANDED: ${details.expandedValue.join(", ") || "none"}`,
+              )
+            }}
+            onSelectionChange={(details) => {
+              addLog(
+                `✅ SELECTED: ${details.selectedValue.join(", ") || "none"}`,
+              )
+            }}
+            className="w-full"
+          >
+            <TreeView.Label>expandOnClick = false</TreeView.Label>
+            <TreeView.Tree>
+              {fileSystemData.map((node, index) => (
+                <TreeView.Node key={node.id} node={node} indexPath={[index]} />
+              ))}
+            </TreeView.Tree>
+          </TreeView>
         </div>
-      )
-    }
 
-    return <SelectionModesExample />
-  },
+        <div className="flex-1">
+          <TreeView
+            data={fileSystemData}
+            selectionMode="single"
+            expandOnClick={true}
+            onExpandedChange={(details) => {
+              addLog(
+                `🔽 EXPANDED: ${details.expandedValue.join(", ") || "none"}`,
+              )
+            }}
+            onSelectionChange={(details) => {
+              addLog(
+                `✅ SELECTED: ${details.selectedValue.join(", ") || "none"}`,
+              )
+            }}
+            className="w-full"
+          >
+            <TreeView.Label>expandOnClick = true (default)</TreeView.Label>
+            <TreeView.Tree>
+              {fileSystemData.map((node, index) => (
+                <TreeView.Node key={node.id} node={node} indexPath={[index]} />
+              ))}
+            </TreeView.Tree>
+          </TreeView>
+        </div>
+      </div>
+
+      <div className="p-100 bg-overlay rounded-md">
+        <div className="flex items-center justify-between mb-50">
+          <h4 className="text-sm font-semibold">Event Log (last 15 events)</h4>
+          <Button
+            size="sm"
+            onClick={() => {
+              setLogs([])
+            }}
+          >
+            Clear
+          </Button>
+        </div>
+        <div className="bg-surface rounded-sm p-100 h-48 overflow-y-auto font-mono text-xs">
+          {logs.length === 0 ? (
+            <div className="text-fg-secondary">Waiting for interaction...</div>
+          ) : (
+            logs.map((log) => (
+              <div
+                key={log}
+                className={
+                  log.includes("SELECTED") ? "text-success" : "text-info"
+                }
+              >
+                {log}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export const ExpandVsSelectionTest: Story = {
@@ -731,141 +839,138 @@ export const ExpandVsSelectionTest: Story = {
       },
     },
   },
-  render: () => {
-    const InteractiveTest = () => {
-      const [logs, setLogs] = useState<string[]>([])
+  render: InteractiveTest,
+}
 
-      const addLog = (message: string) => {
-        const timestamp = new Date().toLocaleTimeString("en-US", {
-          fractionalSecondDigits: 3,
-          hour: "2-digit",
-          hour12: false,
-          minute: "2-digit",
-          second: "2-digit",
-        })
-        setLogs((prev) => [`[${timestamp}] ${message}`, ...prev].slice(0, 15))
-      }
+const getTreeNodeHandle = (node: TreeNode) => {
+  const { handle } = node
+  return typeof handle === "string" ? handle : "unknown"
+}
 
-      return (
-        <div className="space-y-200">
-          <div className="p-100 bg-overlay rounded-md">
-            <h4 className="text-sm font-semibold mb-50">Test Instructions:</h4>
-            <ul className="text-xs space-y-50 text-fg-secondary">
-              <li>
-                • Click the <strong>chevron arrow</strong> → should ONLY
-                expand/collapse
-              </li>
-              <li>
-                • Click the <strong>folder/file name</strong> → should select
-                (and expand if expandOnClick=true)
-              </li>
-              <li>
-                • Try keyboard: Arrow keys to navigate, Space/Enter to select
-              </li>
-            </ul>
-          </div>
+const getHoverLogClassName = (log: string) => {
+  if (log.includes("HOVER")) {
+    return "text-success"
+  }
+  if (log.includes("LEAVE")) {
+    return "text-warning"
+  }
+  return "text-info"
+}
 
-          <div className="flex gap-300">
-            <div className="flex-1">
-              <TreeView
-                data={fileSystemData}
-                selectionMode="single"
-                expandOnClick={false}
-                onExpandedChange={(details) => {
-                  addLog(
-                    `🔽 EXPANDED: ${details.expandedValue.join(", ") || "none"}`,
-                  )
-                }}
-                onSelectionChange={(details) => {
-                  addLog(
-                    `✅ SELECTED: ${details.selectedValue.join(", ") || "none"}`,
-                  )
-                }}
-                className="w-full"
-              >
-                <TreeView.Label>expandOnClick = false</TreeView.Label>
-                <TreeView.Tree>
-                  {fileSystemData.map((node, index) => (
-                    <TreeView.Node
-                      key={node.id}
-                      node={node}
-                      indexPath={[index]}
-                    />
-                  ))}
-                </TreeView.Tree>
-              </TreeView>
-            </div>
+const WithHoverEventsStory: NonNullable<Story["render"]> = () => {
+  const [logs, setLogs] = useState<string[]>([])
 
-            <div className="flex-1">
-              <TreeView
-                data={fileSystemData}
-                selectionMode="single"
-                expandOnClick={true}
-                onExpandedChange={(details) => {
-                  addLog(
-                    `🔽 EXPANDED: ${details.expandedValue.join(", ") || "none"}`,
-                  )
-                }}
-                onSelectionChange={(details) => {
-                  addLog(
-                    `✅ SELECTED: ${details.selectedValue.join(", ") || "none"}`,
-                  )
-                }}
-                className="w-full"
-              >
-                <TreeView.Label>expandOnClick = true (default)</TreeView.Label>
-                <TreeView.Tree>
-                  {fileSystemData.map((node, index) => (
-                    <TreeView.Node
-                      key={node.id}
-                      node={node}
-                      indexPath={[index]}
-                    />
-                  ))}
-                </TreeView.Tree>
-              </TreeView>
-            </div>
-          </div>
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString()
+    setLogs((prev) => [...prev, `[${timestamp}] ${message}`])
+  }
 
-          <div className="p-100 bg-overlay rounded-md">
-            <div className="flex items-center justify-between mb-50">
-              <h4 className="text-sm font-semibold">
-                Event Log (last 15 events)
-              </h4>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setLogs([])
-                }}
-              >
-                Clear
-              </Button>
-            </div>
-            <div className="bg-surface rounded-sm p-100 h-48 overflow-y-auto font-mono text-xs">
-              {logs.length === 0 ? (
-                <div className="text-fg-secondary">
-                  Waiting for interaction...
-                </div>
-              ) : (
-                logs.map((log, index) => (
-                  <div
-                    key={index}
-                    className={
-                      log.includes("SELECTED") ? "text-success" : "text-info"
-                    }
-                  >
-                    {log}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+  const treeData: TreeNode[] = [
+    {
+      children: [
+        {
+          children: [
+            {
+              handle: "kratke-rukavy",
+              id: "kratke",
+              name: "Krátké rukávy",
+            },
+            {
+              handle: "dlouhe-rukavy",
+              id: "dlouhe",
+              name: "Dlouhé rukávy",
+            },
+          ],
+          handle: "trika-a-tilka",
+          id: "trika",
+          name: "Trika a tílka",
+        },
+        {
+          handle: "mikiny",
+          id: "mikiny",
+          name: "Mikiny",
+        },
+      ],
+      handle: "obleceni",
+      id: "obleceni",
+      name: "Oblečení",
+    },
+    {
+      children: [
+        {
+          handle: "cyklo-obleceni",
+          id: "cyklo-obleceni",
+          name: "Oblečení",
+        },
+      ],
+      handle: "cyklo",
+      id: "cyklo",
+      name: "Cyklo",
+    },
+  ]
+
+  const handleNodeHover = (node: TreeNode, indexPath: number[]) => {
+    addLog(
+      `🎯 HOVER: ${node.name} (handle: ${getTreeNodeHandle(node)}) at path [${indexPath.join(", ")}]`,
+    )
+  }
+
+  const handleNodeLeave = (node: TreeNode) => {
+    addLog(`👋 LEAVE: ${node.name} (handle: ${getTreeNodeHandle(node)})`)
+  }
+
+  return (
+    <div className="flex flex-col gap-400">
+      <TreeView
+        className="w-3xs border-t-2 border-t-overlay p-200"
+        data={treeData}
+        selectionMode="single"
+        size="sm"
+        defaultExpandedValue={["obleceni"]}
+      >
+        <TreeView.Label className="capitalize">Kategorie</TreeView.Label>
+        <TreeView.Tree>
+          {treeData.map((node, index) => (
+            <TreeView.Node
+              showNodeIcons={false}
+              key={node.id}
+              node={node}
+              indexPath={[index]}
+              onNodeHover={handleNodeHover}
+              onNodeLeave={handleNodeLeave}
+            />
+          ))}
+        </TreeView.Tree>
+      </TreeView>
+
+      <div className="flex-1">
+        <div className="flex flex-col mb-200">
+          <h3 className="font-semibold">Hover Events Log</h3>
+          <Button
+            size="sm"
+            onClick={() => {
+              setLogs([])
+            }}
+          >
+            Clear
+          </Button>
         </div>
-      )
-    }
-
-    return <InteractiveTest />
-  },
+        <div className="bg-surface w-md rounded-sm p-100 h-48 overflow-y-auto font-mono text-xs">
+          {logs.length === 0 ? (
+            <div className="text-fg-secondary">
+              Hover over nodes to see events...
+            </div>
+          ) : (
+            logs.map((log) => (
+              <div key={log} className={getHoverLogClassName(log)}>
+                {log}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export const WithHoverEvents: Story = {
@@ -877,128 +982,5 @@ export const WithHoverEvents: Story = {
       },
     },
   },
-  render: () => {
-    const [logs, setLogs] = useState<string[]>([])
-
-    const addLog = (message: string) => {
-      const timestamp = new Date().toLocaleTimeString()
-      setLogs((prev) => [...prev, `[${timestamp}] ${message}`])
-    }
-
-    const treeData = [
-      {
-        children: [
-          {
-            children: [
-              {
-                id: "kratke",
-                name: "Krátké rukávy",
-                handle: "kratke-rukavy",
-              },
-              {
-                id: "dlouhe",
-                name: "Dlouhé rukávy",
-                handle: "dlouhe-rukavy",
-              },
-            ],
-            handle: "trika-a-tilka",
-            id: "trika",
-            name: "Trika a tílka",
-          },
-          {
-            handle: "mikiny",
-            id: "mikiny",
-            name: "Mikiny",
-          },
-        ],
-        handle: "obleceni",
-        id: "obleceni",
-        name: "Oblečení",
-      },
-      {
-        children: [
-          {
-            handle: "cyklo-obleceni",
-            id: "cyklo-obleceni",
-            name: "Oblečení",
-          },
-        ],
-        handle: "cyklo",
-        id: "cyklo",
-        name: "Cyklo",
-      },
-    ]
-
-    const handleNodeHover = (node: any, indexPath: number[]) => {
-      addLog(
-        `🎯 HOVER: ${node.name} (handle: ${node.handle}) at path [${indexPath.join(", ")}]`,
-      )
-    }
-
-    const handleNodeLeave = (node: any) => {
-      addLog(`👋 LEAVE: ${node.name} (handle: ${node.handle})`)
-    }
-
-    return (
-      <div className="flex flex-col gap-400">
-        <TreeView
-          className="w-3xs border-t-2 border-t-overlay p-200"
-          data={treeData}
-          selectionMode="single"
-          size="sm"
-          defaultExpandedValue={["obleceni"]}
-        >
-          <TreeView.Label className="capitalize">Kategorie</TreeView.Label>
-          <TreeView.Tree>
-            {treeData?.map((node, index) => (
-              <TreeView.Node
-                showNodeIcons={false}
-                key={node.id}
-                node={node}
-                indexPath={[index]}
-                onNodeHover={handleNodeHover}
-                onNodeLeave={handleNodeLeave}
-              />
-            ))}
-          </TreeView.Tree>
-        </TreeView>
-
-        <div className="flex-1">
-          <div className="flex flex-col mb-200">
-            <h3 className="font-semibold">Hover Events Log</h3>
-            <Button
-              size="sm"
-              onClick={() => {
-                setLogs([])
-              }}
-            >
-              Clear
-            </Button>
-          </div>
-          <div className="bg-surface w-md rounded-sm p-100 h-48 overflow-y-auto font-mono text-xs">
-            {logs.length === 0 ? (
-              <div className="text-fg-secondary">
-                Hover over nodes to see events...
-              </div>
-            ) : (
-              logs.map((log, index) => (
-                <div
-                  key={index}
-                  className={
-                    log.includes("HOVER")
-                      ? "text-success"
-                      : (log.includes("LEAVE")
-                        ? "text-warning"
-                        : "text-info")
-                  }
-                >
-                  {log}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  },
+  render: WithHoverEventsStory,
 }

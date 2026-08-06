@@ -180,32 +180,34 @@ export const Disabled: Story = {
   },
 }
 
+const WithValidationStory: NonNullable<Story["render"]> = (args) => {
+  const [value, setValue] = useState([30])
+  const currentValue = value[0] ?? 0
+
+  return (
+    <div className="max-w-sm">
+      <Slider
+        {...args}
+        value={value}
+        validateStatus={currentValue < 50 ? "error" : "success"}
+        helpText={
+          currentValue < 50
+            ? "The selected value must be at least 50."
+            : "Great! Value is within acceptable range."
+        }
+        onChange={setValue}
+      />
+    </div>
+  )
+}
+
 export const WithValidation: Story = {
   args: {
     ...Playground.args,
     id: "validation-slider",
     label: "Quantity",
   },
-  render: (args) => {
-    const [value, setValue] = useState([30])
-    const currentValue = value[0] ?? 0
-
-    return (
-      <div className="max-w-sm">
-        <Slider
-          {...args}
-          value={value}
-          validateStatus={currentValue < 50 ? "error" : "success"}
-          helpText={
-            currentValue < 50
-              ? "The selected value must be at least 50."
-              : "Great! Value is within acceptable range."
-          }
-          onChange={setValue}
-        />
-      </div>
-    )
-  },
+  render: WithValidationStory,
 }
 
 export const WithMarkers: Story = {
@@ -229,59 +231,94 @@ export const WithMarkers: Story = {
   ),
 }
 
+const VerticalOrientationStory: NonNullable<Story["render"]> = () => {
+  const [values, setValues] = useState<number[]>([70])
+  const currentValue = values[0] ?? 0
+  const handleChange = (newValues: number[]) => {
+    setValues(newValues)
+  }
+  return (
+    <VariantContainer>
+      <div className="grid h-96 w-4xl grid-cols-3 gap-600">
+        <Slider
+          {...baseSliderProps}
+          id="vertical-sm"
+          orientation="vertical"
+          size="sm"
+          label="Volume (Small)"
+          defaultValue={[20, 80]}
+          helpText="Adjust volume"
+        />
+        <Slider
+          {...baseSliderProps}
+          id="vertical-md"
+          orientation="vertical"
+          size="md"
+          label="Brightness (Medium)"
+          showMarkers
+          markerCount={5}
+          value={values}
+          onChange={handleChange}
+          validateStatus={currentValue > 50 ? "warning" : "default"}
+          helpText={
+            currentValue > 50
+              ? "Brightness is getting high - consider reducing it"
+              : "Current brightness level is fine"
+          }
+        />
+        <Slider
+          {...baseSliderProps}
+          id="vertical-lg"
+          orientation="vertical"
+          size="lg"
+          label="Contrast (Large)"
+          defaultValue={[40, 60]}
+          helpText="Set contrast level"
+        />
+      </div>
+    </VariantContainer>
+  )
+}
+
 export const VerticalOrientation: Story = {
   parameters: {
     layout: "padded",
   },
 
-  render: () => {
-    const [values, setValues] = useState<number[]>([70])
-    const currentValue = values[0] ?? 0
-    const handleChange = (newValues: number[]) => {
-      setValues(newValues)
-    }
-    return (
-      <VariantContainer>
-        <div className="grid h-96 w-4xl grid-cols-3 gap-600">
-          <Slider
-            {...baseSliderProps}
-            id="vertical-sm"
-            orientation="vertical"
-            size="sm"
-            label="Volume (Small)"
-            defaultValue={[20, 80]}
-            helpText="Adjust volume"
-          />
-          <Slider
-            {...baseSliderProps}
-            id="vertical-md"
-            orientation="vertical"
-            size="md"
-            label="Brightness (Medium)"
-            showMarkers
-            markerCount={5}
-            value={values}
-            onChange={handleChange}
-            validateStatus={currentValue > 50 ? "warning" : "default"}
-            helpText={
-              currentValue > 50
-                ? "Brightness is getting high - consider reducing it"
-                : "Current brightness level is fine"
-            }
-          />
-          <Slider
-            {...baseSliderProps}
-            id="vertical-lg"
-            orientation="vertical"
-            size="lg"
-            label="Contrast (Large)"
-            defaultValue={[40, 60]}
-            helpText="Set contrast level"
-          />
+  render: VerticalOrientationStory,
+}
+
+const ControlledStory: NonNullable<Story["render"]> = (args) => {
+  const [values, setValues] = useState<number[]>([30, 70])
+
+  const handleChange = (newValues: number[]) => {
+    setValues(newValues)
+  }
+
+  const handleRandom = () => {
+    const randomNumbers = crypto.getRandomValues(new Uint32Array(2))
+    const firstRandom = (randomNumbers.at(0) ?? 0) % 100
+    const secondRandom = (randomNumbers.at(1) ?? 0) % 100
+    const minValue = Math.min(firstRandom, secondRandom)
+    const maxValue = Math.max(firstRandom, secondRandom)
+    const nextValues = [minValue, maxValue]
+    setValues(nextValues)
+  }
+
+  return (
+    <div className="min-w-sm">
+      <Slider {...args} value={values} onChange={handleChange} />
+      <div className="mt-400 rounded border bg-overlay p-200">
+        <p className="text-fg-secondary text-sm">Component State:</p>
+        <p className="font-mono text-lg">[{values.join(", ")}]</p>
+        <div>
+          <Button size="sm" onClick={handleRandom}>
+            Random
+          </Button>
         </div>
-      </VariantContainer>
-    )
-  },
+      </div>
+    </div>
+  )
 }
 
 export const Controlled: Story = {
@@ -291,38 +328,48 @@ export const Controlled: Story = {
     id: "controlled-slider",
     label: "Controlled Slider",
   },
-  render: (args) => {
-    const [values, setValues] = useState<number[]>([30, 70])
+  render: ControlledStory,
+}
 
-    const handleChange = (newValues: number[]) => {
-      setValues(newValues)
-    }
+const DynamicBoundsControlledStory: NonNullable<Story["render"]> = (args) => {
+  const [bounds, setBounds] = useState({ max: 100, min: 0 })
+  const [values, setValues] = useState<number[]>([20, 80])
 
-    const handleRandom = () => {
-      const firstRandom = Math.floor(Math.random() * 100)
-      const secondRandomNumber = Math.floor(Math.random() * 100)
-      const minValue = Math.min(firstRandom, secondRandomNumber)
-      const maxValue = Math.max(firstRandom, secondRandomNumber)
-
-      const values = [minValue, maxValue]
-      setValues(values)
-    }
-
-    return (
-      <div className="min-w-sm">
-        <Slider {...args} value={values} onChange={handleChange} />
-        <div className="mt-400 rounded border bg-overlay p-200">
-          <p className="text-fg-secondary text-sm">Component State:</p>
-          <p className="font-mono text-lg">[{values.join(", ")}]</p>
-          <div>
-            <Button size="sm" onClick={handleRandom}>
-              Random
-            </Button>
-          </div>
-        </div>
+  return (
+    <div className="min-w-sm space-y-400">
+      <Slider
+        {...args}
+        min={bounds.min}
+        max={bounds.max}
+        value={values}
+        onChange={setValues}
+        helpText={`Bounds: ${bounds.min} - ${bounds.max}`}
+      />
+      <div className="flex flex-wrap gap-200">
+        <Button
+          size="sm"
+          onClick={() => {
+            setBounds({ max: 30, min: 0 })
+          }}
+        >
+          Shrink max to 30
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setBounds({ max: 100, min: 0 })
+          }}
+        >
+          Reset bounds
+        </Button>
       </div>
-    )
-  },
+      <div className="rounded border bg-overlay p-200 text-sm">
+        <p className="text-fg-secondary">Values (controlled):</p>
+        <p className="font-mono">[{values.join(", ")}]</p>
+      </div>
+    </div>
+  )
 }
 
 export const DynamicBoundsControlled: Story = {
@@ -331,46 +378,7 @@ export const DynamicBoundsControlled: Story = {
     id: "dynamic-bounds-controlled-slider",
     label: "Dynamic Bounds (Controlled)",
   },
-  render: (args) => {
-    const [bounds, setBounds] = useState({ max: 100, min: 0 })
-    const [values, setValues] = useState<number[]>([20, 80])
-
-    return (
-      <div className="min-w-sm space-y-400">
-        <Slider
-          {...args}
-          min={bounds.min}
-          max={bounds.max}
-          value={values}
-          onChange={setValues}
-          helpText={`Bounds: ${bounds.min} - ${bounds.max}`}
-        />
-        <div className="flex flex-wrap gap-200">
-          <Button
-            size="sm"
-            onClick={() => {
-              setBounds({ max: 30, min: 0 })
-            }}
-          >
-            Shrink max to 30
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => {
-              setBounds({ max: 100, min: 0 })
-            }}
-          >
-            Reset bounds
-          </Button>
-        </div>
-        <div className="rounded border bg-overlay p-200 text-sm">
-          <p className="text-fg-secondary">Values (controlled):</p>
-          <p className="font-mono">[{values.join(", ")}]</p>
-        </div>
-      </div>
-    )
-  },
+  render: DynamicBoundsControlledStory,
 }
 
 export const SingleVsMultiThumb: Story = {
@@ -465,43 +473,45 @@ export const ThumbAlignment: Story = {
   ),
 }
 
-export const MinStepsBetweenThumbs: Story = {
-  render: () => {
-    const [values, setValues] = useState<number[]>([30, 70])
-    const [minValue = 0, maxValue = minValue] = values
+const MinStepsBetweenThumbsStory: NonNullable<Story["render"]> = () => {
+  const [values, setValues] = useState<number[]>([30, 70])
+  const [minValue = 0, maxValue = minValue] = values
 
-    return (
-      <VariantContainer>
-        <div className="grid w-full min-w-xs gap-600">
-          <Slider
-            {...baseSliderProps}
-            id="no-min-steps"
-            label="No Minimum Steps"
-            defaultValue={[45, 55]}
-            minStepsBetweenThumbs={0}
-            helpText="Thumbs can touch each other"
-          />
-          <Slider
-            {...baseSliderProps}
-            id="min-steps-10"
-            label="Minimum 10 Steps Between Thumbs"
-            value={values}
-            onChange={setValues}
-            minStepsBetweenThumbs={10}
-            helpText={`Current gap: ${maxValue - minValue} units (min: 10)`}
-          />
-          <Slider
-            {...baseSliderProps}
-            id="min-steps-20"
-            label="Minimum 20 Steps Between Thumbs"
-            defaultValue={[20, 80]}
-            minStepsBetweenThumbs={20}
-            helpText="Enforces 20 unit minimum gap"
-          />
-        </div>
-      </VariantContainer>
-    )
-  },
+  return (
+    <VariantContainer>
+      <div className="grid w-full min-w-xs gap-600">
+        <Slider
+          {...baseSliderProps}
+          id="no-min-steps"
+          label="No Minimum Steps"
+          defaultValue={[45, 55]}
+          minStepsBetweenThumbs={0}
+          helpText="Thumbs can touch each other"
+        />
+        <Slider
+          {...baseSliderProps}
+          id="min-steps-10"
+          label="Minimum 10 Steps Between Thumbs"
+          value={values}
+          onChange={setValues}
+          minStepsBetweenThumbs={10}
+          helpText={`Current gap: ${maxValue - minValue} units (min: 10)`}
+        />
+        <Slider
+          {...baseSliderProps}
+          id="min-steps-20"
+          label="Minimum 20 Steps Between Thumbs"
+          defaultValue={[20, 80]}
+          minStepsBetweenThumbs={20}
+          helpText="Enforces 20 unit minimum gap"
+        />
+      </div>
+    </VariantContainer>
+  )
+}
+
+export const MinStepsBetweenThumbs: Story = {
+  render: MinStepsBetweenThumbsStory,
 }
 
 export const RTLSupport: Story = {

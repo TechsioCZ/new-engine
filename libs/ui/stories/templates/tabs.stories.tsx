@@ -113,7 +113,8 @@ const defaultItems = [
       <div className="p-400">
         <h3 className="text-lg font-semibold mb-200">Details</h3>
         <p className="text-fg-secondary">
-          Here you'll find detailed specifications and technical information.
+          Here you&apos;ll find detailed specifications and technical
+          information.
         </p>
       </div>
     ),

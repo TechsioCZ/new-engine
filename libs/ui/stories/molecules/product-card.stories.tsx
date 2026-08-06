@@ -3,7 +3,9 @@ import { fn } from "storybook/test"
 
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Badge } from "../../src/atoms/badge"
+import type { BadgeProps } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
+import type { IconType } from "../../src/atoms/icon"
 import { NumericInput } from "../../src/atoms/numeric-input"
 import { ProductCard } from "../../src/molecules/product-card"
 
@@ -49,9 +51,16 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 // Image options for select control
-const imageOptions = Object.keys(
-  productImages,
-) as (keyof typeof productImages)[]
+type ProductBadgeVariant = Exclude<BadgeProps["variant"], "dynamic" | undefined>
+
+const imageOptions: (keyof typeof productImages)[] = [
+  "backpack",
+  "camera",
+  "headphones",
+  "shoes",
+  "tshirt",
+  "watch",
+]
 
 // Custom args type for Playground (compound component pattern)
 interface PlaygroundArgs {
@@ -72,24 +81,16 @@ interface PlaygroundArgs {
 // Playground with controls for interactive testing
 export const Playground: StoryObj<PlaygroundArgs> = {
   argTypes: {
-    // Layout
-    layout: {
+    buttonText: {
+      control: "text",
+      description: "Button label text",
+      table: { category: "Button" },
+    },
+    buttonVariant: {
       control: "select",
-      description: "Card layout orientation",
-      options: ["column", "row"],
-      table: { category: "Layout", defaultValue: { summary: "column" } },
-    },
-
-    // Content
-    productName: {
-      control: "text",
-      description: "Product name",
-      table: { category: "Content" },
-    },
-    price: {
-      control: "text",
-      description: "Product price",
-      table: { category: "Content" },
+      description: "Primary button variant",
+      options: ["cart", "detail", "wishlist"],
+      table: { category: "Button", defaultValue: { summary: "cart" } },
     },
     imageSrc: {
       control: "select",
@@ -97,8 +98,32 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       options: imageOptions,
       table: { category: "Content" },
     },
-
-    // Visibility
+    layout: {
+      control: "select",
+      description: "Card layout orientation",
+      options: ["column", "row"],
+      table: { category: "Layout", defaultValue: { summary: "column" } },
+    },
+    price: {
+      control: "text",
+      description: "Product price",
+      table: { category: "Content" },
+    },
+    productName: {
+      control: "text",
+      description: "Product name",
+      table: { category: "Content" },
+    },
+    rating: {
+      control: { max: 5, min: 0, step: 0.5, type: "number" },
+      description: "Rating value (0-5)",
+      table: { category: "Rating", defaultValue: { summary: "4" } },
+    },
+    showBadges: {
+      control: "boolean",
+      description: "Show product badges",
+      table: { category: "Visibility", defaultValue: { summary: "false" } },
+    },
     showRating: {
       control: "boolean",
       description: "Show rating stars",
@@ -108,16 +133,6 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       control: "boolean",
       description: "Show stock status",
       table: { category: "Visibility", defaultValue: { summary: "true" } },
-    },
-    showBadges: {
-      control: "boolean",
-      description: "Show product badges",
-      table: { category: "Visibility", defaultValue: { summary: "false" } },
-    },
-    rating: {
-      control: { max: 5, min: 0, step: 0.5, type: "number" },
-      description: "Rating value (0-5)",
-      table: { category: "Rating", defaultValue: { summary: "4" } },
     },
     stockStatus: {
       control: "select",
@@ -129,17 +144,6 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       control: "text",
       description: "Stock status text",
       table: { category: "Stock" },
-    },
-    buttonVariant: {
-      control: "select",
-      description: "Primary button variant",
-      options: ["cart", "detail", "wishlist"],
-      table: { category: "Button", defaultValue: { summary: "cart" } },
-    },
-    buttonText: {
-      control: "text",
-      description: "Button label text",
-      table: { category: "Button" },
     },
   },
   args: {
@@ -161,7 +165,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       cart: "token-icon-cart-button",
       detail: "token-icon-detail-button",
       wishlist: "token-icon-wishlist-button",
-    } as const
+    } satisfies Record<PlaygroundArgs["buttonVariant"], IconType>
 
     return (
       <ProductCard
@@ -205,11 +209,11 @@ export const Playground: StoryObj<PlaygroundArgs> = {
 
 export const Badges: Story = {
   render: () => {
-    const badges = [
-      { label: "New", variant: "success" as const },
-      { label: "Limited Stock", variant: "warning" as const },
-      { label: "Sale", variant: "danger" as const },
-      { label: "Eco friendly", variant: "info" as const },
+    const badges: { label: string; variant: ProductBadgeVariant }[] = [
+      { label: "New", variant: "success" },
+      { label: "Limited Stock", variant: "warning" },
+      { label: "Sale", variant: "danger" },
+      { label: "Eco friendly", variant: "info" },
     ]
     return (
       <ProductCard>
@@ -220,8 +224,8 @@ export const Badges: Story = {
         />
         <ProductCard.Name>Premium Cotton T-Shirt</ProductCard.Name>
         <ProductCard.Badges>
-          {badges.map((badge, idx) => (
-            <Badge key={idx} variant={badge.variant}>
+          {badges.map((badge) => (
+            <Badge key={badge.label} variant={badge.variant}>
               {badge.label}
             </Badge>
           ))}
@@ -381,7 +385,7 @@ export const AllButtonVariants: Story = {
             <ProductCard.Button
               buttonVariant="cart"
               icon="token-icon-cart-button"
-              onClick={fn()}
+              onClick={fn<() => void>()}
             >
               Add to Cart
             </ProductCard.Button>
@@ -402,7 +406,7 @@ export const AllButtonVariants: Story = {
             <ProductCard.Button
               buttonVariant="detail"
               icon="token-icon-detail-button"
-              onClick={fn()}
+              onClick={fn<() => void>()}
             >
               View Details
             </ProductCard.Button>
@@ -423,7 +427,7 @@ export const AllButtonVariants: Story = {
             <ProductCard.Button
               buttonVariant="wishlist"
               icon="token-icon-wishlist-button"
-              onClick={fn()}
+              onClick={fn<() => void>()}
             >
               Save to Wishlist
             </ProductCard.Button>
@@ -440,7 +444,7 @@ export const AllButtonVariants: Story = {
             <ProductCard.Button
               buttonVariant="custom"
               icon="token-icon-share"
-              onClick={fn()}
+              onClick={fn<() => void>()}
               className="bg-bg-primary-base text-fg-reverse hover:bg-bg-primary-hover"
             >
               Share Product
@@ -585,7 +589,7 @@ export const WithQuantityInput: Story = {
         <ProductCard.Button
           buttonVariant="cart"
           icon="token-icon-cart-button"
-          onClick={fn()}
+          onClick={fn<() => void>()}
           className="flex-1"
         >
           Add to Cart
@@ -593,7 +597,7 @@ export const WithQuantityInput: Story = {
         <ProductCard.Button
           buttonVariant="wishlist"
           icon="token-icon-wishlist-button"
-          onClick={fn()}
+          onClick={fn<() => void>()}
           className="w-full"
         >
           Save for Later
@@ -676,7 +680,7 @@ export const ComplexCard: Story = {
           <ProductCard.Button
             buttonVariant="cart"
             icon="token-icon-cart-button"
-            onClick={fn()}
+            onClick={fn<() => void>()}
             className="flex-1"
           >
             Add to Cart
@@ -687,14 +691,14 @@ export const ComplexCard: Story = {
           <ProductCard.Button
             buttonVariant="detail"
             icon="token-icon-detail-button"
-            onClick={fn()}
+            onClick={fn<() => void>()}
           >
             Quick View
           </ProductCard.Button>
           <ProductCard.Button
             buttonVariant="wishlist"
             icon="token-icon-wishlist-button"
-            onClick={fn()}
+            onClick={fn<() => void>()}
           >
             Wishlist
           </ProductCard.Button>
@@ -705,7 +709,7 @@ export const ComplexCard: Story = {
           theme="borderless"
           size="sm"
           className="mt-100 w-full"
-          onClick={fn()}
+          onClick={fn<() => void>()}
         >
           Compare with similar items
         </Button>

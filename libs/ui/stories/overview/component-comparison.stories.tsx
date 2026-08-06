@@ -70,18 +70,16 @@ const ComponentCard = ({
   children,
   className,
   bodyClassName,
-}: ComponentCardProps) => {
-  return (
-    <div
-      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border-primary p-300 ${className ?? ""}`}
-    >
-      <div className="text-fg-secondary text-sm font-semibold">{title}</div>
-      <div className={bodyClassName ?? "flex flex-wrap items-center gap-200"}>
-        {children}
-      </div>
+}: ComponentCardProps) => (
+  <div
+    className={`flex min-w-0 flex-col gap-200 rounded-md border border-border-primary p-300 ${className ?? ""}`}
+  >
+    <div className="text-fg-secondary text-sm font-semibold">{title}</div>
+    <div className={bodyClassName ?? "flex flex-wrap items-center gap-200"}>
+      {children}
     </div>
-  )
-}
+  </div>
+)
 
 interface SectionProps {
   title: string
@@ -95,26 +93,26 @@ const Section = ({
   description,
   children,
   gridClassName,
-}: SectionProps) => {
-  return (
-    <section className="flex flex-col gap-300">
-      <div className="flex flex-col gap-100">
-        <h2 className="text-fg-primary text-lg font-semibold">{title}</h2>
-        {description && (
-          <p className="text-fg-secondary text-sm">{description}</p>
-        )}
-      </div>
-      <div
-        className={
-          gridClassName ??
-          "grid grid-cols-1 gap-300 md:grid-cols-2 xl:grid-cols-3"
-        }
-      >
-        {children}
-      </div>
-    </section>
-  )
-}
+}: SectionProps) => (
+  <section className="flex flex-col gap-300">
+    <div className="flex flex-col gap-100">
+      <h2 className="text-fg-primary text-lg font-semibold">{title}</h2>
+      {description !== undefined && description !== "" && (
+        <p className="text-fg-secondary text-sm">{description}</p>
+      )}
+    </div>
+    <div
+      className={
+        gridClassName ??
+        "grid grid-cols-1 gap-300 md:grid-cols-2 xl:grid-cols-3"
+      }
+    >
+      {children}
+    </div>
+  </section>
+)
+
+const comparisonSizes: ("sm" | "md")[] = ["sm", "md"]
 
 const breadcrumbItems: BreadcrumbTemplateItem[] = [
   { href: "#", label: "Home" },
@@ -162,23 +160,25 @@ const colorOptions = [
   { color: "var(--color-tertiary)", label: "Tertiary" },
 ]
 
+const carouselImageClassName = "h-full w-full"
+
 const carouselSlides = [
   {
     alt: "Beautiful landscape",
     id: "slide-1",
-    imageProps: { className: "h-full w-full", size: "custom" },
+    imageProps: { className: carouselImageClassName, size: "custom" },
     src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
   },
   {
     alt: "City skyline",
     id: "slide-2",
-    imageProps: { className: "h-full w-full", size: "custom" },
+    imageProps: { className: carouselImageClassName, size: "custom" },
     src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400",
   },
   {
     alt: "Ocean view",
     id: "slide-3",
-    imageProps: { className: "h-full w-full", size: "custom" },
+    imageProps: { className: carouselImageClassName, size: "custom" },
     src: "https://images.unsplash.com/photo-1747258294931-79af146bd74c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
 ]
@@ -267,13 +267,13 @@ const ToastPreview = () => {
   return (
     <Button
       size="md"
-      onClick={() =>
+      onClick={() => {
         toaster.create({
           description: "Changes stored successfully.",
           title: "Saved",
           type: "success",
         })
-      }
+      }}
     >
       Show Toast
     </Button>
@@ -382,7 +382,7 @@ const ComponentComparison = () => {
           description="All box-style form controls side-by-side with their button counterpart at sm and md sizes. Heights should be visually identical."
           gridClassName="grid grid-cols-1 gap-300"
         >
-          {(["sm", "md"] as const).map((size) => (
+          {comparisonSizes.map((size) => (
             <ComponentCard
               key={size}
               title={`Size: ${size}`}
@@ -392,7 +392,7 @@ const ComponentComparison = () => {
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
-          {(["sm", "md"] as const).map((size) => (
+          {comparisonSizes.map((size) => (
             <ComponentCard
               key={`numeric-${size}`}
               title={`NumericInput — ${size}`}
@@ -410,7 +410,7 @@ const ComponentComparison = () => {
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
-          {(["sm", "md"] as const).map((size) => (
+          {comparisonSizes.map((size) => (
             <ComponentCard
               key={`combobox-${size}`}
               title={`Combobox — ${size}`}
@@ -426,7 +426,7 @@ const ComponentComparison = () => {
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
-          {(["sm", "md"] as const).map((size) => (
+          {comparisonSizes.map((size) => (
             <ComponentCard
               key={`select-${size}`}
               title={`Select — ${size}`}
@@ -454,7 +454,7 @@ const ComponentComparison = () => {
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
-          {(["sm", "md"] as const).map((size) => (
+          {comparisonSizes.map((size) => (
             <ComponentCard
               key={`textarea-${size}`}
               title={`Textarea — ${size}`}
@@ -464,7 +464,7 @@ const ComponentComparison = () => {
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
-          {(["sm", "md"] as const).map((size) => (
+          {comparisonSizes.map((size) => (
             <ComponentCard
               key={`searchform-${size}`}
               title={`SearchForm — ${size}`}
@@ -478,7 +478,7 @@ const ComponentComparison = () => {
               </SearchForm>
             </ComponentCard>
           ))}
-          {(["sm", "md"] as const).map((size) => (
+          {comparisonSizes.map((size) => (
             <ComponentCard
               key={`searchform-gapped-${size}`}
               title={`SearchForm (gapped) — ${size}`}

@@ -139,21 +139,21 @@ export const Playground: Story = {
     items: [
       ...defaultItems,
       {
-        value: "item4",
-        title: "Can I track my order?",
         content: (
           <p className="text-fg-secondary">
-            Yes! Once your order ships, you'll receive a tracking number via
-            email. You can use this number to track your package on our website
-            or the carrier's site.
+            Yes! Once your order ships, you&apos;ll receive a tracking number
+            via email. You can use this number to track your package on our
+            website or the carrier&apos;s site.
           </p>
         ),
+        title: "Can I track my order?",
+        value: "item4",
       },
       {
-        value: "item5",
-        title: "Disabled Item",
         content: <p className="text-fg-secondary">This item is disabled</p>,
         disabled: true,
+        title: "Disabled Item",
+        value: "item5",
       },
     ],
     multiple: true,

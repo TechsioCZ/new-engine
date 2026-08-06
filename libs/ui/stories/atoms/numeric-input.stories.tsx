@@ -30,6 +30,36 @@ const meta: Meta<typeof NumericInput> = {
 export default meta
 type Story = StoryObj<PlaygroundArgs>
 
+const PlaygroundStory = (args: PlaygroundArgs) => {
+  const [value, setValue] = useState(50.5)
+  const { showLabel, label, showControls, showScrubber, ...numericArgs } = args
+  return (
+    <div className="w-md flex flex-col gap-50">
+      {showLabel === true && (
+        <Label htmlFor="numeric-playground">{label}</Label>
+      )}
+      <NumericInput
+        {...numericArgs}
+        id="numeric-playground"
+        value={value}
+        onChange={setValue}
+      >
+        <NumericInput.Control>
+          {showScrubber === true && <NumericInput.Scrubber />}
+          <NumericInput.Input />
+          {showControls === true && (
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger />
+              <NumericInput.DecrementTrigger />
+            </NumericInput.TriggerContainer>
+          )}
+        </NumericInput.Control>
+      </NumericInput>
+      <p className="text-fg-secondary text-sm mt-100">Current value: {value}</p>
+    </div>
+  )
+}
+
 export const Playground: Story = {
   argTypes: {
     allowMouseWheel: {
@@ -85,63 +115,36 @@ export const Playground: Story = {
     size: "md",
     step: 0.1,
   },
-  render: function Render(args) {
-    const [value, setValue] = useState(50.5)
-    const { showLabel, label, showControls, showScrubber, ...numericArgs } =
-      args
-    return (
-      <div className="w-md flex flex-col gap-50">
-        {showLabel && <Label htmlFor="numeric-playground">{label}</Label>}
-        <NumericInput
-          {...numericArgs}
-          id="numeric-playground"
-          value={value}
-          onChange={setValue}
-        >
-          <NumericInput.Control>
-            {showScrubber && <NumericInput.Scrubber />}
-            <NumericInput.Input />
-            {showControls && (
-              <NumericInput.TriggerContainer>
-                <NumericInput.IncrementTrigger />
-                <NumericInput.DecrementTrigger />
-              </NumericInput.TriggerContainer>
-            )}
-          </NumericInput.Control>
-        </NumericInput>
-        <p className="text-fg-secondary text-sm mt-100">
-          Current value: {value}
-        </p>
-      </div>
-    )
-  },
+  render: PlaygroundStory,
+}
+
+const WithLabelStory: NonNullable<Story["render"]> = () => {
+  const [value, setValue] = useState(42)
+
+  return (
+    <div className="w-md flex flex-col gap-50">
+      <Label htmlFor="numeric-with-label">Quantity</Label>
+      <NumericInput
+        id="numeric-with-label"
+        value={value}
+        onChange={setValue}
+        min={0}
+        max={100}
+      >
+        <NumericInput.Control>
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </NumericInput>
+    </div>
+  )
 }
 
 export const WithLabel: Story = {
-  render: () => {
-    const [value, setValue] = useState(42)
-
-    return (
-      <div className="w-md flex flex-col gap-50">
-        <Label htmlFor="numeric-with-label">Quantity</Label>
-        <NumericInput
-          id="numeric-with-label"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </NumericInput>
-      </div>
-    )
-  },
+  render: WithLabelStory,
 }
 
 export const AllSizes: Story = {
@@ -195,201 +198,203 @@ export const AllSizes: Story = {
   ),
 }
 
-export const WithoutControls: Story = {
-  render: () => {
-    const [value, setValue] = useState(50)
+const WithoutControlsStory: NonNullable<Story["render"]> = () => {
+  const [value, setValue] = useState(50)
 
-    return (
-      <div className="w-md flex flex-col gap-50">
-        <Label htmlFor="numeric-no-controls">
-          Use arrow keys or mouse wheel
-        </Label>
-        <NumericInput
-          id="numeric-no-controls"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-          allowMouseWheel
-          size="md"
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-          </NumericInput.Control>
-        </NumericInput>
-        <p className="text-fg-secondary text-sm mt-50">
-          Current value: {value}
-        </p>
-      </div>
-    )
-  },
+  return (
+    <div className="w-md flex flex-col gap-50">
+      <Label htmlFor="numeric-no-controls">Use arrow keys or mouse wheel</Label>
+      <NumericInput
+        id="numeric-no-controls"
+        value={value}
+        onChange={setValue}
+        min={0}
+        max={100}
+        allowMouseWheel
+        size="md"
+      >
+        <NumericInput.Control>
+          <NumericInput.Input />
+        </NumericInput.Control>
+      </NumericInput>
+      <p className="text-fg-secondary text-sm mt-50">Current value: {value}</p>
+    </div>
+  )
+}
+
+export const WithoutControls: Story = {
+  render: WithoutControlsStory,
+}
+
+const WithScrubberStory: NonNullable<Story["render"]> = () => {
+  const [value, setValue] = useState(50)
+
+  return (
+    <div className="w-md flex flex-col gap-50">
+      <Label htmlFor="numeric-scrubber">Drag left/right to change value</Label>
+      <NumericInput
+        id="numeric-scrubber"
+        value={value}
+        onChange={setValue}
+        min={0}
+        max={100}
+        step={5}
+      >
+        <NumericInput.Control>
+          <NumericInput.Scrubber />
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </NumericInput>
+      <p className="text-fg-secondary text-sm mt-50">Current value: {value}</p>
+    </div>
+  )
 }
 
 export const WithScrubber: Story = {
-  render: () => {
-    const [value, setValue] = useState(50)
+  render: WithScrubberStory,
+}
 
-    return (
-      <div className="w-md flex flex-col gap-50">
-        <Label htmlFor="numeric-scrubber">
-          Drag left/right to change value
-        </Label>
-        <NumericInput
-          id="numeric-scrubber"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-          step={5}
-        >
-          <NumericInput.Control>
-            <NumericInput.Scrubber />
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </NumericInput>
-        <p className="text-fg-secondary text-sm mt-50">
-          Current value: {value}
-        </p>
-      </div>
-    )
-  },
+const MinMaxStory: NonNullable<Story["render"]> = () => {
+  const [value, setValue] = useState(5)
+
+  return (
+    <div className="w-md flex flex-col gap-50">
+      <Label htmlFor="numeric-minmax">Range: 0-10 (clamped on blur)</Label>
+      <NumericInput
+        id="numeric-minmax"
+        value={value}
+        onChange={setValue}
+        min={0}
+        max={10}
+        step={1}
+        clampValueOnBlur
+      >
+        <NumericInput.Control>
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </NumericInput>
+      <p className="text-fg-secondary text-sm mt-50">
+        Try typing a value outside the range and blur the input
+      </p>
+    </div>
+  )
 }
 
 export const MinMax: Story = {
-  render: () => {
-    const [value, setValue] = useState(5)
+  render: MinMaxStory,
+}
 
-    return (
-      <div className="w-md flex flex-col gap-50">
-        <Label htmlFor="numeric-minmax">Range: 0-10 (clamped on blur)</Label>
-        <NumericInput
-          id="numeric-minmax"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={10}
-          step={1}
-          clampValueOnBlur
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </NumericInput>
-        <p className="text-fg-secondary text-sm mt-50">
-          Try typing a value outside the range and blur the input
+const InvalidStateStory: NonNullable<Story["render"]> = () => {
+  const [value, setValue] = useState(150)
+  const isInvalid = value < 0 || value > 100
+
+  return (
+    <div className="w-md flex flex-col gap-50">
+      <Label htmlFor="numeric-invalid">Valid range: 0-100</Label>
+      <NumericInput
+        id="numeric-invalid"
+        value={value}
+        onChange={setValue}
+        min={0}
+        max={100}
+        invalid={isInvalid}
+        allowOverflow
+        clampValueOnBlur={false}
+      >
+        <NumericInput.Control>
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </NumericInput>
+      {isInvalid && (
+        <p className="text-fg-accent-danger text-sm mt-50">
+          Value must be between 0 and 100
         </p>
-      </div>
-    )
-  },
+      )}
+    </div>
+  )
 }
 
 export const InvalidState: Story = {
-  render: () => {
-    const [value, setValue] = useState(150)
-    const isInvalid = value < 0 || value > 100
+  render: InvalidStateStory,
+}
 
-    return (
-      <div className="w-md flex flex-col gap-50">
-        <Label htmlFor="numeric-invalid">Valid range: 0-100</Label>
-        <NumericInput
-          id="numeric-invalid"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-          invalid={isInvalid}
-          allowOverflow
-          clampValueOnBlur={false}
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </NumericInput>
-        {isInvalid && (
-          <p className="text-fg-accent-danger text-sm mt-50">
-            Value must be between 0 and 100
-          </p>
-        )}
-      </div>
-    )
-  },
+const WithPrecisionStory: NonNullable<Story["render"]> = () => {
+  const [value, setValue] = useState(3.14)
+
+  return (
+    <div lang="cs" className="w-md flex flex-col gap-50">
+      <Label htmlFor="numeric-precision">Pi approximation (2 decimals)</Label>
+      <NumericInput
+        id="numeric-precision"
+        value={value}
+        onChange={setValue}
+        min={0}
+        max={10}
+        step={0.01}
+        precision={2}
+      >
+        <NumericInput.Control>
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </NumericInput>
+      <p className="text-fg-secondary text-sm mt-50">Current value: {value}</p>
+    </div>
+  )
 }
 
 export const WithPrecision: Story = {
-  render: () => {
-    const [value, setValue] = useState(3.14)
+  render: WithPrecisionStory,
+}
 
-    return (
-      <div lang="cs" className="w-md flex flex-col gap-50">
-        <Label htmlFor="numeric-precision">Pi approximation (2 decimals)</Label>
-        <NumericInput
-          id="numeric-precision"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={10}
-          step={0.01}
-          precision={2}
-        >
-          <NumericInput.Control>
+const CustomLayoutHorizontalStory: NonNullable<Story["render"]> = () => {
+  const [value, setValue] = useState(50)
+
+  return (
+    <div className="w-md flex flex-col gap-50">
+      <Label htmlFor="numeric-custom-h">Custom Layout</Label>
+      <NumericInput
+        id="numeric-custom-h"
+        value={value}
+        onChange={setValue}
+        min={0}
+        max={100}
+      >
+        <div className="flex gap-50">
+          <NumericInput.DecrementTrigger
+            className="bg-overlay"
+            icon="icon-[mdi--minus]"
+          />
+          <NumericInput.Control className="flex-1">
             <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
           </NumericInput.Control>
-        </NumericInput>
-        <p className="text-fg-secondary text-sm mt-50">
-          Current value: {value}
-        </p>
-      </div>
-    )
-  },
+          <NumericInput.IncrementTrigger
+            className="bg-overlay"
+            icon="icon-[mdi--plus]"
+          />
+        </div>
+      </NumericInput>
+    </div>
+  )
 }
 
 export const CustomLayoutHorizontal: Story = {
-  render: () => {
-    const [value, setValue] = useState(50)
-
-    return (
-      <div className="w-md flex flex-col gap-50">
-        <Label htmlFor="numeric-custom-h">Custom Layout</Label>
-        <NumericInput
-          id="numeric-custom-h"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-        >
-          <div className="flex gap-50">
-            <NumericInput.DecrementTrigger
-              className="bg-overlay"
-              icon="icon-[mdi--minus]"
-            />
-            <NumericInput.Control className="flex-1">
-              <NumericInput.Input />
-            </NumericInput.Control>
-            <NumericInput.IncrementTrigger
-              className="bg-overlay"
-              icon="icon-[mdi--plus]"
-            />
-          </div>
-        </NumericInput>
-      </div>
-    )
-  },
+  render: CustomLayoutHorizontalStory,
 }
 
 export const Disabled: Story = {
@@ -409,54 +414,53 @@ export const Disabled: Story = {
   ),
 }
 
-export const CustomButtonProps: Story = {
-  render: () => {
-    const [value1, setValue1] = useState(10)
-    const [value3, setValue3] = useState(30)
+const CustomButtonPropsStory: NonNullable<Story["render"]> = () => {
+  const [value1, setValue1] = useState(10)
+  const [value3, setValue3] = useState(30)
 
-    return (
-      <div className="flex flex-col gap-300">
-        <div className="w-md flex flex-col gap-50">
-          <Label htmlFor="numeric-variant">Different Variants</Label>
-          <NumericInput
-            id="numeric-variant"
-            value={value1}
-            onChange={setValue1}
-            min={0}
-            max={100}
-          >
-            <NumericInput.Control>
-              <NumericInput.Input />
-              <NumericInput.TriggerContainer>
-                <NumericInput.IncrementTrigger variant="primary" />
-                <NumericInput.DecrementTrigger variant="danger" />
-              </NumericInput.TriggerContainer>
-            </NumericInput.Control>
-          </NumericInput>
-        </div>
-
-        <div className="w-md flex flex-col gap-50">
-          <Label htmlFor="numeric-size">Different Themes</Label>
-          <NumericInput
-            id="numeric-size"
-            value={value3}
-            onChange={setValue3}
-            min={0}
-            max={100}
-          >
-            <NumericInput.Control>
-              <NumericInput.Input />
-              <NumericInput.TriggerContainer>
-                <NumericInput.IncrementTrigger
-                  variant="primary"
-                  theme="solid"
-                />
-                <NumericInput.DecrementTrigger variant="danger" theme="solid" />
-              </NumericInput.TriggerContainer>
-            </NumericInput.Control>
-          </NumericInput>
-        </div>
+  return (
+    <div className="flex flex-col gap-300">
+      <div className="w-md flex flex-col gap-50">
+        <Label htmlFor="numeric-variant">Different Variants</Label>
+        <NumericInput
+          id="numeric-variant"
+          value={value1}
+          onChange={setValue1}
+          min={0}
+          max={100}
+        >
+          <NumericInput.Control>
+            <NumericInput.Input />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger variant="primary" />
+              <NumericInput.DecrementTrigger variant="danger" />
+            </NumericInput.TriggerContainer>
+          </NumericInput.Control>
+        </NumericInput>
       </div>
-    )
-  },
+
+      <div className="w-md flex flex-col gap-50">
+        <Label htmlFor="numeric-size">Different Themes</Label>
+        <NumericInput
+          id="numeric-size"
+          value={value3}
+          onChange={setValue3}
+          min={0}
+          max={100}
+        >
+          <NumericInput.Control>
+            <NumericInput.Input />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger variant="primary" theme="solid" />
+              <NumericInput.DecrementTrigger variant="danger" theme="solid" />
+            </NumericInput.TriggerContainer>
+          </NumericInput.Control>
+        </NumericInput>
+      </div>
+    </div>
+  )
+}
+
+export const CustomButtonProps: Story = {
+  render: CustomButtonPropsStory,
 }

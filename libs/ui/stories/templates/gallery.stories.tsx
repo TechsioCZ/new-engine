@@ -35,15 +35,13 @@ interface StoryFrameProps {
   children: ReactNode
 }
 
-function StoryFrame({ children }: StoryFrameProps) {
-  return (
-    <div className="w-full bg-base p-300">
-      <div className="mx-auto max-w-md w-full rounded-md border border-border-primary bg-surface p-200">
-        {children}
-      </div>
+const StoryFrame = ({ children }: StoryFrameProps) => (
+  <div className="w-full bg-base p-300">
+    <div className="mx-auto max-w-md w-full rounded-md border border-border-primary bg-surface p-200">
+      {children}
     </div>
-  )
-}
+  </div>
+)
 
 const meta: Meta<typeof GalleryTemplate> = {
   argTypes: {

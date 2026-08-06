@@ -12,6 +12,8 @@ const productImages = {
   watch: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
 }
 
+const premiumCottonTShirt = "Premium Cotton T-Shirt"
+
 const meta: Meta<typeof ProductCardTemplate> = {
   argTypes: {
     badges: {
@@ -144,10 +146,10 @@ export const Default: Story = {
   args: {
     cartButtonText: "Add to Cart",
     image: {
-      alt: "Premium Cotton T-Shirt",
+      alt: premiumCottonTShirt,
       src: productImages.tshirt,
     },
-    name: "Premium Cotton T-Shirt",
+    name: premiumCottonTShirt,
     price: "$29.99",
     showActions: true,
   },
@@ -162,11 +164,11 @@ export const Playground: Story = {
     cartButtonText: "Add to Cart",
     detailButtonText: "View Details",
     image: {
-      alt: "Premium Cotton T-Shirt",
+      alt: premiumCottonTShirt,
       src: productImages.tshirt,
     },
     layout: "column",
-    name: "Premium Cotton T-Shirt",
+    name: premiumCottonTShirt,
     originalPrice: "$79.99",
     price: "$49.99",
     rating: {

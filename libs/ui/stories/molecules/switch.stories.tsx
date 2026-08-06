@@ -166,97 +166,102 @@ export const WithDescriptions: Story = {
 }
 
 // Controlled switch example
-export const ControlledSwitch: Story = {
-  render: () => {
-    const [isChecked, setIsChecked] = useState(false)
+const ControlledSwitchStory: NonNullable<Story["render"]> = () => {
+  const [isChecked, setIsChecked] = useState(false)
 
-    const handleChange = (checked: boolean) => {
-      setIsChecked(checked)
-    }
+  const handleChange = (checked: boolean) => {
+    setIsChecked(checked)
+  }
 
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <Switch checked={isChecked} onCheckedChange={handleChange}>
-            Controlled switch
-          </Switch>
-          <span className="text-sm">Status: {isChecked ? "ON" : "OFF"}</span>
-        </div>
-        <button
-          onClick={() => {
-            setIsChecked((prev) => !prev)
-          }}
-          className="rounded border px-3 py-1 text-sm hover:bg-gray-100/20"
-        >
-          Toggle switch
-        </button>
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <Switch checked={isChecked} onCheckedChange={handleChange}>
+          Controlled switch
+        </Switch>
+        <span className="text-sm">Status: {isChecked ? "ON" : "OFF"}</span>
       </div>
-    )
-  },
+      <button
+        type="button"
+        onClick={() => {
+          setIsChecked((prev) => !prev)
+        }}
+        className="rounded border px-3 py-1 text-sm hover:bg-gray-100/20"
+      >
+        Toggle switch
+      </button>
+    </div>
+  )
+}
+
+export const ControlledSwitch: Story = {
+  render: ControlledSwitchStory,
 }
 
 // Settings panel example
-export const SettingsPanel: Story = {
-  render: () => {
-    const [settings, setSettings] = useState({
-      analytics: true,
-      marketing: false,
-      notifications: true,
-      security: true,
-    })
+const SettingsPanelStory: NonNullable<Story["render"]> = () => {
+  const [settings, setSettings] = useState({
+    analytics: true,
+    marketing: false,
+    notifications: true,
+    security: true,
+  })
 
-    const handleSettingChange =
-      (key: keyof typeof settings) => (checked: boolean) => {
-        setSettings((prev) => ({ ...prev, [key]: checked }))
-      }
+  const handleSettingChange =
+    (key: keyof typeof settings) => (checked: boolean) => {
+      setSettings((prev) => ({ ...prev, [key]: checked }))
+    }
 
-    return (
-      <div className="w-96 rounded-lg border p-6">
-        <h3 className="mb-6 font-semibold text-lg">Privacy Settings</h3>
+  return (
+    <div className="w-96 rounded-lg border p-6">
+      <h3 className="mb-6 font-semibold text-lg">Privacy Settings</h3>
 
-        <div className="space-y-6">
-          <Switch
-            checked={settings.notifications}
-            onCheckedChange={handleSettingChange("notifications")}
-            helpText="Receive important updates about your account"
-          >
-            Email notifications
-          </Switch>
+      <div className="space-y-6">
+        <Switch
+          checked={settings.notifications}
+          onCheckedChange={handleSettingChange("notifications")}
+          helpText="Receive important updates about your account"
+        >
+          Email notifications
+        </Switch>
 
-          <Switch
-            checked={settings.marketing}
-            onCheckedChange={handleSettingChange("marketing")}
-            helpText="Get tips and updates about new features"
-          >
-            Marketing communications
-          </Switch>
+        <Switch
+          checked={settings.marketing}
+          onCheckedChange={handleSettingChange("marketing")}
+          helpText="Get tips and updates about new features"
+        >
+          Marketing communications
+        </Switch>
 
-          <Switch
-            checked={settings.analytics}
-            onCheckedChange={handleSettingChange("analytics")}
-            helpText="Help us improve by sharing anonymous usage data"
-          >
-            Usage analytics
-          </Switch>
+        <Switch
+          checked={settings.analytics}
+          onCheckedChange={handleSettingChange("analytics")}
+          helpText="Help us improve by sharing anonymous usage data"
+        >
+          Usage analytics
+        </Switch>
 
-          <Switch
-            checked={settings.security}
-            onCheckedChange={handleSettingChange("security")}
-            validateStatus={settings.security ? "success" : "error"}
-            helpText={
-              settings.security
-                ? "Enhanced security is enabled"
-                : "Required for account security"
-            }
-          >
-            Two-factor authentication
-          </Switch>
-        </div>
-
-        <div className="mt-6 rounded bg-gray-100/30 p-3 text-sm">
-          Current settings: {JSON.stringify(settings, null, 2)}
-        </div>
+        <Switch
+          checked={settings.security}
+          onCheckedChange={handleSettingChange("security")}
+          validateStatus={settings.security ? "success" : "error"}
+          helpText={
+            settings.security
+              ? "Enhanced security is enabled"
+              : "Required for account security"
+          }
+        >
+          Two-factor authentication
+        </Switch>
       </div>
-    )
-  },
+
+      <div className="mt-6 rounded bg-gray-100/30 p-3 text-sm">
+        Current settings: {JSON.stringify(settings, null, 2)}
+      </div>
+    </div>
+  )
+}
+
+export const SettingsPanel: Story = {
+  render: SettingsPanelStory,
 }

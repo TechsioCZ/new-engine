@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import type { ComponentProps } from "react"
 import { useState } from "react"
 import { fn } from "storybook/test"
 
@@ -63,7 +64,12 @@ export const Gapped: Story = {
   },
   render: () => (
     <div className="w-sm">
-      <SearchForm gapped onSubmit={fn()}>
+      <SearchForm
+        gapped
+        onSubmit={fn<
+          NonNullable<ComponentProps<typeof SearchForm>["onSubmit"]>
+        >()}
+      >
         <SearchForm.Control>
           <SearchForm.Input placeholder="Search products..." />
           <SearchForm.Button>Search</SearchForm.Button>
@@ -128,7 +134,7 @@ const ControlledExample = () => {
           <SearchForm.Button showSearchIcon variant="primary" />
         </SearchForm.Control>
       </SearchForm>
-      <p className="text-sm">Current value: "{value}"</p>
+      <p className="text-sm">Current value: &quot;{value}&quot;</p>
     </div>
   )
 }
@@ -236,7 +242,9 @@ const SubmitExample = () => {
           <SearchForm.Button>Search</SearchForm.Button>
         </SearchForm.Control>
       </SearchForm>
-      {submitted && <p className="text-sm text-success">{submitted}</p>}
+      {submitted !== null && submitted !== "" && (
+        <p className="text-sm text-success">{submitted}</p>
+      )}
     </div>
   )
 }
@@ -267,7 +275,9 @@ const FormDataExample = () => {
           <SearchForm.Button>Search</SearchForm.Button>
         </SearchForm.Control>
       </SearchForm>
-      {result && <p className="text-sm text-success">{result}</p>}
+      {result !== null && result !== "" && (
+        <p className="text-sm text-success">{result}</p>
+      )}
     </div>
   )
 }

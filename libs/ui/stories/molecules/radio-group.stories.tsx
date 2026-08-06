@@ -56,38 +56,36 @@ type BasicRadioGroupProps = Omit<RadioGroupProps, "children"> & {
   statusText?: string
 }
 
-function BasicRadioGroup({
+const BasicRadioGroup = ({
   label = "Shipping method",
   statusText = "Choose one delivery option for the order.",
   ...args
-}: BasicRadioGroupProps) {
-  return (
-    <RadioGroup {...args}>
-      <RadioGroup.Label>{label}</RadioGroup.Label>
-      <RadioGroup.ItemGroup>
-        {shippingOptions.map((option) => (
-          <RadioGroup.Item
-            disabled={option.disabled}
-            key={option.value}
-            value={option.value}
-          >
-            <RadioGroup.ItemHiddenInput />
-            <RadioGroup.ItemControl />
-            <RadioGroup.ItemContent>
-              <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
-            </RadioGroup.ItemContent>
-            {option.description && (
-              <RadioGroup.ItemDescription>
-                {option.description}
-              </RadioGroup.ItemDescription>
-            )}
-          </RadioGroup.Item>
-        ))}
-      </RadioGroup.ItemGroup>
-      <RadioGroup.StatusText>{statusText}</RadioGroup.StatusText>
-    </RadioGroup>
-  )
-}
+}: BasicRadioGroupProps) => (
+  <RadioGroup {...args}>
+    <RadioGroup.Label>{label}</RadioGroup.Label>
+    <RadioGroup.ItemGroup>
+      {shippingOptions.map((option) => (
+        <RadioGroup.Item
+          disabled={option.disabled}
+          key={option.value}
+          value={option.value}
+        >
+          <RadioGroup.ItemHiddenInput />
+          <RadioGroup.ItemControl />
+          <RadioGroup.ItemContent>
+            <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
+          </RadioGroup.ItemContent>
+          {option.description !== undefined && option.description !== "" && (
+            <RadioGroup.ItemDescription>
+              {option.description}
+            </RadioGroup.ItemDescription>
+          )}
+        </RadioGroup.Item>
+      ))}
+    </RadioGroup.ItemGroup>
+    <RadioGroup.StatusText>{statusText}</RadioGroup.StatusText>
+  </RadioGroup>
+)
 
 const meta: Meta<typeof RadioGroup> = {
   argTypes: {
@@ -142,7 +140,7 @@ const meta: Meta<typeof RadioGroup> = {
   args: {
     defaultValue: "standard",
     disabled: false,
-    onValueChange: fn(),
+    onValueChange: fn<(value: string | null) => void>(),
     orientation: "vertical",
     readOnly: false,
     required: false,
@@ -251,76 +249,79 @@ export const Orientations: Story = {
   ),
 }
 
-export const Controlled: Story = {
-  render: () => {
-    const [value, setValue] = useState<string | null>("growth")
+const ControlledStory: NonNullable<Story["render"]> = () => {
+  const [value, setValue] = useState<string | null>("growth")
 
-    return (
-      <div className="flex w-md flex-col gap-250">
-        <RadioGroup
-          onValueChange={setValue}
-          orientation="vertical"
-          size="md"
-          value={value}
-        >
-          <RadioGroup.Label>Plan selection</RadioGroup.Label>
-          <RadioGroup.ItemGroup>
-            {planOptions.map((option) => (
-              <RadioGroup.Item key={option.value} value={option.value}>
-                <RadioGroup.ItemHiddenInput />
-                <RadioGroup.ItemControl />
-                <RadioGroup.ItemContent>
-                  <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
-                </RadioGroup.ItemContent>
-                {option.description && (
+  return (
+    <div className="flex w-md flex-col gap-250">
+      <RadioGroup
+        onValueChange={setValue}
+        orientation="vertical"
+        size="md"
+        value={value}
+      >
+        <RadioGroup.Label>Plan selection</RadioGroup.Label>
+        <RadioGroup.ItemGroup>
+          {planOptions.map((option) => (
+            <RadioGroup.Item key={option.value} value={option.value}>
+              <RadioGroup.ItemHiddenInput />
+              <RadioGroup.ItemControl />
+              <RadioGroup.ItemContent>
+                <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
+              </RadioGroup.ItemContent>
+              {option.description !== undefined &&
+                option.description !== "" && (
                   <RadioGroup.ItemDescription>
                     {option.description}
                   </RadioGroup.ItemDescription>
                 )}
-              </RadioGroup.Item>
-            ))}
-          </RadioGroup.ItemGroup>
-          <RadioGroup.StatusText>
-            Selection syncs with external state.
-          </RadioGroup.StatusText>
-        </RadioGroup>
+            </RadioGroup.Item>
+          ))}
+        </RadioGroup.ItemGroup>
+        <RadioGroup.StatusText>
+          Selection syncs with external state.
+        </RadioGroup.StatusText>
+      </RadioGroup>
 
-        <div className="flex items-center gap-150">
-          <Button
-            onClick={() => {
-              setValue("starter")
-            }}
-            size="sm"
-            theme="outlined"
-          >
-            Set Starter
-          </Button>
-          <Button
-            onClick={() => {
-              setValue("scale")
-            }}
-            size="sm"
-            theme="outlined"
-          >
-            Set Scale
-          </Button>
-          <Button
-            onClick={() => {
-              setValue(null)
-            }}
-            size="sm"
-            theme="borderless"
-          >
-            Clear
-          </Button>
-        </div>
-
-        <div className="text-fg-secondary text-sm">
-          Current value: {value ?? "none"}
-        </div>
+      <div className="flex items-center gap-150">
+        <Button
+          onClick={() => {
+            setValue("starter")
+          }}
+          size="sm"
+          theme="outlined"
+        >
+          Set Starter
+        </Button>
+        <Button
+          onClick={() => {
+            setValue("scale")
+          }}
+          size="sm"
+          theme="outlined"
+        >
+          Set Scale
+        </Button>
+        <Button
+          onClick={() => {
+            setValue(null)
+          }}
+          size="sm"
+          theme="borderless"
+        >
+          Clear
+        </Button>
       </div>
-    )
-  },
+
+      <div className="text-fg-secondary text-sm">
+        Current value: {value ?? "none"}
+      </div>
+    </div>
+  )
+}
+
+export const Controlled: Story = {
+  render: ControlledStory,
 }
 
 export const RichContent: Story = {
@@ -340,7 +341,7 @@ export const RichContent: Story = {
                 </span>
               </div>
             </RadioGroup.ItemContent>
-            {option.description && (
+            {option.description !== undefined && option.description !== "" && (
               <RadioGroup.ItemDescription>
                 {option.description}
               </RadioGroup.ItemDescription>

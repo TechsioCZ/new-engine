@@ -15,34 +15,36 @@ const getStoryPageUrl = ({
 
 type StoryPaginationProps = Omit<PaginationProps, "getPageUrl">
 
-function StoryPagination(props: StoryPaginationProps) {
-  return <Pagination {...props} getPageUrl={getStoryPageUrl} />
-}
+const StoryPagination = (props: StoryPaginationProps) => (
+  <Pagination {...props} getPageUrl={getStoryPageUrl} />
+)
 
 type StoryLinkProps = ComponentPropsWithoutRef<"a"> & {
   replace?: boolean
 }
 
-function StoryLink({ replace, ...props }: StoryLinkProps) {
-  return <a data-replace={replace ? "true" : undefined} {...props} />
-}
+const StoryLink = ({ children, replace, ...props }: StoryLinkProps) => (
+  <a data-replace={replace === true ? "true" : undefined} {...props}>
+    {children}
+  </a>
+)
 
 const meta: Meta<typeof Pagination> = {
   argTypes: {
     boundaryCount: {
       control: { min: 0, type: "number" },
-      defaultValue: 1,
       description: "Number of boundary pages to always show at each end",
+      table: { defaultValue: { summary: "1" } },
     },
     count: {
       control: { min: 1, type: "number" },
-      defaultValue: 100,
       description: "Total number of items",
+      table: { defaultValue: { summary: "100" } },
     },
     defaultPage: {
       control: { min: 1, type: "number" },
-      defaultValue: 1,
       description: "Initial active page (uncontrolled)",
+      table: { defaultValue: { summary: "1" } },
     },
     getPageUrl: {
       control: false,
@@ -63,25 +65,25 @@ const meta: Meta<typeof Pagination> = {
     },
     pageSize: {
       control: { min: 1, type: "number" },
-      defaultValue: 10,
       description: "Number of items per page",
+      table: { defaultValue: { summary: "10" } },
     },
     showPrevNext: {
       control: "boolean",
-      defaultValue: true,
       description: "Show previous/next page buttons",
+      table: { defaultValue: { summary: "true" } },
     },
     siblingCount: {
       control: { min: 0, type: "number" },
-      defaultValue: 1,
       description:
         "Number of sibling pages to show on each side of current page",
+      table: { defaultValue: { summary: "1" } },
     },
     variant: {
       control: "select",
-      defaultValue: "filled",
       description: "Visual style variant",
       options: ["filled", "outlined", "minimal"],
+      table: { defaultValue: { summary: "filled" } },
     },
   },
   args: {

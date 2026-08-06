@@ -274,7 +274,9 @@ export const Playground: Story = {
       slidesPerMove={args.slidesPerMove}
       allowMouseDrag={args.allowMouseDrag}
     >
-      {args.autoplay && <Carousel.Autoplay />}
+      {args.autoplay !== false && args.autoplay !== undefined && (
+        <Carousel.Autoplay />
+      )}
       <Carousel.Slides slides={sampleImages} />
       <Carousel.Control>
         <Carousel.Previous />
@@ -338,9 +340,9 @@ export const CustomIndicators: Story = {
       <Carousel.Control>
         <Carousel.Previous />
         <Carousel.Indicators>
-          {sampleImages.map((_, index) => (
+          {sampleImages.map((image, index) => (
             <Carousel.Indicator
-              key={index}
+              key={image.id}
               index={index}
               className="rounded-sm border border-border-primary"
             />
@@ -371,9 +373,9 @@ export const NumberedIndicators: Story = {
         <div className="flex justify-center h-8 bg-surface items-center gap-200">
           <Carousel.Previous />
           <div className="flex gap-50">
-            {sampleImages.map((_, index) => (
+            {sampleImages.map((image, index) => (
               <Carousel.Indicator
-                key={index}
+                key={image.id}
                 index={index}
                 className="bg-transparent text-fg-primary hover:bg-transparent hover:text-primary data-[current]:bg-transparent data-[current]:text-primary text-sm font-medium"
               >

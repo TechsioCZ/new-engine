@@ -18,6 +18,8 @@ interface RadioCardOption {
   badge?: string
 }
 
+const infoIcon: IconType = "token-icon-info"
+
 const frameworkOptions: RadioCardOption[] = [
   {
     addon: "Recommended for full-stack apps",
@@ -49,7 +51,7 @@ const frameworkOptions: RadioCardOption[] = [
 const paymentOptions: RadioCardOption[] = [
   {
     description: "Manual review before deploy.",
-    icon: "token-icon-info",
+    icon: infoIcon,
     title: "Approval flow",
     value: "paypal",
   },
@@ -69,62 +71,60 @@ const paymentOptions: RadioCardOption[] = [
 
 type BasicRadioCardProps = Omit<RadioCardProps, "children">
 
-function BasicRadioCard({
+const BasicRadioCard = ({
   align = "start",
   justify = "between",
   itemOrientation = "horizontal",
   ...args
-}: BasicRadioCardProps) {
-  return (
-    <RadioCard
-      align={align}
-      justify={justify}
-      itemOrientation={itemOrientation}
-      {...args}
-    >
-      <RadioCard.Label>Choose your stack</RadioCard.Label>
-      <div className="grid w-full gap-150 md:grid-cols-3">
-        {frameworkOptions.map((option) => (
-          <RadioCard.Item
-            disabled={option.disabled}
-            key={option.value}
-            value={option.value}
-          >
-            <RadioCard.ItemHiddenInput />
-            <RadioCard.ItemControl>
-              <RadioCard.ItemContent>
-                <div className="flex items-center gap-100">
-                  <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
-                  {option.badge ? (
-                    <Badge
-                      //className="w-max border-current"
-                      //variant="outline"
-                      variant="dynamic"
-                      bgColor="#888"
-                      fgColor="#fff"
-                      borderColor="transparent"
-                    >
-                      {option.badge}
-                    </Badge>
-                  ) : null}
-                </div>
-                {option.description ? (
-                  <RadioCard.ItemDescription>
-                    {option.description}
-                  </RadioCard.ItemDescription>
+}: BasicRadioCardProps) => (
+  <RadioCard
+    align={align}
+    justify={justify}
+    itemOrientation={itemOrientation}
+    {...args}
+  >
+    <RadioCard.Label>Choose your stack</RadioCard.Label>
+    <div className="grid w-full gap-150 md:grid-cols-3">
+      {frameworkOptions.map((option) => (
+        <RadioCard.Item
+          disabled={option.disabled}
+          key={option.value}
+          value={option.value}
+        >
+          <RadioCard.ItemHiddenInput />
+          <RadioCard.ItemControl>
+            <RadioCard.ItemContent>
+              <div className="flex items-center gap-100">
+                <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
+                {option.badge !== undefined && option.badge !== "" ? (
+                  <Badge
+                    //className="w-max border-current"
+                    //variant="outline"
+                    variant="dynamic"
+                    bgColor="#888"
+                    fgColor="#fff"
+                    borderColor="transparent"
+                  >
+                    {option.badge}
+                  </Badge>
                 ) : null}
-              </RadioCard.ItemContent>
-              <RadioCard.ItemIndicator />
-            </RadioCard.ItemControl>
-          </RadioCard.Item>
-        ))}
-      </div>
-      <RadioCard.StatusText>
-        Pick the option that matches the delivery target.
-      </RadioCard.StatusText>
-    </RadioCard>
-  )
-}
+              </div>
+              {option.description !== undefined && option.description !== "" ? (
+                <RadioCard.ItemDescription>
+                  {option.description}
+                </RadioCard.ItemDescription>
+              ) : null}
+            </RadioCard.ItemContent>
+            <RadioCard.ItemIndicator />
+          </RadioCard.ItemControl>
+        </RadioCard.Item>
+      ))}
+    </div>
+    <RadioCard.StatusText>
+      Pick the option that matches the delivery target.
+    </RadioCard.StatusText>
+  </RadioCard>
+)
 
 const meta: Meta<typeof RadioCard> = {
   argTypes: {
@@ -200,7 +200,7 @@ const meta: Meta<typeof RadioCard> = {
     disabled: false,
     itemOrientation: "horizontal",
     justify: "between",
-    onValueChange: fn(),
+    onValueChange: fn<(value: string | null) => void>(),
     orientation: "horizontal",
     readOnly: false,
     required: false,
@@ -288,7 +288,7 @@ export const Centered: Story = {
             <RadioCard.ItemControl>
               <Icon
                 className="text-fg-secondary"
-                icon={option.icon ?? "token-icon-info"}
+                icon={option.icon ?? infoIcon}
                 size="xl"
               />
               <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
@@ -319,7 +319,8 @@ export const WithAddon: Story = {
             <RadioCard.ItemControl>
               <RadioCard.ItemContent>
                 <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
-                {option.description ? (
+                {option.description !== undefined &&
+                option.description !== "" ? (
                   <RadioCard.ItemDescription>
                     {option.description}
                   </RadioCard.ItemDescription>
@@ -356,7 +357,7 @@ export const WithoutIndicator: Story = {
             <RadioCard.ItemControl>
               <Icon
                 className="text-fg-secondary"
-                icon={option.icon ?? "token-icon-info"}
+                icon={option.icon ?? infoIcon}
                 size="xl"
               />
               <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
