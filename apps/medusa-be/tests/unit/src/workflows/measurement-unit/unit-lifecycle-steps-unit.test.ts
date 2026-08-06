@@ -162,7 +162,31 @@ describe("measurement unit lifecycle steps", () => {
     ])
     const { createMeasurementUnitsStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/create-measurement-units")
-    const result = await asMockStep(createMeasurementUnitsStep)(
+    const step = asMockStep(createMeasurementUnitsStep)
+
+    await expect(
+      step(
+        {
+          units: [
+            {
+              base_quantity: 1,
+              code: "   ",
+              name: "Kilogram",
+              symbol: "kg",
+            },
+          ],
+        },
+        context,
+      ),
+    ).rejects.toMatchObject({
+      type: MedusaError.Types.INVALID_DATA,
+    })
+    expect([
+      service.listMeasurementUnits.mock.calls,
+      service.createMeasurementUnits.mock.calls,
+    ]).toStrictEqual([[], []])
+
+    const result = await step(
       {
         units: [
           {

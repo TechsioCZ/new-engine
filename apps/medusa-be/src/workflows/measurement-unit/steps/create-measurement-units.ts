@@ -13,7 +13,7 @@ export const createMeasurementUnitsStep = createStep(
     )
     const invalidTextUnit = input.units.find(
       (unit, index) =>
-        normalizedCodes[index]?.length !== 2 ||
+        normalizedCodes[index]?.length === 0 ||
         unit.name.trim().length === 0 ||
         unit.symbol.trim().length === 0,
     )

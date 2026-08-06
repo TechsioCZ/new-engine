@@ -152,6 +152,9 @@ describe("storefront text registry", () => {
     const defaults = getStorefrontTextDefaultMessages({ market: "cz" })
     const nestedCatalog = nestStorefrontTextMessages(defaults)
 
+    expect(
+      nestStorefrontTextMessages({ "cart.add_to_cart": "Do košíku" }),
+    ).toStrictEqual({ cart: { add_to_cart: "Do košíku" } })
     expect(parseStorefrontTextCatalog(nestedCatalog)).toStrictEqual(defaults)
     expect(flattenStorefrontTextCatalog(nestedCatalog)).toStrictEqual(defaults)
   })

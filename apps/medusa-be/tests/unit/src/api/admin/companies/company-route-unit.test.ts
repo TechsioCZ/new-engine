@@ -20,12 +20,21 @@ const workflowMocks = vi.hoisted(() => {
   }
 })
 
-vi.mock(import("../../../../../../src/workflows/company/workflows/"), () => ({
-  deleteCompaniesWorkflow: {
-    run: vi.fn<() => Promise<unknown>>(),
-  },
-  updateCompaniesWorkflow: workflowMocks.updateCompaniesWorkflow,
-}))
+vi.mock(
+  import("../../../../../../src/workflows/company/workflows/delete-companies"),
+  () => ({
+    deleteCompaniesWorkflow: {
+      run: vi.fn<() => Promise<unknown>>(),
+    },
+  }),
+)
+
+vi.mock(
+  import("../../../../../../src/workflows/company/workflows/update-companies"),
+  () => ({
+    updateCompaniesWorkflow: workflowMocks.updateCompaniesWorkflow,
+  }),
+)
 
 /**
  * Asserts that a plain mock object contains the given keys before narrowing
