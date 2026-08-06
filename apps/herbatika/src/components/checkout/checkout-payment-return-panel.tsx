@@ -4,7 +4,6 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { Route } from "next"
-import { StorefrontLink } from "@/components/storefront-link"
 import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { type ReactNode, useEffect, useRef, useState } from "react"
@@ -20,11 +19,12 @@ import {
 import { clearStoredPaymentProviderSelection } from "@/components/checkout/checkout-payment-selection-storage"
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
+import { StorefrontLink } from "@/components/storefront-link"
 import { SupportingText } from "@/components/text/supporting-text"
-import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useCart } from "@/lib/storefront/cart"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { storefront } from "@/lib/storefront/storefront"
 
 const MAX_PAYMENT_RETURN_ATTEMPTS = 8
@@ -41,9 +41,13 @@ export function CheckoutPaymentReturnPanel() {
   )
   const paymentNotCompletedMessage = tCheckout("payment_return_not_completed")
   const searchParams = useSearchParams()
-  const cartId = normalizeSearchParam(searchParams.get("cart_id"))
-  const isCancelled = resolvePaymentCancelled(searchParams)
-  const _retryRequestKey = normalizeSearchParam(searchParams.get("retry"))
+  const cartId = normalizeSearchParam(searchParams?.get("cart_id") ?? null)
+  const isCancelled = resolvePaymentCancelled(
+    searchParams ?? new URLSearchParams()
+  )
+  const _retryRequestKey = normalizeSearchParam(
+    searchParams?.get("retry") ?? null
+  )
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null)
   const [returnError, setReturnError] = useState<string | null>(null)
   const isAccountSetupDebugEnabled = useCheckoutAccountSetupDebugEnabled()

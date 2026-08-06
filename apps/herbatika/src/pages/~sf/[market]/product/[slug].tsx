@@ -18,29 +18,39 @@ type Source = {
 }
 type Props = EntityPageProps<Source>
 export const getServerSideProps: GetServerSideProps<Props> = (context) =>
-  resolveEntityPage<Source>(context, "product", async ({ entityId }) => {
-    const { queryClient, region } = await getRegionServerContext()
-    if (!region) {
-      return { type: "unavailable" }
+  resolveEntityPage<Source>(
+    context,
+    "product",
+    async ({ entityId, requestContext }) => {
+      const { queryClient, region } =
+        await getRegionServerContext(requestContext)
+      if (!region) {
+        return { type: "unavailable" }
+      }
+      const response = await fetchServerProducts(
+        queryClient,
+        {
+          id: [entityId],
+          limit: 1,
+          fields: PRODUCT_DETAIL_FIELDS,
+          region_id: region.region_id,
+          country_code: region.country_code,
+        },
+        requestContext
+      )
+      const product = response.products.find(
+        (candidate) => candidate.id === entityId
+      )
+      if (!product?.handle) {
+        return { type: "not-found" }
+      }
+      const { dehydratedState } = await prefetchProductDetailPageStorefrontData(
+        requestContext,
+        product.handle
+      )
+      return { type: "found", value: { product, dehydratedState } }
     }
-    const response = await fetchServerProducts(queryClient, {
-      id: [entityId],
-      limit: 1,
-      fields: PRODUCT_DETAIL_FIELDS,
-      region_id: region.region_id,
-      country_code: region.country_code,
-    })
-    const product = response.products.find(
-      (candidate) => candidate.id === entityId
-    )
-    if (!product?.handle) {
-      return { type: "not-found" }
-    }
-    const { dehydratedState } = await prefetchProductDetailPageStorefrontData(
-      product.handle
-    )
-    return { type: "found", value: { product, dehydratedState } }
-  })
+  )
 export default function ProductPage({ source, status }: Props) {
   if (status) {
     return <StatusSurface status={status} />

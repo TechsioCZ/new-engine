@@ -2,15 +2,13 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { type FormEvent, useEffect, useState } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
-import { buildAccountUrl } from "@/lib/url/builder"
-import { useMarketContext } from "@/lib/storefront/market-context-provider"
-import { withUrlSearchParams } from "@/lib/storefront/url-search-params"
 import { useAuth } from "@/lib/storefront/auth"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   getProductListItems,
   isFavoriteProductList,
@@ -29,10 +27,12 @@ import {
   useProducts,
 } from "@/lib/storefront/products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+import { withUrlSearchParams } from "@/lib/storefront/url-search-params"
 import {
   resolveAddProductToCartErrorMessage,
   useAddProductToCart,
 } from "@/lib/storefront/use-add-product-to-cart"
+import { buildAccountUrl } from "@/lib/url/builder"
 import {
   buildProductMap,
   resolveProductListAvailabilitySummary,
@@ -96,7 +96,6 @@ export function useAccountProductLists() {
   const tCart = useTranslations("cart")
   const authQuery = useAuth()
   const region = useRegionContext()
-  const router = useRouter()
   const market = useMarketContext().code
   const searchParams = useSearchParams()
   const toast = useAppToast()
@@ -180,7 +179,7 @@ export function useAccountProductLists() {
       return
     }
 
-    const requestedListId = searchParams.get("list")
+    const requestedListId = searchParams?.get("list")
     const requestedListExists = sortedLists.some(
       (list) => list.id === requestedListId
     )

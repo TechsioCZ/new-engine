@@ -5,7 +5,6 @@ import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import { StorefrontLink } from "@/components/storefront-link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { useFormatter, useTranslations } from "next-intl"
 import { createParser, createSerializer, useQueryState } from "nuqs"
@@ -17,6 +16,7 @@ import {
 } from "@/components/product-detail/sections/product-detail-review-utils"
 import { FractionalRating } from "@/components/reviews/fractional-rating"
 import type { ReviewItem } from "@/components/reviews/reviews.types"
+import { StorefrontLink } from "@/components/storefront-link"
 import {
   PRODUCT_REVIEWS_PAGE_SIZE,
   useProductReviews,
@@ -172,14 +172,14 @@ function ProductReviewListItem({ review }: { review: ReviewItem }) {
 export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
   const searchParams = useSearchParams()
   const [currentPage, setCurrentPage] = useQueryState(
     REVIEW_PAGE_PARAM,
     reviewPageParser
   )
   const getReviewPageUrl = ({ page }: { page: number }) => {
-    const query = searchParams.toString()
+    const query = searchParams?.toString() ?? ""
     const baseHref = query ? `${pathname}?${query}` : pathname
     const href = serializeReviewPage(baseHref, {
       reviews_page: page <= 1 ? null : page,

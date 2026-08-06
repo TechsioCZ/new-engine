@@ -1,11 +1,12 @@
-import "server-only"
-
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
-import { cookies } from "next/headers"
-import { getMarketServerContext } from "../market-context.server"
+import { assertServerOnly } from "@/lib/server-guard"
+import {
+  type RequestServerContext,
+  resolveMarketServerContext,
+} from "../market-context.server"
 import {
   REGION_COUNTRY_CODE_STORAGE_KEY,
   REGION_STORAGE_KEY,
@@ -27,21 +28,45 @@ import type {
   RegionListParams,
 } from "./types"
 
-const resolveCookieRegionPreference = async (): Promise<RegionInfo | null> => {
-  const cookieStore = await cookies()
+assertServerOnly("storefront/ssr/context")
 
-  return resolveRegionInfoFromCookieValues(
-    cookieStore.get(REGION_STORAGE_KEY)?.value,
-    cookieStore.get(REGION_COUNTRY_CODE_STORAGE_KEY)?.value
-  )
+const readCookieValue = (
+  cookieHeader: string | undefined,
+  name: string
+): string | undefined => {
+  const encodedValue = cookieHeader
+    ?.split(";")
+    .map((entry) => entry.trim())
+    .find((entry) => entry.startsWith(`${name}=`))
+    ?.slice(name.length + 1)
+
+  if (!encodedValue) {
+    return
+  }
+
+  try {
+    return decodeURIComponent(encodedValue)
+  } catch {
+    return encodedValue
+  }
 }
 
-export const getRegionServerContext = async () => {
+const resolveCookieRegionPreference = (
+  cookieHeader?: string
+): RegionInfo | null =>
+  resolveRegionInfoFromCookieValues(
+    readCookieValue(cookieHeader, REGION_STORAGE_KEY),
+    readCookieValue(cookieHeader, REGION_COUNTRY_CODE_STORAGE_KEY)
+  )
+
+export const getRegionServerContext = async (
+  requestContext: RequestServerContext
+) => {
   const queryClient = getServerQueryClient()
-  const [cookieRegionPreference, marketContext] = await Promise.all([
-    resolveCookieRegionPreference(),
-    getMarketServerContext(),
-  ])
+  const marketContext = resolveMarketServerContext(requestContext)
+  const cookieRegionPreference = resolveCookieRegionPreference(
+    requestContext.cookieHeader
+  )
 
   const listParams: RegionListParams = {
     fields: REGION_LIST_FIELDS,
@@ -70,15 +95,17 @@ export const getRegionServerContext = async () => {
 
 export const prefetchProductList = async (
   queryClient: QueryClient,
-  listParams: ProductListParams
+  listParams: ProductListParams,
+  requestContext: RequestServerContext
 ) => {
-  await prefetchServerProducts(queryClient, listParams)
+  await prefetchServerProducts(queryClient, listParams, requestContext)
 }
 
 export const prefetchProductDetail = async (
   queryClient: QueryClient,
-  detailParams: ProductDetailParams
-) => fetchServerProduct(queryClient, detailParams)
+  detailParams: ProductDetailParams,
+  requestContext: RequestServerContext
+) => fetchServerProduct(queryClient, detailParams, requestContext)
 
 export const prefetchProductReviews = async (
   queryClient: QueryClient,

@@ -17,27 +17,32 @@ type Source = {
 }
 type Props = EntityPageProps<Source>
 export const getServerSideProps: GetServerSideProps<Props> = (context) =>
-  resolveEntityPage<Source>(context, "brand", async ({ entityId }) => {
-    const brand = (await fetchStorefrontBrands()).find(
-      (candidate) => candidate.id === entityId
-    )
-    if (!brand) {
-      return { type: "not-found" }
+  resolveEntityPage<Source>(
+    context,
+    "brand",
+    async ({ entityId, requestContext }) => {
+      const brand = (await fetchStorefrontBrands()).find(
+        (candidate) => candidate.id === entityId
+      )
+      if (!brand) {
+        return { type: "not-found" }
+      }
+      const queryState = parsePlpQueryStateFromSearchParams({
+        page: context.query.strana,
+        sort: context.query.razeni,
+        brand: context.query.znacka,
+      })
+      const { dehydratedState } = await prefetchBrandPageStorefrontData(
+        requestContext,
+        brand.facetId,
+        queryState
+      )
+      return {
+        type: "found",
+        value: { facetId: brand.facetId, title: brand.title, dehydratedState },
+      }
     }
-    const queryState = parsePlpQueryStateFromSearchParams({
-      page: context.query.strana,
-      sort: context.query.razeni,
-      brand: context.query.znacka,
-    })
-    const { dehydratedState } = await prefetchBrandPageStorefrontData(
-      brand.facetId,
-      queryState
-    )
-    return {
-      type: "found",
-      value: { facetId: brand.facetId, title: brand.title, dehydratedState },
-    }
-  })
+  )
 export default function BrandPage({ source, status }: Props) {
   if (status) {
     return <StatusSurface status={status} />

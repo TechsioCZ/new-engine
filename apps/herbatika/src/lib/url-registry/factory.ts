@@ -1,11 +1,12 @@
-import "server-only"
-
 import { readFile } from "node:fs/promises"
+import { assertServerOnly } from "@/lib/server-guard"
 import type { UrlRecord } from "@/lib/url/types"
 import type { UrlRegistry } from "./contracts"
 import { UrlRegistryError } from "./errors"
 import { InMemoryUrlRegistry } from "./memory"
 import { PostgresUrlRegistry } from "./postgres"
+
+assertServerOnly("url-registry/factory")
 
 let singleton: Promise<UrlRegistry> | null = null
 let testRegistry: UrlRegistry | null = null

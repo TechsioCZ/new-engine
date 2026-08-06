@@ -8,7 +8,7 @@ import { prefetchSearchPageStorefrontData } from "@/lib/storefront/ssr"
 
 type Props = FlowPageProps<{ dehydratedState: DehydratedState }>
 export const getServerSideProps: GetServerSideProps<Props> = (context) =>
-  resolveFlowPage(context, async () => {
+  resolveFlowPage(context, async (_market, requestContext) => {
     const queryState = parsePlpQueryStateFromSearchParams({
       q: context.query.q,
       page: context.query.strana,
@@ -17,7 +17,7 @@ export const getServerSideProps: GetServerSideProps<Props> = (context) =>
     })
     return {
       type: "found",
-      value: await prefetchSearchPageStorefrontData(queryState),
+      value: await prefetchSearchPageStorefrontData(requestContext, queryState),
     }
   })
 export default function SearchPage({ source, status }: Props) {

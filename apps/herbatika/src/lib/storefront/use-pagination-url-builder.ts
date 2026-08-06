@@ -3,11 +3,11 @@
 import { usePathname, useSearchParams } from "next/navigation"
 
 export function usePaginationUrlBuilder(pageParam = "page") {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
   const searchParams = useSearchParams()
 
   return ({ page }: { page: number }) => {
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams?.toString() ?? "")
 
     if (page <= 1) {
       params.delete(pageParam)

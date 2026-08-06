@@ -1,9 +1,10 @@
-import "server-only"
-
 import type { HeroBannerItem } from "@/components/homepage/homepage.data.types"
+import { assertServerOnly } from "@/lib/server-guard"
 import { fetchCmsJson, resolveCmsMediaUrl } from "./cms-client"
 import type { CmsHeroCarousel } from "./cms-types"
-import { getMarketServerContext } from "./market-context.server"
+import type { HerbatikaLocale } from "./market-context"
+
+assertServerOnly("storefront/cms-hero-carousels")
 
 const CMS_HERO_CAROUSEL_LIMIT = 8
 const SAFE_ABSOLUTE_HREF_PROTOCOLS = new Set(["http:", "https:"])
@@ -63,11 +64,10 @@ export const mapCmsHeroCarouselToHeroBanner = (
   }
 }
 
-export const fetchCmsHeroBanners = async () => {
-  const marketContext = await getMarketServerContext()
+export const fetchCmsHeroBanners = async (locale: HerbatikaLocale) => {
   const response = await fetchCmsJson<CmsHeroCarouselsResponse>(
     "hero-carousels",
-    marketContext.locale,
+    locale,
     {
       limit: CMS_HERO_CAROUSEL_LIMIT,
       sort: "-createdAt",

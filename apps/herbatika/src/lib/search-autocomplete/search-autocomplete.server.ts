@@ -1,7 +1,6 @@
-import "server-only"
-
-import { getMarketServerContext } from "@/lib/storefront/market-context.server"
+import { assertServerOnly } from "@/lib/server-guard"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
+import { getMarketServerContext } from "@/lib/storefront/market-context.app"
 import {
   MEDUSA_BACKEND_URL,
   MEDUSA_PUBLISHABLE_KEY,
@@ -20,6 +19,8 @@ import {
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
   type SearchAutocompleteResponse,
 } from "./search-autocomplete-types"
+
+assertServerOnly("search-autocomplete/search-autocomplete.server")
 
 type CatalogAutocompleteResponse = {
   facets?: {

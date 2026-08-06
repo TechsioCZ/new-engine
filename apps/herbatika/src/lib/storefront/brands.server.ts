@@ -1,4 +1,4 @@
-import "server-only"
+import { assertServerOnly } from "@/lib/server-guard"
 
 import {
   MEDUSA_BACKEND_URL,
@@ -6,6 +6,8 @@ import {
   SSR_FETCH_OPTIONS,
 } from "@/lib/storefront/ssr/constants"
 import { normalizeStorefrontBrand, type StorefrontBrand } from "./brands"
+
+assertServerOnly("storefront/brands.server")
 
 type StoreBrandsResponse = {
   brands?: Array<{

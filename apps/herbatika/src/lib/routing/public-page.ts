@@ -1,5 +1,3 @@
-import "server-only"
-
 import type { GetServerSidePropsContext, GetServerSidePropsResult } from "next"
 import type { AbstractIntlMessages } from "next-intl"
 import {
@@ -8,10 +6,12 @@ import {
   buildNoindexMetadata,
   type SeoPageMetadata,
 } from "@/lib/seo/metadata"
+import { assertServerOnly } from "@/lib/server-guard"
 import {
   getHerbatikaMarketContext,
   type HerbatikaMarketContext,
 } from "@/lib/storefront/market-context"
+import type { RequestServerContext } from "@/lib/storefront/market-context.server"
 import { fetchStorefrontTextMessages } from "@/lib/storefront/storefront-texts.server"
 import { buildAbsoluteUrl } from "@/lib/url/builder"
 import {
@@ -24,6 +24,8 @@ import {
 import type { UrlLookupResult, UrlRegistry } from "@/lib/url-registry/contracts"
 import { getUrlRegistry } from "@/lib/url-registry/factory"
 import { type RouteSearchParams, validateEntityQuery } from "./query-validation"
+
+assertServerOnly("routing/public-page")
 
 export type HardStatusCode = 400 | 410 | 503
 
@@ -50,6 +52,20 @@ export type SourceReadResult<T> =
 
 const isMarket = (value: unknown): value is Market =>
   typeof value === "string" && (MARKETS as readonly string[]).includes(value)
+
+const scalarHeader = (
+  value: string | string[] | undefined
+): string | undefined => (Array.isArray(value) ? value[0] : value)
+
+export const createRequestServerContext = (
+  context: GetServerSidePropsContext,
+  market: Market
+): RequestServerContext => ({
+  cookieHeader: scalarHeader(context.req.headers.cookie),
+  host: scalarHeader(context.req.headers.host),
+  market,
+  trustedMarket: scalarHeader(context.req.headers["x-sf-market"]),
+})
 
 export const isUrlKind = (value: unknown): value is UrlKind =>
   typeof value === "string" && (URL_KINDS as readonly string[]).includes(value)
@@ -122,6 +138,7 @@ export async function resolveEntityPage<TSource>(
   loadSource: (input: {
     entityId: string
     market: Market
+    requestContext: RequestServerContext
   }) => Promise<SourceReadResult<TSource>>
 ): Promise<GetServerSidePropsResult<EntityPageProps<TSource>>> {
   const marketParam = context.params?.market
@@ -129,6 +146,7 @@ export async function resolveEntityPage<TSource>(
   if (!(isMarket(marketParam) && typeof slugParam === "string")) {
     return { notFound: true }
   }
+  const requestContext = createRequestServerContext(context, marketParam)
 
   const query = toRouteQuery(context)
   if (!validateEntityQuery(expectedKind, query).valid) {
@@ -192,6 +210,7 @@ export async function resolveEntityPage<TSource>(
     source = await loadSource({
       entityId: currentRecord.entityId,
       market: marketParam,
+      requestContext,
     })
   } catch {
     source = { type: "unavailable" }
@@ -255,19 +274,23 @@ export type IndexPageProps<TSource> = StorefrontShellProps & {
 export async function resolveIndexPage<TSource>(
   context: GetServerSidePropsContext,
   kind: UrlKind,
-  loadSource: (market: Market) => Promise<SourceReadResult<TSource>>
+  loadSource: (
+    market: Market,
+    requestContext: RequestServerContext
+  ) => Promise<SourceReadResult<TSource>>
 ): Promise<GetServerSidePropsResult<IndexPageProps<TSource>>> {
   const market = resolveMarketParam(context)
   if (!market) {
     return { notFound: true }
   }
+  const requestContext = createRequestServerContext(context, market)
   const query = toRouteQuery(context)
   if (!validateEntityQuery(kind, query).valid) {
     return statusResult({ context, market, code: 400, message: "Bad Request" })
   }
   let source: SourceReadResult<TSource>
   try {
-    source = await loadSource(market)
+    source = await loadSource(market, requestContext)
   } catch {
     source = { type: "unavailable" }
   }
@@ -304,19 +327,23 @@ export type FlowPageProps<TSource = null> = StorefrontShellProps & {
 
 export async function resolveFlowPage<TSource = null>(
   context: GetServerSidePropsContext,
-  loadSource?: (market: Market) => Promise<SourceReadResult<TSource>>
+  loadSource?: (
+    market: Market,
+    requestContext: RequestServerContext
+  ) => Promise<SourceReadResult<TSource>>
 ): Promise<GetServerSidePropsResult<FlowPageProps<TSource>>> {
   const market = resolveMarketParam(context)
   if (!market) {
     return { notFound: true }
   }
+  const requestContext = createRequestServerContext(context, market)
   let source: SourceReadResult<TSource> = {
     type: "found",
     value: null as TSource,
   }
   if (loadSource) {
     try {
-      source = await loadSource(market)
+      source = await loadSource(market, requestContext)
     } catch {
       source = { type: "unavailable" }
     }

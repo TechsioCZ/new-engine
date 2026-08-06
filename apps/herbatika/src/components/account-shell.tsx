@@ -4,7 +4,6 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { StorefrontLink } from "@/components/storefront-link"
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
@@ -12,12 +11,13 @@ import { useEffect, useState } from "react"
 import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skeleton"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
 import { OrderSkeleton } from "@/components/loading/order-skeleton"
-import { buildAccountUrl } from "@/lib/url/builder"
-import type { AccountSegmentKey } from "@/lib/url/builder"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useAuth } from "@/lib/storefront/auth"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { withUrlSearchParams } from "@/lib/storefront/url-search-params"
-import { useAuth } from "@/lib/storefront/auth"
 import { useLogoutAction } from "@/lib/storefront/use-logout-action"
+import type { AccountSegmentKey } from "@/lib/url/builder"
+import { buildAccountUrl } from "@/lib/url/builder"
 
 type AccountNavItemType = {
   section?: AccountSegmentKey
@@ -51,7 +51,11 @@ const ACCOUNT_NAV_ITEMS: AccountNavItemType[] = [
   },
 ] as const
 
-const isNavItemActive = (pathname: string, href: string, accountHref: string) => {
+const isNavItemActive = (
+  pathname: string,
+  href: string,
+  accountHref: string
+) => {
   if (pathname === href) {
     return true
   }
@@ -69,7 +73,7 @@ type AccountShellProps = {
 
 export function AccountShell({ children }: AccountShellProps) {
   const tAuth = useTranslations("auth")
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
   const market = useMarketContext().code
   const accountHref = buildAccountUrl(market)
   const ordersHref = buildAccountUrl(market, "account.orders")
@@ -79,7 +83,6 @@ export function AccountShell({ children }: AccountShellProps) {
   )
   const authQuery = useAuth()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const redirectTarget = pathname
   const isOrdersListRoute = pathname === ordersHref
   const isOrderDetailRoute = pathname.startsWith(`${ordersHref}/`)
   const {
@@ -104,12 +107,7 @@ export function AccountShell({ children }: AccountShellProps) {
     }
 
     window.location.replace(loginHref)
-  }, [
-    authQuery.isAuthenticated,
-    authQuery.isLoading,
-    isLoggingOut,
-    loginHref,
-  ])
+  }, [authQuery.isAuthenticated, authQuery.isLoading, isLoggingOut, loginHref])
 
   const handleLogout = async () => {
     clearLogoutError()

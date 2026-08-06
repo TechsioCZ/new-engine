@@ -10,6 +10,7 @@ import {
   resolveBlogListing,
 } from "@/lib/storefront/blog-content"
 import { fetchCmsBlogPosts } from "@/lib/storefront/cms"
+import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 
 type Listing = ReturnType<typeof resolveBlogListing>
 type Props = IndexPageProps<Listing>
@@ -18,8 +19,9 @@ const topic = (value: unknown): BlogTopicKey =>
     ? value
     : "all"
 export const getServerSideProps: GetServerSideProps<Props> = (context) =>
-  resolveIndexPage(context, "article", async () => {
-    const posts = await fetchCmsBlogPosts()
+  resolveIndexPage(context, "article", async (market) => {
+    const locale = getHerbatikaMarketContext(market).locale
+    const posts = await fetchCmsBlogPosts(locale)
     const rawPage = Array.isArray(context.query.strana)
       ? context.query.strana[0]
       : context.query.strana

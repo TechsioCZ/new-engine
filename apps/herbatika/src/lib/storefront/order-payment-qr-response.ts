@@ -1,10 +1,11 @@
-import "server-only"
-
 import QRCode from "qrcode"
+import { assertServerOnly } from "@/lib/server-guard"
 import {
   ORDER_PAYMENT_QR_METADATA_KEY,
   ORDER_QR_PAYMENT_PROVIDER_ID,
 } from "./order-payment-qr.constants"
+
+assertServerOnly("storefront/order-payment-qr-response")
 
 export const ORDER_PAYMENT_QR_FIELDS = [
   "id",

@@ -1,15 +1,18 @@
-import "server-only"
-
 import { dehydrate } from "@tanstack/react-query"
+import { assertServerOnly } from "@/lib/server-guard"
 import { buildCatalogProductsParams } from "../catalog-query-state"
+import type { RequestServerContext } from "../market-context.server"
 import { PLP_PAGE_SIZE, type PlpQueryState } from "../plp-query-state"
 import { prefetchServerCatalogProducts } from "../storefront-server"
 import { getRegionServerContext } from "./context"
 
+assertServerOnly("storefront/ssr/prefetch-search")
+
 export const prefetchSearchPageStorefrontData = async (
+  requestContext: RequestServerContext,
   queryState: PlpQueryState
 ) => {
-  const { queryClient, region } = await getRegionServerContext()
+  const { queryClient, region } = await getRegionServerContext(requestContext)
   const query = queryState.q.trim()
 
   if (region && query.length > 0) {
@@ -21,7 +24,11 @@ export const prefetchSearchPageStorefrontData = async (
     })
 
     await Promise.all([
-      prefetchServerCatalogProducts(queryClient, catalogListParams),
+      prefetchServerCatalogProducts(
+        queryClient,
+        catalogListParams,
+        requestContext
+      ),
       prefetchServerCatalogProducts(
         queryClient,
         buildCatalogProductsParams({
@@ -40,7 +47,8 @@ export const prefetchSearchPageStorefrontData = async (
           limit: 1,
           regionId: region.region_id,
           countryCode: region.country_code,
-        })
+        }),
+        requestContext
       ),
     ])
   }

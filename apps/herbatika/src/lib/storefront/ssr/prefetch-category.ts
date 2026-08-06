@@ -1,6 +1,5 @@
-import "server-only"
-
 import { dehydrate } from "@tanstack/react-query"
+import { assertServerOnly } from "@/lib/server-guard"
 import { buildCatalogProductsParams } from "../catalog-query-state"
 import {
   buildCategoryListParams,
@@ -8,6 +7,7 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "../category-query-config"
 import { collectDescendantCategoryIds } from "../category-tree"
+import type { RequestServerContext } from "../market-context.server"
 import { PLP_PAGE_SIZE } from "../plp-config"
 import type { PlpQueryState } from "../plp-query-state"
 import {
@@ -16,11 +16,14 @@ import {
 } from "../storefront-server"
 import { getRegionServerContext } from "./context"
 
+assertServerOnly("storefront/ssr/prefetch-category")
+
 export const prefetchCategoryPageStorefrontData = async (
+  requestContext: RequestServerContext,
   slug: string,
   queryState: PlpQueryState
 ) => {
-  const { queryClient, region } = await getRegionServerContext()
+  const { queryClient, region } = await getRegionServerContext(requestContext)
 
   const categoryListParams = buildCategoryListParams({
     page: 1,
@@ -53,7 +56,11 @@ export const prefetchCategoryPageStorefrontData = async (
       countryCode: region.country_code,
     })
 
-    await prefetchServerCatalogProducts(queryClient, catalogListParams)
+    await prefetchServerCatalogProducts(
+      queryClient,
+      catalogListParams,
+      requestContext
+    )
   }
 
   return {

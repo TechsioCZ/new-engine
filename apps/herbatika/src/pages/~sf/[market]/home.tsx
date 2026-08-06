@@ -3,6 +3,7 @@ import { HydrationBoundary } from "@tanstack/react-query"
 import type { GetServerSideProps } from "next"
 import { HerbatikaHomepage } from "@/components/herbatika-homepage"
 import {
+  createRequestServerContext,
   loadShell,
   resolveMarketParam,
   type StorefrontShellProps,
@@ -12,6 +13,7 @@ import {
   fetchCmsHeroBanners,
   fetchCmsHomepagePromo,
 } from "@/lib/storefront/cms"
+import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { prefetchHomePageStorefrontData } from "@/lib/storefront/ssr"
 import { getMarketOrigin } from "@/lib/url/builder"
 
@@ -28,12 +30,14 @@ export const getServerSideProps: GetServerSideProps<Props> = async (
   if (!market) {
     return { notFound: true }
   }
+  const requestContext = createRequestServerContext(context, market)
+  const locale = getHerbatikaMarketContext(market).locale
   try {
     const [{ dehydratedState }, heroBanners, homepagePromo] = await Promise.all(
       [
-        prefetchHomePageStorefrontData(),
-        fetchCmsHeroBanners(),
-        fetchCmsHomepagePromo(),
+        prefetchHomePageStorefrontData(requestContext),
+        fetchCmsHeroBanners(locale),
+        fetchCmsHomepagePromo(locale),
       ]
     )
     return {

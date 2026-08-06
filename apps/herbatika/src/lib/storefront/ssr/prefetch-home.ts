@@ -1,8 +1,7 @@
-import "server-only"
-
 import type { QueryClient } from "@tanstack/react-query"
 import { dehydrate } from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+import { assertServerOnly } from "@/lib/server-guard"
 import {
   buildCatalogProductsParams,
   type CatalogQueryState,
@@ -16,17 +15,21 @@ import {
   HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE,
   HOMEPAGE_PRODUCTS_PER_SECTION,
 } from "../homepage-catalog-config"
+import type { RequestServerContext } from "../market-context.server"
 import {
   fetchServerCategories,
   prefetchServerCatalogProducts,
 } from "../storefront-server"
 import { getRegionServerContext } from "./context"
 
+assertServerOnly("storefront/ssr/prefetch-home")
+
 type HomepageCatalogPrefetchInput = {
   categoryIds?: string[]
   queryClient: QueryClient
   region: RegionInfo
   sort: CatalogQueryState["sort"]
+  requestContext: RequestServerContext
   status?: string[]
 }
 
@@ -49,6 +52,7 @@ const prefetchHomepageCatalogProducts = ({
   categoryIds,
   queryClient,
   region,
+  requestContext,
   sort,
   status,
 }: HomepageCatalogPrefetchInput) =>
@@ -60,11 +64,14 @@ const prefetchHomepageCatalogProducts = ({
       limit: HOMEPAGE_PRODUCTS_PER_SECTION,
       regionId: region.region_id,
       countryCode: region.country_code,
-    })
+    }),
+    requestContext
   )
 
-export const prefetchHomePageStorefrontData = async () => {
-  const { queryClient, region } = await getRegionServerContext()
+export const prefetchHomePageStorefrontData = async (
+  requestContext: RequestServerContext
+) => {
+  const { queryClient, region } = await getRegionServerContext(requestContext)
   const categoryListParams = buildCategoryListParams({
     page: 1,
     limit: CATEGORY_TREE_LIMIT,
@@ -83,12 +90,14 @@ export const prefetchHomePageStorefrontData = async () => {
       prefetchHomepageCatalogProducts({
         queryClient,
         region,
+        requestContext,
         sort: "newest",
         status: ["new"],
       }),
       prefetchHomepageCatalogProducts({
         queryClient,
         region,
+        requestContext,
         sort: "recommended",
         status: ["action"],
       }),
@@ -100,6 +109,7 @@ export const prefetchHomePageStorefrontData = async () => {
           categoryIds: [bestsellersCategory.id],
           queryClient,
           region,
+          requestContext,
           sort: "recommended",
         })
       )

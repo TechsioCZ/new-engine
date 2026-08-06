@@ -1,7 +1,7 @@
-import "server-only"
-
 import { dehydrate } from "@tanstack/react-query"
+import { assertServerOnly } from "@/lib/server-guard"
 import { resolveRelatedCategoryIds } from "../category-tree"
+import type { RequestServerContext } from "../market-context.server"
 import {
   buildProductListParams,
   PRODUCT_CARD_FIELDS,
@@ -18,10 +18,13 @@ import {
 } from "./context"
 import type { ProductDetailParams } from "./types"
 
+assertServerOnly("storefront/ssr/prefetch-product")
+
 export const prefetchProductDetailPageStorefrontData = async (
+  requestContext: RequestServerContext,
   handle: string
 ) => {
-  const { queryClient, region } = await getRegionServerContext()
+  const { queryClient, region } = await getRegionServerContext(requestContext)
 
   if (region) {
     const detailParams: ProductDetailParams = {
@@ -31,7 +34,11 @@ export const prefetchProductDetailPageStorefrontData = async (
       country_code: region.country_code,
     }
 
-    const product = await prefetchProductDetail(queryClient, detailParams)
+    const product = await prefetchProductDetail(
+      queryClient,
+      detailParams,
+      requestContext
+    )
     const relatedCategoryIds = resolveRelatedCategoryIds(product)
 
     if (product?.id) {
@@ -56,7 +63,11 @@ export const prefetchProductDetailPageStorefrontData = async (
         country_code: region.country_code,
       })
 
-      await prefetchProductList(queryClient, relatedProductsListParams)
+      await prefetchProductList(
+        queryClient,
+        relatedProductsListParams,
+        requestContext
+      )
     }
   }
 

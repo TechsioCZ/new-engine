@@ -1,9 +1,11 @@
-import "server-only"
-
 import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
+import { assertServerOnly } from "@/lib/server-guard"
 import { resolveCmsMediaUrl } from "./cms-client"
 import { fetchCmsPageBySlug } from "./cms-pages"
 import type { CmsMedia, CmsPage } from "./cms-types"
+import type { HerbatikaLocale } from "./market-context"
+
+assertServerOnly("storefront/cms-homepage-promo")
 
 const HOMEPAGE_PROMO_PAGE_SLUG = "homepage-promo"
 
@@ -31,5 +33,7 @@ export const mapCmsPageToHomepagePromo = (
   }
 }
 
-export const fetchCmsHomepagePromo = async () =>
-  mapCmsPageToHomepagePromo(await fetchCmsPageBySlug(HOMEPAGE_PROMO_PAGE_SLUG))
+export const fetchCmsHomepagePromo = async (locale: HerbatikaLocale) =>
+  mapCmsPageToHomepagePromo(
+    await fetchCmsPageBySlug(HOMEPAGE_PROMO_PAGE_SLUG, locale)
+  )

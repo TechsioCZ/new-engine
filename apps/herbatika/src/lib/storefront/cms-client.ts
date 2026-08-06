@@ -1,4 +1,4 @@
-import "server-only"
+import { assertServerOnly } from "@/lib/server-guard"
 
 import { resolveCmsLocale } from "./cms-locale"
 import type { CmsMedia } from "./cms-types"
@@ -8,6 +8,8 @@ import {
   resolvePublicPayloadBaseUrl,
 } from "./runtime-env"
 import { storefrontConfig } from "./sdk"
+
+assertServerOnly("storefront/cms-client")
 
 const CMS_REVALIDATE_SECONDS = 600
 const CMS_MEDUSA_BASE_URL = resolveMedusaBackendUrl()

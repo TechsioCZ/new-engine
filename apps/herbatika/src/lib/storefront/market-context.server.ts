@@ -1,7 +1,4 @@
-import "server-only"
-
-import { headers } from "next/headers"
-import { cache } from "react"
+import { assertServerOnly } from "@/lib/server-guard"
 import {
   getHerbatikaMarketContext,
   type HerbatikaMarketCode,
@@ -9,11 +6,26 @@ import {
   resolveMarketContext,
 } from "./market-context"
 
+assertServerOnly("storefront/market-context.server")
+
 export type HerbatikaServerMarketContext = Omit<
   HerbatikaMarketContext,
   "salesChannelId"
 > & {
   salesChannelId: string
+}
+
+export type RequestServerContext = {
+  cookieHeader?: string
+  host?: string
+  market: HerbatikaMarketCode
+  trustedMarket?: string
+}
+
+export type MarketServerContextInput = {
+  host?: string | null
+  market?: HerbatikaMarketCode | null
+  trustedMarket?: string | null
 }
 
 /**
@@ -27,6 +39,9 @@ const SALES_CHANNEL_ENV_BY_MARKET = {
   hu: "MARKET_SALES_CHANNEL_HU",
   ro: "MARKET_SALES_CHANNEL_RO",
 } as const satisfies Record<HerbatikaMarketCode, string>
+
+const isMarketCode = (value: unknown): value is HerbatikaMarketCode =>
+  value === "sk" || value === "cz" || value === "hu" || value === "ro"
 
 export const resolveMarketSalesChannelId = (
   market: HerbatikaMarketCode,
@@ -44,27 +59,27 @@ export const resolveMarketSalesChannelId = (
   return salesChannelId
 }
 
-export const getMarketServerContext = cache(
-  async (): Promise<HerbatikaServerMarketContext> => {
-    const headerStore = await headers()
-    const trustedMarket = headerStore.get("x-sf-market")
-    const marketContext =
-      trustedMarket === "sk" ||
-      trustedMarket === "cz" ||
-      trustedMarket === "hu" ||
-      trustedMarket === "ro"
-        ? getHerbatikaMarketContext(trustedMarket)
-        : resolveMarketContext({
-            host: headerStore.get("host") ?? undefined,
-          })
-
-    if (!marketContext) {
-      throw new Error("Unknown storefront host; market context is unavailable")
-    }
-
-    return {
-      ...marketContext,
-      salesChannelId: resolveMarketSalesChannelId(marketContext.code),
-    }
+/** Pure market resolver shared by Pages and App Router request adapters. */
+export const resolveMarketServerContext = ({
+  host,
+  market,
+  trustedMarket,
+}: MarketServerContextInput): HerbatikaServerMarketContext => {
+  let marketContext: HerbatikaMarketContext | null
+  if (market) {
+    marketContext = getHerbatikaMarketContext(market)
+  } else if (isMarketCode(trustedMarket)) {
+    marketContext = getHerbatikaMarketContext(trustedMarket)
+  } else {
+    marketContext = resolveMarketContext({ host })
   }
-)
+
+  if (!marketContext) {
+    throw new Error("Unknown storefront host; market context is unavailable")
+  }
+
+  return {
+    ...marketContext,
+    salesChannelId: resolveMarketSalesChannelId(marketContext.code),
+  }
+}

@@ -12,7 +12,6 @@ import type {
   CmsCategory,
 } from "./cms-types"
 import type { HerbatikaLocale } from "./market-context"
-import { getMarketServerContext } from "./market-context.server"
 
 const DEFAULT_CMS_TOPIC: CmsBlogTopic = "zdravie"
 const DEFAULT_AUTHOR_IMAGE =
@@ -97,11 +96,10 @@ export const mapCmsArticleToBlogPost = (
   }
 }
 
-export const fetchCmsArticleCategories = async () => {
-  const marketContext = await getMarketServerContext()
+export const fetchCmsArticleCategories = async (locale: HerbatikaLocale) => {
   const response = await fetchCmsJson<CmsArticleCategoriesResponse>(
     "article-categories",
-    marketContext.locale
+    locale
   )
 
   return response?.articleCategories ?? []
@@ -111,11 +109,13 @@ export const fetchCmsArticleCategories = async () => {
  * Seed/sync-only slug reader. Public routing resolves URLR.entityId and must
  * use fetchCmsArticleById so Payload slug renames cannot break content loading.
  */
-export const fetchCmsArticleBySlug = async (slug: string) => {
-  const marketContext = await getMarketServerContext()
+export const fetchCmsArticleBySlug = async (
+  slug: string,
+  locale: HerbatikaLocale
+) => {
   const response = await fetchCmsJson<CmsArticleResponse>(
     `articles/${encodeURIComponent(slug)}`,
-    marketContext.locale
+    locale
   )
 
   return response?.article ?? null
@@ -143,14 +143,17 @@ export const fetchCmsBlogPostById = async (
   return article ? mapCmsArticleToBlogPost(article) : null
 }
 
-export const fetchCmsBlogPost = async (slug: string) => {
-  const article = await fetchCmsArticleBySlug(slug)
+export const fetchCmsBlogPost = async (
+  slug: string,
+  locale: HerbatikaLocale
+) => {
+  const article = await fetchCmsArticleBySlug(slug, locale)
 
   return article ? mapCmsArticleToBlogPost(article) : null
 }
 
-export const fetchCmsBlogPosts = async () => {
-  const categories = await fetchCmsArticleCategories()
+export const fetchCmsBlogPosts = async (locale: HerbatikaLocale) => {
+  const categories = await fetchCmsArticleCategories(locale)
   const slugs = Array.from(
     new Set(
       categories.flatMap((category) =>
@@ -161,7 +164,9 @@ export const fetchCmsBlogPosts = async () => {
     )
   )
 
-  const articles = await Promise.all(slugs.map(fetchCmsArticleBySlug))
+  const articles = await Promise.all(
+    slugs.map((slug) => fetchCmsArticleBySlug(slug, locale))
+  )
 
   return articles
     .map((article) => (article ? mapCmsArticleToBlogPost(article) : null))

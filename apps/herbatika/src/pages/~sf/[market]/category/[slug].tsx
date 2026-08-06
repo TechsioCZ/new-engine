@@ -19,36 +19,41 @@ import { fetchServerCategories } from "@/lib/storefront/storefront-server"
 type Source = { handle: string; dehydratedState: DehydratedState }
 type Props = EntityPageProps<Source>
 export const getServerSideProps: GetServerSideProps<Props> = (context) =>
-  resolveEntityPage<Source>(context, "category", async ({ entityId }) => {
-    const { queryClient } = await getRegionServerContext()
-    const response = await fetchServerCategories(
-      queryClient,
-      buildCategoryListParams({
-        page: 1,
-        limit: CATEGORY_TREE_LIMIT,
-        fields: CATEGORY_TREE_FIELDS,
+  resolveEntityPage<Source>(
+    context,
+    "category",
+    async ({ entityId, requestContext }) => {
+      const { queryClient } = await getRegionServerContext(requestContext)
+      const response = await fetchServerCategories(
+        queryClient,
+        buildCategoryListParams({
+          page: 1,
+          limit: CATEGORY_TREE_LIMIT,
+          fields: CATEGORY_TREE_FIELDS,
+        })
+      )
+      const category = response.categories.find(
+        (candidate) => candidate.id === entityId
+      )
+      if (!category?.handle) {
+        return { type: "not-found" }
+      }
+      const queryState = parsePlpQueryStateFromSearchParams({
+        page: context.query.strana,
+        sort: context.query.razeni,
+        brand: context.query.znacka,
       })
-    )
-    const category = response.categories.find(
-      (candidate) => candidate.id === entityId
-    )
-    if (!category?.handle) {
-      return { type: "not-found" }
+      const { dehydratedState } = await prefetchCategoryPageStorefrontData(
+        requestContext,
+        category.handle,
+        queryState
+      )
+      return {
+        type: "found",
+        value: { handle: category.handle, dehydratedState },
+      }
     }
-    const queryState = parsePlpQueryStateFromSearchParams({
-      page: context.query.strana,
-      sort: context.query.razeni,
-      brand: context.query.znacka,
-    })
-    const { dehydratedState } = await prefetchCategoryPageStorefrontData(
-      category.handle,
-      queryState
-    )
-    return {
-      type: "found",
-      value: { handle: category.handle, dehydratedState },
-    }
-  })
+  )
 export default function CategoryPage({ source, status }: Props) {
   if (status) {
     return <StatusSurface status={status} />

@@ -17,8 +17,8 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
-import { getMarketServerContext } from "@/lib/storefront/market-context.server"
-import { getRegionServerContext } from "@/lib/storefront/ssr/context"
+import { getMarketServerContext } from "@/lib/storefront/market-context.app"
+import { getAppRegionServerContext } from "@/lib/storefront/ssr/context.app"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
 import "./globals.css"
 import { Providers } from "./providers"
@@ -113,7 +113,7 @@ async function ResolvedLayoutShell({
   marketContext: HerbatikaMarketContext
 }>) {
   const [{ queryClient, region }, messages] = await Promise.all([
-    getRegionServerContext(),
+    getAppRegionServerContext(),
     getMessages(),
   ])
 

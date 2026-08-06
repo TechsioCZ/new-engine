@@ -1,5 +1,3 @@
-import "server-only"
-
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
@@ -14,7 +12,11 @@ import type {
   MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
-import { getMarketServerContext } from "./market-context.server"
+import { assertServerOnly } from "@/lib/server-guard"
+import {
+  type RequestServerContext,
+  resolveMarketServerContext,
+} from "./market-context.server"
 import { storefrontSdk } from "./sdk"
 import type {
   CatalogListParams,
@@ -25,16 +27,19 @@ import type {
 } from "./ssr/types"
 import { storefrontCoreDefinition } from "./storefront-core-definition"
 
-const withMarketSalesChannel = async <
+assertServerOnly("storefront/storefront-server")
+
+const withMarketSalesChannel = <
   TParams extends { sales_channel_id?: string | string[] },
 >(
-  params: TParams
-): Promise<TParams> => {
+  params: TParams,
+  requestContext: RequestServerContext
+): TParams => {
   if (params.sales_channel_id) {
     return params
   }
 
-  const marketContext = await getMarketServerContext()
+  const marketContext = resolveMarketServerContext(requestContext)
   return {
     ...params,
     sales_channel_id: marketContext.salesChannelId,
@@ -112,31 +117,34 @@ export const fetchServerRegions = (
 
 export const prefetchServerProducts = async (
   queryClient: QueryClient,
-  listParams: ProductListParams
+  listParams: ProductListParams,
+  requestContext: RequestServerContext
 ) =>
   queryClient.prefetchQuery(
     storefrontServerRead.queries.products.getListQueryOptions(
-      await withMarketSalesChannel(listParams)
+      withMarketSalesChannel(listParams, requestContext)
     )
   )
 
 export const fetchServerProducts = async (
   queryClient: QueryClient,
-  listParams: ProductListParams
+  listParams: ProductListParams,
+  requestContext: RequestServerContext
 ) =>
   queryClient.fetchQuery(
     storefrontServerRead.queries.products.getListQueryOptions(
-      await withMarketSalesChannel(listParams)
+      withMarketSalesChannel(listParams, requestContext)
     )
   )
 
 export const fetchServerProduct = async (
   queryClient: QueryClient,
-  detailParams: ProductDetailParams
+  detailParams: ProductDetailParams,
+  requestContext: RequestServerContext
 ) =>
   queryClient.fetchQuery(
     storefrontServerRead.queries.products.getDetailQueryOptions(
-      await withMarketSalesChannel(detailParams)
+      withMarketSalesChannel(detailParams, requestContext)
     )
   )
 
@@ -168,10 +176,11 @@ export const fetchServerCategories = (
 
 export const prefetchServerCatalogProducts = async (
   queryClient: QueryClient,
-  listParams: CatalogListParams
+  listParams: CatalogListParams,
+  requestContext: RequestServerContext
 ) =>
   queryClient.prefetchQuery(
     storefrontServerRead.queries.catalog.getListQueryOptions(
-      await withMarketSalesChannel(listParams)
+      withMarketSalesChannel(listParams, requestContext)
     )
   )

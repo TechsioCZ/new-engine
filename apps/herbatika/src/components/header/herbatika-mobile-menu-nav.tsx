@@ -2,11 +2,11 @@
 
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header"
-import { StorefrontLink } from "@/components/storefront-link"
 import { usePathname } from "next/navigation"
 import { useContext, useEffect, useState } from "react"
-import { buildUrl } from "@/lib/url/builder"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildUrl } from "@/lib/url/builder"
 import type { Market } from "@/lib/url/types"
 import { createPrimaryNavItems } from "./herbatika-header.navigation"
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data"
@@ -105,7 +105,7 @@ const areExpandedValuesEqual = (left: string[], right: string[]) =>
   left.every((value, index) => value === right[index])
 
 export function HerbatikaMobileMenuNav() {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
   const market = useMarketContext().code
   const { setIsMobileMenuOpen } = useContext(HeaderContext)
   const { groupsByRootHandle } = useHerbatikaHeaderSubmenu()

@@ -24,7 +24,7 @@ export const getServerSideProps: GetServerSideProps<Props> = (context) =>
       if (!post) {
         return { type: "not-found" }
       }
-      const posts = await fetchCmsBlogPosts()
+      const posts = await fetchCmsBlogPosts(locale)
       return {
         type: "found",
         value: {

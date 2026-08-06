@@ -1,8 +1,7 @@
-import "server-only"
-
 import { randomUUID } from "node:crypto"
 import type { PoolClient, PoolConfig, QueryResultRow } from "pg"
 import { Pool } from "pg"
+import { assertServerOnly } from "@/lib/server-guard"
 import type { Market, UrlKind, UrlRecord } from "@/lib/url/types"
 import {
   type CreateUrlRecordInput,
@@ -13,6 +12,8 @@ import {
   type UrlRegistryListResult,
 } from "./contracts"
 import { UrlRegistryError } from "./errors"
+
+assertServerOnly("url-registry/postgres")
 
 type UrlRow = QueryResultRow & {
   id: string
