@@ -1446,7 +1446,7 @@ function buildZaneProjectServices(
             process.env
               .DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY ?? ""
           ),
-        }
+        },
       ],
     },
     ...(n1Slug
