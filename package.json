@@ -33,7 +33,7 @@
     "format": "oxfmt --config oxfmt.config.ts .",
     "format:check": "oxfmt --config oxfmt.config.ts --check .",
     "lint:medusa": "pnpm --filter medusa-be lint:medusa && pnpm --filter medusa-order-dashboard-plugin lint:medusa && pnpm --filter medusa-symmy-plugin lint:medusa",
-    "depcruise": "depcruise apps libs apps/payload/vitest.config.mts libs/ui/playwright.config.cts --config dependency-cruiser.config.cjs",
+    "depcruise": "depcruise apps libs apps/payload/vitest.config.mts libs/ui/playwright.config.mts --config dependency-cruiser.config.cjs",
     "ast-grep": "node ./tooling/ast-grep/run.mjs test --skip-snapshot-tests && node ./tooling/ast-grep/run.mjs scan --config sgconfig.yml",
     "danger": "node scripts/danger/run.mjs ci",
     "check:migrations": "node scripts/danger/check-migration-immutability.mjs",

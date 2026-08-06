@@ -26,16 +26,16 @@ figma.connect(
         rtl: "rtl",
       }),
       disabled: figma.enum("disabled", {
-        true: true,
         false: false,
+        true: true,
       }),
       labelText: figma.nestedProps("Label", {
         text: figma.string("text"),
       }),
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
       value: figma.string("value"),
     },

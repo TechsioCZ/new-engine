@@ -22,9 +22,9 @@ figma.connect(
         vertical: "vertical",
       }),
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
     },
   },

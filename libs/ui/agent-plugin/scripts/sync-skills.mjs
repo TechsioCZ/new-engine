@@ -12,12 +12,12 @@
  * plugin's own authored workflow skills on a name collision.
  */
 import { cpSync, existsSync, readdirSync, rmSync } from "node:fs"
-import { dirname, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
+import path from "node:path"
 
-const pluginDir = resolve(import.meta.dirname, "..")
-const srcDir = resolve(pluginDir, "../skills") // libs/ui/skills
-const destDir = resolve(pluginDir, "skills")
+const pluginDir = path.resolve(import.meta.dirname, "..")
+// libs/ui/skills
+const srcDir = path.resolve(pluginDir, "../skills")
+const destDir = path.resolve(pluginDir, "skills")
 
 const AUTHORED = new Set([
   "ui-new-component",
@@ -38,11 +38,29 @@ if (!existsSync(srcDir)) {
   process.exit(1)
 }
 
-const entries = readdirSync(srcDir, { withFileTypes: true })
-  .filter((e) => e.isDirectory() && e.name !== "_artifacts")
-  .map((e) => e.name)
+const MAX_SKILL_DIRECTORIES = 1000
+const MAX_SYNC_ENTRIES = 10_000
+const sourceEntries = readdirSync(srcDir, { withFileTypes: true })
+if (sourceEntries.length > MAX_SKILL_DIRECTORIES) {
+  throw new Error(
+    `Refusing to sync ${sourceEntries.length} entries; limit is ${MAX_SKILL_DIRECTORIES}.`,
+  )
+}
+const entries = sourceEntries
+  .filter((entry) => entry.isDirectory() && entry.name !== "_artifacts")
+  .map((entry) => entry.name)
 
 let copied = 0
+let copiedEntries = 0
+const withinCopyLimit = () => {
+  copiedEntries += 1
+  if (copiedEntries > MAX_SYNC_ENTRIES) {
+    throw new Error(
+      `Refusing to copy more than ${MAX_SYNC_ENTRIES} skill entries.`,
+    )
+  }
+  return true
+}
 for (const name of entries) {
   if (AUTHORED.has(name)) {
     console.error(
@@ -50,10 +68,13 @@ for (const name of entries) {
     )
     process.exit(1)
   }
-  const dest = resolve(destDir, name)
+  const dest = path.resolve(destDir, name)
   rmSync(dest, { force: true, recursive: true })
-  cpSync(resolve(srcDir, name), dest, { recursive: true })
-  copied++
+  cpSync(path.resolve(srcDir, name), dest, {
+    filter: withinCopyLimit,
+    recursive: true,
+  })
+  copied += 1
 }
 
 console.log(`Bundled ${copied} skills from ${srcDir} into ${destDir}`)

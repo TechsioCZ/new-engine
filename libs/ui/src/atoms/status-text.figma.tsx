@@ -15,9 +15,9 @@ figma.connect(
     props: {
       children: figma.string("children"),
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
       status: figma.enum("status", {
         default: "default",

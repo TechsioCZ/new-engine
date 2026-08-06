@@ -20,9 +20,9 @@ figma.connect(
     props: {
       disabled: figma.boolean("disabled"),
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
       validateStatus: figma.enum("validateStatus", {
         default: "default",

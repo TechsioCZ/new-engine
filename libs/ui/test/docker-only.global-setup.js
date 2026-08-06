@@ -1,13 +1,32 @@
 import fs from "node:fs"
 
+const MAX_CONTAINER_MARKER_BYTES = 64 * 1024
 const containerMarkers = ["docker", "containerd", "kubepods", "podman"]
 
+/** @param {string} filePath - Procfs file to inspect. */
 const hasContainerMarkers = (filePath) => {
+  let descriptor
   try {
-    const content = fs.readFileSync(filePath, "utf-8").toLowerCase()
+    descriptor = fs.openSync(filePath, "r")
+    const buffer = Buffer.alloc(MAX_CONTAINER_MARKER_BYTES)
+    const bytesRead = fs.readSync(
+      descriptor,
+      buffer,
+      0,
+      MAX_CONTAINER_MARKER_BYTES,
+      0,
+    )
+    const content = buffer
+      .subarray(0, bytesRead)
+      .toString("utf-8")
+      .toLowerCase()
     return containerMarkers.some((marker) => content.includes(marker))
   } catch {
     return false
+  } finally {
+    if (descriptor !== undefined) {
+      fs.closeSync(descriptor)
+    }
   }
 }
 
@@ -21,7 +40,7 @@ const runningInContainer = () => {
     process.env.container ??
     ""
   ).toLowerCase()
-  if (containerEnv && containerEnv !== "0" && containerEnv !== "false") {
+  if (containerEnv !== "" && containerEnv !== "0" && containerEnv !== "false") {
     return true
   }
 
@@ -35,7 +54,7 @@ const runningInContainer = () => {
   )
 }
 
-export default async function dockerOnlyGlobalSetup() {
+export default function dockerOnlyGlobalSetup() {
   const dockerRunnerFlag = process.env.PLAYWRIGHT_DOCKER === "1"
   if (!dockerRunnerFlag || !runningInContainer()) {
     throw new Error(

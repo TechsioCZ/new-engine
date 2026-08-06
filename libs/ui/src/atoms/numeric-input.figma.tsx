@@ -30,26 +30,26 @@ figma.connect(
     props: {
       disabled: figma.enum("state", {
         default: false,
-        error: false,
         disabled: true,
+        error: false,
         readonly: false,
       }),
       invalid: figma.enum("state", {
         default: false,
-        error: true,
         disabled: false,
+        error: true,
         readonly: false,
       }),
       readOnly: figma.enum("state", {
         default: false,
-        error: false,
         disabled: false,
+        error: false,
         readonly: true,
       }),
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
     },
   },

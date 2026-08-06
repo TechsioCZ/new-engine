@@ -1,5 +1,4 @@
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 
 import tsParser from "@typescript-eslint/parser"
 import tailwind from "eslint-plugin-tailwindcss"
@@ -9,7 +8,8 @@ const tokensCssAbsolutePath = path.resolve(
   "src/tokens/index.css",
 )
 
-export default [
+/** @type {import("eslint").Linter.Config[]} */
+const config = [
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
@@ -48,3 +48,5 @@ export default [
     ignores: ["dist/**/*", "storybook-static/**/*"],
   },
 ]
+
+export default config

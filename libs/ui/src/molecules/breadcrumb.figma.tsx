@@ -19,9 +19,9 @@ figma.connect(
     imports: ['import { Breadcrumb } from "@libs/ui/molecules/breadcrumb"'],
     props: {
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
     },
   },

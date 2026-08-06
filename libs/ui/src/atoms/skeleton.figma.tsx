@@ -1,6 +1,10 @@
 import figma from "@figma/code-connect"
 
-import { Skeleton } from "./skeleton"
+import {
+  Skeleton,
+  Skeleton as CircleSkeleton,
+  Skeleton as TextSkeleton,
+} from "./skeleton"
 
 const placeholderBgClassByVariant = {
   primary: "bg-skeleton-bg-primary",
@@ -23,9 +27,9 @@ figma.connect(
     imports: ['import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"'],
     props: {
       speed: figma.enum("speed", {
-        slow: "slow",
-        normal: "normal",
         fast: "fast",
+        normal: "normal",
+        slow: "slow",
       }),
       variant: figma.enum("variant", {
         primary: "primary",
@@ -36,30 +40,32 @@ figma.connect(
 )
 
 figma.connect(
-  Skeleton.Circle,
+  CircleSkeleton.Circle,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=565-198",
   {
     example: ({ size, speed, variant }) => {
       const placeholderBgClass = placeholderBgClassByVariant[variant]
 
       return (
-        <Skeleton.Circle size={size} speed={speed} variant={variant}>
+        <CircleSkeleton.Circle size={size} speed={speed} variant={variant}>
           <div className={`size-16 rounded-full ${placeholderBgClass}`} />
-        </Skeleton.Circle>
+        </CircleSkeleton.Circle>
       )
     },
-    imports: ['import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"'],
+    imports: [
+      'import { Skeleton as CircleSkeleton } from "@techsio/ui-kit/atoms/skeleton"',
+    ],
     props: {
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
         xl: "xl",
       }),
       speed: figma.enum("speed", {
-        slow: "slow",
-        normal: "normal",
         fast: "fast",
+        normal: "normal",
+        slow: "slow",
       }),
       variant: figma.enum("variant", {
         primary: "primary",
@@ -70,14 +76,14 @@ figma.connect(
 )
 
 figma.connect(
-  Skeleton.Text,
+  TextSkeleton.Text,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=565-2143",
   {
     example: ({ lastLineWidth, noOfLines, size, speed, variant }) => {
       const placeholderBgClass = placeholderBgClassByVariant[variant]
 
       return (
-        <Skeleton.Text
+        <TextSkeleton.Text
           lastLineWidth={lastLineWidth}
           noOfLines={noOfLines}
           size={size}
@@ -88,10 +94,12 @@ figma.connect(
             <div className={`h-4 w-full rounded-sm ${placeholderBgClass}`} />
             <div className={`h-4 w-4/5 rounded-sm ${placeholderBgClass}`} />
           </div>
-        </Skeleton.Text>
+        </TextSkeleton.Text>
       )
     },
-    imports: ['import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"'],
+    imports: [
+      'import { Skeleton as TextSkeleton } from "@techsio/ui-kit/atoms/skeleton"',
+    ],
     props: {
       lastLineWidth: figma.enum("lastLineWidth", {
         "60%": "60%",
@@ -104,15 +112,15 @@ figma.connect(
         "5": 5,
       }),
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
         xl: "xl",
       }),
       speed: figma.enum("speed", {
-        slow: "slow",
-        normal: "normal",
         fast: "fast",
+        normal: "normal",
+        slow: "slow",
       }),
       variant: figma.enum("variant", {
         primary: "primary",

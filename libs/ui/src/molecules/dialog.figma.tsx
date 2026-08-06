@@ -19,11 +19,11 @@ figma.connect(
     imports: ['import { Dialog } from "@techsio/ui-kit/molecules/dialog"'],
     props: {
       placement: figma.enum("placement", {
+        bottom: "bottom",
         center: "center",
         left: "left",
         right: "right",
         top: "top",
-        bottom: "bottom",
       }),
     },
   },

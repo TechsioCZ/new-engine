@@ -4,6 +4,9 @@ import { stat } from "node:fs/promises"
 import { createServer } from "node:http"
 import path from "node:path"
 
+const MAX_HEADER_BYTES = 16 * 1024
+const MAX_REQUEST_URL_LENGTH = 8192
+const SHUTDOWN_TIMEOUT_MS = 5000
 const MIME_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
   [".gif", "image/gif"],
@@ -23,23 +26,43 @@ const MIME_TYPES = new Map([
   [".woff2", "font/woff2"],
 ])
 
-function readArg(name) {
+/** @param {string} name - CLI option name. */
+const readArg = (name) => {
   const index = process.argv.indexOf(name)
-  return index !== -1 ? (process.argv[index + 1] ?? null) : null
+  return index === -1 ? null : (process.argv[index + 1] ?? null)
 }
+
+/** @param {unknown} error - Caught filesystem error. */
+const errorCode = (error) => {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+  ) {
+    return error.code
+  }
+  return null
+}
+
+/** @param {string | null} value - Candidate filesystem CLI argument. */
+const isInvalidPathArgument = (value) =>
+  value === null || value === "" || value.includes("\0")
 
 const rootArg = readArg("--root")
 const readyFile = readArg("--ready-file")
 const indexArg = readArg("--index")
 const requestedPort = Number(readArg("--port") ?? "0")
-
-if (
-  !rootArg ||
-  !readyFile ||
-  !indexArg ||
+const invalidPort =
   !Number.isInteger(requestedPort) ||
   requestedPort < 0 ||
   requestedPort > 65_535
+
+if (
+  isInvalidPathArgument(rootArg) ||
+  isInvalidPathArgument(readyFile) ||
+  isInvalidPathArgument(indexArg) ||
+  invalidPort
 ) {
   console.error(
     "Usage: storybook-a11y-server.mjs --root <dir> --index <index.json> --ready-file <file> [--port <port>]",
@@ -51,7 +74,12 @@ const root = path.resolve(rootArg)
 const indexPath = path.resolve(indexArg)
 let stopping = false
 
-function send(response, status, body) {
+/**
+ * @param {import("node:http").ServerResponse} response - HTTP response.
+ * @param {number} status - HTTP status code.
+ * @param {string} body - Plain-text response body.
+ */
+const send = (response, status, body) => {
   if (response.destroyed) {
     return
   }
@@ -59,9 +87,18 @@ function send(response, status, body) {
   response.end(body)
 }
 
-const server = createServer(async (request, response) => {
+/**
+ * @param {import("node:http").IncomingMessage} request - HTTP request.
+ * @param {import("node:http").ServerResponse} response - HTTP response.
+ */
+const handleRequest = async (request, response) => {
   try {
-    const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1")
+    const rawUrl = request.url ?? "/"
+    if (rawUrl.length > MAX_REQUEST_URL_LENGTH) {
+      send(response, 414, "URI too long")
+      return
+    }
+    const requestUrl = new URL(rawUrl, "http://127.0.0.1")
     const decodedPath = decodeURIComponent(requestUrl.pathname)
     const relativePath =
       decodedPath === "/" ? "index.html" : decodedPath.slice(1)
@@ -109,7 +146,7 @@ const server = createServer(async (request, response) => {
     })
     stream.pipe(response)
   } catch (error) {
-    const code = error && typeof error === "object" ? error.code : null
+    const code = errorCode(error)
     if (code === "ENOENT" || code === "ENOTDIR") {
       send(response, 404, "Not found")
       return
@@ -117,7 +154,15 @@ const server = createServer(async (request, response) => {
     console.error(error)
     send(response, 500, "Internal server error")
   }
-})
+}
+
+const server = createServer(
+  { maxHeaderSize: MAX_HEADER_BYTES },
+  (request, response) => {
+    // handleRequest catches and translates every operational failure.
+    void handleRequest(request, response)
+  },
+)
 
 server.on("clientError", (error, socket) => {
   console.error(error)
@@ -131,7 +176,7 @@ server.on("error", (error) => {
 
 server.listen(requestedPort, "127.0.0.1", () => {
   const address = server.address()
-  if (!address || typeof address === "string") {
+  if (address === null || typeof address === "string") {
     console.error("Unable to determine Storybook server port.")
     process.exit(1)
   }
@@ -144,14 +189,14 @@ server.listen(requestedPort, "127.0.0.1", () => {
   )
 })
 
-function stop() {
+const stop = () => {
   if (stopping) {
     return
   }
   stopping = true
   server.closeAllConnections()
   server.close(() => process.exit(0))
-  setTimeout(() => process.exit(1), 5000).unref()
+  setTimeout(() => process.exit(1), SHUTDOWN_TIMEOUT_MS).unref()
 }
 
 for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {

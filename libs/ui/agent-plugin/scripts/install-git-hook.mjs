@@ -27,25 +27,47 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
-  readFileSync,
   renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs"
-import { dirname, isAbsolute, join, relative, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
+import path from "node:path"
 
-import { isUiKitSourceRepo } from "./lib/is-ui-kit-source-repo.mjs"
+import {
+  GIT_EXECUTABLE,
+  isUiKitSourceRepo,
+  readBoundedTextFile,
+} from "./lib/is-ui-kit-source-repo.mjs"
 
+const GIT_CONFIG_COMMAND = "config"
+if (GIT_EXECUTABLE === undefined) {
+  process.exit(0)
+}
+const IGNORED_STDIO = "ignore"
+const HOOKS_PATH_CONFIG = "core.hooksPath"
 const MARKER = "git pre-push hook — the REAL ui-kit quality gate"
-const source = join(dirname(import.meta.dirname), "hooks", "pre-push")
+const MAX_BACKUP_SLOTS = 1000
+const MAX_COMMAND_OUTPUT_BYTES = 1024 * 1024
+const MAX_HOOK_BYTES = 1024 * 1024
+const source = path.join(path.dirname(import.meta.dirname), "hooks", "pre-push")
 
+/** @param {...string} args - Git command arguments. */
 const git = (...args) =>
-  execFileSync("git", args, {
+  execFileSync(GIT_EXECUTABLE, args, {
     encoding: "utf-8",
-    stdio: ["ignore", "pipe", "ignore"],
+    maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
+    stdio: [IGNORED_STDIO, "pipe", IGNORED_STDIO],
   }).trim()
-const note = (msg) => process.stderr.write(`ui-kit: ${msg}\n`)
+
+/** @param {string} message - User-facing installer note. */
+const note = (message) => process.stderr.write(`ui-kit: ${message}\n`)
+
+/** @param {unknown} error - Caught failure. */
+const getErrorMessage = (error) =>
+  error instanceof Error ? error.message : String(error)
+
+/** @param {string} file - Hook file to read or inspect. */
+const readTextFile = (file) => readBoundedTextFile(file, MAX_HOOK_BYTES)
 
 let gitDir
 let topLevel
@@ -53,28 +75,29 @@ try {
   gitDir = git("rev-parse", "--absolute-git-dir")
   topLevel = git("rev-parse", "--show-toplevel")
 } catch {
-  process.exit(0) // not a git repo (or bare) — nothing to install
+  // Not a git repo (or bare), so there is nothing to install.
+  process.exit(0)
 }
 
-const shimDir = join(gitDir, "ui-kit-hooks")
+const shimDir = path.join(gitDir, "ui-kit-hooks")
 
 // Respect a configured hooksPath (husky, lefthook, …) so we install where git actually looks.
 // Git resolves a relative core.hooksPath against the worktree root, not our cwd — do the same.
 let configuredHooksPath = ""
 try {
-  configuredHooksPath = git("config", "--get", "core.hooksPath")
+  configuredHooksPath = git(GIT_CONFIG_COMMAND, "--get", HOOKS_PATH_CONFIG)
 } catch {
   // unset → default
 }
 
-let hooksDir = join(gitDir, "hooks")
-if (configuredHooksPath) {
-  hooksDir = isAbsolute(configuredHooksPath)
+let hooksDir = path.join(gitDir, "hooks")
+if (configuredHooksPath !== "") {
+  hooksDir = path.isAbsolute(configuredHooksPath)
     ? configuredHooksPath
-    : join(topLevel, configuredHooksPath)
+    : path.join(topLevel, configuredHooksPath)
 }
 
-const target = join(hooksDir, "pre-push")
+const target = path.join(hooksDir, "pre-push")
 const chainedBase = `${target}.pre-ui-kit`
 
 /**
@@ -82,18 +105,19 @@ const chainedBase = `${target}.pre-ui-kit`
  * repo's own tooling. Renaming it would dirty the worktree and hand the agent our copy to
  * commit by accident. `.git/hooks` is outside the worktree, so plain hooks are never tracked.
  */
-function isTrackedInRepo(file) {
+/** @param {string} file - Hook file to read or inspect. */
+const isTrackedInRepo = (file) => {
   // `git ls-files` matches pathspecs against the index; give it a worktree-relative path. An
   // absolute path is not portably accepted across git versions, so a committed hook could be
   // misread as untracked and then renamed — dirtying a tracked hooks dir instead of shimming it.
   // (A path outside the worktree resolves to `../…`, which ls-files rejects → correctly untracked.)
-  const rel = relative(topLevel, file)
+  const rel = path.relative(topLevel, file)
   try {
     execFileSync(
-      "git",
+      GIT_EXECUTABLE,
       ["-C", topLevel, "ls-files", "--error-unmatch", "--", rel],
       {
-        stdio: ["ignore", "ignore", "ignore"],
+        stdio: [IGNORED_STDIO, IGNORED_STDIO, IGNORED_STDIO],
       },
     )
     return true
@@ -103,14 +127,19 @@ function isTrackedInRepo(file) {
 }
 
 /** Hooks moved aside by this installer over time, oldest first, plus the next free slot. */
-function backupSlots() {
+const backupSlots = () => {
   const existing = []
   if (existsSync(chainedBase)) {
     existing.push(chainedBase)
   }
   let n = 1
-  for (; existsSync(`${chainedBase}.${n}`); n++) {
+  for (; n <= MAX_BACKUP_SLOTS && existsSync(`${chainedBase}.${n}`); n += 1) {
     existing.push(`${chainedBase}.${n}`)
+  }
+  if (n > MAX_BACKUP_SLOTS) {
+    throw new Error(
+      `Refusing to inspect more than ${MAX_BACKUP_SLOTS} backups.`,
+    )
   }
   return {
     existing,
@@ -170,24 +199,24 @@ exit 0
  * forwards every hook type to the original dir. The gate's pre-push reads
  * `original-hooks-path` and runs the original pre-push first, honouring its exit code.
  */
-function installRedirect() {
+const installRedirect = () => {
   try {
     mkdirSync(shimDir, { recursive: true })
     writeFileSync(
-      join(shimDir, "original-hooks-path"),
+      path.join(shimDir, "original-hooks-path"),
       `${configuredHooksPath}\n`,
     )
     for (const name of GIT_HOOK_NAMES) {
       if (name === "pre-push") {
         continue
       }
-      const file = join(shimDir, name)
+      const file = path.join(shimDir, name)
       writeFileSync(file, FORWARDER)
       chmodSync(file, 0o755)
     }
-    copyFileSync(source, join(shimDir, "pre-push"))
-    chmodSync(join(shimDir, "pre-push"), 0o755)
-    git("config", "core.hooksPath", shimDir)
+    copyFileSync(source, path.join(shimDir, "pre-push"))
+    chmodSync(path.join(shimDir, "pre-push"), 0o755)
+    git(GIT_CONFIG_COMMAND, HOOKS_PATH_CONFIG, shimDir)
     note(
       `"${target}" is tracked in the repo — left untouched. core.hooksPath now points at ` +
         `"${shimDir}", which forwards every hook to "${configuredHooksPath}" (originals run ` +
@@ -195,30 +224,31 @@ function installRedirect() {
     )
   } catch (error) {
     note(
-      `could not set up the hooks shim (${error.message}) — gate NOT installed.`,
+      `could not set up the hooks shim (${getErrorMessage(error)}) — gate NOT installed.`,
     )
   }
   process.exit(0)
 }
 
 /** Undo installRedirect: restore the original core.hooksPath and drop the shim. */
-function removeRedirect() {
+const removeRedirect = () => {
   let original = ""
   try {
-    original = readFileSync(
-      join(shimDir, "original-hooks-path"),
-      "utf-8",
-    ).trim()
+    original = readTextFile(path.join(shimDir, "original-hooks-path")).trim()
   } catch {
     // shim without the marker file — just unset
   }
   try {
-    if (original) {
-      git("config", "core.hooksPath", original)
+    if (original === "") {
+      execFileSync(
+        GIT_EXECUTABLE,
+        [GIT_CONFIG_COMMAND, "--unset", HOOKS_PATH_CONFIG],
+        {
+          stdio: "ignore",
+        },
+      )
     } else {
-      execFileSync("git", ["config", "--unset", "core.hooksPath"], {
-        stdio: "ignore",
-      })
+      git(GIT_CONFIG_COMMAND, HOOKS_PATH_CONFIG, original)
     }
   } catch (error) {
     // If the restore fails we must NOT delete the shim: core.hooksPath may still point at it, and
@@ -226,7 +256,7 @@ function removeRedirect() {
     // shim forwards to) from firing — the exact outcome the shim exists to prevent. Leave it all in
     // place; the next session start retries.
     note(
-      `could not restore core.hooksPath (${error.message}) — leaving the shim in place.`,
+      `could not restore core.hooksPath (${getErrorMessage(error)}) — leaving the shim in place.`,
     )
     return
   }
@@ -237,22 +267,67 @@ function removeRedirect() {
   }
   note(
     `removed the ui-kit hooks shim from this non-ui-kit repo; core.hooksPath restored to ` +
-      `"${original || "(unset)"}".`,
+      `"${original === "" ? "(unset)" : original}".`,
   )
 }
 
-if (!isUiKitSourceRepo(topLevel)) {
+if (isUiKitSourceRepo(topLevel)) {
+  if (existsSync(target)) {
+    const current = readTextFile(target)
+
+    if (current.includes(MARKER)) {
+      // Ours already — refresh it if the plugin shipped a newer version.
+      if (current === readTextFile(source)) {
+        process.exit(0)
+      }
+    } else if (isTrackedInRepo(target)) {
+      // installRedirect exits after completing or reporting the redirect attempt.
+      installRedirect()
+    } else {
+      // An untracked foreign hook (hand-written, husky's untracked output, …). Do NOT skip
+      // installation — that would leave the gate unenforced in exactly the repos that already
+      // care about hooks. Move it to the next free backup slot; the gate runs every moved-aside
+      // hook first, oldest first, and honours their exit codes.
+      const { next } = backupSlots()
+      try {
+        renameSync(target, next)
+        chmodSync(next, 0o755)
+        note(
+          `existing pre-push hook preserved as "${next}" and chained — it runs first.`,
+        )
+      } catch (error) {
+        note(
+          `could not preserve the existing pre-push hook (${getErrorMessage(error)}) — leaving it ` +
+            "untouched, gate NOT installed.",
+        )
+        // Never destroy a hook that could not be backed up.
+        process.exit(0)
+      }
+    }
+  }
+
+  try {
+    mkdirSync(hooksDir, { recursive: true })
+    copyFileSync(source, target)
+    chmodSync(target, 0o755)
+  } catch (error) {
+    note(`could not install pre-push hook: ${getErrorMessage(error)}`)
+  }
+} else {
   // Consumer repo — the gate has nothing to guard here. Also undo what an earlier version of
   // this installer may have done: remove our hook/shim and put any moved-aside original back.
-  if (existsSync(shimDir) && resolve(hooksDir) === resolve(shimDir)) {
+  if (existsSync(shimDir) && path.resolve(hooksDir) === path.resolve(shimDir)) {
     removeRedirect()
     process.exit(0)
   }
-  if (existsSync(target) && readFileSync(target, "utf-8").includes(MARKER)) {
+  if (existsSync(target) && readTextFile(target).includes(MARKER)) {
     const { existing } = backupSlots()
     try {
       if (existing.length) {
         const newest = existing.at(-1)
+        if (newest === undefined) {
+          throw new Error("A pre-push backup was expected but not found.")
+        }
         renameSync(newest, target)
         note(
           `removed the ui-kit pre-push hook from this non-ui-kit repo and restored "${newest}".`,
@@ -262,50 +337,9 @@ if (!isUiKitSourceRepo(topLevel)) {
         note("removed the ui-kit pre-push hook from this non-ui-kit repo.")
       }
     } catch (error) {
-      note(`could not remove stale pre-push hook: ${error.message}`)
+      note(`could not remove stale pre-push hook: ${getErrorMessage(error)}`)
     }
   }
-  process.exit(0)
-}
-
-if (existsSync(target)) {
-  const current = readFileSync(target, "utf-8")
-
-  if (current.includes(MARKER)) {
-    // Ours already — refresh it if the plugin shipped a newer version.
-    if (current === readFileSync(source, "utf-8")) {
-      process.exit(0)
-    }
-  } else if (isTrackedInRepo(target)) {
-    installRedirect() // never returns
-  } else {
-    // An untracked foreign hook (hand-written, husky's untracked output, …). Do NOT skip
-    // installation — that would leave the gate unenforced in exactly the repos that already
-    // care about hooks. Move it to the next free backup slot; the gate runs every moved-aside
-    // hook first, oldest first, and honours their exit codes.
-    const { next } = backupSlots()
-    try {
-      renameSync(target, next)
-      chmodSync(next, 0o755)
-      note(
-        `existing pre-push hook preserved as "${next}" and chained — it runs first.`,
-      )
-    } catch (error) {
-      note(
-        `could not preserve the existing pre-push hook (${error.message}) — leaving it ` +
-          "untouched, gate NOT installed.",
-      )
-      process.exit(0) // never destroy a hook we cannot back up
-    }
-  }
-}
-
-try {
-  mkdirSync(hooksDir, { recursive: true })
-  copyFileSync(source, target)
-  chmodSync(target, 0o755)
-} catch (error) {
-  note(`could not install pre-push hook: ${error.message}`)
 }
 
 process.exit(0)

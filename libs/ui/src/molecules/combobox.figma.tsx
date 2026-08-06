@@ -20,23 +20,23 @@ figma.connect(
     props: {
       disabled: figma.enum("state", {
         default: false,
+        disabled: true,
         error: false,
         success: false,
         warning: false,
-        disabled: true,
       }),
       required: figma.boolean("required"),
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
       validateStatus: figma.enum("state", {
         default: "default",
+        disabled: "default",
         error: "error",
         success: "success",
         warning: "warning",
-        disabled: "default",
       }),
     },
   },

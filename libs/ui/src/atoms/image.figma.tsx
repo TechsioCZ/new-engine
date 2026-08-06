@@ -12,10 +12,10 @@ figma.connect(
     imports: ['import { Image } from "@techsio/ui-kit/atoms/image"'],
     props: {
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
         full: "full",
+        lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
     },
   },

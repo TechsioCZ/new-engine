@@ -17,10 +17,10 @@ figma.connect(
       disabled: figma.boolean("disabled"),
       required: figma.boolean("required"),
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
         current: "current",
+        lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
     },
   },

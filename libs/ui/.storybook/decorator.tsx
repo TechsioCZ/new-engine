@@ -6,25 +6,23 @@ interface VariantGroupProps {
   fullWidth?: boolean
 }
 
-export function VariantGroup({
+export const VariantGroup = ({
   title,
   children,
   fullWidth,
-}: VariantGroupProps) {
-  return (
-    <div className="w-full space-y-2">
-      <h3 className="font-semibold text-fg-primary text-md">{title}</h3>
-      <div
-        className={`flex ${
-          fullWidth ? "flex-col" : "flex-wrap"
-        } items-start gap-4`}
-      >
-        {children}
-      </div>
+}: VariantGroupProps) => (
+  <div className="w-full space-y-2">
+    <h3 className="font-semibold text-fg-primary text-md">{title}</h3>
+    <div
+      className={`flex ${
+        fullWidth === true ? "flex-col" : "flex-wrap"
+      } items-start gap-4`}
+    >
+      {children}
     </div>
-  )
-}
+  </div>
+)
 
-export function VariantContainer({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col items-center space-y-8">{children}</div>
-}
+export const VariantContainer = ({ children }: { children: ReactNode }) => (
+  <div className="flex flex-col items-center space-y-8">{children}</div>
+)

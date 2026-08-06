@@ -8,7 +8,7 @@ figma.connect(
   {
     example: ({ size }) => (
       <Menu
-        items={[{ type: "action", value: "item-1", label: "Item 1" }]}
+        items={[{ label: "Item 1", type: "action", value: "item-1" }]}
         size={size}
         triggerText="Open"
       />
@@ -16,9 +16,9 @@ figma.connect(
     imports: ['import { Menu } from "@libs/ui/molecules/menu"'],
     props: {
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
     },
   },

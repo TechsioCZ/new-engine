@@ -40,9 +40,9 @@ figma.connect(
     imports: ['import { Table } from "@libs/ui/organisms/table"'],
     props: {
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
       variant: figma.enum("variant", {
         line: "line",

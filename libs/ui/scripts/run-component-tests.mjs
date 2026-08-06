@@ -236,7 +236,7 @@ const dockerRunArgs = [
   "-v",
   `${path.resolve(uiRoot, "test")}:/app/test-src:ro`,
   "-v",
-  `${path.resolve(uiRoot, "playwright.config.cts")}:/app/playwright.config.cts:ro`,
+  `${path.resolve(uiRoot, "playwright.config.mts")}:/app/playwright.config.mts:ro`,
   "-v",
   `${path.resolve(uiRoot, "package.json")}:/app/package.json:ro`,
   imageName,
@@ -299,7 +299,7 @@ try {
       "playwright",
       "test",
       "-c",
-      "playwright.config.cts",
+      "playwright.config.mts",
       "--reporter=list,html",
       ...(typeof project === "string" && project.length > 0
         ? ["--project", project]

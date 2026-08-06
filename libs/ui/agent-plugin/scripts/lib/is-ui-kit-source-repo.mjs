@@ -13,28 +13,118 @@
  * itself, so callers pass whatever they already hold.
  */
 import { execFileSync } from "node:child_process"
-import { readFileSync } from "node:fs"
-import { join } from "node:path"
+import { closeSync, existsSync, openSync, readSync } from "node:fs"
+import path from "node:path"
 
+const GIT_EXECUTABLE_CANDIDATES =
+  process.platform === "win32"
+    ? [
+        "C:\\Program Files\\Git\\cmd\\git.exe",
+        "C:\\Program Files (x86)\\Git\\cmd\\git.exe",
+      ]
+    : [
+        "/usr/bin/git",
+        "/usr/local/bin/git",
+        "/opt/homebrew/bin/git",
+        "/nix/var/nix/profiles/default/bin/git",
+      ]
+
+export const GIT_EXECUTABLE = GIT_EXECUTABLE_CANDIDATES.find(existsSync)
+const MAX_COMMAND_OUTPUT_BYTES = 1024 * 1024
+const MAX_PACKAGE_JSON_BYTES = 1024 * 1024
 const UI_KIT_PACKAGE = "@techsio/ui-kit"
 
-export function isUiKitSourceRepo(cwd) {
+/**
+ * @param {unknown} file - Candidate file path.
+ * @param {unknown} maxBytes - Maximum accepted UTF-8 bytes.
+ * @returns {string} Bounded file contents.
+ */
+export const readBoundedTextFile = (file, maxBytes) => {
+  const invalidFile =
+    typeof file !== "string" || file === "" || file.includes("\0")
+  const invalidLimitType =
+    typeof maxBytes !== "number" || !Number.isSafeInteger(maxBytes)
+  const invalidLimitRange =
+    typeof maxBytes === "number" &&
+    (maxBytes < 1 || maxBytes > 100 * 1024 * 1024)
+  if (invalidFile || invalidLimitType || invalidLimitRange) {
+    throw new TypeError("A valid path and bounded byte limit are required.")
+  }
+
+  const descriptor = openSync(file, "r")
+  try {
+    const buffer = Buffer.alloc(maxBytes + 1)
+    let bytesRead = 0
+    while (bytesRead < buffer.length) {
+      const chunkSize = readSync(
+        descriptor,
+        buffer,
+        bytesRead,
+        buffer.length - bytesRead,
+        bytesRead,
+      )
+      if (chunkSize === 0) {
+        break
+      }
+      bytesRead += chunkSize
+    }
+    if (bytesRead > maxBytes) {
+      throw new Error(`Refusing to read oversized file: ${file}`)
+    }
+    return buffer.subarray(0, bytesRead).toString("utf-8")
+  } finally {
+    closeSync(descriptor)
+  }
+}
+
+/**
+ * @param {unknown} value - Candidate JSON value.
+ * @returns {value is Record<string, unknown>} Whether the value is a record.
+ */
+const isRecord = (value) =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+/**
+ * @param {unknown} value - Parsed package metadata.
+ * @returns {boolean} Whether metadata belongs to the UI kit.
+ */
+const hasUiKitPackageName = (value) =>
+  isRecord(value) && value.name === UI_KIT_PACKAGE
+
+/** @param {unknown} cwd - Candidate path inside a worktree. */
+export const isUiKitSourceRepo = (cwd) => {
+  if (
+    GIT_EXECUTABLE === undefined ||
+    typeof cwd !== "string" ||
+    cwd === "" ||
+    cwd.includes("\0")
+  ) {
+    return false
+  }
+
   let topLevel
   try {
-    topLevel = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    topLevel = execFileSync(GIT_EXECUTABLE, ["rev-parse", "--show-toplevel"], {
       cwd,
       encoding: "utf-8",
+      maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
       stdio: ["ignore", "pipe", "ignore"],
     }).trim()
   } catch {
-    return false // not a git worktree (or bare) — nothing to guard
+    // Not a git worktree (or bare), so there is nothing to guard.
+    return false
   }
+  if (topLevel === "" || topLevel.includes("\0")) {
+    return false
+  }
+
   try {
-    const pkg = JSON.parse(
-      readFileSync(join(topLevel, "libs", "ui", "package.json"), "utf-8"),
+    const packagePath = path.join(topLevel, "libs", "ui", "package.json")
+    return hasUiKitPackageName(
+      JSON.parse(readBoundedTextFile(packagePath, MAX_PACKAGE_JSON_BYTES)),
     )
-    return pkg?.name === UI_KIT_PACKAGE
   } catch {
-    return false // no libs/ui/package.json, unreadable, or not the ui-kit package
+    // No readable, valid libs/ui/package.json means this is not the source repo.
+    return false
   }
 }
