@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../../../../../../../src/api/admin/order-expedition/validators"
@@ -8,45 +9,50 @@ vi.mock(import("@medusajs/framework/utils"), () => ({
     QUERY: "query",
   },
   MedusaError: class MedusaError extends Error {
-    static Types = {
+    static readonly Types = {
       INVALID_DATA: "invalid_data",
     }
 
     constructor(_type: string, message: string) {
       super(message)
+      this.name = "MedusaError"
     }
   },
 }))
 
 const { mockAddPage, mockDrawText, mockEmbedFont, mockPage, mockSave } =
   vi.hoisted(() => {
-    const drawText = vi.fn()
+    const drawText = vi.fn<(text: string, options?: unknown) => void>()
     const page = {
-      drawImage: vi.fn(),
-      drawLine: vi.fn(),
-      drawRectangle: vi.fn(),
+      drawImage: vi.fn<(...args: unknown[]) => void>(),
+      drawLine: vi.fn<(...args: unknown[]) => void>(),
+      drawRectangle: vi.fn<(...args: unknown[]) => void>(),
       drawText,
     }
 
     return {
-      mockAddPage: vi.fn(() => page),
+      mockAddPage: vi.fn<() => typeof page>(() => page),
       mockDrawText: drawText,
-      mockEmbedFont: vi.fn().mockResolvedValue({
-        widthOfTextAtSize: (text: string) => text.length,
-      }),
+      mockEmbedFont: vi
+        .fn<() => Promise<{ widthOfTextAtSize: (text: string) => number }>>()
+        .mockResolvedValue({
+          widthOfTextAtSize: (text: string) => text.length,
+        }),
       mockPage: page,
-      mockSave: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+      mockSave: vi
+        .fn<() => Promise<Uint8Array>>()
+        .mockResolvedValue(new Uint8Array([1, 2, 3])),
     }
   })
 
 vi.mock(import("pdf-lib"), () => ({
   PDFDocument: {
-    create: vi.fn().mockResolvedValue({
+    create: vi.fn<() => Promise<unknown>>().mockResolvedValue({
       addPage: mockAddPage,
       embedFont: mockEmbedFont,
-      getPageCount: vi.fn(() => 1),
-      getPages: vi.fn(() => [mockPage]),
-      registerFontkit: vi.fn(),
+      getPageCount: vi.fn<() => number>(() => 1),
+      getPages: vi.fn<() => (typeof mockPage)[]>(() => [mockPage]),
+      registerFontkit: vi.fn<(...args: unknown[]) => void>(),
       save: mockSave,
     }),
   },
@@ -57,59 +63,60 @@ vi.mock(import("pdf-lib"), () => ({
     Helvetica: "Helvetica",
     HelveticaBold: "HelveticaBold",
   },
-  rgb: vi.fn(() => ({})),
+  rgb: vi.fn<(...args: number[]) => Record<string, never>>(() => ({})),
 }))
 
-/**
- * Asserts that a plain mock object contains the given keys before narrowing
- * it to a framework type. Building the mock as `unknown` first (instead of
- * the target type) avoids requiring every property of the huge Node
- * request/response interfaces while still validating the shape the route
- * handler actually reads from at runtime.
- */
-function assertMockShape<T>(
-  candidate: unknown,
-  requiredKeys: readonly string[],
-): asserts candidate is T {
-  if (typeof candidate !== "object" || candidate === null) {
-    throw new TypeError("Expected a mock object")
-  }
+const PRINTABLE_ASCII_REGEX = /^[\u0020-\u007E]*$/u
 
-  for (const key of requiredKeys) {
-    if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
-    }
-  }
-}
-
+type Graph = () => Promise<unknown>
+type MockPdfRequest = MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>
 type MockPdfResponse = MedusaResponse & {
-  send: ReturnType<typeof vi.fn>
-  set: ReturnType<typeof vi.fn>
+  send: ReturnType<typeof vi.fn<(body: Buffer) => void>>
+  set: ReturnType<typeof vi.fn<(headers: Record<string, string>) => void>>
 }
+
+const isMockPdfResponse = (candidate: unknown): candidate is MockPdfResponse =>
+  isRecord(candidate) &&
+  typeof candidate["send"] === "function" &&
+  typeof candidate["set"] === "function"
 
 const createMockResponse = (): MockPdfResponse => {
   const candidate: unknown = {
-    send: vi.fn().mockReturnThis(),
-    set: vi.fn().mockReturnThis(),
+    send: vi.fn<(body: Buffer) => void>(),
+    set: vi.fn<(headers: Record<string, string>) => void>(),
   }
-  assertMockShape<MockPdfResponse>(candidate, ["send", "set"])
+  if (!isMockPdfResponse(candidate)) {
+    throw new TypeError("Invalid mocked PDF response")
+  }
+
   return candidate
 }
 
+const isMockPdfRequest = (candidate: unknown): candidate is MockPdfRequest => {
+  if (!isRecord(candidate) || !isRecord(candidate["scope"])) {
+    return false
+  }
+  if (typeof candidate["scope"]["resolve"] !== "function") {
+    return false
+  }
+  const { validatedBody } = candidate
+  return isRecord(validatedBody) && Array.isArray(validatedBody["order_ids"])
+}
+
 const createMockRequest = (
-  validatedBody: Record<string, unknown>,
-  graph: ReturnType<typeof vi.fn>,
-): MedusaRequest<PostAdminOrderExpeditionPdfSchemaType> => {
+  validatedBody: PostAdminOrderExpeditionPdfSchemaType,
+  graph: ReturnType<typeof vi.fn<Graph>>,
+): MockPdfRequest => {
   const candidate: unknown = {
     scope: {
-      resolve: vi.fn(() => ({ graph })),
+      resolve: vi.fn<(key: string) => unknown>(() => ({ graph })),
     },
     validatedBody,
   }
-  assertMockShape<MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>>(
-    candidate,
-    ["scope", "validatedBody"],
-  )
+  if (!isMockPdfRequest(candidate)) {
+    throw new TypeError("Invalid mocked PDF request")
+  }
+
   return candidate
 }
 
@@ -122,7 +129,7 @@ describe("POST /admin/order-expedition/pdf", () => {
   it("fails before generating a PDF when any selected order is missing", async () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/pdf/route")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [{ display_id: 1001, id: "order_1" }],
     })
     const req = createMockRequest(
@@ -143,7 +150,7 @@ describe("POST /admin/order-expedition/pdf", () => {
   it("generates one PDF for exactly the selected orders", async () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/pdf/route")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           customer: { first_name: "Jana", last_name: "Novakova" },
@@ -167,13 +174,15 @@ describe("POST /admin/order-expedition/pdf", () => {
       }),
     )
     expect(res.send).toHaveBeenCalledWith(Buffer.from([1, 2, 3]))
-    expect(mockDrawText).toHaveBeenCalledWith()
+    expect(
+      mockDrawText.mock.calls.some(([text]) => text === "Tea"),
+    ).toBeTruthy()
   })
 
   it("replaces unsupported Helvetica characters before drawing text", async () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/pdf/route")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           customer: { first_name: "Łukasz", last_name: "Őster 😀" },
@@ -197,7 +206,7 @@ describe("POST /admin/order-expedition/pdf", () => {
 
     await POST(req, res)
 
-    const drawnTexts = mockDrawText.mock.calls.map(([text]) => text as string)
+    const drawnTexts = mockDrawText.mock.calls.map(([text]) => text)
 
     expect(
       drawnTexts.some((text) => text.includes("Lukasz Oster ?")),
@@ -208,12 +217,7 @@ describe("POST /admin/order-expedition/pdf", () => {
     expect(drawnTexts.some((text) => text.includes("Kava Lodz ?"))).toBeTruthy()
     expect(drawnTexts.some((text) => text.includes("2 ks"))).toBeTruthy()
     expect(
-      drawnTexts.every((text) =>
-        [...text].every((char) => {
-          const code = char.codePointAt(0)
-          return code >= 32 && code <= 126
-        }),
-      ),
+      drawnTexts.every((text) => PRINTABLE_ASCII_REGEX.test(text)),
     ).toBeTruthy()
   })
 })

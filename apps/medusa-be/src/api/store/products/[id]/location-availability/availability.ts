@@ -34,80 +34,31 @@ export interface ProductLocationAvailability {
   variants: VariantLocationAvailability[]
 }
 
-export function buildProductLocationAvailability({
-  inventoryItemLinks,
-  inventoryLevels,
-  productId,
-  stockLocations,
-  variantIds,
-}: {
-  inventoryItemLinks: VariantInventoryItemLink[]
-  inventoryLevels: InventoryLevel[]
-  productId: string
-  stockLocations: StockLocationRecord[]
-  variantIds: string[]
-}): ProductLocationAvailability {
-  const levelsByInventoryItemId = groupBy(
-    inventoryLevels,
-    (level) => level.inventory_item_id,
-  )
-  const linksByVariantId = groupBy(
-    inventoryItemLinks,
-    (link) => link.variant_id,
-  )
+const groupBy = <T>(
+  values: T[],
+  getKey: (value: T) => string,
+): Map<string, T[]> => {
+  const grouped = new Map<string, T[]>()
 
-  return {
-    product_id: productId,
-    variants: variantIds.map((variantId) => ({
-      location_availability: buildVariantLocationAvailability(
-        linksByVariantId.get(variantId) ?? [],
-        levelsByInventoryItemId,
-        stockLocations,
-      ),
-      variant_id: variantId,
-    })),
-  }
-}
+  for (const value of values) {
+    const key = getKey(value)
+    const group = grouped.get(key)
 
-function buildVariantLocationAvailability(
-  links: VariantInventoryItemLink[],
-  levelsByInventoryItemId: Map<string, InventoryLevel[]>,
-  stockLocations: StockLocationRecord[],
-): LocationAvailability[] {
-  const quantitiesByLocation = new Map(
-    stockLocations.map((location) => [location.id, [] as number[]] as const),
-  )
-
-  for (const link of links) {
-    const availableByLocation = buildAvailableQuantityByLocation(
-      link,
-      levelsByInventoryItemId.get(link.inventory_item_id) ?? [],
-      stockLocations,
-    )
-
-    for (const location of stockLocations) {
-      quantitiesByLocation
-        .get(location.id)
-        ?.push(availableByLocation.get(location.id) ?? 0)
+    if (group) {
+      group.push(value)
+    } else {
+      grouped.set(key, [value])
     }
   }
 
-  return stockLocations.map((location) => {
-    const quantities = quantitiesByLocation.get(location.id) ?? []
-
-    return {
-      available_quantity: quantities.length > 0 ? Math.min(...quantities) : 0,
-      location_id: location.id,
-      location_name: location.name,
-    }
-  })
+  return grouped
 }
 
-function buildAvailableQuantityByLocation(
+const buildAvailableQuantityByLocation = (
   link: VariantInventoryItemLink,
   levels: InventoryLevel[],
   stockLocations: StockLocationRecord[],
-): Map<string, number> {
+): Map<string, number> => {
   const availableByLocation = new Map<string, number>(
     stockLocations.map((location) => [location.id, 0] as const),
   )
@@ -140,22 +91,71 @@ function buildAvailableQuantityByLocation(
   return availableByLocation
 }
 
-function groupBy<T>(
-  values: T[],
-  getKey: (value: T) => string,
-): Map<string, T[]> {
-  const grouped = new Map<string, T[]>()
+const buildVariantLocationAvailability = (
+  links: VariantInventoryItemLink[],
+  levelsByInventoryItemId: Map<string, InventoryLevel[]>,
+  stockLocations: StockLocationRecord[],
+): LocationAvailability[] => {
+  const quantitiesByLocation = new Map(
+    stockLocations.map((location) => [location.id, [] as number[]] as const),
+  )
 
-  for (const value of values) {
-    const key = getKey(value)
-    const group = grouped.get(key)
+  for (const link of links) {
+    const availableByLocation = buildAvailableQuantityByLocation(
+      link,
+      levelsByInventoryItemId.get(link.inventory_item_id) ?? [],
+      stockLocations,
+    )
 
-    if (group) {
-      group.push(value)
-    } else {
-      grouped.set(key, [value])
+    for (const location of stockLocations) {
+      quantitiesByLocation
+        .get(location.id)
+        ?.push(availableByLocation.get(location.id) ?? 0)
     }
   }
 
-  return grouped
+  return stockLocations.map((location) => {
+    const quantities = quantitiesByLocation.get(location.id) ?? []
+
+    return {
+      available_quantity: quantities.length > 0 ? Math.min(...quantities) : 0,
+      location_id: location.id,
+      location_name: location.name,
+    }
+  })
+}
+
+export const buildProductLocationAvailability = ({
+  inventoryItemLinks,
+  inventoryLevels,
+  productId,
+  stockLocations,
+  variantIds,
+}: {
+  inventoryItemLinks: VariantInventoryItemLink[]
+  inventoryLevels: InventoryLevel[]
+  productId: string
+  stockLocations: StockLocationRecord[]
+  variantIds: string[]
+}): ProductLocationAvailability => {
+  const levelsByInventoryItemId = groupBy(
+    inventoryLevels,
+    (level) => level.inventory_item_id,
+  )
+  const linksByVariantId = groupBy(
+    inventoryItemLinks,
+    (link) => link.variant_id,
+  )
+
+  return {
+    product_id: productId,
+    variants: variantIds.map((variantId) => ({
+      location_availability: buildVariantLocationAvailability(
+        linksByVariantId.get(variantId) ?? [],
+        levelsByInventoryItemId,
+        stockLocations,
+      ),
+      variant_id: variantId,
+    })),
+  }
 }

@@ -20,13 +20,17 @@ const MEDUSA_PROCESSABLE_WEBHOOK_ACTIONS = new Set<PaymentActions>([
   PaymentActions.SUCCESSFUL,
 ])
 
+const PAYKIT_PAYMENT_MARKER_FIELDS = [
+  "amount",
+  "amount_paid",
+  "status",
+  "state",
+] as const
+
 const isPaykitPayment = (value: unknown): value is PaykitPayment =>
   isRecord(value) &&
   (typeof value["id"] === "string" ||
-    "amount" in value ||
-    "amount_paid" in value ||
-    "status" in value ||
-    "state" in value)
+    PAYKIT_PAYMENT_MARKER_FIELDS.some((field) => field in value))
 
 interface SerializableBigNumber {
   toJSON: () => unknown
@@ -46,7 +50,7 @@ const toBigNumberValue = (value: unknown): BigNumberValue | undefined => {
   }
 
   if (!isSerializableBigNumber(value)) {
-    return
+    return undefined
   }
 
   const serialized = value.toJSON()
@@ -88,12 +92,13 @@ export const getPaymentStatusValue = (payment: PaykitPayment): unknown =>
   payment.status ?? payment.state
 
 const getPaymentUrl = (payment: PaykitPayment): string | undefined =>
-  payment.payment_url ??
-  payment.paymentUrl ??
-  payment.checkout_url ??
-  payment.gw_url ??
-  payment.url ??
-  undefined
+  [
+    payment.payment_url,
+    payment.paymentUrl,
+    payment.checkout_url,
+    payment.gw_url,
+    payment.url,
+  ].find((value): value is string => typeof value === "string")
 
 export const toPaykitPaymentData = (
   payment: PaykitPayment,
@@ -103,7 +108,7 @@ export const toPaykitPaymentData = (
   return {
     ...payment,
     id: payment.id,
-    ...(paymentUrl ? { payment_url: paymentUrl } : {}),
+    ...(paymentUrl === undefined ? {} : { payment_url: paymentUrl }),
   }
 }
 
@@ -151,7 +156,20 @@ const getWebhookSessionId = (
     return event.metadata["session_id"]
   }
 
-  return
+  return undefined
+}
+
+const normalizeWebhookAmount = (
+  amount: unknown,
+): BigNumberValue | undefined => {
+  if (isRecord(amount)) {
+    const { value } = amount
+    if (typeof value === "number" || typeof value === "string") {
+      return value
+    }
+  }
+
+  return toBigNumberValue(amount)
 }
 
 const getWebhookAmount = (
@@ -160,26 +178,21 @@ const getWebhookAmount = (
 ): BigNumberValue | undefined =>
   normalizeWebhookAmount(event.amount ?? payment.amount ?? payment.amount_paid)
 
-const normalizeWebhookAmount = (
-  amount: unknown,
-): BigNumberValue | undefined => {
-  if (
-    typeof amount === "object" &&
-    amount !== null &&
-    "value" in amount &&
-    (typeof amount.value === "number" || typeof amount.value === "string")
-  ) {
-    return amount.value
-  }
-
-  return toBigNumberValue(amount)
-}
+const PAYMENT_ACTION_BY_SESSION_STATUS = {
+  [PaymentSessionStatus.AUTHORIZED]: PaymentActions.AUTHORIZED,
+  [PaymentSessionStatus.CANCELED]: PaymentActions.CANCELED,
+  [PaymentSessionStatus.CAPTURED]: PaymentActions.SUCCESSFUL,
+  [PaymentSessionStatus.ERROR]: PaymentActions.FAILED,
+  [PaymentSessionStatus.PENDING]: PaymentActions.PENDING,
+  [PaymentSessionStatus.PENDING_AUTHORIZATION]: PaymentActions.PENDING,
+  [PaymentSessionStatus.REQUIRES_MORE]: PaymentActions.REQUIRES_MORE,
+} satisfies Record<PaymentSessionStatus, PaymentActions>
 
 const mapPaykitWebhookAction = (
   event: PaykitWebhookEvent,
   payment: PaykitPayment,
 ): PaymentActions => {
-  if (event.is_raw) {
+  if (event.is_raw === true) {
     return PaymentActions.NOT_SUPPORTED
   }
 
@@ -203,59 +216,46 @@ const mapPaykitWebhookAction = (
 
   const medusaStatus = mapPaykitStatusToMedusa(status)
 
-  switch (event.type) {
-    case "invoice.generated": {
-      return PaymentActions.SUCCESSFUL
-    }
-    case "payment.created":
-    case "payment.updated": {
-      switch (medusaStatus) {
-        case PaymentSessionStatus.REQUIRES_MORE:
-          return PaymentActions.REQUIRES_MORE
-        case PaymentSessionStatus.AUTHORIZED:
-          return PaymentActions.AUTHORIZED
-        case PaymentSessionStatus.CAPTURED:
-          return PaymentActions.SUCCESSFUL
-        case PaymentSessionStatus.CANCELED:
-          return PaymentActions.CANCELED
-        case PaymentSessionStatus.ERROR:
-          return PaymentActions.FAILED
-        default:
-          return PaymentActions.PENDING
-      }
-    }
-    default: {
-      return PaymentActions.NOT_SUPPORTED
-    }
+  if (event.type === "invoice.generated") {
+    return PaymentActions.SUCCESSFUL
   }
+
+  if (event.type === "payment.created" || event.type === "payment.updated") {
+    return PAYMENT_ACTION_BY_SESSION_STATUS[medusaStatus]
+  }
+
+  return PaymentActions.NOT_SUPPORTED
 }
 
 export const mapPaykitWebhookEvent = (
   event?: PaykitWebhookEvent,
   options: PaykitWebhookMappingOptions = {},
 ): WebhookActionResult => {
-  if (!event) {
+  if (event === undefined) {
     return { action: PaymentActions.NOT_SUPPORTED }
   }
 
   const payment = getWebhookPayment(event)
 
-  if (!payment) {
+  if (payment === null) {
     return { action: PaymentActions.NOT_SUPPORTED }
   }
 
   const sessionId = getWebhookSessionId(event, payment)
   const rawAmount = getWebhookAmount(event, payment)
-  const amount = options.normalizeAmount
-    ? options.normalizeAmount(rawAmount, payment, event)
-    : rawAmount
+  const amount =
+    options.normalizeAmount === undefined
+      ? rawAmount
+      : options.normalizeAmount(rawAmount, payment, event)
   const action = mapPaykitWebhookAction(event, payment)
   const canProcessInMedusa =
-    MEDUSA_PROCESSABLE_WEBHOOK_ACTIONS.has(action) && sessionId
+    MEDUSA_PROCESSABLE_WEBHOOK_ACTIONS.has(action) &&
+    sessionId !== undefined &&
+    sessionId.length > 0
 
   if (
     event.type === "invoice.generated" &&
-    (!sessionId || amount === undefined)
+    (sessionId === undefined || sessionId.length === 0 || amount === undefined)
   ) {
     return { action: PaymentActions.NOT_SUPPORTED }
   }

@@ -6,10 +6,10 @@ import type {
 import { deleteProductListItemWorkflow } from "../../../../../../workflows/product-list/workflows/delete-product-list-item"
 import { StoreDeleteProductListItemParamsSchema } from "../../../validators"
 
-export async function DELETE(
+const deleteProductListItem = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const { id: listId, item_id: itemId } =
     StoreDeleteProductListItemParamsSchema.parse(req.params)
 
@@ -23,3 +23,5 @@ export async function DELETE(
 
   res.status(200).json({ deleted: true, id: itemId })
 }
+
+export { deleteProductListItem as DELETE }

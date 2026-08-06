@@ -3,12 +3,12 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 
-import { permanentlyDeleteProductAttributeOptionsWorkflow } from "../../../../../../workflows/product-attribute"
+import { permanentlyDeleteProductAttributeOptionsWorkflow } from "../../../../../../workflows/product-attribute/workflows/options"
 
-export async function DELETE(
+const deleteProductAttributeOption = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const { result } = await permanentlyDeleteProductAttributeOptionsWorkflow(
     req.scope,
   ).run({
@@ -17,3 +17,5 @@ export async function DELETE(
 
   res.json(result)
 }
+
+export { deleteProductAttributeOption as DELETE }

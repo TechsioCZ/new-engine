@@ -10,6 +10,7 @@ import { getQueuedWorkflowRunner } from "../utils/workflow-queue-registry"
 const JOB_LOCK_KEY = "workflow-queue-runner-job"
 const JOB_LOCK_TIMEOUT = 60
 const DEFAULT_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE = 500
+const MAX_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE = 5000
 const DEFAULT_WORKFLOW_QUEUE_RUNNER_SCHEDULE = "0 * * * *"
 
 interface WorkflowQueueItemDTO {
@@ -26,29 +27,68 @@ type WorkflowQueueService = WorkflowQueueModuleService & {
   ) => Promise<WorkflowQueueItemDTO[]>
 }
 
-function getWorkflowQueueRunnerBatchSize() {
+const getWorkflowQueueRunnerBatchSize = () => {
   const configuredBatchSize = Number(
     process.env["WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"],
   )
 
   if (Number.isInteger(configuredBatchSize) && configuredBatchSize > 0) {
-    return configuredBatchSize
+    return Math.min(configuredBatchSize, MAX_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE)
   }
 
   return DEFAULT_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE
 }
 
-function withQueueItemId(item: WorkflowQueueItemDTO): Record<string, unknown> {
-  return {
-    ...item.arguments,
-    queue_item_id: item.id,
-  }
-}
+const withQueueItemId = (
+  item: WorkflowQueueItemDTO,
+): Record<string, unknown> => ({
+  ...item.arguments,
+  queue_item_id: item.id,
+})
 
-async function executeWorkflowQueueRunner(
+const processDueItems = async (
+  dueItems: WorkflowQueueItemDTO[],
+  index: number,
   container: MedusaContainer,
   logger: Logger,
-) {
+): Promise<number> => {
+  if (index >= dueItems.length) {
+    return 0
+  }
+
+  const item = dueItems[index]
+  if (item === undefined) {
+    return 0
+  }
+  const runner = getQueuedWorkflowRunner(item.workflow)
+  let processedCurrentItem = 0
+
+  if (runner === undefined) {
+    logger.error(
+      `Workflow Queue Runner: Unknown workflow ${item.workflow} for queue item ${item.id}`,
+    )
+  } else {
+    try {
+      await runner(container, withQueueItemId(item))
+      processedCurrentItem = 1
+    } catch (error) {
+      logger.error(
+        `Workflow Queue Runner: Failed queue item ${item.id} (${item.workflow})`,
+        error instanceof Error ? error : new Error(String(error)),
+      )
+    }
+  }
+
+  return (
+    processedCurrentItem +
+    (await processDueItems(dueItems, index + 1, container, logger))
+  )
+}
+
+const executeWorkflowQueueRunner = async (
+  container: MedusaContainer,
+  logger: Logger,
+) => {
   const workflowQueueService = container.resolve<WorkflowQueueService>(
     WORKFLOW_QUEUE_MODULE,
   )
@@ -67,42 +107,21 @@ async function executeWorkflowQueueRunner(
     },
   )
 
-  if (!dueItems.length) {
+  if (dueItems.length === 0) {
     logger.info("Workflow Queue Runner: No due items found")
     return
   }
 
   logger.info(`Workflow Queue Runner: Found ${dueItems.length} due items`)
 
-  let processedCount = 0
-  for (const item of dueItems) {
-    const runner = getQueuedWorkflowRunner(item.workflow)
-    if (!runner) {
-      logger.error(
-        `Workflow Queue Runner: Unknown workflow ${item.workflow} for queue item ${item.id}`,
-      )
-      continue
-    }
-
-    try {
-      await runner(container, withQueueItemId(item))
-      processedCount += 1
-    } catch (error) {
-      logger.error(
-        `Workflow Queue Runner: Failed queue item ${item.id} (${item.workflow})`,
-        error instanceof Error ? error : new Error(String(error)),
-      )
-    }
-  }
+  const processedCount = await processDueItems(dueItems, 0, container, logger)
 
   logger.info(
     `Workflow Queue Runner: Completed, processed ${processedCount}/${dueItems.length} due items`,
   )
 }
 
-export default async function workflowQueueRunnerJob(
-  container: MedusaContainer,
-) {
+const workflowQueueRunnerJob = async (container: MedusaContainer) => {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
@@ -121,6 +140,8 @@ export default async function workflowQueueRunnerJob(
     )
   }
 }
+
+export default workflowQueueRunnerJob
 
 export const config = {
   name: "workflow-queue-runner",

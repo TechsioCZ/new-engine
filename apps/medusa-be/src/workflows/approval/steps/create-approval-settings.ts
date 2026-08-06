@@ -1,11 +1,18 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { APPROVAL_MODULE } from "../../../modules/approval"
-import type { IApprovalModuleService, ModuleCompany } from "../../../types"
+import type {
+  IApprovalModuleService,
+  ModuleApprovalSettings,
+  ModuleCompany,
+} from "../../../types"
 
 export const createApprovalSettingsStep = createStep(
   "create-approval-settings",
-  async (input: ModuleCompany[], { container }) => {
+  async (
+    input: ModuleCompany[],
+    { container },
+  ): Promise<StepResponse<ModuleApprovalSettings[], string[]>> => {
     const approvalModuleService =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
@@ -23,7 +30,7 @@ export const createApprovalSettingsStep = createStep(
     )
   },
   async (settingIds: string[] | undefined, { container }) => {
-    if (!settingIds) {
+    if (settingIds === undefined) {
       return
     }
 

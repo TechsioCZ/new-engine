@@ -10,7 +10,7 @@ export interface DeleteWorkflowQueueItemStepInput {
 export const deleteWorkflowQueueItemStep = createStep(
   "delete-workflow-queue-item",
   async (input: DeleteWorkflowQueueItemStepInput, { container }) => {
-    if (!input.queue_item_id) {
+    if (input.queue_item_id === undefined || input.queue_item_id.length === 0) {
       return new StepResponse({ deleted: false })
     }
 

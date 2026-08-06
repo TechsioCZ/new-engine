@@ -6,26 +6,25 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import type { AdminGetQuoteParamsType } from "../validators"
 
-export const GET = async (
+const getQuote = async (
   req: AuthenticatedMedusaRequest<AdminGetQuoteParamsType>,
   res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
 
-  if (!id) {
+  if (id === undefined || id.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "The id path parameter is required",
     )
   }
 
-  const {
-    data: [quote],
-  } = await query.graph(
+  const queryResult: unknown = await query.graph(
     {
       entity: "quote",
       fields: req.queryConfig.fields,
@@ -33,6 +32,15 @@ export const GET = async (
     },
     { throwIfKeyNotFound: true },
   )
+  if (!isRecord(queryResult) || !Array.isArray(queryResult["data"])) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Invalid quote graph response for id "${id}"`,
+    )
+  }
+  const quote: unknown = queryResult["data"][0]
 
   res.json({ quote })
 }
+
+export { getQuote as GET }

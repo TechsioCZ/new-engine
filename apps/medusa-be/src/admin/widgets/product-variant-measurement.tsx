@@ -12,7 +12,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
@@ -44,7 +44,7 @@ const ProductVariantMeasurementContent = ({
 }) => {
   const { t } = useTranslation("measurementUnits")
 
-  if (error) {
+  if (error !== null && error !== undefined) {
     return (
       <Text className="text-ui-fg-error" size="small">
         {t("widget.variantLoadFailed")}
@@ -56,7 +56,7 @@ const ProductVariantMeasurementContent = ({
     return <Text size="small">{t("status.loading")}</Text>
   }
 
-  if (!data?.measurement) {
+  if (data?.measurement === undefined || data.measurement === null) {
     return (
       <Text className="text-ui-fg-subtle" size="small">
         {t("widget.variantRequiresProductUnit")}
@@ -64,7 +64,10 @@ const ProductVariantMeasurementContent = ({
     )
   }
 
-  if (!data.variant_measurement) {
+  if (
+    data.variant_measurement === undefined ||
+    data.variant_measurement === null
+  ) {
     return (
       <Text className="text-ui-fg-subtle" size="small">
         {t("widget.variantEmpty")}
@@ -72,7 +75,9 @@ const ProductVariantMeasurementContent = ({
     )
   }
 
-  const unitIsDeleted = Boolean(data.measurement.unit.deleted_at)
+  const unitIsDeleted =
+    data.measurement.unit.deleted_at !== null &&
+    data.measurement.unit.deleted_at !== undefined
 
   return (
     <div>
@@ -107,17 +112,11 @@ const ProductVariantMeasurementDrawer = ({
 }) => {
   const { t } = useTranslation("measurementUnits")
   const queryClient = useQueryClient()
-  const [quantity, setQuantity] = useState("")
+  const [quantity, setQuantity] = useState(
+    () => data?.variant_measurement?.product_unit_quantity.toString() ?? "",
+  )
   const quantityNumber = Number(quantity)
   const isValidQuantity = Number.isFinite(quantityNumber) && quantityNumber > 0
-
-  useEffect(() => {
-    if (open) {
-      setQuantity(
-        data?.variant_measurement?.product_unit_quantity.toString() ?? "",
-      )
-    }
-  }, [data?.variant_measurement?.product_unit_quantity, open])
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({
@@ -135,7 +134,7 @@ const ProductVariantMeasurementDrawer = ({
 
   const saveMutation = useMutation({
     mutationFn: async () =>
-      setProductVariantMeasurement(productId, productVariantId, {
+      await setProductVariantMeasurement(productId, productVariantId, {
         product_unit_quantity: quantityNumber,
       }),
     onError: (error) => {
@@ -152,7 +151,7 @@ const ProductVariantMeasurementDrawer = ({
 
   const deleteMutation = useMutation({
     mutationFn: async () =>
-      deleteProductVariantMeasurement(productId, productVariantId),
+      await deleteProductVariantMeasurement(productId, productVariantId),
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("errors.clearFailed"),
@@ -165,6 +164,12 @@ const ProductVariantMeasurementDrawer = ({
     },
   })
 
+  let canSave = false
+  if (data?.measurement !== undefined && data.measurement !== null) {
+    const { deleted_at: deletedAt } = data.measurement.unit
+    canSave = (deletedAt === null || deletedAt === undefined) && isValidQuantity
+  }
+
   return (
     <Drawer onOpenChange={onOpenChange} open={open}>
       <Drawer.Content>
@@ -172,7 +177,11 @@ const ProductVariantMeasurementDrawer = ({
           <Drawer.Title>{t("widget.variantManageTitle")}</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-4 overflow-y-auto">
-          {data?.measurement ? (
+          {data?.measurement === undefined || data.measurement === null ? (
+            <Text className="text-ui-fg-subtle" size="small">
+              {t("widget.variantRequiresProductUnit")}
+            </Text>
+          ) : (
             <div className="flex flex-col gap-2">
               <Label htmlFor="variant-measurement-quantity">
                 {t("fields.quantity")}
@@ -190,27 +199,28 @@ const ProductVariantMeasurementDrawer = ({
               <Text className="text-ui-fg-subtle" size="small">
                 {data.measurement.unit.name} ({data.measurement.unit.symbol})
               </Text>
-              {quantity && !isValidQuantity ? (
+              {quantity.length > 0 && !isValidQuantity ? (
                 <Text className="text-ui-fg-error" size="small">
                   {t("validation.quantityPositive")}
                 </Text>
               ) : null}
-              {data.measurement.unit.deleted_at ? (
+              {data.measurement.unit.deleted_at !== null &&
+              data.measurement.unit.deleted_at !== undefined ? (
                 <Text className="text-ui-fg-error" size="small">
                   {t("widget.variantDeletedUnit")}
                 </Text>
               ) : null}
             </div>
-          ) : (
-            <Text className="text-ui-fg-subtle" size="small">
-              {t("widget.variantRequiresProductUnit")}
-            </Text>
           )}
         </Drawer.Body>
         <Drawer.Footer>
           <div className="flex justify-between gap-2">
             <Button
-              disabled={!data?.variant_measurement || deleteMutation.isPending}
+              disabled={
+                data?.variant_measurement === undefined ||
+                data.variant_measurement === null ||
+                deleteMutation.isPending
+              }
               isLoading={deleteMutation.isPending}
               onClick={() => {
                 deleteMutation.mutate()
@@ -233,13 +243,7 @@ const ProductVariantMeasurementDrawer = ({
                 {t("actions.cancel")}
               </Button>
               <Button
-                disabled={
-                  !(
-                    data?.measurement &&
-                    !data.measurement.unit.deleted_at &&
-                    isValidQuantity
-                  )
-                }
+                disabled={!canSave}
                 isLoading={saveMutation.isPending}
                 onClick={() => {
                   saveMutation.mutate()
@@ -265,15 +269,22 @@ const ProductVariantMeasurementWidget = ({
   const productId = variant?.product_id ?? params["id"]
   const productVariantId = variant?.id ?? params["variant_id"]
   const [open, setOpen] = useState(false)
+  const hasProductId =
+    productId !== undefined && productId !== null && productId.length > 0
+  const hasProductVariantId =
+    productVariantId !== undefined && productVariantId.length > 0
 
   const { data, error, isLoading } = useQuery({
-    enabled: !!productId && !!productVariantId,
+    enabled: hasProductId && hasProductVariantId,
     queryFn: async () => {
-      if (!(productId && productVariantId)) {
+      if (!hasProductId || !hasProductVariantId) {
         throw new Error("Product and variant ids are required")
       }
 
-      return retrieveProductVariantMeasurement(productId, productVariantId)
+      return await retrieveProductVariantMeasurement(
+        productId,
+        productVariantId,
+      )
     },
     queryKey: measurementUnitQueryKeys.productVariantMeasurement(
       productId,
@@ -281,7 +292,7 @@ const ProductVariantMeasurementWidget = ({
     ),
   })
 
-  if (!(productId && productVariantId)) {
+  if (!hasProductId || !hasProductVariantId) {
     return null
   }
 
@@ -313,6 +324,7 @@ const ProductVariantMeasurementWidget = ({
       </Container>
       <ProductVariantMeasurementDrawer
         data={data}
+        key={`${open}:${data?.variant_measurement?.product_unit_quantity ?? ""}`}
         onOpenChange={setOpen}
         open={open}
         productId={productId}

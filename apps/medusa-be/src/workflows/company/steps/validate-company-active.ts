@@ -7,7 +7,10 @@ import type { ICompanyModuleService } from "../../../types"
 export const validateCompanyActiveStep = createStep(
   "validate-company-active",
   async (companyId: string | string[] | undefined, { container }) => {
-    if (!companyId || (Array.isArray(companyId) && !companyId.length)) {
+    if (
+      companyId === undefined ||
+      (Array.isArray(companyId) && companyId.length === 0)
+    ) {
       return new StepResponse(undefined)
     }
 

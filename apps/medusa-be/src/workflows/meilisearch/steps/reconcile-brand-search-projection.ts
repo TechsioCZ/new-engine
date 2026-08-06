@@ -5,6 +5,7 @@ import {
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+import { isRecord } from "@techsio/std/object"
 
 import { BRANDS, MEILISEARCH } from "../"
 import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
@@ -28,10 +29,16 @@ const emptyResult = (): BrandSearchProjectionResult => ({
   products_upserted: 0,
 })
 
-const asSearchDocuments = (records: Record<string, unknown>[]) =>
-  records.filter(
-    (record): record is SearchDocument => typeof record["id"] === "string",
+const asSearchDocuments = (records: unknown): SearchDocument[] => {
+  if (!Array.isArray(records)) {
+    return []
+  }
+
+  return records.filter(
+    (record): record is SearchDocument =>
+      isRecord(record) && typeof record["id"] === "string",
   )
+}
 
 export const reconcileBrandSearchProjection = async (
   input: BrandSearchProjectionTargets,
@@ -40,7 +47,7 @@ export const reconcileBrandSearchProjection = async (
   if (
     !(
       isMeilisearchEnabled() &&
-      (input.brand_ids.length || input.product_ids.length)
+      (input.brand_ids.length > 0 || input.product_ids.length > 0)
     )
   ) {
     return emptyResult()
@@ -50,7 +57,7 @@ export const reconcileBrandSearchProjection = async (
   const meilisearch = container.resolve<MeiliSearchService>(MEILISEARCH)
   const result = emptyResult()
 
-  if (input.brand_ids.length) {
+  if (input.brand_ids.length > 0) {
     const fields = meilisearch.getFieldsForType(BRANDS)
     const indexes = meilisearch.getIndexesByType(BRANDS)
     const { data } = await query.graph({
@@ -74,14 +81,14 @@ export const reconcileBrandSearchProjection = async (
 
     await Promise.all(
       indexes.flatMap((index) => [
-        ...(transformedBrands.length
+        ...(transformedBrands.length > 0
           ? [
               meilisearch.addDocuments(index, transformedBrands, BRANDS, {
                 container,
               }),
             ]
           : []),
-        ...(deletedIds.length
+        ...(deletedIds.length > 0
           ? [meilisearch.deleteDocuments(index, deletedIds)]
           : []),
       ]),
@@ -91,7 +98,7 @@ export const reconcileBrandSearchProjection = async (
     result.brands_deleted = deletedIds.length
   }
 
-  if (input.product_ids.length) {
+  if (input.product_ids.length > 0) {
     const productType = SearchUtils.indexTypes.PRODUCTS
     const fields = meilisearch.getFieldsForType(productType)
     const indexes = meilisearch.getIndexesByType(productType)
@@ -103,9 +110,15 @@ export const reconcileBrandSearchProjection = async (
       },
     })
     const products = asSearchDocuments(data)
-    const indexableProducts = products.filter(
-      (product) => !product["status"] || product["status"] === "published",
-    )
+    const indexableProducts = products.filter((product) => {
+      const { status } = product
+      return (
+        status === undefined ||
+        status === null ||
+        status === "" ||
+        status === "published"
+      )
+    })
     const indexableIds = new Set(indexableProducts.map((product) => product.id))
     const deletedIds = input.product_ids.filter(
       (productId) => !indexableIds.has(productId),
@@ -113,14 +126,14 @@ export const reconcileBrandSearchProjection = async (
 
     await Promise.all(
       indexes.flatMap((index) => [
-        ...(indexableProducts.length
+        ...(indexableProducts.length > 0
           ? [
               meilisearch.addDocuments(index, indexableProducts, productType, {
                 container,
               }),
             ]
           : []),
-        ...(deletedIds.length
+        ...(deletedIds.length > 0
           ? [meilisearch.deleteDocuments(index, deletedIds)]
           : []),
       ]),

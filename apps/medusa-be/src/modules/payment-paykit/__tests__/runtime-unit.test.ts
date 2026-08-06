@@ -87,7 +87,7 @@ describe("PayKit runtime helpers", () => {
 
   it("calls PayKit 1.2 provider webhooks with headersAsObject and secret argument", async () => {
     const provider = {
-      handleWebhook: vi.fn().mockResolvedValue([]),
+      handleWebhook: vi.fn<() => Promise<unknown[]>>().mockResolvedValue([]),
     }
 
     await callPaykitProviderWebhook(
@@ -98,7 +98,6 @@ describe("PayKit runtime helpers", () => {
         },
         headers: {
           host: "backend.example",
-          ignored: undefined,
           "stripe-signature": "sig_123",
           "x-forwarded-for": ["client", "proxy"],
           "x-forwarded-proto": "https",
@@ -127,7 +126,7 @@ describe("PayKit runtime helpers", () => {
 
   it("passes null webhook secret when a provider has no webhook secret option", async () => {
     const provider = {
-      handleWebhook: vi.fn().mockResolvedValue([]),
+      handleWebhook: vi.fn<() => Promise<unknown[]>>().mockResolvedValue([]),
     }
 
     await callPaykitProviderWebhook(provider, {

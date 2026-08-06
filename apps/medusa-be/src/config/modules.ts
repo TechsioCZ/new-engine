@@ -25,7 +25,9 @@ interface PaymentProviderConfig {
   resolve: string
 }
 
-function buildPaymentProviders(env: MedusaConfigEnv): PaymentProviderConfig[] {
+const buildPaymentProviders = (
+  env: MedusaConfigEnv,
+): PaymentProviderConfig[] => {
   const providers: PaymentProviderConfig[] = []
 
   if (env.featurePaymentQrEnabled) {
@@ -41,7 +43,7 @@ function buildPaymentProviders(env: MedusaConfigEnv): PaymentProviderConfig[] {
   return providers
 }
 
-function buildPaymentDependencies(env: MedusaConfigEnv): string[] {
+const buildPaymentDependencies = (env: MedusaConfigEnv): string[] => {
   const dependencies: string[] = [API_STORE_MODULE]
 
   if (env.featurePaymentQrEnabled) {
@@ -51,17 +53,15 @@ function buildPaymentDependencies(env: MedusaConfigEnv): string[] {
   return [...new Set(dependencies)]
 }
 
-function buildPaymentModule(env: MedusaConfigEnv): MedusaModuleConfig {
-  return {
-    dependencies: buildPaymentDependencies(env),
-    options: {
-      providers: buildPaymentProviders(env),
-    },
-    resolve: "@medusajs/medusa/payment",
-  }
-}
+const buildPaymentModule = (env: MedusaConfigEnv): MedusaModuleConfig => ({
+  dependencies: buildPaymentDependencies(env),
+  options: {
+    providers: buildPaymentProviders(env),
+  },
+  resolve: "@medusajs/medusa/payment",
+})
 
-function buildPaymentQrModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
+const buildPaymentQrModules = (env: MedusaConfigEnv): MedusaModuleConfig[] => {
   const modules: MedusaModuleConfig[] = []
 
   if (env.featurePaymentQrEnabled) {
@@ -73,9 +73,9 @@ function buildPaymentQrModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
   return modules
 }
 
-function buildFulfillmentClientModules(
+const buildFulfillmentClientModules = (
   env: MedusaConfigEnv,
-): MedusaModuleConfig[] {
+): MedusaModuleConfig[] => {
   const modules: MedusaModuleConfig[] = []
 
   if (env.featurePplEnabled) {
@@ -111,7 +111,7 @@ function buildFulfillmentClientModules(
   return modules
 }
 
-function buildFulfillmentDependencies(env: MedusaConfigEnv): string[] {
+const buildFulfillmentDependencies = (env: MedusaConfigEnv): string[] => {
   const dependencies: string[] = []
 
   if (env.featurePplEnabled) {
@@ -137,9 +137,9 @@ function buildFulfillmentDependencies(env: MedusaConfigEnv): string[] {
   return [...new Set(dependencies)]
 }
 
-function buildFulfillmentProviders(
+const buildFulfillmentProviders = (
   env: MedusaConfigEnv,
-): PaymentProviderConfig[] {
+): PaymentProviderConfig[] => {
   const providers: PaymentProviderConfig[] = [
     {
       id: "manual",
@@ -171,7 +171,9 @@ function buildFulfillmentProviders(
   return providers
 }
 
-function buildFulfillmentModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
+const buildFulfillmentModules = (
+  env: MedusaConfigEnv,
+): MedusaModuleConfig[] => {
   const modules: MedusaModuleConfig[] = []
 
   if (
@@ -195,7 +197,7 @@ function buildFulfillmentModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
   return modules
 }
 
-function buildPayloadModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
+const buildPayloadModules = (env: MedusaConfigEnv): MedusaModuleConfig[] => {
   const modules: MedusaModuleConfig[] = []
 
   if (env.featurePayloadEnabled) {
@@ -213,80 +215,78 @@ function buildPayloadModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
   return modules
 }
 
-export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
-  return [
-    {
-      resolve: "@medusajs/medusa/translation",
+export const buildModules = (env: MedusaConfigEnv): MedusaModulesConfig => [
+  {
+    resolve: "@medusajs/medusa/translation",
+  },
+  {
+    dependencies: [API_STORE_MODULE],
+    options: {
+      providers: buildNotificationProviders(env),
     },
-    {
-      options: {
-        providers: buildNotificationProviders(env),
-      },
-      dependencies: [API_STORE_MODULE],
-      resolve: "@medusajs/medusa/notification",
-    },
-    buildCachingModule(env),
-    {
-      resolve: "./src/modules/brand",
-    },
-    {
-      resolve: "./src/modules/measurement-unit",
-    },
-    {
-      resolve: "./src/modules/product-attribute",
-    },
-    {
-      resolve: "./src/modules/api-store",
-    },
-    {
-      dependencies: [API_STORE_MODULE],
-      resolve: "./src/modules/shop-review",
-    },
-    {
-      resolve: "./src/modules/product-list",
-    },
-    {
-      resolve: "./src/modules/product-review",
-    },
-    {
-      resolve: "./src/modules/storefront-text",
-    },
-    {
-      resolve: "./src/modules/company",
-    },
-    {
-      resolve: "./src/modules/quote",
-    },
-    {
-      resolve: "./src/modules/database",
-    },
-    {
-      dependencies: [DATABASE_MODULE],
-      resolve: "./src/modules/order-note",
-    },
-    {
-      resolve: "./src/modules/approval",
-    },
-    {
-      resolve: "./src/modules/email-log",
-    },
-    {
-      resolve: "./src/modules/order-receipt",
-    },
-    {
-      resolve: "./src/modules/workflow-queue",
-    },
-    ...buildPaymentQrModules(env),
-    buildEventBusModule(env),
-    buildWorkflowEngineModule(env),
-    buildLockingModule(env),
-    buildFileModule(env),
-    {
-      resolve: "@medusajs/index",
-    },
-    buildPaymentModule(env),
-    ...buildFulfillmentClientModules(env),
-    ...buildFulfillmentModules(env),
-    ...buildPayloadModules(env),
-  ]
-}
+    resolve: "@medusajs/medusa/notification",
+  },
+  buildCachingModule(env),
+  {
+    resolve: "./src/modules/brand",
+  },
+  {
+    resolve: "./src/modules/measurement-unit",
+  },
+  {
+    resolve: "./src/modules/product-attribute",
+  },
+  {
+    resolve: "./src/modules/api-store",
+  },
+  {
+    dependencies: [API_STORE_MODULE],
+    resolve: "./src/modules/shop-review",
+  },
+  {
+    resolve: "./src/modules/product-list",
+  },
+  {
+    resolve: "./src/modules/product-review",
+  },
+  {
+    resolve: "./src/modules/storefront-text",
+  },
+  {
+    resolve: "./src/modules/company",
+  },
+  {
+    resolve: "./src/modules/quote",
+  },
+  {
+    resolve: "./src/modules/database",
+  },
+  {
+    dependencies: [DATABASE_MODULE],
+    resolve: "./src/modules/order-note",
+  },
+  {
+    resolve: "./src/modules/approval",
+  },
+  {
+    resolve: "./src/modules/email-log",
+  },
+  {
+    resolve: "./src/modules/order-receipt",
+  },
+  {
+    resolve: "./src/modules/workflow-queue",
+  },
+  ...buildPaymentQrModules(env),
+  buildEventBusModule(env),
+  buildWorkflowEngineModule(env),
+  buildLockingModule(env),
+  buildFileModule(env),
+  {
+    resolve: "@medusajs/index",
+  },
+  buildPaymentModule(env),
+  ...buildFulfillmentClientModules(env),
+  ...buildFulfillmentModules(env),
+  ...buildPayloadModules(env),
+]

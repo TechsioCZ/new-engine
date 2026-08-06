@@ -1,12 +1,12 @@
 import { registerOtel } from "@medusajs/medusa"
-import otelApi from "@opentelemetry/api"
+import { propagation } from "@opentelemetry/api"
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc"
-import Sentry from "@sentry/node"
+import { init } from "@sentry/node"
 import { SentryPropagator, SentrySpanProcessor } from "@sentry/opentelemetry"
 
 import { shouldCaptureException } from "./src/utils/errors"
 
-Sentry.init({
+init({
   beforeSend(event, hint) {
     if (!shouldCaptureException(hint.originalException)) {
       return null
@@ -17,9 +17,9 @@ Sentry.init({
   tracesSampleRate: Number(process.env["SENTRY_TRACES_SAMPLE_RATE"] ?? "1.0"),
 })
 
-otelApi.propagation.setGlobalPropagator(new SentryPropagator())
+propagation.setGlobalPropagator(new SentryPropagator())
 
-export function register() {
+export const register = () => {
   registerOtel({
     instrument: {
       db: true,
@@ -27,7 +27,7 @@ export function register() {
       query: true,
       workflows: true,
     },
-    serviceName: process.env["SENTRY_NAME"] || "medusa-default",
+    serviceName: process.env["SENTRY_NAME"] ?? "medusa-default",
     spanProcessors: [new SentrySpanProcessor()],
     traceExporter: new OTLPTraceExporter(),
   })

@@ -27,6 +27,28 @@ interface ModuleApprovalFilters extends BaseFilterable<ModuleApprovalFilters> {
   cart_id?: string | string[]
 }
 
+interface CreateApprovalSettings {
+  (
+    data: ModuleCreateApprovalSettings,
+    sharedContext?: Context,
+  ): Promise<ModuleApprovalSettings>
+  (
+    data: ModuleCreateApprovalSettings[],
+    sharedContext?: Context,
+  ): Promise<ModuleApprovalSettings[]>
+}
+
+interface UpdateApprovalSettings {
+  (
+    data: ModuleUpdateApprovalSettings,
+    sharedContext?: Context,
+  ): Promise<ModuleApprovalSettings>
+  (
+    data: ModuleUpdateApprovalSettings[],
+    sharedContext?: Context,
+  ): Promise<ModuleApprovalSettings[]>
+}
+
 /**
  * The main service interface for the Approval Module.
  */
@@ -77,25 +99,9 @@ export interface IApprovalModuleService extends IModuleService {
     sharedContext?: Context,
   ) => Promise<ModuleApprovalSettings>
 
-  createApprovalSettings: (
-    data: ModuleCreateApprovalSettings,
-    sharedContext?: Context,
-  ) => Promise<ModuleApprovalSettings>
+  createApprovalSettings: CreateApprovalSettings
 
-  createApprovalSettings: (
-    data: ModuleCreateApprovalSettings[],
-    sharedContext?: Context,
-  ) => Promise<ModuleApprovalSettings[]>
-
-  updateApprovalSettings: (
-    data: ModuleUpdateApprovalSettings,
-    sharedContext?: Context,
-  ) => Promise<ModuleApprovalSettings>
-
-  updateApprovalSettings: (
-    data: ModuleUpdateApprovalSettings[],
-    sharedContext?: Context,
-  ) => Promise<ModuleApprovalSettings[]>
+  updateApprovalSettings: UpdateApprovalSettings
 
   listApprovalSettings: (
     filters?: ModuleApprovalSettingsFilters,

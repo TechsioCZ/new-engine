@@ -1,9 +1,14 @@
-import { defineLink } from "@medusajs/framework/utils"
-import OrderModule from "@medusajs/medusa/order"
+import { defineLink, Modules } from "@medusajs/framework/utils"
 
 import CompanyModule from "../modules/company"
 
 export default defineLink(
-  OrderModule.linkable["order"],
+  {
+    entity: "Order",
+    field: "order",
+    linkable: "order_id",
+    primaryKey: "id",
+    serviceName: Modules.ORDER,
+  },
   CompanyModule.linkable.company,
 )

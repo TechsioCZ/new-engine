@@ -4,10 +4,8 @@ import type {
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
-import {
-  deleteBrandAttributeTypesWorkflow,
-  restoreBrandAttributeTypesWorkflow,
-} from "../../../../../workflows/brand"
+import { deleteBrandAttributeTypesWorkflow } from "../../../../../workflows/brand/workflows/delete-brand-attribute-types"
+import { restoreBrandAttributeTypesWorkflow } from "../../../../../workflows/brand/workflows/restore-brand-attribute-types"
 import {
   escapeLikePattern,
   getBrandActiveProductCounts,
@@ -25,9 +23,9 @@ const ORDER_FIELDS = new Set([
   "created_at",
   "updated_at",
 ])
-const LEADING_DASH_REGEX = /^-/
+const LEADING_DASH_REGEX = /^-/u
 
-const parseOrder = (value: string = "title") => {
+const parseOrder = (value = "title") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
@@ -67,19 +65,20 @@ const retrieveAttributeType = async (req: AuthenticatedMedusaRequest) => {
   return attributeType
 }
 
-export async function DELETE(
+const deleteBrandAttributeType = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const id = req.params["id"] ?? ""
   await deleteBrandAttributeTypesWorkflow(req.scope).run({
     input: {
       ids: [id],
     },
   })
-  const attributeType = await retrieveAttributeType(req)
-
-  const usageCounts = await getBrandAttributeTypeUsageCounts(req.scope, [id])
+  const [attributeType, usageCounts] = await Promise.all([
+    retrieveAttributeType(req),
+    getBrandAttributeTypeUsageCounts(req.scope, [id]),
+  ])
 
   res.status(200).json({
     attribute_type: toBrandAttributeTypeResponse(
@@ -92,13 +91,13 @@ export async function DELETE(
   })
 }
 
-export async function GET(
+const getBrandAttributeType = async (
   req: AuthenticatedMedusaRequest<
     unknown,
     AdminGetBrandAttributeTypesSchemaType
   >,
   res: MedusaResponse,
-) {
+) => {
   const service = getBrandService(req.scope)
   const attributeType = await retrieveAttributeType(req)
   const { include_deleted, limit, offset, q } = req.validatedQuery
@@ -108,16 +107,18 @@ export async function GET(
   const usageCounts = await getBrandAttributeTypeUsageCounts(req.scope, [
     attributeType.id,
   ])
-  const escapedQuery = q ? escapeLikePattern(q) : undefined
-  const queryFilters = escapedQuery
-    ? {
-        $or: [
-          { value: { $ilike: `%${escapedQuery}%` } },
-          { brand: { handle: { $ilike: `%${escapedQuery}%` } } },
-          { brand: { title: { $ilike: `%${escapedQuery}%` } } },
-        ],
-      }
-    : {}
+  const escapedQuery =
+    q === undefined || q.length === 0 ? undefined : escapeLikePattern(q)
+  const queryFilters =
+    escapedQuery === undefined
+      ? {}
+      : {
+          $or: [
+            { value: { $ilike: `%${escapedQuery}%` } },
+            { brand: { handle: { $ilike: `%${escapedQuery}%` } } },
+            { brand: { title: { $ilike: `%${escapedQuery}%` } } },
+          ],
+        }
   const [page, count] = await service.listAndCountBrandAttributes(
     {
       attribute_type_id: attributeType.id,
@@ -134,7 +135,10 @@ export async function GET(
   )
   const brandIds = page
     .map((attribute) => attribute.brand?.id)
-    .filter((brandId): brandId is string => !!brandId)
+    .filter(
+      (brandId): brandId is string =>
+        brandId !== undefined && brandId.length > 0,
+    )
   const activeProductCounts = await getBrandActiveProductCounts(
     req.scope,
     brandIds,
@@ -146,15 +150,16 @@ export async function GET(
       usageCounts.get(attributeType.id) ?? 0,
     ),
     brands: page.flatMap((attribute) => {
-      const activeProductCount = attribute.brand?.id
-        ? (activeProductCounts.get(attribute.brand.id) ?? 0)
-        : 0
+      const activeProductCount =
+        attribute.brand?.id === undefined || attribute.brand.id.length === 0
+          ? 0
+          : (activeProductCounts.get(attribute.brand.id) ?? 0)
       const brand = toBrandAttributeTypeBrandResponse(
         attribute,
         activeProductCount,
       )
 
-      return brand ? [brand] : []
+      return brand === undefined || brand === null ? [] : [brand]
     }),
     count,
     limit,
@@ -162,19 +167,20 @@ export async function GET(
   })
 }
 
-export async function POST(
+const restoreBrandAttributeType = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const id = req.params["id"] ?? ""
   await restoreBrandAttributeTypesWorkflow(req.scope).run({
     input: {
       ids: [id],
     },
   })
-  const attributeType = await retrieveAttributeType(req)
-
-  const usageCounts = await getBrandAttributeTypeUsageCounts(req.scope, [id])
+  const [attributeType, usageCounts] = await Promise.all([
+    retrieveAttributeType(req),
+    getBrandAttributeTypeUsageCounts(req.scope, [id]),
+  ])
 
   res.status(200).json({
     attribute_type: toBrandAttributeTypeResponse(
@@ -183,3 +189,7 @@ export async function POST(
     ),
   })
 }
+
+export { deleteBrandAttributeType as DELETE }
+export { getBrandAttributeType as GET }
+export { restoreBrandAttributeType as POST }

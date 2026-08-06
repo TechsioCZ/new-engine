@@ -51,7 +51,7 @@ describe("product sales regions widget utils", () => {
     ]
 
     expect(
-      rows.sort(sortSalesRegionRows).map((row) => row.country_code),
+      rows.toSorted(sortSalesRegionRows).map((row) => row.country_code),
     ).toStrictEqual(["sk", "cz", "at", "de"])
   })
 

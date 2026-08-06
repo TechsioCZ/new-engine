@@ -7,12 +7,12 @@ import { createRemoteLinkStep } from "@medusajs/medusa/core-flows"
 
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import { COMPANY_MODULE } from "../../../modules/company"
-import type { ModuleCompany } from "../../../types"
-import { createApprovalSettingsStep } from "../steps"
+import type { ModuleApprovalSettings, ModuleCompany } from "../../../types"
+import { createApprovalSettingsStep } from "../steps/create-approval-settings"
 
 export const createApprovalSettingsWorkflow = createWorkflow(
   "create-approval-settings",
-  (input: ModuleCompany[]) => {
+  (input: ModuleCompany[]): WorkflowResponse<ModuleApprovalSettings[]> => {
     const approvalSettings = createApprovalSettingsStep(input)
 
     const linkData = transform(approvalSettings, (settings) =>

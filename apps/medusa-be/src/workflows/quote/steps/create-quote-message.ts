@@ -27,7 +27,7 @@ export const createQuoteMessageStep = createStep(
     return new StepResponse(quoteMessage, quoteMessage.id)
   },
   async (id: string | undefined, { container }) => {
-    if (!id) {
+    if (id === undefined || id.length === 0) {
       return
     }
 

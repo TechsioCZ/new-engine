@@ -13,7 +13,9 @@ export const createMeasurementUnitsStep = createStep(
     )
     const invalidTextUnit = input.units.find(
       (unit, index) =>
-        !(normalizedCodes[index] && unit.name.trim() && unit.symbol.trim()),
+        normalizedCodes[index]?.length !== 2 ||
+        unit.name.trim().length === 0 ||
+        unit.symbol.trim().length === 0,
     )
     const invalidBaseQuantityUnit = input.units.find(
       (unit) =>
@@ -37,7 +39,7 @@ export const createMeasurementUnitsStep = createStep(
       )
     }
 
-    if (duplicateCodes.length) {
+    if (duplicateCodes.length > 0) {
       throw new MedusaError(
         MedusaError.Types.DUPLICATE_ERROR,
         `Measurement unit codes must be unique: ${[...new Set(duplicateCodes)].join(", ")}`,
@@ -45,19 +47,20 @@ export const createMeasurementUnitsStep = createStep(
     }
 
     const service = getMeasurementUnitService(container)
-    const existingUnits = normalizedCodes.length
-      ? await service.listMeasurementUnits(
-          {
-            code: { $in: normalizedCodes },
-          },
-          {
-            select: ["code"],
-            withDeleted: true,
-          },
-        )
-      : []
+    const existingUnits =
+      normalizedCodes.length > 0
+        ? await service.listMeasurementUnits(
+            {
+              code: { $in: normalizedCodes },
+            },
+            {
+              select: ["code"],
+              withDeleted: true,
+            },
+          )
+        : []
 
-    if (existingUnits.length) {
+    if (existingUnits.length > 0) {
       throw new MedusaError(
         MedusaError.Types.DUPLICATE_ERROR,
         `Measurement unit codes already exist: ${[
@@ -83,7 +86,7 @@ export const createMeasurementUnitsStep = createStep(
     )
   },
   async (createdIds, { container }) => {
-    if (createdIds?.length) {
+    if (createdIds !== undefined && createdIds.length > 0) {
       await getMeasurementUnitService(container).deleteMeasurementUnits(
         createdIds,
       )

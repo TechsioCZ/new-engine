@@ -20,7 +20,7 @@ interface CompensationInput {
 const normalizeCustomHandle = (title: string, handle?: string) => {
   const trimmedHandle = handle?.trim()
 
-  return trimmedHandle == null || trimmedHandle === ""
+  return trimmedHandle === undefined || trimmedHandle === ""
     ? kebabCase(title.trim())
     : kebabCase(trimmedHandle)
 }
@@ -81,7 +81,7 @@ export const createCustomerProductListStep = createStep(
     )
   },
   async (input, { container }) => {
-    if (!input?.created) {
+    if (input?.created !== true) {
       return
     }
 

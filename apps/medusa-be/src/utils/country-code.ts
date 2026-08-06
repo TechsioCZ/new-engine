@@ -1,6 +1,6 @@
-export function normalizeCountryCode(value: unknown): string | undefined {
+export const normalizeCountryCode = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
-    return
+    return undefined
   }
 
   const normalized = value.trim().toLowerCase()

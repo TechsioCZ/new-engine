@@ -11,7 +11,9 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import type { SyntheticEvent } from "react"
+import { z } from "zod"
 
 import { sdk } from "../../../lib/sdk"
 
@@ -19,27 +21,32 @@ export const handle = {
   breadcrumb: () => "Packeta",
 }
 
-interface PacketaConfigResponse {
-  id: string
-  environment: string
-  is_enabled: boolean
-  api_password_set: boolean
-  sender_label: string | null
-  eshop_id: string | null
-  default_label_format: string
-  default_label_offset: number
-  cod_bank_account_set: boolean
-  cod_bank_code_set: boolean
-  cod_iban_set: boolean
-  cod_swift_set: boolean
-  sender_name: string | null
-  sender_street: string | null
-  sender_city: string | null
-  sender_zip_code: string | null
-  sender_country: string | null
-  sender_phone: string | null
-  sender_email: string | null
-}
+const packetaConfigResponseSchema = z.object({
+  api_password_set: z.boolean(),
+  cod_bank_account_set: z.boolean(),
+  cod_bank_code_set: z.boolean(),
+  cod_iban_set: z.boolean(),
+  cod_swift_set: z.boolean(),
+  default_label_format: z.string(),
+  default_label_offset: z.number(),
+  environment: z.string(),
+  eshop_id: z.string().nullable(),
+  id: z.string(),
+  is_enabled: z.boolean(),
+  sender_city: z.string().nullable(),
+  sender_country: z.string().nullable(),
+  sender_email: z.string().nullable(),
+  sender_label: z.string().nullable(),
+  sender_name: z.string().nullable(),
+  sender_phone: z.string().nullable(),
+  sender_street: z.string().nullable(),
+  sender_zip_code: z.string().nullable(),
+})
+const packetaConfigEnvelopeSchema = z.object({
+  config: packetaConfigResponseSchema,
+})
+
+type PacketaConfigResponse = z.infer<typeof packetaConfigResponseSchema>
 
 interface PacketaConfigInput {
   is_enabled?: boolean
@@ -105,14 +112,38 @@ interface FieldConfig {
   colSpan?: 1 | 2
 }
 
+const SENDER_FIELDS: FieldConfig[] = [
+  { field: "sender_name", label: "Name", placeholder: "Company name" },
+  { field: "sender_street", label: "Street", placeholder: "Street address" },
+  { field: "sender_city", label: "City", placeholder: "City" },
+  {
+    field: "sender_zip_code",
+    label: "ZIP Code",
+    placeholder: "Postal code",
+  },
+  {
+    field: "sender_country",
+    label: "Country",
+    placeholder: "Country code (e.g., CZ)",
+  },
+  { field: "sender_phone", label: "Phone", placeholder: "Phone number" },
+  {
+    colSpan: 2,
+    field: "sender_email",
+    label: "Email",
+    placeholder: "Email address",
+    type: "email",
+  },
+]
+
 const getPlaceholder = (
-  isCleared: boolean | undefined,
   fieldConfig: FieldConfig,
+  isCleared = false,
 ): string => {
   if (isCleared) {
     return "Value will be cleared"
   }
-  if (fieldConfig.isSet) {
+  if (fieldConfig.isSet === true) {
     return "Leave empty to keep"
   }
   return fieldConfig.placeholder
@@ -134,8 +165,16 @@ const FormField = ({
   const inputId = `packeta-${fieldConfig.field}`
   const canClear =
     CLEARABLE_FIELD_SET.has(fieldConfig.field) &&
-    fieldConfig.isSet &&
-    !isCleared
+    fieldConfig.isSet === true &&
+    isCleared !== true
+  let settingIndicator = null
+  if (isCleared === true) {
+    settingIndicator = (
+      <span className="text-ui-fg-error">(will be cleared)</span>
+    )
+  } else if (fieldConfig.isSet === true) {
+    settingIndicator = <span className="text-ui-fg-subtle">(set)</span>
+  }
 
   return (
     <div
@@ -143,16 +182,9 @@ const FormField = ({
     >
       <div className="flex items-center justify-between">
         <Label htmlFor={inputId}>
-          {fieldConfig.label}{" "}
-          {isCleared ? (
-            <span className="text-ui-fg-error">(will be cleared)</span>
-          ) : (
-            fieldConfig.isSet && (
-              <span className="text-ui-fg-subtle">(set)</span>
-            )
-          )}
+          {fieldConfig.label} {settingIndicator}
         </Label>
-        {canClear && onClear && (
+        {canClear && onClear !== undefined ? (
           <button
             className="text-sm text-ui-fg-subtle hover:text-ui-fg-error"
             onClick={onClear}
@@ -160,42 +192,60 @@ const FormField = ({
           >
             Clear
           </button>
-        )}
+        ) : null}
       </div>
       <Input
-        disabled={isCleared}
+        disabled={isCleared === true}
         id={inputId}
         onChange={(e) => {
           onChange(e.target.value)
         }}
-        placeholder={getPlaceholder(isCleared, fieldConfig)}
+        placeholder={getPlaceholder(fieldConfig, isCleared)}
         type={fieldConfig.type ?? "text"}
-        value={isCleared ? "" : value}
+        value={isCleared === true ? "" : value}
       />
     </div>
   )
 }
 
-const PacketaSettingsPage = () => {
+const toPacketaFormData = (
+  packetaConfig: PacketaConfigResponse,
+): PacketaConfigInput => ({
+  default_label_format:
+    packetaConfig.default_label_format.length === 0
+      ? DEFAULT_LABEL_FORMAT
+      : packetaConfig.default_label_format,
+  default_label_offset: packetaConfig.default_label_offset,
+  eshop_id: packetaConfig.eshop_id ?? "",
+  is_enabled: packetaConfig.is_enabled,
+  sender_city: packetaConfig.sender_city ?? "",
+  sender_country: packetaConfig.sender_country ?? "",
+  sender_email: packetaConfig.sender_email ?? "",
+  sender_label: packetaConfig.sender_label ?? "",
+  sender_name: packetaConfig.sender_name ?? "",
+  sender_phone: packetaConfig.sender_phone ?? "",
+  sender_street: packetaConfig.sender_street ?? "",
+  sender_zip_code: packetaConfig.sender_zip_code ?? "",
+})
+
+const PacketaSettingsForm = ({
+  packetaConfig,
+}: {
+  packetaConfig: PacketaConfigResponse
+}) => {
   const queryClient = useQueryClient()
-  const [formData, setFormData] = useState<PacketaConfigInput>({})
+  const [formData, setFormData] = useState<PacketaConfigInput>(() =>
+    toPacketaFormData(packetaConfig),
+  )
   const [clearedFields, setClearedFields] = useState<Set<ClearableField>>(
     new Set(),
   )
 
-  const { data, isLoading, error } = useQuery({
-    queryFn: async () =>
-      sdk.client.fetch<{ config: PacketaConfigResponse }>(
-        "/admin/packeta-config",
-      ),
-    queryKey: ["packeta-config"],
-  })
-
   const { mutate, isPending } = useMutation({
     mutationFn: async (payload: PacketaConfigInput) =>
-      sdk.client.fetch("/admin/packeta-config", {
-        method: "POST",
+      await sdk.client.fetch("/admin/packeta-config", {
         body: payload,
+        method: "POST",
       }),
     onError: (err) => {
       toast.error(`Failed to save configuration: ${err.message}`)
@@ -206,30 +256,7 @@ const PacketaSettingsPage = () => {
     },
   })
 
-  const packetaConfig = data?.config
-
-  useEffect(() => {
-    if (packetaConfig) {
-      setFormData({
-        default_label_format:
-          packetaConfig.default_label_format ?? DEFAULT_LABEL_FORMAT,
-        default_label_offset: packetaConfig.default_label_offset,
-        eshop_id: packetaConfig.eshop_id ?? "",
-        is_enabled: packetaConfig.is_enabled,
-        sender_city: packetaConfig.sender_city ?? "",
-        sender_country: packetaConfig.sender_country ?? "",
-        sender_email: packetaConfig.sender_email ?? "",
-        sender_label: packetaConfig.sender_label ?? "",
-        sender_name: packetaConfig.sender_name ?? "",
-        sender_phone: packetaConfig.sender_phone ?? "",
-        sender_street: packetaConfig.sender_street ?? "",
-        sender_zip_code: packetaConfig.sender_zip_code ?? "",
-      })
-      setClearedFields(new Set())
-    }
-  }, [packetaConfig])
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     const payload: PacketaConfigPayload = { ...formData }
     if (payload.default_label_format === "") {
@@ -264,35 +291,6 @@ const PacketaSettingsPage = () => {
 
   const isFieldCleared = (field: keyof PacketaConfigInput) =>
     isClearableField(field) && clearedFields.has(field)
-
-  if (isLoading) {
-    return (
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h1">Packeta Configuration</Heading>
-        </div>
-        <div className="px-6 py-4">
-          <Text>Loading...</Text>
-        </div>
-      </Container>
-    )
-  }
-
-  if (error) {
-    return (
-      <Container className="divide-y p-0">
-        <div className="px-6 py-4">
-          <Heading level="h1">Packeta Configuration</Heading>
-        </div>
-        <div className="px-6 py-4">
-          <Text className="text-ui-fg-error">
-            Error loading configuration. Make sure the Packeta module is
-            enabled.
-          </Text>
-        </div>
-      </Container>
-    )
-  }
 
   const credentialFields: FieldConfig[] = [
     {
@@ -339,30 +337,6 @@ const PacketaSettingsPage = () => {
       isSet: packetaConfig?.cod_swift_set ?? false,
       label: "SWIFT",
       placeholder: "SWIFT (with IBAN)",
-    },
-  ]
-
-  const senderFields: FieldConfig[] = [
-    { field: "sender_name", label: "Name", placeholder: "Company name" },
-    { field: "sender_street", label: "Street", placeholder: "Street address" },
-    { field: "sender_city", label: "City", placeholder: "City" },
-    {
-      field: "sender_zip_code",
-      label: "ZIP Code",
-      placeholder: "Postal code",
-    },
-    {
-      field: "sender_country",
-      label: "Country",
-      placeholder: "Country code (e.g., CZ)",
-    },
-    { field: "sender_phone", label: "Phone", placeholder: "Phone number" },
-    {
-      colSpan: 2,
-      field: "sender_email",
-      label: "Email",
-      placeholder: "Email address",
-      type: "email",
     },
   ]
 
@@ -439,9 +413,10 @@ const PacketaSettingsPage = () => {
                   max={3}
                   min={0}
                   onChange={(e) => {
+                    const offset = Math.trunc(Number(e.target.value))
                     updateField(
                       "default_label_offset",
-                      Number.parseInt(e.target.value, 10) || 0,
+                      Number.isFinite(offset) ? offset : 0,
                     )
                   }}
                   type="number"
@@ -510,7 +485,7 @@ const PacketaSettingsPage = () => {
             Used when no sender is configured in Packeta
           </Text>
           <div className="grid grid-cols-2 gap-4">
-            {senderFields.map((f) => (
+            {SENDER_FIELDS.map((f) => (
               <FormField
                 fieldConfig={f}
                 key={f.field}
@@ -531,6 +506,49 @@ const PacketaSettingsPage = () => {
       </form>
     </Container>
   )
+}
+
+const PacketaSettingsPage = () => {
+  const { data, dataUpdatedAt, error, isLoading } = useQuery({
+    queryFn: async () => {
+      const response: unknown = await sdk.client.fetch<unknown>(
+        "/admin/packeta-config",
+      )
+      return packetaConfigEnvelopeSchema.parse(response)
+    },
+    queryKey: ["packeta-config"],
+  })
+
+  if (isLoading) {
+    return (
+      <Container className="divide-y p-0">
+        <div className="px-6 py-4">
+          <Heading level="h1">Packeta Configuration</Heading>
+        </div>
+        <div className="px-6 py-4">
+          <Text>Loading...</Text>
+        </div>
+      </Container>
+    )
+  }
+
+  if (error !== null || data === undefined) {
+    return (
+      <Container className="divide-y p-0">
+        <div className="px-6 py-4">
+          <Heading level="h1">Packeta Configuration</Heading>
+        </div>
+        <div className="px-6 py-4">
+          <Text className="text-ui-fg-error">
+            Error loading configuration. Make sure the Packeta module is
+            enabled.
+          </Text>
+        </div>
+      </Container>
+    )
+  }
+
+  return <PacketaSettingsForm key={dataUpdatedAt} packetaConfig={data.config} />
 }
 
 export const config = defineRouteConfig({

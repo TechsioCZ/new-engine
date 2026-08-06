@@ -43,21 +43,17 @@ describe("product facet document builder", () => {
       title: "Horčík kapsuly",
     })
 
-    expect(result.facet_product_status).toBe("published")
-    expect(result.facet_sales_channel_ids).toStrictEqual(["sc_visible"])
-    expect(result.facet_status).toStrictEqual(
-      expect.arrayContaining(["in-stock", "action"]),
-    )
-    expect(result.facet_form).toStrictEqual(
-      expect.arrayContaining(["form-capsules"]),
-    )
-    expect(result.facet_brand).toStrictEqual(["brand-natura-balance"])
-    expect(result.facet_ingredient).toStrictEqual([
-      "ingredient-ucinne-zlozky-od-a-po-z-horcik",
-    ])
-    expect(result.facet_category_ids).toStrictEqual(["pcat_01"])
-    expect(result.facet_in_stock).toBeTruthy()
-    expect(result.facet_price).toBe(15.9)
+    expect(result).toMatchObject({
+      facet_brand: ["brand-natura-balance"],
+      facet_category_ids: ["pcat_01"],
+      facet_form: ["form-capsules"],
+      facet_in_stock: true,
+      facet_ingredient: ["ingredient-ucinne-zlozky-od-a-po-z-horcik"],
+      facet_price: 15.9,
+      facet_product_status: "published",
+      facet_sales_channel_ids: ["sc_visible"],
+      facet_status: ["in-stock", "action"],
+    })
   })
 
   it("falls back to variant price and marks unavailable stock", () => {

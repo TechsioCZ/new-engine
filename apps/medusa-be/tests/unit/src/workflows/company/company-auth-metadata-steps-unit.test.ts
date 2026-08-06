@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+type MockWorkflowCallback = (...args: never[]) => unknown
+
 vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
@@ -22,13 +24,19 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.compensateInput = compensateInput
     }
   },
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate }),
-  ),
+  createStep: vi.fn<
+    (
+      name: string,
+      invoke: MockWorkflowCallback,
+      compensate: MockWorkflowCallback,
+    ) => MockWorkflowCallback & { compensate: MockWorkflowCallback }
+  >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
 }))
 
 interface AuthService {
-  updateProviderIdentities: ReturnType<typeof vi.fn>
+  updateProviderIdentities: ReturnType<
+    typeof vi.fn<(updates: unknown[]) => Promise<void>>
+  >
 }
 
 type MockContainer = ReturnType<typeof makeContainer>
@@ -58,29 +66,27 @@ interface MockStep {
   ) => Promise<void>
 }
 
+const isMockStep = (candidate: unknown): candidate is MockStep =>
+  typeof candidate === "function" &&
+  "compensate" in candidate &&
+  typeof candidate.compensate === "function"
+
 const asMockStep = (candidate: unknown): MockStep => {
-  if (typeof candidate !== "function") {
+  if (!isMockStep(candidate)) {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function",
+      "Expected the mocked workflow step to expose callable invoke and compensate functions",
     )
   }
 
-  if (
-    !("compensate" in candidate) ||
-    typeof candidate.compensate !== "function"
-  ) {
-    throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function",
-    )
-  }
-
-  return candidate as MockStep
+  return candidate
 }
 
 const makeAuthService = (
   overrides: Partial<AuthService> = {},
 ): AuthService => ({
-  updateProviderIdentities: vi.fn(),
+  updateProviderIdentities: vi
+    .fn<(updates: unknown[]) => Promise<void>>()
+    .mockResolvedValue(),
   ...overrides,
 })
 
@@ -89,9 +95,9 @@ const makeContainer = ({
   graph,
 }: {
   authService?: AuthService
-  graph: ReturnType<typeof vi.fn>
+  graph: ReturnType<typeof vi.fn<() => Promise<unknown>>>
 }) => ({
-  resolve: vi.fn((key: string) => {
+  resolve: vi.fn<(key: string) => unknown>((key) => {
     if (key === "query") {
       return { graph }
     }
@@ -113,7 +119,7 @@ describe("company admin auth metadata steps", () => {
     const { clearCompanyAdminAuthMetadataStep } =
       await import("../../../../../src/workflows/company/steps/clear-company-admin-auth-metadata")
     const graph = vi
-      .fn()
+      .fn<() => Promise<unknown>>()
       .mockResolvedValueOnce({
         data: [
           {
@@ -186,7 +192,7 @@ describe("company admin auth metadata steps", () => {
     const { restoreCompanyAdminAuthMetadataStep } =
       await import("../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata")
     const graph = vi
-      .fn()
+      .fn<() => Promise<unknown>>()
       .mockResolvedValueOnce({
         data: [
           {
@@ -257,7 +263,7 @@ describe("company admin auth metadata steps", () => {
     const { restoreCompanyAdminAuthMetadataStep } =
       await import("../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata")
     const graph = vi
-      .fn()
+      .fn<() => Promise<unknown>>()
       .mockResolvedValueOnce({
         data: [
           { customer_id: "cus_1", employee_id: "emp_restored" },

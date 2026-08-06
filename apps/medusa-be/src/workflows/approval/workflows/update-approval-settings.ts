@@ -5,8 +5,8 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 
 import type { ModuleUpdateApprovalSettings } from "../../../types"
-import { validateCompanyActiveStep } from "../../company/steps"
-import { updateApprovalSettingsStep } from "../steps"
+import { validateCompanyActiveStep } from "../../company/steps/validate-company-active"
+import { updateApprovalSettingsStep } from "../steps/update-approval-settings"
 
 type UpdateApprovalSettingsWorkflowInput = ModuleUpdateApprovalSettings & {
   company_id?: string

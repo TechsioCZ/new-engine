@@ -3,24 +3,26 @@ import { describe, expect, it } from "vitest"
 import resources from "../../../../../src/admin/i18n"
 import { ORDER_BUSINESS_STATUS_IDS } from "../../../../../src/utils/order-business-status"
 
-function collectLeafPaths(value: unknown, prefix = ""): string[] {
-  if (!value || typeof value !== "object") {
+const collectLeafPaths = (value: unknown, prefix = ""): string[] => {
+  if (value === null || typeof value !== "object") {
     return [prefix]
   }
 
   return Object.entries(value)
     .flatMap(([key, child]) =>
-      collectLeafPaths(child, prefix ? `${prefix}.${key}` : key),
+      collectLeafPaths(child, prefix.length > 0 ? `${prefix}.${key}` : key),
     )
-    .sort()
+    .toSorted()
 }
 
 describe("order business status admin translations", () => {
   it("defines labels for every approved status in supported admin locales", () => {
     for (const locale of ["cs", "en"] as const) {
       expect(
-        Object.keys(resources[locale].orderBusinessStatuses.statuses).sort(),
-      ).toStrictEqual([...ORDER_BUSINESS_STATUS_IDS].sort())
+        Object.keys(
+          resources[locale].orderBusinessStatuses.statuses,
+        ).toSorted(),
+      ).toStrictEqual([...ORDER_BUSINESS_STATUS_IDS].toSorted())
     }
   })
 

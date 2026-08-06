@@ -6,7 +6,10 @@ import {
   toMeasurementUnitDetailResponse,
 } from "../../utils"
 
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
+const restoreMeasurementUnit = async (
+  req: MedusaRequest,
+  res: MedusaResponse,
+) => {
   const id = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, id, { withDeleted: true })
@@ -22,3 +25,5 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     measurement_unit: await toMeasurementUnitDetailResponse(req.scope, unit),
   })
 }
+
+export { restoreMeasurementUnit as POST }

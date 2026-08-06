@@ -13,7 +13,7 @@ import type StorefrontTextModuleService from "../../../modules/storefront-text/s
 import type { StoreGetStorefrontTextsSchemaType } from "./validators"
 
 const resolveLocale = (locale?: string): StorefrontTextLocale => {
-  if (!locale) {
+  if (locale === undefined || locale.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Field 'locale' is required",
@@ -30,10 +30,10 @@ const resolveLocale = (locale?: string): StorefrontTextLocale => {
   )
 }
 
-export async function GET(
+const getStorefrontTexts = async (
   req: MedusaRequest<unknown, StoreGetStorefrontTextsSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { market, namespace } = req.validatedQuery
   const locale = resolveLocale(req.locale)
 
@@ -50,7 +50,7 @@ export async function GET(
   const storefrontTexts = await service.listStorefrontTexts({
     locale,
     market,
-    ...(namespace ? { namespace } : {}),
+    ...(namespace === undefined || namespace.length === 0 ? {} : { namespace }),
     status: "active",
   })
   const messages = getPublishedStorefrontTextMessages(
@@ -68,3 +68,5 @@ export async function GET(
     messages,
   })
 }
+
+export { getStorefrontTexts as GET }

@@ -10,7 +10,10 @@ import {
 } from "../../../../../measurement-units/utils"
 import type { AdminSetProductVariantMeasurementSchemaType } from "../../../../../measurement-units/validators"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const getProductVariantMeasurement = async (
+  req: MedusaRequest,
+  res: MedusaResponse,
+) => {
   const productId = req.params["id"] ?? ""
   const productVariantId = req.params["variant_id"] ?? ""
 
@@ -27,10 +30,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   )
 }
 
-export async function POST(
+const setProductVariantMeasurement = async (
   req: MedusaRequest<AdminSetProductVariantMeasurementSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const productId = req.params["id"] ?? ""
   const productVariantId = req.params["variant_id"] ?? ""
 
@@ -52,7 +55,10 @@ export async function POST(
   )
 }
 
-export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
+const deleteProductVariantMeasurement = async (
+  req: MedusaRequest,
+  res: MedusaResponse,
+) => {
   const productId = req.params["id"] ?? ""
   const productVariantId = req.params["variant_id"] ?? ""
 
@@ -69,3 +75,7 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
     object: "product_variant_measurement",
   })
 }
+
+export { getProductVariantMeasurement as GET }
+export { setProductVariantMeasurement as POST }
+export { deleteProductVariantMeasurement as DELETE }

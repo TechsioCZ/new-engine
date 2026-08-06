@@ -27,15 +27,13 @@ const getStringValue = (...values: unknown[]): string | undefined => {
     }
   }
 
-  return
+  return undefined
 }
 
 export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<PaykitGopayOptions> {
-  static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
+  static override readonly identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
 
-  // Medusa's provider loader instantiates provider classes directly.
-  // the base constructor is protected; this keeps the provider constructor public.
-  constructor(
+  public constructor(
     container: PaykitInjectedDependencies,
     options: PaykitGopayOptions,
   ) {
@@ -43,11 +41,15 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
   }
 
   static override validateOptions(options: PaykitGopayOptions = {}): void {
-    if (options.client || options.clientFactory || options.apiStoreName) {
+    if (
+      options.client !== undefined ||
+      options.clientFactory !== undefined ||
+      (options.apiStoreName !== undefined && options.apiStoreName.length > 0)
+    ) {
       return
     }
 
-    requirePaykitOptions("PayKit GoPay", options, [
+    requirePaykitOptions("PayKit GoPay", { ...options }, [
       "clientId",
       "clientSecret",
       "goId",
@@ -112,7 +114,7 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
       ...providerMetadata,
       // GoPay calls the callback URL `return_url`; PayKit's provider-level
       // abstraction expects `success_url` and writes it to GoPay's callback.return_url.
-      ...(successUrl ? { success_url: successUrl } : {}),
+      ...(successUrl === undefined ? {} : { success_url: successUrl }),
     }
   }
 }

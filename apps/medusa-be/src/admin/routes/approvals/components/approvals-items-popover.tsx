@@ -2,7 +2,8 @@ import { MagnifyingGlass } from "@medusajs/icons"
 import { Popover, Table, Text } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
 
-import { formatAmount } from "../../../utils"
+import { Thumbnail } from "../../../components/common/thumbnail"
+import { formatAmount } from "../../../utils/format-amount"
 
 export interface ApprovalItem {
   id: string
@@ -38,13 +39,13 @@ const ItemsPopover = ({
                 <Table.Row className="py-2 hover:bg-transparent" key={item.id}>
                   <Table.Cell>
                     <div className="flex h-10 w-10 items-center justify-center overflow-hidden">
-                      {/* Medusa admin extensions run in Vite, so Next Image is not available here. */}
-                      <img
+                      <Thumbnail
                         alt={item.product_title}
-                        className="mr-4 h-10 object-contain"
-                        height={40}
-                        src={item.thumbnail}
-                        width={40}
+                        className="mr-4 h-10 w-10"
+                        fit="contain"
+                        {...(item.thumbnail === undefined
+                          ? {}
+                          : { src: item.thumbnail })}
                       />
                     </div>
                   </Table.Cell>

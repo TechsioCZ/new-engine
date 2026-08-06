@@ -5,7 +5,7 @@ import type {
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { definedProperties } from "../../../utils/defined-properties"
-import { createCompaniesWorkflow } from "../../../workflows/company/workflows"
+import { createCompaniesWorkflow } from "../../../workflows/company/workflows/create-companies"
 import type {
   AdminCreateCompanyType,
   AdminGetCompanyParamsType,
@@ -14,13 +14,13 @@ import type {
 type CompanyListStatus = NonNullable<AdminGetCompanyParamsType["status"]>
 
 const ORDER_FIELDS = new Set(["name", "created_at", "updated_at"])
-const LEADING_DASH_REGEX = /^-/
-const LIKE_WILDCARD_REGEX = /[%_\\]/g
+const LEADING_DASH_REGEX = /^-/u
+const LIKE_WILDCARD_REGEX = /[%_\\]/gu
 
 const escapeLikePattern = (value: string) =>
   value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
 
-const parseCompanyOrder = (value: string = "name") => {
+const parseCompanyOrder = (value = "name") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
@@ -35,20 +35,24 @@ const parseCompanyOrder = (value: string = "name") => {
 
 const buildCompanyListFilters = (
   filterableFields: Record<string, unknown>,
-  withDeleted?: boolean,
+  withDeleted = false,
 ) => {
-  const {
-    order_by: _orderBy,
-    q,
-    status: requestedStatus,
-    ...filters
-  } = filterableFields
-  const status =
-    (requestedStatus as CompanyListStatus | undefined) ??
-    (withDeleted ? "all" : "active")
+  const { q, status: requestedStatus, ...filters } = filterableFields
+  delete filters["order_by"]
+  const status: CompanyListStatus = (() => {
+    if (
+      requestedStatus === "active" ||
+      requestedStatus === "all" ||
+      requestedStatus === "deleted"
+    ) {
+      return requestedStatus
+    }
+
+    return withDeleted ? "all" : "active"
+  })()
   const searchTerm = typeof q === "string" ? q.trim() : ""
 
-  if (searchTerm) {
+  if (searchTerm.length > 0) {
     const escapedSearchTerm = escapeLikePattern(searchTerm)
 
     filters["$or"] = [
@@ -68,7 +72,7 @@ const buildCompanyListFilters = (
   }
 }
 
-export const GET = async (
+const getCompanies = async (
   req: AuthenticatedMedusaRequest<unknown, AdminGetCompanyParamsType>,
   res: MedusaResponse,
 ) => {
@@ -99,7 +103,7 @@ export const GET = async (
   })
 }
 
-export const POST = async (
+const createCompanies = async (
   req: AuthenticatedMedusaRequest<
     AdminCreateCompanyType | AdminCreateCompanyType[]
   >,
@@ -126,3 +130,6 @@ export const POST = async (
 
   res.json({ companies })
 }
+
+export { getCompanies as GET }
+export { createCompanies as POST }
