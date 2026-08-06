@@ -1,5 +1,7 @@
 import { model } from "@medusajs/framework/utils"
 
+const ACTIVE_RECORD_WHERE = "deleted_at IS NULL"
+
 const EmailLog = model
   .define("email_log", {
     checked_at: model.dateTime().nullable(),
@@ -16,22 +18,22 @@ const EmailLog = model
     {
       name: "IDX_email_log_email_id",
       on: ["email_id"],
-      where: "deleted_at IS NULL",
+      where: ACTIVE_RECORD_WHERE,
     },
     {
       name: "IDX_email_log_customer_id",
       on: ["customer_id"],
-      where: "deleted_at IS NULL",
+      where: ACTIVE_RECORD_WHERE,
     },
     {
       name: "IDX_email_log_order_id",
       on: ["order_id"],
-      where: "deleted_at IS NULL",
+      where: ACTIVE_RECORD_WHERE,
     },
     {
       name: "IDX_email_log_sent_to",
       on: ["sent_to"],
-      where: "deleted_at IS NULL",
+      where: ACTIVE_RECORD_WHERE,
     },
   ])
 

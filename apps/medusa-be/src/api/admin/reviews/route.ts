@@ -12,10 +12,10 @@ import {
 import { getProductsById } from "./helpers"
 import type { AdminGetReviewsSchemaType } from "./validators"
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, AdminGetReviewsSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { limit, offset } = req.validatedQuery
   const order = normalizeReviewOrder(
     req.validatedQuery.order_by ?? req.validatedQuery.order,
@@ -43,3 +43,5 @@ export async function GET(
     ),
   })
 }
+
+export { get as GET }

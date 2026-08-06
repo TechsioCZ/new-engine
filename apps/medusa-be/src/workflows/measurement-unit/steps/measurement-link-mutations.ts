@@ -58,7 +58,7 @@ const restoreProductVariantMeasurementLinks = async (
 export const dismissProductMeasurementLinksStep = createStep(
   "dismiss-product-measurement-links",
   async (links: ProductMeasurementLinkIds[], { container }) => {
-    if (links.length) {
+    if (links.length > 0) {
       const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
       await link.dismiss(
         links.map((current) =>
@@ -84,7 +84,7 @@ export const restoreProductMeasurementLinksStep = createStep(
     return new StepResponse(links, links)
   },
   async (links: ProductMeasurementLinkIds[] | undefined, { container }) => {
-    if (!links?.length) {
+    if (links === undefined || links.length === 0) {
       return
     }
 
@@ -103,7 +103,7 @@ export const restoreProductMeasurementLinksStep = createStep(
 export const dismissProductVariantMeasurementLinksStep = createStep(
   "dismiss-product-variant-measurement-links",
   async (links: ProductVariantMeasurementLinkIds[], { container }) => {
-    if (links.length) {
+    if (links.length > 0) {
       const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
       await link.dismiss(
         links.map((current) =>
@@ -135,7 +135,7 @@ export const restoreProductVariantMeasurementLinksStep = createStep(
     links: ProductVariantMeasurementLinkIds[] | undefined,
     { container },
   ) => {
-    if (!links?.length) {
+    if (links === undefined || links.length === 0) {
       return
     }
 

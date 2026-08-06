@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from "vitest"
 
-vi.mock(import("../../links/product-brand"), () => ({
-  ProductBrandLink: { entryPoint: "product_product_brand_brand" },
-}))
-
 import {
   collectSupplierLabelsByKey,
   planLegacySupplierAssignments,
   resolveLegacySupplierValuesByBrand,
   selectRemovableLegacySupplierBrandIds,
 } from "../20260729-migrate-herbatica-supplier"
+
+vi.mock(import("../../links/product-brand"), () => ({
+  ProductBrandLink: { entryPoint: "product_product_brand_brand" },
+}))
 
 describe("tracked Herbatica Supplier migration", () => {
   it("uses the active legacy Supplier and ignores its deleted history", () => {
@@ -87,13 +87,11 @@ describe("tracked Herbatica Supplier migration", () => {
     expect(result.assignments).toStrictEqual([
       { product_id: "product_safe", supplier: "Supplier A" },
     ])
-    expect(result.unresolved).toStrictEqual([
-      expect.objectContaining({
-        product_id: "product_shared",
-        reason: expect.stringContaining("linked to multiple Products"),
-        values: ["Supplier B"],
-      }),
-    ])
+    expect(result.unresolved).toHaveLength(1)
+    const [unresolved] = result.unresolved
+    expect(unresolved?.product_id).toBe("product_shared")
+    expect(unresolved?.reason).toContain("linked to multiple Products")
+    expect(unresolved?.values).toStrictEqual(["Supplier B"])
   })
 
   it("preserves an existing valid structured assignment", () => {

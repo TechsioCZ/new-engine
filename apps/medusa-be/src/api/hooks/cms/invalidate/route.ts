@@ -18,48 +18,54 @@ interface PayloadWebhookBody {
   doc?: { id?: string; slug?: string; locale?: string }
 }
 
-type RequestWithRawBody = MedusaRequest & {
-  rawBody?: string | Buffer
-}
-
 const parseWebhookBody = (value: unknown): PayloadWebhookBody | undefined => {
   if (!isRecord(value) || typeof value["collection"] !== "string") {
-    return
+    return undefined
   }
 
   const rawDoc = value["doc"]
   if (rawDoc !== undefined && !isRecord(rawDoc)) {
-    return
+    return undefined
   }
 
-  const doc = rawDoc
-    ? {
-        ...(typeof rawDoc["id"] === "string" ? { id: rawDoc["id"] } : {}),
-        ...(typeof rawDoc["locale"] === "string"
-          ? { locale: rawDoc["locale"] }
-          : {}),
-        ...(typeof rawDoc["slug"] === "string" ? { slug: rawDoc["slug"] } : {}),
-      }
-    : undefined
+  const doc =
+    rawDoc === undefined
+      ? undefined
+      : {
+          ...(typeof rawDoc["id"] === "string" ? { id: rawDoc["id"] } : {}),
+          ...(typeof rawDoc["locale"] === "string"
+            ? { locale: rawDoc["locale"] }
+            : {}),
+          ...(typeof rawDoc["slug"] === "string"
+            ? { slug: rawDoc["slug"] }
+            : {}),
+        }
 
   return {
     collection: value["collection"],
-    ...(doc ? { doc } : {}),
+    ...(doc === undefined ? {} : { doc }),
   }
 }
 
 /** Hook endpoint to invalidate cached CMS content in Medusa. */
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
+const post = async (req: MedusaRequest, res: MedusaResponse) => {
   const WEBHOOK_SECRET = process.env["PAYLOAD_WEBHOOK_SECRET"]
-  if (!WEBHOOK_SECRET) {
+  if (WEBHOOK_SECRET === undefined || WEBHOOK_SECRET.length === 0) {
     return res.status(500).json({ error: "Webhook secret not configured" })
   }
 
   const signature = getHeaderValue(req, "x-payload-signature")
   // Prefer raw body for signature verification to avoid JSON.stringify inconsistencies.
   // Falls back to re-stringified body if raw body isn't preserved by middleware.
+  const requestRawBody: unknown = Reflect.get(req, "rawBody")
   const rawBody =
-    (req as RequestWithRawBody).rawBody ?? JSON.stringify(req.body)
+    typeof requestRawBody === "string" || Buffer.isBuffer(requestRawBody)
+      ? requestRawBody
+      : JSON.stringify(req.body)
+  if (rawBody === undefined) {
+    return res.status(400).json({ error: "Missing request body" })
+  }
+
   const expectedSignature = createHmac("sha256", WEBHOOK_SECRET)
     .update(rawBody)
     .digest("hex")
@@ -72,7 +78,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const body = parseWebhookBody(req.body)
 
-  if (!body) {
+  if (body === undefined) {
     return res.status(400).json({ error: "Missing or invalid collection" })
   }
 
@@ -97,3 +103,5 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
   return res.status(200).json({ success: true })
 }
+
+export { post as POST }

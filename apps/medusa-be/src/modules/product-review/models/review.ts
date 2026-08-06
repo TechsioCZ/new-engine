@@ -1,5 +1,7 @@
 import { model } from "@medusajs/framework/utils"
 
+const ACTIVE_RECORD_WHERE = "deleted_at IS NULL"
+
 const Review = model
   .define("review", {
     content: model.text(),
@@ -16,18 +18,18 @@ const Review = model
     {
       name: "IDX_review_product_id",
       on: ["product_id"],
-      where: "deleted_at IS NULL",
+      where: ACTIVE_RECORD_WHERE,
     },
     {
       name: "IDX_review_customer_product_unique",
       on: ["customer_id", "product_id"],
       unique: true,
-      where: "deleted_at IS NULL",
+      where: ACTIVE_RECORD_WHERE,
     },
     {
       name: "IDX_review_status_product_id",
       on: ["status", "product_id"],
-      where: "deleted_at IS NULL",
+      where: ACTIVE_RECORD_WHERE,
     },
   ])
   .checks([

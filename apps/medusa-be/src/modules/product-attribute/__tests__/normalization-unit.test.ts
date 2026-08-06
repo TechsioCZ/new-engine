@@ -7,10 +7,10 @@ import {
   partitionProductAttributeRecordIds,
 } from "../../../utils/product-attributes"
 
-const INVALID_KEY_ERROR = /must contain at least one letter or number/
+const INVALID_KEY_ERROR = /must contain at least one letter or number/u
 const RESTORE_DELETED_OPTION_ERROR =
-  /Restore deleted option "patopt_deleted" instead/
-const ACTIVE_COLLISION_ERROR = /Use a different key/
+  /Restore deleted option "patopt_deleted" instead/u
+const ACTIVE_COLLISION_ERROR = /Use a different key/u
 
 describe("Product Attribute keys", () => {
   it("normalizes Admin and import keys through one canonical path", () => {

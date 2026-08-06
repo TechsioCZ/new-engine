@@ -9,10 +9,10 @@ import {
 } from "./utils"
 import type { GetAdminOrderBusinessStatusesSchemaType } from "./validators"
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, GetAdminOrderBusinessStatusesSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { limit, offset } = req.validatedQuery
 
@@ -34,3 +34,5 @@ export async function GET(
     orders: orders.map(toOrderBusinessStatusSummary),
   })
 }
+
+export { get as GET }

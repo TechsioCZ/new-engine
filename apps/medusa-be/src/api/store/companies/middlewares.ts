@@ -20,16 +20,19 @@ import {
   StoreUpdateEmployee,
 } from "./validators"
 
+const COMPANY_MATCHER = "/store/companies/:id"
+const EMPLOYEE_MATCHER = "/store/companies/:id/employees/:employee_id"
+
 export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
   /* Company middlewares */
   {
     matcher: "/store/companies*",
-    method: "ALL",
+    methods: ["ALL"],
     middlewares: [authenticate("customer", ["session", "bearer"])],
   },
   {
     matcher: "/store/companies",
-    method: ["GET"],
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         StoreGetCompanyParams,
@@ -39,7 +42,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/store/companies",
-    method: ["POST"],
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(StoreCreateCompany),
       validateAndTransformQuery(
@@ -49,8 +52,8 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    matcher: "/store/companies/:id",
-    method: ["GET"],
+    matcher: COMPANY_MATCHER,
+    methods: ["GET"],
     middlewares: [
       ensureCompanyMember,
       validateAndTransformQuery(
@@ -60,8 +63,8 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    matcher: "/store/companies/:id",
-    method: ["POST"],
+    matcher: COMPANY_MATCHER,
+    methods: ["POST"],
     middlewares: [
       ensureRole("company_admin"),
       validateAndTransformBody(StoreUpdateCompany),
@@ -72,15 +75,15 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    matcher: "/store/companies/:id",
-    method: ["DELETE"],
+    matcher: COMPANY_MATCHER,
+    methods: ["DELETE"],
     middlewares: [ensureRole("company_admin")],
   },
 
   /* Employee middlewares */
   {
     matcher: "/store/companies/:id/employees",
-    method: ["GET"],
+    methods: ["GET"],
     middlewares: [
       ensureCompanyMember,
       validateAndTransformQuery(
@@ -91,7 +94,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/store/companies/:id/employees",
-    method: ["POST"],
+    methods: ["POST"],
     middlewares: [
       ensureRole("company_admin"),
       validateAndTransformBody(StoreCreateEmployee),
@@ -102,8 +105,8 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    matcher: "/store/companies/:id/employees/:employee_id",
-    method: ["GET"],
+    matcher: EMPLOYEE_MATCHER,
+    methods: ["GET"],
     middlewares: [
       ensureCompanyMember,
       validateAndTransformQuery(
@@ -113,8 +116,8 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    matcher: "/store/companies/:id/employees/:employee_id",
-    method: ["POST"],
+    matcher: EMPLOYEE_MATCHER,
+    methods: ["POST"],
     middlewares: [
       ensureRole("company_admin"),
       validateAndTransformBody(StoreUpdateEmployee),
@@ -125,13 +128,13 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    matcher: "/store/companies/:id/employees/:employee_id",
-    method: ["DELETE"],
+    matcher: EMPLOYEE_MATCHER,
+    methods: ["DELETE"],
     middlewares: [ensureRole("company_admin")],
   },
   {
     matcher: "/store/companies/:id/approval-settings",
-    method: ["POST"],
+    methods: ["POST"],
     middlewares: [
       ensureRole("company_admin"),
       validateAndTransformBody(StoreUpdateApprovalSettings),

@@ -45,7 +45,6 @@ export const HeadingSkeleton = ({
       break
     }
     case "h3": {
-      charWidth = 9
       break
     }
     default: {
@@ -88,7 +87,6 @@ export const TextSkeleton = ({
       break
     }
     case "small": {
-      charWidth = 9
       break
     }
     case "xsmall": {
@@ -251,18 +249,16 @@ export const SingleColumnPageSkeleton = ({
   showMetadata = false,
 }: SingleColumnPageSkeletonProps) => (
   <div className="flex flex-col gap-y-3">
-    {Array.from({ length: sections }, (_, i) => i).map((section) => {
-      return (
-        <Skeleton
-          className={clx("h-full max-h-[460px] w-full rounded-lg", {
-            // First section is smaller on most pages, this gives us less
-            // layout shifting in general,
-            "max-h-[219px]": section === 0,
-          })}
-          key={section}
-        />
-      )
-    })}
+    {Array.from({ length: sections }, (_, i) => i).map((section) => (
+      <Skeleton
+        className={clx("h-full max-h-[460px] w-full rounded-lg", {
+          // First section is smaller on most pages, this gives us less
+          // layout shifting in general,
+          "max-h-[219px]": section === 0,
+        })}
+        key={section}
+      />
+    ))}
     {showMetadata && <Skeleton className="h-[60px] w-full rounded-lg" />}
     {showJSON && <Skeleton className="h-[60px] w-full rounded-lg" />}
   </div>

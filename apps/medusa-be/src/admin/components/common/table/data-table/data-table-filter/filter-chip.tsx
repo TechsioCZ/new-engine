@@ -25,6 +25,8 @@ const FilterChip = ({
   onRemove,
 }: FilterChipProps) => {
   const { t } = useTranslation()
+  const hasValue = value !== undefined || hadPreviousValue === true
+  const isReadonly = readonly === true
 
   const handleRemove = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
@@ -33,12 +35,12 @@ const FilterChip = ({
 
   return (
     <div className="flex cursor-default select-none items-stretch overflow-hidden rounded-md bg-ui-bg-field text-ui-fg-subtle shadow-borders-base transition-fg">
-      {!hadPreviousValue && <PopoverAnchor />}
+      {hadPreviousValue !== true && <PopoverAnchor />}
       <div
         className={clx(
           "flex items-center justify-center whitespace-nowrap px-2 py-1",
           {
-            "border-r": !!(value ?? hadPreviousValue),
+            "border-r": hasValue,
           },
         )}
       >
@@ -47,7 +49,7 @@ const FilterChip = ({
         </Text>
       </div>
       <div className="flex w-full items-center overflow-hidden">
-        {hasOperator && !!(value ?? hadPreviousValue) && (
+        {hasOperator === true && hasValue && (
           <div className="border-r p-1 px-2">
             <Text
               className="text-ui-fg-muted"
@@ -59,14 +61,14 @@ const FilterChip = ({
             </Text>
           </div>
         )}
-        {!!(value ?? hadPreviousValue) && (
+        {hasValue && (
           <PopoverTrigger
             asChild
             className={clx(
               "flex-1 cursor-pointer overflow-hidden border-r p-1 px-2",
               {
-                "data-[state=open]:bg-ui-bg-field-hover": !readonly,
-                "hover:bg-ui-bg-field-hover": !readonly,
+                "data-[state=open]:bg-ui-bg-field-hover": !isReadonly,
+                "hover:bg-ui-bg-field-hover": !isReadonly,
               },
             )}
           >
@@ -81,7 +83,7 @@ const FilterChip = ({
           </PopoverTrigger>
         )}
       </div>
-      {!readonly && !!(value ?? hadPreviousValue) && (
+      {!isReadonly && hasValue && (
         <button
           className={clx(
             "flex items-center justify-center p-1 text-ui-fg-muted transition-fg",

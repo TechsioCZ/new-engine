@@ -104,18 +104,20 @@ describe("order expedition helpers", () => {
       total: 47.39,
     })
     expect(dto.delivery_address).toStrictEqual(["Ulice 1", "11000 Praha", "CZ"])
-    expect(dto.items).toStrictEqual([
+    expect(dto.items).toMatchObject([
       {
         id: "item_1",
         quantity: 2,
-        sku: undefined,
-        thumbnail: undefined,
         title: "Tea",
         unit_price: null,
-        variant: undefined,
-        variant_id: undefined,
       },
     ])
+    expect([
+      dto.items[0]?.sku,
+      dto.items[0]?.thumbnail,
+      dto.items[0]?.variant,
+      dto.items[0]?.variant_id,
+    ]).toStrictEqual([undefined, undefined, undefined, undefined])
   })
 
   it("uses the latest summary total when query returns a zero order total", () => {

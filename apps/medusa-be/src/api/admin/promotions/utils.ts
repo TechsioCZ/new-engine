@@ -11,32 +11,39 @@ import type {
   RuleValueOption,
 } from "./types"
 
-export function validateRuleType(
+export const validateRuleType: (
   ruleType: string,
-): asserts ruleType is RuleType {
+) => asserts ruleType is RuleType = (ruleType) => {
   medusaValidateRuleType(ruleType)
 }
 
 export const escapeLikePattern = (str: string) =>
-  str.replaceAll(/[%_\\]/g, (char) => `\\${char}`)
+  str.replaceAll(/[%_\\]/gu, (char) => `\\${char}`)
 
-export function mapVariantToRuleValueOption(
+export const mapVariantToRuleValueOption = (
   variant: ProductVariantInput,
-): RuleValueOption {
+): RuleValueOption => {
   const parts: string[] = []
 
-  if (variant.product?.title) {
+  if (
+    variant.product?.title !== undefined &&
+    variant.product.title.length > 0
+  ) {
     parts.push(variant.product.title)
   }
 
-  if (variant.title) {
+  if (variant.title !== undefined && variant.title.length > 0) {
     parts.push(variant.title)
   }
 
   const joinedLabel = parts.join(" - ")
   let label = joinedLabel === "" ? variant.id : joinedLabel
 
-  if (variant.sku) {
+  if (
+    variant.sku !== undefined &&
+    variant.sku !== null &&
+    variant.sku.length > 0
+  ) {
     label += ` (${variant.sku})`
   }
 
@@ -46,9 +53,21 @@ export function mapVariantToRuleValueOption(
   }
 }
 
-export function getExtendedRuleAttributesMap(
+const appendMissingAttributes = <T extends { id: string }>(
+  baseAttributes: T[],
+  customAttributes: readonly T[],
+) => {
+  const existingIds = new Set(baseAttributes.map((attribute) => attribute.id))
+  const additions = customAttributes.filter(
+    (attribute) => !existingIds.has(attribute.id),
+  )
+
+  return [...baseAttributes, ...additions]
+}
+
+export const getExtendedRuleAttributesMap = (
   params: GetRuleAttributesMapParams,
-) {
+) => {
   const map = getRuleAttributesMap(params)
   const itemRuleAttributes =
     params.applicationMethodTargetType === "shipping_methods"
@@ -63,16 +82,4 @@ export function getExtendedRuleAttributesMap(
       itemRuleAttributes,
     ),
   } satisfies Record<RuleType, typeof map.rules>
-}
-
-function appendMissingAttributes<T extends { id: string }>(
-  baseAttributes: T[],
-  customAttributes: readonly T[],
-) {
-  const existingIds = new Set(baseAttributes.map((attribute) => attribute.id))
-  const additions = customAttributes.filter(
-    (attribute) => !existingIds.has(attribute.id),
-  )
-
-  return [...baseAttributes, ...additions]
 }

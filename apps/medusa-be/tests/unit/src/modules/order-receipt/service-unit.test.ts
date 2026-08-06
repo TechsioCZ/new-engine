@@ -47,18 +47,19 @@ const qrPaymentCollections = [
   },
 ]
 
-const PDF_PAGE_COUNT_REGEX = /\/Type \/Pages \/Kids \[[^\]]*\] \/Count (\d+)/
+const PDF_PAGE_COUNT_REGEX =
+  /\/Type \/Pages \/Kids \[[^\]]*\] \/Count (?<count>\d+)/u
 const CUSTOMER_TEXT_ROW_REGEX =
-  /BT \/F[12] (?:10|12) Tf 322\.00 (\d+\.\d{2}) Td \(([^)]*)\) Tj ET/g
+  /BT \/F[12] (?:10|12) Tf 322\.00 (?<position>\d+\.\d{2}) Td \((?<text>[^)]*)\) Tj ET/gu
 
-function getPdfPageCount(pdf: string) {
+const getPdfPageCount = (pdf: string) => {
   const match = PDF_PAGE_COUNT_REGEX.exec(pdf)
 
-  return match ? Number(match[1]) : 0
+  return match === null ? 0 : Number(match[1])
 }
 
-function buildPaginationItems(count: number) {
-  return Array.from({ length: count }, (_, index) => {
+const buildPaginationItems = (count: number) =>
+  Array.from({ length: count }, (_, index) => {
     const amount = 100 + index
 
     return {
@@ -70,9 +71,8 @@ function buildPaginationItems(count: number) {
       unit_price: amount,
     }
   })
-}
 
-function buildPaginationOrder(itemCount: number) {
+const buildPaginationOrder = (itemCount: number) => {
   const items = buildPaginationItems(itemCount)
   const total = items.reduce((sum, item) => sum + item.total, 0)
 

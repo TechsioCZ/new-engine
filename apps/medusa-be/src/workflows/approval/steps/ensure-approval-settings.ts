@@ -4,11 +4,18 @@ import { APPROVAL_MODULE } from "../../../modules/approval"
 import type {
   IApprovalModuleService,
   ModuleApprovalSettings,
+  ModuleCreateApprovalSettings,
 } from "../../../types"
 
 export interface EnsureApprovalSettingsStepResult {
   approval_settings: ModuleApprovalSettings[]
   created_approval_settings: ModuleApprovalSettings[]
+}
+
+interface BulkApprovalSettingsCreator {
+  createApprovalSettings: (
+    data: ModuleCreateApprovalSettings[],
+  ) => Promise<ModuleApprovalSettings[]>
 }
 
 interface EnsureApprovalSettingsCompensation {
@@ -65,7 +72,11 @@ export const ensureApprovalSettingsStep = createStep(
     const deletedSettingsByCompanyId = new Map<string, ModuleApprovalSettings>()
 
     for (const setting of existingSettings) {
-      if (setting.deleted_at) {
+      if (
+        setting.deleted_at !== null &&
+        setting.deleted_at !== undefined &&
+        setting.deleted_at.length > 0
+      ) {
         deletedSettingsByCompanyId.set(
           setting.company_id,
           getLatestSetting(
@@ -107,15 +118,20 @@ export const ensureApprovalSettingsStep = createStep(
           deletedSettingsByCompanyId.has(companyId)
         ),
     )
-    const createdSettings = missingCompanyIds.length
-      ? await approvalModuleService.createApprovalSettings(
-          missingCompanyIds.map((companyId) => ({
-            company_id: companyId,
-            requires_admin_approval: false,
-            requires_sales_manager_approval: false,
-          })),
-        )
-      : []
+    const settingsToCreate: ModuleCreateApprovalSettings[] =
+      missingCompanyIds.map((companyId) => ({
+        company_id: companyId,
+        requires_admin_approval: false,
+        requires_sales_manager_approval: false,
+      }))
+    const bulkApprovalSettingsCreator =
+      container.resolve<BulkApprovalSettingsCreator>(APPROVAL_MODULE)
+    const createdSettings: ModuleApprovalSettings[] =
+      settingsToCreate.length > 0
+        ? await bulkApprovalSettingsCreator.createApprovalSettings(
+            settingsToCreate,
+          )
+        : []
 
     return new StepResponse(
       {
@@ -132,18 +148,21 @@ export const ensureApprovalSettingsStep = createStep(
     input: EnsureApprovalSettingsCompensation | undefined,
     { container },
   ) => {
-    if (!(input?.created_ids.length || input?.restored_ids.length)) {
+    if (
+      input === undefined ||
+      (input.created_ids.length === 0 && input.restored_ids.length === 0)
+    ) {
       return
     }
 
     const approvalModuleService =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
-    if (input.created_ids.length) {
+    if (input.created_ids.length > 0) {
       await approvalModuleService.deleteApprovalSettings(input.created_ids)
     }
 
-    if (input.restored_ids.length) {
+    if (input.restored_ids.length > 0) {
       await approvalModuleService.softDeleteApprovalSettings(input.restored_ids)
     }
   },

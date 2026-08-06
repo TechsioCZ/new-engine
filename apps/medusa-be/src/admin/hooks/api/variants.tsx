@@ -1,6 +1,7 @@
 import type { FetchError } from "@medusajs/js-sdk"
 import { useQuery } from "@tanstack/react-query"
-import type { QueryKey, UseQueryOptions } from "@tanstack/react-query"
+import type { UseQueryOptions } from "@tanstack/react-query"
+import { omitKeys } from "@techsio/std/object"
 
 import { queryKeysFactory } from "../../lib/query-key-factory"
 import { sdk } from "../../lib/sdk"
@@ -29,11 +30,11 @@ export const useVariants = (
     "queryFn" | "queryKey"
   >,
 ) => {
-  const { data, ...rest } = useQuery({
+  const queryResult = useQuery({
     queryFn: async () => await sdk.admin.productVariant.list(query),
     queryKey: productVariantQueryKeys.list(query),
     ...options,
   })
 
-  return { ...data, ...rest }
+  return { ...queryResult.data, ...omitKeys(queryResult, ["data"]) }
 }

@@ -24,30 +24,42 @@ const unit = (params: {
   deleted?: boolean
   id?: string
   symbol: string
-}) =>
-  ({
-    base_quantity: params.baseQuantity,
-    code: params.code,
-    created_at: new Date("2026-01-01T00:00:00.000Z"),
-    deleted_at: params.deleted ? new Date("2026-02-01T00:00:00.000Z") : null,
-    id: params.id ?? `unit-${params.code}`,
-    name: params.symbol,
-    symbol: params.symbol,
-    updated_at: new Date("2026-01-01T00:00:00.000Z"),
-  }) as MeasurementUnitRecord
+}): MeasurementUnitRecord => ({
+  base_quantity: params.baseQuantity,
+  code: params.code,
+  created_at: new Date("2026-01-01T00:00:00.000Z"),
+  deleted_at:
+    params.deleted === true ? new Date("2026-02-01T00:00:00.000Z") : null,
+  description: null,
+  id: params.id ?? `unit-${params.code}`,
+  name: params.symbol,
+  product_measurements: [],
+  raw_base_quantity: { precision: 20, value: String(params.baseQuantity) },
+  symbol: params.symbol,
+  updated_at: new Date("2026-01-01T00:00:00.000Z"),
+})
 
 const productMeasurement = (params: {
   deleted?: boolean
   id: string
   productId?: string
   unitId: string
-}) =>
-  ({
-    deleted_at: params.deleted ? new Date("2026-02-01T00:00:00.000Z") : null,
-    id: params.id,
-    measurement_unit_id: params.unitId,
-    product_id: params.productId ?? "product-1",
-  }) as ProductMeasurementRecord
+}): ProductMeasurementRecord => ({
+  created_at: new Date("2026-01-01T00:00:00.000Z"),
+  deleted_at:
+    params.deleted === true ? new Date("2026-02-01T00:00:00.000Z") : null,
+  id: params.id,
+  measurement_unit: unit({
+    baseQuantity: 1,
+    code: params.unitId,
+    id: params.unitId,
+    symbol: params.unitId,
+  }),
+  measurement_unit_id: params.unitId,
+  product_id: params.productId ?? "product-1",
+  updated_at: new Date("2026-01-01T00:00:00.000Z"),
+  variant_measurements: [],
+})
 
 const variantMeasurement = (params: {
   deleted?: boolean
@@ -55,17 +67,27 @@ const variantMeasurement = (params: {
   productMeasurementId: string
   quantity: number
   variantId: string
-}) =>
-  ({
-    deleted_at: params.deleted ? new Date("2026-02-01T00:00:00.000Z") : null,
-    id: params.id,
-    product_measurement_id: params.productMeasurementId,
-    product_unit_quantity: params.quantity,
-    product_variant_id: params.variantId,
-  }) as ProductVariantMeasurementRecord
+}): ProductVariantMeasurementRecord => ({
+  created_at: new Date("2026-01-01T00:00:00.000Z"),
+  deleted_at:
+    params.deleted === true ? new Date("2026-02-01T00:00:00.000Z") : null,
+  id: params.id,
+  product_measurement: productMeasurement({
+    id: params.productMeasurementId,
+    unitId: "fixture-unit",
+  }),
+  product_measurement_id: params.productMeasurementId,
+  product_unit_quantity: params.quantity,
+  product_variant_id: params.variantId,
+  raw_product_unit_quantity: {
+    precision: 20,
+    value: String(params.quantity),
+  },
+  updated_at: new Date("2026-01-01T00:00:00.000Z"),
+})
 
 const productInput = (params: {
-  measurement: ProductInput["measurement"]
+  measurement?: ProductInput["measurement"]
   variantMeasurements?: ({ product_unit_quantity: number } | null | undefined)[]
 }): ProductInput => ({
   categories: [],
@@ -84,11 +106,28 @@ const productInput = (params: {
   })),
 })
 
-const resolvedProduct = (input: ProductInput, variantIds = ["variant-1"]) => {
+type ResolvedProductInput = Parameters<
+  typeof buildProductRecordMutationPlan
+>[0][number]
+type ResolvedVariantInput = NonNullable<ProductInput["variants"]>[number]
+
+const resolvedProduct = (
+  input: ProductInput,
+  variantIds = ["variant-1"],
+): ResolvedProductInput => {
   const variants = variantIds.map((id, index) => ({
     id,
     sku: `SKU-${index + 1}`,
   }))
+  const variantInputById = new Map<string, ResolvedVariantInput>()
+  const variantInputs = input.variants ?? []
+  for (const [index, variant] of variants.entries()) {
+    const variantInput = variantInputs[index]
+    if (variantInput !== undefined) {
+      variantInputById.set(variant.id, variantInput)
+    }
+  }
+
   return {
     input,
     product: {
@@ -96,14 +135,7 @@ const resolvedProduct = (input: ProductInput, variantIds = ["variant-1"]) => {
       id: "product-1",
       variants,
     },
-    variantInputById: new Map(
-      variants.map((variant, index) => [
-        variant.id,
-        input.variants?.[index] as NonNullable<
-          ProductInput["variants"]
-        >[number],
-      ]),
-    ),
+    variantInputById,
   }
 }
 
@@ -125,7 +157,7 @@ describe("seed Measurement Unit identity", () => {
       },
     ])
 
-    expect([...canonical.keys()].sort()).toStrictEqual(["g:1", "g:100"])
+    expect([...canonical.keys()].toSorted()).toStrictEqual(["g:1", "g:100"])
     expect(
       getSeedMeasurementUnitSemanticKey({ base_quantity: 100, symbol: "G" }),
     ).toBe("g:100")
@@ -232,7 +264,6 @@ describe("seed Product measurement preflight", () => {
     expect(() => {
       validateSeedProductMeasurementInput([
         productInput({
-          measurement: undefined,
           variantMeasurements: [null],
         }),
       ])
@@ -278,9 +309,7 @@ describe("seed Product measurement planning", () => {
       variantId: "variant-1",
     })
     const plan = buildProductRecordMutationPlan(
-      [resolvedProduct(productInput({ measurement: null }))] as Parameters<
-        typeof buildProductRecordMutationPlan
-      >[0],
+      [resolvedProduct(productInput({ measurement: null }))],
       [activeProduct],
       [activeVariant],
       new Map(),
@@ -313,9 +342,7 @@ describe("seed Product measurement planning", () => {
       },
     })
     const plan = buildProductRecordMutationPlan(
-      [resolvedProduct(input)] as Parameters<
-        typeof buildProductRecordMutationPlan
-      >[0],
+      [resolvedProduct(input)],
       [activeProduct, deletedTarget],
       [oldVariant],
       new Map([["g:100", grams]]),
@@ -349,9 +376,7 @@ describe("seed Product measurement planning", () => {
       },
       variantMeasurements: [undefined],
     })
-    const resolved = [resolvedProduct(input)] as Parameters<
-      typeof buildVariantRecordMutationPlan
-    >[0]
+    const resolved: ResolvedProductInput[] = [resolvedProduct(input)]
     const productPlan = buildProductRecordMutationPlan(
       resolved,
       [activeProduct, targetProduct],
@@ -398,22 +423,30 @@ describe("seed Product measurement planning", () => {
       },
       variantMeasurements: [{ product_unit_quantity: 500 }, null],
     })
-    const resolved = [
+    const resolved: ResolvedProductInput[] = [
       resolvedProduct(input, ["variant-1", "variant-2"]),
-    ] as Parameters<typeof buildVariantRecordMutationPlan>[0]
+    ]
     const productState = {
       productMeasurements: [targetProduct],
       productTargetById: new Map([["product-1", targetProduct]]),
       variantIdsToSoftDelete: new Set<string>(),
       variantMeasurements: [firstVariant, secondVariant],
-    } as Parameters<typeof buildVariantRecordMutationPlan>[1]
+    } satisfies Parameters<typeof buildVariantRecordMutationPlan>[1]
     const plan = buildVariantRecordMutationPlan(resolved, productState)
 
-    expect(plan.creates).toStrictEqual([])
-    expect(plan.updates).toStrictEqual([])
-    expect([...plan.softDeleteIds]).toStrictEqual(["vm-second"])
-    expect(plan.variantTargetById.get("variant-1")?.id).toBe("vm-first")
-    expect(plan.variantTargetById.get("variant-2")).toBeNull()
+    expect({
+      creates: plan.creates,
+      firstTargetId: plan.variantTargetById.get("variant-1")?.id,
+      secondTarget: plan.variantTargetById.get("variant-2"),
+      softDeleteIds: [...plan.softDeleteIds],
+      updates: plan.updates,
+    }).toStrictEqual({
+      creates: [],
+      firstTargetId: "vm-first",
+      secondTarget: null,
+      softDeleteIds: ["vm-second"],
+      updates: [],
+    })
 
     const convergedState = {
       ...productState,
@@ -424,10 +457,17 @@ describe("seed Product measurement planning", () => {
       ],
     }
     const rerun = buildVariantRecordMutationPlan(resolved, convergedState)
-    expect(rerun.creates).toStrictEqual([])
-    expect(rerun.updates).toStrictEqual([])
-    expect([...rerun.restoreIds]).toStrictEqual([])
-    expect([...rerun.softDeleteIds]).toStrictEqual([])
+    expect({
+      creates: rerun.creates,
+      restoreIds: [...rerun.restoreIds],
+      softDeleteIds: [...rerun.softDeleteIds],
+      updates: rerun.updates,
+    }).toStrictEqual({
+      creates: [],
+      restoreIds: [],
+      softDeleteIds: [],
+      updates: [],
+    })
   })
 })
 

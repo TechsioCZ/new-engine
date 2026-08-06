@@ -8,6 +8,24 @@ import {
 import { MEASUREMENT_UNIT_MODULE } from "../../../modules/measurement-unit"
 import { getMeasurementUnitService } from "../../../utils/measurement-units"
 
+interface ProductGraphQuery {
+  graph: (config: {
+    entity: "product"
+    fields: readonly string[]
+    filters: Record<string, unknown>
+    pagination: { take: number }
+  }) => Promise<{ data: { id: string }[] }>
+}
+
+interface ProductVariantGraphQuery {
+  graph: (config: {
+    entity: "product_variant"
+    fields: readonly string[]
+    filters: Record<string, unknown>
+    pagination: { take: number }
+  }) => Promise<{ data: { id: string; product_id: string }[] }>
+}
+
 interface TimestampedRecord {
   created_at?: Date | string
   deleted_at?: Date | string | null
@@ -16,7 +34,7 @@ interface TimestampedRecord {
 }
 
 const getTime = (value?: Date | string) => {
-  if (!value) {
+  if (value === undefined) {
     return 0
   }
 
@@ -26,12 +44,13 @@ const getTime = (value?: Date | string) => {
 }
 
 const isDeleted = (record: { deleted_at?: Date | string | null }) =>
-  !!record.deleted_at
+  record.deleted_at instanceof Date ||
+  (typeof record.deleted_at === "string" && record.deleted_at.length > 0)
 
 export const pickCanonicalRecord = <TRecord extends TimestampedRecord>(
   records: TRecord[],
 ) => {
-  const [record] = [...records].sort((left, right) => {
+  const [record] = records.toSorted((left, right) => {
     const activeCompare = Number(isDeleted(left)) - Number(isDeleted(right))
 
     if (activeCompare !== 0) {
@@ -59,10 +78,12 @@ export const pickCanonicalRecord = <TRecord extends TimestampedRecord>(
 }
 
 export const normalizeUnitCode = (code: string) =>
-  code.trim().toLowerCase().replaceAll(/\s+/g, "_")
+  code.trim().toLowerCase().replaceAll(/\s+/gu, "_")
 
-export const normalizeDescription = (description?: null | string) =>
-  description?.trim() || null
+export const normalizeDescription = (description?: null | string) => {
+  const normalized = description?.trim()
+  return normalized !== undefined && normalized.length > 0 ? normalized : null
+}
 
 export const productMeasurementLink = (
   productId: string,
@@ -92,17 +113,20 @@ export const ensureProductExists = async (
   container: MedusaContainer,
   productId: string,
 ) => {
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve<ProductGraphQuery>(
+    ContainerRegistrationKeys.QUERY,
+  )
   const { data } = await query.graph({
     entity: "product",
     fields: ["id"],
     filters: {
       id: productId,
     },
+    pagination: { take: 1 },
   })
-  const product = data[0]
+  const [product] = data
 
-  if (!product?.id) {
+  if (product === undefined || product.id.length === 0) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product with id "${productId}" was not found`,
@@ -117,17 +141,20 @@ export const ensureProductVariantBelongsToProduct = async (
   productId: string,
   productVariantId: string,
 ) => {
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve<ProductVariantGraphQuery>(
+    ContainerRegistrationKeys.QUERY,
+  )
   const { data } = await query.graph({
     entity: "product_variant",
     fields: ["id", "product_id"],
     filters: {
       id: productVariantId,
     },
+    pagination: { take: 1 },
   })
-  const variant = data[0]
+  const [variant] = data
 
-  if (!variant?.id) {
+  if (variant === undefined || variant.id.length === 0) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product variant with id "${productVariantId}" was not found`,
@@ -159,7 +186,7 @@ export const retrieveActiveUnitOrThrow = async (
     },
   )
 
-  if (!unit) {
+  if (unit === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Measurement unit with id "${unitId}" was not found`,
@@ -191,7 +218,7 @@ export const ensureUnitCodeAvailable = async ({
     },
   )
 
-  if (existing && existing.id !== excludeId) {
+  if (existing !== undefined && existing.id !== excludeId) {
     throw new MedusaError(
       MedusaError.Types.DUPLICATE_ERROR,
       `Measurement unit with code "${normalizedCode}" already exists.`,
@@ -259,11 +286,12 @@ export const getCanonicalProductMeasurement = async ({
       withDeleted,
     },
   )
-  const filtered = unitId
-    ? measurements.filter(
-        (measurement) => measurement.measurement_unit_id === unitId,
-      )
-    : measurements
+  const filtered =
+    unitId !== undefined && unitId.length > 0
+      ? measurements.filter(
+          (measurement) => measurement.measurement_unit_id === unitId,
+        )
+      : measurements
 
   return pickCanonicalRecord(filtered)
 }

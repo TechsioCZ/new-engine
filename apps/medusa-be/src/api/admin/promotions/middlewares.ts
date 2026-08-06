@@ -9,19 +9,19 @@ import {
 export const adminPromotionsExtensionMiddlewares: MiddlewareRoute[] = [
   {
     matcher: "/admin/promotions/rule-attribute-options/:rule_type",
-    method: ["GET"],
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(RuleAttributeOptionsQuerySchema, {}),
     ],
   },
   {
     matcher: "/admin/promotions/rule-value-options/:rule_type/product_variant",
-    method: ["GET"],
+    methods: ["GET"],
     middlewares: [validateAndTransformQuery(RuleValueOptionsQuerySchema, {})],
   },
   {
     matcher: "/admin/promotions/rule-value-options/:rule_type/brand",
-    method: ["GET"],
+    methods: ["GET"],
     middlewares: [validateAndTransformQuery(RuleValueOptionsQuerySchema, {})],
   },
 ]

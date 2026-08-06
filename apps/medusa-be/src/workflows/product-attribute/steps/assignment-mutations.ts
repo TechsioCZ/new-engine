@@ -1,5 +1,5 @@
 import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
-import type { Context, Query } from "@medusajs/framework/types"
+import type { Context } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -20,10 +20,24 @@ import type {
   SetProductAttributesInput,
 } from "../types"
 
+interface BoundedGraphQuery {
+  graph: (config: {
+    entity: "product"
+    fields: readonly string[]
+    filters: Record<string, unknown>
+    pagination: { take: number }
+  }) => Promise<{ data: { id: string }[] }>
+}
+
 interface AssignmentCompensation {
   created_ids: string[]
   previous: ProductAttributeAssignmentRecord[]
 }
+
+const MAX_ATTRIBUTE_OPERATIONS = 100
+
+const hasDeletedAt = (value: unknown): boolean =>
+  value instanceof Date || (typeof value === "string" && value.length > 0)
 
 type PreparedSetOperation = SetProductAttributeOperation & {
   definition: ProductAttributeDefinitionRecord
@@ -52,7 +66,7 @@ const prepareProductAttributeOperation = (
   optionById: Map<string, ProductAttributeOptionRecord>,
 ): PreparedSetOperation => {
   const definition = definitionById.get(operation.definition_id)
-  if (!definition || definition.deleted_at) {
+  if (definition === undefined || hasDeletedAt(definition.deleted_at)) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Active Product Attribute definition "${operation.definition_id}" was not found.`,
@@ -69,7 +83,11 @@ const prepareProductAttributeOperation = (
 
   if (definition.input_type === "text") {
     const textValue = operation.text_value?.trim()
-    if (!(textValue && !operation.option_id)) {
+    if (
+      textValue === undefined ||
+      textValue.length === 0 ||
+      (operation.option_id !== undefined && operation.option_id.length > 0)
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         `Text definition "${definition.key}" requires a non-empty text_value and no option_id.`,
@@ -84,7 +102,11 @@ const prepareProductAttributeOperation = (
     }
   }
 
-  if (!operation.option_id || operation.text_value !== undefined) {
+  if (
+    operation.option_id === undefined ||
+    operation.option_id.length === 0 ||
+    operation.text_value !== undefined
+  ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       `Select definition "${definition.key}" requires option_id and no text_value.`,
@@ -92,7 +114,11 @@ const prepareProductAttributeOperation = (
   }
 
   const option = optionById.get(operation.option_id)
-  if (!option || option.deleted_at || option.definition_id !== definition.id) {
+  if (
+    option === undefined ||
+    hasDeletedAt(option.deleted_at) ||
+    option.definition_id !== definition.id
+  ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       `Option "${operation.option_id}" is not an active option of definition "${definition.key}".`,
@@ -153,7 +179,10 @@ export const planProductAttributeAssignmentMutations = ({
   >()
   for (const assignment of existingAssignments) {
     const current = existingByDefinitionId.get(assignment.definition_id)
-    if (!current || (current.deleted_at && !assignment.deleted_at)) {
+    if (
+      current === undefined ||
+      (hasDeletedAt(current.deleted_at) && !hasDeletedAt(assignment.deleted_at))
+    ) {
       existingByDefinitionId.set(assignment.definition_id, assignment)
     }
   }
@@ -193,8 +222,8 @@ export const prepareProductAttributeAssignmentCompensation = (
   created_ids: [],
   previous: mutations.flatMap((mutation) => {
     if (
-      !mutation.existing ||
-      (mutation.kind === "remove" && mutation.existing.deleted_at)
+      mutation.existing === undefined ||
+      (mutation.kind === "remove" && hasDeletedAt(mutation.existing.deleted_at))
     ) {
       return []
     }
@@ -206,7 +235,9 @@ const ensureProductExists = async (
   productId: string,
   container: Parameters<typeof getProductAttributeService>[0],
 ) => {
-  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve<BoundedGraphQuery>(
+    ContainerRegistrationKeys.QUERY,
+  )
   const { data: products } = await query.graph({
     entity: "product",
     fields: ["id"],
@@ -214,7 +245,9 @@ const ensureProductExists = async (
     pagination: { take: 1 },
   })
 
-  if (!products[0]) {
+  const [product] = products
+
+  if (product === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product "${productId}" was not found.`,
@@ -227,18 +260,18 @@ const applyProductAttributeMutation = async (
   context: Context<SqlEntityManager>,
   productId: string,
   mutation: ProductAttributeAssignmentMutation,
-) => {
+): Promise<ProductAttributeAssignmentRecord | undefined> => {
   const { existing } = mutation
 
   if (mutation.kind === "remove") {
-    if (existing && !existing.deleted_at) {
+    if (existing !== undefined && !hasDeletedAt(existing.deleted_at)) {
       await service.softDeleteProductAttributes([existing.id], {}, context)
     }
-    return
+    return undefined
   }
 
-  if (existing) {
-    if (existing.deleted_at) {
+  if (existing !== undefined) {
+    if (hasDeletedAt(existing.deleted_at)) {
       await service.restoreProductAttributes([existing.id], {}, context)
     }
     await service.updateProductAttributes(
@@ -248,7 +281,7 @@ const applyProductAttributeMutation = async (
       },
       context,
     )
-    return
+    return undefined
   }
 
   return await service.createProductAttributes(
@@ -261,9 +294,82 @@ const applyProductAttributeMutation = async (
   )
 }
 
+const applyProductAttributeMutationsSequentially = async (
+  service: ReturnType<typeof getProductAttributeService>,
+  context: Context<SqlEntityManager>,
+  productId: string,
+  mutations: ProductAttributeAssignmentMutation[],
+  createdIds: string[],
+  index = 0,
+): Promise<null> => {
+  const mutation = mutations[index]
+  if (mutation === undefined) {
+    return null
+  }
+
+  const created = await applyProductAttributeMutation(
+    service,
+    context,
+    productId,
+    mutation,
+  )
+  if (created !== undefined) {
+    createdIds.push(created.id)
+  }
+
+  return await applyProductAttributeMutationsSequentially(
+    service,
+    context,
+    productId,
+    mutations,
+    createdIds,
+    index + 1,
+  )
+}
+
+const restoreAssignmentsSequentially = async (
+  service: ReturnType<typeof getProductAttributeService>,
+  context: Context<SqlEntityManager>,
+  previousAssignments: ProductAttributeAssignmentRecord[],
+  index = 0,
+): Promise<null> => {
+  const previous = previousAssignments[index]
+  if (previous === undefined) {
+    return null
+  }
+
+  await service.updateProductAttributes(
+    {
+      id: previous.id,
+      option_id: previous.option_id ?? null,
+      text_value: previous.text_value ?? null,
+    },
+    context,
+  )
+
+  const setDeletionState = hasDeletedAt(previous.deleted_at)
+    ? service.softDeleteProductAttributes([previous.id], {}, context)
+    : service.restoreProductAttributes([previous.id], {}, context)
+  await setDeletionState
+
+  return await restoreAssignmentsSequentially(
+    service,
+    context,
+    previousAssignments,
+    index + 1,
+  )
+}
+
 export const setProductAttributesStep = createStep(
   "set-product-attributes",
   async (input: SetProductAttributesInput, { container }) => {
+    if (input.operations.length > MAX_ATTRIBUTE_OPERATIONS) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `A maximum of ${MAX_ATTRIBUTE_OPERATIONS} Product Attribute operations is allowed.`,
+      )
+    }
+
     await ensureProductExists(input.product_id, container)
     const service = getProductAttributeService(container)
 
@@ -274,7 +380,9 @@ export const setProductAttributesStep = createStep(
           (operation) => operation.definition_id,
         )
         const optionIds = input.operations.flatMap((operation) =>
-          operation.action === "set" && operation.option_id
+          operation.action === "set" &&
+          operation.option_id !== undefined &&
+          operation.option_id.length > 0
             ? [operation.option_id]
             : [],
         )
@@ -287,7 +395,7 @@ export const setProductAttributesStep = createStep(
             },
             context,
           ),
-          optionIds.length
+          optionIds.length > 0
             ? service.listProductAttributeOptions(
                 { id: { $in: optionIds } },
                 {
@@ -304,7 +412,7 @@ export const setProductAttributesStep = createStep(
             },
             {
               order: { id: "ASC" },
-              take: undefined,
+              take: Math.max(definitionIds.length, 1),
               withDeleted: true,
             },
             context,
@@ -323,17 +431,13 @@ export const setProductAttributesStep = createStep(
         const compensation =
           prepareProductAttributeAssignmentCompensation(mutations)
 
-        for (const mutation of mutations) {
-          const created = await applyProductAttributeMutation(
-            service,
-            context,
-            input.product_id,
-            mutation,
-          )
-          if (created) {
-            createdIds.push(created.id)
-          }
-        }
+        await applyProductAttributeMutationsSequentially(
+          service,
+          context,
+          input.product_id,
+          mutations,
+          createdIds,
+        )
 
         const assignments = await service.listProductAttributes(
           {
@@ -360,32 +464,21 @@ export const setProductAttributesStep = createStep(
     return new StepResponse(result.assignments, result.compensation)
   },
   async (compensation: AssignmentCompensation | undefined, { container }) => {
-    if (!compensation) {
+    if (compensation === undefined) {
       return
     }
 
     const service = getProductAttributeService(container)
     await withProductAttributeTransaction(service, async (context) => {
-      if (compensation.created_ids.length) {
+      if (compensation.created_ids.length > 0) {
         await service.deleteProductAttributes(compensation.created_ids, context)
       }
 
-      for (const previous of compensation.previous) {
-        await service.updateProductAttributes(
-          {
-            id: previous.id,
-            option_id: previous.option_id ?? null,
-            text_value: previous.text_value ?? null,
-          },
-          context,
-        )
-
-        if (previous.deleted_at) {
-          await service.softDeleteProductAttributes([previous.id], {}, context)
-        } else {
-          await service.restoreProductAttributes([previous.id], {}, context)
-        }
-      }
+      await restoreAssignmentsSequentially(
+        service,
+        context,
+        compensation.previous,
+      )
     })
   },
 )

@@ -14,7 +14,7 @@ const CLIENT_ERROR_TYPES = new Set([
   MedusaError.Types.NOT_FOUND,
 ])
 
-export function normalizeError(throwable: unknown): Error {
+export const normalizeError = (throwable: unknown): Error => {
   if (throwable instanceof Error) {
     return throwable
   }
@@ -23,7 +23,7 @@ export function normalizeError(throwable: unknown): Error {
   return error
 }
 
-export function shouldCaptureException(error: unknown): boolean {
+export const shouldCaptureException = (error: unknown): boolean => {
   if (error instanceof MedusaError) {
     return !CLIENT_ERROR_TYPES.has(error.type)
   }

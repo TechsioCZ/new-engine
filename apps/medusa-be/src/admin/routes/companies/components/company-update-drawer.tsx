@@ -4,10 +4,10 @@ import { useTranslation } from "react-i18next"
 
 import type { AdminUpdateCompany, QueryCompany } from "../../../../types"
 import { definedProperties } from "../../../../utils/defined-properties"
-import { useUpdateCompany } from "../../../hooks/api"
+import { useUpdateCompany } from "../../../hooks/api/companies"
 import { CompanyForm } from "./company-form"
 
-export function CompanyUpdateDrawer({
+export const CompanyUpdateDrawer = ({
   company,
   open,
   setOpen,
@@ -15,7 +15,7 @@ export function CompanyUpdateDrawer({
   company: QueryCompany
   open: boolean
   setOpen: (open: boolean) => void
-}) {
+}) => {
   const { t } = useTranslation("companies")
   const { mutateAsync, isPending } = useUpdateCompany(company.id)
 

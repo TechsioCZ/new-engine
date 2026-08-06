@@ -18,7 +18,7 @@ const toConfigResponse = (config: GLSConfigDTO): GLSConfigResponse => ({
   hide_phone_number_on_labels: config.hide_phone_number_on_labels,
   id: config.id,
   is_enabled: config.is_enabled,
-  password_set: !!config.password,
+  password_set: Boolean(config.password),
   print_position: config.print_position,
   sender_city: config.sender_city,
   sender_country: config.sender_country,
@@ -34,7 +34,7 @@ const toConfigResponse = (config: GLSConfigDTO): GLSConfigResponse => ({
   webshop_engine: config.webshop_engine,
 })
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const glsService =
     req.scope.resolve<GLSClientModuleService>(GLS_CLIENT_MODULE)
 
@@ -55,13 +55,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
  * Empty string on a sensitive field = keep existing value.
  * null on a sensitive field = clear it.
  */
-export async function POST(
+const post = async (
   req: MedusaRequest<PostAdminGLSConfigSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { result: updated } = await updateGLSConfigWorkflow(req.scope).run({
     input: req.validatedBody,
   })
 
   res.json({ config: toConfigResponse(updated) })
 }
+
+export { get as GET, post as POST }

@@ -59,7 +59,7 @@ const sendOrderEmail = async ({
   orderId: string
   template: string
 }) =>
-  sdk.client.fetch<OrderEmailResponse>(`/admin/orders/${orderId}/email`, {
+  await sdk.client.fetch<OrderEmailResponse>(`/admin/orders/${orderId}/email`, {
     body: {
       template,
     },
@@ -88,7 +88,7 @@ const OrderEmailSendControl = ({
     templates[0]?.template ?? DEFAULT_ORDER_EMAIL_TEMPLATE,
   )
   const mutation = useMutation({
-    mutationFn: async () => sendOrderEmail({ orderId, template }),
+    mutationFn: async () => await sendOrderEmail({ orderId, template }),
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : "Failed to send order email",
@@ -115,7 +115,7 @@ const OrderEmailSendControl = ({
         </Select.Content>
       </Select>
       <Button
-        disabled={disabled || !templates.length}
+        disabled={disabled === true || templates.length === 0}
         isLoading={mutation.isPending}
         onClick={() => {
           mutation.mutate()
@@ -133,7 +133,7 @@ const OrderEmailSendControl = ({
 const DetailReminderWidget = ({ order }: { order: AdminOrder }) => {
   const { data } = useQuery({
     queryFn: async () =>
-      sdk.client.fetch<OrderEmailTemplatesResponse>(
+      await sdk.client.fetch<OrderEmailTemplatesResponse>(
         "/admin/orders/email-templates",
       ),
     queryKey: ORDER_EMAIL_TEMPLATES_QUERY_KEY,
@@ -150,7 +150,11 @@ const DetailReminderWidget = ({ order }: { order: AdminOrder }) => {
           </Text>
         </div>
         <OrderEmailSendControl
-          disabled={!order.email}
+          disabled={
+            order.email === undefined ||
+            order.email === null ||
+            order.email.length === 0
+          }
           orderId={order.id}
           templates={templates}
         />
@@ -166,14 +170,14 @@ const ListReminderWidget = () => {
     isLoading,
   } = useQuery({
     queryFn: async () =>
-      sdk.client.fetch<UnpaidOrdersResponse>(
+      await sdk.client.fetch<UnpaidOrdersResponse>(
         "/admin/orders/payment-reminders/unpaid?limit=5",
       ),
     queryKey: UNPAID_ORDERS_QUERY_KEY,
   })
   const templatesQuery = useQuery({
     queryFn: async () =>
-      sdk.client.fetch<OrderEmailTemplatesResponse>(
+      await sdk.client.fetch<OrderEmailTemplatesResponse>(
         "/admin/orders/email-templates",
       ),
     queryKey: ORDER_EMAIL_TEMPLATES_QUERY_KEY,
@@ -193,13 +197,7 @@ const ListReminderWidget = () => {
         </div>
       </div>
 
-      {loadError ? (
-        <div className="px-6 py-4">
-          <Text className="text-ui-fg-error">
-            Failed to load unpaid orders.
-          </Text>
-        </div>
-      ) : (
+      {loadError === null ? (
         <Table>
           <Table.Header>
             <Table.Row>
@@ -222,7 +220,7 @@ const ListReminderWidget = () => {
                 <Table.Cell />
               </Table.Row>
             ) : null}
-            {isLoading || orders.length ? null : (
+            {isLoading || orders.length > 0 ? null : (
               <Table.Row>
                 <Table.Cell>No unpaid orders found.</Table.Cell>
                 <Table.Cell />
@@ -247,7 +245,11 @@ const ListReminderWidget = () => {
                 </Table.Cell>
                 <Table.Cell className="text-right">
                   <OrderEmailSendControl
-                    disabled={!order.email}
+                    disabled={
+                      order.email === undefined ||
+                      order.email === null ||
+                      order.email.length === 0
+                    }
                     orderId={order.id}
                     templates={templates}
                   />
@@ -256,6 +258,12 @@ const ListReminderWidget = () => {
             ))}
           </Table.Body>
         </Table>
+      ) : (
+        <div className="px-6 py-4">
+          <Text className="text-ui-fg-error">
+            Failed to load unpaid orders.
+          </Text>
+        </div>
       )}
     </Container>
   )
@@ -264,7 +272,7 @@ const ListReminderWidget = () => {
 const OrderPaymentReminderWidget = ({
   data,
 }: OrderPaymentReminderWidgetProps) => {
-  if (data?.id) {
+  if (data !== undefined && data.id.length > 0) {
     return <DetailReminderWidget order={data} />
   }
 

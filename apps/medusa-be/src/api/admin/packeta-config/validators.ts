@@ -13,7 +13,7 @@ export const PostAdminPacketaConfigSchema = z.object({
   is_enabled: z.boolean().optional(),
   sender_city: z.string().max(50).optional(),
   sender_country: z.string().max(3).optional(),
-  sender_email: z.string().email().max(50).optional(),
+  sender_email: z.email().max(50).optional(),
   sender_label: z.string().max(50).optional(),
   sender_name: z.string().max(50).optional(),
   sender_phone: z.string().max(20).optional(),

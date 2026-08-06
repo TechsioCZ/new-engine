@@ -19,19 +19,18 @@ const createOrder = (
 describe("order business status", () => {
   it("exposes the approved statuses with admin translation keys", () => {
     expect(
-      Object.values(ORDER_BUSINESS_STATUSES).map((status) => [
-        status.id,
-        status.translation_key,
-      ]),
+      Object.values(ORDER_BUSINESS_STATUSES)
+        .map((status) => [status.id, status.translation_key])
+        .toSorted(([left], [right]) => left.localeCompare(right)),
     ).toStrictEqual([
+      ["awaiting_payment", "statuses.awaiting_payment"],
       ["canceled", "statuses.canceled"],
       ["delivered", "statuses.delivered"],
+      ["new", "statuses.new"],
+      ["paid", "statuses.paid"],
+      ["processing", "statuses.processing"],
       ["shipped", "statuses.shipped"],
       ["waiting_for_supplier", "statuses.waiting_for_supplier"],
-      ["processing", "statuses.processing"],
-      ["paid", "statuses.paid"],
-      ["awaiting_payment", "statuses.awaiting_payment"],
-      ["new", "statuses.new"],
     ])
   })
 
@@ -275,7 +274,7 @@ describe("order business status", () => {
   })
 
   it("explains manual status bulk update blockers", () => {
-    expect(
+    expect([
       getOrderBusinessManualStatusUpdateBlockReason(
         createOrder({
           fulfillment_status: "delivered",
@@ -283,8 +282,6 @@ describe("order business status", () => {
         }),
         "processing",
       ),
-    ).toBe("delivered status has higher priority")
-    expect(
       getOrderBusinessManualStatusUpdateBlockReason(
         createOrder({
           metadata: {
@@ -293,26 +290,18 @@ describe("order business status", () => {
         }),
         "processing",
       ),
-    ).toBe("Manual status is already processing")
-    expect(
       getOrderBusinessManualStatusUpdateBlockReason(
         createOrder({ payment_status: "captured" }),
         "waiting_for_supplier",
       ),
-    ).toBeUndefined()
-    expect(
       getOrderBusinessManualStatusUpdateBlockReason(
         createOrder({ status: "canceled" }),
         "processing",
       ),
-    ).toBe("canceled status has higher priority")
-    expect(
       getOrderBusinessManualStatusUpdateBlockReason(
         createOrder({ status: "canceled" }),
         "canceled",
       ),
-    ).toBeUndefined()
-    expect(
       getOrderBusinessManualStatusUpdateBlockReason(
         createOrder({
           metadata: {
@@ -321,6 +310,13 @@ describe("order business status", () => {
         }),
         "processing",
       ),
-    ).toBeUndefined()
+    ]).toStrictEqual([
+      "delivered status has higher priority",
+      "Manual status is already processing",
+      undefined,
+      "canceled status has higher priority",
+      undefined,
+      undefined,
+    ])
   })
 })

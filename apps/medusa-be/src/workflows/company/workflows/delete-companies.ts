@@ -4,12 +4,10 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 
 import type { ModuleDeleteCompany } from "../../../types"
-import { deleteApprovalSettingsStep } from "../../approval/steps"
-import {
-  clearCompanyAdminAuthMetadataStep,
-  deleteCompaniesStep,
-  removeCompanyCustomerGroupLinkStep,
-} from "../steps"
+import { deleteApprovalSettingsStep } from "../../approval/steps/delete-approval-settings"
+import { clearCompanyAdminAuthMetadataStep } from "../steps/clear-company-admin-auth-metadata"
+import { deleteCompaniesStep } from "../steps/delete-companies"
+import { removeCompanyCustomerGroupLinkStep } from "../steps/remove-company-customer-group-link"
 
 export const deleteCompaniesWorkflow = createWorkflow(
   "delete-companies",

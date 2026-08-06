@@ -8,6 +8,9 @@ import type { DataTableQueryProps } from "./data-table-query"
 import { DataTableRoot } from "./data-table-root"
 import type { DataTableRootProps } from "./data-table-root"
 
+const EMPTY_QUERY_OBJECT: Record<string, unknown> = {}
+const EMPTY_NO_RECORDS_PROPS: Pick<NoResultsProps, "title" | "message"> = {}
+
 interface DataTableProps<TData>
   extends Omit<DataTableRootProps<TData>, "noResults">, DataTableQueryProps {
   isLoading?: boolean
@@ -27,28 +30,27 @@ export const DataTable = <TData,>({
   orderBy,
   filters,
   prefix,
-  queryObject = {},
+  queryObject = EMPTY_QUERY_OBJECT,
   pageSize,
   isLoading = false,
   noHeader = false,
   layout = "fit",
-  noRecords: noRecordsProps = {},
+  noRecords: noRecordsProps = EMPTY_NO_RECORDS_PROPS,
 }: DataTableProps<TData>) => {
   if (isLoading) {
     return (
       <TableSkeleton
-        filters={!!filters?.length}
+        filters={filters !== undefined && filters.length > 0}
         layout={layout}
-        orderBy={!!orderBy?.length}
-        pagination={!!pagination}
+        orderBy={orderBy !== undefined && orderBy.length > 0}
+        pagination={pagination === true}
         rowCount={pageSize}
-        search={!!search}
+        search={Boolean(search)}
       />
     )
   }
 
-  const noQuery =
-    Object.values(queryObject).filter((v) => Boolean(v)).length === 0
+  const noQuery = !Object.values(queryObject).some(Boolean)
   const noResults = count === 0 && !noQuery
   const noRecords = count === 0 && noQuery
 
