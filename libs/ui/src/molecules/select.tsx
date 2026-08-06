@@ -1,4 +1,4 @@
-/**
+/*
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
@@ -10,7 +10,8 @@
  * the select-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
-import * as select from "@zag-js/select"
+import { collection, connect, machine } from "@zag-js/select"
+import type { Props as ZagSelectProps, Service } from "@zag-js/select"
 import { createContext, useContext, useId } from "react"
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 import { tv } from "tailwind-variants"
@@ -24,6 +25,8 @@ import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 
 export type SelectSize = "xs" | "sm" | "md" | "lg"
+
+export type SelectValidateStatus = "default" | "error" | "success" | "warning"
 
 // The icon-control scale only has sm/md/lg; the Select `xs` size shares `sm`.
 const toControlSize = (size: SelectSize): "sm" | "md" | "lg" =>
@@ -47,9 +50,40 @@ const selectVariants = tv({
     size: "md",
   },
   slots: {
-    root: ["relative", "flex flex-col gap-select", "w-full"],
+    // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
+    // its own size, glyph and neutral hover pill.
+    clearTrigger: ["-translate-y-1/2 absolute top-1/2 right-select-right"],
+    content: [
+      "border border-select-content-border bg-select-content-bg",
+      "max-h-fit rounded-select shadow-select-content",
+      "h-[calc(var(--available-height)-var(--spacing-content))]",
+      "z-(--z-content) overflow-auto",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
+      "transition-discrete",
+      "starting:-translate-y-2 starting:opacity-0",
+      "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
+      "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
+      "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
+    ],
     control: ["relative flex items-center justify-between", "w-full"],
+    item: [
+      "flex items-center justify-between",
+      "cursor-pointer bg-select-item-bg-base",
+      "p-select-item",
+      "text-select-item-fg-base",
+      "hover:bg-select-item-bg-hover",
+      "data-[highlighted]:bg-select-item-bg-hover",
+      "data-[state=checked]:bg-select-item-bg-selected",
+      "data-[state=checked]:text-select-item-fg-selected",
+      "data-[disabled]:cursor-not-allowed data-[disabled]:text-select-fg-disabled",
+      "transition-colors duration-200 motion-reduce:transition-none",
+    ],
+    itemGroup: [""],
+    itemGroupLabel: ["px-select-item-x", "font-medium text-select-fg-disabled"],
+    itemIndicator: ["text-select-indicator"],
+    itemText: ["flex-grow"],
     positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
+    root: ["relative", "flex flex-col gap-select", "w-full"],
     trigger: [
       "form-control-base w-full",
       "border-select-trigger-border",
@@ -81,37 +115,6 @@ const selectVariants = tv({
       "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
-    // its own size, glyph and neutral hover pill.
-    clearTrigger: ["-translate-y-1/2 absolute top-1/2 right-select-right"],
-    content: [
-      "border border-select-content-border bg-select-content-bg",
-      "max-h-fit rounded-select shadow-select-content",
-      "h-[calc(var(--available-height)-var(--spacing-content))]",
-      "z-(--z-content) overflow-auto",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
-      "transition-discrete",
-      "starting:-translate-y-2 starting:opacity-0",
-      "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
-      "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
-      "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
-    ],
-    item: [
-      "flex items-center justify-between",
-      "cursor-pointer bg-select-item-bg-base",
-      "p-select-item",
-      "text-select-item-fg-base",
-      "hover:bg-select-item-bg-hover",
-      "data-[highlighted]:bg-select-item-bg-hover",
-      "data-[state=checked]:bg-select-item-bg-selected",
-      "data-[state=checked]:text-select-item-fg-selected",
-      "data-[disabled]:cursor-not-allowed data-[disabled]:text-select-fg-disabled",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-    itemIndicator: ["text-select-indicator"],
-    itemText: ["flex-grow"],
-    itemGroup: [""],
-    itemGroupLabel: ["px-select-item-x", "font-medium text-select-fg-disabled"],
     valueText: [
       "flex-grow truncate font-normal",
       "data-[placeholder]:font-normal data-[placeholder]:text-select-placeholder",
@@ -150,15 +153,22 @@ const selectVariants = tv({
 })
 
 interface SelectContextValue {
-  api: ReturnType<typeof select.connect>
+  api: ReturnType<typeof connect>
   size: SelectSize
   items: SelectItem[]
-  validateStatus: "default" | "error" | "success" | "warning"
+  validateStatus: SelectValidateStatus
 }
+
+// The provider values are built through these factories so the objects are not
+// constructed inside the JSX attribute; React Compiler handles the caching, so
+// no manual memoization is added here.
+const createSelectContextValue = (
+  value: SelectContextValue,
+): SelectContextValue => value
 
 const SelectContext = createContext<SelectContextValue | null>(null)
 
-function useSelectContext() {
+export const useSelectContext = (): SelectContextValue => {
   const context = useContext(SelectContext)
   if (!context) {
     throw new Error("Select components must be used within Select.Root")
@@ -171,9 +181,13 @@ interface SelectItemContextValue {
   item: SelectItem
 }
 
+const createSelectItemContextValue = (
+  item: SelectItem,
+): SelectItemContextValue => ({ item })
+
 const SelectItemContext = createContext<SelectItemContextValue | null>(null)
 
-function useSelectItemContext() {
+const useSelectItemContext = (): SelectItemContextValue => {
   const context = useContext(SelectItemContext)
   if (!context) {
     throw new Error("Select.Item components must be used within Select.Item")
@@ -185,16 +199,16 @@ function useSelectItemContext() {
 export interface SelectProps
   extends
     VariantProps<typeof selectVariants>,
-    Omit<select.Props, "collection" | "id" | "invalid"> {
+    Omit<ZagSelectProps, "collection" | "id" | "invalid"> {
   items: SelectItem[]
   id?: string | undefined
   className?: string | undefined
   children: ReactNode
   ref?: Ref<HTMLDivElement> | undefined
-  validateStatus?: "default" | "error" | "success" | "warning" | undefined
+  validateStatus?: SelectValidateStatus | undefined
 }
 
-export function Select({
+export const Select = ({
   items,
   id: providedId,
   size = "md",
@@ -217,23 +231,28 @@ export function Select({
   className,
   children,
   ref,
-}: SelectProps) {
+}: SelectProps) => {
   const generatedId = useId()
-  const id = providedId || generatedId
+  // Empty ids are treated as "not provided", matching the previous `||` fallback.
+  const id =
+    providedId !== undefined && providedId !== "" ? providedId : generatedId
 
   // Derive invalid from validateStatus for Zag.js accessibility
   const invalid = validateStatus === "error"
 
-  const collection = select.collection({
-    isItemDisabled: (item) => !!item.disabled,
-    itemToString: (item) => item.displayValue || item.value,
+  const itemCollection = collection({
+    isItemDisabled: (item) => item.disabled === true,
+    itemToString: (item) =>
+      item.displayValue !== undefined && item.displayValue !== ""
+        ? item.displayValue
+        : item.value,
     itemToValue: (item) => item.value,
     items,
   })
 
-  const service = useMachine(select.machine, {
+  const service = useMachine(machine, {
     closeOnSelect,
-    collection,
+    collection: itemCollection,
     defaultValue,
     disabled,
     form,
@@ -250,16 +269,25 @@ export function Select({
     value,
   })
 
-  const api = select.connect(service as select.Service, normalizeProps)
+  const api = connect(service as Service, normalizeProps)
   const styles = selectVariants({ size })
 
+  const contextValue = createSelectContextValue({
+    api,
+    items,
+    size,
+    validateStatus,
+  })
+
   return (
-    <SelectContext.Provider value={{ api, items, size, validateStatus }}>
+    <SelectContext.Provider value={contextValue}>
       {/* Hidden form select for native form submission */}
       <select {...api.getHiddenSelectProps()}>
         {items.map((item) => (
           <option disabled={item.disabled} key={item.value} value={item.value}>
-            {item.displayValue || item.value}
+            {item.displayValue !== undefined && item.displayValue !== ""
+              ? item.displayValue
+              : item.value}
           </option>
         ))}
       </select>
@@ -279,17 +307,21 @@ interface SelectLabelProps extends ComponentPropsWithoutRef<"label"> {
   ref?: Ref<HTMLLabelElement> | undefined
 }
 
-Select.Label = function SelectLabel({ children, ...props }: SelectLabelProps) {
+// Kept as `SelectLabel` because a function named `Label` would shadow the
+// imported Label atom this component renders.
+const SelectLabel = ({ children, ...props }: SelectLabelProps) => {
   const { api } = useSelectContext()
 
   return <Label {...mergeProps(api.getLabelProps(), props)}>{children}</Label>
 }
 
+Select.Label = SelectLabel
+
 interface SelectControlProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Select.Control = function SelectControl({
+Select.Control = function Control({
   children,
   className,
   ref,
@@ -315,7 +347,7 @@ type SelectTriggerProps = ComponentPropsWithoutRef<"button"> & {
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Select.Trigger = function SelectTrigger({
+Select.Trigger = function Trigger({
   children,
   className,
   size: sizeProp,
@@ -363,7 +395,7 @@ interface SelectValueTextProps extends Omit<
   children?: (ReactNode | ((items: SelectItem[]) => ReactNode)) | undefined
 }
 
-Select.ValueText = function SelectValueText({
+Select.ValueText = function ValueText({
   placeholder = "Select an option",
   className,
   size: sizeProp,
@@ -376,11 +408,12 @@ Select.ValueText = function SelectValueText({
   const styles = selectVariants({ size: effectiveSize })
 
   const hasValue = api.value.length > 0
-  const selectedItems = api.value
-    .map((v) => items.find((item) => item.value === v))
-    .filter(Boolean) as SelectItem[]
+  const selectedItems = api.value.flatMap((selectedValue) => {
+    const match = items.find((item) => item.value === selectedValue)
+    return match === undefined ? [] : [match]
+  })
 
-  const renderContent = () => {
+  const renderContent = (): ReactNode => {
     if (!hasValue) {
       return placeholder
     }
@@ -408,7 +441,7 @@ type SelectClearTriggerProps = ComponentPropsWithoutRef<"button"> & {
   ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Select.ClearTrigger = function SelectClearTrigger({
+Select.ClearTrigger = function ClearTrigger({
   className,
   ref,
   ...props
@@ -434,7 +467,7 @@ interface SelectPositionerProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Select.Positioner = function SelectPositioner({
+Select.Positioner = function Positioner({
   children,
   className,
   ref,
@@ -460,7 +493,7 @@ interface SelectContentProps extends ComponentPropsWithoutRef<"ul"> {
   ref?: Ref<HTMLUListElement> | undefined
 }
 
-Select.Content = function SelectContent({
+Select.Content = function Content({
   children,
   className,
   ref,
@@ -485,7 +518,7 @@ interface SelectItemGroupProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Select.ItemGroup = function SelectItemGroup({
+Select.ItemGroup = function ItemGroup({
   id,
   children,
   className,
@@ -511,7 +544,7 @@ interface SelectItemGroupLabelProps extends ComponentPropsWithoutRef<"div"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Select.ItemGroupLabel = function SelectItemGroupLabel({
+Select.ItemGroupLabel = function ItemGroupLabel({
   htmlFor,
   children,
   className,
@@ -538,7 +571,7 @@ interface SelectItemProps extends ComponentPropsWithoutRef<"li"> {
   ref?: Ref<HTMLLIElement> | undefined
 }
 
-Select.Item = function SelectItem({
+Select.Item = function Item({
   item,
   children,
   className,
@@ -550,8 +583,10 @@ Select.Item = function SelectItem({
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
 
+  const itemContextValue = createSelectItemContextValue(item)
+
   return (
-    <SelectItemContext.Provider value={{ item }}>
+    <SelectItemContext.Provider value={itemContextValue}>
       <li
         className={styles.item({ className })}
         ref={ref}
@@ -567,7 +602,7 @@ interface SelectItemTextProps extends ComponentPropsWithoutRef<"span"> {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Select.ItemText = function SelectItemText({
+Select.ItemText = function ItemText({
   children,
   className,
   ref,
@@ -576,6 +611,7 @@ Select.ItemText = function SelectItemText({
   const { api, size } = useSelectContext()
   const { item } = useSelectItemContext()
   const styles = selectVariants({ size })
+  const hasChildren = Boolean(children)
 
   return (
     <span
@@ -583,7 +619,7 @@ Select.ItemText = function SelectItemText({
       ref={ref}
       {...mergeProps(api.getItemTextProps({ item }), props)}
     >
-      {children || item.label}
+      {hasChildren ? children : item.label}
     </span>
   )
 }
@@ -593,7 +629,7 @@ type SelectItemIndicatorProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement> | undefined
 }
 
-Select.ItemIndicator = function SelectItemIndicator({
+Select.ItemIndicator = function ItemIndicator({
   className,
   iconSize,
   ref,
@@ -615,19 +651,21 @@ Select.ItemIndicator = function SelectItemIndicator({
 }
 
 interface SelectStatusTextProps extends ComponentPropsWithoutRef<"div"> {
-  status?: "default" | "error" | "success" | "warning" | undefined
+  status?: SelectValidateStatus | undefined
   size?: SelectSize | undefined
   showIcon?: boolean | undefined
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-Select.StatusText = function SelectStatusText({
+// Kept as `SelectStatusText` because a function named `StatusText` would shadow
+// the imported StatusText atom this component renders.
+const SelectStatusText = ({
   status: statusProp,
   size: sizeProp,
   showIcon,
   children,
   ...props
-}: SelectStatusTextProps) {
+}: SelectStatusTextProps) => {
   const { size: contextSize, validateStatus: contextValidateStatus } =
     useSelectContext()
 
@@ -647,6 +685,6 @@ Select.StatusText = function SelectStatusText({
   )
 }
 
-export { useSelectContext, selectVariants }
+Select.StatusText = SelectStatusText
 
 Select.displayName = "Select"
