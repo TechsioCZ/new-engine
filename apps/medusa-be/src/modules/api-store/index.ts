@@ -1,4 +1,5 @@
 import { Module } from "@medusajs/framework/utils"
+
 import ApiStoreModuleService from "./service"
 
 export const API_STORE_MODULE = "apiStore"

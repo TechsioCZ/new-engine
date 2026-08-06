@@ -6,6 +6,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { omitUndefined } from "@techsio/std/object"
 
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
@@ -13,7 +14,6 @@ import type {
   ModuleCreateEmployee,
   QueryGraphEmployee,
 } from "../../../types"
-import { definedProperties } from "../../../utils/defined-properties"
 
 type EmployeeDeletionDate = Date | string | null
 
@@ -150,7 +150,7 @@ export const createOrRestoreEmployeeStep = createStep(
       await companyModuleService.restoreEmployees([restorableEmployee.id])
       await link.restore(restoredLinkInput)
       const updatedEmployee = await companyModuleService.updateEmployees(
-        definedProperties({
+        omitUndefined({
           id: restorableEmployee.id,
           is_admin: input.is_admin,
           spending_limit: input.spending_limit,

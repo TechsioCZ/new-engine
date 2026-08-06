@@ -4,6 +4,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { omitUndefined } from "@techsio/std/object"
 
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
@@ -11,7 +12,6 @@ import type {
   ModuleUpdateEmployee,
   QueryGraphEmployee,
 } from "../../../types"
-import { definedProperties } from "../../../utils/defined-properties"
 
 type UpdateEmployeeCompensation = Pick<
   ModuleUpdateEmployee,
@@ -78,7 +78,7 @@ export const updateEmployeesStep = createStep(
 
     return new StepResponse(
       employee,
-      definedProperties({
+      omitUndefined({
         id: currentData.id,
         is_admin: currentData.is_admin,
         spending_limit: currentData.spending_limit,

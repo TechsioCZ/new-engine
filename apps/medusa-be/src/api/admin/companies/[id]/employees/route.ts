@@ -1,8 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../../utils/path-params"
 import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows/create-employees"
 import type {
@@ -65,7 +65,7 @@ const createCompanyEmployee = async (
   ).run({
     input: {
       customerId: req.validatedBody.customer_id,
-      employeeData: definedProperties({ ...req.validatedBody, company_id: id }),
+      employeeData: omitUndefined({ ...req.validatedBody, company_id: id }),
     },
   })
 

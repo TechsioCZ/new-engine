@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import type {
   ApiStoreModuleService,
   ApiStoreUpdateInput,
@@ -19,5 +20,5 @@ export const updateApiStoreConfigStep = createStep(
     const config = await apiStoreService.updateApiStoreConfig(id, data)
 
     return new StepResponse(config)
-  }
+  },
 )

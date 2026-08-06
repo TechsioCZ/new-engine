@@ -4,10 +4,10 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
 
 import { PRODUCT_LIST_MODULE } from "../../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../../modules/product-list/service"
-import { definedProperties } from "../../../../utils/defined-properties"
 import { assertCustomerOwnsProductList } from "../../../../utils/product-list-links"
 import { deleteProductListWorkflow } from "../../../../workflows/product-list/workflows/delete-product-list"
 import { updateProductListWorkflow } from "../../../../workflows/product-list/workflows/update-product-list"
@@ -83,7 +83,7 @@ const postProductList = async (
   ).run({
     input: {
       customer_id: req.auth_context.actor_id,
-      data: definedProperties(req.validatedBody),
+      data: omitUndefined(req.validatedBody),
       list_id: listId,
     },
   })

@@ -2,8 +2,8 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../utils/defined-properties"
 import { createCustomerProductListWorkflow } from "../../../../workflows/product-list/workflows/create-customer-product-list"
 import { toProductListResponse } from "../utils"
 import type { StoreCreateCustomProductListSchemaType } from "../validators"
@@ -15,7 +15,7 @@ const post = async (
   const { result } = await createCustomerProductListWorkflow(req.scope).run({
     input: {
       customer_id: req.auth_context.actor_id,
-      data: definedProperties(req.validatedBody),
+      data: omitUndefined(req.validatedBody),
       type: "custom",
     },
   })

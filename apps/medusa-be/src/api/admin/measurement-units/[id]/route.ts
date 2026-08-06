@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../utils/defined-properties"
 import { deleteMeasurementUnitsWorkflow } from "../../../../workflows/measurement-unit/workflows/delete-measurement-units"
 import { updateMeasurementUnitWorkflow } from "../../../../workflows/measurement-unit/workflows/update-measurement-unit"
 import {
@@ -31,7 +31,7 @@ const postRoute = async (
   const { result } = await updateMeasurementUnitWorkflow(req.scope).run({
     input: {
       id: unitId,
-      update: definedProperties(req.validatedBody),
+      update: omitUndefined(req.validatedBody),
     },
   })
 

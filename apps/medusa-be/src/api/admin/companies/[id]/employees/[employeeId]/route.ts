@@ -7,9 +7,8 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../../../utils/path-params"
 import { deleteEmployeesWorkflow } from "../../../../../../workflows/employee/workflows/delete-employees"
 import { updateEmployeesWorkflow } from "../../../../../../workflows/employee/workflows/update-employees"
@@ -83,7 +82,7 @@ const updateEmployee = async (
   const { spending_limit, is_admin } = req.validatedBody
 
   await updateEmployeesWorkflow(req.scope).run({
-    input: definedProperties({
+    input: omitUndefined({
       company_id: id,
       id: employeeId,
       is_admin,

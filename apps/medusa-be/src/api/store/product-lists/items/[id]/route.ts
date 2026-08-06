@@ -2,8 +2,8 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../utils/defined-properties"
 import { deleteProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/delete-product-list-item"
 import { updateProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/update-product-list-item"
 import {
@@ -21,7 +21,7 @@ const postRoute = async (
   const { result: item } = await updateProductListItemWorkflow(req.scope).run({
     input: {
       customer_id: req.auth_context.actor_id,
-      data: definedProperties(req.validatedBody),
+      data: omitUndefined(req.validatedBody),
       item_id: itemId,
     },
   })

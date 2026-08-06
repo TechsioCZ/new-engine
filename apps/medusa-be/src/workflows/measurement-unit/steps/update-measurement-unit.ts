@@ -1,7 +1,7 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../utils/defined-properties"
 import { getMeasurementUnitService } from "../../../utils/measurement-units"
 import type { UpdateMeasurementUnitWorkflowInput } from "../types"
 import {
@@ -72,7 +72,7 @@ export const updateMeasurementUnitStep = createStep(
     }
 
     const updated = await service.updateMeasurementUnits(
-      definedProperties({
+      omitUndefined({
         id: input.id,
         ...update,
         base_quantity: update.base_quantity,

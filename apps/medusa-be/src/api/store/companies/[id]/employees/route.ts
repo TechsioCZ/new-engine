@@ -4,8 +4,8 @@ import type {
 } from "@medusajs/framework"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../../utils/path-params"
 import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows/create-employees"
 import type {
@@ -62,7 +62,7 @@ const post = async (
   ).run({
     input: {
       customerId: req.validatedBody.customer_id,
-      employeeData: definedProperties({
+      employeeData: omitUndefined({
         ...req.validatedBody,
         company_id: id,
         is_admin: req.validatedBody.is_admin ?? undefined,

@@ -4,8 +4,8 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../utils/defined-properties"
 import {
   fetchOrderById,
   formatTotal,
@@ -38,7 +38,7 @@ const post = async (req: MedusaRequest, res: MedusaResponse) => {
   }
 
   await sendOrderPaymentReminderWorkflow(req.scope).run({
-    input: definedProperties({
+    input: omitUndefined({
       customer_id: order.customer_id ?? undefined,
       email: order.email,
       order_display_id: getOrderDisplayId(order),

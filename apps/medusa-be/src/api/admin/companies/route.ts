@@ -3,8 +3,8 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../utils/defined-properties"
 import { createCompaniesWorkflow } from "../../../workflows/company/workflows/create-companies"
 import type {
   AdminCreateCompanyType,
@@ -115,8 +115,8 @@ const createCompanies = async (
     req.scope,
   ).run({
     input: Array.isArray(req.validatedBody)
-      ? req.validatedBody.map((company) => definedProperties(company))
-      : [definedProperties(req.validatedBody)],
+      ? req.validatedBody.map((company) => omitUndefined(company))
+      : [omitUndefined(req.validatedBody)],
   })
 
   const { data: companies } = await query.graph(

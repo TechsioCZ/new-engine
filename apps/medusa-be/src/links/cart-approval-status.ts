@@ -1,12 +1,12 @@
 import { defineLink } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import CartModule from "@medusajs/medusa/cart"
+import { omitUndefined } from "@techsio/std/object"
 
 import ApprovalModule from "../modules/approval"
-import { definedProperties } from "../utils/defined-properties"
 
 const cartLinkable: unknown = CartModule.linkable["cart"]
-const cartSource = definedProperties(
+const cartSource = omitUndefined(
   z
     .object({
       id: z.object({

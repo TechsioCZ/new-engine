@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
 
 import { QR_PAYMENT_MODULE } from "../../../modules/payment-qr"
 import type { QrPaymentModuleService } from "../../../modules/payment-qr"
@@ -7,7 +8,6 @@ import type {
   QrPaymentConfigDTO,
   QrPaymentConfigResponse,
 } from "../../../modules/payment-qr/types"
-import { definedProperties } from "../../../utils/defined-properties"
 import { updateQrPaymentConfigWorkflow } from "../../../workflows/qr-payment-config/update-qr-payment-config"
 import type { PostAdminQrPaymentConfigSchemaType } from "./validators"
 
@@ -42,7 +42,7 @@ const post = async (
   const { result: updated } = await updateQrPaymentConfigWorkflow(
     req.scope,
   ).run({
-    input: definedProperties(req.validatedBody),
+    input: omitUndefined(req.validatedBody),
   })
 
   res.json({ config: toConfigResponse(updated) })

@@ -2,8 +2,8 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../utils/defined-properties"
 import { createProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/create-product-list-item"
 import {
   toProductListItemResponse,
@@ -18,7 +18,7 @@ const postHandler = async (
 ) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result: item } = await createProductListItemWorkflow(req.scope).run({
-    input: definedProperties({
+    input: omitUndefined({
       ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
       list_id: listId,

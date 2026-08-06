@@ -1,8 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { omitUndefined } from "@techsio/std/object"
 
 import type { ApiStoreModuleService } from "../../../modules/api-store"
 import { API_STORE_MODULE } from "../../../modules/api-store"
-import { definedProperties } from "../../../utils/defined-properties"
 import { createApiStoreConfigWorkflow } from "../../../workflows/create-api-store-config"
 import type {
   GetAdminApiStoreSchemaType,
@@ -35,7 +35,7 @@ const post = async (
   res: MedusaResponse,
 ) => {
   const { result } = await createApiStoreConfigWorkflow(req.scope).run({
-    input: definedProperties(req.validatedBody),
+    input: omitUndefined(req.validatedBody),
   })
 
   res.status(201).json(result)

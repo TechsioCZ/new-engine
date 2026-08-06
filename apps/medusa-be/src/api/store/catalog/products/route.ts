@@ -8,6 +8,7 @@ import {
 import { wrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
 import type { RequestWithContext } from "@medusajs/medusa/api/store/products/helpers"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+import { omitUndefined } from "@techsio/std/object"
 
 import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
 import {
@@ -18,7 +19,6 @@ import {
   STATUS_FACET_DEFINITIONS,
   STATUS_FACET_LABEL_BY_ID,
 } from "../../../../modules/meilisearch/facets/product-facets"
-import { definedProperties } from "../../../../utils/defined-properties"
 import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
@@ -410,7 +410,7 @@ const get = async (
     productIds.length === 0
       ? { data: [] }
       : await queryService.graph(
-          definedProperties({
+          omitUndefined({
             entity: "product",
             fields: productFields,
             filters: await normalizeProductSalesChannelFilter(

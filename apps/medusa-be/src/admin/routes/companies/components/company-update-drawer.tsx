@@ -1,9 +1,8 @@
 import { Drawer, toast } from "@medusajs/ui"
-import { getErrorMessage } from "@techsio/std/object"
+import { getErrorMessage, omitUndefined } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
 
 import type { AdminUpdateCompany, QueryCompany } from "../../../../types"
-import { definedProperties } from "../../../../utils/defined-properties"
 import { useUpdateCompany } from "../../../hooks/api/companies"
 import { CompanyForm } from "./company-form"
 
@@ -19,7 +18,7 @@ export const CompanyUpdateDrawer = ({
   const { t } = useTranslation("companies")
   const { mutateAsync, isPending } = useUpdateCompany(company.id)
 
-  const currentData = definedProperties({
+  const currentData = omitUndefined({
     address: company.address ?? undefined,
     city: company.city ?? undefined,
     country: company.country ?? undefined,

@@ -4,8 +4,8 @@ import type {
 } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../../utils/defined-properties"
 import { applyOrderCommercialValues } from "../../../../../../workflows/order-commercial-values/apply-commercial-values"
 import {
   fetchEditableCommercialValuesOrder,
@@ -36,7 +36,7 @@ const post = async (
     ),
     container: req.scope,
     order: toApplyCommercialValuesOrder(order),
-    request: definedProperties(req.validatedBody),
+    request: omitUndefined(req.validatedBody),
   })
 
   res.json({ commercial_values: result })

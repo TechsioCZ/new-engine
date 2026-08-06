@@ -2,8 +2,8 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../utils/defined-properties"
 import { addFavoriteProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/add-favorite-product-list-item"
 import {
   INLINE_PRODUCT_LIST_ITEMS_LIMIT,
@@ -19,7 +19,7 @@ const postFavoriteProductListItem = async (
   res: MedusaResponse,
 ) => {
   const { result } = await addFavoriteProductListItemWorkflow(req.scope).run({
-    input: definedProperties({
+    input: omitUndefined({
       ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
     }),

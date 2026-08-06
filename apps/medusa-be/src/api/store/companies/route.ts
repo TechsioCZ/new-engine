@@ -3,8 +3,8 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../utils/defined-properties"
 import { createCompaniesWorkflow } from "../../../workflows/company/workflows/create-companies"
 import type { StoreCreateCompanyType } from "./validators"
 
@@ -21,14 +21,14 @@ const post = async (
   ).run({
     input: Array.isArray(req.validatedBody)
       ? req.validatedBody.map((company) =>
-          definedProperties({
+          omitUndefined({
             ...company,
             spending_limit_reset_frequency:
               company.spending_limit_reset_frequency ?? undefined,
           }),
         )
       : [
-          definedProperties({
+          omitUndefined({
             ...req.validatedBody,
             spending_limit_reset_frequency:
               req.validatedBody.spending_limit_reset_frequency ?? undefined,

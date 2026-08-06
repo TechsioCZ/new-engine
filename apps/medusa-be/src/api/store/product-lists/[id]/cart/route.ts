@@ -7,8 +7,8 @@ import type {
   MedusaContainer,
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../utils/defined-properties"
 import { createCartFromProductListWorkflow } from "../../../../../workflows/product-list/workflows/create-cart-from-product-list"
 import { StoreProductListParamsSchema } from "../../validators"
 import type { StoreCreateProductListCartSchemaType } from "../../validators"
@@ -28,7 +28,7 @@ const post = async (
 ) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result } = await createCartFromProductListWorkflow(req.scope).run({
-    input: definedProperties({
+    input: omitUndefined({
       ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
       list_id: listId,

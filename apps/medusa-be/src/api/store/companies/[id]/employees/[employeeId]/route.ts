@@ -4,9 +4,8 @@ import type {
 } from "@medusajs/framework"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../../../utils/path-params"
 import { deleteEmployeesWorkflow } from "../../../../../../workflows/employee/workflows/delete-employees"
 import { updateEmployeesWorkflow } from "../../../../../../workflows/employee/workflows/update-employees"
@@ -85,7 +84,7 @@ const postEmployeeRoute = async (
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
   await updateEmployeesWorkflow(req.scope).run({
-    input: definedProperties({
+    input: omitUndefined({
       company_id: id,
       id: employeeId,
       is_admin,

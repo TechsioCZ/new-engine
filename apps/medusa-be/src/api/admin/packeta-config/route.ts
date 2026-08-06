@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
 
 import type { PacketaClientModuleService } from "../../../modules/packeta-client"
 import { PACKETA_CLIENT_MODULE } from "../../../modules/packeta-client"
@@ -7,7 +8,6 @@ import type {
   PacketaConfigDTO,
   PacketaConfigResponse,
 } from "../../../modules/packeta-client/types"
-import { definedProperties } from "../../../utils/defined-properties"
 import { updatePacketaConfigWorkflow } from "../../../workflows/packeta-config/update-packeta-config"
 import type { PostAdminPacketaConfigSchemaType } from "./validators"
 
@@ -66,7 +66,7 @@ const post = async (
   res: MedusaResponse,
 ) => {
   const { result: updated } = await updatePacketaConfigWorkflow(req.scope).run({
-    input: definedProperties(req.validatedBody),
+    input: omitUndefined(req.validatedBody),
   })
 
   res.json({ config: toConfigResponse(updated) })

@@ -1,9 +1,8 @@
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../utils/defined-properties"
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import {
@@ -319,7 +318,7 @@ export class PacketaClientModuleService extends MedusaService({
       )
     }
 
-    return definedProperties(parsed.data)
+    return omitUndefined(parsed.data)
   }
 
   private async toEffectiveOptions(
@@ -491,7 +490,7 @@ export class PacketaClientModuleService extends MedusaService({
             "Packeta: Cached branch list has an invalid shape",
           )
         }
-        return parsed.data.map(definedProperties)
+        return parsed.data.map(omitUndefined)
       }
     }
 

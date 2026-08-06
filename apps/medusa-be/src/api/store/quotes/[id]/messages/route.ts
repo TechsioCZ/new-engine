@@ -4,8 +4,8 @@ import type {
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
+import { omitUndefined } from "@techsio/std/object"
 
-import { definedProperties } from "../../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../../utils/path-params"
 import { createQuoteMessageWorkflow } from "../../../../../workflows/quote/workflows/create-quote-message"
 import type { StoreCreateQuoteMessageType } from "../../validators"
@@ -18,7 +18,7 @@ const post = async (
   const id = requirePathParam(req.params["id"], "Quote id")
 
   await createQuoteMessageWorkflow(req.scope).run({
-    input: definedProperties({
+    input: omitUndefined({
       ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
       quote_id: id,
