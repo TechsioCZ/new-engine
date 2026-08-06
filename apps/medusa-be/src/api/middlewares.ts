@@ -7,6 +7,7 @@ import { errorHandler } from "@medusajs/framework/http"
 import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
+import { adminApiStoreRoutesMiddlewares } from "./admin/api-store/middlewares"
 import { adminBrandRoutesMiddlewares } from "./admin/brands/middlewares"
 import { adminGLSConfigRoutesMiddlewares } from "./admin/gls-config/middlewares"
 import { adminGLSLabelsRoutesMiddlewares } from "./admin/gls-labels/middlewares"
@@ -37,6 +38,7 @@ import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middle
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
 import { storeProductAttributesRoutesMiddlewares } from "./store/products/[id]/product-attributes/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
+import { storeShopReviewRoutesMiddlewares } from "./store/shop-reviews/middlewares"
 import { storeStorefrontTextRoutesMiddlewares } from "./store/storefront-texts/middlewares"
 
 const originalErrorHandler = errorHandler()
@@ -77,6 +79,7 @@ export default defineMiddlewares({
     ...adminPacketaConfigRoutesMiddlewares,
     ...adminPacketaLabelsRoutesMiddlewares,
     ...adminPplConfigRoutesMiddlewares,
+    ...adminApiStoreRoutesMiddlewares,
     ...adminBrandRoutesMiddlewares,
     ...adminPromotionsExtensionMiddlewares,
     ...adminPublishableKeyRoutesMiddlewares,
@@ -93,6 +96,7 @@ export default defineMiddlewares({
     ...storeProductAttributesRoutesMiddlewares,
     ...storeBrandsRoutesMiddlewares,
     ...storeReviewRoutesMiddlewares,
+    ...storeShopReviewRoutesMiddlewares,
     ...storeStorefrontTextRoutesMiddlewares,
   ],
 })
