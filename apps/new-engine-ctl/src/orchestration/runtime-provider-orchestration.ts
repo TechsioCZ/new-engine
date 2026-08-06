@@ -48,22 +48,22 @@ export interface RuntimeProviderNeed {
 interface RuntimeProviderAdapter {
   providerId: string
   label: string
-  resolveSourceService(input: {
+  resolveSourceService: (input: {
     manifest: StackManifest
     stackInputs: StackInputs
-  }): {
+  }) => {
     serviceId: string
     serviceSlug: string
   }
-  reusePersisted(input: {
+  reusePersisted: (input: {
     need: RuntimeProviderNeed
     stackInputs: StackInputs
     targets: Awaited<
       ReturnType<typeof executeResolveTargetsPayload>
     >["services"]
     state: RuntimeProviderState
-  }): void
-  provision(input: {
+  }) => void
+  provision: (input: {
     need: RuntimeProviderNeed
     outputIds: string[]
     projectSlug: string
@@ -73,248 +73,318 @@ interface RuntimeProviderAdapter {
     apiToken: string
     dryRun: boolean
     state: RuntimeProviderState
-  }): Promise<void>
+  }) => Promise<void>
 }
 
-function outputStateKey(providerId: string, outputId: string): string {
-  return runtimeProviderOutputKey(providerId, outputId)
+interface ReuseRuntimeProviderOutputsContext {
+  apiToken: string
+  baseUrl: string
+  dryRun: boolean
+  environmentName: string
+  lane: ResolveTargetsPayload["lane"]
+  onProgress: (message: string) => void
+  planServices: { id: string; service_slug: string }[]
+  projectSlug: string
+  stackInputs: StackInputs
+  state: RuntimeProviderState
 }
 
-function setRuntimeProviderOutput(input: {
+interface StageRuntimeProviderOutputsContext {
+  apiToken: string
+  baseUrl: string
+  deployStagesByServiceId: ReadonlyMap<string, number>
+  dryRun: boolean
+  environmentName: string
+  onProgress: (message: string) => void
+  projectSlug: string
+  stackInputs: StackInputs
+  stage: number
+  stageServiceIds: ReadonlySet<string>
+  state: RuntimeProviderState
+}
+
+const outputStateKey = (providerId: string, outputId: string): string =>
+  runtimeProviderOutputKey(providerId, outputId)
+
+const setRuntimeProviderOutput = (input: {
   state: RuntimeProviderState
   providerId: string
   outputId: string
   value: string
   envVar: string
-}): void {
+}): void => {
   input.state.outputValues[outputStateKey(input.providerId, input.outputId)] =
     input.value
   input.state.outputEnvVars[outputStateKey(input.providerId, input.outputId)] =
     input.envVar
 }
 
-function getRuntimeProviderOutputValue(
+const getRuntimeProviderOutputValue = (
   state: RuntimeProviderState,
   providerId: string,
   outputId: string,
-): string {
-  return state.outputValues[outputStateKey(providerId, outputId)] ?? ""
-}
+): string => state.outputValues[outputStateKey(providerId, outputId)] ?? ""
 
-function getRuntimeProviderOutputEnvVar(
+const getRuntimeProviderOutputEnvVar = (
   state: RuntimeProviderState,
   providerId: string,
   outputId: string,
-): string {
-  return state.outputEnvVars[outputStateKey(providerId, outputId)] ?? ""
-}
+): string => state.outputEnvVars[outputStateKey(providerId, outputId)] ?? ""
 
-function missingOutputIds(
+const missingOutputIds = (
   need: RuntimeProviderNeed,
   state: RuntimeProviderState,
-): string[] {
-  return Object.entries(need.outputConsumerIds)
-    .filter(([, consumerIds]) => consumerIds.length > 0)
-    .map(([outputId]) => outputId)
-    .filter(
-      (outputId) =>
-        !getRuntimeProviderOutputValue(state, need.providerId, outputId),
-    )
+): string[] => {
+  const outputIds: string[] = []
+
+  for (const [outputId, consumerIds] of Object.entries(
+    need.outputConsumerIds,
+  )) {
+    if (
+      consumerIds.length > 0 &&
+      !getRuntimeProviderOutputValue(state, need.providerId, outputId)
+    ) {
+      outputIds.push(outputId)
+    }
+  }
+
+  return outputIds
 }
 
-function missingStageOutputIds(input: {
+const missingStageOutputIds = (input: {
   need: RuntimeProviderNeed
-  stageServiceIds: string[]
+  stageServiceIds: ReadonlySet<string>
   state: RuntimeProviderState
-}): string[] {
-  return Object.entries(input.need.outputConsumerIds)
-    .filter(([, consumerIds]) =>
-      consumerIds.some((serviceId) =>
-        input.stageServiceIds.includes(serviceId),
-      ),
+}): string[] => {
+  const outputIds: string[] = []
+
+  for (const [outputId, consumerIds] of Object.entries(
+    input.need.outputConsumerIds,
+  )) {
+    const consumedByStage = consumerIds.some((serviceId) =>
+      input.stageServiceIds.has(serviceId),
     )
-    .map(([outputId]) => outputId)
-    .filter(
-      (outputId) =>
-        !getRuntimeProviderOutputValue(
-          input.state,
-          input.need.providerId,
-          outputId,
-        ),
-    )
+    if (
+      consumedByStage &&
+      !getRuntimeProviderOutputValue(
+        input.state,
+        input.need.providerId,
+        outputId,
+      )
+    ) {
+      outputIds.push(outputId)
+    }
+  }
+
+  return outputIds
 }
 
-function stageNeedsProvider(input: {
+const stageNeedsProvider = (input: {
   need: RuntimeProviderNeed
-  stageServiceIds: string[]
-}): boolean {
-  return Object.values(input.need.outputConsumerIds).some((consumerIds) =>
-    consumerIds.some((serviceId) => input.stageServiceIds.includes(serviceId)),
+  stageServiceIds: ReadonlySet<string>
+}): boolean =>
+  Object.values(input.need.outputConsumerIds).some((consumerIds) =>
+    consumerIds.some((serviceId) => input.stageServiceIds.has(serviceId)),
   )
-}
 
-function buildRuntimeProviderAdapters(
+const buildRuntimeProviderAdapters = (
   meiliApiCredentialsProviderId: string,
-): RuntimeProviderAdapter[] {
-  return [
-    {
-      label: "Meili API credentials",
-      providerId: meiliApiCredentialsProviderId,
-      provision: async ({
-        need,
-        outputIds,
-        projectSlug,
-        environmentName,
-        stackInputs,
-        baseUrl,
+): RuntimeProviderAdapter[] => [
+  {
+    label: "Meili API credentials",
+    providerId: meiliApiCredentialsProviderId,
+    provision: async ({
+      need,
+      outputIds,
+      projectSlug,
+      environmentName,
+      stackInputs,
+      baseUrl,
+      apiToken,
+      dryRun,
+      state,
+    }) => {
+      const provisioned = await provisionMeiliKeys({
         apiToken,
+        baseUrl,
         dryRun,
-        state,
-      }) => {
-        const provisioned = await provisionMeiliKeys({
-          apiToken,
-          baseUrl,
-          dryRun,
-          environmentName,
-          needBackendKey: outputIds.includes("backend_key"),
-          needFrontendKey: outputIds.includes("frontend_key"),
-          projectSlug,
-          providerId: need.providerId,
-          serviceSlug: need.sourceServiceSlug,
-          stackInputs,
-        })
-        if (provisioned.backend_key) {
-          setRuntimeProviderOutput({
-            envVar: provisioned.backend_env_var,
-            outputId: "backend_key",
-            providerId: need.providerId,
-            state,
-            value: provisioned.backend_key,
-          })
-          state.meili.backendCreated = provisioned.backend_created
-          state.meili.backendUpdated = provisioned.backend_updated
-        }
-        if (provisioned.frontend_key) {
-          setRuntimeProviderOutput({
-            envVar: provisioned.frontend_env_var,
-            outputId: "frontend_key",
-            providerId: need.providerId,
-            state,
-            value: provisioned.frontend_key,
-          })
-          state.meili.frontendCreated = provisioned.frontend_created
-          state.meili.frontendUpdated = provisioned.frontend_updated
-        }
-        state.meili.verified = true
-      },
-      resolveSourceService: ({ manifest, stackInputs }) =>
-        getMeiliApiCredentialsProviderSourceService(
-          manifest,
-          stackInputs,
-          meiliApiCredentialsProviderId,
-        ),
-      reusePersisted: ({ need, stackInputs, targets, state }) => {
-        const reused = reusePersistedMeiliKeysFromTargets({
-          backendConsumerIds: need.outputConsumerIds.backend_key ?? [],
-          frontendConsumerIds: need.outputConsumerIds.frontend_key ?? [],
-          providerId: need.providerId,
-          stackInputs,
-          targets,
-        })
+        environmentName,
+        needBackendKey: outputIds.includes("backend_key"),
+        needFrontendKey: outputIds.includes("frontend_key"),
+        projectSlug,
+        providerId: need.providerId,
+        serviceSlug: need.sourceServiceSlug,
+        stackInputs,
+      })
+      if (provisioned.backend_key) {
         setRuntimeProviderOutput({
-          envVar:
-            getRuntimeProviderOutputEnvVar(
-              state,
-              need.providerId,
-              "backend_key",
-            ) || "MEILISEARCH_API_KEY",
+          envVar: provisioned.backend_env_var,
           outputId: "backend_key",
           providerId: need.providerId,
           state,
-          value: reused.backendKey,
+          value: provisioned.backend_key,
         })
+        state.meili.backendCreated = provisioned.backend_created
+        state.meili.backendUpdated = provisioned.backend_updated
+      }
+      if (provisioned.frontend_key) {
         setRuntimeProviderOutput({
-          envVar: reused.frontendEnvVar,
+          envVar: provisioned.frontend_env_var,
           outputId: "frontend_key",
           providerId: need.providerId,
           state,
-          value: reused.frontendKey,
+          value: provisioned.frontend_key,
         })
-      },
+        state.meili.frontendCreated = provisioned.frontend_created
+        state.meili.frontendUpdated = provisioned.frontend_updated
+      }
+      state.meili.verified = true
     },
-    {
-      label: "Medusa publishable key",
-      providerId: "medusa_publishable_key",
-      provision: async ({
-        need,
-        outputIds,
-        projectSlug,
-        environmentName,
+    resolveSourceService: ({ manifest, stackInputs }) =>
+      getMeiliApiCredentialsProviderSourceService(
+        manifest,
         stackInputs,
-        baseUrl,
-        apiToken,
-        dryRun,
-        state,
-      }) => {
-        const provisioned = await provisionMedusaPublishableKey({
-          apiToken,
-          baseUrl,
-          dryRun,
-          environmentName,
-          needFrontendKey: outputIds.includes("frontend_key"),
-          projectSlug,
-          providerId: need.providerId,
-          serviceSlug: need.sourceServiceSlug,
-          stackInputs,
-        })
-        if (provisioned.frontend_key) {
-          setRuntimeProviderOutput({
-            envVar: provisioned.frontend_env_var,
-            outputId: "frontend_key",
-            providerId: need.providerId,
+        meiliApiCredentialsProviderId,
+      ),
+    reusePersisted: ({ need, stackInputs, targets, state }) => {
+      const reused = reusePersistedMeiliKeysFromTargets({
+        backendConsumerIds: need.outputConsumerIds.backend_key ?? [],
+        frontendConsumerIds: need.outputConsumerIds.frontend_key ?? [],
+        providerId: need.providerId,
+        stackInputs,
+        targets,
+      })
+      setRuntimeProviderOutput({
+        envVar:
+          getRuntimeProviderOutputEnvVar(
             state,
-            value: provisioned.frontend_key,
-          })
-        }
-      },
-      resolveSourceService: ({ manifest, stackInputs }) =>
-        getMedusaPublishableKeyProviderSourceService(
-          manifest,
-          stackInputs,
-          "medusa_publishable_key",
-        ),
-      reusePersisted: ({ need, stackInputs, targets, state }) => {
-        const reused = reusePersistedMedusaPublishableKeyFromTargets({
-          consumerIds: need.outputConsumerIds.frontend_key ?? [],
-          providerId: need.providerId,
-          stackInputs,
-          targets,
-        })
+            need.providerId,
+            "backend_key",
+          ) || "MEILISEARCH_API_KEY",
+        outputId: "backend_key",
+        providerId: need.providerId,
+        state,
+        value: reused.backendKey,
+      })
+      setRuntimeProviderOutput({
+        envVar: reused.frontendEnvVar,
+        outputId: "frontend_key",
+        providerId: need.providerId,
+        state,
+        value: reused.frontendKey,
+      })
+    },
+  },
+  {
+    label: "Medusa publishable key",
+    providerId: "medusa_publishable_key",
+    provision: async ({
+      need,
+      outputIds,
+      projectSlug,
+      environmentName,
+      stackInputs,
+      baseUrl,
+      apiToken,
+      dryRun,
+      state,
+    }) => {
+      const provisioned = await provisionMedusaPublishableKey({
+        apiToken,
+        baseUrl,
+        dryRun,
+        environmentName,
+        needFrontendKey: outputIds.includes("frontend_key"),
+        projectSlug,
+        providerId: need.providerId,
+        serviceSlug: need.sourceServiceSlug,
+        stackInputs,
+      })
+      if (provisioned.frontend_key) {
         setRuntimeProviderOutput({
-          envVar: reused.frontendEnvVar,
+          envVar: provisioned.frontend_env_var,
           outputId: "frontend_key",
           providerId: need.providerId,
           state,
-          value: reused.frontendKey,
+          value: provisioned.frontend_key,
         })
-      },
+      }
     },
-  ]
+    resolveSourceService: ({ manifest, stackInputs }) =>
+      getMedusaPublishableKeyProviderSourceService(
+        manifest,
+        stackInputs,
+        "medusa_publishable_key",
+      ),
+    reusePersisted: ({ need, stackInputs, targets, state }) => {
+      const reused = reusePersistedMedusaPublishableKeyFromTargets({
+        consumerIds: need.outputConsumerIds.frontend_key ?? [],
+        providerId: need.providerId,
+        stackInputs,
+        targets,
+      })
+      setRuntimeProviderOutput({
+        envVar: reused.frontendEnvVar,
+        outputId: "frontend_key",
+        providerId: need.providerId,
+        state,
+        value: reused.frontendKey,
+      })
+    },
+  },
+]
+
+const buildRuntimeProviderAdaptersById = (
+  meiliApiCredentialsProviderId: string,
+): ReadonlyMap<string, RuntimeProviderAdapter> =>
+  new Map(
+    buildRuntimeProviderAdapters(meiliApiCredentialsProviderId).map(
+      (adapter) => [adapter.providerId, adapter],
+    ),
+  )
+
+const collectOutputConsumerIds = (input: {
+  stackInputs: StackInputs
+  providerId: string
+  serviceIds: ReadonlySet<string>
+}): Record<string, string[]> => {
+  const outputConsumerIds: Record<string, string[]> = {}
+
+  for (const outputId of listRuntimeProviderOutputIds(
+    input.stackInputs,
+    input.providerId,
+  )) {
+    const consumerIds: string[] = []
+    for (const target of listRuntimeProviderOutputTargets(
+      input.stackInputs,
+      input.providerId,
+      outputId,
+    )) {
+      if (input.serviceIds.has(target.service_id)) {
+        consumerIds.push(target.service_id)
+      }
+    }
+
+    if (consumerIds.length > 0) {
+      outputConsumerIds[outputId] = consumerIds
+    }
+  }
+
+  return outputConsumerIds
 }
 
-function resolveRuntimeProviderNeeds(input: {
+const resolveRuntimeProviderNeeds = (input: {
   lane: ResolveTargetsPayload["lane"]
   manifest: StackManifest
   stackInputs: StackInputs
   providerIds: string[]
   serviceIds: string[]
   meiliApiCredentialsProviderId: string
-}): RuntimeProviderNeed[] {
-  const adaptersById = new Map(
-    buildRuntimeProviderAdapters(input.meiliApiCredentialsProviderId).map(
-      (adapter) => [adapter.providerId, adapter],
-    ),
+}): RuntimeProviderNeed[] => {
+  const adaptersById = buildRuntimeProviderAdaptersById(
+    input.meiliApiCredentialsProviderId,
   )
+  const serviceIds = new Set(input.serviceIds)
 
   return input.providerIds.flatMap((providerId) => {
     const adapter = adaptersById.get(providerId)
@@ -322,23 +392,11 @@ function resolveRuntimeProviderNeeds(input: {
       return []
     }
 
-    const outputConsumerIds = Object.fromEntries(
-      listRuntimeProviderOutputIds(input.stackInputs, providerId)
-        .map((outputId) => [
-          outputId,
-          listRuntimeProviderOutputTargets(
-            input.stackInputs,
-            providerId,
-            outputId,
-          )
-            .filter((target) => input.serviceIds.includes(target.service_id))
-            .map((target) => target.service_id),
-        ])
-        .filter(
-          (entry): entry is [string, string[]] =>
-            Array.isArray(entry[1]) && entry[1].length > 0,
-        ),
-    ) as Record<string, string[]>
+    const outputConsumerIds = collectOutputConsumerIds({
+      providerId,
+      serviceIds,
+      stackInputs: input.stackInputs,
+    })
 
     if (Object.keys(outputConsumerIds).length === 0) {
       return []
@@ -367,9 +425,9 @@ function resolveRuntimeProviderNeeds(input: {
   })
 }
 
-export function createRuntimeProviderState(
+export const createRuntimeProviderState = (
   outputs: RuntimeProviderOutputs,
-): RuntimeProviderState {
+): RuntimeProviderState => {
   const state: RuntimeProviderState = {
     meili: {
       backendCreated: false,
@@ -390,10 +448,10 @@ export function createRuntimeProviderState(
   return state
 }
 
-function buildRuntimeProviderOutputs(
+const buildRuntimeProviderOutputs = (
   state: RuntimeProviderState,
-): RuntimeProviderOutputs {
-  return Object.fromEntries(
+): RuntimeProviderOutputs =>
+  Object.fromEntries(
     Object.keys(state.outputValues).map((key) => [
       key,
       {
@@ -402,22 +460,21 @@ function buildRuntimeProviderOutputs(
       },
     ]),
   )
-}
 
-export function buildRuntimeProviderRenderContext(state: RuntimeProviderState) {
-  return {
-    runtimeProviderOutputs: buildRuntimeProviderOutputs(state),
-  }
-}
+export const buildRuntimeProviderRenderContext = (
+  state: RuntimeProviderState,
+) => ({
+  runtimeProviderOutputs: buildRuntimeProviderOutputs(state),
+})
 
-export function collectConfiguredRuntimeProviderNeeds(input: {
+export const collectConfiguredRuntimeProviderNeeds = (input: {
   lane: ResolveTargetsPayload["lane"]
   manifest: StackManifest
   stackInputs: StackInputs
   services: { id: string }[]
   meiliApiCredentialsProviderId: string
-}): RuntimeProviderNeed[] {
-  return resolveRuntimeProviderNeeds({
+}): RuntimeProviderNeed[] =>
+  resolveRuntimeProviderNeeds({
     lane: input.lane,
     manifest: input.manifest,
     meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
@@ -428,9 +485,126 @@ export function collectConfiguredRuntimeProviderNeeds(input: {
     serviceIds: input.services.map((service) => service.id),
     stackInputs: input.stackInputs,
   })
+
+const buildConsumerResolveTargets = (
+  planServices: readonly { id: string; service_slug: string }[],
+  consumerServiceIds: ReadonlySet<string>,
+): { service_id: string; service_slug: string }[] => {
+  const services: { service_id: string; service_slug: string }[] = []
+
+  for (const service of planServices) {
+    if (consumerServiceIds.has(service.id)) {
+      services.push({
+        service_id: service.id,
+        service_slug: service.service_slug,
+      })
+    }
+  }
+
+  return services
 }
 
-export async function reuseRuntimeProviderOutputs(input: {
+const reuseRuntimeProviderOutputForNeed = async (input: {
+  adapter: RuntimeProviderAdapter
+  context: ReuseRuntimeProviderOutputsContext
+  need: RuntimeProviderNeed
+}): Promise<void> => {
+  const { adapter, context, need } = input
+
+  const sourceInPlan = context.planServices.some(
+    (service) => service.id === need.sourceServiceId,
+  )
+  if (sourceInPlan || context.dryRun) {
+    return
+  }
+
+  if (!need.laneBehavior.reuse_persisted_outputs) {
+    return
+  }
+
+  const consumerServiceIds = new Set(
+    Object.values(need.outputConsumerIds).flat(),
+  )
+  const targets = await executeResolveTargetsPayload({
+    apiToken: context.apiToken,
+    baseUrl: context.baseUrl,
+    dryRun: false,
+    payload: {
+      environment_name: context.environmentName,
+      lane: context.lane,
+      project_slug: context.projectSlug,
+      services: buildConsumerResolveTargets(
+        context.planServices,
+        consumerServiceIds,
+      ),
+    },
+  })
+  adapter.reusePersisted({
+    need,
+    stackInputs: context.stackInputs,
+    state: context.state,
+    targets: targets.services,
+  })
+
+  if (missingOutputIds(need, context.state).length === 0) {
+    context.onProgress(
+      `Reusing persisted ${need.label} from current healthy ${context.lane} consumer deployments.`,
+    )
+    return
+  }
+
+  if (!need.laneBehavior.reconcile_when_source_not_in_plan) {
+    return
+  }
+
+  context.onProgress(
+    `${need.label} source service ${need.sourceServiceId} is not in this deploy plan and persisted consumer envs are incomplete; reconciling required outputs before deploy stages.`,
+  )
+  await adapter.provision({
+    apiToken: context.apiToken,
+    baseUrl: context.baseUrl,
+    dryRun: context.dryRun,
+    environmentName: context.environmentName,
+    need,
+    outputIds: missingOutputIds(need, context.state),
+    projectSlug: context.projectSlug,
+    stackInputs: context.stackInputs,
+    state: context.state,
+  })
+  context.onProgress(`${need.label} resolved for ${context.lane} consumers.`)
+}
+
+// Needs are reconciled one at a time because every need mutates the shared
+// runtime provider state and issues operator calls whose ordering matches the
+// emitted progress messages, so the queue is walked through recursion instead
+// of being fanned out, and it terminates when the remaining queue is empty.
+const reuseRuntimeProviderOutputsSequentially = async (input: {
+  adaptersById: ReadonlyMap<string, RuntimeProviderAdapter>
+  context: ReuseRuntimeProviderOutputsContext
+  needs: readonly RuntimeProviderNeed[]
+}): Promise<void> => {
+  const [need, ...remainingNeeds] = input.needs
+  if (need === undefined) {
+    return
+  }
+
+  const adapter = input.adaptersById.get(need.providerId)
+  if (adapter !== undefined) {
+    await reuseRuntimeProviderOutputForNeed({
+      adapter,
+      context: input.context,
+      need,
+    })
+  }
+
+  await reuseRuntimeProviderOutputsSequentially({
+    adaptersById: input.adaptersById,
+    context: input.context,
+    needs: remainingNeeds,
+  })
+}
+
+export const reuseRuntimeProviderOutputs = async (input: {
   lane: ResolveTargetsPayload["lane"]
   projectSlug: string
   environmentName: string
@@ -443,86 +617,131 @@ export async function reuseRuntimeProviderOutputs(input: {
   state: RuntimeProviderState
   meiliApiCredentialsProviderId: string
   onProgress: (message: string) => void
-}): Promise<void> {
-  const adaptersById = new Map(
-    buildRuntimeProviderAdapters(input.meiliApiCredentialsProviderId).map(
-      (adapter) => [adapter.providerId, adapter],
+}): Promise<void> => {
+  await reuseRuntimeProviderOutputsSequentially({
+    adaptersById: buildRuntimeProviderAdaptersById(
+      input.meiliApiCredentialsProviderId,
     ),
-  )
-
-  for (const need of input.needs) {
-    const adapter = adaptersById.get(need.providerId)
-    if (!adapter) {
-      continue
-    }
-
-    const sourceInPlan = input.planServices.some(
-      (service) => service.id === need.sourceServiceId,
-    )
-    if (sourceInPlan || input.dryRun) {
-      continue
-    }
-
-    if (!need.laneBehavior.reuse_persisted_outputs) {
-      continue
-    }
-
-    const consumerServiceIds = new Set(
-      new Set(Object.values(need.outputConsumerIds).flat()),
-    )
-    const targets = await executeResolveTargetsPayload({
-      apiToken: input.apiToken,
-      baseUrl: input.baseUrl,
-      dryRun: false,
-      payload: {
-        environment_name: input.environmentName,
-        lane: input.lane,
-        project_slug: input.projectSlug,
-        services: input.planServices
-          .filter((service) => consumerServiceIds.has(service.id))
-          .map((service) => ({
-            service_id: service.id,
-            service_slug: service.service_slug,
-          })),
-      },
-    })
-    adapter.reusePersisted({
-      need,
-      stackInputs: input.stackInputs,
-      state: input.state,
-      targets: targets.services,
-    })
-
-    if (missingOutputIds(need, input.state).length === 0) {
-      input.onProgress(
-        `Reusing persisted ${need.label} from current healthy ${input.lane} consumer deployments.`,
-      )
-      continue
-    }
-
-    if (!need.laneBehavior.reconcile_when_source_not_in_plan) {
-      continue
-    }
-
-    input.onProgress(
-      `${need.label} source service ${need.sourceServiceId} is not in this deploy plan and persisted consumer envs are incomplete; reconciling required outputs before deploy stages.`,
-    )
-    await adapter.provision({
+    context: {
       apiToken: input.apiToken,
       baseUrl: input.baseUrl,
       dryRun: input.dryRun,
       environmentName: input.environmentName,
-      need,
-      outputIds: missingOutputIds(need, input.state),
+      lane: input.lane,
+      onProgress: input.onProgress,
+      planServices: input.planServices,
       projectSlug: input.projectSlug,
       stackInputs: input.stackInputs,
       state: input.state,
-    })
-    input.onProgress(`${need.label} resolved for ${input.lane} consumers.`)
-  }
+    },
+    needs: input.needs,
+  })
 }
 
-export async function ensureStageRuntimeProviderOutputs(input: {
+// The first plan entry wins for a duplicated service id so the lookup keeps the
+// exact result the previous per-need `Array.prototype.find` scan returned.
+const buildDeployStagesByServiceId = (
+  fullPlanServices: readonly {
+    id: string
+    service_slug: string
+    deploy_stage: number
+  }[],
+): ReadonlyMap<string, number> => {
+  const deployStagesByServiceId = new Map<string, number>()
+
+  for (const service of fullPlanServices) {
+    if (!deployStagesByServiceId.has(service.id)) {
+      deployStagesByServiceId.set(service.id, service.deploy_stage)
+    }
+  }
+
+  return deployStagesByServiceId
+}
+
+const ensureStageRuntimeProviderOutputForNeed = async (input: {
+  adapter: RuntimeProviderAdapter
+  context: StageRuntimeProviderOutputsContext
+  need: RuntimeProviderNeed
+}): Promise<void> => {
+  const { adapter, context, need } = input
+
+  if (
+    !stageNeedsProvider({
+      need,
+      stageServiceIds: context.stageServiceIds,
+    })
+  ) {
+    return
+  }
+
+  const stageMissingOutputIds = missingStageOutputIds({
+    need,
+    stageServiceIds: context.stageServiceIds,
+    state: context.state,
+  })
+  if (stageMissingOutputIds.length === 0) {
+    return
+  }
+
+  const sourceStage = context.deployStagesByServiceId.get(need.sourceServiceId)
+  if (
+    sourceStage !== null &&
+    sourceStage !== undefined &&
+    sourceStage >= context.stage
+  ) {
+    throw new Error(
+      `${need.label} source service ${need.sourceServiceId} must be healthy before consumer stage ${context.stage}.`,
+    )
+  }
+
+  context.onProgress(
+    `Stage ${context.stage} consumes ${need.label}; reconciling only the required outputs before env overrides.`,
+  )
+  await adapter.provision({
+    apiToken: context.apiToken,
+    baseUrl: context.baseUrl,
+    dryRun: context.dryRun,
+    environmentName: context.environmentName,
+    need,
+    outputIds: stageMissingOutputIds,
+    projectSlug: context.projectSlug,
+    stackInputs: context.stackInputs,
+    state: context.state,
+  })
+  context.onProgress(`${need.label} resolved for stage ${context.stage}.`)
+}
+
+// Stage needs are reconciled one at a time because every need mutates the
+// shared runtime provider state and a failing need must abort before the next
+// one runs, so the queue is walked through recursion instead of being fanned
+// out, and it terminates when the remaining queue is empty.
+const ensureStageRuntimeProviderOutputsSequentially = async (input: {
+  adaptersById: ReadonlyMap<string, RuntimeProviderAdapter>
+  context: StageRuntimeProviderOutputsContext
+  needs: readonly RuntimeProviderNeed[]
+}): Promise<void> => {
+  const [need, ...remainingNeeds] = input.needs
+  if (need === undefined) {
+    return
+  }
+
+  const adapter = input.adaptersById.get(need.providerId)
+  if (adapter !== undefined) {
+    await ensureStageRuntimeProviderOutputForNeed({
+      adapter,
+      context: input.context,
+      need,
+    })
+  }
+
+  await ensureStageRuntimeProviderOutputsSequentially({
+    adaptersById: input.adaptersById,
+    context: input.context,
+    needs: remainingNeeds,
+  })
+}
+
+export const ensureStageRuntimeProviderOutputs = async (input: {
   lane: ResolveTargetsPayload["lane"]
   stage: number
   stageServices: { id: string; service_slug: string }[]
@@ -541,64 +760,28 @@ export async function ensureStageRuntimeProviderOutputs(input: {
   state: RuntimeProviderState
   meiliApiCredentialsProviderId: string
   onProgress: (message: string) => void
-}): Promise<void> {
-  const adaptersById = new Map(
-    buildRuntimeProviderAdapters(input.meiliApiCredentialsProviderId).map(
-      (adapter) => [adapter.providerId, adapter],
+}): Promise<void> => {
+  await ensureStageRuntimeProviderOutputsSequentially({
+    adaptersById: buildRuntimeProviderAdaptersById(
+      input.meiliApiCredentialsProviderId,
     ),
-  )
-
-  for (const need of input.needs) {
-    const adapter = adaptersById.get(need.providerId)
-    if (!adapter) {
-      continue
-    }
-
-    if (
-      !stageNeedsProvider({
-        need,
-        stageServiceIds: input.stageServices.map((service) => service.id),
-      })
-    ) {
-      continue
-    }
-
-    const stageMissingOutputIds = missingStageOutputIds({
-      need,
-      stageServiceIds: input.stageServices.map((service) => service.id),
-      state: input.state,
-    })
-    if (stageMissingOutputIds.length === 0) {
-      continue
-    }
-
-    const sourceStage = input.fullPlanServices.find(
-      (service) => service.id === need.sourceServiceId,
-    )?.deploy_stage
-    if (
-      sourceStage !== null &&
-      sourceStage !== undefined &&
-      sourceStage >= input.stage
-    ) {
-      throw new Error(
-        `${need.label} source service ${need.sourceServiceId} must be healthy before consumer stage ${input.stage}.`,
-      )
-    }
-
-    input.onProgress(
-      `Stage ${input.stage} consumes ${need.label}; reconciling only the required outputs before env overrides.`,
-    )
-    await adapter.provision({
+    context: {
       apiToken: input.apiToken,
       baseUrl: input.baseUrl,
+      deployStagesByServiceId: buildDeployStagesByServiceId(
+        input.fullPlanServices,
+      ),
       dryRun: input.dryRun,
       environmentName: input.environmentName,
-      need,
-      outputIds: stageMissingOutputIds,
+      onProgress: input.onProgress,
       projectSlug: input.projectSlug,
       stackInputs: input.stackInputs,
+      stage: input.stage,
+      stageServiceIds: new Set(
+        input.stageServices.map((service) => service.id),
+      ),
       state: input.state,
-    })
-    input.onProgress(`${need.label} resolved for stage ${input.stage}.`)
-  }
+    },
+    needs: input.needs,
+  })
 }
