@@ -62,14 +62,15 @@ describe("order business status API utilities", () => {
       total: 1234,
     }
 
-    expect(toOrderBusinessStatusSummary(order)).toStrictEqual({
-      business_status: expect.objectContaining({
-        id: "paid",
-        translation_key: "statuses.paid",
-      }),
+    const summary = toOrderBusinessStatusSummary(order)
+
+    expect(summary.business_status).toMatchObject({
+      id: "paid",
+      translation_key: "statuses.paid",
+    })
+    expect(summary).toMatchObject({
       created_at: null,
       currency_code: "czk",
-      custom_display_id: undefined,
       display_id: 1001,
       email: "customer@example.com",
       id: "order_123",

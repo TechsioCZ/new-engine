@@ -21,10 +21,13 @@ vi.mock(import("@medusajs/framework/utils"), () => ({
  * request/response interfaces while still validating the shape the route
  * handler actually reads from at runtime.
  */
-function assertMockShape(
+const assertMockShape: <T>(
+  candidate: unknown,
+  requiredKeys: readonly (keyof T)[],
+) => asserts candidate is T = (
   candidate: unknown,
   requiredKeys: readonly string[],
-): asserts candidate is unknown {
+): asserts candidate is unknown => {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
   }
@@ -36,10 +39,14 @@ function assertMockShape(
   }
 }
 
-type MockJsonResponse = MedusaResponse & { json: ReturnType<typeof vi.fn> }
+type MockJsonResponse = MedusaResponse & {
+  json: ReturnType<typeof vi.fn<(body: unknown) => unknown>>
+}
 
 const createMockResponse = (): MockJsonResponse => {
-  const candidate: unknown = { json: vi.fn().mockReturnThis() }
+  const candidate: unknown = {
+    json: vi.fn<(body: unknown) => unknown>().mockReturnThis(),
+  }
   assertMockShape<MockJsonResponse>(candidate, ["json"])
   return candidate
 }
@@ -62,11 +69,15 @@ describe("POST /admin/order-business-statuses/bulk", () => {
   it("updates eligible orders and skips blocked ones", async () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-business-statuses/bulk/route")
-    const clearCache = vi.fn().mockResolvedValue()
-    const warn = vi.fn()
-    const updateOrders = vi.fn().mockResolvedValue()
+    const clearCache = vi
+      .fn<(input: { tags: string[] }) => Promise<void>>()
+      .mockResolvedValue()
+    const warn = vi.fn<(message: string) => void>()
+    const updateOrders = vi
+      .fn<(id: string, update: unknown) => Promise<void>>()
+      .mockResolvedValue()
     const graph = vi
-      .fn()
+      .fn<(input: unknown) => Promise<{ data: unknown[] }>>()
       .mockResolvedValueOnce({
         data: [
           {
@@ -93,7 +104,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
       })
     const req = asMockRequest({
       scope: {
-        resolve: vi.fn((key) => {
+        resolve: vi.fn<(key: unknown) => unknown>((key) => {
           if (key === "query") {
             return { graph }
           }
@@ -122,8 +133,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
 
     await POST(req, res)
 
-    expect(updateOrders).toHaveBeenCalledOnce()
-    expect(updateOrders).toHaveBeenCalledWith("order_1", {
+    expect(updateOrders).toHaveBeenCalledExactlyOnceWith("order_1", {
       metadata: { order_business_status_manual: "processing" },
     })
     expect(clearCache).toHaveBeenCalledWith({
@@ -152,15 +162,21 @@ describe("POST /admin/order-business-statuses/bulk", () => {
   it("keeps updating eligible orders when one update fails", async () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-business-statuses/bulk/route")
-    const clearCache = vi.fn().mockResolvedValue()
-    const warn = vi.fn()
-    const updateOrders = vi.fn(async (id: string) => {
-      id === "order_2"
-        ? await Promise.reject(new Error("database conflict"))
-        : await Promise.resolve()
-    })
+    const clearCache = vi
+      .fn<(input: { tags: string[] }) => Promise<void>>()
+      .mockResolvedValue()
+    const warn = vi.fn<(message: string) => void>()
+    const updateOrders = vi.fn<(id: string, update?: unknown) => Promise<void>>(
+      async (id) => {
+        if (id === "order_2") {
+          await Promise.reject(new Error("database conflict"))
+        }
+
+        await Promise.resolve()
+      },
+    )
     const graph = vi
-      .fn()
+      .fn<(input: unknown) => Promise<{ data: unknown[] }>>()
       .mockResolvedValueOnce({
         data: [
           {
@@ -187,7 +203,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
       })
     const req = asMockRequest({
       scope: {
-        resolve: vi.fn((key) => {
+        resolve: vi.fn<(key: unknown) => unknown>((key) => {
           if (key === "query") {
             return { graph }
           }

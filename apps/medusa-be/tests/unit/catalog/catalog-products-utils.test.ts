@@ -58,11 +58,22 @@ describe("catalog products filter utils", () => {
   it("maps API sort values to meili sort expressions", () => {
     expect(resolveCatalogSort("recommended")).toBeUndefined()
     expect(resolveCatalogSort("best-selling")).toBeUndefined()
-    expect(resolveCatalogSort("newest")).toStrictEqual(["created_at:desc"])
-    expect(resolveCatalogSort("oldest")).toStrictEqual(["created_at:asc"])
-    expect(resolveCatalogSort("price-asc")).toStrictEqual(["facet_price:asc"])
-    expect(resolveCatalogSort("price-desc")).toStrictEqual(["facet_price:desc"])
-    expect(resolveCatalogSort("title-asc")).toStrictEqual(["title:asc"])
-    expect(resolveCatalogSort("title-desc")).toStrictEqual(["title:desc"])
+    expect(
+      [
+        "newest",
+        "oldest",
+        "price-asc",
+        "price-desc",
+        "title-asc",
+        "title-desc",
+      ].map(resolveCatalogSort),
+    ).toStrictEqual([
+      ["created_at:desc"],
+      ["created_at:asc"],
+      ["facet_price:asc"],
+      ["facet_price:desc"],
+      ["title:asc"],
+      ["title:desc"],
+    ])
   })
 })

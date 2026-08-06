@@ -20,16 +20,17 @@ interface OrderCustomerNoteResponse {
 type OrderCustomerNoteWidgetProps = Partial<DetailWidgetProps<AdminOrder>>
 
 const QUERY_KEY_PREFIX = "order-customer-note"
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+})
 
-function formatDateTime(value: string | null) {
-  if (!value) {
+const formatDateTime = (value: string | null) => {
+  if (value === null || value.length === 0) {
     return "-"
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value))
+  return dateTimeFormatter.format(new Date(value))
 }
 
 const OrderCustomerNoteWidget = ({ data }: OrderCustomerNoteWidgetProps) => {
@@ -42,7 +43,7 @@ const OrderCustomerNoteWidget = ({ data }: OrderCustomerNoteWidgetProps) => {
   } = useQuery({
     enabled: Boolean(orderId),
     queryFn: async () =>
-      sdk.client.fetch<OrderCustomerNoteResponse>(
+      await sdk.client.fetch<OrderCustomerNoteResponse>(
         `/admin/orders/${orderId}/customer-note`,
       ),
     queryKey: [QUERY_KEY_PREFIX, orderId],
@@ -63,7 +64,11 @@ const OrderCustomerNoteWidget = ({ data }: OrderCustomerNoteWidgetProps) => {
         Failed to load note.
       </Text>
     )
-  } else if (customerNote?.note) {
+  } else if (
+    customerNote?.note !== null &&
+    customerNote?.note !== undefined &&
+    customerNote.note.length > 0
+  ) {
     noteContent = (
       <div className="rounded-md bg-ui-bg-subtle px-3 py-2">
         <Text size="small">{customerNote.note}</Text>

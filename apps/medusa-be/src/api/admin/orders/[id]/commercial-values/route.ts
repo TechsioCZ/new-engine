@@ -8,7 +8,7 @@ import {
   toCommercialValuesSnapshot,
 } from "./utils"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const getCommercialValues = async (req: MedusaRequest, res: MedusaResponse) => {
   const id = requireCommercialValuesOrderId(req.params["id"])
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { activeOrderChange, order } = await fetchCommercialValuesSnapshotOrder(
@@ -21,3 +21,5 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     commercial_values: toCommercialValuesSnapshot(order, activeOrderChange),
   })
 }
+
+export { getCommercialValues as GET }

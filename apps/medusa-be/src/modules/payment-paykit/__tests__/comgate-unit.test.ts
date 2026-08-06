@@ -2,6 +2,7 @@ import { PaymentActions } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 
 import { PaykitComgatePaymentProvider } from "../services/comgate"
+import type { PaykitPaymentClient } from "../types"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 describe(PaykitComgatePaymentProvider, () => {
@@ -21,13 +22,15 @@ describe(PaykitComgatePaymentProvider, () => {
   it("normalizes Medusa major-unit amounts and injects Comgate metadata", async () => {
     const client = createMockPaykitClient({
       payments: {
-        create: vi.fn().mockResolvedValue({
-          amount: 1050,
-          currency: "czk",
-          id: "comgate-payment-1",
-          payment_url: "https://payments.comgate.example/redirect",
-          status: "pending",
-        }),
+        create: vi
+          .fn<PaykitPaymentClient["payments"]["create"]>()
+          .mockResolvedValue({
+            amount: 1050,
+            currency: "czk",
+            id: "comgate-payment-1",
+            payment_url: "https://payments.comgate.example/redirect",
+            status: "pending",
+          }),
       },
     })
     const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
@@ -85,14 +88,11 @@ describe(PaykitComgatePaymentProvider, () => {
       },
     })
 
-    expect(client.payments.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customer: { id: "customer@example.com" },
-        provider_metadata: expect.objectContaining({
-          email: "customer@example.com",
-        }),
-      }),
-    )
+    const [createInput] = vi.mocked(client.payments.create).mock.calls[0] ?? []
+    expect(createInput?.customer).toStrictEqual({ id: "customer@example.com" })
+    expect(createInput?.provider_metadata).toMatchObject({
+      email: "customer@example.com",
+    })
   })
 
   it("uses payment-session customer email as Comgate payer id", async () => {
@@ -112,14 +112,11 @@ describe(PaykitComgatePaymentProvider, () => {
       },
     })
 
-    expect(client.payments.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customer: { id: "customer@example.com" },
-        provider_metadata: expect.objectContaining({
-          email: "customer@example.com",
-        }),
-      }),
-    )
+    const [createInput] = vi.mocked(client.payments.create).mock.calls[0] ?? []
+    expect(createInput?.customer).toStrictEqual({ id: "customer@example.com" })
+    expect(createInput?.provider_metadata).toMatchObject({
+      email: "customer@example.com",
+    })
   })
 
   it("rejects customer ids without a Comgate email value", async () => {
@@ -181,22 +178,16 @@ describe(PaykitComgatePaymentProvider, () => {
       },
     })
 
-    expect(client.payments.create).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        provider_metadata: expect.objectContaining({
-          paymentLabel: "Order payses_123",
-        }),
-      }),
-    )
-    expect(client.payments.create).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        provider_metadata: expect.objectContaining({
-          paymentLabel: "Order Custom checkout label",
-        }),
-      }),
-    )
+    const [firstCreateInput] =
+      vi.mocked(client.payments.create).mock.calls[0] ?? []
+    const [secondCreateInput] =
+      vi.mocked(client.payments.create).mock.calls[1] ?? []
+    expect(firstCreateInput?.provider_metadata).toMatchObject({
+      paymentLabel: "Order payses_123",
+    })
+    expect(secondCreateInput?.provider_metadata).toMatchObject({
+      paymentLabel: "Order Custom checkout label",
+    })
   })
 
   it("does not double-normalize persisted Comgate amounts during capture", async () => {
@@ -219,9 +210,8 @@ describe(PaykitComgatePaymentProvider, () => {
   })
 
   it("maps successful Comgate webhook events with Medusa major-unit amount", async () => {
-    const client = createMockPaykitClient()
-    vi.spyOn(client, "handleWebhook")
-      .mockImplementation()
+    const handleWebhook = vi
+      .fn<NonNullable<PaykitPaymentClient["handleWebhook"]>>()
       .mockResolvedValue([
         {
           data: {
@@ -236,6 +226,7 @@ describe(PaykitComgatePaymentProvider, () => {
           type: "payment.updated",
         },
       ])
+    const client = createMockPaykitClient({ handleWebhook })
     const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
       client,
     })

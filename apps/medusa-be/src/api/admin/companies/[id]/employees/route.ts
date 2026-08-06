@@ -1,25 +1,36 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { definedProperties } from "../../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../../utils/path-params"
-import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows"
+import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows/create-employees"
 import type {
   AdminCreateEmployeeType,
   AdminGetEmployeeParamsType,
 } from "../../validators"
 
-export const GET = async (
+const companyQuerySchema = z.object({
+  data: z.array(z.object({ employees: z.array(z.unknown()).optional() })),
+  metadata: z
+    .object({
+      count: z.number().optional(),
+      skip: z.number().optional(),
+      take: z.number().optional(),
+    })
+    .optional(),
+})
+const createdEmployeeSchema = z.object({ id: z.string().min(1) })
+const employeeQuerySchema = z.object({ data: z.array(z.unknown()) })
+
+const getCompanyEmployees = async (
   req: MedusaRequest<AdminGetEmployeeParamsType>,
   res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const {
-    data: [company],
-    metadata,
-  } = await query.graph(
+  const companyQueryResult: unknown = await query.graph(
     {
       entity: "company",
       fields: [...req.queryConfig.fields, "employees.*"],
@@ -30,7 +41,9 @@ export const GET = async (
     },
     { throwIfKeyNotFound: true },
   )
-  const employees = company?.employees ?? []
+  const { data: companies, metadata } =
+    companyQuerySchema.parse(companyQueryResult)
+  const employees = companies[0]?.employees ?? []
 
   res.json({
     count: metadata?.count,
@@ -40,7 +53,7 @@ export const GET = async (
   })
 }
 
-export const POST = async (
+const createCompanyEmployee = async (
   req: MedusaRequest<AdminCreateEmployeeType>,
   res: MedusaResponse,
 ) => {
@@ -56,16 +69,18 @@ export const POST = async (
     },
   })
 
-  const {
-    data: [employee],
-  } = await query.graph(
+  const { id: createdEmployeeId } = createdEmployeeSchema.parse(createdEmployee)
+  const employeeQueryResult: unknown = await query.graph(
     {
       entity: "employee",
       fields: req.queryConfig.fields,
-      filters: { id: createdEmployee.id },
+      filters: { id: createdEmployeeId },
     },
     { throwIfKeyNotFound: true },
   )
+  const [employee] = employeeQuerySchema.parse(employeeQueryResult).data
 
   res.json({ employee })
 }
+
+export { createCompanyEmployee as POST, getCompanyEmployees as GET }

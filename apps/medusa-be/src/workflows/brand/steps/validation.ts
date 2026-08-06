@@ -13,7 +13,7 @@ export interface BrandScalarWriteInput {
   gpsr_postal_address?: string | null | undefined
 }
 
-const emailSchema = z.string().email()
+const emailSchema = z.email()
 const GPSR_TEXT_FIELDS = [
   "gpsr_contact_email",
   "gpsr_european_reseller_contact_email",
@@ -32,9 +32,10 @@ export const getBrandHandleCollisionMessage = (brand: {
   deleted_at?: string | Date | null
   handle: string
 }) => {
-  const suffix = brand.deleted_at
-    ? " as a deleted record. Restore it through the explicit restore action"
-    : ""
+  const suffix =
+    brand.deleted_at === null || brand.deleted_at === undefined
+      ? ""
+      : " as a deleted record. Restore it through the explicit restore action"
 
   return `Brand with handle "${brand.handle}" already exists${suffix}.`
 }
@@ -77,7 +78,11 @@ export const validateBrandGpsrState = (
   ] as const) {
     const value = normalized[field]
 
-    if (value && !emailSchema.safeParse(value).success) {
+    if (
+      value !== null &&
+      value !== undefined &&
+      !emailSchema.safeParse(value).success
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         `Brand "${identity}" has an invalid ${field}`,
@@ -86,7 +91,7 @@ export const validateBrandGpsrState = (
   }
 
   const presentRepresentativeFields = REQUIRED_OUTSIDE_EU_FIELDS.filter(
-    (field) => !!normalized[field],
+    (field) => normalized[field] !== null && normalized[field] !== undefined,
   )
 
   if (
@@ -94,7 +99,7 @@ export const validateBrandGpsrState = (
     presentRepresentativeFields.length !== REQUIRED_OUTSIDE_EU_FIELDS.length
   ) {
     const missingFields = REQUIRED_OUTSIDE_EU_FIELDS.filter(
-      (field) => !normalized[field],
+      (field) => normalized[field] === null || normalized[field] === undefined,
     )
 
     throw new MedusaError(

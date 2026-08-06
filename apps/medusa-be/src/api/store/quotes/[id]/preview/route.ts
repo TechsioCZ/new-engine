@@ -11,14 +11,18 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
-export const GET = async (
+const quoteSchema = z.looseObject({ draft_order_id: z.string().min(1) })
+const quoteQuerySchema = z.object({ data: z.array(quoteSchema) })
+
+const getQuotePreview = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
 ) => {
   const { id } = req.params
 
-  if (!id) {
+  if (id === undefined || id.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "The id path parameter is required",
@@ -29,9 +33,7 @@ export const GET = async (
     ContainerRegistrationKeys.QUERY,
   )
 
-  const {
-    data: [quote],
-  } = await query.graph(
+  const queryResult: unknown = await query.graph(
     {
       entity: "quote",
       fields: req.queryConfig.fields,
@@ -39,8 +41,9 @@ export const GET = async (
     },
     { throwIfKeyNotFound: true },
   )
+  const [quote] = quoteQuerySchema.parse(queryResult).data
 
-  if (!quote) {
+  if (quote === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Quote ${id} was not found`,
@@ -62,3 +65,5 @@ export const GET = async (
     },
   })
 }
+
+export { getQuotePreview as GET }

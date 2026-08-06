@@ -6,7 +6,7 @@ import type {
 import {
   deleteProductAttributeOptionsWorkflow,
   updateProductAttributeOptionWorkflow,
-} from "../../../../../workflows/product-attribute"
+} from "../../../../../workflows/product-attribute/workflows/options"
 import {
   getOptionUsageCountMap,
   retrieveProductAttributeOptionOrThrow,
@@ -14,10 +14,10 @@ import {
 } from "../../utils"
 import type { AdminUpdateProductAttributeOptionSchemaType } from "../../validators"
 
-export async function GET(
+const getProductAttributeOption = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const optionId = req.params["id"] ?? ""
   const option = await retrieveProductAttributeOptionOrThrow(
     req.scope,
@@ -33,10 +33,10 @@ export async function GET(
   })
 }
 
-export async function POST(
+const updateProductAttributeOption = async (
   req: AuthenticatedMedusaRequest<AdminUpdateProductAttributeOptionSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const optionId = req.params["id"] ?? ""
   const { result } = await updateProductAttributeOptionWorkflow(req.scope).run({
     input: {
@@ -53,14 +53,20 @@ export async function POST(
   })
 }
 
-export async function DELETE(
+const deleteProductAttributeOption = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const { result } = await deleteProductAttributeOptionsWorkflow(req.scope).run(
     {
       input: { ids: [req.params["id"] ?? ""] },
     },
   )
   res.json({ option: result[0] ?? null })
+}
+
+export {
+  deleteProductAttributeOption as DELETE,
+  getProductAttributeOption as GET,
+  updateProductAttributeOption as POST,
 }

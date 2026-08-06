@@ -2,7 +2,7 @@ import type { OnChangeFn, RowSelectionState } from "@tanstack/react-table"
 import { useState } from "react"
 
 import { DataTable } from "../../../../components"
-import { useVariants } from "../../../../hooks/api"
+import { useVariants } from "../../../../hooks/api/variants"
 import { useDataTable } from "../../../../hooks/use-data-table"
 import { useManageItemsTableColumns } from "./table/columns"
 import { useManageItemsTableFilters } from "./table/filters"

@@ -9,8 +9,8 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { FormEvent } from "react"
-import { useEffect, useState } from "react"
+import type { SubmitEvent } from "react"
+import { useState } from "react"
 
 import { sdk } from "../../../lib/sdk"
 
@@ -29,7 +29,7 @@ interface QrPaymentConfigInput {
 
 const QrPaymentsSettingsPage = () => {
   const queryClient = useQueryClient()
-  const [iban, setIban] = useState("")
+  const [ibanDraft, setIbanDraft] = useState<string | null>(null)
 
   const { data, error, isLoading } = useQuery({
     queryFn: async () =>
@@ -49,20 +49,16 @@ const QrPaymentsSettingsPage = () => {
       toast.error(`Failed to save configuration: ${err.message}`)
     },
     onSuccess: async () => {
+      setIbanDraft(null)
       await queryClient.invalidateQueries({ queryKey: ["qr-payment-config"] })
       toast.success("QR payment configuration saved")
     },
   })
 
   const qrConfig = data?.config
+  const iban = ibanDraft ?? qrConfig?.iban ?? ""
 
-  useEffect(() => {
-    if (qrConfig) {
-      setIban(qrConfig.iban ?? "")
-    }
-  }, [qrConfig])
-
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     const normalizedIban = iban.trim()
     mutate({ iban: normalizedIban === "" ? null : normalizedIban })
@@ -109,7 +105,7 @@ const QrPaymentsSettingsPage = () => {
             <Input
               id="qr-payment-iban"
               onChange={(event) => {
-                setIban(event.target.value)
+                setIbanDraft(event.target.value)
               }}
               placeholder="CZ3301000000000002970297"
               value={iban}

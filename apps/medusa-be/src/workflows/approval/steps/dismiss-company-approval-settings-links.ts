@@ -28,7 +28,7 @@ const getCompanyApprovalSettingsLink = (
 export const dismissCompanyApprovalSettingsLinksStep = createStep(
   "dismiss-company-approval-settings-links",
   async (companyIds: string[], { container }) => {
-    if (!companyIds.length) {
+    if (companyIds.length === 0) {
       return new StepResponse([], [])
     }
 
@@ -42,25 +42,29 @@ export const dismissCompanyApprovalSettingsLinksStep = createStep(
           company_id: companyIds,
         },
       })
-    const existingLinks = linkRows
-      .filter((linkRow): linkRow is Required<CompanyApprovalSettingsLinkRow> =>
-        Boolean(linkRow.company_id && linkRow.approval_settings_id),
+    const existingLinks: LinkDefinition[] = linkRows
+      .filter(
+        (linkRow): linkRow is Required<CompanyApprovalSettingsLinkRow> =>
+          linkRow.company_id !== undefined &&
+          linkRow.company_id.length > 0 &&
+          linkRow.approval_settings_id !== undefined &&
+          linkRow.approval_settings_id.length > 0,
       )
       .map((linkRow) =>
         getCompanyApprovalSettingsLink(
           linkRow.company_id,
           linkRow.approval_settings_id,
         ),
-      ) as LinkDefinition[]
+      )
 
-    if (existingLinks.length) {
+    if (existingLinks.length > 0) {
       await link.dismiss(existingLinks)
     }
 
     return new StepResponse(existingLinks, existingLinks)
   },
   async (existingLinks: LinkDefinition[] | undefined, { container }) => {
-    if (!existingLinks?.length) {
+    if (existingLinks === undefined || existingLinks.length === 0) {
       return
     }
 

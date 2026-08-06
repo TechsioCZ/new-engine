@@ -5,10 +5,8 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
 
-import {
-  deleteBrandAttributeTypesStep,
-  getBrandAttributeTypeLockKeys,
-} from "../steps"
+import { deleteBrandAttributeTypesStep } from "../steps/delete-brand-attribute-types"
+import { getBrandAttributeTypeLockKeys } from "../steps/helpers"
 import type { DeleteBrandAttributeTypesWorkflowInput } from "../types"
 
 export const deleteBrandAttributeTypesWorkflow = createWorkflow(

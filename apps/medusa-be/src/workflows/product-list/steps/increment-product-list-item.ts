@@ -29,7 +29,7 @@ export const incrementProductListItemStep = createStep(
     })
   },
   async (input, { container }) => {
-    if (!input?.item_id) {
+    if (input?.item_id === undefined || input.item_id.length === 0) {
       return
     }
 

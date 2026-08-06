@@ -1,7 +1,9 @@
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { isRecord } from "@techsio/std/object"
 
+import { definedProperties } from "../../utils/defined-properties"
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import {
@@ -51,81 +53,97 @@ interface DisabledConfigCacheEntry {
   disabled: true
 }
 
-type CachedConfigEntry = PacketaOptions | DisabledConfigCacheEntry
-
 const isDisabledConfigCacheEntry = (
   value: unknown,
 ): value is DisabledConfigCacheEntry =>
   isRecord(value) && value["disabled"] === true
 
-const isPacketaEnvironment = (value: unknown): value is PacketaEnvironment =>
-  value === "testing" || value === "production"
+const packetaConfigSchema = z
+  .object({
+    api_password: z.string().nullable(),
+    cod_bank_account: z.string().nullable(),
+    cod_bank_code: z.string().nullable(),
+    cod_iban: z.string().nullable(),
+    cod_swift: z.string().nullable(),
+    created_at: z.date(),
+    default_label_format: z.string(),
+    default_label_offset: z.number(),
+    environment: z.enum(["testing", "production"]),
+    eshop_id: z.string().nullable(),
+    id: z.string(),
+    is_enabled: z.boolean(),
+    sender_city: z.string().nullable(),
+    sender_country: z.string().nullable(),
+    sender_email: z.string().nullable(),
+    sender_label: z.string().nullable(),
+    sender_name: z.string().nullable(),
+    sender_phone: z.string().nullable(),
+    sender_street: z.string().nullable(),
+    sender_zip_code: z.string().nullable(),
+    updated_at: z.date(),
+  })
+  .catchall(z.unknown())
 
-const toPacketaConfigDTO = (value: unknown): PacketaConfigDTO => {
-  if (
-    !isRecord(value) ||
-    typeof value["id"] !== "string" ||
-    !isPacketaEnvironment(value["environment"]) ||
-    typeof value["is_enabled"] !== "boolean" ||
-    (value["api_password"] !== null &&
-      typeof value["api_password"] !== "string") ||
-    (value["sender_label"] !== null &&
-      typeof value["sender_label"] !== "string") ||
-    (value["eshop_id"] !== null && typeof value["eshop_id"] !== "string") ||
-    typeof value["default_label_format"] !== "string" ||
-    typeof value["default_label_offset"] !== "number" ||
-    (value["cod_bank_account"] !== null &&
-      typeof value["cod_bank_account"] !== "string") ||
-    (value["cod_bank_code"] !== null &&
-      typeof value["cod_bank_code"] !== "string") ||
-    (value["cod_iban"] !== null && typeof value["cod_iban"] !== "string") ||
-    (value["cod_swift"] !== null && typeof value["cod_swift"] !== "string") ||
-    (value["sender_name"] !== null &&
-      typeof value["sender_name"] !== "string") ||
-    (value["sender_street"] !== null &&
-      typeof value["sender_street"] !== "string") ||
-    (value["sender_city"] !== null &&
-      typeof value["sender_city"] !== "string") ||
-    (value["sender_zip_code"] !== null &&
-      typeof value["sender_zip_code"] !== "string") ||
-    (value["sender_country"] !== null &&
-      typeof value["sender_country"] !== "string") ||
-    (value["sender_phone"] !== null &&
-      typeof value["sender_phone"] !== "string") ||
-    (value["sender_email"] !== null &&
-      typeof value["sender_email"] !== "string") ||
-    !(value["created_at"] instanceof Date) ||
-    !(value["updated_at"] instanceof Date)
-  ) {
+const packetaOptionsSchema = z.object({
+  api_password: z.string(),
+  cod_bank_account: z.string().optional(),
+  cod_bank_code: z.string().optional(),
+  cod_iban: z.string().optional(),
+  cod_swift: z.string().optional(),
+  default_label_format: z.enum(["A6", "A7"]),
+  default_label_offset: z.number(),
+  environment: z.enum(["testing", "production"]),
+  eshop_id: z.string().optional(),
+  pickup_points_api_key: z.string().optional(),
+  sender_city: z.string().optional(),
+  sender_country: z.string().optional(),
+  sender_email: z.string().optional(),
+  sender_label: z.string().optional(),
+  sender_name: z.string().optional(),
+  sender_phone: z.string().optional(),
+  sender_street: z.string().optional(),
+  sender_zip_code: z.string().optional(),
+})
+
+const packetaBranchSchema = z.object({
+  branchType: z.string().optional(),
+  city: z.string(),
+  country: z.string(),
+  currency: z.string().optional(),
+  id: z.number(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  name: z.string(),
+  nameStreet: z.string(),
+  openingHours: z.string().optional(),
+  street: z.string(),
+  zip: z.string(),
+})
+
+const toPacketaConfigDTO = (
+  value: unknown,
+): PacketaConfigDTO & Record<string, unknown> => {
+  const parsed = packetaConfigSchema.safeParse(value)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Packeta: Stored configuration has an invalid shape",
     )
   }
 
-  return {
-    api_password: value["api_password"],
-    cod_bank_account: value["cod_bank_account"],
-    cod_bank_code: value["cod_bank_code"],
-    cod_iban: value["cod_iban"],
-    cod_swift: value["cod_swift"],
-    created_at: value["created_at"],
-    default_label_format: value["default_label_format"],
-    default_label_offset: value["default_label_offset"],
-    environment: value["environment"],
-    eshop_id: value["eshop_id"],
-    id: value["id"],
-    is_enabled: value["is_enabled"],
-    sender_city: value["sender_city"],
-    sender_country: value["sender_country"],
-    sender_email: value["sender_email"],
-    sender_label: value["sender_label"],
-    sender_name: value["sender_name"],
-    sender_phone: value["sender_phone"],
-    sender_street: value["sender_street"],
-    sender_zip_code: value["sender_zip_code"],
-    updated_at: value["updated_at"],
+  return parsed.data
+}
+
+const toPacketaLabelFormat = (value: string): PacketaLabelFormat => {
+  const parsed = z.enum(["A6", "A7"]).safeParse(value)
+  if (!parsed.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Packeta: Unsupported label format "${value}"`,
+    )
   }
+
+  return parsed.data
 }
 
 /**
@@ -142,36 +160,36 @@ const toPacketaConfigDTO = (value: unknown): PacketaConfigDTO => {
 export class PacketaClientModuleService extends MedusaService({
   PacketaConfig,
 }) {
-  private client_: PacketaClient | null = null
-  protected readonly container_: InjectedDependencies
-  protected readonly logger_: Logger
-  protected readonly environment_: PacketaEnvironment
-  protected readonly cacheService_: ICachingModuleService | null
+  private client: PacketaClient | null = null
+  protected readonly container: InjectedDependencies
+  protected readonly logger: Logger
+  protected readonly environment: PacketaEnvironment
+  protected readonly cacheService: ICachingModuleService | null
 
   constructor(container: InjectedDependencies, options: PacketaModuleOptions) {
     super(container, options)
-    this.container_ = container
-    this.logger_ = container.logger
-    this.environment_ = options.environment
+    this.container = container
+    this.logger = container.logger
+    this.environment = options.environment
 
-    this.cacheService_ = safeResolve<ICachingModuleService>(
+    this.cacheService = safeResolve<ICachingModuleService>(
       container,
       Modules.CACHING,
     )
 
-    if (!this.cacheService_) {
-      this.logger_.warn(
+    if (this.cacheService === null) {
+      this.logger.warn(
         "Packeta: Cache service not available. Using local-only mode (not suitable for multi-container).",
       )
     }
 
-    this.logger_.info(
-      `Packeta: Module service initialized (${this.environment_} environment)`,
+    this.logger.info(
+      `Packeta: Module service initialized (${this.environment} environment)`,
     )
   }
 
   async getEnvironment(): Promise<PacketaEnvironment> {
-    return this.environment_
+    return await Promise.resolve(this.environment)
   }
 
   // ============================================
@@ -180,11 +198,11 @@ export class PacketaClientModuleService extends MedusaService({
 
   async getConfig(): Promise<PacketaConfigDTO | null> {
     const configs = await this.listPacketaConfigs(
-      { environment: this.environment_ },
+      { environment: this.environment },
       { take: 1 },
     )
-    const config = configs[0]
-    if (!config) {
+    const [config] = configs
+    if (config === undefined) {
       return null
     }
     return decryptFields(toPacketaConfigDTO(config), [
@@ -203,16 +221,25 @@ export class PacketaClientModuleService extends MedusaService({
     const existing = await this.getConfig()
 
     const filteredData = { ...data }
-    for (const field of PACKETA_SENSITIVE_FIELDS) {
-      const key = field as keyof UpdatePacketaConfigInput
-      if (filteredData[key] === "") {
-        delete filteredData[key]
-      }
+    if (filteredData.api_password === "") {
+      delete filteredData.api_password
+    }
+    if (filteredData.cod_bank_account === "") {
+      delete filteredData.cod_bank_account
+    }
+    if (filteredData.cod_bank_code === "") {
+      delete filteredData.cod_bank_code
+    }
+    if (filteredData.cod_iban === "") {
+      delete filteredData.cod_iban
+    }
+    if (filteredData.cod_swift === "") {
+      delete filteredData.cod_swift
     }
 
     const encrypted = encryptFields(filteredData, [...PACKETA_SENSITIVE_FIELDS])
 
-    if (existing) {
+    if (existing !== null) {
       const updated = await this.updatePacketaConfigs({
         id: existing.id,
         ...encrypted,
@@ -225,7 +252,7 @@ export class PacketaClientModuleService extends MedusaService({
 
     const created = await this.createPacketaConfigs({
       ...encrypted,
-      environment: this.environment_,
+      environment: this.environment,
     })
     await this.invalidateConfigCache()
     return decryptFields(toPacketaConfigDTO(created), [
@@ -245,7 +272,12 @@ export class PacketaClientModuleService extends MedusaService({
 
     const config = await this.getConfig()
     const apiPassword = config?.api_password
-    if (!(config?.is_enabled && apiPassword)) {
+    if (
+      config?.is_enabled !== true ||
+      apiPassword === null ||
+      apiPassword === undefined ||
+      apiPassword.length === 0
+    ) {
       await this.cacheDisabledConfig()
       return null
     }
@@ -257,16 +289,28 @@ export class PacketaClientModuleService extends MedusaService({
   }
 
   private async getCachedConfig(): Promise<PacketaOptions | null | undefined> {
-    if (!this.cacheService_) {
-      return
+    if (this.cacheService === null) {
+      return undefined
     }
-    const cached = (await this.cacheService_.get({
+    const cached: unknown = await this.cacheService.get({
       key: CACHE_KEYS.CONFIG,
-    })) as CachedConfigEntry | null
+    })
     if (isDisabledConfigCacheEntry(cached)) {
       return null
     }
-    return cached ?? undefined
+    if (cached === null || cached === undefined) {
+      return undefined
+    }
+
+    const parsed = packetaOptionsSchema.safeParse(cached)
+    if (!parsed.success) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Packeta: Cached configuration has an invalid shape",
+      )
+    }
+
+    return definedProperties(parsed.data)
   }
 
   private async toEffectiveOptions(
@@ -274,7 +318,7 @@ export class PacketaClientModuleService extends MedusaService({
     apiPassword: string,
   ): Promise<PacketaOptions> {
     const pickupPointsConfig = await retrieveIntegrationConfig(
-      this.container_,
+      this.container,
       INTEGRATION_CONFIG_NAMES.PACKETA_PICKUP_POINTS,
     )
     const pickupPointsApiKey =
@@ -285,9 +329,9 @@ export class PacketaClientModuleService extends MedusaService({
         : undefined
     const options: PacketaOptions = {
       api_password: apiPassword,
-      default_label_format: config.default_label_format as PacketaLabelFormat,
+      default_label_format: toPacketaLabelFormat(config.default_label_format),
       default_label_offset: config.default_label_offset,
-      environment: this.environment_,
+      environment: this.environment,
       ...(pickupPointsApiKey === undefined
         ? {}
         : { pickup_points_api_key: pickupPointsApiKey }),
@@ -319,10 +363,10 @@ export class PacketaClientModuleService extends MedusaService({
   }
 
   private async cacheEffectiveConfig(options: PacketaOptions): Promise<void> {
-    if (!this.cacheService_) {
+    if (this.cacheService === null) {
       return
     }
-    await this.cacheService_.set({
+    await this.cacheService.set({
       data: options,
       key: CACHE_KEYS.CONFIG,
       tags: [CACHE_TAGS.ALL],
@@ -331,10 +375,10 @@ export class PacketaClientModuleService extends MedusaService({
   }
 
   private async cacheDisabledConfig(): Promise<void> {
-    if (!this.cacheService_) {
+    if (this.cacheService === null) {
       return
     }
-    await this.cacheService_.set({
+    await this.cacheService.set({
       data: { disabled: true } satisfies DisabledConfigCacheEntry,
       key: CACHE_KEYS.CONFIG,
       tags: [CACHE_TAGS.ALL],
@@ -343,23 +387,23 @@ export class PacketaClientModuleService extends MedusaService({
   }
 
   async invalidateConfigCache(): Promise<void> {
-    this.client_ = null
-    if (this.cacheService_) {
-      await this.cacheService_.clear({ key: CACHE_KEYS.CONFIG })
+    this.client = null
+    if (this.cacheService !== null) {
+      await this.cacheService.clear({ key: CACHE_KEYS.CONFIG })
     }
   }
 
   async invalidateAllCaches(): Promise<void> {
-    this.client_ = null
-    if (this.cacheService_) {
-      await this.cacheService_.clear({ tags: [CACHE_TAGS.ALL] })
-      this.logger_.info("Packeta: Invalidated all caches")
+    this.client = null
+    if (this.cacheService !== null) {
+      await this.cacheService.clear({ tags: [CACHE_TAGS.ALL] })
+      this.logger.info("Packeta: Invalidated all caches")
     }
   }
 
   async invalidateBranchCache(): Promise<void> {
-    if (this.cacheService_) {
-      await this.cacheService_.clear({ tags: [CACHE_TAGS.BRANCHES] })
+    if (this.cacheService !== null) {
+      await this.cacheService.clear({ tags: [CACHE_TAGS.BRANCHES] })
     }
   }
 
@@ -368,20 +412,20 @@ export class PacketaClientModuleService extends MedusaService({
   // ============================================
 
   private async getClient(): Promise<PacketaClient> {
-    if (this.client_) {
-      return this.client_
+    if (this.client !== null) {
+      return this.client
     }
 
     const config = await this.getEffectiveConfig()
-    if (!config) {
+    if (config === null) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         "Packeta is disabled or not configured. Enable it in Settings → Packeta.",
       )
     }
 
-    this.client_ = new PacketaClient(config)
-    return this.client_
+    this.client = new PacketaClient(config)
+    return this.client
   }
 
   // ============================================
@@ -399,9 +443,9 @@ export class PacketaClientModuleService extends MedusaService({
     const client = await this.getClient()
     const result = await client.cancelPacket(packetId)
     if (result) {
-      this.logger_.info(`Packeta: Packet ${packetId} cancelled`)
+      this.logger.info(`Packeta: Packet ${packetId} cancelled`)
     } else {
-      this.logger_.warn(`Packeta: Cancellation failed for packet ${packetId}`)
+      this.logger.warn(`Packeta: Cancellation failed for packet ${packetId}`)
     }
     return result
   }
@@ -426,20 +470,27 @@ export class PacketaClientModuleService extends MedusaService({
    * Pickup-point (branch) list. Cached for 24h — safe to call on hot paths.
    */
   async getBranches(): Promise<PacketaBranch[]> {
-    if (this.cacheService_) {
-      const cached = (await this.cacheService_.get({
+    if (this.cacheService !== null) {
+      const cached: unknown = await this.cacheService.get({
         key: CACHE_KEYS.BRANCHES,
-      })) as PacketaBranch[] | null
-      if (cached) {
-        return cached
+      })
+      if (cached !== null && cached !== undefined) {
+        const parsed = z.array(packetaBranchSchema).safeParse(cached)
+        if (!parsed.success) {
+          throw new MedusaError(
+            MedusaError.Types.UNEXPECTED_STATE,
+            "Packeta: Cached branch list has an invalid shape",
+          )
+        }
+        return parsed.data.map(definedProperties)
       }
     }
 
     const client = await this.getClient()
     const branches = await client.getBranchList()
 
-    if (this.cacheService_ && branches.length > 0) {
-      await this.cacheService_.set({
+    if (this.cacheService !== null && branches.length > 0) {
+      await this.cacheService.set({
         data: branches,
         key: CACHE_KEYS.BRANCHES,
         tags: [CACHE_TAGS.ALL, CACHE_TAGS.BRANCHES],

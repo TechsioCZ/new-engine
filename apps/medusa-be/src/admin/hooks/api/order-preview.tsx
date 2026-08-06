@@ -8,6 +8,11 @@ import { sdk } from "../../lib/sdk"
 
 export const orderPreviewQueryKey = queryKeysFactory("custom_orders")
 
+export interface OrderPreviewResult {
+  isLoading: boolean
+  order: HttpTypes.AdminOrderPreviewResponse["order"] | undefined
+}
+
 export const useOrderPreview = (
   id: string,
   query?: HttpTypes.AdminOrderFilters,
@@ -20,11 +25,14 @@ export const useOrderPreview = (
     "queryFn" | "queryKey"
   >,
 ) => {
-  const { data, ...rest } = useQuery({
+  const { data, isLoading } = useQuery({
     queryFn: async () => await sdk.admin.order.retrievePreview(id, query),
     queryKey: orderPreviewQueryKey.detail(id),
     ...options,
   })
 
-  return { ...data, ...rest }
+  return {
+    isLoading,
+    order: data?.order,
+  } satisfies OrderPreviewResult
 }

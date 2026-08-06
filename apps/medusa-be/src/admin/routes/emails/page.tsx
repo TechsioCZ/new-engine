@@ -45,24 +45,28 @@ interface EmailLogDetailResponse {
 }
 
 const PAGE_SIZE = 20
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+})
 
 export const handle = {
   breadcrumb: () => "Emails",
 }
 
 const formatDate = (date: string | null) => {
-  if (!date) {
+  if (date === null || date.length === 0) {
     return "-"
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(date))
+  return dateTimeFormatter.format(new Date(date))
 }
 
 const formatRecipient = (recipient: string | string[] | undefined) => {
-  if (!recipient) {
+  if (
+    recipient === undefined ||
+    (typeof recipient === "string" && recipient.length === 0)
+  ) {
     return "-"
   }
 
@@ -70,11 +74,14 @@ const formatRecipient = (recipient: string | string[] | undefined) => {
 }
 
 const getTextContent = (resendEmail: ResendEmail | null | undefined) => {
-  if (!resendEmail) {
+  if (resendEmail === null || resendEmail === undefined) {
     return null
   }
 
-  if (typeof resendEmail.text === "string" && resendEmail.text.trim()) {
+  if (
+    typeof resendEmail.text === "string" &&
+    resendEmail.text.trim().length > 0
+  ) {
     return resendEmail.text
   }
 
@@ -82,11 +89,14 @@ const getTextContent = (resendEmail: ResendEmail | null | undefined) => {
 }
 
 const getHtmlContent = (resendEmail: ResendEmail | null | undefined) => {
-  if (!resendEmail) {
+  if (resendEmail === null || resendEmail === undefined) {
     return null
   }
 
-  if (typeof resendEmail.html === "string" && resendEmail.html.trim()) {
+  if (
+    typeof resendEmail.html === "string" &&
+    resendEmail.html.trim().length > 0
+  ) {
     return resendEmail.html
   }
 
@@ -133,7 +143,7 @@ const EmailRows = ({
     )
   }
 
-  if (!emailLogs.length) {
+  if (emailLogs.length === 0) {
     return (
       <Table.Row>
         <Table.Cell>No emails logged yet.</Table.Cell>
@@ -194,13 +204,14 @@ const EmailDetailContent = ({
     return <Text>Loading...</Text>
   }
 
-  if (error) {
+  const hasError = error !== null && error !== undefined
+  if (hasError) {
     return (
       <Text className="text-ui-fg-error">Failed to load email detail.</Text>
     )
   }
 
-  if (!detail) {
+  if (detail === undefined) {
     return null
   }
 
@@ -231,7 +242,7 @@ const EmailDetailContent = ({
         <DetailField label="Last event" value={resendEmail?.last_event} />
       </div>
 
-      {htmlContent ? (
+      {htmlContent === null ? null : (
         <div className="flex flex-col gap-2">
           <Heading level="h2">HTML</Heading>
           <iframe
@@ -241,16 +252,16 @@ const EmailDetailContent = ({
             title="Email HTML content"
           />
         </div>
-      ) : null}
+      )}
 
-      {textContent ? (
+      {textContent === null ? null : (
         <div className="flex flex-col gap-2">
           <Heading level="h2">Text</Heading>
           <pre className="txt-small whitespace-pre-wrap rounded border bg-ui-bg-subtle p-4 text-ui-fg-base">
             {textContent}
           </pre>
         </div>
-      ) : null}
+      )}
 
       <div className="flex flex-col gap-2">
         <Heading level="h2">Resend Payload</Heading>
@@ -272,16 +283,16 @@ const EmailsPage = () => {
 
   const { data, isLoading, error } = useQuery({
     queryFn: async () =>
-      sdk.client.fetch<EmailLogsResponse>(
+      await sdk.client.fetch<EmailLogsResponse>(
         `/admin/email-logs?limit=${PAGE_SIZE}&offset=${offset}`,
       ),
     queryKey: ["email-logs", PAGE_SIZE, offset],
   })
 
   const detailQuery = useQuery({
-    enabled: !!selectedEmailLogId,
+    enabled: selectedEmailLogId !== null,
     queryFn: async () =>
-      sdk.client.fetch<EmailLogDetailResponse>(
+      await sdk.client.fetch<EmailLogDetailResponse>(
         `/admin/email-logs/${selectedEmailLogId}`,
       ),
     queryKey: ["email-log", selectedEmailLogId],
@@ -290,6 +301,7 @@ const EmailsPage = () => {
   const emailLogs = data?.email_logs ?? []
   const count = data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
+  const hasError = error !== null
 
   return (
     <>
@@ -303,7 +315,7 @@ const EmailsPage = () => {
           </div>
         </div>
 
-        {error ? (
+        {hasError ? (
           <div className="px-6 py-4">
             <Text className="text-ui-fg-error">Failed to load email logs.</Text>
           </div>
@@ -356,7 +368,7 @@ const EmailsPage = () => {
             setSelectedEmailLogId(null)
           }
         }}
-        open={!!selectedEmailLogId}
+        open={selectedEmailLogId !== null}
       >
         <Drawer.Content>
           <Drawer.Header>

@@ -9,10 +9,6 @@ import {
   toUsageCountMap,
 } from "../../../utils/product-attributes"
 import type {
-  ProductAttributeDefinitionRecord,
-  ProductAttributeOptionRecord,
-} from "../../../utils/product-attributes"
-import type {
   CreateProductAttributeOptionInput,
   ProductAttributeOptionIdsInput,
   UpdateProductAttributeOptionInput,
@@ -28,9 +24,9 @@ const retrieveOption = async (
     { id },
     { take: 1, withDeleted },
   )
-  const option = options[0]
+  const [option] = options
 
-  if (!option) {
+  if (option === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product Attribute option "${id}" was not found.`,
@@ -48,9 +44,9 @@ export const createProductAttributeOptionStep = createStep(
       { id: input.definition_id },
       { take: 1 },
     )
-    const definition = definitions[0]
+    const [definition] = definitions
 
-    if (!definition) {
+    if (definition === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Product Attribute definition "${input.definition_id}" was not found.`,
@@ -84,7 +80,7 @@ export const createProductAttributeOptionStep = createStep(
     return new StepResponse(created, created.id)
   },
   async (createdId, { container }) => {
-    if (createdId) {
+    if (createdId !== undefined && createdId.length > 0) {
       await getProductAttributeService(container).deleteProductAttributeOptions(
         createdId,
       )
@@ -109,7 +105,7 @@ export const updateProductAttributeOptionStep = createStep(
     return new StepResponse(updated, snapshot)
   },
   async (previous, { container }) => {
-    if (previous) {
+    if (previous !== undefined) {
       await getProductAttributeService(container).updateProductAttributeOptions(
         previous,
       )
@@ -128,7 +124,7 @@ export const deleteProductAttributeOptionsStep = createStep(
     const found = new Set(options.map((option) => option.id))
     const missing = input.ids.filter((id) => !found.has(id))
 
-    if (missing.length) {
+    if (missing.length > 0) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Product Attribute option ids were not found: ${missing.join(", ")}`,
@@ -141,7 +137,7 @@ export const deleteProductAttributeOptionsStep = createStep(
       await service.getActiveOptionUsageCounts(input.ids),
     )
 
-    if (activeIds.length) {
+    if (activeIds.length > 0) {
       await service.softDeleteProductAttributeOptions(activeIds)
     }
 
@@ -155,7 +151,7 @@ export const deleteProductAttributeOptionsStep = createStep(
     )
   },
   async (deletedIds, { container }) => {
-    if (deletedIds?.length) {
+    if (deletedIds !== undefined && deletedIds.length > 0) {
       await getProductAttributeService(
         container,
       ).restoreProductAttributeOptions(deletedIds)
@@ -174,7 +170,7 @@ export const restoreProductAttributeOptionsStep = createStep(
     const found = new Set(options.map((option) => option.id))
     const missing = input.ids.filter((id) => !found.has(id))
 
-    if (missing.length) {
+    if (missing.length > 0) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Product Attribute option ids were not found: ${missing.join(", ")}`,
@@ -184,7 +180,7 @@ export const restoreProductAttributeOptionsStep = createStep(
     const { deleted_ids: deletedIds } =
       partitionProductAttributeRecordIds(options)
 
-    if (deletedIds.length) {
+    if (deletedIds.length > 0) {
       await service.restoreProductAttributeOptions(deletedIds)
     }
 
@@ -194,7 +190,7 @@ export const restoreProductAttributeOptionsStep = createStep(
     )
   },
   async (restoredIds, { container }) => {
-    if (restoredIds?.length) {
+    if (restoredIds !== undefined && restoredIds.length > 0) {
       await getProductAttributeService(
         container,
       ).softDeleteProductAttributeOptions(restoredIds)

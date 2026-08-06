@@ -15,7 +15,7 @@ export default async function myScript({ container, args }: ExecArgs) {
   const { apiKey } = await provisionPublishableKey({
     apiKeyService,
     lockingModule,
-    ...(title ? { title } : {}),
+    ...(title === undefined || title.length === 0 ? {} : { title }),
   })
 
   process.stdout.write(`<PK_TOKEN>${apiKey.token}</PK_TOKEN>`)

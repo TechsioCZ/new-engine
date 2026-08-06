@@ -7,12 +7,16 @@ import type { QueryCompany } from "../../../../../types"
 import {
   useAdminCreateCustomer,
   useAdminFindCustomerByEmail,
-  useCreateEmployee,
-} from "../../../../hooks/api"
+} from "../../../../hooks/api/customers"
+import { useCreateEmployee } from "../../../../hooks/api/employees"
 import { EmployeesCreateForm } from "./employees-create-form"
 import type { EmployeeCreateSubmitData } from "./employees-create-form"
 
-export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
+export const EmployeeCreateDrawer = ({
+  company,
+}: {
+  company: QueryCompany
+}) => {
   const { t } = useTranslation("companies")
   const [open, setOpen] = useState(false)
 
@@ -34,7 +38,7 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
   ) => {
     const existingCustomer = await findCustomerByEmail(email)
 
-    if (existingCustomer?.id) {
+    if (existingCustomer?.id !== undefined && existingCustomer.id.length > 0) {
       return { customerId: existingCustomer.id, reusedExistingCustomer: true }
     }
 
@@ -45,13 +49,16 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
         company_name: company.name,
       })
 
-      if (customer?.id) {
+      if (customer?.id !== undefined && customer.id.length > 0) {
         return { customerId: customer.id, reusedExistingCustomer: false }
       }
     } catch (error) {
       const existingCustomerAfterConflict = await findCustomerByEmail(email)
 
-      if (existingCustomerAfterConflict?.id) {
+      if (
+        existingCustomerAfterConflict?.id !== undefined &&
+        existingCustomerAfterConflict.id.length > 0
+      ) {
         return {
           customerId: existingCustomerAfterConflict.id,
           reusedExistingCustomer: true,
@@ -61,7 +68,7 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
       throw error
     }
 
-    return
+    return null
   }
 
   const handleSubmit = async (formData: EmployeeCreateSubmitData) => {
@@ -76,9 +83,10 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
     } = formData
 
     let customerId: string
-    let reusedExistingCustomer = Boolean(customer_id)
+    let reusedExistingCustomer =
+      customer_id !== undefined && customer_id.length > 0
 
-    if (customer_id) {
+    if (customer_id !== undefined && customer_id.length > 0) {
       customerId = customer_id
     } else {
       try {
@@ -93,8 +101,12 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
           return
         }
 
-        customerId = resolvedCustomer.customerId
-        reusedExistingCustomer = resolvedCustomer.reusedExistingCustomer
+        const {
+          customerId: resolvedCustomerId,
+          reusedExistingCustomer: reused,
+        } = resolvedCustomer
+        customerId = resolvedCustomerId
+        reusedExistingCustomer = reused
       } catch (error) {
         toast.error(
           `${t("errors.createCustomerFailed")}: ${getErrorMessage(error)}`,
@@ -104,16 +116,11 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
     }
 
     try {
-      const employee = await createEmployee({
+      await createEmployee({
         customer_id: customerId,
         is_admin,
         spending_limit,
       })
-
-      if (!employee) {
-        toast.error(t("errors.createEmployeeFailed"))
-        return
-      }
     } catch (error) {
       toast.error(
         `${t("errors.createEmployeeFailed")}: ${getErrorMessage(error)}`,

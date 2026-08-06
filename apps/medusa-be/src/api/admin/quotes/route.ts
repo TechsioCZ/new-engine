@@ -3,7 +3,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import type { AdminGetQuoteParamsType } from "./validators"
 
-export const GET = async (
+const getQuotes = async (
   req: MedusaRequest<AdminGetQuoteParamsType>,
   res: MedusaResponse,
 ) => {
@@ -27,3 +27,5 @@ export const GET = async (
     quotes,
   })
 }
+
+export { getQuotes as GET }
