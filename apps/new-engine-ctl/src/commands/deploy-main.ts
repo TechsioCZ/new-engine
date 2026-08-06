@@ -1,11 +1,28 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { deployMainCommandInputSchema } from "../contracts/deploy-main.js"
 import { appendGitHubOutput, maskGitHubValue } from "../github-actions.js"
 import { executeDeployMain } from "../orchestration/deploy-main.js"
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
-export function createDeployMainCommand(): Command {
+const deployMainOptionsSchema = z.object({
+  apiToken: z.unknown().optional(),
+  approveDowntimeRisk: z.unknown().optional(),
+  baseUrl: z.unknown().optional(),
+  dryRun: z.unknown().optional(),
+  environmentName: z.unknown().optional(),
+  gitCommitSha: z.unknown().optional(),
+  outputJson: z.unknown().optional(),
+  pollIntervalSeconds: z.unknown().optional(),
+  projectSlug: z.unknown().optional(),
+  servicesCsv: z.unknown().optional(),
+  stackInputsPath: z.unknown().optional(),
+  stackManifestPath: z.unknown().optional(),
+  waitTimeoutSeconds: z.unknown().optional(),
+})
+
+export const createDeployMainCommand = (): Command => {
   const command = new Command("deploy-main")
 
   command
@@ -31,7 +48,8 @@ export function createDeployMainCommand(): Command {
       "",
       process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
-    .action(async (options) => {
+    .action(async (rawOptions: unknown) => {
+      const options = deployMainOptionsSchema.parse(rawOptions)
       const input = deployMainCommandInputSchema.parse({
         apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
         approveDowntimeRisk: Boolean(options.approveDowntimeRisk),
@@ -45,7 +63,7 @@ export function createDeployMainCommand(): Command {
         outputJson: options.outputJson,
         pollIntervalSeconds:
           typeof options.pollIntervalSeconds === "string" &&
-          options.pollIntervalSeconds.trim()
+          options.pollIntervalSeconds.trim() !== ""
             ? Number(options.pollIntervalSeconds)
             : undefined,
         projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
@@ -54,7 +72,7 @@ export function createDeployMainCommand(): Command {
         stackManifestPath: options.stackManifestPath,
         waitTimeoutSeconds:
           typeof options.waitTimeoutSeconds === "string" &&
-          options.waitTimeoutSeconds.trim()
+          options.waitTimeoutSeconds.trim() !== ""
             ? Number(options.waitTimeoutSeconds)
             : undefined,
       })
