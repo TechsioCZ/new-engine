@@ -294,7 +294,10 @@ const sharedEnvCleanupKeys = [
   "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
   "DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY",
   "DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
+  "DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL",
   "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+  "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
+  "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
   "DC_N1_NEXT_PUBLIC_META_PIXEL_ID",
   "DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID",
   "DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY",
@@ -1371,7 +1374,10 @@ function buildZaneProjectServices(
         "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
         "DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY",
         "DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
+        "DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL",
         "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+        "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
+        "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
       ],
       env: [
         {
@@ -1417,18 +1423,30 @@ function buildZaneProjectServices(
         },
         {
           envVar: "PAYLOAD_BASE_URL_INTERNAL",
-          source: serviceInternalOriginSource({
-            serviceSlug: payloadSlug,
-            port: 3000,
-          }),
+          source: process.env.DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL?.trim()
+            ? literalSource(
+                process.env.DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL.trim()
+              )
+            : serviceInternalOriginSource({
+                serviceSlug: payloadSlug,
+                port: 8083,
+              }),
         },
         {
           envVar: "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
           source: literalSource(
             process.env.DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED ??
+              process.env.DC_CLOUDFLARE_TURNSTILE_ENABLED ??
               "0"
           ),
         },
+        {
+          envVar: "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
+          source: literalSource(
+            process.env
+              .DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY ?? ""
+          ),
+        }
       ],
     },
     ...(n1Slug
