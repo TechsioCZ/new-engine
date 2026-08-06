@@ -44,55 +44,60 @@ const { mockPplClient } = vi.hoisted(() => ({
   },
 }))
 
-// Mock the client before importing service
-vi.mock(import("../../../../../src/modules/ppl-client/client"), () => ({
-  PplClient: vi.fn<() => typeof mockPplClient>(() => mockPplClient),
-}))
+// Mock the client before importing service. Extending the real class keeps
+// its private static side intact while the public seams delegate to spies.
+vi.mock(
+  import("../../../../../src/modules/ppl-client/client"),
+  async (importOriginal) => {
+    const { PplClient: ActualPplClient } = await importOriginal()
 
-type FieldsCodecImpl = (
-  data: Record<string, unknown>,
+    return {
+      PplClient: class MockPplClient extends ActualPplClient {
+        override cancelShipment = mockPplClient.cancelShipment
+        override createShipmentBatch = mockPplClient.createShipmentBatch
+        override downloadLabel = mockPplClient.downloadLabel
+        override fetchNewToken = mockPplClient.fetchNewToken
+        override getAccessPoints = mockPplClient.getAccessPoints
+        override getBatchStatus = mockPplClient.getBatchStatus
+        override getCodelistCountries = mockPplClient.getCodelistCountries
+        override getCodelistCurrencies = mockPplClient.getCodelistCurrencies
+        override getCodelistProducts = mockPplClient.getCodelistProducts
+        override getCodelistServices = mockPplClient.getCodelistServices
+        override getCodelistStatuses = mockPplClient.getCodelistStatuses
+        override getCustomerAddresses = mockPplClient.getCustomerAddresses
+        override getCustomerInfo = mockPplClient.getCustomerInfo
+        override getShipmentInfo = mockPplClient.getShipmentInfo
+      },
+    }
+  },
+)
+
+type FieldsCodecObserver = (
+  data: object,
   fields: readonly PropertyKey[],
-) => Record<string, unknown>
+) => void
 
 /**
- * `vi.fn<T>()` collapses `encryptFields`/`decryptFields`'s generic
- * `<T extends Record<string, unknown>>(data: T, fields: (keyof T)[]) => T`
- * signature to one concrete call signature, which TypeScript then rejects
- * as a module-factory replacement (the real export must return exactly the
- * caller's own `T`, not a widened `Record<string, unknown>`). These
- * adapters satisfy the real generic export by keeping `data` (already
- * statically typed `T`) as the returned value and using the tracked mock
- * only as a call-recording side effect, so no cast back to `T` is needed.
- * Test code asserts on the tracked mock (`mockEncryptFields`) directly
- * instead of on the re-exported generic function. `decryptFields` has no
- * assertions in this suite, so only its adapter (not its inner mock) is
- * exported.
+ * The exported adapters retain the source functions' generic contract while
+ * non-generic observers expose calls to Vitest assertions. The transformations
+ * stay in the adapters so their returned values retain the caller's exact `T`.
  */
 const { decryptFields, encryptFields, mockEncryptFields } = vi.hoisted(() => {
-  const hoistedMockEncryptFields = vi.fn<FieldsCodecImpl>((data) => ({
-    ...data,
-    _encrypted: true,
-  }))
-  const hoistedMockDecryptFields = vi.fn<FieldsCodecImpl>((data) => ({
-    ...data,
-    _decrypted: true,
-  }))
-  const encryptFieldsAdapter = <T extends Record<string, unknown>>(
+  const hoistedMockEncryptFields = vi.fn<FieldsCodecObserver>()
+  const hoistedMockDecryptFields = vi.fn<FieldsCodecObserver>()
+  const encryptFieldsAdapter = <T extends object>(
     data: T,
-    fields: (keyof T)[],
+    fields: readonly (keyof T)[],
   ): T => {
-    // `data` is already statically typed `T`; the mock call below is a
-    // tracked side effect only, so its widened `Record<string, unknown>`
-    // return value is discarded instead of cast back to `T`.
     hoistedMockEncryptFields(data, fields)
-    return data
+    return { ...data, _encrypted: true }
   }
-  const decryptFieldsAdapter = <T extends Record<string, unknown>>(
+  const decryptFieldsAdapter = <T extends object>(
     data: T,
-    fields: (keyof T)[],
+    fields: readonly (keyof T)[],
   ): T => {
     hoistedMockDecryptFields(data, fields)
-    return data
+    return { ...data, _decrypted: true }
   }
   return {
     decryptFields: decryptFieldsAdapter,
