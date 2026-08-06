@@ -879,7 +879,7 @@ const OrderDashboardPage = () => {
   }, [orders, selectedOrderIdSet])
 
   return (
-    <Container className="divide-y p-0">
+    <Container className="flex h-[calc(100dvh-5rem)] min-h-0 flex-col divide-y overflow-hidden p-0">
       <Prompt
         onOpenChange={setIsManualStatusPromptOpen}
         open={isManualStatusPromptOpen}
