@@ -1,14 +1,14 @@
+/// <reference types="node" />
+
 import { mkdir } from "node:fs/promises"
-import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { build } from "esbuild"
 
-const scriptDir = import.meta.dirname
-const appRoot = resolve(scriptDir, "..")
-const outfile = resolve(appRoot, "dist/cli.js")
+const appRoot = new URL("../", import.meta.url)
+const outfile = fileURLToPath(new URL("dist/cli.js", appRoot))
 
-await mkdir(dirname(outfile), { recursive: true })
+await mkdir(fileURLToPath(new URL("dist/", appRoot)), { recursive: true })
 
 await build({
   banner: {
@@ -17,7 +17,7 @@ await build({
     js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);',
   },
   bundle: true,
-  entryPoints: [resolve(appRoot, "src/cli.ts")],
+  entryPoints: [fileURLToPath(new URL("src/cli.ts", appRoot))],
   format: "esm",
   logLevel: "info",
   outfile,

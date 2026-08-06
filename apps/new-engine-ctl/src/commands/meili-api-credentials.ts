@@ -1,15 +1,28 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { meiliApiCredentialsCommandInputSchema } from "../contracts/meili-api-credentials.js"
 import { appendGitHubOutput, maskGitHubValue } from "../github-actions.js"
 import { executeMeiliApiCredentialsCommand } from "../orchestration/meili-api-credentials-command.js"
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
-function parseOptionalNumber(value: unknown): number | undefined {
-  return typeof value === "string" && value.trim() ? Number(value) : undefined
-}
+const commandOptionsSchema = z.object({
+  dryRun: z.boolean(),
+  masterKey: z.string().optional(),
+  meiliUrl: z.string().optional(),
+  outputJson: z.string().optional(),
+  retryCount: z.string().optional(),
+  retryDelaySeconds: z.string().optional(),
+  stackInputsPath: z.string(),
+  stackManifestPath: z.string(),
+  timeoutSeconds: z.string().optional(),
+  waitSeconds: z.string().optional(),
+})
 
-export function createMeiliApiCredentialsCommand(): Command {
+const parseOptionalNumber = (value: unknown): number | undefined =>
+  typeof value === "string" && value.trim() ? Number(value) : undefined
+
+export const createMeiliApiCredentialsCommand = (): Command => {
   const command = new Command("meili-api-credentials")
 
   command
@@ -34,25 +47,26 @@ export function createMeiliApiCredentialsCommand(): Command {
       "",
       process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
-    .action(async (options) => {
+    .action(async (options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
       const input = meiliApiCredentialsCommandInputSchema.parse({
-        dryRun: Boolean(options.dryRun),
+        dryRun: parsedOptions.dryRun,
         masterKey:
-          options.masterKey ??
+          parsedOptions.masterKey ??
           process.env.MEILISEARCH_MASTER_KEY ??
           process.env.DC_MEILISEARCH_MASTER_KEY ??
           "",
-        meiliUrl: options.meiliUrl ?? process.env.MEILISEARCH_URL ?? "",
-        outputJson: options.outputJson,
+        meiliUrl: parsedOptions.meiliUrl ?? process.env.MEILISEARCH_URL ?? "",
+        outputJson: parsedOptions.outputJson,
         providerId:
           process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
           "meili_api_credentials",
-        retryCount: parseOptionalNumber(options.retryCount),
-        retryDelaySeconds: parseOptionalNumber(options.retryDelaySeconds),
-        stackInputsPath: options.stackInputsPath,
-        stackManifestPath: options.stackManifestPath,
-        timeoutSeconds: parseOptionalNumber(options.timeoutSeconds),
-        waitSeconds: parseOptionalNumber(options.waitSeconds),
+        retryCount: parseOptionalNumber(parsedOptions.retryCount),
+        retryDelaySeconds: parseOptionalNumber(parsedOptions.retryDelaySeconds),
+        stackInputsPath: parsedOptions.stackInputsPath,
+        stackManifestPath: parsedOptions.stackManifestPath,
+        timeoutSeconds: parseOptionalNumber(parsedOptions.timeoutSeconds),
+        waitSeconds: parseOptionalNumber(parsedOptions.waitSeconds),
       })
 
       const result = await executeMeiliApiCredentialsCommand(input)

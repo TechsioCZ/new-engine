@@ -1,11 +1,24 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { scopeCommandInputSchema } from "../contracts/scope.js"
 import { appendGitHubOutput } from "../github-actions.js"
 import { executeScope } from "../orchestration/scope.js"
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
-function parseBooleanOption(value: string | boolean | undefined): boolean {
+const commandOptionsSchema = z.object({
+  baseSha: z.string().optional(),
+  headSha: z.string(),
+  lane: z.string(),
+  nxIsolatePlugins: z.union([z.string(), z.boolean()]),
+  outputJson: z.string().optional(),
+  previewBaselineComplete: z.union([z.string(), z.boolean()]),
+  servicesCsv: z.string(),
+  stackInputsPath: z.string(),
+  stackManifestPath: z.string(),
+})
+
+const parseBooleanOption = (value: string | boolean | undefined): boolean => {
   if (typeof value === "boolean") {
     return value
   }
@@ -23,7 +36,7 @@ function parseBooleanOption(value: string | boolean | undefined): boolean {
   }
 }
 
-export function createScopeCommand(): Command {
+export const createScopeCommand = (): Command => {
   const command = new Command("scope")
 
   command
@@ -49,19 +62,20 @@ export function createScopeCommand(): Command {
       "",
       process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
-    .action(async (options) => {
+    .action(async (options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
       const input = scopeCommandInputSchema.parse({
-        baseSha: options.baseSha,
-        headSha: options.headSha,
-        lane: options.lane,
-        nxIsolatePlugins: parseBooleanOption(options.nxIsolatePlugins),
-        outputJson: options.outputJson,
+        baseSha: parsedOptions.baseSha,
+        headSha: parsedOptions.headSha,
+        lane: parsedOptions.lane,
+        nxIsolatePlugins: parseBooleanOption(parsedOptions.nxIsolatePlugins),
+        outputJson: parsedOptions.outputJson,
         previewBaselineComplete: parseBooleanOption(
-          options.previewBaselineComplete,
+          parsedOptions.previewBaselineComplete,
         ),
-        servicesCsv: options.servicesCsv,
-        stackInputsPath: options.stackInputsPath,
-        stackManifestPath: options.stackManifestPath,
+        servicesCsv: parsedOptions.servicesCsv,
+        stackInputsPath: parsedOptions.stackInputsPath,
+        stackManifestPath: parsedOptions.stackManifestPath,
       })
       const result = await executeScope(input)
       await appendGitHubOutput("projects_csv", result.projects_csv)

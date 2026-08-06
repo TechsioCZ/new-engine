@@ -1,28 +1,31 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { checkWorkflowInputsCommandInputSchema } from "../contracts/check-workflow-inputs.js"
 import type { WorkflowInputMode } from "../contracts/check-workflow-inputs.js"
 import { maskGitHubValue } from "../github-actions.js"
+
+const commandOptionsSchema = z.object({ mode: z.string() })
 
 interface EnvRequirement {
   name: string
   description: string
 }
 
-function requireEnv(requirement: EnvRequirement): void {
+const requireEnv = (requirement: EnvRequirement): void => {
   const value = process.env[requirement.name]
-  if (!value) {
+  if (value === undefined || value === "") {
     throw new Error(
       `Missing required environment variable: ${requirement.name} (${requirement.description}).`,
     )
   }
 }
 
-function maskEnv(name: string): void {
+const maskEnv = (name: string): void => {
   maskGitHubValue(process.env[name])
 }
 
-function requireAndMaskZaneProjectSlug(): void {
+const requireAndMaskZaneProjectSlug = (): void => {
   requireEnv({
     description: "Zane project slug",
     name: "ZANE_PROJECT_SLUG",
@@ -30,7 +33,7 @@ function requireAndMaskZaneProjectSlug(): void {
   maskEnv("ZANE_PROJECT_SLUG")
 }
 
-function validateMode(mode: WorkflowInputMode): void {
+const validateMode = (mode: WorkflowInputMode): void => {
   switch (mode) {
     case "preview-prepare": {
       if (process.env.REQUIRES_PREVIEW_DB === "true") {
@@ -116,15 +119,16 @@ function validateMode(mode: WorkflowInputMode): void {
   }
 }
 
-export function createCheckWorkflowInputsCommand(): Command {
+export const createCheckWorkflowInputsCommand = (): Command => {
   const command = new Command("check-workflow-inputs")
 
   command
     .description("Validate required workflow env inputs and mask known secrets")
     .requiredOption("--mode <mode>")
-    .action((options) => {
+    .action((options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
       const input = checkWorkflowInputsCommandInputSchema.parse({
-        mode: options.mode,
+        mode: parsedOptions.mode,
       })
       validateMode(input.mode)
       process.stdout.write("result=ok\n")

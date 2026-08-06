@@ -1,28 +1,50 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { previewCommitStateCommandInputSchema } from "../contracts/preview-commit-state.js"
 import { appendGitHubOutput } from "../github-actions.js"
 import { executePreviewCommitState } from "../orchestration/preview-commit-state.js"
 
-function buildPreviewCommitStateInput(options: Record<string, unknown>) {
+const commandOptionsSchema = z.object({
+  apiToken: z.string().optional(),
+  baseUrl: z.string().optional(),
+  dryRun: z.boolean(),
+  environmentName: z.string().optional(),
+  outputJson: z.string().optional(),
+  prNumber: z.string().optional(),
+  projectSlug: z.string().optional(),
+})
+
+const buildPreviewCommitStateInput = (
+  options: z.infer<typeof commandOptionsSchema>,
+) => {
+  const {
+    apiToken,
+    baseUrl,
+    dryRun,
+    environmentName,
+    outputJson,
+    prNumber,
+    projectSlug,
+  } = options
   const parsedPrNumber =
-    typeof options.prNumber === "string" && options.prNumber.trim()
-      ? Number(options.prNumber)
+    typeof prNumber === "string" && prNumber.trim()
+      ? Number(prNumber)
       : undefined
 
   return previewCommitStateCommandInputSchema.parse({
-    apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-    baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-    dryRun: Boolean(options.dryRun),
-    environmentName: options.environmentName,
-    outputJson: options.outputJson,
+    apiToken: apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+    baseUrl: baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+    dryRun,
+    environmentName,
+    outputJson,
     prNumber: parsedPrNumber,
     previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
-    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+    projectSlug: projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
   })
 }
 
-export function createPreviewCommitStateCommand(): Command {
+export const createPreviewCommitStateCommand = (): Command => {
   const command = new Command("preview-commit-state")
 
   command
@@ -34,8 +56,9 @@ export function createPreviewCommitStateCommand(): Command {
     .option("--base-url <url>")
     .option("--api-token <token>")
     .option("--dry-run", "", false)
-    .action(async (options) => {
-      const input = buildPreviewCommitStateInput(options)
+    .action(async (options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
+      const input = buildPreviewCommitStateInput(parsedOptions)
       const result = await executePreviewCommitState(input)
       await appendGitHubOutput("environment_name", result.environment_name)
       await appendGitHubOutput(

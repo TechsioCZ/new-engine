@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
 import type {
   PrepareCommandInput,
@@ -21,18 +21,17 @@ export interface PrepareExecutionResult {
   previewDbPassword: string
 }
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-function buildPreviewEnvironmentName(input: PrepareCommandInput): string {
-  return `${input.previewEnvPrefix}${input.prNumber ?? 0}`
-}
+const buildPreviewEnvironmentName = (input: PrepareCommandInput): string =>
+  `${input.previewEnvPrefix}${input.prNumber ?? 0}`
 
-async function resolveRequiresPreviewDb(
+const resolveRequiresPreviewDb = async (
   input: PrepareCommandInput,
-): Promise<boolean> {
+): Promise<boolean> => {
   if (input.requiresPreviewDb) {
     return true
   }
@@ -42,16 +41,16 @@ async function resolveRequiresPreviewDb(
   }
 
   const manifest = await loadManifest(input.stackManifestPath)
-  const previewBaselineServiceIds = new Set(
-    listDeployableServices(manifest)
-      .filter(
-        (service) =>
-          service.enabledByDefault &&
-          service.cloneToPreview &&
-          service.deployLanes.includes("preview"),
-      )
-      .map((service) => service.id),
-  )
+  const previewBaselineServiceIds = new Set<string>()
+  for (const service of listDeployableServices(manifest)) {
+    if (
+      service.enabledByDefault &&
+      service.cloneToPreview &&
+      service.deployLanes.includes("preview")
+    ) {
+      previewBaselineServiceIds.add(service.id)
+    }
+  }
   const previewDbPrepareServiceIds = listPrepareServiceIds(
     manifest,
     "preview_db",
@@ -78,9 +77,9 @@ async function resolveRequiresPreviewDb(
   )
 }
 
-async function executePreviewPrepare(
+const executePreviewPrepare = async (
   input: PrepareCommandInput,
-): Promise<PrepareExecutionResult> {
+): Promise<PrepareExecutionResult> => {
   const prNumber = input.prNumber ?? 0
   const requiresPreviewDb = await resolveRequiresPreviewDb(input)
 
@@ -95,7 +94,7 @@ async function executePreviewPrepare(
       requires_preview_db: false,
     })
 
-    if (input.outputJson) {
+    if (input.outputJson !== undefined && input.outputJson !== "") {
       await writeJsonFile(input.outputJson, response)
     }
 
@@ -105,19 +104,21 @@ async function executePreviewPrepare(
     }
   }
 
-  const previewDb = input.dryRun
-    ? {
-        app_password: `dry-run:preview-db:${prNumber}`,
-        app_user: `${DEFAULT_PREVIEW_DB_APP_USER_PREFIX}${prNumber}`,
-        created: true,
-        db_name: `${DEFAULT_PREVIEW_DB_PREFIX}${prNumber}`,
-      }
-    : (
-        await new ZaneOperatorClient(
-          input.baseUrl,
-          input.apiToken,
-        ).ensurePreviewDb(prNumber)
-      ).body
+  let previewDb
+  if (input.dryRun) {
+    previewDb = {
+      app_password: `dry-run:preview-db:${prNumber}`,
+      app_user: `${DEFAULT_PREVIEW_DB_APP_USER_PREFIX}${prNumber}`,
+      created: true,
+      db_name: `${DEFAULT_PREVIEW_DB_PREFIX}${prNumber}`,
+    }
+  } else {
+    const previewDbResult = await new ZaneOperatorClient(
+      input.baseUrl,
+      input.apiToken,
+    ).ensurePreviewDb(prNumber)
+    previewDb = previewDbResult.body
+  }
 
   const response = prepareResponseSchema.parse({
     lane: "preview",
@@ -129,7 +130,7 @@ async function executePreviewPrepare(
     requires_preview_db: true,
   })
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 
@@ -139,16 +140,16 @@ async function executePreviewPrepare(
   }
 }
 
-async function executeMainPrepare(
+const executeMainPrepare = async (
   input: PrepareCommandInput,
-): Promise<PrepareExecutionResult> {
+): Promise<PrepareExecutionResult> => {
   const response = prepareResponseSchema.parse({
     lane: "main",
     note: "main_prepare_not_used",
     prepared: false,
   })
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 
@@ -158,9 +159,9 @@ async function executeMainPrepare(
   }
 }
 
-export async function executePrepare(
+export const executePrepare = async (
   input: PrepareCommandInput,
-): Promise<PrepareExecutionResult> {
+): Promise<PrepareExecutionResult> => {
   if (input.lane === "preview") {
     return await executePreviewPrepare(input)
   }

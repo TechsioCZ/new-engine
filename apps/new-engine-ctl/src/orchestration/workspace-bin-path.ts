@@ -1,24 +1,25 @@
-import { delimiter, join } from "node:path"
+import nodePath from "node:path"
 
-export function withWorkspaceBinPath(
+export const withWorkspaceBinPath = (
   env: NodeJS.ProcessEnv,
-): NodeJS.ProcessEnv {
+): NodeJS.ProcessEnv => {
   const pathKey =
     Object.keys(env).find((key) => key === "PATH") ??
     Object.keys(env).find((key) => key.toUpperCase() === "PATH") ??
     "PATH"
-  const nextEnv = { ...env }
-
-  for (const key of Object.keys(nextEnv)) {
-    if (key !== pathKey && key.toUpperCase() === "PATH") {
-      delete nextEnv[key]
-    }
-  }
+  const nextEnv = Object.fromEntries(
+    Object.entries(env).filter(
+      ([key]) => key === pathKey || key.toUpperCase() !== "PATH",
+    ),
+  )
 
   return {
     ...nextEnv,
-    [pathKey]: [join(process.cwd(), "node_modules", ".bin"), env[pathKey]]
+    [pathKey]: [
+      nodePath.join(process.cwd(), "node_modules", ".bin"),
+      env[pathKey],
+    ]
       .filter(Boolean)
-      .join(delimiter),
+      .join(nodePath.delimiter),
   }
 }

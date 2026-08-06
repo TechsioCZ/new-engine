@@ -18,9 +18,14 @@ export const scopeCommandInputSchema = z
     stackManifestPath: z.string().min(1),
   })
   .superRefine((value, ctx) => {
-    if (!(value.servicesCsv || value.baseSha)) {
+    if (
+      !(
+        (value.servicesCsv !== undefined && value.servicesCsv !== "") ||
+        (value.baseSha !== undefined && value.baseSha !== "")
+      )
+    ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message:
           "Base SHA is required when services-csv is not provided explicitly.",
         path: ["baseSha"],

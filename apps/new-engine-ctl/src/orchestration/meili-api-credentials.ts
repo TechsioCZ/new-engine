@@ -19,7 +19,7 @@ export interface MainMeiliApiCredentialsResult {
   verified: boolean
 }
 
-export async function reconcileMainMeiliApiCredentials(input: {
+export const reconcileMainMeiliApiCredentials = async (input: {
   meiliUrl: string
   masterKey: string
   waitSeconds: number
@@ -29,7 +29,7 @@ export async function reconcileMainMeiliApiCredentials(input: {
   stackInputs: StackInputs
   providerId: string
   dryRun: boolean
-}): Promise<MainMeiliApiCredentialsResult> {
+}): Promise<MainMeiliApiCredentialsResult> => {
   const backendPolicy = getRuntimeProviderOutputPolicy(
     input.stackInputs,
     input.providerId,

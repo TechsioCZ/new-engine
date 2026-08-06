@@ -80,7 +80,7 @@ export const verifyCommandInputSchema = z
   .superRefine((value, ctx) => {
     if (!(value.dryRun || value.baseUrl)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Zane operator base URL is required.",
         path: ["baseUrl"],
       })
@@ -88,7 +88,7 @@ export const verifyCommandInputSchema = z
 
     if (!(value.dryRun || value.apiToken)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Zane operator API token is required.",
         path: ["apiToken"],
       })
@@ -99,9 +99,9 @@ export const verifyResponseSchema = z.object({
   checked_deployment_service_ids: z.array(z.string()),
   checked_deployments: z.array(
     z.object({
+      deployment_hash: z.string().min(1),
       service_id: z.string().min(1),
       service_slug: z.string().min(1),
-      deployment_hash: z.string().min(1),
       status: z.string().min(1),
       status_reason: z.string().nullable(),
     }),
@@ -152,7 +152,7 @@ export interface VerifyDeployPayload {
   deployments: DeploymentVerifyRef[]
 }
 
-function parseJson<T>(raw: string, schema: z.ZodType<T>, label: string): T {
+const parseJson = <T>(raw: string, schema: z.ZodType<T>, label: string): T => {
   let parsed: unknown
 
   try {
@@ -165,11 +165,11 @@ function parseJson<T>(raw: string, schema: z.ZodType<T>, label: string): T {
   return schema.parse(parsed)
 }
 
-export function parsePreviewRandomOnceSecrets(
+export const parsePreviewRandomOnceSecrets = (
   raw: string | undefined,
-): PreviewRandomOnceSecretInput[] {
+): PreviewRandomOnceSecretInput[] => {
   const value = raw?.trim()
-  if (!value) {
+  if (value === undefined || value === "") {
     return []
   }
 
@@ -180,17 +180,22 @@ export function parsePreviewRandomOnceSecrets(
   )
 }
 
-export async function resolveDeploymentRefs(
+export const resolveDeploymentRefs = async (
   deploymentsJsonPath: string | undefined,
   deploymentsJsonInline: string | undefined,
-): Promise<DeploymentRef[]> {
-  if (deploymentsJsonPath && deploymentsJsonInline) {
+): Promise<DeploymentRef[]> => {
+  if (
+    deploymentsJsonPath !== undefined &&
+    deploymentsJsonPath !== "" &&
+    deploymentsJsonInline !== undefined &&
+    deploymentsJsonInline !== ""
+  ) {
     throw new Error(
       "Pass only one of --deployments-json or --deployments-json-inline.",
     )
   }
 
-  if (deploymentsJsonPath) {
+  if (deploymentsJsonPath !== undefined && deploymentsJsonPath !== "") {
     const raw = await readFile(deploymentsJsonPath, "utf-8")
     const envelope = parseJson(
       raw,
@@ -200,7 +205,10 @@ export async function resolveDeploymentRefs(
     return envelope.services
   }
 
-  if (deploymentsJsonInline?.trim()) {
+  if (
+    deploymentsJsonInline?.trim() !== undefined &&
+    deploymentsJsonInline.trim() !== ""
+  ) {
     const envelope = parseJson(
       deploymentsJsonInline,
       deploymentEnvelopeSchema,

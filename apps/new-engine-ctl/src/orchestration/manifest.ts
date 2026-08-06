@@ -14,9 +14,9 @@ import {
 } from "../contracts/stack-manifest.js"
 import { loadManifest, normalizeCsvToArray } from "./deploy-inputs.js"
 
-export async function executeManifestComposeServices(
+export const executeManifestComposeServices = async (
   input: ManifestComposeServicesCommandInput,
-): Promise<ManifestComposeServicesResponse> {
+): Promise<ManifestComposeServicesResponse> => {
   const manifest = await loadManifest(input.stackManifestPath)
   const composeServices = listComposeServicesForPhase(
     manifest,
@@ -32,9 +32,9 @@ export async function executeManifestComposeServices(
   })
 }
 
-export async function executeManifestServiceSlugs(
+export const executeManifestServiceSlugs = async (
   input: ManifestServiceSlugsCommandInput,
-): Promise<ManifestServiceSlugsResponse> {
+): Promise<ManifestServiceSlugsResponse> => {
   const manifest = await loadManifest(input.stackManifestPath)
   const serviceIds = normalizeCsvToArray(input.serviceIdsCsv)
   const services = serviceIds.map((serviceId) => {

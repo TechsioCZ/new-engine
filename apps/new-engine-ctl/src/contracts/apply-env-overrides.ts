@@ -49,13 +49,13 @@ export type ApplyEnvOverridesResponse = z.infer<
   typeof applyEnvOverridesResponseSchema
 >
 
-export async function resolveApplyEnvOverridesInputs(
+export const resolveApplyEnvOverridesInputs = async (
   targetsJsonPath: string,
   envOverridesJsonPath: string,
 ): Promise<{
   targets: z.infer<typeof targetsEnvelopeSchema>["services"]
   envOverrides: z.infer<typeof envOverridesEnvelopeSchema>["services"]
-}> {
+}> => {
   const [targetsRaw, envOverridesRaw] = await Promise.all([
     readFile(targetsJsonPath, "utf-8"),
     readFile(envOverridesJsonPath, "utf-8"),

@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
 import {
   resolveEnvironmentCommandInputSchema,
@@ -16,9 +16,9 @@ import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 import { loadDeployContracts, normalizeCsvToArray } from "./deploy-inputs.js"
 import { buildServiceReconciliationSpecs } from "./preview-runtime-reconciliation.js"
 
-function buildPreviewEnvironmentName(
+const buildPreviewEnvironmentName = (
   input: ResolvedEnvironmentCommandInput,
-): string {
+): string => {
   if (input.environmentName) {
     return input.environmentName
   }
@@ -26,13 +26,13 @@ function buildPreviewEnvironmentName(
   return `${input.previewEnvPrefix}${input.prNumber}`
 }
 
-function buildPreviewServiceSlugSets(
+const buildPreviewServiceSlugSets = (
   input: ResolvedEnvironmentCommandInput,
   manifest: StackManifest,
 ): {
   expectedPreviewServiceSlugs: string[]
   excludedPreviewServiceSlugs: string[]
-} {
+} => {
   const deployableServices = listDeployableServices(manifest)
   const clonedServiceIds = normalizeCsvToArray(input.previewClonedServiceIdsCsv)
   const excludedServiceIds = normalizeCsvToArray(
@@ -45,23 +45,27 @@ function buildPreviewServiceSlugSets(
   return {
     excludedPreviewServiceSlugs: excludedServiceIds.flatMap((serviceId) => {
       const serviceSlug = serviceById.get(serviceId)
-      return serviceSlug ? [serviceSlug] : []
+      return serviceSlug === undefined || serviceSlug === ""
+        ? []
+        : [serviceSlug]
     }),
     expectedPreviewServiceSlugs: clonedServiceIds.flatMap((serviceId) => {
       const serviceSlug = serviceById.get(serviceId)
-      return serviceSlug ? [serviceSlug] : []
+      return serviceSlug === undefined || serviceSlug === ""
+        ? []
+        : [serviceSlug]
     }),
   }
 }
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-export async function executeResolveEnvironment(
+export const executeResolveEnvironment = async (
   input: ResolveEnvironmentCommandInput,
-): Promise<ResolveEnvironmentResponse> {
+): Promise<ResolveEnvironmentResponse> => {
   const resolvedInput = resolveEnvironmentCommandInputSchema.parse(input)
   const contracts = await loadDeployContracts(
     resolvedInput.stackManifestPath,
@@ -130,7 +134,10 @@ export async function executeResolveEnvironment(
     )
   }
 
-  if (resolvedInput.outputJson) {
+  if (
+    resolvedInput.outputJson !== undefined &&
+    resolvedInput.outputJson !== ""
+  ) {
     await writeJsonFile(resolvedInput.outputJson, response)
   }
 

@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
 import {
   applyEnvOverridesResponseSchema,
@@ -12,17 +12,17 @@ import type {
 } from "../contracts/apply-env-overrides.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-export async function executeApplyEnvOverridesPayload(input: {
+export const executeApplyEnvOverridesPayload = async (input: {
   payload: ApplyEnvOverridesPayload
   baseUrl: string
   apiToken: string
   dryRun: boolean
-}): Promise<ApplyEnvOverridesResponse> {
+}): Promise<ApplyEnvOverridesResponse> => {
   const { payload } = input
 
   if (payload.env_overrides.length === 0) {
@@ -53,9 +53,9 @@ export async function executeApplyEnvOverridesPayload(input: {
   ).applyEnvOverrides(payload)
 }
 
-export async function executeApplyEnvOverrides(
+export const executeApplyEnvOverrides = async (
   input: ApplyEnvOverridesCommandInput,
-): Promise<ApplyEnvOverridesResponse> {
+): Promise<ApplyEnvOverridesResponse> => {
   const { targets, envOverrides } = await resolveApplyEnvOverridesInputs(
     input.targetsJsonPath,
     input.envOverridesJsonPath,
@@ -73,7 +73,7 @@ export async function executeApplyEnvOverrides(
     },
   })
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 

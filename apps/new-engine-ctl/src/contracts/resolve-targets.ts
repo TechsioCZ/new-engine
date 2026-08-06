@@ -55,22 +55,25 @@ export type ResolveTargetsResponse = z.infer<
   typeof resolveTargetsResponseSchema
 >
 
-function extractPlanServices(plan: z.infer<typeof planResponseSchema>): {
+const extractPlanServices = (
+  plan: z.infer<typeof planResponseSchema>,
+): {
   service_id: string
   service_slug: string
-}[] {
-  return plan.deploy_services.map((service) => ({
+}[] =>
+  plan.deploy_services.map((service) => ({
     service_id: service.id,
     service_slug: service.service_slug,
   }))
-}
 
-export async function resolvePlanServices(planJsonPath: string): Promise<
+export const resolvePlanServices = async (
+  planJsonPath: string,
+): Promise<
   {
     service_id: string
     service_slug: string
   }[]
-> {
+> => {
   const raw = await readFile(planJsonPath, "utf-8")
   const plan = planResponseSchema.parse(JSON.parse(raw))
 
@@ -81,8 +84,8 @@ export interface ResolveTargetsPayload {
   lane: z.infer<typeof laneSchema>
   project_slug: string
   environment_name: string
-  services: Array<{
+  services: {
     service_id: string
     service_slug: string
-  }>
+  }[]
 }

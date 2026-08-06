@@ -29,7 +29,7 @@ export const deployPreviewCommandInputSchema =
   deployPreviewCommandInputSchemaBase.superRefine((value, ctx) => {
     if (!(value.dryRun || value.sourceEnvironmentName)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Canonical source environment name is required.",
         path: ["sourceEnvironmentName"],
       })
@@ -37,7 +37,7 @@ export const deployPreviewCommandInputSchema =
 
     if (!(value.dryRun || value.baseUrl)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Zane operator base URL is required.",
         path: ["baseUrl"],
       })
@@ -45,7 +45,7 @@ export const deployPreviewCommandInputSchema =
 
     if (!(value.dryRun || value.apiToken)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Zane operator API token is required.",
         path: ["apiToken"],
       })
@@ -53,7 +53,7 @@ export const deployPreviewCommandInputSchema =
 
     if (!(value.dryRun || value.targetCommitSha)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Preview target commit SHA is required.",
         path: ["targetCommitSha"],
       })

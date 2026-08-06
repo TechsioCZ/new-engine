@@ -1,4 +1,4 @@
-import { basename } from "node:path"
+import nodePath from "node:path"
 
 import type { BootstrapPreviewTemplateDbPlanCommandInput } from "../../contracts/bootstrap-preview-template-db.js"
 import {
@@ -8,46 +8,44 @@ import {
 import type { BootstrapInspectServiceDetails } from "../../contracts/bootstrap-shared.js"
 import { readJsonFile, resolveOptionalPath } from "./shared.js"
 
-function serviceEnvValue(
+const serviceEnvValue = (
   serviceDetails: BootstrapInspectServiceDetails | null,
   key: string,
-): string | undefined {
-  return serviceDetails?.env_variables.find((envVar) => envVar.key === key)
-    ?.value
-}
+): string | undefined =>
+  serviceDetails?.env_variables.find((envVar) => envVar.key === key)?.value
 
-function firstNonEmpty(
+const firstNonEmpty = (
   ...values: (string | null | undefined)[]
-): string | undefined {
+): string | undefined => {
   for (const value of values) {
-    if (typeof value === "string" && value.trim()) {
+    if (typeof value === "string" && value.trim() !== "") {
       return value.trim()
     }
   }
 
-  return
+  return undefined
 }
 
-function buildStagingDbName(
+const buildStagingDbName = (
   explicitValue: string | undefined,
   templateDbName: string | undefined,
-): string | undefined {
-  if (explicitValue?.trim()) {
+): string | undefined => {
+  if (explicitValue?.trim() !== undefined && explicitValue.trim() !== "") {
     return explicitValue.trim()
   }
 
-  if (!templateDbName) {
-    return
+  if (templateDbName === undefined || templateDbName === "") {
+    return undefined
   }
 
   const stamp = new Date()
     .toISOString()
-    .replaceAll(/[-:TZ.]/g, "")
+    .replaceAll(/[-:TZ.]/gu, "")
     .slice(0, 14)
   return `${templateDbName}_staging_${stamp}`
 }
 
-function buildBlockingReasons(input: {
+const buildBlockingReasons = (input: {
   projectExists: boolean
   environmentExists: boolean
   dbServiceExists: boolean
@@ -59,7 +57,7 @@ function buildBlockingReasons(input: {
   templateDbName?: string | undefined
   templateOwner?: string | undefined
   dbAdminName?: string | undefined
-}): string[] {
+}): string[] => {
   const reasons: string[] = []
 
   if (!input.projectExists) {
@@ -78,34 +76,34 @@ function buildBlockingReasons(input: {
       "zane-operator service is missing from the target Zane environment.",
     )
   }
-  if (!input.dbHost) {
+  if (input.dbHost === undefined || input.dbHost === "") {
     reasons.push("Database host could not be resolved.")
   }
-  if (!input.dbPort) {
+  if (input.dbPort === undefined || input.dbPort === "") {
     reasons.push("Database port could not be resolved.")
   }
-  if (!input.dbUser) {
+  if (input.dbUser === undefined || input.dbUser === "") {
     reasons.push("Database admin user could not be resolved.")
   }
-  if (!input.dbPassword) {
+  if (input.dbPassword === undefined || input.dbPassword === "") {
     reasons.push("Database admin password could not be resolved.")
   }
-  if (!input.dbAdminName) {
+  if (input.dbAdminName === undefined || input.dbAdminName === "") {
     reasons.push("Database admin database name could not be resolved.")
   }
-  if (!input.templateDbName) {
+  if (input.templateDbName === undefined || input.templateDbName === "") {
     reasons.push("Template database name could not be resolved.")
   }
-  if (!input.templateOwner) {
+  if (input.templateOwner === undefined || input.templateOwner === "") {
     reasons.push("Template database owner could not be resolved.")
   }
 
   return reasons
 }
 
-export async function executeBootstrapPreviewTemplateDbPlan(
+export const executeBootstrapPreviewTemplateDbPlan = async (
   input: BootstrapPreviewTemplateDbPlanCommandInput,
-) {
+) => {
   const inspectResponse = bootstrapPreviewTemplateDbInspectResponseSchema.parse(
     await readJsonFile(input.inspectJsonPath),
   )
@@ -174,7 +172,10 @@ export async function executeBootstrapPreviewTemplateDbPlan(
     db_sslmode: dbSslmode ?? null,
     db_user: dbUser ?? null,
     docker_network: input.dockerNetwork,
-    dump_file: dumpFile ? basename(dumpFile) : null,
+    dump_file:
+      dumpFile === undefined || dumpFile === ""
+        ? null
+        : nodePath.basename(dumpFile),
     environment_exists: inspectResponse.environment_exists,
     environment_name: input.environmentName,
     operator_service_exists: inspectResponse.operator_service.exists,

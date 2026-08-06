@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
 import type {
   PreviewCommitStateCommandInput,
@@ -8,9 +8,9 @@ import type {
 import { previewCommitStateResponseSchema } from "../contracts/preview-commit-state.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
-function buildPreviewEnvironmentName(
+const buildPreviewEnvironmentName = (
   input: PreviewCommitStateCommandInput,
-): string {
+): string => {
   if (input.environmentName) {
     return input.environmentName
   }
@@ -18,14 +18,14 @@ function buildPreviewEnvironmentName(
   return `${input.previewEnvPrefix}${input.prNumber}`
 }
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-export async function executePreviewCommitState(
+export const executePreviewCommitState = async (
   input: PreviewCommitStateCommandInput,
-): Promise<PreviewCommitStateResponse> {
+): Promise<PreviewCommitStateResponse> => {
   const environmentName = buildPreviewEnvironmentName(input)
 
   const response = input.dryRun
@@ -45,7 +45,7 @@ export async function executePreviewCommitState(
         project_slug: input.projectSlug,
       })
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 

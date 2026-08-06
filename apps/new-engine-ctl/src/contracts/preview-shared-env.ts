@@ -21,9 +21,9 @@ const previewRuntimeSourceInputSchema = z
   })
   .superRefine((value, ctx) => {
     if (value.kind === "literal") {
-      if (!value.value) {
+      if (value.value === undefined || value.value === "") {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "literal preview runtime sources require value",
           path: ["value"],
         })
@@ -31,33 +31,39 @@ const previewRuntimeSourceInputSchema = z
       return
     }
 
-    if (!value.service_slug) {
+    if (value.service_slug === undefined || value.service_slug === "") {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "derived preview runtime sources require service_slug",
         path: ["service_slug"],
       })
     }
 
-    if (value.kind === "service_internal_origin" && !value.port) {
+    if (
+      value.kind === "service_internal_origin" &&
+      (value.port === undefined || value.port === 0)
+    ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "service_internal_origin requires port",
         path: ["port"],
       })
     }
 
     if (value.kind === "service_internal_bucket_url") {
-      if (!value.port) {
+      if (value.port === undefined || value.port === 0) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "service_internal_bucket_url requires port",
           path: ["port"],
         })
       }
-      if (!value.bucket_shared_env_key) {
+      if (
+        value.bucket_shared_env_key === undefined ||
+        value.bucket_shared_env_key === ""
+      ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "service_internal_bucket_url requires bucket_shared_env_key",
           path: ["bucket_shared_env_key"],
         })

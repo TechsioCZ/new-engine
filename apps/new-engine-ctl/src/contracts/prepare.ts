@@ -19,7 +19,7 @@ export const prepareCommandInputSchema = z
     if (value.lane === "preview") {
       if (typeof value.prNumber !== "number") {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "PR number is required for preview prepare.",
           path: ["prNumber"],
         })
@@ -27,7 +27,7 @@ export const prepareCommandInputSchema = z
 
       if (!(value.dryRun || value.baseUrl)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "Zane operator base URL is required.",
           path: ["baseUrl"],
         })
@@ -35,16 +35,12 @@ export const prepareCommandInputSchema = z
 
       if (!(value.dryRun || value.apiToken)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "Zane operator API token is required.",
           path: ["apiToken"],
         })
       }
-
-      return
     }
-
-    return
   })
 
 const previewPrepareResponseSchema = z.object({

@@ -1,34 +1,61 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { prepareCommandInputSchema } from "../contracts/prepare.js"
 import { appendGitHubOutput, maskGitHubValue } from "../github-actions.js"
 import { executePrepare } from "../orchestration/prepare.js"
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
-function parseOptionalNumber(value: unknown): number | undefined {
-  return typeof value === "string" && value.trim() ? Number(value) : undefined
-}
+const commandOptionsSchema = z.object({
+  apiToken: z.string().optional(),
+  baseUrl: z.string().optional(),
+  dryRun: z.boolean(),
+  lane: z.string(),
+  outputJson: z.string().optional(),
+  prNumber: z.string().optional(),
+  projectSlug: z.string().optional(),
+  requiresPreviewDb: z.boolean(),
+  stackInputsPath: z.string(),
+  stackManifestPath: z.string(),
+  timeoutSeconds: z.string().optional(),
+})
 
-function buildPrepareInput(options: Record<string, unknown>) {
+const parseOptionalNumber = (value: unknown): number | undefined =>
+  typeof value === "string" && value.trim() ? Number(value) : undefined
+
+const buildPrepareInput = (options: z.infer<typeof commandOptionsSchema>) => {
+  const {
+    apiToken,
+    baseUrl,
+    dryRun,
+    lane,
+    outputJson,
+    prNumber,
+    projectSlug,
+    requiresPreviewDb,
+    stackInputsPath,
+    stackManifestPath,
+    timeoutSeconds,
+  } = options
   return prepareCommandInputSchema.parse({
-    apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-    baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-    dryRun: Boolean(options.dryRun),
-    lane: options.lane,
-    outputJson: options.outputJson,
-    prNumber: parseOptionalNumber(options.prNumber),
+    apiToken: apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+    baseUrl: baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+    dryRun,
+    lane,
+    outputJson,
+    prNumber: parseOptionalNumber(prNumber),
     previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
-    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
-    requiresPreviewDb: Boolean(options.requiresPreviewDb),
-    stackInputsPath: options.stackInputsPath,
-    stackManifestPath: options.stackManifestPath,
-    timeoutSeconds: parseOptionalNumber(options.timeoutSeconds),
+    projectSlug: projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+    requiresPreviewDb,
+    stackInputsPath,
+    stackManifestPath,
+    timeoutSeconds: parseOptionalNumber(timeoutSeconds),
   })
 }
 
-async function writePrepareOutputs(
+const writePrepareOutputs = async (
   result: Awaited<ReturnType<typeof executePrepare>>,
-): Promise<void> {
+): Promise<void> => {
   if (result.response.lane === "preview") {
     maskGitHubValue(result.previewDbPassword)
     await appendGitHubOutput(
@@ -41,7 +68,7 @@ async function writePrepareOutputs(
   }
 }
 
-export function createPrepareCommand(): Command {
+export const createPrepareCommand = (): Command => {
   const command = new Command("prepare")
 
   command
@@ -65,8 +92,9 @@ export function createPrepareCommand(): Command {
       "",
       process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
-    .action(async (options) => {
-      const input = buildPrepareInput(options)
+    .action(async (options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
+      const input = buildPrepareInput(parsedOptions)
       const result = await executePrepare(input)
       await writePrepareOutputs(result)
       process.stdout.write(`${JSON.stringify(result.response)}\n`)

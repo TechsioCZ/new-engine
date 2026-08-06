@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
 import type {
   TeardownPreviewCommandInput,
@@ -8,14 +8,14 @@ import type {
 import { teardownPreviewResponseSchema } from "../contracts/teardown-preview.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-export async function executeTeardownPreview(
+export const executeTeardownPreview = async (
   input: TeardownPreviewCommandInput,
-): Promise<TeardownPreviewResponse> {
+): Promise<TeardownPreviewResponse> => {
   const environmentName = `${input.previewEnvPrefix}${input.prNumber}`
 
   let environment: TeardownPreviewResponse["environment"]
@@ -113,7 +113,7 @@ export async function executeTeardownPreview(
     success: environment.ok && previewDb.ok,
   })
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 

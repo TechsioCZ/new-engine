@@ -1,11 +1,11 @@
-import {
-  type resolveTriggerTargets,
-  type TriggerResponse,
-  triggerResponseSchema,
+import { triggerResponseSchema } from "../contracts/trigger.js"
+import type {
+  resolveTriggerTargets,
+  TriggerResponse,
 } from "../contracts/trigger.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
-export async function executeTriggerPayload(input: {
+export const executeTriggerPayload = async (input: {
   projectSlug: string
   environmentName: string
   targets: Awaited<ReturnType<typeof resolveTriggerTargets>>
@@ -13,7 +13,7 @@ export async function executeTriggerPayload(input: {
   baseUrl: string
   apiToken: string
   dryRun: boolean
-}): Promise<TriggerResponse> {
+}): Promise<TriggerResponse> => {
   const { targets } = input
 
   return input.dryRun

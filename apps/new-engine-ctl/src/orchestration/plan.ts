@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
 import { parse as parseYaml } from "yaml"
 
@@ -20,7 +20,7 @@ interface PreviewServiceSets {
   excludedServices: DeployableService[]
 }
 
-function normalizeCsvToArray(csv: string): string[] {
+const normalizeCsvToArray = (csv: string): string[] => {
   const values = csv
     .split(",")
     .map((value) => value.trim())
@@ -39,7 +39,7 @@ function normalizeCsvToArray(csv: string): string[] {
   return normalized
 }
 
-async function loadManifest(path: string): Promise<StackManifest> {
+const loadManifest = async (path: string): Promise<StackManifest> => {
   const raw = await readFile(path, "utf-8")
   let parsed: unknown
 
@@ -55,11 +55,11 @@ async function loadManifest(path: string): Promise<StackManifest> {
   return stackManifestSchema.parse(parsed)
 }
 
-function assertServiceAllowedInLane(
+const assertServiceAllowedInLane = (
   service: DeployableService,
   lane: PlanCommandInput["lane"],
   label: string,
-): void {
+): void => {
   if (!service.deployLanes.includes(lane)) {
     throw new Error(`${label} ${service.id} is not eligible for lane ${lane}.`)
   }
@@ -71,24 +71,22 @@ function assertServiceAllowedInLane(
   }
 }
 
-function buildPlanService(
+const buildPlanService = (
   service: DeployableService,
-): PlanResponse["deploy_services"][number] {
-  return {
-    clone_to_preview: service.cloneToPreview,
-    deploy_lanes: service.deployLanes,
-    deploy_stage: service.deployStage,
-    downtime_risk: service.downtimeRisk,
-    id: service.id,
-    service_dependencies: service.serviceDependencies,
-    service_slug: service.serviceSlug,
-  }
-}
+): PlanResponse["deploy_services"][number] => ({
+  clone_to_preview: service.cloneToPreview,
+  deploy_lanes: service.deployLanes,
+  deploy_stage: service.deployStage,
+  downtime_risk: service.downtimeRisk,
+  id: service.id,
+  service_dependencies: service.serviceDependencies,
+  service_slug: service.serviceSlug,
+})
 
-function buildPreviewServiceSets(
+const buildPreviewServiceSets = (
   manifest: StackManifest,
   explicitlyRequestedServiceIds: Set<string>,
-): PreviewServiceSets {
+): PreviewServiceSets => {
   const services = listDeployableServices(manifest).filter(
     (service) =>
       service.enabledByDefault || explicitlyRequestedServiceIds.has(service.id),
@@ -100,14 +98,14 @@ function buildPreviewServiceSets(
   }
 }
 
-function buildRequestedAndDeploySets(
+const buildRequestedAndDeploySets = (
   manifest: StackManifest,
   lane: PlanCommandInput["lane"],
   sourceServiceIds: string[],
 ): {
   requestedServiceIds: Set<string>
   deployServiceIds: Set<string>
-} {
+} => {
   const requestedServiceIds = new Set<string>()
   const deployServiceIds = new Set<string>()
 
@@ -124,14 +122,14 @@ function buildRequestedAndDeploySets(
   }
 }
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-export async function executePlan(
+export const executePlan = async (
   input: PlanCommandInput,
-): Promise<PlanResponse> {
+): Promise<PlanResponse> => {
   const manifest = await loadManifest(input.stackManifestPath)
   const sourceServiceIds = normalizeCsvToArray(input.servicesCsv)
   const laneServices = listDeployableServices(manifest).filter(
@@ -166,7 +164,9 @@ export async function executePlan(
     preview_cloned_services:
       previewServiceSets.clonedServices.map(buildPlanService),
     preview_environment_name:
-      input.lane === "preview" && input.prNumber
+      input.lane === "preview" &&
+      input.prNumber !== undefined &&
+      input.prNumber !== 0
         ? `${input.previewEnvPrefix}${input.prNumber}`
         : "",
     preview_excluded_service_ids_csv: previewServiceSets.excludedServices
@@ -181,7 +181,7 @@ export async function executePlan(
     source_services_csv: sourceServiceIds.join(","),
   })
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 

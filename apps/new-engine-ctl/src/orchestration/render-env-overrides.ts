@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
 import { renderEnvOverridesResponseSchema } from "../contracts/render-env-overrides.js"
 import type {
@@ -12,14 +12,14 @@ import {
   normalizeCsvToArray,
 } from "./deploy-inputs.js"
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-export async function executeRenderEnvOverrides(
+export const executeRenderEnvOverrides = async (
   input: RenderEnvOverridesCommandInput,
-): Promise<RenderEnvOverridesResponse> {
+): Promise<RenderEnvOverridesResponse> => {
   const contracts = await loadDeployContracts(
     input.stackManifestPath,
     input.stackInputsPath,
@@ -37,7 +37,7 @@ export async function executeRenderEnvOverrides(
     }),
   })
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 

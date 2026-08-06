@@ -11,10 +11,10 @@ import type { StackManifest } from "../contracts/stack-manifest.js"
 import { listDeployableServices } from "../contracts/stack-manifest.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
-function requireRuntimeProviderOutput(
+const requireRuntimeProviderOutput = (
   response: RuntimeProviderRunResponse,
   outputId: string,
-) {
+) => {
   const output = response.outputs.find(
     (candidate) => candidate.output_id === outputId,
   )
@@ -27,11 +27,30 @@ function requireRuntimeProviderOutput(
   return output
 }
 
-function resolveSharedPersistedValue(input: {
+const resolveOutputEnvVar = (
+  stackInputs: StackInputs,
+  providerId: string,
+  outputId: string,
+): string => {
+  const [target] = listRuntimeProviderOutputTargets(
+    stackInputs,
+    providerId,
+    outputId,
+  )
+  if (target?.env_var === undefined || target.env_var === "") {
+    throw new Error(
+      `Missing target env var for runtime provider ${providerId} output ${outputId}.`,
+    )
+  }
+
+  return target.env_var
+}
+
+const resolveSharedPersistedValue = (input: {
   targets: ResolveTargetsResponse["services"]
   serviceIds: string[]
   envVar: string
-}): string {
+}): string => {
   if (input.serviceIds.length === 0) {
     return ""
   }
@@ -50,14 +69,14 @@ function resolveSharedPersistedValue(input: {
   return values.every((value) => value === values[0]) ? (values[0] ?? "") : ""
 }
 
-export function getMedusaPublishableKeyProviderSourceService(
+export const getMedusaPublishableKeyProviderSourceService = (
   manifest: StackManifest,
   stackInputs: StackInputs,
   providerId: string,
 ): {
   serviceId: string
   serviceSlug: string
-} {
+} => {
   const serviceId = getRuntimeProviderSourceServiceId(stackInputs, providerId)
   const service = listDeployableServices(manifest).find(
     (candidate) => candidate.id === serviceId,
@@ -74,7 +93,7 @@ export function getMedusaPublishableKeyProviderSourceService(
   }
 }
 
-export function reusePersistedMedusaPublishableKeyFromTargets(input: {
+export const reusePersistedMedusaPublishableKeyFromTargets = (input: {
   targets: ResolveTargetsResponse["services"]
   stackInputs: StackInputs
   providerId: string
@@ -82,7 +101,7 @@ export function reusePersistedMedusaPublishableKeyFromTargets(input: {
 }): {
   frontendKey: string
   frontendEnvVar: string
-} {
+} => {
   const frontendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
@@ -99,7 +118,7 @@ export function reusePersistedMedusaPublishableKeyFromTargets(input: {
   }
 }
 
-export async function provisionMedusaPublishableKey(input: {
+export const provisionMedusaPublishableKey = async (input: {
   projectSlug: string
   environmentName: string
   serviceSlug: string
@@ -118,7 +137,7 @@ export async function provisionMedusaPublishableKey(input: {
   frontend_env_var: string
   frontend_created: boolean
   frontend_updated: boolean
-}> {
+}> => {
   const frontendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
@@ -186,23 +205,4 @@ export async function provisionMedusaPublishableKey(input: {
     service_slug: response.service_slug,
     source_url: response.source_url,
   }
-}
-
-function resolveOutputEnvVar(
-  stackInputs: StackInputs,
-  providerId: string,
-  outputId: string,
-): string {
-  const target = listRuntimeProviderOutputTargets(
-    stackInputs,
-    providerId,
-    outputId,
-  )[0]
-  if (!target?.env_var) {
-    throw new Error(
-      `Missing target env var for runtime provider ${providerId} output ${outputId}.`,
-    )
-  }
-
-  return target.env_var
 }

@@ -14,19 +14,17 @@ export type RuntimeProviderOutputs = z.infer<
   typeof runtimeProviderOutputsSchema
 >
 
-export function runtimeProviderOutputKey(
+export const runtimeProviderOutputKey = (
   providerId: string,
   outputId: string,
-): string {
-  return `${providerId}:${outputId}`
-}
+): string => `${providerId}:${outputId}`
 
-export function parseRuntimeProviderOutputs(
+export const parseRuntimeProviderOutputs = (
   raw: string | undefined,
   label = "--runtime-provider-outputs-json",
-): RuntimeProviderOutputs {
+): RuntimeProviderOutputs => {
   const value = raw?.trim()
-  if (!value) {
+  if (value === undefined || value === "") {
     return {}
   }
 

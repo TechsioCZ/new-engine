@@ -12,9 +12,14 @@ export const previewCommitStateCommandInputSchema = z
     projectSlug: z.string().min(1, "Zane canonical project slug is required."),
   })
   .superRefine((value, ctx) => {
-    if (!(value.environmentName || value.prNumber)) {
+    if (
+      !(
+        (value.environmentName !== undefined && value.environmentName !== "") ||
+        (value.prNumber !== undefined && value.prNumber !== 0)
+      )
+    ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Preview commit state requires PR number or environment name.",
         path: ["prNumber"],
       })
@@ -22,7 +27,7 @@ export const previewCommitStateCommandInputSchema = z
 
     if (!(value.dryRun || value.baseUrl)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Zane operator base URL is required.",
         path: ["baseUrl"],
       })
@@ -30,7 +35,7 @@ export const previewCommitStateCommandInputSchema = z
 
     if (!(value.dryRun || value.apiToken)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Zane operator API token is required.",
         path: ["apiToken"],
       })

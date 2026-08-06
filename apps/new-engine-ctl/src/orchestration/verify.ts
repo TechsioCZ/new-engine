@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
 import type {
   DeploymentRef,
@@ -33,12 +33,12 @@ interface DryRunResponseOptions {
   forbiddenEnv: ForbiddenEnvRequirement[]
 }
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-function buildDryRunResponse({
+const buildDryRunResponse = ({
   input,
   requestedServiceIds,
   deployServiceIds,
@@ -48,49 +48,47 @@ function buildDryRunResponse({
   requiredPersistedEnv,
   requiredSharedEnv,
   forbiddenEnv,
-}: DryRunResponseOptions): VerifyResponse {
-  return {
-    checked_deployment_service_ids: input.deployments.map(
-      (deployment: DeploymentRef) => deployment.service_id,
-    ),
-    checked_deployments: input.deployments.map((deployment: DeploymentRef) => ({
-      deployment_hash: deployment.deployment_hash,
-      service_id: deployment.service_id,
-      service_slug: deployment.service_slug,
-      status: deployment.status ?? "HEALTHY",
-      status_reason: null,
-    })),
-    checked_env_override_service_ids: expectedEnvOverrides.map(
-      (override) => override.service_id,
-    ),
-    checked_forbidden_env_service_ids: forbiddenEnv.map(
-      (requirement) => requirement.service_id,
-    ),
-    checked_persisted_env_service_ids: requiredPersistedEnv.map(
-      (requirement) => requirement.service_id,
-    ),
-    checked_preview_cloned_service_slugs: expectedPreviewServiceSlugs,
-    checked_shared_env_keys: requiredSharedEnv.map(
-      (requirement) => requirement.key,
-    ),
-    deploy_service_ids: deployServiceIds,
-    environment_name: input.environmentName,
-    lane: input.lane,
-    project_slug: input.projectSlug,
-    requested_service_ids: requestedServiceIds,
-    triggered_service_ids: triggeredServiceIds,
-    verified: true,
-    warning_only_preview_service_slugs: [],
-  }
-}
+}: DryRunResponseOptions): VerifyResponse => ({
+  checked_deployment_service_ids: input.deployments.map(
+    (deployment: DeploymentRef) => deployment.service_id,
+  ),
+  checked_deployments: input.deployments.map((deployment: DeploymentRef) => ({
+    deployment_hash: deployment.deployment_hash,
+    service_id: deployment.service_id,
+    service_slug: deployment.service_slug,
+    status: deployment.status ?? "HEALTHY",
+    status_reason: null,
+  })),
+  checked_env_override_service_ids: expectedEnvOverrides.map(
+    (override) => override.service_id,
+  ),
+  checked_forbidden_env_service_ids: forbiddenEnv.map(
+    (requirement) => requirement.service_id,
+  ),
+  checked_persisted_env_service_ids: requiredPersistedEnv.map(
+    (requirement) => requirement.service_id,
+  ),
+  checked_preview_cloned_service_slugs: expectedPreviewServiceSlugs,
+  checked_shared_env_keys: requiredSharedEnv.map(
+    (requirement) => requirement.key,
+  ),
+  deploy_service_ids: deployServiceIds,
+  environment_name: input.environmentName,
+  lane: input.lane,
+  project_slug: input.projectSlug,
+  requested_service_ids: requestedServiceIds,
+  triggered_service_ids: triggeredServiceIds,
+  verified: true,
+  warning_only_preview_service_slugs: [],
+})
 
-function resolvePreviewServiceSlugs(
+const resolvePreviewServiceSlugs = (
   input: VerifyCommandInput,
   contracts: Awaited<ReturnType<typeof loadDeployContracts>>,
 ): {
   expectedPreviewServiceSlugs: string[]
   excludedPreviewServiceSlugs: string[]
-} {
+} => {
   if (input.lane !== "preview") {
     return {
       excludedPreviewServiceSlugs: [],
@@ -109,7 +107,7 @@ function resolvePreviewServiceSlugs(
   const toServiceSlugs = (servicesCsv: string, label: string): string[] =>
     normalizeCsvToArray(servicesCsv).map((serviceId) => {
       const serviceSlug = serviceSlugById.get(serviceId)
-      if (!serviceSlug) {
+      if (serviceSlug === undefined || serviceSlug === "") {
         throw new Error(
           `${label} references missing deployable service ${serviceId}.`,
         )
@@ -129,9 +127,9 @@ function resolvePreviewServiceSlugs(
   }
 }
 
-export async function executeVerify(
+export const executeVerify = async (
   input: VerifyCommandInput,
-): Promise<VerifyResponse> {
+): Promise<VerifyResponse> => {
   const contracts = await loadDeployContracts(
     input.stackManifestPath,
     input.stackInputsPath,
@@ -210,7 +208,7 @@ export async function executeVerify(
     throw new Error("Deploy verification failed.")
   }
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 

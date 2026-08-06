@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
 import type {
   MeiliApiCredentialsCommandInput,
@@ -13,14 +13,14 @@ import {
 import { loadDeployContracts } from "./deploy-inputs.js"
 import { reconcileMainMeiliApiCredentials } from "./meili-api-credentials.js"
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-export async function executeMeiliApiCredentialsCommand(
+export const executeMeiliApiCredentialsCommand = async (
   input: MeiliApiCredentialsCommandInput,
-): Promise<MeiliApiCredentialsResponse> {
+): Promise<MeiliApiCredentialsResponse> => {
   const contracts = await loadDeployContracts(
     input.stackManifestPath,
     input.stackInputsPath,
@@ -75,7 +75,7 @@ export async function executeMeiliApiCredentialsCommand(
     verified: reconciled.verified,
   })
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 

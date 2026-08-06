@@ -6,9 +6,9 @@ import type {
 import { listLocalRuntimeProviderOutputAliases } from "../contracts/stack-inputs.js"
 import { loadStackInputs, normalizeCsvToArray } from "./deploy-inputs.js"
 
-export async function executeLocalEnvRuntimeProviderOutputTargets(
+export const executeLocalEnvRuntimeProviderOutputTargets = async (
   input: LocalEnvRuntimeProviderOutputTargetsCommandInput,
-): Promise<LocalEnvRuntimeProviderOutputTargetsResponse> {
+): Promise<LocalEnvRuntimeProviderOutputTargetsResponse> => {
   const stackInputs = await loadStackInputs(input.stackInputsPath)
   const serviceIds = normalizeCsvToArray(input.serviceIdsCsv)
   const targets = listLocalRuntimeProviderOutputAliases(

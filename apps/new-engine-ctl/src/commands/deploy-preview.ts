@@ -1,56 +1,95 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { deployPreviewCommandInputSchema } from "../contracts/deploy-preview.js"
 import { appendGitHubOutput, maskGitHubValue } from "../github-actions.js"
 import { executeDeployPreview } from "../orchestration/deploy-preview.js"
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
-function buildDeployPreviewInput(options: Record<string, unknown>) {
+const commandOptionsSchema = z.object({
+  apiToken: z.string().optional(),
+  baseUrl: z.string().optional(),
+  dryRun: z.boolean(),
+  dryRunCreated: z.boolean(),
+  outputJson: z.string().optional(),
+  pollIntervalSeconds: z.string().optional(),
+  prNumber: z.string(),
+  previewDbName: z.string(),
+  previewDbPassword: z.string(),
+  previewDbUser: z.string(),
+  projectSlug: z.string().optional(),
+  servicesCsv: z.string(),
+  sourceEnvironmentName: z.string().optional(),
+  stackInputsPath: z.string(),
+  stackManifestPath: z.string(),
+  targetCommitSha: z.string().optional(),
+  waitTimeoutSeconds: z.string().optional(),
+})
+
+const buildDeployPreviewInput = (
+  options: z.infer<typeof commandOptionsSchema>,
+) => {
+  const {
+    apiToken,
+    baseUrl,
+    dryRun,
+    dryRunCreated,
+    outputJson,
+    pollIntervalSeconds,
+    prNumber,
+    previewDbName,
+    previewDbPassword,
+    previewDbUser,
+    projectSlug,
+    servicesCsv,
+    sourceEnvironmentName,
+    stackInputsPath,
+    stackManifestPath,
+    targetCommitSha,
+    waitTimeoutSeconds,
+  } = options
   const parsedPrNumber =
-    typeof options.prNumber === "string" && options.prNumber.trim()
-      ? Number(options.prNumber)
+    typeof prNumber === "string" && prNumber.trim()
+      ? Number(prNumber)
       : undefined
 
   return deployPreviewCommandInputSchema.parse({
-    apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-    baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-    dryRun: Boolean(options.dryRun),
-    dryRunCreated: Boolean(options.dryRunCreated),
+    apiToken: apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+    baseUrl: baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+    dryRun,
+    dryRunCreated,
     meiliApiCredentialsProviderId:
       process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
       "meili_api_credentials",
-    outputJson: options.outputJson,
+    outputJson,
     pollIntervalSeconds:
-      typeof options.pollIntervalSeconds === "string" &&
-      options.pollIntervalSeconds.trim()
-        ? Number(options.pollIntervalSeconds)
+      typeof pollIntervalSeconds === "string" && pollIntervalSeconds.trim()
+        ? Number(pollIntervalSeconds)
         : undefined,
     prNumber: parsedPrNumber,
-    previewDbName: options.previewDbName,
-    previewDbPassword: options.previewDbPassword,
-    previewDbUser: options.previewDbUser,
+    previewDbName,
+    previewDbPassword,
+    previewDbUser,
     previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
-    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
-    servicesCsv: options.servicesCsv,
+    projectSlug: projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+    servicesCsv,
     sourceEnvironmentName:
-      options.sourceEnvironmentName ??
+      sourceEnvironmentName ??
       process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
       "",
-    stackInputsPath: options.stackInputsPath,
-    stackManifestPath: options.stackManifestPath,
-    targetCommitSha:
-      options.targetCommitSha ?? process.env.TARGET_COMMIT_SHA ?? "",
+    stackInputsPath,
+    stackManifestPath,
+    targetCommitSha: targetCommitSha ?? process.env.TARGET_COMMIT_SHA ?? "",
     waitTimeoutSeconds:
-      typeof options.waitTimeoutSeconds === "string" &&
-      options.waitTimeoutSeconds.trim()
-        ? Number(options.waitTimeoutSeconds)
+      typeof waitTimeoutSeconds === "string" && waitTimeoutSeconds.trim()
+        ? Number(waitTimeoutSeconds)
         : undefined,
   })
 }
 
-async function writeDeployPreviewOutputs(
+const writeDeployPreviewOutputs = async (
   result: Awaited<ReturnType<typeof executeDeployPreview>>,
-): Promise<void> {
+): Promise<void> => {
   const deploymentsJson = JSON.stringify({
     services: result.response.deployments,
   })
@@ -128,7 +167,7 @@ async function writeDeployPreviewOutputs(
   await appendGitHubOutput("deployments_json", deploymentsJson)
 }
 
-export function createDeployPreviewCommand(): Command {
+export const createDeployPreviewCommand = (): Command => {
   const command = new Command("deploy-preview")
 
   command
@@ -158,8 +197,9 @@ export function createDeployPreviewCommand(): Command {
       "",
       process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
-    .action(async (options) => {
-      const input = buildDeployPreviewInput(options)
+    .action(async (options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
+      const input = buildDeployPreviewInput(parsedOptions)
       maskGitHubValue(input.previewDbPassword)
       const result = await executeDeployPreview(input)
       await writeDeployPreviewOutputs(result)

@@ -1,11 +1,20 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { planCommandInputSchema } from "../contracts/plan.js"
 import { appendGitHubOutput } from "../github-actions.js"
 import { executePlan } from "../orchestration/plan.js"
 import { defaultStackManifestPath } from "../paths.js"
 
-export function createPlanCommand(): Command {
+const commandOptionsSchema = z.object({
+  lane: z.string(),
+  outputJson: z.string().optional(),
+  prNumber: z.string().optional(),
+  servicesCsv: z.string(),
+  stackManifestPath: z.string(),
+})
+
+export const createPlanCommand = (): Command => {
   const command = new Command("plan")
 
   command
@@ -21,18 +30,20 @@ export function createPlanCommand(): Command {
       "",
       process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
-    .action(async (options) => {
+    .action(async (options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
       const parsedPrNumber =
-        typeof options.prNumber === "string" && options.prNumber.trim()
-          ? Number(options.prNumber)
+        typeof parsedOptions.prNumber === "string" &&
+        parsedOptions.prNumber.trim()
+          ? Number(parsedOptions.prNumber)
           : undefined
       const input = planCommandInputSchema.parse({
-        lane: options.lane,
-        outputJson: options.outputJson,
+        lane: parsedOptions.lane,
+        outputJson: parsedOptions.outputJson,
         prNumber: parsedPrNumber,
         previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
-        servicesCsv: options.servicesCsv,
-        stackManifestPath: options.stackManifestPath,
+        servicesCsv: parsedOptions.servicesCsv,
+        stackManifestPath: parsedOptions.stackManifestPath,
       })
       const result = await executePlan(input)
       await appendGitHubOutput(

@@ -1,4 +1,5 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import {
   manifestComposeServicesCommandInputSchema,
@@ -10,7 +11,18 @@ import {
 } from "../orchestration/manifest.js"
 import { defaultStackManifestPath } from "../paths.js"
 
-export function createManifestCommand(): Command {
+const composeCommandOptionsSchema = z.object({
+  defaultOnly: z.boolean(),
+  phase: z.string(),
+  stackManifestPath: z.string(),
+})
+
+const serviceSlugsCommandOptionsSchema = z.object({
+  serviceIdsCsv: z.string(),
+  stackManifestPath: z.string(),
+})
+
+export const createManifestCommand = (): Command => {
   const command = new Command("manifest").description(
     "Manifest-derived local and CI utility commands",
   )
@@ -25,11 +37,12 @@ export function createManifestCommand(): Command {
       "",
       process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
-    .action(async (options) => {
+    .action(async (options: unknown) => {
+      const parsedOptions = composeCommandOptionsSchema.parse(options)
       const input = manifestComposeServicesCommandInputSchema.parse({
-        defaultOnly: Boolean(options.defaultOnly),
-        phase: options.phase,
-        stackManifestPath: options.stackManifestPath,
+        defaultOnly: parsedOptions.defaultOnly,
+        phase: parsedOptions.phase,
+        stackManifestPath: parsedOptions.stackManifestPath,
       })
       const result = await executeManifestComposeServices(input)
       process.stdout.write(`${result.compose_services_shell}\n`)
@@ -44,10 +57,11 @@ export function createManifestCommand(): Command {
       "",
       process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
     )
-    .action(async (options) => {
+    .action(async (options: unknown) => {
+      const parsedOptions = serviceSlugsCommandOptionsSchema.parse(options)
       const input = manifestServiceSlugsCommandInputSchema.parse({
-        serviceIdsCsv: options.serviceIdsCsv,
-        stackManifestPath: options.stackManifestPath,
+        serviceIdsCsv: parsedOptions.serviceIdsCsv,
+        stackManifestPath: parsedOptions.stackManifestPath,
       })
       const result = await executeManifestServiceSlugs(input)
       process.stdout.write(`${JSON.stringify(result)}\n`)

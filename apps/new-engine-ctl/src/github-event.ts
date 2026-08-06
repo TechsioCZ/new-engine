@@ -1,41 +1,52 @@
 import { readFile } from "node:fs/promises"
 
-function readNestedString(value: unknown, path: string[]): string {
-  let current = value
+import { z } from "zod"
+
+const unknownArraySchema = z.array(z.unknown())
+const unknownRecordSchema = z.record(z.string(), z.unknown())
+
+const readNestedString = (value: unknown, path: string[]): string => {
+  let current: unknown = value
 
   for (const segment of path) {
-    if (Array.isArray(current)) {
+    const arrayResult = unknownArraySchema.safeParse(current)
+    if (arrayResult.success) {
       const index = Number(segment)
       if (!Number.isInteger(index)) {
         return ""
       }
-
-      current = current[index]
+      current = arrayResult.data.at(index)
       continue
     }
 
-    if (!current || typeof current !== "object") {
+    const recordResult = unknownRecordSchema.safeParse(current)
+    if (!recordResult.success) {
       return ""
     }
-
-    current = (current as Record<string, unknown>)[segment]
+    current = recordResult.data[segment]
   }
 
   return typeof current === "string" ? current.trim() : ""
 }
 
-export async function resolveGitHubPreviewHeadBranch(
+export const resolveGitHubPreviewHeadBranch = async (
   eventPath = process.env.GITHUB_EVENT_PATH,
-): Promise<string> {
-  if (process.env.ZANE_PREVIEW_GIT_BRANCH?.trim()) {
+): Promise<string> => {
+  if (
+    process.env.ZANE_PREVIEW_GIT_BRANCH?.trim() !== undefined &&
+    process.env.ZANE_PREVIEW_GIT_BRANCH.trim() !== ""
+  ) {
     return process.env.ZANE_PREVIEW_GIT_BRANCH.trim()
   }
 
-  if (process.env.GITHUB_HEAD_REF?.trim()) {
+  if (
+    process.env.GITHUB_HEAD_REF?.trim() !== undefined &&
+    process.env.GITHUB_HEAD_REF.trim() !== ""
+  ) {
     return process.env.GITHUB_HEAD_REF.trim()
   }
 
-  if (!eventPath) {
+  if (eventPath === undefined || eventPath === "") {
     return ""
   }
 

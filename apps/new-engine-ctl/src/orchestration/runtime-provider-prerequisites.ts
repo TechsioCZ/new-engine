@@ -14,17 +14,17 @@ import type { Lane, StackManifest } from "../contracts/stack-manifest.js"
 import { getMeiliApiCredentialsProviderSourceService } from "./preview-meili.js"
 import { executeResolveTargetsPayload } from "./resolve-targets.js"
 
-function collectDependencyServiceIds(
+const collectDependencyServiceIds = (
   manifest: StackManifest,
   rootServiceIds: string[],
-): string[] {
+): string[] => {
   const rootSet = new Set(rootServiceIds)
   const dependencyIds = new Set<string>()
   const queue = [...rootServiceIds]
 
   while (queue.length > 0) {
     const serviceId = queue.shift()
-    if (!serviceId) {
+    if (serviceId === undefined || serviceId === "") {
       continue
     }
 
@@ -42,10 +42,10 @@ function collectDependencyServiceIds(
   return [...dependencyIds]
 }
 
-function buildPlanService(
+const buildPlanService = (
   manifest: StackManifest,
   serviceId: string,
-): PlanResponse["deploy_services"][number] {
+): PlanResponse["deploy_services"][number] => {
   const service = getDeployableService(manifest, serviceId)
 
   return {
@@ -59,11 +59,11 @@ function buildPlanService(
   }
 }
 
-function expandPlanWithServices(input: {
+const expandPlanWithServices = (input: {
   plan: PlanResponse
   manifest: StackManifest
   serviceIds: string[]
-}): PlanResponse {
+}): PlanResponse => {
   const allServiceIds = new Set(
     input.plan.deploy_services.map((service) => service.id),
   )
@@ -72,9 +72,12 @@ function expandPlanWithServices(input: {
     allServiceIds.add(serviceId)
   }
 
-  const deployServices = listDeployableServices(input.manifest)
-    .filter((service) => allServiceIds.has(service.id))
-    .map((service) => buildPlanService(input.manifest, service.id))
+  const deployServices: PlanResponse["deploy_services"] = []
+  for (const service of listDeployableServices(input.manifest)) {
+    if (allServiceIds.has(service.id)) {
+      deployServices.push(buildPlanService(input.manifest, service.id))
+    }
+  }
 
   return {
     ...input.plan,
@@ -83,9 +86,9 @@ function expandPlanWithServices(input: {
   }
 }
 
-function isMeiliSourceProvisionable(
+const isMeiliSourceProvisionable = (
   target: ResolveTargetsResponse["services"][number] | undefined,
-): boolean {
+): boolean => {
   if (!target) {
     return false
   }
@@ -98,20 +101,17 @@ function isMeiliSourceProvisionable(
   return Boolean((deployment.env?.MEILI_MASTER_KEY ?? "").trim())
 }
 
-function isHealthyTarget(
+const isHealthyTarget = (
   target: ResolveTargetsResponse["services"][number] | undefined,
-): boolean {
-  return Boolean(
-    target?.current_production_deployment?.status.toUpperCase() === "HEALTHY",
-  )
-}
+): boolean =>
+  target?.current_production_deployment?.status.toUpperCase() === "HEALTHY"
 
-function planNeedsRuntimeProvider(input: {
+const planNeedsRuntimeProvider = (input: {
   lane: Lane
   stackInputs: StackInputs
   providerId: string
   serviceIds: string[]
-}): boolean {
+}): boolean => {
   if (
     !getRuntimeProviderLaneBehavior(
       input.stackInputs,
@@ -122,17 +122,18 @@ function planNeedsRuntimeProvider(input: {
     return false
   }
 
+  const serviceIds = new Set(input.serviceIds)
   return listRuntimeProviderOutputIds(input.stackInputs, input.providerId).some(
     (outputId) =>
       listRuntimeProviderOutputTargets(
         input.stackInputs,
         input.providerId,
         outputId,
-      ).some((target) => input.serviceIds.includes(target.service_id)),
+      ).some((target) => serviceIds.has(target.service_id)),
   )
 }
 
-export async function expandPlanForRuntimeProviderPrerequisites(input: {
+export const expandPlanForRuntimeProviderPrerequisites = async (input: {
   lane: Lane
   plan: PlanResponse
   manifest: StackManifest
@@ -147,7 +148,7 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
   plan: PlanResponse
   transientServiceIds: string[]
   transientDowntimeServiceIds: string[]
-}> {
+}> => {
   const meiliSource = getMeiliApiCredentialsProviderSourceService(
     input.manifest,
     input.stackInputs,
@@ -176,9 +177,13 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
     requestedServiceIds,
   )
   const prerequisiteIds = new Set<string>()
-  const dependencyServices = dependencyServiceIds
-    .map((serviceId) => getDeployableService(input.manifest, serviceId))
-    .filter((service) => input.lane !== "preview" || service.cloneToPreview)
+  const dependencyServices = []
+  for (const serviceId of dependencyServiceIds) {
+    const service = getDeployableService(input.manifest, serviceId)
+    if (input.lane !== "preview" || service.cloneToPreview) {
+      dependencyServices.push(service)
+    }
+  }
   let targetByServiceId: Map<string, ResolveTargetsResponse["services"][number]>
   try {
     const targetsResponse = await executeResolveTargetsPayload({
@@ -227,8 +232,8 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
 
   return {
     plan: expandPlanWithServices({
-      plan: input.plan,
       manifest: input.manifest,
+      plan: input.plan,
       serviceIds: [...prerequisiteIds],
     }),
     transientDowntimeServiceIds: [...prerequisiteIds].filter(

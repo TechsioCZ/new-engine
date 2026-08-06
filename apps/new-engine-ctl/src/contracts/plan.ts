@@ -22,9 +22,12 @@ export const planCommandInputSchema = z
     stackManifestPath: z.string().min(1),
   })
   .superRefine((value, ctx) => {
-    if (value.lane === "preview" && !value.prNumber) {
+    if (
+      (value.lane === "preview" && value.prNumber === undefined) ||
+      value.prNumber === 0
+    ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "PR number is required for preview lane.",
         path: ["prNumber"],
       })

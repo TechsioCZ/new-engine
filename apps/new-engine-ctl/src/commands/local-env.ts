@@ -1,10 +1,19 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { localEnvRuntimeProviderOutputTargetsCommandInputSchema } from "../contracts/local-env.js"
 import { executeLocalEnvRuntimeProviderOutputTargets } from "../orchestration/local-env.js"
 import { defaultStackInputsPath } from "../paths.js"
 
-export function createLocalEnvCommand(): Command {
+const commandOptionsSchema = z.object({
+  format: z.string(),
+  outputId: z.string(),
+  providerId: z.string(),
+  serviceIdsCsv: z.string(),
+  stackInputsPath: z.string(),
+})
+
+export const createLocalEnvCommand = (): Command => {
   const command = new Command("local-env").description(
     "Resolve local-only env aliases from repo config",
   )
@@ -21,14 +30,15 @@ export function createLocalEnvCommand(): Command {
       "",
       process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
     )
-    .action(async (options) => {
+    .action(async (options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
       const input =
         localEnvRuntimeProviderOutputTargetsCommandInputSchema.parse({
-          format: options.format,
-          outputId: options.outputId,
-          providerId: options.providerId,
-          serviceIdsCsv: options.serviceIdsCsv,
-          stackInputsPath: options.stackInputsPath,
+          format: parsedOptions.format,
+          outputId: parsedOptions.outputId,
+          providerId: parsedOptions.providerId,
+          serviceIdsCsv: parsedOptions.serviceIdsCsv,
+          stackInputsPath: parsedOptions.stackInputsPath,
         })
 
       const result = await executeLocalEnvRuntimeProviderOutputTargets(input)

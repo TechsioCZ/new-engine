@@ -1,10 +1,22 @@
 import { Command } from "commander"
+import { z } from "zod"
 
 import { applyEnvOverridesCommandInputSchema } from "../contracts/apply-env-overrides.js"
 import { appendGitHubOutput } from "../github-actions.js"
 import { executeApplyEnvOverrides } from "../orchestration/apply-env-overrides.js"
 
-export function createApplyEnvOverridesCommand(): Command {
+const commandOptionsSchema = z.object({
+  apiToken: z.string().optional(),
+  baseUrl: z.string().optional(),
+  dryRun: z.boolean(),
+  envOverridesJson: z.string(),
+  environmentName: z.string(),
+  outputJson: z.string().optional(),
+  projectSlug: z.string().optional(),
+  targetsJson: z.string(),
+})
+
+export const createApplyEnvOverridesCommand = (): Command => {
   const command = new Command("apply-env-overrides")
 
   command
@@ -17,16 +29,20 @@ export function createApplyEnvOverridesCommand(): Command {
     .option("--base-url <url>")
     .option("--api-token <token>")
     .option("--dry-run", "", false)
-    .action(async (options) => {
+    .action(async (options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
       const input = applyEnvOverridesCommandInputSchema.parse({
-        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-        dryRun: Boolean(options.dryRun),
-        envOverridesJsonPath: options.envOverridesJson,
-        environmentName: options.environmentName,
-        outputJson: options.outputJson,
-        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
-        targetsJsonPath: options.targetsJson,
+        apiToken:
+          parsedOptions.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+        baseUrl:
+          parsedOptions.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+        dryRun: parsedOptions.dryRun,
+        envOverridesJsonPath: parsedOptions.envOverridesJson,
+        environmentName: parsedOptions.environmentName,
+        outputJson: parsedOptions.outputJson,
+        projectSlug:
+          parsedOptions.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+        targetsJsonPath: parsedOptions.targetsJson,
       })
       const result = await executeApplyEnvOverrides(input)
       await appendGitHubOutput(

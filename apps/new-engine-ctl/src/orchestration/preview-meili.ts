@@ -12,14 +12,14 @@ import type { StackManifest } from "../contracts/stack-manifest.js"
 import { listDeployableServices } from "../contracts/stack-manifest.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
-export function getMeiliApiCredentialsProviderSourceService(
+export const getMeiliApiCredentialsProviderSourceService = (
   manifest: StackManifest,
   stackInputs: StackInputs,
   providerId: string,
 ): {
   serviceId: string
   serviceSlug: string
-} {
+} => {
   const serviceId = getRuntimeProviderSourceServiceId(stackInputs, providerId)
   const service = listDeployableServices(manifest).find(
     (candidate) => candidate.id === serviceId,
@@ -36,10 +36,10 @@ export function getMeiliApiCredentialsProviderSourceService(
   }
 }
 
-function requireRuntimeProviderOutput(
+const requireRuntimeProviderOutput = (
   response: RuntimeProviderRunResponse,
   outputId: string,
-) {
+) => {
   const output = response.outputs.find(
     (candidate) => candidate.output_id === outputId,
   )
@@ -52,11 +52,30 @@ function requireRuntimeProviderOutput(
   return output
 }
 
-function resolveSharedPersistedValue(input: {
+const resolveOutputEnvVar = (
+  stackInputs: StackInputs,
+  providerId: string,
+  outputId: string,
+): string => {
+  const [target] = listRuntimeProviderOutputTargets(
+    stackInputs,
+    providerId,
+    outputId,
+  )
+  if (target?.env_var === undefined || target.env_var === "") {
+    throw new Error(
+      `Missing target env var for runtime provider ${providerId} output ${outputId}.`,
+    )
+  }
+
+  return target.env_var
+}
+
+const resolveSharedPersistedValue = (input: {
   targets: ResolveTargetsResponse["services"]
   serviceIds: string[]
   envVar: string
-}): string {
+}): string => {
   if (input.serviceIds.length === 0) {
     return ""
   }
@@ -75,7 +94,7 @@ function resolveSharedPersistedValue(input: {
   return values.every((value) => value === values[0]) ? (values[0] ?? "") : ""
 }
 
-export function reusePersistedMeiliKeysFromTargets(input: {
+export const reusePersistedMeiliKeysFromTargets = (input: {
   targets: ResolveTargetsResponse["services"]
   stackInputs: StackInputs
   providerId: string
@@ -85,7 +104,7 @@ export function reusePersistedMeiliKeysFromTargets(input: {
   backendKey: string
   frontendKey: string
   frontendEnvVar: string
-} {
+} => {
   const backendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
@@ -99,21 +118,55 @@ export function reusePersistedMeiliKeysFromTargets(input: {
 
   return {
     backendKey: resolveSharedPersistedValue({
-      targets: input.targets,
-      serviceIds: input.backendConsumerIds,
       envVar: backendEnvVar,
+      serviceIds: input.backendConsumerIds,
+      targets: input.targets,
     }),
     frontendEnvVar,
     frontendKey: resolveSharedPersistedValue({
-      targets: input.targets,
-      serviceIds: input.frontendConsumerIds,
       envVar: frontendEnvVar,
+      serviceIds: input.frontendConsumerIds,
+      targets: input.targets,
     }),
   }
 }
 
+const buildMeiliProviderOutputs = (input: {
+  backendEnvVar: string
+  frontendEnvVar: string
+  backendPolicy: ReturnType<typeof getRuntimeProviderMeiliKeyPolicy>
+  frontendPolicy: ReturnType<typeof getRuntimeProviderMeiliKeyPolicy>
+  needBackendKey: boolean
+  needFrontendKey: boolean
+}): {
+  output_id: string
+  env_var: string
+  policy: Record<string, unknown> & { kind: string }
+}[] => {
+  const outputs: {
+    output_id: string
+    env_var: string
+    policy: Record<string, unknown> & { kind: string }
+  }[] = []
+  if (input.needBackendKey) {
+    outputs.push({
+      env_var: input.backendEnvVar,
+      output_id: "backend_key",
+      policy: { kind: "meilisearch_key", ...input.backendPolicy },
+    })
+  }
+  if (input.needFrontendKey) {
+    outputs.push({
+      env_var: input.frontendEnvVar,
+      output_id: "frontend_key",
+      policy: { kind: "meilisearch_key", ...input.frontendPolicy },
+    })
+  }
+  return outputs
+}
+
 // provider output shaping is intentionally linear here
-export async function provisionMeiliKeys(input: {
+export const provisionMeiliKeys = async (input: {
   projectSlug: string
   environmentName: string
   serviceSlug: string
@@ -124,7 +177,7 @@ export async function provisionMeiliKeys(input: {
   dryRun: boolean
   needBackendKey: boolean
   needFrontendKey: boolean
-}): Promise<ProvisionMeiliKeysResponse> {
+}): Promise<ProvisionMeiliKeysResponse> => {
   const backendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
@@ -173,37 +226,14 @@ export async function provisionMeiliKeys(input: {
     }
   }
 
-  const outputs: {
-    output_id: string
-    env_var: string
-    policy: {
-      kind: string
-      uid: string
-      description: string
-      actions: string[]
-      indexes: string[]
-    }
-  }[] = []
-  if (input.needBackendKey) {
-    outputs.push({
-      env_var: backendEnvVar,
-      output_id: "backend_key",
-      policy: {
-        kind: "meilisearch_key",
-        ...backendPolicy,
-      },
-    })
-  }
-  if (input.needFrontendKey) {
-    outputs.push({
-      env_var: frontendEnvVar,
-      output_id: "frontend_key",
-      policy: {
-        kind: "meilisearch_key",
-        ...frontendPolicy,
-      },
-    })
-  }
+  const outputs = buildMeiliProviderOutputs({
+    backendEnvVar,
+    backendPolicy,
+    frontendEnvVar,
+    frontendPolicy,
+    needBackendKey: input.needBackendKey,
+    needFrontendKey: input.needFrontendKey,
+  })
 
   const response = await new ZaneOperatorClient(
     input.baseUrl,
@@ -238,23 +268,4 @@ export async function provisionMeiliKeys(input: {
     project_slug: response.project_slug,
     service_slug: response.service_slug,
   }
-}
-
-function resolveOutputEnvVar(
-  stackInputs: StackInputs,
-  providerId: string,
-  outputId: string,
-): string {
-  const target = listRuntimeProviderOutputTargets(
-    stackInputs,
-    providerId,
-    outputId,
-  )[0]
-  if (!target?.env_var) {
-    throw new Error(
-      `Missing target env var for runtime provider ${providerId} output ${outputId}.`,
-    )
-  }
-
-  return target.env_var
 }

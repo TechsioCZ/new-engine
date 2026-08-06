@@ -19,7 +19,7 @@ import { createScopeCommand } from "./commands/scope.js"
 import { createTeardownPreviewCommand } from "./commands/teardown-preview.js"
 import { createVerifyCommand } from "./commands/verify.js"
 
-async function main(): Promise<void> {
+const main = async (): Promise<void> => {
   const program = new Command()
     .name("new-engine-ctl")
     .description(
@@ -47,7 +47,9 @@ async function main(): Promise<void> {
   await program.parseAsync(process.argv)
 }
 
-main().catch((error: unknown) => {
+try {
+  await main()
+} catch (error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
 
   if (message === "Deployment wait interrupted.") {
@@ -63,4 +65,4 @@ main().catch((error: unknown) => {
 
   console.error(message)
   process.exit(1)
-})
+}

@@ -1,12 +1,12 @@
-import { z } from "zod"
+import type { z } from "zod"
 
-export function requireLiveZaneCredentials(
+export const requireLiveZaneCredentials = (
   value: { apiToken: string; baseUrl: string; dryRun: boolean },
   ctx: z.RefinementCtx,
-): void {
+): void => {
   if (!(value.dryRun || value.baseUrl)) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: "custom",
       message: "Zane operator base URL is required.",
       path: ["baseUrl"],
     })
@@ -14,7 +14,7 @@ export function requireLiveZaneCredentials(
 
   if (!(value.dryRun || value.apiToken)) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: "custom",
       message: "Zane operator API token is required.",
       path: ["apiToken"],
     })
