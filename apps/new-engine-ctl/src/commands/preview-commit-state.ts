@@ -33,14 +33,14 @@ const buildPreviewCommitStateInput = (
       : undefined
 
   return previewCommitStateCommandInputSchema.parse({
-    apiToken: apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-    baseUrl: baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+    apiToken: apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
+    baseUrl: baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
     dryRun,
     environmentName,
     outputJson,
     prNumber: parsedPrNumber,
-    previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
-    projectSlug: projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+    previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
+    projectSlug: projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
   })
 }
 

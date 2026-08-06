@@ -36,4 +36,10 @@ export default defineConfig({
     reportUnusedDisableDirectives: "error",
     typeAware: true,
   },
+  rules: {
+    "typescript/dot-notation": [
+      "error",
+      { allowIndexSignaturePropertyAccess: true },
+    ],
+  },
 })

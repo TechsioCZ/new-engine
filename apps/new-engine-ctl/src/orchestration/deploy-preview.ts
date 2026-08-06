@@ -97,9 +97,9 @@ const textOrFallback = (
 
 const supportsPrettyLogs = (): boolean =>
   process.stderr.isTTY &&
-  !hasText(process.env.GITHUB_ACTIONS) &&
-  !hasText(process.env.NO_COLOR) &&
-  process.env.TERM !== "dumb"
+  !hasText(process.env["GITHUB_ACTIONS"]) &&
+  !hasText(process.env["NO_COLOR"]) &&
+  process.env["TERM"] !== "dumb"
 
 const colorize = (text: string, code: string): string =>
   supportsPrettyLogs() ? `\u001B[${code}m${text}\u001B[0m` : text
@@ -251,7 +251,7 @@ const resolvePreviewRandomOnceSecrets = async (input: {
   if (input.environmentCreated) {
     const generatedSecrets = generatePreviewRandomOnceSecrets(input.stackInputs)
     const generatedValuesBySecretId = new Map(
-      generatedSecrets.map((secret) => [secret.secret_id, secret.value]),
+      generatedSecrets.map((secret) => [secret["secret_id"], secret.value]),
     )
     const materialized =
       await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
@@ -307,7 +307,7 @@ const resolvePreviewRandomOnceSecrets = async (input: {
   const missingSecretIds = new Set(synced.missing_secret_ids)
   const generatedSecrets = generatePreviewRandomOnceSecrets(input.stackInputs)
   const generatedValuesBySecretId = new Map(
-    generatedSecrets.map((secret) => [secret.secret_id, secret.value]),
+    generatedSecrets.map((secret) => [secret["secret_id"], secret.value]),
   )
   const materialized =
     await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
@@ -754,7 +754,7 @@ const runPreviewStage = async (
     apiToken: command.apiToken,
     baseUrl: command.baseUrl,
     cancelOnInterrupt: true,
-    deployments: stageDeployments,
+    deployments: stageDeployments.map((deployment) => ({ ...deployment })),
     dryRun: command.dryRun,
     onProgress: logDeployProgress,
     pollIntervalSeconds: command.pollIntervalSeconds,

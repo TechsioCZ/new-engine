@@ -98,7 +98,7 @@ const isMeiliSourceProvisionable = (
     return false
   }
 
-  return Boolean((deployment.env?.MEILI_MASTER_KEY ?? "").trim())
+  return Boolean((deployment.env?.["MEILI_MASTER_KEY"] ?? "").trim())
 }
 
 const isHealthyTarget = (

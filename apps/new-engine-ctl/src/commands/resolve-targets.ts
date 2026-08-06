@@ -58,16 +58,18 @@ export const createResolveTargetsCommand = (): Command => {
       const parsedOptions = commandOptionsSchema.parse(options)
       const input = resolveTargetsCommandInputSchema.parse({
         apiToken:
-          parsedOptions.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+          parsedOptions.apiToken ??
+          process.env["ZANE_OPERATOR_API_TOKEN"] ??
+          "",
         baseUrl:
-          parsedOptions.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+          parsedOptions.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
         dryRun: parsedOptions.dryRun,
         environmentName: parsedOptions.environmentName,
         lane: parsedOptions.lane,
         outputJson: parsedOptions.outputJson,
         planJsonPath: parsedOptions.planJson,
         projectSlug:
-          parsedOptions.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+          parsedOptions.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
       })
       const result = await executeResolveTargets(input)
       const serviceIdsCsv = result.services

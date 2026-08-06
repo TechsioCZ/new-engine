@@ -20,8 +20,8 @@ describe("github-event", () => {
   let originalHeadRef: string | undefined
 
   beforeEach(() => {
-    originalPreviewBranch = process.env.ZANE_PREVIEW_GIT_BRANCH
-    originalHeadRef = process.env.GITHUB_HEAD_REF
+    originalPreviewBranch = process.env["ZANE_PREVIEW_GIT_BRANCH"]
+    originalHeadRef = process.env["GITHUB_HEAD_REF"]
     Reflect.deleteProperty(process.env, "ZANE_PREVIEW_GIT_BRANCH")
     Reflect.deleteProperty(process.env, "GITHUB_HEAD_REF")
   })
@@ -30,12 +30,12 @@ describe("github-event", () => {
     if (originalPreviewBranch === undefined) {
       Reflect.deleteProperty(process.env, "ZANE_PREVIEW_GIT_BRANCH")
     } else {
-      process.env.ZANE_PREVIEW_GIT_BRANCH = originalPreviewBranch
+      process.env["ZANE_PREVIEW_GIT_BRANCH"] = originalPreviewBranch
     }
     if (originalHeadRef === undefined) {
       Reflect.deleteProperty(process.env, "GITHUB_HEAD_REF")
     } else {
-      process.env.GITHUB_HEAD_REF = originalHeadRef
+      process.env["GITHUB_HEAD_REF"] = originalHeadRef
     }
   })
 
@@ -72,7 +72,7 @@ describe("github-event", () => {
   })
 
   test("explicit preview branch env overrides event payload", async () => {
-    process.env.ZANE_PREVIEW_GIT_BRANCH = "manual-preview-branch"
+    process.env["ZANE_PREVIEW_GIT_BRANCH"] = "manual-preview-branch"
     const { directory, eventPath } = await createEventFile({
       workflow_run: { head_branch: "master" },
     })

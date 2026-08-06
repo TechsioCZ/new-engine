@@ -30,20 +30,20 @@ const readNestedString = (value: unknown, path: string[]): string => {
 }
 
 export const resolveGitHubPreviewHeadBranch = async (
-  eventPath = process.env.GITHUB_EVENT_PATH,
+  eventPath = process.env["GITHUB_EVENT_PATH"],
 ): Promise<string> => {
   if (
-    process.env.ZANE_PREVIEW_GIT_BRANCH?.trim() !== undefined &&
-    process.env.ZANE_PREVIEW_GIT_BRANCH.trim() !== ""
+    process.env["ZANE_PREVIEW_GIT_BRANCH"]?.trim() !== undefined &&
+    process.env["ZANE_PREVIEW_GIT_BRANCH"].trim() !== ""
   ) {
-    return process.env.ZANE_PREVIEW_GIT_BRANCH.trim()
+    return process.env["ZANE_PREVIEW_GIT_BRANCH"].trim()
   }
 
   if (
-    process.env.GITHUB_HEAD_REF?.trim() !== undefined &&
-    process.env.GITHUB_HEAD_REF.trim() !== ""
+    process.env["GITHUB_HEAD_REF"]?.trim() !== undefined &&
+    process.env["GITHUB_HEAD_REF"].trim() !== ""
   ) {
-    return process.env.GITHUB_HEAD_REF.trim()
+    return process.env["GITHUB_HEAD_REF"].trim()
   }
 
   if (eventPath === undefined || eventPath === "") {

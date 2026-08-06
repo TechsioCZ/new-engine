@@ -157,14 +157,14 @@ const parseErrorMessage = (payload: unknown, fallback: string): string => {
     return fallback
   }
 
-  if (typeof payload.detail === "string" && payload.detail.trim()) {
-    return payload.detail
+  if (typeof payload["detail"] === "string" && payload["detail"].trim()) {
+    return payload["detail"]
   }
-  if (typeof payload.message === "string" && payload.message.trim()) {
-    return payload.message
+  if (typeof payload["message"] === "string" && payload["message"].trim()) {
+    return payload["message"]
   }
-  if (typeof payload.code === "string" && payload.code.trim()) {
-    return `${fallback} (${payload.code})`
+  if (typeof payload["code"] === "string" && payload["code"].trim()) {
+    return `${fallback} (${payload["code"]})`
   }
 
   return fallback
@@ -280,16 +280,16 @@ const matchesPolicy = (
   }
 
   return (
-    keyObject.uid === policy.uid &&
+    keyObject["uid"] === policy.uid &&
     matchesPermissions(keyObject, policy) &&
-    keyObject.description === policy.description
+    keyObject["description"] === policy.description
   )
 }
 
 const matchesDescription = (
   keyObject: Record<string, unknown>,
   policy: PolicyDefinition,
-): boolean => keyObject.description === policy.description
+): boolean => keyObject["description"] === policy.description
 
 const getKeyByUid = async (
   input: RequestOptions & {
@@ -521,13 +521,13 @@ export const provisionMeiliKeys = async (input: {
   return meiliProvisionResponseSchema.parse({
     backend_created: backend.created,
     backend_env_var: backendEnvVar,
-    backend_key: readString(backend.keyObject.key, ""),
-    backend_uid: readString(backend.keyObject.uid, backendPolicy.uid),
+    backend_key: readString(backend.keyObject["key"], ""),
+    backend_uid: readString(backend.keyObject["uid"], backendPolicy.uid),
     backend_updated: backend.updated,
     frontend_created: frontend.created,
     frontend_env_var: frontendEnvVar,
-    frontend_key: readString(frontend.keyObject.key, ""),
-    frontend_uid: readString(frontend.keyObject.uid, frontendPolicy.uid),
+    frontend_key: readString(frontend.keyObject["key"], ""),
+    frontend_uid: readString(frontend.keyObject["uid"], frontendPolicy.uid),
     frontend_updated: frontend.updated,
     meili_url: normalizeBaseUrl(input.meiliUrl),
   })
@@ -621,13 +621,13 @@ export const verifyMeiliKeys = async (input: {
     )
   }
 
-  if (readString(backend.key, "") !== input.backendKey) {
+  if (readString(backend["key"], "") !== input.backendKey) {
     throw new Error(
       `Provided backend key does not match key stored under uid=${backendPolicy.uid}.`,
     )
   }
 
-  if (readString(frontend.key, "") !== input.frontendKey) {
+  if (readString(frontend["key"], "") !== input.frontendKey) {
     throw new Error(
       `Provided frontend key does not match key stored under uid=${frontendPolicy.uid}.`,
     )

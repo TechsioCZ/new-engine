@@ -33,15 +33,17 @@ export const createApplyEnvOverridesCommand = (): Command => {
       const parsedOptions = commandOptionsSchema.parse(options)
       const input = applyEnvOverridesCommandInputSchema.parse({
         apiToken:
-          parsedOptions.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+          parsedOptions.apiToken ??
+          process.env["ZANE_OPERATOR_API_TOKEN"] ??
+          "",
         baseUrl:
-          parsedOptions.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+          parsedOptions.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
         dryRun: parsedOptions.dryRun,
         envOverridesJsonPath: parsedOptions.envOverridesJson,
         environmentName: parsedOptions.environmentName,
         outputJson: parsedOptions.outputJson,
         projectSlug:
-          parsedOptions.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+          parsedOptions.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
         targetsJsonPath: parsedOptions.targetsJson,
       })
       const result = await executeApplyEnvOverrides(input)

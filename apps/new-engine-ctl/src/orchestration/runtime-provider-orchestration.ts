@@ -248,8 +248,8 @@ const buildRuntimeProviderAdapters = (
       ),
     reusePersisted: ({ need, stackInputs, targets, state }) => {
       const reused = reusePersistedMeiliKeysFromTargets({
-        backendConsumerIds: need.outputConsumerIds.backend_key ?? [],
-        frontendConsumerIds: need.outputConsumerIds.frontend_key ?? [],
+        backendConsumerIds: need.outputConsumerIds["backend_key"] ?? [],
+        frontendConsumerIds: need.outputConsumerIds["frontend_key"] ?? [],
         providerId: need.providerId,
         stackInputs,
         targets,
@@ -318,7 +318,7 @@ const buildRuntimeProviderAdapters = (
       ),
     reusePersisted: ({ need, stackInputs, targets, state }) => {
       const reused = reusePersistedMedusaPublishableKeyFromTargets({
-        consumerIds: need.outputConsumerIds.frontend_key ?? [],
+        consumerIds: need.outputConsumerIds["frontend_key"] ?? [],
         providerId: need.providerId,
         stackInputs,
         targets,

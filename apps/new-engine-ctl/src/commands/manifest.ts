@@ -35,7 +35,7 @@ export const createManifestCommand = (): Command => {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .action(async (options: unknown) => {
       const parsedOptions = composeCommandOptionsSchema.parse(options)
@@ -55,7 +55,7 @@ export const createManifestCommand = (): Command => {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .action(async (options: unknown) => {
       const parsedOptions = serviceSlugsCommandOptionsSchema.parse(options)

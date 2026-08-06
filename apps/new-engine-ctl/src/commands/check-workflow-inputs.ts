@@ -36,7 +36,7 @@ const requireAndMaskZaneProjectSlug = (): void => {
 const validateMode = (mode: WorkflowInputMode): void => {
   switch (mode) {
     case "preview-prepare": {
-      if (process.env.REQUIRES_PREVIEW_DB === "true") {
+      if (process.env["REQUIRES_PREVIEW_DB"] === "true") {
         requireEnv({
           description: "preview DB operator base URL",
           name: "ZANE_OPERATOR_BASE_URL",

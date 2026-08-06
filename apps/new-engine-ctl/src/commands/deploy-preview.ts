@@ -54,12 +54,12 @@ const buildDeployPreviewInput = (
       : undefined
 
   return deployPreviewCommandInputSchema.parse({
-    apiToken: apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-    baseUrl: baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+    apiToken: apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
+    baseUrl: baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
     dryRun,
     dryRunCreated,
     meiliApiCredentialsProviderId:
-      process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
+      process.env["ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID"] ??
       "meili_api_credentials",
     outputJson,
     pollIntervalSeconds:
@@ -70,16 +70,16 @@ const buildDeployPreviewInput = (
     previewDbName,
     previewDbPassword,
     previewDbUser,
-    previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
-    projectSlug: projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+    previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
+    projectSlug: projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
     servicesCsv,
     sourceEnvironmentName:
       sourceEnvironmentName ??
-      process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
+      process.env["ZANE_PRODUCTION_ENVIRONMENT_NAME"] ??
       "",
     stackInputsPath,
     stackManifestPath,
-    targetCommitSha: targetCommitSha ?? process.env.TARGET_COMMIT_SHA ?? "",
+    targetCommitSha: targetCommitSha ?? process.env["TARGET_COMMIT_SHA"] ?? "",
     waitTimeoutSeconds:
       typeof waitTimeoutSeconds === "string" && waitTimeoutSeconds.trim()
         ? Number(waitTimeoutSeconds)
@@ -190,12 +190,12 @@ export const createDeployPreviewCommand = (): Command => {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath,
     )
     .action(async (options: unknown) => {
       const parsedOptions = commandOptionsSchema.parse(options)

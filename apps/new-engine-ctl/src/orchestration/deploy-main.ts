@@ -73,13 +73,13 @@ const supportsPrettyLogs = (): boolean => {
   }
 
   if (
-    isEnvFlagSet(process.env.GITHUB_ACTIONS) ||
-    isEnvFlagSet(process.env.NO_COLOR)
+    isEnvFlagSet(process.env["GITHUB_ACTIONS"]) ||
+    isEnvFlagSet(process.env["NO_COLOR"])
   ) {
     return false
   }
 
-  return process.env.TERM !== "dumb"
+  return process.env["TERM"] !== "dumb"
 }
 
 const colorize = (text: string, code: string): string =>
@@ -305,7 +305,7 @@ const runDeployStage = async (
     baseUrl: input.baseUrl,
     cancelOnInterrupt: true,
     deployServicesCsv: stageServicesCsv,
-    deployments: stageDeployments,
+    deployments: stageDeployments.map((deployment) => ({ ...deployment })),
     dryRun: input.dryRun,
     environmentName: environment.environment_name,
     lane: "main",

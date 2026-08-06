@@ -5,18 +5,18 @@ export const appendGitHubOutput = async (
   value: string,
 ): Promise<void> => {
   if (
-    process.env.GITHUB_OUTPUT === undefined ||
-    process.env.GITHUB_OUTPUT === ""
+    process.env["GITHUB_OUTPUT"] === undefined ||
+    process.env["GITHUB_OUTPUT"] === ""
   ) {
     return
   }
 
-  await appendFile(process.env.GITHUB_OUTPUT, `${key}=${value}\n`, "utf-8")
+  await appendFile(process.env["GITHUB_OUTPUT"], `${key}=${value}\n`, "utf-8")
 }
 
 export const maskGitHubValue = (value: string | undefined): void => {
   if (
-    process.env.GITHUB_ACTIONS === "true" &&
+    process.env["GITHUB_ACTIONS"] === "true" &&
     value !== undefined &&
     value !== ""
   ) {
@@ -25,7 +25,7 @@ export const maskGitHubValue = (value: string | undefined): void => {
 }
 
 export const warnGitHub = (message: string): void => {
-  if (process.env.GITHUB_ACTIONS === "true") {
+  if (process.env["GITHUB_ACTIONS"] === "true") {
     process.stderr.write(`::warning::${message}\n`)
     return
   }

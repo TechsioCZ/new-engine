@@ -60,8 +60,8 @@ const collectEnvMaps = (
     return envMaps
   }
 
-  if (isRecord(value.env)) {
-    envMaps.push(value.env)
+  if (isRecord(value["env"])) {
+    envMaps.push(value["env"])
   }
 
   for (const child of Object.values(value)) {
@@ -129,7 +129,8 @@ describe("CI workflow contracts", () => {
           ).toBeFalsy()
           expect(
             !Object.hasOwn(envMap, "ZANEOPS_ZANE_PROJECT_SLUG") ||
-              envMap.ZANE_PROJECT_SLUG === envMap.ZANEOPS_ZANE_PROJECT_SLUG,
+              envMap["ZANE_PROJECT_SLUG"] ===
+                envMap["ZANEOPS_ZANE_PROJECT_SLUG"],
           ).toBeTruthy()
         }
       }

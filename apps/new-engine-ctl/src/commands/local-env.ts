@@ -28,7 +28,7 @@ export const createLocalEnvCommand = (): Command => {
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath,
     )
     .action(async (options: unknown) => {
       const parsedOptions = commandOptionsSchema.parse(options)

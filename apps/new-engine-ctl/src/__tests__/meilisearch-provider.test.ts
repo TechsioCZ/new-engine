@@ -124,14 +124,14 @@ describe("meilisearch-provider", () => {
       }
 
       if (url.pathname === "/keys" && method === "POST") {
-        if (!body || typeof body.uid !== "string") {
+        if (!body || typeof body["uid"] !== "string") {
           return jsonResponse({ message: "Missing key UID" }, 400)
         }
 
         const created = {
           ...keyPolicySchema.parse(body),
           expiresAt: null,
-          key: `key-${body.uid}`,
+          key: `key-${body["uid"]}`,
         }
         keys.set(created.uid, created)
         return jsonResponse(created)
@@ -153,7 +153,7 @@ describe("meilisearch-provider", () => {
 
         const updated = {
           ...existing,
-          description: String(body.description),
+          description: String(body["description"]),
         }
         keys.set(uid, updated)
         return jsonResponse(updated)

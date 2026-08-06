@@ -158,7 +158,10 @@ const requireNonEmptyLiteralSource = (input: {
   label: string
   source: PreviewSharedEnvVariableInput["source"]
 }): PreviewSharedEnvVariableInput["source"] => {
-  if (input.source.kind === "literal" && input.source.value.length === 0) {
+  if (
+    input.source.kind === "literal" &&
+    (input.source.value === undefined || input.source.value.length === 0)
+  ) {
     throw new Error(`${input.label} resolved to an empty literal value.`)
   }
 

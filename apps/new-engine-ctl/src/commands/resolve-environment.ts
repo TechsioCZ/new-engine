@@ -45,12 +45,12 @@ export const createResolveEnvironmentCommand = (): Command => {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath,
     )
     .option("--dry-run", "", false)
     .option("--dry-run-created", "", false)
@@ -61,8 +61,9 @@ export const createResolveEnvironmentCommand = (): Command => {
           ? Number(options.prNumber)
           : undefined
       const input = resolveEnvironmentCommandInputSchema.parse({
-        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+        apiToken:
+          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
+        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
         dryRun: Boolean(options.dryRun),
         dryRunCreated: Boolean(options.dryRunCreated),
         environmentName: options.environmentName ?? "",
@@ -70,18 +71,19 @@ export const createResolveEnvironmentCommand = (): Command => {
         outputJson: options.outputJson,
         prNumber: parsedPrNumber,
         previewClonedServiceIdsCsv: options.previewClonedServiceIdsCsv,
-        previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
+        previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
         previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
         previewGitBranch:
           typeof options.previewGitBranch === "string" &&
           options.previewGitBranch.trim() !== ""
             ? options.previewGitBranch.trim()
-            : (process.env.ZANE_PREVIEW_GIT_BRANCH?.trim() ?? ""),
-        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+            : (process.env["ZANE_PREVIEW_GIT_BRANCH"]?.trim() ?? ""),
+        projectSlug:
+          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
         reconcileServiceIdsCsv: options.reconcileServiceIdsCsv,
         sourceEnvironmentName:
           options.sourceEnvironmentName ??
-          process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
+          process.env["ZANE_PRODUCTION_ENVIRONMENT_NAME"] ??
           "",
         stackInputsPath: options.stackInputsPath,
         stackManifestPath: options.stackManifestPath,

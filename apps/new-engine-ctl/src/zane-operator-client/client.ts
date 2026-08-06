@@ -61,19 +61,19 @@ const extractOperatorMessage = (body: unknown): string | undefined => {
     return undefined
   }
 
-  const directMessage = normalizeMessage(body.message)
+  const directMessage = normalizeMessage(body["message"])
   if (directMessage !== undefined) {
     return directMessage
   }
 
-  const errorField = body.error
+  const errorField = body["error"]
   const errorMessage = normalizeMessage(errorField)
   if (errorMessage !== undefined) {
     return errorMessage
   }
 
   if (isRecord(errorField)) {
-    return normalizeMessage(errorField.message)
+    return normalizeMessage(errorField["message"])
   }
 
   return undefined

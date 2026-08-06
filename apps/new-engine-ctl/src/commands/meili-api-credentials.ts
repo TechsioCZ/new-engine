@@ -40,12 +40,12 @@ export const createMeiliApiCredentialsCommand = (): Command => {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath,
     )
     .action(async (options: unknown) => {
       const parsedOptions = commandOptionsSchema.parse(options)
@@ -53,13 +53,14 @@ export const createMeiliApiCredentialsCommand = (): Command => {
         dryRun: parsedOptions.dryRun,
         masterKey:
           parsedOptions.masterKey ??
-          process.env.MEILISEARCH_MASTER_KEY ??
-          process.env.DC_MEILISEARCH_MASTER_KEY ??
+          process.env["MEILISEARCH_MASTER_KEY"] ??
+          process.env["DC_MEILISEARCH_MASTER_KEY"] ??
           "",
-        meiliUrl: parsedOptions.meiliUrl ?? process.env.MEILISEARCH_URL ?? "",
+        meiliUrl:
+          parsedOptions.meiliUrl ?? process.env["MEILISEARCH_URL"] ?? "",
         outputJson: parsedOptions.outputJson,
         providerId:
-          process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
+          process.env["ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID"] ??
           "meili_api_credentials",
         retryCount: parseOptionalNumber(parsedOptions.retryCount),
         retryDelaySeconds: parseOptionalNumber(parsedOptions.retryDelaySeconds),

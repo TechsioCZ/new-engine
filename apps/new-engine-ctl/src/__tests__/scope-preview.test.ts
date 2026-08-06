@@ -35,11 +35,11 @@ describe("scope-preview", () => {
       Path: "C:\\Windows\\System32",
     })
 
-    expect(env.Path).toBe(
+    expect(env["Path"]).toBe(
       [workspaceBinPath, "C:\\Windows\\System32"].join(nodePath.delimiter),
     )
     expect(Object.hasOwn(env, "PATH")).toBeFalsy()
-    expect(env.OTHER_VALUE).toBe("kept")
+    expect(env["OTHER_VALUE"]).toBe("kept")
   })
 
   test("scope removes duplicate path casing when prefixing workspace bin", () => {
@@ -48,7 +48,7 @@ describe("scope-preview", () => {
       Path: "C:\\Windows\\System32",
     })
 
-    expect(env.PATH).toBe(
+    expect(env["PATH"]).toBe(
       [workspaceBinPath, "/usr/bin"].join(nodePath.delimiter),
     )
     expect(Object.hasOwn(env, "Path")).toBeFalsy()

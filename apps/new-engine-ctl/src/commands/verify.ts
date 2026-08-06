@@ -61,12 +61,12 @@ export const createVerifyCommand = (): Command => {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath,
     )
     .option(
       "--dry-run",
@@ -87,9 +87,11 @@ export const createVerifyCommand = (): Command => {
       )
       const input = verifyCommandInputSchema.parse({
         apiToken:
-          parsedOptions.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+          parsedOptions.apiToken ??
+          process.env["ZANE_OPERATOR_API_TOKEN"] ??
+          "",
         baseUrl:
-          parsedOptions.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+          parsedOptions.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
         deployServicesCsv: parsedOptions.deployServicesCsv,
         deployments,
         dryRun: parsedOptions.dryRun,
@@ -104,7 +106,7 @@ export const createVerifyCommand = (): Command => {
           parsedOptions.previewExcludedServiceIdsCsv,
         previewRandomOnceSecrets,
         projectSlug:
-          parsedOptions.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+          parsedOptions.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
         requestedServicesCsv: parsedOptions.requestedServicesCsv,
         runtimeProviderOutputs,
         stackInputsPath: parsedOptions.stackInputsPath,

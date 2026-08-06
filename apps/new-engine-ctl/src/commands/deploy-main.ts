@@ -41,24 +41,25 @@ export const createDeployMainCommand = (): Command => {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath,
     )
     .action(async (rawOptions: unknown) => {
       const options = deployMainOptionsSchema.parse(rawOptions)
       const input = deployMainCommandInputSchema.parse({
-        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+        apiToken:
+          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
         approveDowntimeRisk: Boolean(options.approveDowntimeRisk),
-        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
         dryRun: Boolean(options.dryRun),
         environmentName: options.environmentName,
         gitCommitSha: options.gitCommitSha,
         meiliApiCredentialsProviderId:
-          process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
+          process.env["ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID"] ??
           "meili_api_credentials",
         outputJson: options.outputJson,
         pollIntervalSeconds:
@@ -66,7 +67,8 @@ export const createDeployMainCommand = (): Command => {
           options.pollIntervalSeconds.trim() !== ""
             ? Number(options.pollIntervalSeconds)
             : undefined,
-        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+        projectSlug:
+          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
         servicesCsv: options.servicesCsv,
         stackInputsPath: options.stackInputsPath,
         stackManifestPath: options.stackManifestPath,

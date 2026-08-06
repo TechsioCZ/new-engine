@@ -28,7 +28,7 @@ export const createPlanCommand = (): Command => {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .action(async (options: unknown) => {
       const parsedOptions = commandOptionsSchema.parse(options)
@@ -41,7 +41,7 @@ export const createPlanCommand = (): Command => {
         lane: parsedOptions.lane,
         outputJson: parsedOptions.outputJson,
         prNumber: parsedPrNumber,
-        previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
+        previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
         servicesCsv: parsedOptions.servicesCsv,
         stackManifestPath: parsedOptions.stackManifestPath,
       })

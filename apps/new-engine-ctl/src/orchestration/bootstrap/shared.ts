@@ -12,7 +12,7 @@ const execFileAsync = promisify(
     file: string,
     args: readonly string[],
     options: ExecFileOptions,
-    settle: (error: ExecFileException | null, stdout: string) => void,
+    settle: (error: ExecFileException | null, stdout: string | Buffer) => void,
   ) => {
     execFile(file, args, options, settle)
   },
@@ -41,7 +41,7 @@ const readGitValue = async (args: string[]): Promise<string | undefined> => {
     const stdout = await execFileAsync("git", args, {
       cwd: repoRoot,
     })
-    const value = stdout.trim()
+    const value = stdout.toString().trim()
     return value || undefined
   } catch {
     return undefined

@@ -38,14 +38,14 @@ const buildPrepareInput = (options: z.infer<typeof commandOptionsSchema>) => {
     timeoutSeconds,
   } = options
   return prepareCommandInputSchema.parse({
-    apiToken: apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-    baseUrl: baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+    apiToken: apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
+    baseUrl: baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
     dryRun,
     lane,
     outputJson,
     prNumber: parseOptionalNumber(prNumber),
-    previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
-    projectSlug: projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+    previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
+    projectSlug: projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
     requiresPreviewDb,
     stackInputsPath,
     stackManifestPath,
@@ -85,12 +85,12 @@ export const createPrepareCommand = (): Command => {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath,
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath,
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath,
     )
     .action(async (options: unknown) => {
       const parsedOptions = commandOptionsSchema.parse(options)
