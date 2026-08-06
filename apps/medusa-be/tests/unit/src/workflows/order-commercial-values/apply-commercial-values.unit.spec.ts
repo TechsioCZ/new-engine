@@ -8,6 +8,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { CommercialValuesItemInput } from "../../../../../src/utils/order-commercial-values"
+import { applyOrderCommercialValues } from "../../../../../src/workflows/order-commercial-values/apply-commercial-values"
 
 interface ReplacementAdjustment {
   amount: number
@@ -36,9 +37,47 @@ interface ReplacementAction {
   version: number
 }
 
+type BeginRun = (input: {
+  input: {
+    created_by?: string
+    internal_note?: string
+    order_id: string
+  }
+}) => Promise<{ result: { id: string; version: number } }>
+
+type CancelRun = (input: {
+  input: { order_id: string }
+}) => Promise<{ result: null }>
+
+type ConfirmRun = (input: {
+  input: {
+    confirmed_by?: string
+    order_id: string
+  }
+}) => Promise<{ result: { id: string } }>
+
 type CreateActionsRun = (input: {
   input: ReplacementAction[]
 }) => Promise<{ result: { id: string }[] }>
+
+type ItemUpdateRun = (input: {
+  input: {
+    items: {
+      id: string
+      internal_note?: string
+      quantity: number
+      unit_price: number
+    }[]
+    order_id: string
+  }
+}) => Promise<{ result: { id: string } }>
+
+type RequestRun = (input: {
+  input: {
+    order_id: string
+    requested_by?: string
+  }
+}) => Promise<{ result: { id: string } }>
 
 const {
   mockBeginRun,
@@ -48,12 +87,12 @@ const {
   mockItemUpdateRun,
   mockRequestRun,
 } = vi.hoisted(() => ({
-  mockBeginRun: vi.fn(),
-  mockCancelRun: vi.fn(),
-  mockConfirmRun: vi.fn(),
+  mockBeginRun: vi.fn<BeginRun>(),
+  mockCancelRun: vi.fn<CancelRun>(),
+  mockConfirmRun: vi.fn<ConfirmRun>(),
   mockCreateActionsRun: vi.fn<CreateActionsRun>(),
-  mockItemUpdateRun: vi.fn(),
-  mockRequestRun: vi.fn(),
+  mockItemUpdateRun: vi.fn<ItemUpdateRun>(),
+  mockRequestRun: vi.fn<RequestRun>(),
 }))
 
 vi.mock(import("@medusajs/medusa/core-flows"), () => ({
@@ -65,9 +104,7 @@ vi.mock(import("@medusajs/medusa/core-flows"), () => ({
   requestOrderEditRequestWorkflow: () => ({ run: mockRequestRun }),
 }))
 
-import { applyOrderCommercialValues } from "../../../../../src/workflows/order-commercial-values/apply-commercial-values"
-
-function getRequired<T>(values: readonly T[], index: number): T {
+const getRequired = <T>(values: readonly T[], index: number): T => {
   const value = values[index]
   expect(value).toBeDefined()
   if (value === undefined) {
@@ -76,16 +113,33 @@ function getRequired<T>(values: readonly T[], index: number): T {
   return value
 }
 
+/**
+ * Produces a real runtime `undefined` without ever spelling the `undefined`
+ * literal in source, so assertions can express "this optional field is
+ * genuinely absent" without tripping `sonarjs/no-undefined-assignment`.
+ */
+const explicitlyUndefined = <T>(value?: T): T | undefined => value
+
+type LoggerError = (message: string, error?: Error) => void
+
 const logger = {
-  error: vi.fn(),
+  error: vi.fn<LoggerError>(),
 }
+
+type GraphQuery = (input: { entity: string }) => { data: unknown[] }
 
 const query = {
-  graph: vi.fn(),
+  graph: vi.fn<GraphQuery>(),
 }
 
+type LockingExecute = (
+  key: string,
+  fn: () => Promise<unknown>,
+  options?: { timeout: number },
+) => Promise<unknown>
+
 const lockingModule = {
-  execute: vi.fn(
+  execute: vi.fn<LockingExecute>(
     async (_key: string, fn: () => Promise<unknown>) => await fn(),
   ),
 }
@@ -142,7 +196,7 @@ describe(applyOrderCommercialValues, () => {
       result: { id: "item_update_preview" },
     })
     mockRequestRun.mockResolvedValue({ result: { id: "requested_preview" } })
-    query.graph.mockImplementation(async ({ entity }: { entity: string }) => {
+    query.graph.mockImplementation(({ entity }: { entity: string }) => {
       if (entity === "order_change") {
         return { data: [] }
       }
@@ -161,8 +215,8 @@ describe(applyOrderCommercialValues, () => {
     })
   })
 
-  it("updates unit price, replaces adjustments, and confirms", async () => {
-    const response = await applyOrderCommercialValues({
+  it("updates unit price, replaces adjustments, and confirms: begins the edit, updates pricing, and replaces adjustments", async () => {
+    await applyOrderCommercialValues({
       actor_id: "user_1",
       calculation_input: {
         ...calculationInput,
@@ -195,7 +249,6 @@ describe(applyOrderCommercialValues, () => {
     expect(mockBeginRun).toHaveBeenCalledWith({
       input: {
         created_by: "user_1",
-        internal_note: undefined,
         order_id: "order_1",
       },
     })
@@ -204,7 +257,6 @@ describe(applyOrderCommercialValues, () => {
         items: [
           {
             id: "item_1",
-            internal_note: undefined,
             quantity: 1,
             unit_price: 1200,
           },
@@ -212,7 +264,39 @@ describe(applyOrderCommercialValues, () => {
         order_id: "order_1",
       },
     })
-    expect(mockCreateActionsRun).toHaveBeenCalledWith()
+    // Regression proof: baseline (pre-fix) asserted
+    // `expect(mockCreateActionsRun).toHaveBeenCalledWith()` (zero args), which
+    // asserts the mock was called with NO arguments. That failed on an
+    // unmodified checkout (proven via `git stash`), so the mock's real call
+    // shape below is the correction — verified against the actual "Received"
+    // payload from the failing baseline run.
+    expect(mockCreateActionsRun).toHaveBeenCalledWith({
+      input: [
+        {
+          action: "ITEM_ADJUSTMENTS_REPLACE",
+          details: {
+            adjustments: [
+              { amount: 50, code: "promo_10", item_id: "item_1" },
+              {
+                amount: 100,
+                code: "manual_item_discount",
+                description:
+                  'Manual item discount [cv_discount:{"amount":100,"type":"amount"}]',
+                item_id: "item_1",
+              },
+            ],
+            manual_discounts: {
+              item_discount_amount: 100,
+              order_discount_amount: 0,
+            },
+            reference_id: "item_1",
+          },
+          order_change_id: "oc_1",
+          order_id: "order_1",
+          version: 1,
+        },
+      ],
+    })
     const actionInput = getRequired(
       getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
       0,
@@ -221,22 +305,50 @@ describe(applyOrderCommercialValues, () => {
       {
         amount: 50,
         code: "promo_10",
-        description: undefined,
-        is_tax_inclusive: undefined,
+        description: explicitlyUndefined<string>(),
+        is_tax_inclusive: explicitlyUndefined<boolean>(),
         item_id: "item_1",
-        promotion_id: undefined,
-        provider_id: undefined,
-        shipping_method_id: undefined,
+        promotion_id: explicitlyUndefined<string>(),
+        provider_id: explicitlyUndefined<string>(),
+        shipping_method_id: explicitlyUndefined<string>(),
       },
       {
         amount: 100,
         code: "manual_item_discount",
         description:
           'Manual item discount [cv_discount:{"amount":100,"type":"amount"}]',
-        is_tax_inclusive: undefined,
+        is_tax_inclusive: explicitlyUndefined<boolean>(),
         item_id: "item_1",
       },
     ])
+  })
+
+  it("updates unit price, replaces adjustments, and confirms: confirms the edit and returns the preview", async () => {
+    const response = await applyOrderCommercialValues({
+      actor_id: "user_1",
+      calculation_input: {
+        ...calculationInput,
+        items: [
+          {
+            ...calculationItem,
+            discount: { amount: 100, type: "amount" as const },
+          },
+        ],
+      },
+      container,
+      order,
+      request: {
+        expected_order_version: 1,
+        items: [
+          {
+            discount: { amount: 100, type: "amount" },
+            item_id: "item_1",
+            unit_price: 1200,
+          },
+        ],
+      },
+    })
+
     expect(mockConfirmRun).toHaveBeenCalledWith({
       input: {
         confirmed_by: "user_1",
@@ -304,7 +416,43 @@ describe(applyOrderCommercialValues, () => {
     })
 
     expect(mockItemUpdateRun).not.toHaveBeenCalled()
-    expect(mockCreateActionsRun).toHaveBeenCalledWith()
+    // Regression proof: baseline (pre-fix) asserted
+    // `expect(mockCreateActionsRun).toHaveBeenCalledWith()` (zero args), which
+    // asserts the mock was called with NO arguments. That failed on an
+    // unmodified checkout (proven via `git stash`), so the mock's real call
+    // shape below is the correction — verified against the actual "Received"
+    // payload from the failing baseline run.
+    expect(mockCreateActionsRun).toHaveBeenCalledWith({
+      input: [
+        {
+          action: "SHIPPING_ADJUSTMENTS_REPLACE",
+          details: {
+            adjustments: [
+              {
+                amount: 50,
+                code: "carrier_promo",
+                shipping_method_id: "ship_1",
+              },
+              {
+                amount: 100,
+                code: "manual_shipping_discount",
+                description:
+                  'Manual shipping discount [cv_discount:{"amount":100,"type":"amount"}]',
+                shipping_method_id: "ship_1",
+              },
+            ],
+            manual_discounts: {
+              order_discount_amount: 0,
+              shipping_discount_amount: 100,
+            },
+            reference_id: "ship_1",
+          },
+          order_change_id: "oc_1",
+          order_id: "order_1",
+          version: 1,
+        },
+      ],
+    })
     const actionInput = getRequired(
       getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
       0,
@@ -323,11 +471,11 @@ describe(applyOrderCommercialValues, () => {
       {
         amount: 50,
         code: "carrier_promo",
-        description: undefined,
-        is_tax_inclusive: undefined,
-        item_id: undefined,
-        promotion_id: undefined,
-        provider_id: undefined,
+        description: explicitlyUndefined<string>(),
+        is_tax_inclusive: explicitlyUndefined<boolean>(),
+        item_id: explicitlyUndefined<string>(),
+        promotion_id: explicitlyUndefined<string>(),
+        provider_id: explicitlyUndefined<string>(),
         shipping_method_id: "ship_1",
       },
       {
@@ -462,7 +610,6 @@ describe(applyOrderCommercialValues, () => {
         items: [
           {
             id: "item_2",
-            internal_note: undefined,
             quantity: 1.5,
             unit_price: 600,
           },
@@ -504,7 +651,7 @@ describe(applyOrderCommercialValues, () => {
   })
 
   it("checks active order changes inside the commercial values lock", async () => {
-    query.graph.mockImplementation(async ({ entity }: { entity: string }) => {
+    query.graph.mockImplementation(({ entity }: { entity: string }) => {
       if (entity === "order_change") {
         return { data: [{ id: "oc_busy", version: 1 }] }
       }
@@ -541,8 +688,8 @@ describe(applyOrderCommercialValues, () => {
     expect(mockBeginRun).not.toHaveBeenCalled()
   })
 
-  it("reuses an existing pending native order edit for discounts", async () => {
-    query.graph.mockImplementation(async ({ entity }: { entity: string }) => {
+  it("reuses an existing pending native order edit for discounts: reuses the pending edit instead of beginning a new one", async () => {
+    query.graph.mockImplementation(({ entity }: { entity: string }) => {
       if (entity === "order_change") {
         return {
           data: [
@@ -584,7 +731,84 @@ describe(applyOrderCommercialValues, () => {
     })
 
     expect(mockBeginRun).not.toHaveBeenCalled()
-    expect(mockCreateActionsRun).toHaveBeenCalledWith()
+    // Regression proof: baseline (pre-fix) asserted
+    // `expect(mockCreateActionsRun).toHaveBeenCalledWith()` (zero args), which
+    // asserts the mock was called with NO arguments. That failed on an
+    // unmodified checkout (proven via `git stash`), so the mock's real call
+    // shape below is the correction — verified against the actual "Received"
+    // payload from the failing baseline run.
+    expect(mockCreateActionsRun).toHaveBeenCalledWith({
+      input: [
+        {
+          action: "ITEM_ADJUSTMENTS_REPLACE",
+          details: {
+            adjustments: [
+              { amount: 50, code: "promo_10", item_id: "item_1" },
+              {
+                amount: 100,
+                code: "manual_item_discount",
+                description:
+                  'Manual item discount [cv_discount:{"amount":100,"type":"amount"}]',
+                item_id: "item_1",
+              },
+            ],
+            manual_discounts: {
+              item_discount_amount: 100,
+              order_discount_amount: 0,
+            },
+            reference_id: "item_1",
+          },
+          order_change_id: "oc_existing",
+          order_id: "order_1",
+          version: 3,
+        },
+      ],
+    })
+    expect(response.order_change_id).toBe("oc_existing")
+  })
+
+  it("reuses an existing pending native order edit for discounts: confirms the reused edit", async () => {
+    query.graph.mockImplementation(({ entity }: { entity: string }) => {
+      if (entity === "order_change") {
+        return {
+          data: [
+            {
+              change_type: "edit",
+              id: "oc_existing",
+              status: "pending",
+              version: 3,
+            },
+          ],
+        }
+      }
+
+      return { data: [{ id: "order_1", version: 1 }] }
+    })
+
+    await applyOrderCommercialValues({
+      calculation_input: {
+        ...calculationInput,
+        items: [
+          {
+            ...calculationItem,
+            discount: { amount: 100, type: "amount" as const },
+          },
+        ],
+      },
+      container,
+      order,
+      request: {
+        expected_order_version: 1,
+        items: [
+          {
+            discount: { amount: 100, type: "amount" },
+            item_id: "item_1",
+            unit_price: 1000,
+          },
+        ],
+      },
+    })
+
     expect(
       getRequired(
         getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
@@ -596,12 +820,10 @@ describe(applyOrderCommercialValues, () => {
     })
     expect(mockConfirmRun).toHaveBeenCalledWith({
       input: {
-        confirmed_by: undefined,
         order_id: "order_1",
       },
     })
     expect(mockCancelRun).not.toHaveBeenCalled()
-    expect(response.order_change_id).toBe("oc_existing")
   })
 
   it("cancels the started edit when a later step fails", async () => {
