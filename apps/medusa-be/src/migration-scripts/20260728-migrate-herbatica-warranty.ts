@@ -12,7 +12,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { updateProductsWorkflow } from "@medusajs/medusa/core-flows"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, omitKeys } from "@techsio/std/object"
 
 import {
   getProductAttributeService,
@@ -36,7 +36,7 @@ const CONTENT_SECTION_KEYS = [
   "warning",
   "other",
 ] as const
-const HTML_TAG_REGEX = /<[a-z][\s\S]*?>/i
+const HTML_TAG_REGEX = /<[a-z][\s\S]*?>/iu
 
 type ProductMetadata = Record<string, unknown>
 interface ContentSection {
@@ -58,6 +58,12 @@ interface UnsafeProduct {
   reason: string
 }
 
+interface SafeWarrantyProduct {
+  id: string
+  metadata: ProductMetadata
+  warranty: string
+}
+
 type ProductAttributeService = ReturnType<typeof getProductAttributeService>
 type ProductAttributeContext = Context<SqlEntityManager>
 
@@ -70,26 +76,29 @@ export const isLegacyHerbaticaWarrantyMetadata = (
 
 const escapeHtml = (value: string) =>
   value
-    .replaceAll(/&/g, "&amp;")
-    .replaceAll(/</g, "&lt;")
-    .replaceAll(/>/g, "&gt;")
-    .replaceAll(/"/g, "&quot;")
-    .replaceAll(/'/g, "&#39;")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
 
 export const buildLegacyWarrantyFragment = (value: string) => {
-  const normalized = value.replaceAll(/\r\n/g, "\n").trim()
+  const normalized = value.replaceAll("\r\n", "\n").trim()
   return HTML_TAG_REGEX.test(normalized)
     ? `<h3>Zaruka</h3>\n${normalized}`
     : `<p><strong>Zaruka:</strong> ${escapeHtml(normalized)}</p>`
 }
 
-const removeExactFragment = (html: string, fragment: string) => {
+const removeExactFragment = (
+  html: string,
+  fragment: string,
+): string | undefined => {
   const firstIndex = html.indexOf(fragment)
   if (
     firstIndex === -1 ||
     html.includes(fragment, firstIndex + fragment.length)
   ) {
-    return
+    return undefined
   }
 
   let before = html.slice(0, firstIndex)
@@ -104,7 +113,7 @@ const removeExactFragment = (html: string, fragment: string) => {
 
 const parseContentSections = (value: unknown): ContentSection[] | undefined => {
   if (!Array.isArray(value) || value.length !== CONTENT_SECTION_KEYS.length) {
-    return
+    return undefined
   }
   const sections = value.filter(
     (section): section is ContentSection =>
@@ -119,17 +128,17 @@ const parseContentSections = (value: unknown): ContentSection[] | undefined => {
       (section, index) => section.key !== CONTENT_SECTION_KEYS[index],
     )
   ) {
-    return
+    return undefined
   }
   return sections
 }
 
-export function prepareLegacyWarrantyMigration(
+export const prepareLegacyWarrantyMigration = (
   metadata: ProductMetadata,
-): LegacyWarrantyMigrationPreparation {
+): LegacyWarrantyMigrationPreparation => {
   const warranty =
     typeof metadata["warranty"] === "string"
-      ? metadata["warranty"].replaceAll(/\r\n/g, "\n").trim()
+      ? metadata["warranty"].replaceAll("\r\n", "\n").trim()
       : ""
   if (!warranty) {
     return { reason: "metadata.warranty is absent or empty", safe: false }
@@ -168,7 +177,7 @@ export function prepareLegacyWarrantyMigration(
     }
   }
 
-  const { warranty: _warranty, ...metadataWithoutWarranty } = metadata
+  const metadataWithoutWarranty = omitKeys(metadata, ["warranty"])
   return {
     metadata: {
       ...metadataWithoutWarranty,
@@ -185,42 +194,41 @@ export function prepareLegacyWarrantyMigration(
   }
 }
 
-async function listProductsWithLegacyWarranty(
+// Product pages are fetched in id order and each page's stop condition
+// depends on the running offset and total from the previous page, so pages
+// are walked sequentially through recursion instead of a loop.
+const listProductsWithLegacyWarranty = async (
   productService: IProductModuleService,
-) {
-  const products: ProductDTO[] = []
-  let offset = 0
-  let count = Number.POSITIVE_INFINITY
+  offset = 0,
+): Promise<ProductDTO[]> => {
+  const [page, pageCount] = await productService.listAndCountProducts(
+    {},
+    {
+      order: { id: "ASC" },
+      select: ["id", "metadata"],
+      skip: offset,
+      take: PRODUCT_PAGE_SIZE,
+    },
+  )
+  const matching = page.filter((product) =>
+    isLegacyHerbaticaWarrantyMetadata(product.metadata),
+  )
+  const nextOffset = offset + page.length
 
-  while (offset < count) {
-    const [page, pageCount] = await productService.listAndCountProducts(
-      {},
-      {
-        order: { id: "ASC" },
-        select: ["id", "metadata"],
-        skip: offset,
-        take: PRODUCT_PAGE_SIZE,
-      },
-    )
-    products.push(
-      ...page.filter((product) =>
-        isLegacyHerbaticaWarrantyMetadata(product.metadata),
-      ),
-    )
-    count = pageCount
-    if (page.length === 0) {
-      break
-    }
-    offset += page.length
+  if (page.length === 0 || nextOffset >= pageCount) {
+    return matching
   }
 
-  return products
+  return [
+    ...matching,
+    ...(await listProductsWithLegacyWarranty(productService, nextOffset)),
+  ]
 }
 
-async function ensureWarrantyDefinition(
+const ensureWarrantyDefinition = async (
   service: ProductAttributeService,
   context: ProductAttributeContext,
-) {
+) => {
   const definitions = await service.listProductAttributeDefinitions(
     { key: WARRANTY_DEFINITION_KEY },
     { order: { id: "ASC" }, withDeleted: true },
@@ -262,7 +270,7 @@ async function ensureWarrantyDefinition(
   )
 }
 
-function collectWarrantyLabelsByKey(warranties: string[]) {
+const collectWarrantyLabelsByKey = (warranties: string[]) => {
   const labelsByKey = new Map<string, string>()
   for (const label of warranties) {
     const key = normalizeRequiredProductAttributeKey(
@@ -270,7 +278,7 @@ function collectWarrantyLabelsByKey(warranties: string[]) {
       "Warranty option key",
     )
     const collision = labelsByKey.get(key)
-    if (collision && collision !== label) {
+    if (collision !== undefined && collision !== "" && collision !== label) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         `Warranty option key collision from legacy labels "${collision}" and "${label}"`,
@@ -281,12 +289,55 @@ function collectWarrantyLabelsByKey(warranties: string[]) {
   return labelsByKey
 }
 
-async function ensureWarrantyOptions(
+// Each label is reconciled sequentially because the create/restore/update
+// calls share the same transaction context, so entries are walked through
+// recursion instead of a for-of loop.
+const ensureWarrantyOptionEntries = async (
+  definition: ProductAttributeDefinitionRecord,
+  service: ProductAttributeService,
+  context: ProductAttributeContext,
+  optionByKey: Map<string, ProductAttributeOptionRecord>,
+  entries: [string, string][],
+): Promise<void> => {
+  const [entry, ...remainingEntries] = entries
+  if (entry === undefined) {
+    return
+  }
+  const [key, label] = entry
+  const option = optionByKey.get(key)
+
+  if (option) {
+    if (option.deleted_at) {
+      await service.restoreProductAttributeOptions([option.id], {}, context)
+    }
+    const updated = await service.updateProductAttributeOptions(
+      { id: option.id, label },
+      context,
+    )
+    optionByKey.set(key, updated)
+  } else {
+    const created = await service.createProductAttributeOptions(
+      { definition_id: definition.id, key, label },
+      context,
+    )
+    optionByKey.set(key, created)
+  }
+
+  await ensureWarrantyOptionEntries(
+    definition,
+    service,
+    context,
+    optionByKey,
+    remainingEntries,
+  )
+}
+
+const ensureWarrantyOptions = async (
   definition: ProductAttributeDefinitionRecord,
   warranties: string[],
   service: ProductAttributeService,
   context: ProductAttributeContext,
-) {
+) => {
   const labelsByKey = collectWarrantyLabelsByKey(warranties)
   const keys = [...labelsByKey.keys()]
   const existing = await service.listProductAttributeOptions(
@@ -305,34 +356,18 @@ async function ensureWarrantyOptions(
     }
   }
 
-  for (const [key, label] of labelsByKey) {
-    const option = optionByKey.get(key)
-    if (!option) {
-      const created = await service.createProductAttributeOptions(
-        { definition_id: definition.id, key, label },
-        context,
-      )
-      optionByKey.set(key, created)
-      continue
-    }
-    if (option.deleted_at) {
-      await service.restoreProductAttributeOptions([option.id], {}, context)
-    }
-    const updated = await service.updateProductAttributeOptions(
-      { id: option.id, label },
-      context,
-    )
-    optionByKey.set(key, updated)
-  }
+  await ensureWarrantyOptionEntries(definition, service, context, optionByKey, [
+    ...labelsByKey,
+  ])
 
   return optionByKey
 }
 
-async function ensureWarrantyDefinitionAndOptions(
+const ensureWarrantyDefinitionAndOptions = async (
   warranties: string[],
   service: ProductAttributeService,
-) {
-  return await withProductAttributeTransaction(service, async (context) => {
+) =>
+  await withProductAttributeTransaction(service, async (context) => {
     const definition = await ensureWarrantyDefinition(service, context)
     const optionByKey = await ensureWarrantyOptions(
       definition,
@@ -342,6 +377,57 @@ async function ensureWarrantyDefinitionAndOptions(
     )
     return { definition, optionByKey }
   })
+
+// Safe Products are migrated one at a time because each Product Attribute
+// assignment and metadata update must complete before the next Product is
+// touched, so they are walked through recursion instead of a for-of loop.
+const migrateSafeWarrantyProductsSequentially = async (
+  products: SafeWarrantyProduct[],
+  container: ExecArgs["container"],
+  definition: ProductAttributeDefinitionRecord,
+  optionByKey: Map<string, ProductAttributeOptionRecord>,
+): Promise<number> => {
+  const [product, ...remainingProducts] = products
+  if (product === undefined) {
+    return 0
+  }
+
+  const optionKey = normalizeRequiredProductAttributeKey(product.warranty)
+  const option = optionByKey.get(optionKey)
+  if (!option) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Warranty option "${optionKey}" was not reconciled for Product "${product.id}"`,
+    )
+  }
+  await setProductAttributesWorkflow(container).run({
+    input: {
+      operations: [
+        {
+          action: "set",
+          definition_id: definition.id,
+          option_id: option.id,
+        },
+      ],
+      product_id: product.id,
+    },
+  })
+  await updateProductsWorkflow(container).run({
+    input: {
+      selector: { id: product.id },
+      update: { metadata: product.metadata },
+    },
+  })
+
+  return (
+    1 +
+    (await migrateSafeWarrantyProductsSequentially(
+      remainingProducts,
+      container,
+      definition,
+      optionByKey,
+    ))
+  )
 }
 
 export default async function migrateHerbaticaWarranty({
@@ -352,17 +438,14 @@ export default async function migrateHerbaticaWarranty({
     Modules.PRODUCT,
   )
   const products = await listProductsWithLegacyWarranty(productService)
-  const safe: {
-    id: string
-    metadata: ProductMetadata
-    warranty: string
-  }[] = []
+  const safe: SafeWarrantyProduct[] = []
   const unsafe: UnsafeProduct[] = []
 
   for (const product of products) {
-    const preparation = prepareLegacyWarrantyMigration(
-      product.metadata as ProductMetadata,
-    )
+    if (!isLegacyHerbaticaWarrantyMetadata(product.metadata)) {
+      continue
+    }
+    const preparation = prepareLegacyWarrantyMigration(product.metadata)
     if (preparation.safe) {
       safe.push({ id: product.id, ...preparation })
     } else {
@@ -392,36 +475,12 @@ export default async function migrateHerbaticaWarranty({
     safe.map(({ warranty }) => warranty),
     service,
   )
-  let migrated = 0
-  for (const product of safe) {
-    const optionKey = normalizeRequiredProductAttributeKey(product.warranty)
-    const option = optionByKey.get(optionKey)
-    if (!option) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        `Warranty option "${optionKey}" was not reconciled for Product "${product.id}"`,
-      )
-    }
-    await setProductAttributesWorkflow(container).run({
-      input: {
-        operations: [
-          {
-            action: "set",
-            definition_id: definition.id,
-            option_id: option.id,
-          },
-        ],
-        product_id: product.id,
-      },
-    })
-    await updateProductsWorkflow(container).run({
-      input: {
-        selector: { id: product.id },
-        update: { metadata: product.metadata },
-      },
-    })
-    migrated += 1
-  }
+  const migrated = await migrateSafeWarrantyProductsSequentially(
+    safe,
+    container,
+    definition,
+    optionByKey,
+  )
 
   logger.info(
     `Migrated ${migrated} legacy Herbatica Warranty Product record(s)`,
