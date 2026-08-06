@@ -24,9 +24,6 @@ const ALLOWED_HTML_TAGS = new Set([
   "ul",
 ])
 
-export const isSanitizedHtmlTagAllowed = (tag: string) =>
-  ALLOWED_HTML_TAGS.has(tag)
-
 const ALLOWED_GLOBAL_ATTRIBUTES = new Set(["title"])
 
 const ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {

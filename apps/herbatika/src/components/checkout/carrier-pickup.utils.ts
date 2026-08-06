@@ -3,7 +3,7 @@ import type { HerbatikaLocale } from "@/lib/storefront/market-context"
 const normalizeIdentifier = (value: unknown) =>
   typeof value === "string" ? value.trim().toLowerCase() : ""
 
-export type CarrierPickupType = "gls" | "packeta" | "ppl"
+type CarrierPickupType = "gls" | "packeta" | "ppl"
 
 export type CarrierPickupFailureReason =
   | "point_unavailable"
@@ -85,16 +85,6 @@ export const resolveCarrierPickupRequirement = (
   }
 
   return null
-}
-
-export const resolveCarrierPickupHint = (
-  requirement: CarrierPickupRequirement,
-) => {
-  if (requirement.carrier === "gls") {
-    return "GLS výdaj"
-  }
-
-  return requirement.carrier === "packeta" ? "Packeta výdaj" : "PPL výdaj"
 }
 
 export const resolveCarrierPickupWidgetLanguage = (locale: HerbatikaLocale) =>

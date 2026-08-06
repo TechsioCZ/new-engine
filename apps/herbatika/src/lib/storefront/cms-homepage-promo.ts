@@ -10,7 +10,7 @@ const HOMEPAGE_PROMO_PAGE_SLUG = "homepage-promo"
 const getMediaAlt = (media: CmsMediaValue) =>
   typeof media === "object" ? (media?.alt?.trim() ?? undefined) : undefined
 
-export const mapCmsPageToHomepagePromo = (
+const mapCmsPageToHomepagePromo = (
   page: CmsPage | null,
 ): HomepagePromoContent | null => {
   const heading = page?.title?.trim()

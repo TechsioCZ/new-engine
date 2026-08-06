@@ -10,7 +10,7 @@ export const REGION_STORAGE_KEY = "herbatika_region_id"
 export const REGION_COUNTRY_CODE_STORAGE_KEY = "herbatika_region_country_code"
 const REGION_PREFERENCE_REQUEST_TIMEOUT_MS = 5000
 
-export class RegionPreferencePersistenceError extends Error {
+class RegionPreferencePersistenceError extends Error {
   readonly code = "REGION_PREFERENCE_PERSISTENCE_FAILED"
   readonly status: number
 

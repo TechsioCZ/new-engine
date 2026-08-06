@@ -106,5 +106,3 @@ export const REVIEW_TRUST_SOURCES: readonly ReviewTrustSource[] = [
     scoreLabel: "5,0/5",
   },
 ]
-
-export { default as REVIEW_VERIFIED_CUSTOMER_BADGE } from "@/assets/third-parties/overeny-zakaznik.avif"

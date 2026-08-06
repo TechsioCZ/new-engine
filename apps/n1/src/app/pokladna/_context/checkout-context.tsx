@@ -68,7 +68,7 @@ const COMPLETION_RESULT_ERROR_PREFIX: Record<string, string> = {
   payment_requires_more_error: "Platba vyžaduje dodatečné potvrzení",
 }
 
-export interface CheckoutFormData {
+interface CheckoutFormData {
   email?: string
   billingAddress: AddressFormData
 }

@@ -16,7 +16,7 @@ interface PasswordRequirements {
   number: boolean
 }
 
-export interface PasswordValidationResult {
+interface PasswordValidationResult {
   isValid: boolean
   errors: string[]
   requirements: PasswordRequirements

@@ -40,7 +40,7 @@ const resolveCategoryTileImage = ({
     ...(parentCategoryId === undefined ? {} : { parentCategoryId }),
   })
 
-export const buildCategoryContextImageTiles = ({
+const buildCategoryContextImageTiles = ({
   categories,
   categoryById,
 }: BuildCategoryContextImageTilesInput): CategoryContextImageTile[] => {

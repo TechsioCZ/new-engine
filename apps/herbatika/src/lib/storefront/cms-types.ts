@@ -1,6 +1,6 @@
 import type { BlogTopicKey } from "@/lib/storefront/blog-content"
 
-export interface CmsMedia {
+interface CmsMedia {
   alt?: string | null
   url?: string | null
 }

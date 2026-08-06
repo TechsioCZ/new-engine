@@ -1,8 +1,6 @@
-export { AUTH_ERRORS, AUTH_FORM_CONFIG, AUTH_MESSAGES } from "./constants"
-export { getAuthErrorMessage } from "./error-handler"
+export { AUTH_ERRORS } from "./constants"
 export { authFormFields, withLoading } from "./form-config"
 export {
-  type PasswordValidationResult,
   type ValidationError,
   validateEmail,
   validatePassword,
