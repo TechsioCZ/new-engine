@@ -1,36 +1,106 @@
-import type { FulfillmentOrderDTO } from "@medusajs/framework/types"
+import type {
+  FulfillmentOrderDTO,
+  Logger,
+  ValidateFulfillmentDataContext,
+} from "@medusajs/framework/types"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock(import("../../../../../src/modules/ppl-client"), () => ({
-  PPL_CLIENT_MODULE: "ppl_client",
-}))
-
-// Import after mock
 import PplFulfillmentProviderService from "../../../../../src/modules/fulfillment-ppl/service"
+import { PplClientModuleService } from "../../../../../src/modules/ppl-client/service"
 
-const mockLogger = {
-  debug: vi.fn(),
-  error: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
+type FulfillmentConstructorArgs = ConstructorParameters<
+  typeof PplFulfillmentProviderService
+>
+type InjectedDependencies = FulfillmentConstructorArgs[0]
+type PplOptions = FulfillmentConstructorArgs[1]
+
+type PplClientConstructorArgs = ConstructorParameters<
+  typeof PplClientModuleService
+>
+type PplClientInjectedDependencies = PplClientConstructorArgs[0]
+type PplClientModuleOptions = PplClientConstructorArgs[1]
+
+const mockLogger: Logger = {
+  activity: vi.fn<Logger["activity"]>(),
+  debug: vi.fn<Logger["debug"]>(),
+  error: vi.fn<Logger["error"]>(),
+  failure: vi.fn<Logger["failure"]>(),
+  http: vi.fn<Logger["http"]>(),
+  info: vi.fn<Logger["info"]>(),
+  log: vi.fn<Logger["log"]>(),
+  panic: vi.fn<Logger["panic"]>(),
+  progress: vi.fn<Logger["progress"]>(),
+  setLogLevel: vi.fn<Logger["setLogLevel"]>(),
+  shouldLog: vi.fn<Logger["shouldLog"]>(),
+  silly: vi.fn<Logger["silly"]>(),
+  success: vi.fn<Logger["success"]>(),
+  unsetLogLevel: vi.fn<Logger["unsetLogLevel"]>(),
+  verbose: vi.fn<Logger["verbose"]>(),
+  warn: vi.fn<Logger["warn"]>(),
 }
+
+const pplClientModuleOptions: PplClientModuleOptions = {
+  environment: "testing",
+}
+
+/**
+ * `PplClientModuleService` has private instance fields, so TypeScript treats
+ * it nominally: a plain object literal can never satisfy its type, even with
+ * every public method implemented (the private fields would always be
+ * "missing"). A real instance is constructed here - the same technique the
+ * module's own spec (ppl-client/service.unit.spec.ts) uses for itself - and
+ * its public methods are replaced with `vi.spyOn`, so the fulfillment
+ * provider under test receives a genuinely typed `PplClientModuleService`
+ * with fully mocked behavior, without any cast.
+ */
+const createRealPplClient = (): PplClientModuleService => {
+  const container: PplClientInjectedDependencies = { logger: mockLogger }
+  return new PplClientModuleService(container, pplClientModuleOptions)
+}
+
+const pplClient = createRealPplClient()
 
 const mockPplClient = {
-  cancelShipment: vi.fn(),
-  createShipmentBatch: vi.fn(),
-  getBatchStatus: vi.fn(),
-  getCachedCountries: vi.fn(),
-  getCachedCurrencies: vi.fn(),
-  getCustomerAddresses: vi.fn(),
-  getCustomerInfo: vi.fn(),
-  getEffectiveConfig: vi.fn(),
+  cancelShipment: vi.spyOn(pplClient, "cancelShipment"),
+  createShipmentBatch: vi.spyOn(pplClient, "createShipmentBatch"),
+  getBatchStatus: vi.spyOn(pplClient, "getBatchStatus"),
+  getCachedCountries: vi.spyOn(pplClient, "getCachedCountries"),
+  getCachedCurrencies: vi.spyOn(pplClient, "getCachedCurrencies"),
+  getCustomerAddresses: vi.spyOn(pplClient, "getCustomerAddresses"),
+  getCustomerInfo: vi.spyOn(pplClient, "getCustomerInfo"),
+  getEffectiveConfig: vi.spyOn(pplClient, "getEffectiveConfig"),
 }
 
-const createService = () =>
-  new PplFulfillmentProviderService(
-    { logger: mockLogger, ppl_client: mockPplClient } as any,
-    {} as any,
-  )
+const createPplOptions = (overrides: Partial<PplOptions> = {}): PplOptions => ({
+  client_id: "test-client-id",
+  client_secret: "test-client-secret",
+  default_label_format: "Pdf",
+  environment: "testing",
+  ...overrides,
+})
+
+const createValidateContext = (): ValidateFulfillmentDataContext => ({
+  from_location: {
+    address_id: "loc_addr_1",
+    created_at: new Date(),
+    deleted_at: null,
+    fulfillment_sets: [],
+    id: "loc_1",
+    metadata: null,
+    name: "Test Location",
+    updated_at: new Date(),
+  },
+  id: "cart_1",
+  items: [],
+})
+
+const createService = (): PplFulfillmentProviderService => {
+  const container: InjectedDependencies = {
+    logger: mockLogger,
+    ppl_client: pplClient,
+  }
+  return new PplFulfillmentProviderService(container, createPplOptions())
+}
 
 const baseShippingAddress = {
   address_1: "123 Main Street",
@@ -45,6 +115,18 @@ const baseShippingAddress = {
   updated_at: new Date(),
 }
 
+const addressWithoutCountryCode = {
+  address_1: baseShippingAddress.address_1,
+  city: baseShippingAddress.city,
+  created_at: baseShippingAddress.created_at,
+  first_name: baseShippingAddress.first_name,
+  id: baseShippingAddress.id,
+  last_name: baseShippingAddress.last_name,
+  phone: baseShippingAddress.phone,
+  postal_code: baseShippingAddress.postal_code,
+  updated_at: baseShippingAddress.updated_at,
+}
+
 const createOrder = (
   overrides: Partial<FulfillmentOrderDTO> = {},
 ): Partial<FulfillmentOrderDTO> => ({
@@ -57,8 +139,18 @@ const createOrder = (
   ...overrides,
 })
 
+const createOrderWithoutShippingAddress = (
+  overrides: Partial<Omit<FulfillmentOrderDTO, "shipping_address">> = {},
+): Partial<FulfillmentOrderDTO> => ({
+  currency_code: "CZK",
+  display_id: 1001,
+  email: "customer@example.com",
+  id: "order_123",
+  total: 1500,
+  ...overrides,
+})
+
 const createShippingData = (overrides = {}) => ({
-  access_point_id: undefined,
   product_type: "PRIV",
   supports_cod: false,
   ...overrides,
@@ -68,21 +160,25 @@ describe(PplFulfillmentProviderService, () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockPplClient.getCachedCurrencies.mockResolvedValue([
-      { code: "CZK" },
-      { code: "EUR" },
+      { code: "CZK", name: "Czech Koruna" },
+      { code: "EUR", name: "Euro" },
     ])
     mockPplClient.getCachedCountries.mockResolvedValue([
-      { codAllowed: true, code: "CZ" },
+      { codAllowed: true, code: "CZ", name: "Czech Republic" },
     ])
-    mockPplClient.getCustomerInfo.mockResolvedValue({ name: "Test Company" })
-    mockPplClient.getCustomerAddresses.mockResolvedValue(null)
-    mockPplClient.getEffectiveConfig.mockResolvedValue({
-      sender_city: "Prague",
-      sender_country: "CZ",
-      sender_name: "Test Sender",
-      sender_street: "Sender Street 1",
-      sender_zip_code: "10000",
+    mockPplClient.getCustomerInfo.mockResolvedValue({
+      customerName: "Test Company",
     })
+    mockPplClient.getCustomerAddresses.mockResolvedValue(null)
+    mockPplClient.getEffectiveConfig.mockResolvedValue(
+      createPplOptions({
+        sender_city: "Prague",
+        sender_country: "CZ",
+        sender_name: "Test Sender",
+        sender_street: "Sender Street 1",
+        sender_zip_code: "10000",
+      }),
+    )
     mockPplClient.createShipmentBatch.mockResolvedValue("batch_123")
   })
 
@@ -96,20 +192,19 @@ describe(PplFulfillmentProviderService, () => {
     })
 
     it("throws if shipping address is missing", async () => {
-      const { shipping_address: _shippingAddress, ...order } = createOrder()
       await expect(
-        createService().createFulfillment(createShippingData(), [], order, {
-          id: "ful_1",
-        }),
+        createService().createFulfillment(
+          createShippingData(),
+          [],
+          createOrderWithoutShippingAddress(),
+          { id: "ful_1" },
+        ),
       ).rejects.toThrow("PPL: Shipping address is required")
     })
 
     it("throws if country_code is missing", async () => {
       const order = createOrder({
-        shipping_address: (() => {
-          const { country_code: _countryCode, ...address } = baseShippingAddress
-          return address
-        })(),
+        shipping_address: addressWithoutCountryCode,
       })
       await expect(
         createService().createFulfillment(createShippingData(), [], order, {
@@ -142,7 +237,6 @@ describe(PplFulfillmentProviderService, () => {
 
       expect(result).toStrictEqual({
         data: {
-          access_point_id: undefined,
           batch_id: "batch_123",
           product_type: "PRIV",
           status: "pending",
@@ -152,15 +246,17 @@ describe(PplFulfillmentProviderService, () => {
     })
 
     it("builds COD settings with bank account when supports_cod is true", async () => {
-      mockPplClient.getEffectiveConfig.mockResolvedValue({
-        cod_bank_account: "123456789",
-        cod_bank_code: "0100",
-        sender_city: "City",
-        sender_country: "CZ",
-        sender_name: "Test",
-        sender_street: "Street",
-        sender_zip_code: "10000",
-      })
+      mockPplClient.getEffectiveConfig.mockResolvedValue(
+        createPplOptions({
+          cod_bank_account: "123456789",
+          cod_bank_code: "0100",
+          sender_city: "City",
+          sender_country: "CZ",
+          sender_name: "Test",
+          sender_street: "Street",
+          sender_zip_code: "10000",
+        }),
+      )
 
       await createService().createFulfillment(
         createShippingData({ supports_cod: true }),
@@ -196,7 +292,7 @@ describe(PplFulfillmentProviderService, () => {
 
     it("throws if COD not allowed for country", async () => {
       mockPplClient.getCachedCountries.mockResolvedValue([
-        { codAllowed: false, code: "CZ" },
+        { codAllowed: false, code: "CZ", name: "Czech Republic" },
       ])
 
       await expect(
@@ -210,15 +306,17 @@ describe(PplFulfillmentProviderService, () => {
     })
 
     it("builds COD settings with IBAN when provided", async () => {
-      mockPplClient.getEffectiveConfig.mockResolvedValue({
-        cod_iban: "CZ1234567890",
-        cod_swift: "KOMBCZPP",
-        sender_city: "City",
-        sender_country: "CZ",
-        sender_name: "Test",
-        sender_street: "Street",
-        sender_zip_code: "10000",
-      })
+      mockPplClient.getEffectiveConfig.mockResolvedValue(
+        createPplOptions({
+          cod_iban: "CZ1234567890",
+          cod_swift: "KOMBCZPP",
+          sender_city: "City",
+          sender_country: "CZ",
+          sender_name: "Test",
+          sender_street: "Street",
+          sender_zip_code: "10000",
+        }),
+      )
 
       await createService().createFulfillment(
         createShippingData({ supports_cod: true }),
@@ -264,7 +362,7 @@ describe(PplFulfillmentProviderService, () => {
         createService().validateFulfillmentData(
           { product_type: "PRIV", requires_access_point: false },
           {},
-          {} as any,
+          createValidateContext(),
         ),
       ).rejects.toThrow("PPL shipping is currently unavailable")
     })
@@ -273,8 +371,8 @@ describe(PplFulfillmentProviderService, () => {
       await expect(
         createService().validateFulfillmentData(
           { product_type: "SMAR", requires_access_point: true },
-          { access_point_id: undefined },
-          {} as any,
+          {},
+          createValidateContext(),
         ),
       ).rejects.toThrow("PPL: Access point (pickup location) is required")
     })
@@ -291,7 +389,7 @@ describe(PplFulfillmentProviderService, () => {
           access_point_name: "Test Shop",
           access_point_type: "ParcelShop",
         },
-        {} as any,
+        createValidateContext(),
       )
 
       expect(result).toStrictEqual({
@@ -312,13 +410,10 @@ describe(PplFulfillmentProviderService, () => {
           supports_cod: true,
         },
         {},
-        {} as any,
+        createValidateContext(),
       )
 
       expect(result).toStrictEqual({
-        access_point_id: undefined,
-        access_point_name: undefined,
-        access_point_type: undefined,
         product_type: "PRIV",
         requires_access_point: false,
         supports_cod: true,
@@ -348,7 +443,8 @@ describe(PplFulfillmentProviderService, () => {
 
     it("returns failure when batch not yet processed", async () => {
       mockPplClient.getBatchStatus.mockResolvedValue({
-        items: [{ referenceId: "ful_123" }], // No shipmentNumber yet
+        // No shipmentNumber yet
+        items: [{ referenceId: "ful_123" }],
       })
 
       const result = await createService().cancelFulfillment({
