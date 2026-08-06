@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { mkdirSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
 import { config as loadEnvironment } from "dotenv"
@@ -37,6 +37,10 @@ interface LeafParent {
   name: string
 }
 
+interface GeneratorOptions {
+  snapshotPath?: string
+}
+
 interface GeneratedCategoryData {
   allCategories: ApiCategory[]
   categoryMap: Record<string, ApiCategory>
@@ -57,6 +61,7 @@ const scriptDirectory = import.meta.dirname
 const DEFAULT_MEDUSA_BACKEND_URL = "http://localhost:9000"
 const PRODUCT_PAGE_LIMIT = 100
 const MAX_PRODUCT_PAGES = 100
+const MAX_SNAPSHOT_BYTES = 10 * 1024 * 1024
 const ROOT_CATEGORY_ORDER = [
   "Pánské",
   "Dámské",
@@ -70,6 +75,41 @@ const ROOT_CATEGORY_ORDER = [
 
 loadEnvironment({ path: path.join(scriptDirectory, "../.env") })
 loadEnvironment({ path: path.join(scriptDirectory, "../.env.local") })
+
+class CategoryGenerationError extends Error {
+  readonly code: "INVALID_ARGUMENTS" | "INVALID_SNAPSHOT"
+
+  constructor(
+    code: CategoryGenerationError["code"],
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options)
+    this.code = code
+    this.name = "CategoryGenerationError"
+  }
+}
+
+const parseGeneratorOptions = (args: string[]): GeneratorOptions => {
+  if (args.length === 0) {
+    return {}
+  }
+
+  const [flag, snapshotPath] = args
+  if (
+    args.length !== 2 ||
+    flag !== "--snapshot" ||
+    snapshotPath === undefined ||
+    snapshotPath.length === 0
+  ) {
+    throw new CategoryGenerationError(
+      "INVALID_ARGUMENTS",
+      "Usage: pnpm run generate:categories [--snapshot <json-path>]",
+    )
+  }
+
+  return { snapshotPath }
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
@@ -117,15 +157,87 @@ const parseCategory = (value: unknown): ApiCategory => {
   if (!isRecord(value)) {
     throw new TypeError("Expected category to be an object")
   }
+
   const description = readOptionalString(value, "description")
-  return {
-    ...(description === undefined ? {} : { description }),
+  const category = Object.assign(value, {
     handle: readRequiredString(value, "handle"),
     id: readRequiredString(value, "id"),
     name: readRequiredString(value, "name"),
     parent_category_id: readNullableString(value, "parent_category_id"),
-    root_category_id: null,
+    root_category_id: readNullableString(value, "root_category_id"),
+  })
+
+  if (description === undefined) {
+    Reflect.deleteProperty(category, "description")
+  } else {
+    Reflect.set(category, "description", description)
   }
+
+  return category
+}
+
+const parseCategorySnapshot = (value: unknown): ApiCategory[] => {
+  if (!Array.isArray(value)) {
+    throw new CategoryGenerationError(
+      "INVALID_SNAPSHOT",
+      "Category snapshot must contain a JSON array",
+    )
+  }
+
+  return value.map((category, index) => {
+    try {
+      return parseCategory(category)
+    } catch (error) {
+      throw new CategoryGenerationError(
+        "INVALID_SNAPSHOT",
+        `Category snapshot entry ${index} is invalid`,
+        { cause: error },
+      )
+    }
+  })
+}
+
+const readCategorySnapshot = (snapshotPath: string): ApiCategory[] => {
+  let snapshotText: string
+
+  try {
+    const snapshotStats = statSync(snapshotPath)
+    if (!snapshotStats.isFile()) {
+      throw new CategoryGenerationError(
+        "INVALID_SNAPSHOT",
+        `Category snapshot is not a file: ${snapshotPath}`,
+      )
+    }
+    if (snapshotStats.size > MAX_SNAPSHOT_BYTES) {
+      throw new CategoryGenerationError(
+        "INVALID_SNAPSHOT",
+        `Category snapshot exceeds ${MAX_SNAPSHOT_BYTES} bytes: ${snapshotPath}`,
+      )
+    }
+    snapshotText = readFileSync(snapshotPath, "utf-8")
+  } catch (error) {
+    if (error instanceof CategoryGenerationError) {
+      throw error
+    }
+    throw new CategoryGenerationError(
+      "INVALID_SNAPSHOT",
+      `Could not read category snapshot: ${snapshotPath}`,
+      { cause: error },
+    )
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(snapshotText)
+  } catch (error) {
+    throw new CategoryGenerationError(
+      "INVALID_SNAPSHOT",
+      `Category snapshot is not valid JSON: ${snapshotPath}`,
+      { cause: error },
+    )
+  }
+
+  return parseCategorySnapshot(parsed)
 }
 
 const parseCategoryResponse = (value: unknown): ApiCategory[] => {
@@ -171,7 +283,7 @@ const buildHeaders = (): Record<string, string> => {
 }
 
 const formatGeneratedFile = (filePath: string): void => {
-  const cwd = path.join(scriptDirectory, "..")
+  const cwd = path.join(scriptDirectory, "../../..")
   const formatCommands: readonly (readonly [string, string[]])[] = [
     ["pnpm", ["exec", "oxfmt", "--config", "oxfmt.config.ts", filePath]],
     ["oxfmt", ["--config", "oxfmt.config.ts", filePath]],
@@ -530,12 +642,24 @@ const isNullableString = (value: unknown): boolean =>
   value === null || typeof value === "string"
 
 const isCategory = (value: unknown): value is Category => {
-  if (typeof value !== "object" || value === null) return false
-  if (!("handle" in value) || typeof value.handle !== "string") return false
-  if (!("id" in value) || typeof value.id !== "string") return false
-  if (!("name" in value) || typeof value.name !== "string") return false
-  if ("description" in value && !isOptionalString(value.description)) return false
-  if ("parent_category_id" in value && !isNullableString(value.parent_category_id)) return false
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+  if (!("handle" in value) || typeof value.handle !== "string") {
+    return false
+  }
+  if (!("id" in value) || typeof value.id !== "string") {
+    return false
+  }
+  if (!("name" in value) || typeof value.name !== "string") {
+    return false
+  }
+  if ("description" in value && !isOptionalString(value.description)) {
+    return false
+  }
+  if ("parent_category_id" in value && !isNullableString(value.parent_category_id)) {
+    return false
+  }
   return !("root_category_id" in value) || isNullableString(value.root_category_id)
 }
 
@@ -553,14 +677,26 @@ const buildCategoryMap = (categories: Category[]): Record<string, Category> =>
   Object.fromEntries(categories.map((category) => [category.id, category]))
 
 const buildCategoryTree = (categories: Category[]): CategoryTreeNode[] => {
-  const nodes = new Map(categories.map((category) => [category.id, {
-    children: [], description: category.description, handle: category.handle,
-    id: category.id, name: category.name,
-  }]))
+  const nodes = new Map<string, CategoryTreeNode>(
+    categories.map((category): [string, CategoryTreeNode] => [
+      category.id,
+      {
+        children: [],
+        ...(category.description === undefined
+          ? {}
+          : { description: category.description }),
+        handle: category.handle,
+        id: category.id,
+        name: category.name,
+      },
+    ]),
+  )
   const roots: CategoryTreeNode[] = []
   for (const category of categories) {
     const node = nodes.get(category.id)
-    if (!node) continue
+    if (!node) {
+      continue
+    }
     if (category.parent_category_id === null || category.parent_category_id === undefined) {
       roots.push(node)
     } else {
@@ -573,18 +709,25 @@ const buildCategoryTree = (categories: Category[]): CategoryTreeNode[] => {
 const collectLeafCategories = (nodes: CategoryTreeNode[], categories: Record<string, Category>): LeafCategory[] => {
   const leaves: LeafCategory[] = []
   const visit = (node: CategoryTreeNode): void => {
-    if ((node.children?.length ?? 0) === 0) {
+    const children = node.children ?? []
+    if (children.length === 0) {
       const category = categories[node.id]
-      if (category) leaves.push({
-        handle: category.handle, id: category.id, name: category.name,
-        parent_category_id: category.parent_category_id ?? null,
-        root_category_id: category.root_category_id ?? null,
-      })
+      if (category) {
+        leaves.push({
+          handle: category.handle, id: category.id, name: category.name,
+          parent_category_id: category.parent_category_id ?? null,
+          root_category_id: category.root_category_id ?? null,
+        })
+      }
       return
     }
-    for (const child of node.children ?? []) visit(child)
+    for (const child of children) {
+      visit(child)
+    }
   }
-  for (const node of nodes) visit(node)
+  for (const node of nodes) {
+    visit(node)
+  }
   return leaves
 }
 
@@ -599,8 +742,29 @@ export const leafCategories = collectLeafCategories(categoryTree, categoryMap)
 `
 }
 
-const generateCategories = async (): Promise<void> => {
+const writeStaticCategoryModule = (categories: ApiCategory[]): void => {
+  const outputPath = path.join(
+    scriptDirectory,
+    "../src/data/static/categories.ts",
+  )
+  mkdirSync(path.dirname(outputPath), { recursive: true })
+  writeFileSync(outputPath, renderStaticCategoryModule(categories))
+  formatGeneratedFile(outputPath)
+  console.log(`Category module saved to: ${outputPath}`)
+}
+
+const generateCategories = async (options: GeneratorOptions): Promise<void> => {
   console.log("Generating static category data for n1")
+
+  if (options.snapshotPath !== undefined) {
+    const snapshotCategories = readCategorySnapshot(options.snapshotPath)
+    writeStaticCategoryModule(snapshotCategories)
+    console.log(
+      `Generated ${snapshotCategories.length} categories from snapshot: ${options.snapshotPath}`,
+    )
+    return
+  }
+
   const categoriesRaw = await fetchCategoriesDirectly()
   const categoriesWithProducts = await fetchProductsAndCategorizesByCategory()
   const categoryMapRaw = Object.fromEntries(
@@ -642,21 +806,15 @@ const generateCategories = async (): Promise<void> => {
     leafParents,
     rootCategories,
   }
-  const outputPath = path.join(
-    scriptDirectory,
-    "../src/data/static/categories.ts",
-  )
-  mkdirSync(path.dirname(outputPath), { recursive: true })
-  writeFileSync(outputPath, renderStaticCategoryModule(data.allCategories))
-  formatGeneratedFile(outputPath)
-  console.log(`Category module saved to: ${outputPath}`)
+  writeStaticCategoryModule(data.allCategories)
   console.log(
     `Generated ${allCategories.length} categories, ${rootCategories.length} roots, ${leafCategories.length} leaves, and ${leafParents.length} leaf parents`,
   )
 }
 
 try {
-  await generateCategories()
+  const options = parseGeneratorOptions(process.argv.slice(2))
+  await generateCategories(options)
 } catch (error) {
   console.error("Error generating categories", error)
   process.exitCode = 1

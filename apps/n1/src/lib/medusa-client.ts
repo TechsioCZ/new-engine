@@ -1,10 +1,13 @@
 import Medusa from "@medusajs/js-sdk"
 
-import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
+import {
+  getMedusaBackendUrl,
+  getMedusaPublishableKey,
+} from "@/lib/medusa-backend-url"
 
 // Environment validation
 const BACKEND_URL = getMedusaBackendUrl()
-const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
+const PUBLISHABLE_KEY = getMedusaPublishableKey()
 
 if (!PUBLISHABLE_KEY) {
   console.warn("⚠️ NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set!")

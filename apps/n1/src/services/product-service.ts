@@ -2,7 +2,10 @@ import type { StoreProduct } from "@medusajs/types"
 
 import { PRODUCT_DETAILED_FIELDS } from "@/lib/constants"
 import { fetchLogger } from "@/lib/loggers/fetch"
-import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
+import {
+  getMedusaBackendUrl,
+  getMedusaPublishableKey,
+} from "@/lib/medusa-backend-url"
 import { sdk } from "@/lib/medusa-client"
 import { buildQueryString } from "@/lib/product-query-params"
 import type { ProductQueryParams } from "@/lib/product-query-params"
@@ -124,7 +127,7 @@ export const getProducts = async (
 
     // Use native fetch with Medusa headers for AbortSignal support
     const baseUrl = getMedusaBackendUrl()
-    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
+    const publishableKey = getMedusaPublishableKey()
 
     const response = await fetch(`${baseUrl}/store/products?${queryString}`, {
       ...(signal ? { signal } : {}),

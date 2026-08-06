@@ -1,6 +1,10 @@
+import { getRecordValue } from "@techsio/std/object"
 import { NextResponse } from "next/server"
 
-import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
+import {
+  getMedusaBackendUrl,
+  getMedusaPublishableKey,
+} from "@/lib/medusa-backend-url"
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
@@ -32,15 +36,20 @@ const nonEmptyOrDefault = (
   fallback: string,
 ): string => (value === undefined || value.length === 0 ? fallback : value)
 
+const readEnvironmentString = (key: string): string | undefined => {
+  const value = getRecordValue(process.env, key)
+  return typeof value === "string" ? value : undefined
+}
+
 const MEDUSA_API_URL = getMedusaBackendUrl()
-const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
+const MEDUSA_API_KEY = getMedusaPublishableKey()
 const BATCH_SIZE = 100
 const SITE_URL = nonEmptyOrDefault(
-  process.env.NEXT_PUBLIC_SITE_URL,
+  readEnvironmentString("NEXT_PUBLIC_SITE_URL"),
   "https://example.com",
 )
 const DEFAULT_REGION_ID = nonEmptyOrDefault(
-  process.env.NEXT_PUBLIC_DEFAULT_REGION_ID,
+  readEnvironmentString("NEXT_PUBLIC_DEFAULT_REGION_ID"),
   "reg_01JYERR9Q887DKZ9JAR7SMJHA5",
 )
 const DEFAULT_CURRENCY_CODE = "CZK"

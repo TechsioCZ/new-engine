@@ -1,5 +1,5 @@
 // Auto-generated file - DO NOT EDIT
-// Generated at: 2026-02-20T02:13:59.730Z
+// Generated at: 2026-08-06T17:51:26.846Z
 // Run 'pnpm run generate:categories' to regenerate
 // This version filters out categories without products and adds root_category_id
 
@@ -62,12 +62,14 @@ const buildCategoryMap = (categories: Category[]): Record<string, Category> =>
   Object.fromEntries(categories.map((category) => [category.id, category]))
 
 const buildCategoryTree = (categories: Category[]): CategoryTreeNode[] => {
-  const nodes = new Map(
-    categories.map((category) => [
+  const nodes = new Map<string, CategoryTreeNode>(
+    categories.map((category): [string, CategoryTreeNode] => [
       category.id,
       {
         children: [],
-        description: category.description,
+        ...(category.description === undefined
+          ? {}
+          : { description: category.description }),
         handle: category.handle,
         id: category.id,
         name: category.name,
@@ -75,7 +77,6 @@ const buildCategoryTree = (categories: Category[]): CategoryTreeNode[] => {
     ]),
   )
   const roots: CategoryTreeNode[] = []
-
   for (const category of categories) {
     const node = nodes.get(category.id)
     if (!node) {
@@ -90,7 +91,6 @@ const buildCategoryTree = (categories: Category[]): CategoryTreeNode[] => {
       nodes.get(category.parent_category_id)?.children?.push(node)
     }
   }
-
   return roots
 }
 
@@ -98,13 +98,13 @@ const collectLeafCategories = (
   nodes: CategoryTreeNode[],
   categories: Record<string, Category>,
 ): LeafCategory[] => {
-  const leafCategories: LeafCategory[] = []
-
+  const leaves: LeafCategory[] = []
   const visit = (node: CategoryTreeNode): void => {
-    if ((node.children?.length ?? 0) === 0) {
+    const children = node.children ?? []
+    if (children.length === 0) {
       const category = categories[node.id]
       if (category) {
-        leafCategories.push({
+        leaves.push({
           handle: category.handle,
           id: category.id,
           name: category.name,
@@ -114,17 +114,14 @@ const collectLeafCategories = (
       }
       return
     }
-
-    for (const child of node.children) {
+    for (const child of children) {
       visit(child)
     }
   }
-
   for (const node of nodes) {
     visit(node)
   }
-
-  return leafCategories
+  return leaves
 }
 
 export const allCategories = allCategoriesData
