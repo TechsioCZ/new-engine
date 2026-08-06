@@ -2,7 +2,14 @@ import { createStep } from "@medusajs/framework/workflows-sdk"
 import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
-vi.mock(import("@medusajs/framework/workflows-sdk"), { spy: true })
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) => {
+  const workflowsSdk = await importOriginal()
+
+  return {
+    ...workflowsSdk,
+    createStep: vi.fn<typeof workflowsSdk.createStep>(workflowsSdk.createStep),
+  }
+})
 
 const orderReceiptMock = vi.hoisted(() =>
   Object.freeze({ ORDER_RECEIPT_MODULE: "order_receipt" }),
