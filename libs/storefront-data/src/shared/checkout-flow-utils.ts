@@ -22,7 +22,18 @@ export const resolveCheckoutCartInput = <TCart extends CheckoutCartWithId>({
   const resolvedCartId =
     cartId ?? (typeof cart?.id === "string" ? cart.id : undefined)
 
-  if (cart && resolvedCartId && cart.id && cart.id !== resolvedCartId) {
+  const hasCart = cart !== null && cart !== undefined
+  const hasResolvedCartId = resolvedCartId !== undefined
+  let cartHasDifferentId = false
+  if (hasCart) {
+    const currentCartId = cart.id
+    cartHasDifferentId =
+      currentCartId !== null &&
+      currentCartId !== undefined &&
+      currentCartId !== "" &&
+      currentCartId !== resolvedCartId
+  }
+  if (hasResolvedCartId && cartHasDifferentId) {
     return { resolvedCartId }
   }
 
@@ -46,13 +57,17 @@ const resolveSelectedPaymentSession = (
   cart: HttpTypes.StoreCart | null | undefined,
 ) => {
   const paymentSessions = cart?.payment_collection?.payment_sessions
-  if (!paymentSessions?.length) {
-    return
+  if (paymentSessions === undefined || paymentSessions.length === 0) {
+    return null
   }
 
   return (
     paymentSessions.find(
-      (session) => (session as { is_selected?: unknown }).is_selected === true,
+      (session) =>
+        typeof session === "object" &&
+        session !== null &&
+        "is_selected" in session &&
+        session.is_selected === true,
     ) ?? paymentSessions[0]
   )
 }
@@ -66,7 +81,7 @@ export const resolveExistingPaymentCollection = (
   paymentProviderId: string,
 ): HttpTypes.StorePaymentCollection | null => {
   const paymentCollection = cart?.payment_collection
-  if (!paymentCollection) {
+  if (paymentCollection === null || paymentCollection === undefined) {
     return null
   }
 

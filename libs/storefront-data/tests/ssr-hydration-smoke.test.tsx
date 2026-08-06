@@ -41,7 +41,9 @@ const buildListParams = (input: ProductListInputBase): ProductListParams => {
   return {
     limit,
     offset,
-    ...(input.region_id ? { region_id: input.region_id } : {}),
+    ...(input.region_id === undefined || input.region_id === ""
+      ? {}
+      : { region_id: input.region_id }),
   }
 }
 
@@ -56,14 +58,14 @@ const createTestClient = (
   config?: ConstructorParameters<typeof QueryClient>[0],
 ) => trackClient(new QueryClient(config))
 
-afterEach(() => {
-  for (const client of trackedClients) {
-    client.clear()
-  }
-  trackedClients.length = 0
-})
-
 describe("storefront-data SSR hydration smoke", () => {
+  afterEach(() => {
+    for (const client of trackedClients) {
+      client.clear()
+    }
+    trackedClients.length = 0
+  })
+
   it("hydrates prefetched queries without refetching on the client", async () => {
     let fetchCount = 0
     const service: ProductService<
@@ -71,10 +73,10 @@ describe("storefront-data SSR hydration smoke", () => {
       ProductListParams,
       ProductDetailParams
     > = {
-      getProductByHandle: async () => null,
+      getProductByHandle: async () => await Promise.resolve(null),
       getProducts: async (params) => {
         fetchCount += 1
-        return {
+        return await Promise.resolve({
           count: 1,
           limit: params.limit,
           offset: params.offset,
@@ -84,7 +86,7 @@ describe("storefront-data SSR hydration smoke", () => {
               title: "Hydrated Product",
             },
           ],
-        }
+        })
       },
     }
 

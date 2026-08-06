@@ -32,11 +32,9 @@ interface RegionProviderProps {
  * }
  * ```
  */
-export function RegionProvider({ children, region }: RegionProviderProps) {
-  return (
-    <RegionContext.Provider value={region}>{children}</RegionContext.Provider>
-  )
-}
+export const RegionProvider = ({ children, region }: RegionProviderProps) => (
+  <RegionContext.Provider value={region}>{children}</RegionContext.Provider>
+)
 
 /**
  * Returns the current region from context, or null if not available.
@@ -47,6 +45,5 @@ export function RegionProvider({ children, region }: RegionProviderProps) {
  *
  * @returns RegionInfo | null
  */
-export function useRegionContext(): RegionInfo | null {
-  return useContext(RegionContext)
-}
+export const useRegionContext = (): RegionInfo | null =>
+  useContext(RegionContext)

@@ -19,7 +19,7 @@ export interface StorageValueStore {
   getServerSnapshot?: () => string | null
 }
 
-export function createLocalStorageValueStore({
+export const createLocalStorageValueStore = ({
   key,
   storage,
   serverSnapshot = null,
@@ -27,7 +27,7 @@ export function createLocalStorageValueStore({
   key: string
   storage?: Storage | null
   serverSnapshot?: string | null
-}): ObservableStorageValueStore {
+}): ObservableStorageValueStore => {
   const listeners = new Set<() => void>()
 
   const readValue = (): string | null => getLocalStorageItem(key, storage)

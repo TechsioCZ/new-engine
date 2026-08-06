@@ -21,7 +21,7 @@ const pushPageIfValid = (
   page: number | null,
   input: CreatePrefetchPagesPlanInput,
 ) => {
-  if (page == null) {
+  if (page === null) {
     return
   }
   if (page < 1 || page > input.totalPages) {

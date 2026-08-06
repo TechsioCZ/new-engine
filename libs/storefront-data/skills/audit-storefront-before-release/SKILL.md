@@ -11,8 +11,8 @@ requires:
   - configure-pagination-prefetch-and-cache-policy
 sources:
   - "TechsioCZ/new-engine:libs/storefront-data/README.md"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/ssr-hydration.smoke.test.tsx"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/shared.browser-storage.test.ts"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/ssr-hydration-smoke.test.tsx"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/shared-browser-storage.test.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/tests/cart.cache-sync.test.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/tests/medusa.flow.test.tsx"
 ---
@@ -134,7 +134,7 @@ Test an SSR-prefetched route and confirm the hydrated client reuses the prefetch
 
 A storefront can look correct in client-only testing while still breaking in App Router SSR or hydration.
 
-Source: `libs/storefront-data/tests/ssr-hydration.smoke.test.tsx`
+Source: `libs/storefront-data/tests/ssr-hydration-smoke.test.tsx`
 
 ### HIGH Skipping selected-payment-session edge cases
 
@@ -170,7 +170,7 @@ Check cart persistence when storage is unavailable and when another tab mutates 
 
 Shared browser storage is part of the platform contract. Release review has to include degraded storage and cross-tab synchronization paths.
 
-Source: `libs/storefront-data/src/shared/storage-value-store.ts`, `libs/storefront-data/tests/shared.browser-storage.test.ts`
+Source: `libs/storefront-data/src/shared/storage-value-store.ts`, `libs/storefront-data/tests/shared-browser-storage.test.ts`
 
 ## Pre-Deploy Summary
 

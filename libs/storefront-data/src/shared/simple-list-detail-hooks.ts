@@ -137,17 +137,32 @@ export interface CreateSimpleListDetailHooksConfig<
 }
 
 const stripEnabled = <TInput extends EnabledInput>(input: TInput): TInput => {
-  const { enabled: _inputEnabled, ...rest } = input
-  return rest as TInput
+  const result: TInput = { ...input }
+  delete result.enabled
+  return result
 }
 
-const resolveListPagination = <TInput extends ListInputBase, TListParams>(
-  input: TInput,
-  listParams: TListParams,
+const readLimit = (value: unknown): number | undefined => {
+  if (typeof value !== "object" || value === null || !("limit" in value)) {
+    return undefined
+  }
+  return typeof value.limit === "number" ? value.limit : undefined
+}
+
+const readOffset = (value: unknown): number | undefined => {
+  if (typeof value !== "object" || value === null || !("offset" in value)) {
+    return undefined
+  }
+  return typeof value.offset === "number" ? value.offset : undefined
+}
+
+const resolveListPagination = (
+  input: ListInputBase,
+  listParams: unknown,
   defaultPageSize: number,
 ) => {
-  const limitFromParams = (listParams as { limit?: number }).limit
-  const offsetFromParams = (listParams as { offset?: number }).offset
+  const limitFromParams = readLimit(listParams)
+  const offsetFromParams = readOffset(listParams)
 
   return resolvePagination(
     omitUndefined({
@@ -159,7 +174,7 @@ const resolveListPagination = <TInput extends ListInputBase, TListParams>(
   )
 }
 
-export function createSimpleListDetailHooks<
+export const createSimpleListDetailHooks = <
   TItem,
   TListResponse extends { count?: number },
   TListInput extends ListInputBase,
@@ -185,11 +200,11 @@ export function createSimpleListDetailHooks<
   TListParams,
   TDetailInput,
   TDetailParams
->) {
-  function useList(
+>) => {
+  const useList = (
     input: TListInput,
     options?: SimpleReadOptions<TListResponse>,
-  ): SimpleListHookResult<TItem, TListResponse> {
+  ): SimpleListHookResult<TItem, TListResponse> => {
     const { enabled: inputEnabled } = input
     const listParams = buildList(stripEnabled(input))
     const enabled = inputEnabled ?? true
@@ -203,9 +218,8 @@ export function createSimpleListDetailHooks<
     const { data, isLoading, isFetching, isSuccess, error } = query
     const pagination = resolveListPagination(input, listParams, defaultPageSize)
     const totalCount = data?.count ?? 0
-    const totalPages = pagination.limit
-      ? Math.ceil(totalCount / pagination.limit)
-      : 0
+    const totalPages =
+      pagination.limit > 0 ? Math.ceil(totalCount / pagination.limit) : 0
 
     return {
       currentPage: pagination.page,
@@ -222,10 +236,10 @@ export function createSimpleListDetailHooks<
     }
   }
 
-  function useSuspenseList(
+  const useSuspenseList = (
     input: TListInput,
     options?: SimpleSuspenseOptions<TListResponse>,
-  ): SimpleSuspenseListHookResult<TItem, TListResponse> {
+  ): SimpleSuspenseListHookResult<TItem, TListResponse> => {
     const listParams = buildList(stripEnabled(input))
     const query = useSuspenseQuery({
       ...getListQueryOptions(
@@ -236,9 +250,8 @@ export function createSimpleListDetailHooks<
     const { data, isFetching } = query
     const pagination = resolveListPagination(input, listParams, defaultPageSize)
     const totalCount = data?.count ?? 0
-    const totalPages = pagination.limit
-      ? Math.ceil(totalCount / pagination.limit)
-      : 0
+    const totalPages =
+      pagination.limit > 0 ? Math.ceil(totalCount / pagination.limit) : 0
 
     return {
       currentPage: pagination.page,
@@ -255,10 +268,10 @@ export function createSimpleListDetailHooks<
     }
   }
 
-  function useDetail(
+  const useDetail = (
     input: TDetailInput,
     options?: SimpleReadOptions<TItem | null>,
-  ): SimpleDetailHookResult<TItem> {
+  ): SimpleDetailHookResult<TItem> => {
     const enabled = input.enabled ?? Boolean(input.id)
     const query = useQuery({
       ...getDetailQueryOptions(
@@ -279,10 +292,10 @@ export function createSimpleListDetailHooks<
     }
   }
 
-  function useSuspenseDetail(
+  const useSuspenseDetail = (
     input: TDetailInput,
     options?: SimpleSuspenseOptions<TItem | null>,
-  ): SimpleSuspenseDetailHookResult<TItem> {
+  ): SimpleSuspenseDetailHookResult<TItem> => {
     const query = useSuspenseQuery({
       ...getDetailQueryOptions(
         input,
@@ -301,7 +314,7 @@ export function createSimpleListDetailHooks<
     }
   }
 
-  function usePrefetchList(options?: PrefetchHookOptions) {
+  const usePrefetchList = (options?: PrefetchHookOptions) => {
     const queryClient = useQueryClient()
     const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? defaultCacheStrategy
@@ -331,7 +344,7 @@ export function createSimpleListDetailHooks<
 
       await queryClient.prefetchQuery({
         queryFn: async ({ signal }: { signal?: AbortSignal }) =>
-          getList(listParams, signal),
+          await getList(listParams, signal),
         queryKey,
         ...prefetchCacheOptions,
       })
@@ -345,7 +358,13 @@ export function createSimpleListDetailHooks<
       const listParams = buildList(stripEnabled(input))
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(async () => prefetchList(input), id, delay)
+      return schedulePrefetch(
+        async () => {
+          await prefetchList(input)
+        },
+        id,
+        delay,
+      )
     }
 
     return {
@@ -355,7 +374,7 @@ export function createSimpleListDetailHooks<
     }
   }
 
-  function usePrefetchDetail(options?: PrefetchHookOptions) {
+  const usePrefetchDetail = (options?: PrefetchHookOptions) => {
     const queryClient = useQueryClient()
     const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? defaultCacheStrategy
@@ -368,7 +387,7 @@ export function createSimpleListDetailHooks<
     )
 
     const prefetchDetail = async (input: TDetailInput) => {
-      if (!input.id) {
+      if (input.id === undefined || input.id === "") {
         return
       }
 
@@ -389,7 +408,7 @@ export function createSimpleListDetailHooks<
 
       await queryClient.prefetchQuery({
         queryFn: async ({ signal }: { signal?: AbortSignal }) =>
-          getDetail(detailParams, signal),
+          await getDetail(detailParams, signal),
         queryKey,
         ...prefetchCacheOptions,
       })
@@ -403,7 +422,13 @@ export function createSimpleListDetailHooks<
       const detailParams = buildDetail(stripEnabled(input))
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(async () => prefetchDetail(input), id, delay)
+      return schedulePrefetch(
+        async () => {
+          await prefetchDetail(input)
+        },
+        id,
+        delay,
+      )
     }
 
     return {

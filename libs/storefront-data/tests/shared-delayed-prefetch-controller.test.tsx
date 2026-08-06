@@ -14,8 +14,8 @@ describe(useDelayedPrefetchController, () => {
   })
 
   it("debounces scheduled callbacks with the same prefetch id", async () => {
-    const first = vi.fn()
-    const second = vi.fn()
+    const first = vi.fn<() => void>()
+    const second = vi.fn<() => void>()
 
     const { result } = renderHook(() => useDelayedPrefetchController())
 
@@ -31,6 +31,7 @@ describe(useDelayedPrefetchController, () => {
     // async act flushes it before asserting the call happened.
     await act(async () => {
       vi.advanceTimersByTime(100)
+      await Promise.resolve()
     })
 
     expect(first).not.toHaveBeenCalled()
@@ -38,7 +39,7 @@ describe(useDelayedPrefetchController, () => {
   })
 
   it("cancels pending callback when cancelPrefetch is called", () => {
-    const callback = vi.fn()
+    const callback = vi.fn<() => void>()
 
     const { result } = renderHook(() => useDelayedPrefetchController())
 
@@ -52,7 +53,7 @@ describe(useDelayedPrefetchController, () => {
   })
 
   it("cleans up pending callbacks on unmount", () => {
-    const callback = vi.fn()
+    const callback = vi.fn<() => void>()
 
     const { result, unmount } = renderHook(() => useDelayedPrefetchController())
 

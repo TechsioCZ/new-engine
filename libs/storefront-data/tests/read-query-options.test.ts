@@ -28,14 +28,24 @@ describe("read query options factories", () => {
     }
 
     const service = {
-      getCollection: vi.fn(async (params: DetailParams) => ({
-        id: params.id ?? "missing",
-        title: "Detail",
-      })),
-      getCollections: vi.fn(async (params: ListParams) => ({
-        collections: [{ id: `col_${params.page ?? 1}`, title: "Spring" }],
-        count: 1,
-      })),
+      getCollection: vi.fn<(params: DetailParams) => Promise<Collection>>(
+        async (params) =>
+          await Promise.resolve({
+            id: params.id ?? "missing",
+            title: "Detail",
+          }),
+      ),
+      getCollections: vi.fn<
+        (
+          params: ListParams,
+        ) => Promise<{ collections: Collection[]; count: number }>
+      >(
+        async (params) =>
+          await Promise.resolve({
+            collections: [{ id: `col_${params.page ?? 1}`, title: "Spring" }],
+            count: 1,
+          }),
+      ),
     }
 
     const { getListQueryOptions, getDetailQueryOptions } =
@@ -106,13 +116,21 @@ describe("read query options factories", () => {
     }
 
     const service = {
-      getOrder: vi.fn(async (params: DetailParams) => ({
-        id: params.id ?? "missing",
-      })),
-      getOrders: vi.fn(async (params: ListParams) => ({
-        orders: [{ id: `order_${params.page ?? 1}` }],
-        count: 1,
-      })),
+      getOrder: vi.fn<(params: DetailParams) => Promise<Order>>(
+        async (params) =>
+          await Promise.resolve({
+            id: params.id ?? "missing",
+          }),
+      ),
+      getOrders: vi.fn<
+        (params: ListParams) => Promise<{ count: number; orders: Order[] }>
+      >(
+        async (params) =>
+          await Promise.resolve({
+            count: 1,
+            orders: [{ id: `order_${params.page ?? 1}` }],
+          }),
+      ),
     }
 
     const { getListQueryOptions, getDetailQueryOptions } =

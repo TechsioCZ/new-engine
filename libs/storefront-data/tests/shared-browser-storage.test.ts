@@ -1,3 +1,4 @@
+import type { Mock } from "vitest"
 import { vi, describe, expect, it } from "vitest"
 
 import {
@@ -28,6 +29,10 @@ const createMemoryStorage = (): Storage => {
   }
 }
 
+const expectListenerCallCount = (listener: Mock<() => void>, count: number) => {
+  expect(listener).toHaveBeenCalledTimes(count)
+}
+
 describe(createLocalStorageValueStore, () => {
   const key = "test_cart_storage_key"
 
@@ -47,7 +52,7 @@ describe(createLocalStorageValueStore, () => {
       key,
       storage: backingStorage,
     })
-    const listener = vi.fn()
+    const listener = vi.fn<() => void>()
     const unsubscribe = storage.subscribe(listener)
 
     expect(storage.get()).toBeNull()
@@ -55,7 +60,7 @@ describe(createLocalStorageValueStore, () => {
 
     storage.set("cart_1")
     expect(storage.get()).toBe("cart_1")
-    expect(listener).toHaveBeenCalledOnce()
+    expectListenerCallCount(listener, 1)
 
     backingStorage.setItem(key, "cart_2")
     const storageEvent = new Event("storage")
@@ -65,7 +70,7 @@ describe(createLocalStorageValueStore, () => {
       storageArea: { value: backingStorage },
     })
     window.dispatchEvent(storageEvent)
-    expect(listener).toHaveBeenCalledTimes(2)
+    expectListenerCallCount(listener, 2)
 
     const unrelatedStorageEvent = new Event("storage")
     Object.defineProperties(unrelatedStorageEvent, {
@@ -73,11 +78,11 @@ describe(createLocalStorageValueStore, () => {
       storageArea: { value: createMemoryStorage() },
     })
     window.dispatchEvent(unrelatedStorageEvent)
-    expect(listener).toHaveBeenCalledTimes(2)
+    expectListenerCallCount(listener, 2)
 
     storage.clear()
     expect(storage.get()).toBeNull()
-    expect(listener).toHaveBeenCalledTimes(3)
+    expectListenerCallCount(listener, 3)
 
     backingStorage.setItem(key, "cart_3")
     const clearEvent = new Event("storage")
@@ -86,7 +91,7 @@ describe(createLocalStorageValueStore, () => {
       storageArea: { value: backingStorage },
     })
     window.dispatchEvent(clearEvent)
-    expect(listener).toHaveBeenCalledTimes(4)
+    expectListenerCallCount(listener, 4)
     unsubscribe()
   })
 
@@ -102,13 +107,13 @@ describe(createLocalStorageValueStore, () => {
 
   it("degrades gracefully when storage read/write/remove throws", () => {
     const failingStorage = createMemoryStorage()
-    failingStorage.getItem = vi.fn(() => {
+    vi.spyOn(failingStorage, "getItem").mockImplementation(() => {
       throw new Error("read failed")
     })
-    failingStorage.setItem = vi.fn(() => {
+    vi.spyOn(failingStorage, "setItem").mockImplementation(() => {
       throw new Error("write failed")
     })
-    failingStorage.removeItem = vi.fn(() => {
+    vi.spyOn(failingStorage, "removeItem").mockImplementation(() => {
       throw new Error("remove failed")
     })
 
@@ -116,7 +121,7 @@ describe(createLocalStorageValueStore, () => {
       key,
       storage: failingStorage,
     })
-    const listener = vi.fn()
+    const listener = vi.fn<() => void>()
     const unsubscribe = storage.subscribe(listener)
 
     expect(storage.get()).toBeNull()

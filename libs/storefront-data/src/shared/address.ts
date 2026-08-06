@@ -1,3 +1,5 @@
+const ADDRESS_VALIDATION_FAILED = "Address validation failed"
+
 export type StorefrontAddressScope =
   | "shipping"
   | "billing"
@@ -19,11 +21,11 @@ export type StorefrontAddressValidationResult =
 const formatValidationIssue = (
   issue: StorefrontAddressValidationIssue,
 ): string => {
-  if (issue.message) {
+  if (issue.message !== undefined && issue.message !== "") {
     return issue.message
   }
 
-  const field = issue.field ? `${issue.field}: ` : ""
+  const field = issue.field === "" ? "" : `${issue.field}: `
   return `${issue.scope} ${field}${issue.code}`.trim()
 }
 
@@ -34,7 +36,7 @@ export const hasStorefrontAddressValidationIssues = (
 
 export const getStorefrontAddressValidationMessage = (
   result: StorefrontAddressValidationResult,
-  fallbackMessage = "Address validation failed",
+  fallbackMessage = ADDRESS_VALIDATION_FAILED,
 ): string => {
   if (!hasStorefrontAddressValidationIssues(result)) {
     return fallbackMessage
@@ -54,7 +56,7 @@ export class StorefrontAddressValidationError extends Error {
       message ??
         getStorefrontAddressValidationMessage(
           issues,
-          "Address validation failed",
+          ADDRESS_VALIDATION_FAILED,
         ),
     )
     this.name = "StorefrontAddressValidationError"
@@ -73,10 +75,7 @@ export const toStorefrontAddressValidationError = (
   return new StorefrontAddressValidationError(
     result,
     fallbackMessage ??
-      getStorefrontAddressValidationMessage(
-        result,
-        "Address validation failed",
-      ),
+      getStorefrontAddressValidationMessage(result, ADDRESS_VALIDATION_FAILED),
   )
 }
 
@@ -85,7 +84,7 @@ export const assertStorefrontAddressValidation = (
   fallbackMessage?: string,
 ): void => {
   const error = toStorefrontAddressValidationError(result, fallbackMessage)
-  if (error) {
+  if (error !== null) {
     throw error
   }
 }

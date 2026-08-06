@@ -34,8 +34,27 @@ export const areQueryKeySegmentsEqual = (
 
 export const getSortedRecordKeys = (
   ...records: readonly Record<string, unknown>[]
-): string[] =>
-  [...new Set(records.flatMap((record) => Object.keys(record)))].toSorted()
+): string[] => {
+  const sortedKeys: string[] = []
+  const seenKeys = new Set<string>()
+  for (const record of records) {
+    for (const key of Object.keys(record)) {
+      if (seenKeys.has(key)) {
+        continue
+      }
+      seenKeys.add(key)
+      const insertionIndex = sortedKeys.findIndex(
+        (sortedKey) => sortedKey.localeCompare(key) > 0,
+      )
+      if (insertionIndex === -1) {
+        sortedKeys.push(key)
+      } else {
+        sortedKeys.splice(insertionIndex, 0, key)
+      }
+    }
+  }
+  return sortedKeys
+}
 
 export const hasQueryKeyPrefix = (
   queryKey: QueryKey,

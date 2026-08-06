@@ -1,3 +1,7 @@
+import { isRecord } from "@techsio/std/object"
+
+import { getSortedRecordKeys } from "./query-key-match-utils"
+
 export type QueryKey = readonly unknown[]
 
 export type QueryNamespace = string | readonly string[]
@@ -11,11 +15,11 @@ interface WalkValueOptions {
 }
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-  if (!value || typeof value !== "object") {
+  if (!isRecord(value)) {
     return false
   }
-  const proto = Object.getPrototypeOf(value)
-  return proto === Object.prototype || proto === null
+  const prototype = Reflect.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
 }
 
 const normalizeNamespace = (namespace: QueryNamespace): readonly string[] => {
@@ -35,9 +39,13 @@ const walkValue = (
       throw new Error("QueryKey contains a circular reference")
     }
     visited.add(value)
-    const result = value
-      .map((entry) => walkValue(entry, visited, options))
-      .filter((entry) => !options?.stripUndefined || entry !== undefined)
+    const result: unknown[] = []
+    for (const entry of value) {
+      const normalizedEntry = walkValue(entry, visited, options)
+      if (options?.stripUndefined !== true || normalizedEntry !== undefined) {
+        result.push(normalizedEntry)
+      }
+    }
     visited.delete(value)
     return result
   }
@@ -47,19 +55,14 @@ const walkValue = (
       throw new Error("QueryKey contains a circular reference")
     }
     visited.add(value)
-    const entries = Object.entries(value).sort(([a], [b]) => a.localeCompare(b))
     const result: Record<string, unknown> = {}
-    for (const [key, entryValue] of entries) {
-      if (options?.omitKeys?.has(key)) {
-        continue
+    for (const key of getSortedRecordKeys(value)) {
+      if (options?.omitKeys?.has(key) !== true) {
+        const normalizedEntry = walkValue(value[key], visited, options)
+        if (options?.stripUndefined !== true || normalizedEntry !== undefined) {
+          result[key] = normalizedEntry
+        }
       }
-
-      const normalizedEntry = walkValue(entryValue, visited, options)
-      if (options?.stripUndefined && normalizedEntry === undefined) {
-        continue
-      }
-
-      result[key] = normalizedEntry
     }
     visited.delete(value)
     return result
@@ -75,19 +78,17 @@ const walkValue = (
  * - Removes keys listed in `omitKeys` (for non-cache-affecting flags like `enabled`)
  * - Sorts object keys for stable hashing
  */
-export function normalizeQueryKeyParams<
-  TParams extends Record<string, unknown>,
->(
-  params: TParams,
+export const normalizeQueryKeyParams = (
+  params: Record<string, unknown>,
   options?: NormalizeQueryKeyParamsOptions,
-): Record<string, unknown> {
+): Record<string, unknown> => {
   if (!isPlainObject(params)) {
     throw new Error(
       "QueryKey params must be a plain object. Use a serializer before normalizeQueryKeyParams.",
     )
   }
   const visited = new WeakSet()
-  const omitKeys = new Set(options?.omitKeys ?? [])
+  const omitKeys = new Set(options?.omitKeys)
   const normalized = walkValue(params, visited, {
     omitKeys,
     stripUndefined: true,
@@ -105,10 +106,10 @@ export function normalizeQueryKeyParams<
  * - `undefined` maps to `{}` for stable optional key parts
  * - Other values are passed through the stable serializer
  */
-export function normalizeQueryKeyPart(
+export const normalizeQueryKeyPart = (
   value: unknown,
   options?: NormalizeQueryKeyParamsOptions,
-): unknown {
+): unknown => {
   if (value === undefined) {
     return {}
   }
@@ -118,54 +119,49 @@ export function normalizeQueryKeyPart(
   return walkValue(value, new WeakSet())
 }
 
-export function createQueryKey(
+export const createQueryKey = (
   namespace: QueryNamespace,
   ...parts: readonly unknown[]
-): QueryKey {
+): QueryKey => {
   const scope = normalizeNamespace(namespace)
   const visited = new WeakSet()
   return [...scope, ...parts.map((part) => walkValue(part, visited))]
 }
 
-export function appendQueryKey(
+export const appendQueryKey = (
   base: QueryKey,
   ...parts: readonly unknown[]
-): QueryKey {
+): QueryKey => {
   const visited = new WeakSet()
   return [...base, ...parts.map((part) => walkValue(part, visited))]
 }
 
-export function createDomainQueryKeys<TListParams, TDetailParams>(
+export const createDomainQueryKeys = (
   namespace: QueryNamespace,
   domain: string,
 ): {
   all: () => QueryKey
-  list: (params: TListParams) => QueryKey
-  detail: (params: TDetailParams) => QueryKey
-} {
-  return {
-    all: () => createQueryKey(namespace, domain),
-    detail: (params) =>
-      createQueryKey(
-        namespace,
-        domain,
-        "detail",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
-      ),
-    list: (params) =>
-      createQueryKey(
-        namespace,
-        domain,
-        "list",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
-      ),
-  }
-}
+  list: (params: unknown) => QueryKey
+  detail: (params: unknown) => QueryKey
+} => ({
+  all: () => createQueryKey(namespace, domain),
+  detail: (params) =>
+    createQueryKey(
+      namespace,
+      domain,
+      "detail",
+      normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
+    ),
+  list: (params) =>
+    createQueryKey(
+      namespace,
+      domain,
+      "list",
+      normalizeQueryKeyPart(params, { omitKeys: ["enabled"] }),
+    ),
+})
 
-export function createQueryKeyFactory(namespace: QueryNamespace) {
-  const scope = normalizeNamespace(namespace)
-  return {
-    key: (...parts: readonly unknown[]) => createQueryKey(scope, ...parts),
-    scope,
-  }
-}
+export const createQueryKeyFactory = (namespace: QueryNamespace) => ({
+  key: (...parts: readonly unknown[]) => createQueryKey(namespace, ...parts),
+  scope: normalizeNamespace(namespace),
+})

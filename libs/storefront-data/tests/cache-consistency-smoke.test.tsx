@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
+import { isRecord } from "@techsio/std/object"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { vi, describe, expect, it } from "vitest"
@@ -16,6 +17,41 @@ import type {
 import { createQueryKey } from "../src/shared/query-keys"
 import { RegionProvider } from "../src/shared/region-context"
 
+interface CacheTestProductListParams {
+  limit: number
+  offset: number
+  region_id?: string
+}
+
+const buildCacheTestListParams = (
+  input: ProductListInputBase,
+): CacheTestProductListParams => {
+  const limit = input.limit ?? 1
+  const page = input.page ?? 1
+  const offset = (page - 1) * limit
+  return {
+    limit,
+    offset,
+    ...(input.region_id === undefined || input.region_id === ""
+      ? {}
+      : { region_id: input.region_id }),
+  }
+}
+
+interface ProductDetailParams {
+  handle: string
+  region_id?: string
+}
+
+const createProviderWrapper = (queryClient: QueryClient) =>
+  function StorefrontDataTestProvider({ children }: { children: ReactNode }) {
+    return (
+      <StorefrontDataProvider client={queryClient}>
+        {children}
+      </StorefrontDataProvider>
+    )
+  }
+
 describe("storefront-data cache/query consistency", () => {
   it("keeps separate product cache entries when region context changes", async () => {
     interface Product {
@@ -23,60 +59,35 @@ describe("storefront-data cache/query consistency", () => {
       title: string
     }
 
-    interface ProductListParams {
-      limit: number
-      offset: number
-      region_id?: string
-    }
-
-    interface ProductDetailParams {
-      handle: string
-      region_id?: string
-    }
-
-    const buildListParams = (
-      input: ProductListInputBase,
-    ): ProductListParams => {
-      const limit = input.limit ?? 1
-      const page = input.page ?? 1
-      const offset = (page - 1) * limit
-
-      return {
-        limit,
-        offset,
-        ...(input.region_id ? { region_id: input.region_id } : {}),
-      }
-    }
-
     const seenRegions: string[] = []
 
     const service: ProductService<
       Product,
-      ProductListParams,
+      CacheTestProductListParams,
       ProductDetailParams
     > = {
-      getProductByHandle: async () => null,
+      getProductByHandle: async () => await Promise.resolve(null),
       getProducts: async (params) => {
         const regionId = params.region_id ?? "unknown"
         seenRegions.push(regionId)
 
-        return {
+        return await Promise.resolve({
           count: 1,
           limit: params.limit,
           offset: params.offset,
           products: [{ id: `prod_${regionId}`, title: `Product ${regionId}` }],
-        }
+        })
       },
     }
 
     const queryKeyNamespace = "cache-consistency-region"
     const queryKeys = createProductQueryKeys<
-      ProductListParams,
+      CacheTestProductListParams,
       ProductDetailParams
     >(queryKeyNamespace)
 
     const { useProducts } = createProductHooks({
-      buildListParams,
+      buildListParams: buildCacheTestListParams,
       queryKeyNamespace,
       queryKeys,
       service,
@@ -117,10 +128,10 @@ describe("storefront-data cache/query consistency", () => {
     })
 
     const regionCzKey = queryKeys.list(
-      buildListParams({ limit: 1, page: 1, region_id: "reg_cz" }),
+      buildCacheTestListParams({ limit: 1, page: 1, region_id: "reg_cz" }),
     )
     const regionUsKey = queryKeys.list(
-      buildListParams({ limit: 1, page: 1, region_id: "reg_us" }),
+      buildCacheTestListParams({ limit: 1, page: 1, region_id: "reg_us" }),
     )
 
     expect(queryClient.getQueryData(regionCzKey)).toBeTruthy()
@@ -158,11 +169,13 @@ describe("storefront-data cache/query consistency", () => {
       UpdateParams,
       UpdateCustomerParams
     > = {
-      createAddress: async () => ({ id: "addr_1" }),
-      deleteAddress: async () => {},
-      getAddresses: async () => ({ addresses: [] }),
-      updateAddress: async () => ({ id: "addr_1" }),
-      updateCustomer: async () => ({ id: "cust_1" }),
+      createAddress: async () => await Promise.resolve({ id: "addr_1" }),
+      deleteAddress: async () => {
+        await Promise.resolve()
+      },
+      getAddresses: async () => await Promise.resolve({ addresses: [] }),
+      updateAddress: async () => await Promise.resolve({ id: "addr_1" }),
+      updateCustomer: async () => await Promise.resolve({ id: "cust_1" }),
     }
 
     const queryKeyNamespace = "cache-consistency-customer"
@@ -171,8 +184,9 @@ describe("storefront-data cache/query consistency", () => {
       addressAdapter: {
         toCreateParams: (input: CreateParams) => input,
         toUpdateParams: (input: UpdateParams & { addressId?: string }) => {
-          const { addressId: _addressId, ...rest } = input
-          return rest
+          const params: UpdateParams & { addressId?: string } = { ...input }
+          delete params.addressId
+          return params
         },
       },
       buildListParams: (input: ListParams) => input,
@@ -204,11 +218,7 @@ describe("storefront-data cache/query consistency", () => {
 
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
 
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <StorefrontDataProvider client={queryClient}>
-        {children}
-      </StorefrontDataProvider>
-    )
+    const wrapper = createProviderWrapper(queryClient)
 
     const { result } = renderHook(() => useUpdateCustomer(), { wrapper })
 
@@ -260,11 +270,13 @@ describe("storefront-data cache/query consistency", () => {
       UpdateParams,
       UpdateCustomerParams
     > = {
-      createAddress: async () => ({ id: "addr_1" }),
-      deleteAddress: async () => {},
-      getAddresses: async () => ({ addresses: [] }),
-      updateAddress: async () => ({ id: "addr_1" }),
-      updateCustomer: async () => ({ id: "cust_1" }),
+      createAddress: async () => await Promise.resolve({ id: "addr_1" }),
+      deleteAddress: async () => {
+        await Promise.resolve()
+      },
+      getAddresses: async () => await Promise.resolve({ addresses: [] }),
+      updateAddress: async () => await Promise.resolve({ id: "addr_1" }),
+      updateCustomer: async () => await Promise.resolve({ id: "cust_1" }),
     }
 
     const queryKeyNamespace = "cache-consistency-customer-address-mutations"
@@ -276,8 +288,9 @@ describe("storefront-data cache/query consistency", () => {
       addressAdapter: {
         toCreateParams: (input: CreateParams) => input,
         toUpdateParams: (input: UpdateParams & { addressId?: string }) => {
-          const { addressId: _addressId, ...rest } = input
-          return rest
+          const params: UpdateParams & { addressId?: string } = { ...input }
+          delete params.addressId
+          return params
         },
       },
       buildListParams: (input: ListParams) => input,
@@ -303,11 +316,7 @@ describe("storefront-data cache/query consistency", () => {
 
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
 
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <StorefrontDataProvider client={queryClient}>
-        {children}
-      </StorefrontDataProvider>
-    )
+    const wrapper = createProviderWrapper(queryClient)
 
     const createHook = renderHook(() => useCreateCustomerAddress(), {
       wrapper,
@@ -332,14 +341,10 @@ describe("storefront-data cache/query consistency", () => {
       await deleteHook.result.current.mutateAsync({ addressId: "addr_1" })
     })
 
-    const authInvalidationCalls = invalidateSpy.mock.calls.filter(([arg]) =>
-      Boolean(
-        arg &&
-        typeof arg === "object" &&
-        "queryKey" in (arg as Record<string, unknown>) &&
-        JSON.stringify((arg as { queryKey?: unknown }).queryKey) ===
-          JSON.stringify(authCustomerQueryKey),
-      ),
+    const authInvalidationCalls = invalidateSpy.mock.calls.filter(
+      ([arg]) =>
+        isRecord(arg) &&
+        JSON.stringify(arg.queryKey) === JSON.stringify(authCustomerQueryKey),
     )
 
     expect(authInvalidationCalls).toHaveLength(3)

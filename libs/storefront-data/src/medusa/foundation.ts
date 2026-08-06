@@ -90,52 +90,50 @@ export interface MedusaStorefrontFoundationConfig {
   cacheConfig?: CacheConfig
 }
 
-export function createMedusaStorefrontQueryKeys(
+export const createMedusaStorefrontQueryKeys = (
   namespace: QueryNamespace,
-): MedusaStorefrontQueryKeys {
-  return {
-    auth: createAuthQueryKeys(namespace),
-    cart: createCartQueryKeys(namespace),
-    catalog: createCatalogQueryKeys<MedusaCatalogListInput>(namespace),
-    categories: createCategoryQueryKeys<
-      MedusaCategoryListInput,
-      MedusaCategoryDetailInput
-    >(namespace),
-    checkout: createCheckoutQueryKeys(namespace),
-    collections: createCollectionQueryKeys<
-      MedusaCollectionListInput,
-      MedusaCollectionDetailInput
-    >(namespace),
-    customers: createCustomerQueryKeys<MedusaCustomerListInput>(namespace),
-    orders: createOrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>(
+): MedusaStorefrontQueryKeys => ({
+  auth: createAuthQueryKeys(namespace),
+  cart: createCartQueryKeys(namespace),
+  catalog: createCatalogQueryKeys<MedusaCatalogListInput>(namespace),
+  categories: createCategoryQueryKeys<
+    MedusaCategoryListInput,
+    MedusaCategoryDetailInput
+  >(namespace),
+  checkout: createCheckoutQueryKeys(namespace),
+  collections: createCollectionQueryKeys<
+    MedusaCollectionListInput,
+    MedusaCollectionDetailInput
+  >(namespace),
+  customers: createCustomerQueryKeys<MedusaCustomerListInput>(namespace),
+  orders: createOrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>(
+    namespace,
+  ),
+  productAttributes:
+    createProductAttributeQueryKeys<MedusaProductAttributesInput>(namespace),
+  productLists: createProductListQueryKeys<
+    MedusaProductListListKeyInput,
+    MedusaProductListDetailKeyInput
+  >(namespace),
+  productLocationAvailability:
+    createProductLocationAvailabilityQueryKeys<MedusaProductLocationAvailabilityInput>(
       namespace,
     ),
-    productAttributes:
-      createProductAttributeQueryKeys<MedusaProductAttributesInput>(namespace),
-    productLists: createProductListQueryKeys<
-      MedusaProductListListKeyInput,
-      MedusaProductListDetailKeyInput
-    >(namespace),
-    productLocationAvailability:
-      createProductLocationAvailabilityQueryKeys<MedusaProductLocationAvailabilityInput>(
-        namespace,
-      ),
-    products: createProductQueryKeys<
-      MedusaProductListInput,
-      MedusaProductDetailInput
-    >(namespace),
-    regions: createRegionQueryKeys<
-      MedusaRegionListInput,
-      MedusaRegionDetailInput
-    >(namespace),
-    reviews:
-      createProductReviewQueryKeys<MedusaProductReviewListInput>(namespace),
-  }
-}
+  products: createProductQueryKeys<
+    MedusaProductListInput,
+    MedusaProductDetailInput
+  >(namespace),
+  regions: createRegionQueryKeys<
+    MedusaRegionListInput,
+    MedusaRegionDetailInput
+  >(namespace),
+  reviews:
+    createProductReviewQueryKeys<MedusaProductReviewListInput>(namespace),
+})
 
-export function resolveMedusaStorefrontFoundation(
+export const resolveMedusaStorefrontFoundation = (
   config: MedusaStorefrontFoundationConfig,
-) {
+) => {
   const namespace = config.queryKeyNamespace ?? "storefront-data"
   const cacheConfig = config.cacheConfig ?? createCacheConfig()
 

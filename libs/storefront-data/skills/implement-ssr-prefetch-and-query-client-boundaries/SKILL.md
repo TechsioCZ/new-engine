@@ -14,7 +14,7 @@ sources:
   - "TechsioCZ/new-engine:libs/storefront-data/src/shared/query-client.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/shared/query-keys.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/products/hooks.ts"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/ssr-hydration.smoke.test.tsx"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/ssr-hydration-smoke.test.tsx"
 ---
 
 This skill builds on `setup-storefront-platform-in-next-app`. Read it first for the preset and provider boundary.
@@ -187,7 +187,7 @@ await queryClient.prefetchQuery(
 
 Manual keys drift from the normalized key builders and silently miss the hydrated client cache.
 
-Source: `libs/storefront-data/src/shared/query-keys.ts`, `libs/storefront-data/tests/ssr-hydration.smoke.test.tsx`
+Source: `libs/storefront-data/src/shared/query-keys.ts`, `libs/storefront-data/tests/ssr-hydration-smoke.test.tsx`
 
 ### HIGH Missing region-sensitive inputs in prefetch
 

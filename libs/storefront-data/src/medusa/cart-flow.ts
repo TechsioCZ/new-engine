@@ -1,7 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
-import { omitUndefined } from "@techsio/std/object"
+import { isRecord, omitUndefined } from "@techsio/std/object"
 
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
 import type {
@@ -149,17 +149,48 @@ export type UseMedusaCartInput = Omit<CartInputBase, "cartId"> & {
   cartId?: string
 }
 
-const toCartMutationError = (error: unknown): MedusaCartMutationError =>
-  toErrorWithCode(error, "An unknown error occurred")
+class MedusaCartMutationFailureError
+  extends Error
+  implements MedusaCartMutationError
+{
+  readonly code?: string
+
+  constructor(error: MedusaCartMutationError) {
+    super(error.message)
+    this.name = "MedusaCartMutationFailureError"
+    if (error.code !== undefined) {
+      this.code = error.code
+    }
+  }
+}
+
+const toCartMutationError = (error: unknown): MedusaCartMutationFailureError =>
+  new MedusaCartMutationFailureError(
+    toErrorWithCode(error, "An unknown error occurred"),
+  )
+
+const getCompletedCartIdFromContext = (
+  context: unknown,
+): string | null | undefined => {
+  if (!isRecord(context) || !("completedCartId" in context)) {
+    return undefined
+  }
+  const { completedCartId } = context
+  return typeof completedCartId === "string" || completedCartId === null
+    ? completedCartId
+    : undefined
+}
 
 const isRenderableCartItem = (item: unknown): boolean => {
-  if (!item || typeof item !== "object") {
+  if (item === null || typeof item !== "object") {
     return false
   }
 
-  const candidate = item as { id?: unknown; quantity?: unknown }
   return (
-    typeof candidate.id === "string" && typeof candidate.quantity === "number"
+    "id" in item &&
+    "quantity" in item &&
+    typeof item.id === "string" &&
+    typeof item.quantity === "number"
   )
 }
 
@@ -171,11 +202,11 @@ const isRenderableCart = (cart: HttpTypes.StoreCart): boolean => {
   return cart.items.every(isRenderableCartItem)
 }
 
-export function createMedusaCartFlow({
+export const createMedusaCartFlow = ({
   storefront,
   cartStorage,
   isActiveCartQueryKey: customActiveCartQueryKeyMatcher,
-}: CreateMedusaCartFlowConfig) {
+}: CreateMedusaCartFlowConfig) => {
   const cartHooks = storefront.hooks.cart
   const cartQueryKeys = storefront.queryKeys.cart
   const checkoutQueryKeys = storefront.queryKeys.checkout
@@ -205,7 +236,7 @@ export function createMedusaCartFlow({
     }
 
     const canonicalCart = await fetchCanonicalCart(cart.id)
-    if (canonicalCart && isRenderableCart(canonicalCart)) {
+    if (canonicalCart !== null && isRenderableCart(canonicalCart)) {
       return canonicalCart
     }
 
@@ -216,7 +247,7 @@ export function createMedusaCartFlow({
     queryClient: QueryClient,
     cartId: string | null,
   ) => {
-    if (!cartId) {
+    if (cartId === null || cartId === "") {
       return
     }
 
@@ -264,6 +295,21 @@ export function createMedusaCartFlow({
   const normalizeCartMutation = <TInput>(
     mutation: ReturnType<MedusaCartMutationHook<TInput>>,
   ) => {
+    const notifyMutationSuccess = async (
+      cart: HttpTypes.StoreCart,
+      mutateOptions?: {
+        onSuccess?: (cart: HttpTypes.StoreCart) => void
+        onError?: (error: MedusaCartMutationError) => void
+      },
+    ): Promise<void> => {
+      try {
+        const resolvedCart = await resolveRenderableCart(cart)
+        mutateOptions?.onSuccess?.(resolvedCart)
+      } catch (error) {
+        mutateOptions?.onError?.(toCartMutationError(error))
+      }
+    }
+
     const mutate = (
       input: TInput,
       mutateOptions?: {
@@ -275,9 +321,8 @@ export function createMedusaCartFlow({
         onError: (error: unknown) => {
           mutateOptions?.onError?.(toCartMutationError(error))
         },
-        onSuccess: async (cart: HttpTypes.StoreCart) => {
-          const resolvedCart = await resolveRenderableCart(cart)
-          mutateOptions?.onSuccess?.(resolvedCart)
+        onSuccess: (cart: HttpTypes.StoreCart) => {
+          void notifyMutationSuccess(cart, mutateOptions)
         },
       })
     }
@@ -297,7 +342,7 @@ export function createMedusaCartFlow({
     }
   }
 
-  function useCart(input?: UseMedusaCartInput): UseMedusaCartReturn {
+  const useCart = (input?: UseMedusaCartInput): UseMedusaCartReturn => {
     const { cart, isLoading, error, itemCount, isEmpty, hasItems } =
       cartHooks.useCart({
         autoCreate: false,
@@ -307,18 +352,18 @@ export function createMedusaCartFlow({
 
     return {
       cart,
-      error: error ? new Error(error) : null,
+      error: error === null ? null : new Error(error),
       hasItems,
       isEmpty,
-      isError: Boolean(error),
+      isError: error !== null,
       isLoading,
       itemCount,
     }
   }
 
-  function useSuspenseCart(
+  const useSuspenseCart = (
     input?: UseMedusaCartInput,
-  ): UseMedusaSuspenseCartReturn {
+  ): UseMedusaSuspenseCartReturn => {
     const { cart, itemCount, isEmpty, hasItems } = cartHooks.useSuspenseCart({
       autoCreate: false,
       autoUpdateRegion: false,
@@ -333,7 +378,7 @@ export function createMedusaCartFlow({
     }
   }
 
-  function useAddToCart(options?: UseMedusaCartMutationOptions) {
+  const useAddToCart = (options?: UseMedusaCartMutationOptions) => {
     const queryClient = useQueryClient()
     const mutation = cartHooks.useAddLineItem(
       buildMutationHandlers(queryClient, options),
@@ -342,7 +387,7 @@ export function createMedusaCartFlow({
     return normalizeCartMutation(mutation)
   }
 
-  function useUpdateLineItem(options?: UseMedusaCartMutationOptions) {
+  const useUpdateLineItem = (options?: UseMedusaCartMutationOptions) => {
     const queryClient = useQueryClient()
     const mutation = cartHooks.useUpdateLineItem(
       buildMutationHandlers(queryClient, options),
@@ -351,28 +396,13 @@ export function createMedusaCartFlow({
     return normalizeCartMutation(mutation)
   }
 
-  function useRemoveLineItem(options?: UseMedusaCartMutationOptions) {
+  const useRemoveLineItem = (options?: UseMedusaCartMutationOptions) => {
     const queryClient = useQueryClient()
     const mutation = cartHooks.useRemoveLineItem(
       buildMutationHandlers(queryClient, options),
     )
 
     return normalizeCartMutation(mutation)
-  }
-
-  const getCompletedCartIdFromContext = (
-    context: unknown,
-  ): string | null | undefined => {
-    if (
-      !(context && typeof context === "object" && "completedCartId" in context)
-    ) {
-      return
-    }
-    const { completedCartId } = context
-    if (typeof completedCartId === "string" || completedCartId === null) {
-      return completedCartId
-    }
-    return
   }
 
   const handleOrderCompletionSuccess = async ({
@@ -397,7 +427,11 @@ export function createMedusaCartFlow({
       queryClient.invalidateQueries({ queryKey: checkoutQueryKeys.all() }),
       queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() }),
     ]
-    if (order.region_id) {
+    if (
+      order.region_id !== undefined &&
+      order.region_id !== null &&
+      order.region_id !== ""
+    ) {
       invalidations.push(
         queryClient.invalidateQueries({
           queryKey: checkoutQueryKeys.paymentProviders(order.region_id),
@@ -406,12 +440,11 @@ export function createMedusaCartFlow({
     }
 
     queryClient.setQueryData(orderQueryKeys.detail({ id: order.id }), order)
-    return await Promise.all(invalidations).then(() => {
-      onSuccess?.(order)
-    })
+    await Promise.all(invalidations)
+    onSuccess?.(order)
   }
 
-  function useCompleteCart(options?: UseMedusaCompleteCartOptions) {
+  const useCompleteCart = (options?: UseMedusaCompleteCartOptions) => {
     const queryClient = useQueryClient()
 
     return cartHooks.useCompleteCart({
@@ -434,15 +467,22 @@ export function createMedusaCartFlow({
           return
         }
 
-        return handleOrderCompletionSuccess(
-          omitUndefined({
-            context: context ?? null,
-            onSuccess: options?.onSuccess,
-            order: result.order,
-            queryClient,
-            variables,
-          }),
-        )
+        const completeOrder = async (): Promise<void> => {
+          try {
+            await handleOrderCompletionSuccess(
+              omitUndefined({
+                context: context ?? null,
+                onSuccess: options?.onSuccess,
+                order: result.order,
+                queryClient,
+                variables,
+              }),
+            )
+          } catch (error) {
+            options?.onRequestError?.(error)
+          }
+        }
+        void completeOrder()
       },
     })
   }

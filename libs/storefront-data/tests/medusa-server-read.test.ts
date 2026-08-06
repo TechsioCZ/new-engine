@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
+import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
 import { createMedusaStorefrontServerReadPreset } from "../src/medusa/server-read"
@@ -14,13 +15,15 @@ import { createRegionQueryKeys } from "../src/regions/query-keys"
 import { createTestMedusaSdk } from "./medusa-fixtures"
 
 const createSdkMock = () => {
-  const clientFetch = vi.fn((path: string): Record<string, unknown> => {
+  const clientFetch = vi.fn<
+    (path: string, options?: unknown) => Record<string, unknown>
+  >((path) => {
     if (path === "/store/products") {
       return {
         count: 1,
         limit: 2,
         offset: 0,
-        products: [{ id: "prod_1", handle: "p-1", title: "Product 1" }],
+        products: [{ handle: "p-1", id: "prod_1", title: "Product 1" }],
       }
     }
 
@@ -54,12 +57,19 @@ const createSdkMock = () => {
   const sdk = createTestMedusaSdk()
   Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
   Object.defineProperty(sdk.store.cart, "retrieve", {
-    value: vi.fn(async () => ({ cart: null })),
+    value: vi.fn<() => Promise<{ cart: null }>>(
+      async () => await Promise.resolve({ cart: null }),
+    ),
   })
   Object.defineProperty(sdk.store.payment, "initiatePaymentSession", {
-    value: vi.fn(async () => ({
-      payment_collection: { payment_sessions: [] },
-    })),
+    value: vi.fn<
+      () => Promise<{ payment_collection: { payment_sessions: never[] } }>
+    >(
+      async () =>
+        await Promise.resolve({
+          payment_collection: { payment_sessions: [] },
+        }),
+    ),
   })
 
   return {
@@ -111,58 +121,70 @@ describe(createMedusaStorefrontServerReadPreset, () => {
         id: "list_1",
       })
 
-    expect(productQuery.queryKey).toStrictEqual(
-      productQueryKeys.list({ limit: 2 }),
-    )
-    expect(regionQuery.queryKey).toStrictEqual(regionQueryKeys.list({}))
-    expect(productListQuery.queryKey).toStrictEqual(
-      productListQueryKeys.list({
+    expect({
+      product: productQuery.queryKey,
+      productList: productListQuery.queryKey,
+      productListDetail: productListDetailQuery.queryKey,
+      region: regionQuery.queryKey,
+    }).toStrictEqual({
+      product: productQueryKeys.list({ limit: 2 }),
+      productList: productListQueryKeys.list({
         customerId: "cus_1",
         limit: 5,
         offset: 5,
       }),
-    )
-    expect(productListDetailQuery.queryKey).toStrictEqual(
-      productListQueryKeys.detail({
+      productListDetail: productListQueryKeys.detail({
         customerId: "cus_1",
         id: "list_1",
       }),
-    )
+      region: regionQueryKeys.list({}),
+    })
 
     await queryClient.prefetchQuery(productQuery)
     await queryClient.prefetchQuery(regionQuery)
     await queryClient.prefetchQuery(productListQuery)
     await queryClient.prefetchQuery(productListDetailQuery)
 
-    expect(spies.clientFetch).toHaveBeenCalledWith(
-      "/store/products",
-      expect.objectContaining({
-        query: expect.objectContaining({
-          limit: 2,
-        }),
-      }),
-    )
-    expect(spies.clientFetch).toHaveBeenCalledWith(
-      "/store/regions",
-      expect.objectContaining({
-        query: {},
-      }),
-    )
-    expect(spies.clientFetch).toHaveBeenCalledWith(
-      "/store/product-lists",
-      expect.objectContaining({
-        query: expect.objectContaining({
-          limit: 5,
-          offset: 5,
-        }),
-      }),
-    )
-    expect(spies.clientFetch).toHaveBeenCalledWith(
-      "/store/product-lists/list_1",
-      expect.objectContaining({
-        signal: expect.any(AbortSignal),
-      }),
-    )
+    const fetchCalls = spies.clientFetch.mock.calls
+    const productOptions = fetchCalls[0]?.[1]
+    const regionOptions = fetchCalls[1]?.[1]
+    const productListOptions = fetchCalls[2]?.[1]
+    const productListDetailOptions = fetchCalls[3]?.[1]
+    const productQueryInput =
+      isRecord(productOptions) && isRecord(productOptions.query)
+        ? productOptions.query
+        : null
+    const regionQueryInput =
+      isRecord(regionOptions) && isRecord(regionOptions.query)
+        ? regionOptions.query
+        : null
+    const productListQueryInput =
+      isRecord(productListOptions) && isRecord(productListOptions.query)
+        ? productListOptions.query
+        : null
+
+    expect({
+      paths: fetchCalls.map(([path]) => path),
+      productLimit: productQueryInput?.limit,
+      productListLimit: productListQueryInput?.limit,
+      productListOffset: productListQueryInput?.offset,
+      productListSignal:
+        isRecord(productListDetailOptions) &&
+        productListDetailOptions.signal instanceof AbortSignal,
+      regionQueryInput,
+    }).toStrictEqual({
+      paths: [
+        "/store/products",
+        "/store/regions",
+        "/store/product-lists",
+        "/store/product-lists/list_1",
+      ],
+      productLimit: 2,
+      productListLimit: 5,
+      productListOffset: 5,
+      productListSignal: true,
+      regionQueryInput: {},
+    })
   })
 
   it("supports custom order services and list param builders without touching hooks", async () => {
@@ -173,15 +195,20 @@ describe(createMedusaStorefrontServerReadPreset, () => {
     >("storefront-data")
 
     const customOrderService = {
-      getOrder: vi.fn(async () => null),
-      getOrders: vi.fn(
-        async (): Promise<{
+      getOrder: vi.fn<() => Promise<null>>(
+        async () => await Promise.resolve(null),
+      ),
+      getOrders: vi.fn<
+        () => Promise<{
           orders: HttpTypes.StoreOrder[]
           count: number
-        }> => ({
-          orders: [],
-          count: 0,
-        }),
+        }>
+      >(
+        async () =>
+          await Promise.resolve({
+            count: 0,
+            orders: [],
+          }),
       ),
     }
 
@@ -224,7 +251,9 @@ describe(createMedusaStorefrontServerReadPreset, () => {
   it("forwards Product Attribute detail parameter overrides to SSR queries", async () => {
     const { sdk } = createSdkMock()
     const productAttributeService = {
-      getProductAttributes: vi.fn(async () => []),
+      getProductAttributes: vi.fn<() => Promise<never[]>>(
+        async () => await Promise.resolve([]),
+      ),
     }
     const preset = createMedusaStorefrontServerReadPreset({
       productAttributes: {

@@ -1,14 +1,19 @@
+const readStatus = (value: unknown): number | undefined => {
+  if (typeof value !== "object" || value === null || !("status" in value)) {
+    return undefined
+  }
+  return typeof value.status === "number" ? value.status : undefined
+}
+
 export const getErrorStatus = (error: unknown): number | undefined => {
-  if (!error || typeof error !== "object") {
-    return
+  const directStatus = readStatus(error)
+  if (directStatus !== undefined) {
+    return directStatus
   }
-
-  const err = error as {
-    status?: number
-    response?: { status?: number }
+  if (typeof error !== "object" || error === null || !("response" in error)) {
+    return undefined
   }
-
-  return err.status ?? err.response?.status
+  return readStatus(error.response)
 }
 
 export const isAuthError = (error: unknown): boolean => {

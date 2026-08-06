@@ -25,13 +25,16 @@ export const useDelayedPrefetchController = () => {
       clearTimeout(existing)
     }
 
+    const executePrefetch = async (): Promise<void> => {
+      try {
+        await execute()
+      } catch {
+        // Prefetch is speculative and must not affect the active user flow.
+      }
+    }
     const timeoutId = setTimeout(() => {
       timeoutsRef.current.delete(prefetchId)
-      Promise.resolve()
-        .then(execute)
-        .catch(() => {
-          // best-effort prefetch: ignore failures
-        })
+      void executePrefetch()
     }, delay)
 
     timeoutsRef.current.set(prefetchId, timeoutId)

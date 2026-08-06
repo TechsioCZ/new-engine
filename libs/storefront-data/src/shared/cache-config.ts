@@ -52,21 +52,19 @@ export const defaultCacheConfig: CacheConfig = {
   },
 }
 
-export function createCacheConfig(
+export const createCacheConfig = (
   overrides: CacheConfigOverrides = {},
-): CacheConfig {
-  return {
-    realtime: { ...defaultCacheConfig.realtime, ...overrides.realtime },
-    semiStatic: { ...defaultCacheConfig.semiStatic, ...overrides.semiStatic },
-    static: { ...defaultCacheConfig.static, ...overrides.static },
-    userData: { ...defaultCacheConfig.userData, ...overrides.userData },
-  }
-}
+): CacheConfig => ({
+  realtime: { ...defaultCacheConfig.realtime, ...overrides.realtime },
+  semiStatic: { ...defaultCacheConfig.semiStatic, ...overrides.semiStatic },
+  static: { ...defaultCacheConfig.static, ...overrides.static },
+  userData: { ...defaultCacheConfig.userData, ...overrides.userData },
+})
 
-export function getPrefetchCacheOptions(
+export const getPrefetchCacheOptions = (
   cacheConfig: CacheConfig,
   strategy: keyof CacheConfig,
-): PrefetchCacheOptions {
+): PrefetchCacheOptions => {
   const config = cacheConfig[strategy]
   return {
     gcTime: config.gcTime,

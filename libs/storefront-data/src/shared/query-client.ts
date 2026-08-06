@@ -1,10 +1,14 @@
-import {
-  QueryClient,
-  defaultShouldDehydrateQuery,
-  isServer,
-} from "@tanstack/react-query"
+import { QueryClient, defaultShouldDehydrateQuery } from "@tanstack/react-query"
 
 import { getErrorStatus } from "./medusa-errors"
+
+const isNonProductionEnvironment = (): boolean => {
+  if (typeof process === "undefined") {
+    return false
+  }
+  const { NODE_ENV: nodeEnvironment } = process.env
+  return nodeEnvironment !== "production"
+}
 
 export type QueryClientConfig = NonNullable<
   ConstructorParameters<typeof QueryClient>[0]
@@ -25,7 +29,7 @@ const defaultQueryClientConfig: QueryClientConfig = {
       gcTime: 5 * 60 * 1000,
       retry: (failureCount, error: unknown) => {
         const status = getErrorStatus(error)
-        if (status && status >= 400 && status < 500) {
+        if (status !== undefined && status >= 400 && status < 500) {
           return false
         }
         return failureCount < 3
@@ -45,7 +49,7 @@ const mergeQueryClientConfig = (
   baseConfig: QueryClientConfig,
   overrides?: QueryClientConfig,
 ): QueryClientConfig => {
-  if (!overrides) {
+  if (overrides === undefined) {
     return baseConfig
   }
 
@@ -75,35 +79,30 @@ const mergeQueryClientConfig = (
   }
 }
 
-export function createQueryClientConfig(
+export const createQueryClientConfig = (
   overrides?: QueryClientConfig,
-): QueryClientConfig {
-  return mergeQueryClientConfig(defaultQueryClientConfig, overrides)
-}
+): QueryClientConfig =>
+  mergeQueryClientConfig(defaultQueryClientConfig, overrides)
 
-export function makeQueryClient(overrides?: QueryClientConfig): QueryClient {
-  return new QueryClient(createQueryClientConfig(overrides))
-}
+export const makeQueryClient = (overrides?: QueryClientConfig): QueryClient =>
+  new QueryClient(createQueryClientConfig(overrides))
 
 let browserQueryClient: QueryClient | undefined
 
-export function getQueryClient(overrides?: QueryClientConfig): QueryClient {
-  if (isServer) {
+export const getQueryClient = (overrides?: QueryClientConfig): QueryClient => {
+  if (typeof window === "undefined") {
     return makeQueryClient(overrides)
   }
   if (
-    browserQueryClient &&
-    overrides &&
-    typeof process !== "undefined" &&
-    process.env?.NODE_ENV !== "production"
+    browserQueryClient !== undefined &&
+    overrides !== undefined &&
+    isNonProductionEnvironment()
   ) {
     console.warn(
       "[getQueryClient] Browser QueryClient already exists; overrides will be ignored. " +
         "Pass overrides only on first initialisation or use makeQueryClient for a fresh instance.",
     )
   }
-  if (!browserQueryClient) {
-    browserQueryClient = makeQueryClient(overrides)
-  }
+  browserQueryClient ??= makeQueryClient(overrides)
   return browserQueryClient
 }
