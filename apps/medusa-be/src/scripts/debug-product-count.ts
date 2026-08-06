@@ -12,7 +12,7 @@ interface QueryService {
       id?: string
       token?: string
       revoked_at?: string | Date | null
-      sales_channels_link?: Array<{ sales_channel_id?: string }>
+      sales_channels_link?: { sales_channel_id?: string }[]
       product_id?: string
     }[]
     metadata?: {
@@ -64,18 +64,18 @@ const getFirstNumber = (
     return value
   }
   if (typeof value === "string") {
-    return Number.parseInt(value, 10)
+    return Math.trunc(Number(value))
   }
   return 0
 }
 
-async function resolvePublishableKey(query: QueryService) {
+const resolvePublishableKey = async (query: QueryService) => {
   const explicitToken = process.env["PUBLISHABLE_KEY"]?.trim()
   const filters: Record<string, unknown> = {
     type: "publishable",
   }
 
-  if (explicitToken) {
+  if (explicitToken !== undefined && explicitToken.length > 0) {
     filters["token"] = explicitToken
   }
 
@@ -96,13 +96,14 @@ async function resolvePublishableKey(query: QueryService) {
 
   const now = new Date()
   const apiKey = (result.data ?? []).find((candidate) => {
-    const revokedAt = candidate.revoked_at
-      ? new Date(candidate.revoked_at)
-      : undefined
+    const revokedAt =
+      candidate.revoked_at === undefined || candidate.revoked_at === null
+        ? undefined
+        : new Date(candidate.revoked_at)
 
     return (
       typeof candidate.token === "string" &&
-      (!revokedAt || revokedAt > now) &&
+      (revokedAt === undefined || revokedAt > now) &&
       (candidate.sales_channels_link ?? []).some(
         (link) => typeof link.sales_channel_id === "string",
       )
@@ -114,7 +115,11 @@ async function resolvePublishableKey(query: QueryService) {
     .map((link) => link.sales_channel_id)
     .filter((id): id is string => typeof id === "string")
 
-  if (!token || salesChannelIds.length === 0) {
+  if (
+    token === undefined ||
+    token.length === 0 ||
+    salesChannelIds.length === 0
+  ) {
     throw new Error("No publishable API key with sales channels found")
   }
 
@@ -124,7 +129,7 @@ async function resolvePublishableKey(query: QueryService) {
   }
 }
 
-async function getExactCounts(pg: PgConnection, salesChannelIds: string[]) {
+const getExactCounts = async (pg: PgConnection, salesChannelIds: string[]) => {
   const result = await pg.raw(
     `
       select
@@ -140,7 +145,7 @@ async function getExactCounts(pg: PgConnection, salesChannelIds: string[]) {
     [salesChannelIds],
   )
 
-  const row = toRows(result)[0]
+  const [row] = toRows(result)
 
   return {
     productSalesChannelProducts: getFirstNumber(
@@ -152,11 +157,11 @@ async function getExactCounts(pg: PgConnection, salesChannelIds: string[]) {
   }
 }
 
-async function getIndexCounts(
+const getIndexCounts = async (
   query: QueryService,
   salesChannelIds: string[],
   take: number,
-) {
+) => {
   const result = await query.index({
     entity: "product",
     fields: ["id", "handle"],
@@ -185,11 +190,11 @@ async function getIndexCounts(
   }
 }
 
-async function getGraphCounts(
+const getGraphCounts = async (
   query: QueryService,
   salesChannelIds: string[],
   take: number,
-) {
+) => {
   const linkResult = await query.graph({
     entity: "product_sales_channel",
     fields: ["product_id"],
@@ -227,14 +232,14 @@ async function getGraphCounts(
   }
 }
 
-async function logSnapshot({
+const logSnapshot = async ({
   label,
   logger,
   pg,
   query,
   salesChannelIds,
   take,
-}: SnapshotContext) {
+}: SnapshotContext) => {
   const [exactCounts, indexCounts, graphCounts] = await Promise.all([
     getExactCounts(pg, salesChannelIds),
     getIndexCounts(query, salesChannelIds, take),
@@ -256,14 +261,14 @@ async function logSnapshot({
   )
 }
 
-export default async function debugProductCount({ container }: ExecArgs) {
+const debugProductCount = async ({ container }: ExecArgs) => {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const pg = container.resolve<PgConnection>(
     ContainerRegistrationKeys.PG_CONNECTION,
   )
   const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
   const runAnalyze = process.env["RUN_ANALYZE"] === "1"
-  const take = Number.parseInt(process.env["PRODUCT_COUNT_TAKE"] ?? "1500", 10)
+  const take = Math.trunc(Number(process.env["PRODUCT_COUNT_TAKE"] ?? "1500"))
 
   const { token, salesChannelIds } = await resolvePublishableKey(query)
   logger.info(`[Product count debug] publishable key: ${token}`)
@@ -298,3 +303,5 @@ export default async function debugProductCount({ container }: ExecArgs) {
     take,
   })
 }
+
+export default debugProductCount

@@ -1,11 +1,11 @@
 export type ShopReviewProvider = "heureka" | "zbozi"
 export type HeurekaLocale = "cs" | "sk"
 
-export type FetchHeurekaShopReviewsInput = {
+export interface FetchHeurekaShopReviewsInput {
   locale?: HeurekaLocale
 }
 
-export type ShopReviewProviderResponse = {
+export interface ShopReviewProviderResponse {
   body: string
   content_type: string
   provider: ShopReviewProvider

@@ -32,7 +32,11 @@ export const updateProductListItemStep = createStep(
     )
   },
   async (previousItem, { container }) => {
-    if (!previousItem?.id) {
+    if (
+      previousItem === undefined ||
+      previousItem.id === undefined ||
+      previousItem.id.length === 0
+    ) {
       return
     }
 

@@ -7,6 +7,7 @@ import type {
   RegionDTO,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { PAYKIT_REGION_PAYMENT_PROVIDER_IDS } from "../workflows/seed/paykit-payment-providers"
 import seedPaykitRegionsWorkflow from "../workflows/seed/workflows/seed-paykit-regions"
@@ -75,53 +76,84 @@ const getRegionPaymentProviderLinks = async (
     },
   })
 
-  return data.flatMap((link) => {
-    if (
-      typeof link?.region_id === "string" &&
-      typeof link.payment_provider_id === "string"
-    ) {
-      return [link]
+  const rows: unknown = data
+  if (!Array.isArray(rows)) {
+    throw new TypeError(
+      "PayKit region payment provider query returned invalid data",
+    )
+  }
+
+  return rows.map((row) => {
+    if (!isRecord(row)) {
+      throw new TypeError(
+        "PayKit region payment provider query returned invalid row",
+      )
     }
 
-    throw new Error("PayKit region payment provider query returned invalid row")
+    const regionId = row["region_id"]
+    const paymentProviderId = row["payment_provider_id"]
+    if (typeof regionId !== "string" || typeof paymentProviderId !== "string") {
+      throw new TypeError(
+        "PayKit region payment provider query returned invalid row",
+      )
+    }
+
+    return {
+      payment_provider_id: paymentProviderId,
+      region_id: regionId,
+    }
   })
+}
+
+const REGION_PAGE_SIZE = 100
+const MAX_REGION_COUNT = 10_000
+
+const listRegionPages = async (
+  regionService: IRegionModuleService,
+  regions: RegionDTO[],
+  skip: number,
+): Promise<RegionDTO[]> => {
+  if (skip >= MAX_REGION_COUNT) {
+    throw new Error(
+      `PayKit region seed exceeded the ${MAX_REGION_COUNT} region safety limit`,
+    )
+  }
+
+  const page = await regionService.listRegions(
+    {},
+    {
+      relations: ["countries"],
+      skip,
+      take: REGION_PAGE_SIZE,
+    },
+  )
+  regions.push(...page)
+
+  if (page.length < REGION_PAGE_SIZE) {
+    return regions
+  }
+
+  return await listRegionPages(regionService, regions, skip + REGION_PAGE_SIZE)
 }
 
 const listAllRegions = async (
   regionService: IRegionModuleService,
-): Promise<RegionDTO[]> => {
-  const take = 100
-  const regions: RegionDTO[] = []
-
-  for (let skip = 0; ; skip += take) {
-    const page = await regionService.listRegions(
-      {},
-      {
-        relations: ["countries"],
-        skip,
-        take,
-      },
-    )
-
-    regions.push(...page)
-
-    if (page.length < take) {
-      return regions
-    }
-  }
-}
+): Promise<RegionDTO[]> => await listRegionPages(regionService, [], 0)
 
 const toRegionPaymentProviderMap = (
   paymentProviderLinks: RegionPaymentProviderLink[],
-) =>
-  paymentProviderLinks.reduce((map, link) => {
+) => {
+  const map = new Map<string, string[]>()
+
+  for (const link of paymentProviderLinks) {
     const regionPaymentProviders = map.get(link.region_id) ?? []
 
     regionPaymentProviders.push(link.payment_provider_id)
     map.set(link.region_id, regionPaymentProviders)
+  }
 
-    return map
-  }, new Map<string, string[]>())
+  return map
+}
 
 const toRegionSeedInput = (
   region: RegionDTO,
@@ -136,7 +168,7 @@ const toRegionSeedInput = (
       ? defaultRegion?.currencyCode
       : trimmedCurrency
 
-  if (!currencyCode) {
+  if (currencyCode === undefined || currencyCode === "") {
     throw new Error(
       `PayKit seed cannot sync region "${region.name}" (${region.id}) because currency_code is missing`,
     )
@@ -149,7 +181,7 @@ const toRegionSeedInput = (
     currencyCode,
     id: region.id,
     name: region.name,
-    ...(paymentProviders ? { paymentProviders } : {}),
+    ...(paymentProviders === undefined ? {} : { paymentProviders }),
   }
 }
 

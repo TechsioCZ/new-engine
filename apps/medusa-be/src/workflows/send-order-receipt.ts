@@ -44,13 +44,7 @@ type QueryOrder = OrderReceiptOrder &
     } | null
   }
 
-function findQueryOrder(
-  candidates: readonly unknown[],
-): QueryOrder | undefined {
-  return candidates.find(isQueryOrder)
-}
-
-function isQueryOrder(value: unknown): value is QueryOrder {
+const isQueryOrder = (value: unknown): value is QueryOrder => {
   if (!isRecord(value)) {
     return false
   }
@@ -59,6 +53,10 @@ function isQueryOrder(value: unknown): value is QueryOrder {
 
   return typeof id === "string" && id.length > 0
 }
+
+const findQueryOrder = (
+  candidates: readonly unknown[],
+): QueryOrder | undefined => candidates.find(isQueryOrder)
 
 const ORDER_RECEIPT_FIELDS = [
   "id",
@@ -107,17 +105,29 @@ const ORDER_RECEIPT_FIELDS = [
   "customer.last_name",
 ]
 
-function getCustomerName(order: QueryOrder) {
+const getCustomerName = (order: QueryOrder) => {
   const customerName = [order.customer?.first_name, order.customer?.last_name]
     .filter(Boolean)
     .join(" ")
 
+  if (customerName !== "") {
+    return customerName
+  }
+
   const address = order.billing_address ?? order.shipping_address
+  if (
+    address?.company !== null &&
+    address?.company !== undefined &&
+    address.company !== ""
+  ) {
+    return address.company
+  }
+
   const addressName = [address?.first_name, address?.last_name]
     .filter(Boolean)
     .join(" ")
 
-  return customerName || address?.company || addressName || undefined
+  return addressName === "" ? undefined : addressName
 }
 
 const sendOrderReceiptStep = createStep(
@@ -146,7 +156,11 @@ const sendOrderReceiptStep = createStep(
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
     }
 
-    if (!order.email) {
+    if (
+      order.email === null ||
+      order.email === undefined ||
+      order.email === ""
+    ) {
       logger.warn(`Order ${order.id} has no email; receipt email skipped.`)
       return new StepResponse({
         order_id: order.id,

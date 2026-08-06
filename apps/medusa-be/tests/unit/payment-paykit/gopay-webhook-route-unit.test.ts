@@ -15,51 +15,58 @@ import {
 
 /**
  * Asserts that a plain mock object contains the given keys before narrowing
- * it to a framework type. Building the mock via `satisfies` on a narrow
- * pick (instead of the full target type) avoids requiring every property of
- * the huge Node request/response interfaces while still validating the
- * shape the route handler actually reads from at runtime.
+ * it to a framework type. Building the mock as `unknown` first avoids
+ * requiring every property of the huge Node request/response interfaces
+ * while still validating the shape the route handler reads at runtime.
  */
-function assertMockShape<T>(
+const assertMockShape: <T>(
   candidate: unknown,
-  requiredKeys: readonly string[],
-): asserts candidate is T {
+  requiredKeys: readonly (keyof T)[],
+) => asserts candidate is T = (candidate, requiredKeys) => {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
   }
 
   for (const key of requiredKeys) {
     if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
+      throw new TypeError(`Mock object missing required key: ${String(key)}`)
     }
   }
 }
 
+type EmitMock = ReturnType<
+  typeof vi.fn<(event: unknown, options?: unknown) => Promise<void>>
+>
+
+const createEmitMock = () =>
+  vi.fn<(event: unknown, options?: unknown) => Promise<void>>()
+
+const createLogger = (): Pick<Logger, "debug" | "error"> => ({
+  debug: vi.fn<Logger["debug"]>(),
+  error: vi.fn<Logger["error"]>(),
+})
+
 const createResponse = () => {
-  const candidate = {
-    json: vi.fn().mockReturnThis(),
-    sendStatus: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  } satisfies Pick<MedusaResponse, "json" | "sendStatus" | "status">
+  const json = vi.fn<MedusaResponse["json"]>().mockReturnThis()
+  const sendStatus = vi.fn<MedusaResponse["sendStatus"]>().mockReturnThis()
+  const status = vi.fn<MedusaResponse["status"]>().mockReturnThis()
+  const candidate: unknown = { json, sendStatus, status }
 
   assertMockShape<MedusaResponse>(candidate, ["json", "sendStatus", "status"])
-  return candidate
+  return { json, response: candidate, sendStatus, status }
 }
 
 const createRequest = ({
-  emit = vi.fn().mockResolvedValue(),
+  emit = createEmitMock().mockResolvedValue(),
   headers = { host: "shop.example" },
-  logger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-  } satisfies Pick<Logger, "debug" | "error">,
+  logger = createLogger(),
   originalUrl = `${PAYKIT_GOPAY_WEBHOOK_PATH}?id=gopay-payment-1`,
   protocol = "https",
   url = `${PAYKIT_GOPAY_WEBHOOK_PATH}?id=gopay-payment-1`,
   webhookDelay = 25,
   webhookRetries = 2,
 }: {
-  emit?: ReturnType<typeof vi.fn>
+  emit?: EmitMock
   headers?: Record<string, string>
   logger?: Pick<Logger, "debug" | "error">
   originalUrl?: string
@@ -73,7 +80,7 @@ const createRequest = ({
     originalUrl,
     protocol,
     scope: {
-      resolve: vi.fn((key) => {
+      resolve: vi.fn<(key: string) => unknown>((key) => {
         if (key === Modules.PAYMENT) {
           return {
             options: {
@@ -91,7 +98,7 @@ const createRequest = ({
           return logger
         }
 
-        throw new Error(`Unexpected container key: ${String(key)}`)
+        throw new Error(`Unexpected container key: ${key}`)
       }),
     },
     url,
@@ -109,11 +116,11 @@ const createRequest = ({
 
 describe("GoPay payment webhook route", () => {
   it("emits Medusa payment webhook events for GoPay GET callbacks", async () => {
-    const emit = vi.fn().mockResolvedValue()
+    const emit = createEmitMock().mockResolvedValue()
     const req = createRequest({ emit })
     const res = createResponse()
 
-    await GET(req, res)
+    await GET(req, res.response)
 
     expect(emit).toHaveBeenCalledWith(
       {
@@ -139,7 +146,7 @@ describe("GoPay payment webhook route", () => {
   })
 
   it("preserves explicit zero webhook retry settings", async () => {
-    const emit = vi.fn().mockResolvedValue()
+    const emit = createEmitMock().mockResolvedValue()
     const req = createRequest({
       emit,
       webhookDelay: 0,
@@ -147,7 +154,7 @@ describe("GoPay payment webhook route", () => {
     })
     const res = createResponse()
 
-    await GET(req, res)
+    await GET(req, res.response)
 
     expect(emit).toHaveBeenCalledWith(expect.any(Object), {
       attempts: 0,
@@ -157,7 +164,7 @@ describe("GoPay payment webhook route", () => {
   })
 
   it("rejects callbacks without GoPay payment id", async () => {
-    const emit = vi.fn().mockResolvedValue()
+    const emit = createEmitMock().mockResolvedValue()
     const req = createRequest({
       emit,
       originalUrl: PAYKIT_GOPAY_WEBHOOK_PATH,
@@ -165,7 +172,7 @@ describe("GoPay payment webhook route", () => {
     })
     const res = createResponse()
 
-    await GET(req, res)
+    await GET(req, res.response)
 
     expect(emit).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(400)
@@ -173,15 +180,14 @@ describe("GoPay payment webhook route", () => {
   })
 
   it("logs webhook emit failures without failing the GoPay callback", async () => {
-    const emit = vi.fn().mockRejectedValue(new Error("event bus unavailable"))
-    const logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-    } satisfies Pick<Logger, "debug" | "error">
+    const emit = createEmitMock().mockRejectedValue(
+      new Error("event bus unavailable"),
+    )
+    const logger = createLogger()
     const req = createRequest({ emit, logger })
     const res = createResponse()
 
-    await GET(req, res)
+    await GET(req, res.response)
 
     expect(emit).toHaveBeenCalledOnce()
     expect(logger.error).toHaveBeenCalledWith(
@@ -195,12 +201,9 @@ describe("GoPay payment webhook route", () => {
   })
 
   it("logs webhook setup failures without failing the GoPay callback", async () => {
-    const logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-    } satisfies Pick<Logger, "debug" | "error">
+    const logger = createLogger()
     const req = createRequest()
-    req.scope.resolve = vi.fn((key) => {
+    vi.spyOn(req.scope, "resolve").mockImplementation((key) => {
       if (key === ContainerRegistrationKeys.LOGGER) {
         return logger
       }
@@ -209,11 +212,11 @@ describe("GoPay payment webhook route", () => {
         throw new Error("payment module unavailable")
       }
 
-      throw new Error(`Unexpected container key: ${String(key)}`)
+      throw new Error(`Unexpected container key: ${key}`)
     })
     const res = createResponse()
 
-    await GET(req, res)
+    await GET(req, res.response)
 
     expect(logger.error).toHaveBeenCalledWith(
       "Failed to emit PayKit payment webhook event",

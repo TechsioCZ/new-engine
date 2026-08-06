@@ -3,14 +3,14 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 
-import { createProductAttributeOptionWorkflow } from "../../../../../../workflows/product-attribute"
+import { createProductAttributeOptionWorkflow } from "../../../../../../workflows/product-attribute/workflows/options"
 import {
   retrieveProductAttributeDefinitionOrThrow,
   toProductAttributeOptionResponse,
 } from "../../../utils"
 import type { AdminCreateProductAttributeOptionSchemaType } from "../../../validators"
 
-export const POST = async (
+const createProductAttributeOption = async (
   req: AuthenticatedMedusaRequest<AdminCreateProductAttributeOptionSchemaType>,
   res: MedusaResponse,
 ) => {
@@ -26,3 +26,5 @@ export const POST = async (
     option: toProductAttributeOptionResponse(result, 0),
   })
 }
+
+export { createProductAttributeOption as POST }

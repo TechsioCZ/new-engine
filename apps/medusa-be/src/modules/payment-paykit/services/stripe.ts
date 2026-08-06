@@ -444,7 +444,10 @@ const cancelOrExpireStripeCheckoutSessionPayment = async (
     return undefined
   }
 
-  if (session.status === "open" && client.stripeCheckoutSessions?.expire) {
+  if (
+    session.status === "open" &&
+    client.stripeCheckoutSessions?.expire !== undefined
+  ) {
     // Expiring the Checkout Session is the only cancel path Stripe accepts for
     // the cs_ ids createPayment's Checkout flow returns; drop this branch once
     // PayKit's delete/cancel accepts those ids directly.
@@ -510,7 +513,11 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   }
 
   static override validateOptions(options: PaykitStripeOptions = {}): void {
-    if (options.client || options.clientFactory || options.apiStoreName) {
+    if (
+      Boolean(options.client) ||
+      Boolean(options.clientFactory) ||
+      Boolean(options.apiStoreName)
+    ) {
       return
     }
 

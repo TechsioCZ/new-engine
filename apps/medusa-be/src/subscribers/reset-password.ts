@@ -14,7 +14,7 @@ export default async function resetPasswordHandler({
   container,
 }: SubscriberArgs<ResetPasswordEvent>) {
   const storefrontUrl = process.env["STOREFRONT_URL"]
-  if (!storefrontUrl) {
+  if (storefrontUrl === undefined || storefrontUrl === "") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "STOREFRONT_URL env var is not set — cannot build password reset link",

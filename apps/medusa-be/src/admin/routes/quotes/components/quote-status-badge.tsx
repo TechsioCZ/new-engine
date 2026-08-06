@@ -9,7 +9,7 @@ const StatusColors: Record<string, "green" | "orange" | "red" | "blue"> = {
   pending_merchant: "blue",
 }
 
-export default function QuoteStatusBadge({ status }: { status: string }) {
+const QuoteStatusBadge = ({ status }: { status: string }) => {
   const { t } = useTranslation("quotes")
 
   return (
@@ -18,3 +18,5 @@ export default function QuoteStatusBadge({ status }: { status: string }) {
     </StatusBadge>
   )
 }
+
+export default QuoteStatusBadge

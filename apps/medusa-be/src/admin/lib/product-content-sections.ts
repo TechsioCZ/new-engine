@@ -42,12 +42,12 @@ const isProductMetadataRecord = (
 const getMetadataValue = (
   metadata: AdminProduct["metadata"] | undefined,
   key: string,
-) => (isProductMetadataRecord(metadata) ? metadata[key] : undefined)
+): unknown => (isProductMetadataRecord(metadata) ? metadata[key] : undefined)
 
 const getMetadataRecord = (
   metadata: AdminProduct["metadata"] | undefined,
   key: string,
-) => {
+): Record<string, unknown> | null => {
   const value = getMetadataValue(metadata, key)
 
   return isProductMetadataRecord(value) ? value : null
@@ -56,14 +56,15 @@ const getMetadataRecord = (
 const getContentSectionsListHtml = (
   metadata: AdminProduct["metadata"] | undefined,
   key: ProductContentSectionKey,
-) => {
+): string => {
   const value = getMetadataValue(metadata, CONTENT_SECTIONS_METADATA_KEY)
 
   if (!Array.isArray(value)) {
     return ""
   }
 
-  const section = value.find((item) => {
+  const sections: unknown[] = value
+  const section = sections.find((item) => {
     const sectionRecord = isProductMetadataRecord(item) ? item : null
 
     return sectionRecord?.["key"] === key
@@ -73,7 +74,7 @@ const getContentSectionsListHtml = (
     return ""
   }
 
-  const { html } = section
+  const html: unknown = section["html"]
 
   return typeof html === "string" ? html : ""
 }
@@ -81,7 +82,7 @@ const getContentSectionsListHtml = (
 const getMetadataSectionHtml = (
   metadata: AdminProduct["metadata"] | undefined,
   key: ProductContentSectionKey,
-) => {
+): string => {
   const contentSectionsMap = getMetadataRecord(
     metadata,
     CONTENT_SECTIONS_MAP_METADATA_KEY,

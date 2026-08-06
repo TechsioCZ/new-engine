@@ -47,7 +47,7 @@ const level = (
 const firstVariant = (
   response: ReturnType<typeof buildProductLocationAvailability>,
 ) => {
-  const variant = response.variants[0]
+  const [variant] = response.variants
   if (!variant) {
     throw new Error("expected variant")
   }
@@ -58,7 +58,7 @@ const firstVariant = (
 const warehouseAvailability = (
   response: ReturnType<typeof buildProductLocationAvailability>,
 ) => {
-  const entry = firstVariant(response).location_availability[1]
+  const [, entry] = firstVariant(response).location_availability
   if (!entry) {
     throw new Error("expected warehouse location availability entry")
   }

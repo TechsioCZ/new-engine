@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { PRODUCT_REVIEW_MODULE } from "../../../../../../modules/product-review"
 import type ProductReviewModuleService from "../../../../../../modules/product-review/service"
 import { updateReviewWorkflow } from "../../../../../../workflows/product-review/workflows/update-review"
@@ -15,12 +16,12 @@ import { toCustomerReviewUpdateInput } from "../helpers"
 import type { StoreUpdateCustomerReviewSchemaType } from "../validators"
 
 const getReviewRouteId = (req: AuthenticatedMedusaRequest) =>
-  typeof req.params.id === "string" ? req.params.id : undefined
+  typeof req.params["id"] === "string" ? req.params["id"] : undefined
 
-async function assertCustomerOwnsReview(
+const assertCustomerOwnsReview = async (
   req: AuthenticatedMedusaRequest,
-  id: string
-) {
+  id: string,
+) => {
   const review = await req.scope
     .resolve<ProductReviewModuleService>(PRODUCT_REVIEW_MODULE)
     .retrieveReview(id)
@@ -33,16 +34,16 @@ async function assertCustomerOwnsReview(
   }
 }
 
-export async function PATCH(
+const updateCustomerReview = async (
   req: AuthenticatedMedusaRequest<StoreUpdateCustomerReviewSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const id = getReviewRouteId(req)
 
-  if (!id) {
+  if (id === undefined || id.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Review id is required"
+      "Review id is required",
     )
   }
 
@@ -58,3 +59,5 @@ export async function PATCH(
 
   res.json({ review: normalizeCustomerReview(review, productsById) })
 }
+
+export { updateCustomerReview as PATCH }

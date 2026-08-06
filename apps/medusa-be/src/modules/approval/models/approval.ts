@@ -1,6 +1,9 @@
 import { model } from "@medusajs/framework/utils"
 
-import { ApprovalStatusType, ApprovalType } from "../../../types/approval"
+import {
+  ApprovalStatusType,
+  ApprovalType,
+} from "../../../types/approval/module"
 
 export const Approval = model.define("approval", {
   cart_id: model.text(),

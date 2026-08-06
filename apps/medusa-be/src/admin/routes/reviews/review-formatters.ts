@@ -9,22 +9,24 @@ export const REVIEW_STATUS_BADGE_COLOR: Record<
   rejected: "red",
 }
 
-export function formatReviewDate(date: string | undefined): string {
-  if (!date) {
+const reviewDateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+})
+
+export const formatReviewDate = (date: string | undefined): string => {
+  if (date === undefined || date.length === 0) {
     return "-"
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(date))
+  return reviewDateFormatter.format(new Date(date))
 }
 
-export function getReviewCustomerName(review: Review): string {
+export const getReviewCustomerName = (review: Review): string => {
   const name = [review.first_name, review.last_name]
-    .filter(Boolean)
+    .filter((part): part is string => typeof part === "string")
     .join(" ")
     .trim()
 
-  return name || review.customer_id
+  return name.length > 0 ? name : review.customer_id
 }

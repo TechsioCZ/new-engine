@@ -16,13 +16,19 @@ import { getExtendedRuleAttributesMap, validateRuleType } from "../../utils"
  * - application_method_type: "fixed" | "percentage"
  * - application_method_target_type: "order" | "items" | "shipping_methods"
  */
-export async function GET(
+const assertRuleType: (ruleType: string) => asserts ruleType is RuleType = (
+  ruleType,
+) => {
+  validateRuleType(ruleType)
+}
+
+const get = (
   req: MedusaRequest<unknown, RuleAttributeOptionsQuerySchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const ruleType = req.params["rule_type"]
 
-  if (!ruleType) {
+  if (ruleType === undefined || ruleType.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "rule_type parameter is required",
@@ -47,11 +53,9 @@ export async function GET(
       ...(application_method_target_type === undefined
         ? {}
         : { applicationMethodTargetType: application_method_target_type }),
-    })[ruleType] || []
+    })[ruleType] ?? []
 
   res.json({ attributes })
 }
 
-function assertRuleType(ruleType: string): asserts ruleType is RuleType {
-  validateRuleType(ruleType)
-}
+export { get as GET }

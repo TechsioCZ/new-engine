@@ -1,6 +1,15 @@
+import type { Mock } from "vitest"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { APPROVAL_MODULE } from "../../../../../src/modules/approval"
+
+type StepImplementation = (...args: unknown[]) => unknown
+
+type CreateStepFn = (
+  name: string,
+  invoke: StepImplementation,
+  compensate?: StepImplementation,
+) => StepImplementation & { compensate?: StepImplementation }
 
 vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
@@ -15,23 +24,29 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.compensateInput = compensateInput
     }
   },
-  createStep: vi.fn((_name, invoke, compensate) =>
+  createStep: vi.fn<CreateStepFn>((_name, invoke, compensate) =>
     Object.assign(invoke, { compensate }),
   ),
 }))
 
+type AsyncMockFn<TArgs extends unknown[] = unknown[], TReturn = unknown> = (
+  ...args: TArgs
+) => Promise<TReturn>
+
 interface ApprovalService {
-  createApprovalSettings: ReturnType<typeof vi.fn>
-  deleteApprovalSettings: ReturnType<typeof vi.fn>
-  listApprovalSettings: ReturnType<typeof vi.fn>
-  restoreApprovalSettings: ReturnType<typeof vi.fn>
-  softDeleteApprovalSettings: ReturnType<typeof vi.fn>
+  createApprovalSettings: Mock<AsyncMockFn>
+  deleteApprovalSettings: Mock<AsyncMockFn>
+  listApprovalSettings: Mock<AsyncMockFn>
+  restoreApprovalSettings: Mock<AsyncMockFn>
+  softDeleteApprovalSettings: Mock<AsyncMockFn>
 }
 
 interface LinkService {
-  create: ReturnType<typeof vi.fn>
-  dismiss: ReturnType<typeof vi.fn>
+  create: Mock<AsyncMockFn>
+  dismiss: Mock<AsyncMockFn>
 }
+
+type GraphQueryFn = (input: unknown) => Promise<{ data: unknown[] }>
 
 type MockContainer = ReturnType<typeof makeContainer>
 
@@ -49,54 +64,52 @@ interface MockStep<TInput> {
   ) => Promise<void>
 }
 
+const isMockStep = <TInput>(
+  candidate: unknown,
+): candidate is MockStep<TInput> =>
+  typeof candidate === "function" &&
+  "compensate" in candidate &&
+  typeof candidate.compensate === "function"
+
 const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
-  if (typeof candidate !== "function") {
+  if (!isMockStep<TInput>(candidate)) {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function",
+      "Expected the imported workflow step to expose invoke and compensate functions",
     )
   }
 
-  if (
-    !("compensate" in candidate) ||
-    typeof candidate.compensate !== "function"
-  ) {
-    throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function",
-    )
-  }
-
-  return candidate as MockStep<TInput>
+  return candidate
 }
 
 const makeApprovalService = (
   overrides: Partial<ApprovalService> = {},
 ): ApprovalService => ({
-  createApprovalSettings: vi.fn(),
-  deleteApprovalSettings: vi.fn(),
-  listApprovalSettings: vi.fn(),
-  restoreApprovalSettings: vi.fn(),
-  softDeleteApprovalSettings: vi.fn(),
+  createApprovalSettings: vi.fn<AsyncMockFn>(),
+  deleteApprovalSettings: vi.fn<AsyncMockFn>(),
+  listApprovalSettings: vi.fn<AsyncMockFn>(),
+  restoreApprovalSettings: vi.fn<AsyncMockFn>(),
+  softDeleteApprovalSettings: vi.fn<AsyncMockFn>(),
   ...overrides,
 })
 
 const makeLinkService = (
   overrides: Partial<LinkService> = {},
 ): LinkService => ({
-  create: vi.fn(),
-  dismiss: vi.fn(),
+  create: vi.fn<AsyncMockFn>(),
+  dismiss: vi.fn<AsyncMockFn>(),
   ...overrides,
 })
 
 const makeContainer = ({
   approvalService,
-  graph = vi.fn(),
+  graph = vi.fn<GraphQueryFn>(),
   linkService = makeLinkService(),
 }: {
   approvalService: ApprovalService
-  graph?: ReturnType<typeof vi.fn>
+  graph?: Mock<GraphQueryFn>
   linkService?: LinkService
 }) => ({
-  resolve: vi.fn((key: string) => {
+  resolve: vi.fn<(key: string) => unknown>((key) => {
     if (key === APPROVAL_MODULE) {
       return approvalService
     }
@@ -122,7 +135,7 @@ describe("approval settings steps", () => {
     const { deleteApprovalSettingsStep } =
       await import("../../../../../src/workflows/approval/steps/delete-approval-settings")
     const approvalService = makeApprovalService({
-      listApprovalSettings: vi.fn().mockResolvedValue([
+      listApprovalSettings: vi.fn<AsyncMockFn>().mockResolvedValue([
         {
           company_id: "comp_1",
           id: "apprset_1",
@@ -172,8 +185,10 @@ describe("approval settings steps", () => {
       requires_sales_manager_approval: false,
     }
     const approvalService = makeApprovalService({
-      createApprovalSettings: vi.fn().mockResolvedValue([createdSetting]),
-      listApprovalSettings: vi.fn().mockResolvedValue([
+      createApprovalSettings: vi
+        .fn<AsyncMockFn>()
+        .mockResolvedValue([createdSetting]),
+      listApprovalSettings: vi.fn<AsyncMockFn>().mockResolvedValue([
         {
           company_id: "comp_1",
           deleted_at: null,
@@ -190,31 +205,36 @@ describe("approval settings steps", () => {
       { container },
     )
 
-    expect(approvalService.listApprovalSettings).toHaveBeenCalledWith(
-      {
-        company_id: ["comp_1", "comp_2", "comp_3"],
+    expect({
+      compensateInput: result.compensateInput,
+      createCalls: approvalService.createApprovalSettings.mock.calls,
+      listCalls: approvalService.listApprovalSettings.mock.calls,
+      payload: result.payload,
+      restoreCalls: approvalService.restoreApprovalSettings.mock.calls,
+    }).toStrictEqual({
+      compensateInput: {
+        created_ids: ["apprset_created"],
+        restored_ids: ["apprset_deleted"],
       },
-      {
-        withDeleted: true,
+      createCalls: [
+        [
+          [
+            {
+              company_id: "comp_3",
+              requires_admin_approval: false,
+              requires_sales_manager_approval: false,
+            },
+          ],
+        ],
+      ],
+      listCalls: [
+        [{ company_id: ["comp_1", "comp_2", "comp_3"] }, { withDeleted: true }],
+      ],
+      payload: {
+        approval_settings: [restoredSetting, createdSetting],
+        created_approval_settings: [createdSetting],
       },
-    )
-    expect(approvalService.restoreApprovalSettings).toHaveBeenCalledWith([
-      "apprset_deleted",
-    ])
-    expect(approvalService.createApprovalSettings).toHaveBeenCalledWith([
-      {
-        company_id: "comp_3",
-        requires_admin_approval: false,
-        requires_sales_manager_approval: false,
-      },
-    ])
-    expect(result.payload).toStrictEqual({
-      approval_settings: [restoredSetting, createdSetting],
-      created_approval_settings: [createdSetting],
-    })
-    expect(result.compensateInput).toStrictEqual({
-      created_ids: ["apprset_created"],
-      restored_ids: ["apprset_deleted"],
+      restoreCalls: [[["apprset_deleted"]]],
     })
 
     await asMockStep<string[]>(ensureApprovalSettingsStep).compensate(
@@ -224,12 +244,13 @@ describe("approval settings steps", () => {
       },
     )
 
-    expect(approvalService.deleteApprovalSettings).toHaveBeenCalledWith([
-      "apprset_created",
-    ])
-    expect(approvalService.softDeleteApprovalSettings).toHaveBeenCalledWith([
-      "apprset_deleted",
-    ])
+    expect({
+      deleteCalls: approvalService.deleteApprovalSettings.mock.calls,
+      softDeleteCalls: approvalService.softDeleteApprovalSettings.mock.calls,
+    }).toStrictEqual({
+      deleteCalls: [[["apprset_created"]]],
+      softDeleteCalls: [[["apprset_deleted"]]],
+    })
   })
 
   it("dismisses stale company approval-settings links with the link API", async () => {
@@ -240,7 +261,7 @@ describe("approval settings steps", () => {
       company: { company_id: "comp_1" },
     }
     const approvalService = makeApprovalService()
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<GraphQueryFn>().mockResolvedValue({
       data: [
         {
           approval_settings_id: "apprset_missing",

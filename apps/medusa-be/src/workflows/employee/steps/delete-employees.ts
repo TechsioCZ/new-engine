@@ -79,7 +79,9 @@ export const deleteEmployeesStep = createStep(
         ],
         filters: {
           id: ids,
-          ...(companyId ? { company_id: companyId } : {}),
+          ...(companyId === undefined || companyId.length === 0
+            ? {}
+            : { company_id: companyId }),
         },
       },
       { throwIfKeyNotFound: true },
@@ -93,27 +95,40 @@ export const deleteEmployeesStep = createStep(
     }
 
     const removedCustomerGroups = employees.flatMap((employee) => {
-      if (!(employee.customer?.id && employee.company?.customer_group?.id)) {
+      const customerGroupId = employee.company?.customer_group?.id
+      const customerId = employee.customer?.id
+      if (
+        typeof customerGroupId !== "string" ||
+        customerGroupId.length === 0 ||
+        typeof customerId !== "string" ||
+        customerId.length === 0
+      ) {
         return []
       }
 
       return [
         {
-          customer_group_id: employee.company.customer_group.id,
-          customer_id: employee.customer.id,
+          customer_group_id: customerGroupId,
+          customer_id: customerId,
         },
       ]
     })
-    const adminCandidates = employees
-      .filter((employee) => employee.is_admin)
-      .map((employee) => ({
-        ...(employee.customer?.id === undefined
-          ? {}
-          : { customer_id: employee.customer?.id }),
-        ...(employee.customer?.email === undefined
-          ? {}
-          : { email: employee.customer?.email }),
-      }))
+    const adminCandidates = employees.flatMap((employee) => {
+      if (employee.is_admin !== true) {
+        return []
+      }
+
+      return [
+        {
+          ...(employee.customer?.id === undefined
+            ? {}
+            : { customer_id: employee.customer.id }),
+          ...(employee.customer?.email === undefined
+            ? {}
+            : { email: employee.customer.email }),
+        },
+      ]
+    })
     const providerIdentityIds =
       await getProviderIdentityIdsWithoutActiveAdminRole({
         candidates: adminCandidates,

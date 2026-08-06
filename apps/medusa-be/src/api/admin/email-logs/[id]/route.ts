@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import {
   getCredentialString,
   INTEGRATION_CONFIG_NAMES,
@@ -9,7 +10,7 @@ import {
 import { EMAIL_LOG_MODULE } from "../../../../modules/email-log"
 import type EmailLogModuleService from "../../../../modules/email-log/service"
 
-type EmailLogDTO = {
+interface EmailLogDTO {
   id: string
   email_id: string
   customer_id: string | null
@@ -27,7 +28,7 @@ type EmailLogService = EmailLogModuleService & {
   retrieveEmailLog: (id: string) => Promise<EmailLogDTO>
 }
 
-type ResendErrorResponse = {
+interface ResendErrorResponse {
   message?: string
 }
 
@@ -41,44 +42,43 @@ const isResendErrorResponse = (obj: unknown): obj is ResendErrorResponse =>
   typeof obj.message === "string"
 
 const toEmailLogResponse = (emailLog: EmailLogDTO) => ({
-  id: emailLog.id,
-  email_id: emailLog.email_id,
-  customer_id: emailLog.customer_id,
-  order_id: emailLog.order_id,
-  type: emailLog.type,
-  subject: emailLog.subject,
-  sent_to: emailLog.sent_to,
-  sent_at: emailLog.sent_at,
   checked_at: emailLog.checked_at,
   created_at: emailLog.created_at,
+  customer_id: emailLog.customer_id,
+  email_id: emailLog.email_id,
+  id: emailLog.id,
+  order_id: emailLog.order_id,
+  sent_at: emailLog.sent_at,
+  sent_to: emailLog.sent_to,
+  subject: emailLog.subject,
+  type: emailLog.type,
   updated_at: emailLog.updated_at,
 })
 
-async function retrieveResendEmail(
+const retrieveResendEmail = async (
   emailId: string,
-  container: Record<string, unknown>
-) {
+  container: Record<string, unknown>,
+) => {
   const config = await requireEnabledIntegrationConfig(
     container,
-    INTEGRATION_CONFIG_NAMES.RESEND
+    INTEGRATION_CONFIG_NAMES.RESEND,
   )
   const credentials = requireCredentialObject(config)
   const apiKey =
     config.api_key ?? getCredentialString(credentials, "apiKey", "api_key")
 
-  if (!apiKey) {
+  if (apiKey === undefined || apiKey.length === 0) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Resend API key is not configured in Settings → API Store"
+      "Resend API key is not configured in Settings → API Store",
     )
   }
 
   const url = `${RESEND_EMAILS_API}/${emailId}`
   const controller = new AbortController()
-  const timeoutId = setTimeout(
-    () => controller.abort(),
-    RESEND_EMAILS_API_TIMEOUT_MS
-  )
+  const timeoutId = setTimeout(() => {
+    controller.abort()
+  }, RESEND_EMAILS_API_TIMEOUT_MS)
 
   let response: Response
   try {
@@ -93,7 +93,7 @@ async function retrieveResendEmail(
     if (error instanceof Error && error.name === "AbortError") {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        `Resend email retrieval timed out after ${RESEND_EMAILS_API_TIMEOUT_MS}ms: ${emailId}`
+        `Resend email retrieval timed out after ${RESEND_EMAILS_API_TIMEOUT_MS}ms: ${emailId}`,
       )
     }
     throw error
@@ -101,7 +101,12 @@ async function retrieveResendEmail(
     clearTimeout(timeoutId)
   }
 
-  const parsed = (await response.json().catch(() => null)) as unknown
+  let parsed: unknown = null
+  try {
+    parsed = await response.json()
+  } catch {
+    parsed = null
+  }
 
   if (!response.ok) {
     const errorMessage = isResendErrorResponse(parsed)
@@ -110,32 +115,33 @@ async function retrieveResendEmail(
 
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Failed to retrieve Resend email ${emailId}: ${errorMessage}`
+      `Failed to retrieve Resend email ${emailId}: ${errorMessage}`,
     )
   }
 
   return parsed
 }
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const getEmailLog = async (req: MedusaRequest, res: MedusaResponse) => {
   const emailLogService = req.scope.resolve<EmailLogService>(EMAIL_LOG_MODULE)
   const { id } = req.params
 
-  if (!id) {
+  if (id === undefined || id.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Email log id is required"
+      "Email log id is required",
     )
   }
 
   const emailLog = await emailLogService.retrieveEmailLog(id)
-  const resendEmail = await retrieveResendEmail(
-    emailLog.email_id,
-    req.scope as Record<string, unknown>
-  )
+  const resendEmail = await retrieveResendEmail(emailLog.email_id, {
+    resolve: req.scope.resolve.bind(req.scope),
+  })
 
   res.json({
     email_log: toEmailLogResponse(emailLog),
     resend_email: resendEmail,
   })
 }
+
+export { getEmailLog as GET }

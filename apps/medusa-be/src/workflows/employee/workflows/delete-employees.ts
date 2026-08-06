@@ -4,8 +4,8 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import type { WorkflowData } from "@medusajs/framework/workflows-sdk"
 
-import { validateCompanyActiveStep } from "../../company/steps"
-import { deleteEmployeesStep } from "../steps"
+import { validateCompanyActiveStep } from "../../company/steps/validate-company-active"
+import { deleteEmployeesStep } from "../steps/delete-employees"
 
 interface DeleteEmployeesWorkflowInput {
   company_id?: string

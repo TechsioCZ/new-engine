@@ -2,11 +2,7 @@ import type { HttpTypes } from "@medusajs/framework/types"
 import type { FetchError } from "@medusajs/js-sdk"
 import type { AdminCreateCustomer, AdminCustomer } from "@medusajs/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type {
-  QueryKey,
-  UseMutationOptions,
-  UseQueryOptions,
-} from "@tanstack/react-query"
+import type { UseMutationOptions, UseQueryOptions } from "@tanstack/react-query"
 
 import { queryKeysFactory } from "../../lib/query-key-factory"
 import { sdk } from "../../lib/sdk"
@@ -67,7 +63,7 @@ export const useAdminCustomerGroups = (
 ) =>
   useQuery({
     queryFn: async () =>
-      sdk.admin.customerGroup.list({
+      await sdk.admin.customerGroup.list({
         ...query,
         fields: query?.fields ?? "id,name",
       }),
@@ -91,7 +87,7 @@ export const useCustomerGroupCompanyOwners = (
         searchParams.append("group_id", groupId)
       }
 
-      return sdk.client.fetch<CustomerGroupCompanyOwnersResponse>(
+      return await sdk.client.fetch<CustomerGroupCompanyOwnersResponse>(
         `/admin/company-customer-group-links?${searchParams.toString()}`,
       )
     },
@@ -113,7 +109,7 @@ export const useAdminCustomerSearch = (
     ...queryOptions,
     enabled: Boolean(normalizedEmail) && (enabled ?? true),
     queryFn: async () =>
-      sdk.admin.customer.list({
+      await sdk.admin.customer.list({
         fields: "id,email,first_name,last_name,phone",
         limit: 5,
         q: normalizedEmail,
@@ -136,7 +132,7 @@ export const useAdminCreateCustomer = (
 
   return useMutation({
     mutationFn: async (customer: AdminCreateCustomer) =>
-      sdk.admin.customer.create(customer),
+      await sdk.admin.customer.create(customer),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
@@ -153,8 +149,10 @@ export const useAdminFindCustomerByEmail = (
     FetchError,
     string
   >,
-) =>
-  useMutation({
+) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
     mutationFn: async (email: string) => {
       const normalizedEmail = email.trim().toLowerCase()
       const { customers } = await sdk.admin.customer.list({
@@ -169,5 +167,12 @@ export const useAdminFindCustomerByEmail = (
         ) ?? null
       )
     },
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
+        queryKey: customerQueryKey.lists(),
+      })
+      await options?.onSuccess?.(data, variables, context)
+    },
     ...options,
   })
+}

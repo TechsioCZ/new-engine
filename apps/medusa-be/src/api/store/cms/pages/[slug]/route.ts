@@ -14,20 +14,22 @@ export const StoreCmsPageSchema = z.object({
 export type StoreCmsPageSchemaType = z.infer<typeof StoreCmsPageSchema>
 
 /** Store API handler for returning a published CMS page by slug. */
-export async function GET(
+const getCmsPage = async (
   req: MedusaRequest<unknown, StoreCmsPageSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { slug } = req.params
-  if (!slug) {
+  if (slug === undefined || slug.length === 0) {
     return res.status(400).json({ message: "Missing slug" })
   }
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
   const page = await cmsService.getPublishedPage(slug, req.locale)
 
-  if (!page) {
+  if (page === null || page === undefined) {
     return res.status(404).json({ message: "Page not found" })
   }
 
   return res.json({ page })
 }
+
+export { getCmsPage as GET }

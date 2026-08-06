@@ -11,10 +11,13 @@ const ADMIN_PUBLIC_DIRS = [
   path.join(process.cwd(), ".medusa/server/public/app"),
   path.join(process.cwd(), ".medusa/server/public/admin"),
 ]
-const APP_PATH_PREFIX_REGEX = /^\/app\/?/
+const ADMIN_INDEX_FILE = "index.html"
+const APP_PATH_PREFIX_REGEX = /^\/app\/?/u
 
 const getAdminPublicDir = () =>
-  ADMIN_PUBLIC_DIRS.find((dir) => fs.existsSync(path.join(dir, "index.html")))
+  ADMIN_PUBLIC_DIRS.find((dir) =>
+    fs.existsSync(path.join(dir, ADMIN_INDEX_FILE)),
+  )
 
 const isPathInsideDirectory = (baseDir: string, filePath: string) => {
   const relative = path.relative(baseDir, filePath)
@@ -40,7 +43,7 @@ const resolveAdminFile = (
 ): string | undefined => {
   const relativePath =
     requestPath === "/app" || requestPath === "/app/"
-      ? "index.html"
+      ? ADMIN_INDEX_FILE
       : requestPath.replace(APP_PATH_PREFIX_REGEX, "")
   const normalizedRelativePath = path.normalize(relativePath)
 
@@ -48,27 +51,27 @@ const resolveAdminFile = (
     normalizedRelativePath.startsWith("..") ||
     path.isAbsolute(normalizedRelativePath)
   ) {
-    return
+    return undefined
   }
 
   const requestedFile = path.resolve(adminPublicDir, normalizedRelativePath)
 
   if (!isPathInsideDirectory(adminPublicDir, requestedFile)) {
-    return
+    return undefined
   }
 
   if (fs.existsSync(requestedFile) && fs.statSync(requestedFile).isFile()) {
     return requestedFile
   }
 
-  if (!path.extname(normalizedRelativePath)) {
-    const indexFile = path.resolve(adminPublicDir, "index.html")
+  if (path.extname(normalizedRelativePath).length === 0) {
+    const indexFile = path.resolve(adminPublicDir, ADMIN_INDEX_FILE)
     return isPathInsideDirectory(adminPublicDir, indexFile)
       ? indexFile
       : undefined
   }
 
-  return
+  return undefined
 }
 
 export const serveAdminAppStatic = (
@@ -78,14 +81,14 @@ export const serveAdminAppStatic = (
 ) => {
   const adminPublicDir = getAdminPublicDir()
 
-  if (!adminPublicDir) {
+  if (adminPublicDir === undefined) {
     next()
     return
   }
 
   const filePath = resolveAdminFile(adminPublicDir, getRequestPath(req))
 
-  if (!filePath) {
+  if (filePath === undefined) {
     next()
     return
   }

@@ -1,14 +1,20 @@
 import type {
   IProductModuleService,
   Logger,
+  MedusaContainer,
   ProductCategoryDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
   createProductCategoriesWorkflow,
   updateProductCategoriesWorkflow,
 } from "@medusajs/medusa/core-flows"
+import { unique } from "@techsio/std/array"
 
 export type CreateProductCategoriesStepInput = {
   name: string
@@ -21,33 +27,122 @@ export type CreateProductCategoriesStepInput = {
   isInternal?: boolean
 }[]
 
-const CreateProductCategoriesStepId = "create-product-categories-seed-step"
+const CREATE_PRODUCT_CATEGORIES_STEP_ID = "create-product-categories-seed-step"
 
-function dedupeStringValues(values: (string | undefined)[]): string[] {
-  return [
-    ...new Set(
-      values.filter((value): value is string => Boolean(value?.trim())),
+type CategoryInput = CreateProductCategoriesStepInput[number]
+
+const dedupeStringValues = (values: (string | undefined)[]): string[] =>
+  unique(
+    values.filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0,
     ),
-  ]
-}
+  )
 
-function matchesCategoryInput(
-  inputCategory: CreateProductCategoriesStepInput[number],
+const matchesCategoryInput = (
+  inputCategory: CategoryInput,
   existingCategory: Pick<ProductCategoryDTO, "name" | "handle">,
-): boolean {
-  if (inputCategory.handle) {
+): boolean => {
+  if (inputCategory.handle !== undefined && inputCategory.handle.length > 0) {
     return inputCategory.handle === existingCategory.handle
   }
 
   return inputCategory.name === existingCategory.name
 }
 
-export const createProductCategoriesStep = createStep(
-  CreateProductCategoriesStepId,
-  async (input: CreateProductCategoriesStepInput, { container }) => {
-    const productCategoriesCreateResult: ProductCategoryDTO[] = []
-    const productCategoriesUpdateResult: ProductCategoryDTO[] = []
+const toCategoryAttributes = (category: CategoryInput) => ({
+  is_active: category.isActive,
+  name: category.name,
+  ...(category.description === undefined || category.description.length === 0
+    ? {}
+    : { description: category.description }),
+  ...(category.handle === undefined || category.handle.length === 0
+    ? {}
+    : { handle: category.handle }),
+  ...(category.metadata === undefined ? {} : { metadata: category.metadata }),
+  ...(category.rank === undefined ? {} : { rank: category.rank }),
+  ...(category.isInternal === undefined
+    ? {}
+    : { is_internal: category.isInternal }),
+})
 
+const requireUpdatedCategory = (
+  categories: ProductCategoryDTO[],
+  categoryId: string,
+): ProductCategoryDTO => {
+  const [category] = categories
+  if (category === undefined) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Updating product category "${categoryId}" returned no category`,
+    )
+  }
+
+  return category
+}
+
+const createMissingCategories = async (
+  container: MedusaContainer,
+  categories: CategoryInput[],
+): Promise<ProductCategoryDTO[]> => {
+  if (categories.length === 0) {
+    return []
+  }
+
+  const { result } = await createProductCategoriesWorkflow(container).run({
+    input: {
+      product_categories: categories.map(toCategoryAttributes),
+    },
+  })
+
+  return result
+}
+
+const updateExistingCategories = async (
+  container: MedusaContainer,
+  categories: (CategoryInput & { id: string })[],
+): Promise<ProductCategoryDTO[]> => {
+  const [nextCategory, ...remainingCategories] = categories
+  if (nextCategory === undefined) {
+    return []
+  }
+
+  const { id, ...category } = nextCategory
+  const { result } = await updateProductCategoriesWorkflow(container).run({
+    input: {
+      selector: { id },
+      update: toCategoryAttributes(category),
+    },
+  })
+  const remainingResults = await updateExistingCategories(
+    container,
+    remainingCategories,
+  )
+
+  return [requireUpdatedCategory(result, id), ...remainingResults]
+}
+
+const updateCategoryParents = async (
+  container: MedusaContainer,
+  categories: { id: string; parentId: string }[],
+): Promise<void> => {
+  const [nextCategory, ...remainingCategories] = categories
+  if (nextCategory === undefined) {
+    return
+  }
+
+  await updateProductCategoriesWorkflow(container).run({
+    input: {
+      selector: { id: nextCategory.id },
+      update: { parent_category_id: nextCategory.parentId },
+    },
+  })
+  await updateCategoryParents(container, remainingCategories)
+}
+
+export const createProductCategoriesStep = createStep(
+  CREATE_PRODUCT_CATEGORIES_STEP_ID,
+  async (input: CreateProductCategoriesStepInput, { container }) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const productService = container.resolve<IProductModuleService>(
       Modules.PRODUCT,
@@ -58,34 +153,27 @@ export const createProductCategoriesStep = createStep(
     )
     const inputNamesWithoutHandle = dedupeStringValues(
       input
-        .filter((category) => !category.handle)
+        .filter(
+          (category) =>
+            category.handle === undefined || category.handle.length === 0,
+        )
         .map((category) => category.name),
     )
 
     const existingByHandle =
       inputHandles.length > 0
         ? await productService.listProductCategories(
-            {
-              handle: inputHandles,
-            },
-            {
-              select: ["id", "name", "handle"],
-            },
+            { handle: inputHandles },
+            { select: ["id", "name", "handle"] },
           )
         : []
-
     const existingByName =
       inputNamesWithoutHandle.length > 0
         ? await productService.listProductCategories(
-            {
-              name: inputNamesWithoutHandle,
-            },
-            {
-              select: ["id", "name", "handle"],
-            },
+            { name: inputNamesWithoutHandle },
+            { select: ["id", "name", "handle"] },
           )
         : []
-
     const existingProductCategories = [
       ...new Map(
         [...existingByHandle, ...existingByName].map((category) => [
@@ -96,152 +184,75 @@ export const createProductCategoriesStep = createStep(
     ]
 
     const missingProductCategories = input.filter(
-      (i) =>
-        !existingProductCategories.find((existingCategory) =>
-          matchesCategoryInput(i, existingCategory),
+      (inputCategory) =>
+        !existingProductCategories.some((existingCategory) =>
+          matchesCategoryInput(inputCategory, existingCategory),
         ),
     )
     const updateProductCategories = existingProductCategories.flatMap(
-      (existingProductCategory) => {
-        const inputProductCategories = input.find((productCategory) =>
-          matchesCategoryInput(productCategory, existingProductCategory),
+      (existingCategory) => {
+        const inputCategory = input.find((category) =>
+          matchesCategoryInput(category, existingCategory),
         )
-        if (!inputProductCategories) {
-          return []
-        }
 
-        return [
-          {
-            description: inputProductCategories.description,
-            handle: inputProductCategories.handle,
-            id: existingProductCategory.id,
-            is_active: inputProductCategories.isActive,
-            is_internal: inputProductCategories.isInternal,
-            metadata: inputProductCategories.metadata,
-            name: inputProductCategories.name,
-            rank: inputProductCategories.rank,
-          },
-        ]
+        return inputCategory === undefined
+          ? []
+          : [{ ...inputCategory, id: existingCategory.id }]
       },
     )
 
-    if (missingProductCategories.length !== 0) {
+    if (missingProductCategories.length > 0) {
       logger.info("Creating product categories...")
-
-      const { result: categoryResult } = await createProductCategoriesWorkflow(
-        container,
-      ).run({
-        input: {
-          product_categories: missingProductCategories.map((category) => ({
-            is_active: category.isActive,
-            name: category.name,
-            ...(category.description
-              ? { description: category.description }
-              : {}),
-            ...(category.handle ? { handle: category.handle } : {}),
-            ...(category.metadata ? { metadata: category.metadata } : {}),
-            ...(category.rank === undefined ? {} : { rank: category.rank }),
-            ...(category.isInternal === undefined
-              ? {}
-              : { is_internal: category.isInternal }),
-          })),
-        },
-      })
-
-      for (const elem of categoryResult) {
-        productCategoriesCreateResult.push(elem)
-      }
     }
+    const productCategoriesCreateResult = await createMissingCategories(
+      container,
+      missingProductCategories,
+    )
 
-    if (updateProductCategories.length !== 0) {
+    if (updateProductCategories.length > 0) {
       logger.info("Updating product categories...")
-
-      for (const updateProductCategory of updateProductCategories) {
-        const { result: categoryResult } =
-          await updateProductCategoriesWorkflow(container).run({
-            input: {
-              selector: {
-                id: updateProductCategory.id,
-              },
-              update: {
-                is_active: updateProductCategory.is_active,
-                name: updateProductCategory.name,
-                ...(updateProductCategory.description
-                  ? { description: updateProductCategory.description }
-                  : {}),
-                ...(updateProductCategory.handle
-                  ? { handle: updateProductCategory.handle }
-                  : {}),
-                ...(updateProductCategory.metadata
-                  ? { metadata: updateProductCategory.metadata }
-                  : {}),
-                ...(updateProductCategory.rank === undefined
-                  ? {}
-                  : { rank: updateProductCategory.rank }),
-                ...(updateProductCategory.is_internal === undefined
-                  ? {}
-                  : { is_internal: updateProductCategory.is_internal }),
-              },
-            },
-          })
-        productCategoriesUpdateResult.push(
-          categoryResult[0] as ProductCategoryDTO,
-        )
-      }
     }
+    const productCategoriesUpdateResult = await updateExistingCategories(
+      container,
+      updateProductCategories,
+    )
 
     const handlesForParentResolution = dedupeStringValues([
       ...input.map((category) => category.handle),
       ...input.map((category) => category.parentHandle),
     ])
-
     const allProductCategories =
       handlesForParentResolution.length > 0
         ? await productService.listProductCategories(
-            {
-              handle: handlesForParentResolution,
-            },
-            {
-              select: ["id", "name", "handle"],
-            },
+            { handle: handlesForParentResolution },
+            { select: ["id", "name", "handle"] },
           )
         : []
-
-    const updateParentProductCategories = input
-      .filter((i) => i.parentHandle !== undefined && i.parentHandle !== null)
-      .map((i) => {
-        const category = allProductCategories.find((j) => j.handle === i.handle)
-        const parent = allProductCategories.find(
-          (j) => j.handle === i.parentHandle,
-        )
-
-        if (category === undefined || parent === undefined) {
-          throw new Error(
-            `Could not find category parent pair ${i.handle} -> ${i.parentHandle}`,
-          )
-        }
-
-        return {
-          id: category.id,
-          parentId: parent.id,
-        }
-      })
-
-    if (updateParentProductCategories.length !== 0) {
-      logger.info("Updating product category parents...")
-
-      for (const updateProductCategory of updateParentProductCategories) {
-        await updateProductCategoriesWorkflow(container).run({
-          input: {
-            selector: {
-              id: updateProductCategory.id,
-            },
-            update: {
-              parent_category_id: updateProductCategory.parentId,
-            },
-          },
-        })
+    const parentUpdates = input.flatMap((categoryInput) => {
+      if (categoryInput.parentHandle === undefined) {
+        return []
       }
+
+      const category = allProductCategories.find(
+        (candidate) => candidate.handle === categoryInput.handle,
+      )
+      const parent = allProductCategories.find(
+        (candidate) => candidate.handle === categoryInput.parentHandle,
+      )
+
+      if (category === undefined || parent === undefined) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `Could not find category parent pair ${categoryInput.handle} -> ${categoryInput.parentHandle}`,
+        )
+      }
+
+      return [{ id: category.id, parentId: parent.id }]
+    })
+
+    if (parentUpdates.length > 0) {
+      logger.info("Updating product category parents...")
+      await updateCategoryParents(container, parentUpdates)
     }
 
     return new StepResponse({

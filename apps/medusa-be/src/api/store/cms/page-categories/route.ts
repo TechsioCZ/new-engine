@@ -17,10 +17,10 @@ export type StoreCmsPageCategoriesSchemaType = z.infer<
 >
 
 /** Store API handler returning page categories with pages. */
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, StoreCmsPageCategoriesSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
   const { categorySlug } = req.validatedQuery
@@ -32,3 +32,5 @@ export async function GET(
 
   return res.json({ pageCategories })
 }
+
+export { get as GET }
