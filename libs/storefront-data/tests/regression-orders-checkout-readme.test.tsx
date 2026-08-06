@@ -17,16 +17,15 @@ import {
   createStoreOrder,
   createStoreShippingOption,
   createStoreShippingOptionWithServiceZone,
+  createTestMedusaSdk,
 } from "./medusa-fixtures"
 
-const createWrapper = (client: QueryClient) =>
-  function ({ children }: { children: ReactNode }) {
-    return (
-      <StorefrontDataProvider client={client}>
-        {children}
-      </StorefrontDataProvider>
-    )
-  }
+const createWrapper = (client: QueryClient) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
+  )
+  return Wrapper
+}
 
 const resolveTestRelativePath = (relativePath: string): string => {
   const resolvedUrl = new URL(relativePath, import.meta.url)
@@ -39,13 +38,33 @@ const resolveTestRelativePath = (relativePath: string): string => {
     return decodedPathname.slice("/@fs/".length)
   }
 
-  return decodedPathname.replace(/^\/([A-Za-z]:)/, "$1")
+  return decodedPathname.replace(/^\/(?<drive>[A-Za-z]:)/u, "$<drive>")
 }
+
+type OrderFetch = (
+  path: string,
+  init?: { query?: Record<string, unknown>; signal?: AbortSignal | null },
+) => Promise<unknown>
+
+type CustomerFetch = (
+  path: string,
+  init?: { signal?: AbortSignal | null },
+) => Promise<unknown>
+
+type CheckoutFetch = (
+  path: string,
+  init?: {
+    body?: Record<string, unknown>
+    method?: string
+    query?: Record<string, unknown>
+    signal?: AbortSignal | null
+  },
+) => Promise<unknown>
 
 describe("phase 2 regressions", () => {
   it("forwards AbortSignal in order list and detail requests", async () => {
     const fetch = vi
-      .fn()
+      .fn<OrderFetch>()
       .mockResolvedValueOnce({
         count: 1,
         limit: 10,
@@ -56,7 +75,10 @@ describe("phase 2 regressions", () => {
         order: createStoreOrder("order_1"),
       })
 
-    const service = createMedusaOrderService({ client: { fetch } } as never, {
+    const sdk = createTestMedusaSdk()
+    Object.defineProperty(sdk.client, "fetch", { value: fetch })
+
+    const service = createMedusaOrderService(sdk, {
       defaultFields: "id,status",
     })
     const controller = new AbortController()
@@ -88,7 +110,7 @@ describe("phase 2 regressions", () => {
 
   it("supports separate order list/detail fields, sorting, and opt-in 404 nulls", async () => {
     const fetch = vi
-      .fn()
+      .fn<OrderFetch>()
       .mockResolvedValueOnce({
         count: 1,
         limit: 10,
@@ -97,7 +119,10 @@ describe("phase 2 regressions", () => {
       } satisfies HttpTypes.StoreOrderListResponse)
       .mockRejectedValueOnce({ response: { status: 404 } })
 
-    const service = createMedusaOrderService({ client: { fetch } } as never, {
+    const sdk = createTestMedusaSdk()
+    Object.defineProperty(sdk.client, "fetch", { value: fetch })
+
+    const service = createMedusaOrderService(sdk, {
       defaultDetailFields: "id,*items",
       defaultListFields: "id,display_id",
       defaultOrder: "-created_at",
@@ -133,8 +158,11 @@ describe("phase 2 regressions", () => {
   })
 
   it("skips order detail fetch when id is missing", async () => {
-    const fetch = vi.fn()
-    const service = createMedusaOrderService({ client: { fetch } } as never, {
+    const fetch = vi.fn<OrderFetch>()
+    const sdk = createTestMedusaSdk()
+    Object.defineProperty(sdk.client, "fetch", { value: fetch })
+
+    const service = createMedusaOrderService(sdk, {
       defaultFields: "id,status",
     })
 
@@ -143,41 +171,27 @@ describe("phase 2 regressions", () => {
   })
 
   it("forwards AbortSignal in customer addresses fetch and keeps auth fallback", async () => {
-    const sdk = {
-      client: {
-        fetch: vi
-          .fn()
-          .mockResolvedValueOnce({
-            addresses: [createStoreCustomerAddress("addr_1")],
-            count: 1,
-            limit: 1,
-            offset: 0,
-          } satisfies HttpTypes.StoreCustomerAddressListResponse)
-          .mockRejectedValueOnce({ status: 401 }),
-      },
-      store: {
-        customer: {
-          createAddress: vi.fn(),
-          deleteAddress: vi.fn(),
-          listAddress: vi.fn(),
-          update: vi.fn(),
-          updateAddress: vi.fn(),
-        },
-      },
-    }
+    const fetch = vi
+      .fn<CustomerFetch>()
+      .mockResolvedValueOnce({
+        addresses: [createStoreCustomerAddress("addr_1")],
+        count: 1,
+        limit: 1,
+        offset: 0,
+      } satisfies HttpTypes.StoreCustomerAddressListResponse)
+      .mockRejectedValueOnce({ status: 401 })
 
-    const service = createMedusaCustomerService(sdk as never)
+    const sdk = createTestMedusaSdk()
+    Object.defineProperty(sdk.client, "fetch", { value: fetch })
+
+    const service = createMedusaCustomerService(sdk)
     const controller = new AbortController()
 
     const success = await service.getAddresses({}, controller.signal)
     expect(success.addresses[0]?.id).toBe("addr_1")
-    expect(sdk.client.fetch).toHaveBeenNthCalledWith(
-      1,
-      "/store/customers/me/addresses",
-      {
-        signal: controller.signal,
-      },
-    )
+    expect(fetch).toHaveBeenNthCalledWith(1, "/store/customers/me/addresses", {
+      signal: controller.signal,
+    })
 
     const unauthorized = await service.getAddresses({}, controller.signal)
     expect(unauthorized.addresses).toStrictEqual([])
@@ -185,7 +199,7 @@ describe("phase 2 regressions", () => {
 
   it("forwards AbortSignal in checkout read APIs", async () => {
     const fetch = vi
-      .fn()
+      .fn<CheckoutFetch>()
       .mockResolvedValueOnce({
         shipping_options: [createStoreShippingOptionWithServiceZone("opt_1")],
       } satisfies HttpTypes.StoreShippingOptionListResponse)
@@ -199,22 +213,10 @@ describe("phase 2 regressions", () => {
         payment_providers: [{ id: "pp_1" }],
       } satisfies HttpTypes.StorePaymentProviderListResponse)
 
-    const sdk = {
-      client: {
-        fetch,
-      },
-      store: {
-        cart: {
-          addShippingMethod: vi.fn(),
-          complete: vi.fn(),
-          retrieve: vi.fn(),
-        },
-        payment: {
-          initiatePaymentSession: vi.fn(),
-        },
-      },
-    }
-    const service = createMedusaCheckoutService(sdk as never)
+    const sdk = createTestMedusaSdk()
+    Object.defineProperty(sdk.client, "fetch", { value: fetch })
+
+    const service = createMedusaCheckoutService(sdk)
     const controller = new AbortController()
 
     await service.listShippingOptions("cart_1", controller.signal)
@@ -269,21 +271,23 @@ describe("phase 2 regressions", () => {
 
     const service = {
       addShippingMethod: async (cartId: string, optionId: string) =>
-        ({
+        await Promise.resolve({
           id: cartId,
           region_id: "reg_1",
           shipping_methods: [{ shipping_option_id: optionId }],
-        }) as Cart,
-      initiatePaymentSession: async () => ({ id: "pay_col_1" }),
-      listPaymentProviders: async () => [{ id: "pay_1" }] as PaymentProvider[],
+        } as Cart),
+      initiatePaymentSession: async () =>
+        await Promise.resolve({ id: "pay_col_1" }),
+      listPaymentProviders: async () =>
+        await Promise.resolve([{ id: "pay_1" }] as PaymentProvider[]),
       listShippingOptions: async () =>
-        [
+        await Promise.resolve([
           {
             amount: 500,
             id: "opt_fixed",
             price_type: "flat",
           },
-        ] as ShippingOption[],
+        ] as ShippingOption[]),
     }
 
     const { useCheckoutShipping } = createCheckoutHooks<
