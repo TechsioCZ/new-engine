@@ -1,21 +1,72 @@
+import { isRecord } from "@techsio/std/object"
+import type { headersWithCors, PayloadRequest } from "payload"
+import type { Mock } from "vitest"
 import { describe, expect, it, vi } from "vitest"
-
-vi.mock(import("payload"), () => ({
-  headersWithCors: vi.fn(({ headers }: { headers: Headers }) => headers),
-}))
 
 import { articleCategoriesWithArticlesEndpoint } from "@/lib/endpoints/article-categories-with-articles"
 import { pageCategoriesWithPagesEndpoint } from "@/lib/endpoints/page-categories-with-pages"
 
-const createBaseReq = () => ({
-  headers: new Headers(),
-  payload: {
-    config: {
-      localization: { localeCodes: ["en"] },
+vi.mock(import("payload"), () => ({
+  headersWithCors: vi.fn<typeof headersWithCors>(
+    ({ headers }: { headers: Headers }) => headers,
+  ),
+}))
+
+type FindMock = Mock<
+  (options: Record<string, unknown>) => Promise<{ docs: unknown[] }>
+>
+
+type TestPayloadRequest = PayloadRequest & {
+  payload: PayloadRequest["payload"] & {
+    find: FindMock
+  }
+}
+
+const createFindMock = (): FindMock =>
+  vi.fn<(options: Record<string, unknown>) => Promise<{ docs: unknown[] }>>()
+
+const isTestPayloadRequest = (value: unknown): value is TestPayloadRequest => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const { headers, payload } = value
+  if (!(headers instanceof Headers) || !isRecord(payload)) {
+    return false
+  }
+
+  const { find } = payload
+  return vi.isMockFunction(find)
+}
+
+const createRequest = (url: string): TestPayloadRequest => {
+  const request: unknown = {
+    headers: new Headers(),
+    payload: {
+      config: {
+        localization: { localeCodes: ["en"] },
+      },
+      find: createFindMock(),
     },
-    find: vi.fn(),
-  },
-})
+    url,
+  }
+
+  if (!isTestPayloadRequest(request)) {
+    throw new TypeError("Failed to create a valid Payload test request.")
+  }
+
+  return request
+}
+
+const readJsonBody = async (
+  response: Response,
+): Promise<Record<string, unknown>> => {
+  const value: unknown = await response.json()
+  if (!isRecord(value)) {
+    throw new TypeError("Expected a JSON object response body")
+  }
+  return value
+}
 
 describe("category endpoints", () => {
   it("groups articles by category and applies filters", async () => {
@@ -48,14 +99,12 @@ describe("category endpoints", () => {
       },
     ]
 
-    const req = {
-      ...createBaseReq(),
-      url: "http://localhost?locale=en&categorySlug=news",
-    } as any
+    const req = createRequest("http://localhost?locale=en&categorySlug=news")
     req.payload.find.mockResolvedValue({ docs })
 
     const response = await articleCategoriesWithArticlesEndpoint.handler(req)
-    const body = await response.json()
+    const body = await readJsonBody(response)
+    const { categories } = body
 
     expect(req.payload.find).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -65,11 +114,11 @@ describe("category endpoints", () => {
         where: expect.objectContaining({
           "category.slug": { equals: "news" },
           status: { equals: "published" },
-        }),
+        }) as unknown,
       }),
     )
 
-    expect(body.categories).toStrictEqual([
+    expect(categories).toStrictEqual([
       {
         articles: [
           {
@@ -124,14 +173,12 @@ describe("category endpoints", () => {
       },
     ]
 
-    const req = {
-      ...createBaseReq(),
-      url: "http://localhost?locale=en",
-    } as any
+    const req = createRequest("http://localhost?locale=en")
     req.payload.find.mockResolvedValue({ docs })
 
     const response = await pageCategoriesWithPagesEndpoint.handler(req)
-    const body = await response.json()
+    const body = await readJsonBody(response)
+    const { categories } = body
 
     expect(req.payload.find).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -140,11 +187,11 @@ describe("category endpoints", () => {
         req,
         where: expect.objectContaining({
           status: { equals: "published" },
-        }),
+        }) as unknown,
       }),
     )
 
-    expect(body.categories).toStrictEqual([
+    expect(categories).toStrictEqual([
       {
         id: 10,
         pages: [
