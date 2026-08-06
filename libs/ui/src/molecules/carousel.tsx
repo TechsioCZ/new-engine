@@ -1,4 +1,4 @@
-/**
+/*
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
@@ -9,7 +9,8 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the carousel-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as carousel from "@zag-js/carousel"
+import { connect, machine } from "@zag-js/carousel"
+import type { Api, Props as ZagCarouselProps } from "@zag-js/carousel"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import { createContext, useContext, useId } from "react"
 import type {
@@ -39,7 +40,6 @@ type CarouselImageComponent<T extends ElementType = typeof Image> =
 const carouselVariants = tv({
   compoundSlots: [
     {
-      slots: ["autoplayTrigger", "indicator", "prevTrigger", "nextTrigger"],
       class: [
         "p-carousel-trigger",
         "text-carousel-trigger-fg-base",
@@ -47,14 +47,15 @@ const carouselVariants = tv({
         "focus-visible:outline-carousel-ring",
         "focus-visible:outline-offset-(length:--default-ring-offset)",
       ],
+      slots: ["autoplayTrigger", "indicator", "prevTrigger", "nextTrigger"],
     },
     {
-      slots: ["prevTrigger", "nextTrigger"],
       class: [
         "bg-carousel-trigger-bg-base hover:bg-carousel-trigger-bg-hover text-carousel-trigger",
         "hover:text-carousel-trigger-fg-hover",
         "transition-colors duration-200 motion-reduce:transition-none",
       ],
+      slots: ["prevTrigger", "nextTrigger"],
     },
   ],
   defaultVariants: {
@@ -195,27 +196,31 @@ const carouselVariants = tv({
   },
 })
 
-interface CarouselContextValue {
-  api: ReturnType<typeof carousel.connect>
-  size?: "sm" | "md" | "lg" | "full" | undefined
-  objectFit?: "cover" | "contain" | "fill" | "none" | undefined
-  aspectRatio?:
-    | "square"
-    | "landscape"
-    | "portrait"
-    | "wide"
-    | "none"
-    | undefined
-}
+type CarouselVariants = VariantProps<typeof carouselVariants>
+type CarouselSize = NonNullable<CarouselVariants["size"]>
+type CarouselObjectFit = NonNullable<CarouselVariants["objectFit"]>
+type CarouselAspectRatio = NonNullable<CarouselVariants["aspectRatio"]>
+type CarouselControlPosition = NonNullable<CarouselVariants["controlPosition"]>
 
-const CarouselContext = createContext<CarouselContextValue | null>(null)
+/*
+ * The machine api and each tailwind-variants input live in their own context so
+ * the provider never has to construct a value object on every render.
+ */
+const CarouselApiContext = createContext<Api | null>(null)
+const CarouselSizeContext = createContext<CarouselSize | undefined>(undefined)
+const CarouselObjectFitContext = createContext<CarouselObjectFit | undefined>(
+  undefined,
+)
+const CarouselAspectRatioContext = createContext<
+  CarouselAspectRatio | undefined
+>(undefined)
 
-const useCarouselContext = () => {
-  const context = useContext(CarouselContext)
-  if (!context) {
+const useCarouselApi = (): Api => {
+  const api = useContext(CarouselApiContext)
+  if (!api) {
     throw new Error("Carousel components must be used within Carousel.Root")
   }
-  return context
+  return api
 }
 
 export interface CarouselSlide {
@@ -230,8 +235,8 @@ type CarouselDimension = CSSProperties["width"]
 
 export interface CarouselRootProps<T extends ElementType = typeof Image>
   extends
-    Omit<VariantProps<typeof carouselVariants>, "controlPosition">,
-    Omit<carousel.Props, "id" | "size"> {
+    Omit<CarouselVariants, "controlPosition">,
+    Omit<ZagCarouselProps, "id" | "size"> {
   id?: string | undefined
   className?: string | undefined
   children: ReactNode
@@ -242,7 +247,7 @@ export interface CarouselRootProps<T extends ElementType = typeof Image>
 
 interface CarouselSlidesProps {
   slides: CarouselSlide[]
-  size?: "sm" | "md" | "lg" | "full" | undefined
+  size?: CarouselSize | undefined
   imageAs?: ElementType | undefined
   className?: string | undefined
 }
@@ -250,7 +255,7 @@ interface CarouselSlidesProps {
 interface CarouselSlideProps {
   index: number
   children: ReactNode
-  size?: "sm" | "md" | "lg" | "full" | undefined
+  size?: CarouselSize | undefined
   className?: string | undefined
 }
 
@@ -281,10 +286,10 @@ interface CarouselAutoplayProps {
 interface CarouselControlProps {
   children: ReactNode
   className?: string | undefined
-  controlPosition?: "top" | "bottom" | "side" | "unset" | undefined
+  controlPosition?: CarouselControlPosition | undefined
 }
 
-export function Carousel<T extends ElementType = typeof Image>({
+export const Carousel = <T extends ElementType = typeof Image>({
   id,
   /* Tailwind variants */
   size,
@@ -309,12 +314,12 @@ export function Carousel<T extends ElementType = typeof Image>({
   height,
   onPageChange,
   ...props
-}: CarouselRootProps<T>) {
+}: CarouselRootProps<T>) => {
   const fallbackId = useId()
   const machineProps = Object.fromEntries(
     Object.entries(props).filter(([, option]) => option !== undefined),
   )
-  const service = useMachine(carousel.machine, {
+  const service = useMachine(machine, {
     allowMouseDrag,
     autoplay,
     dir,
@@ -331,91 +336,50 @@ export function Carousel<T extends ElementType = typeof Image>({
     ...machineProps,
   })
 
-  const api = carousel.connect(service, normalizeProps)
+  const api = connect(service, normalizeProps)
   const { wrapper, root } = carouselVariants({ aspectRatio, objectFit, size })
   const rootProps = api.getRootProps()
-  const resolvedRootStyle = {
-    ...(rootProps.style as CSSProperties),
+  const resolvedRootStyle: CSSProperties = {
+    ...rootProps.style,
     ...(width === undefined ? {} : { width }),
     ...(height === undefined ? {} : { height }),
   }
-  const resolvedWrapperStyle = {
+  const resolvedWrapperStyle: CSSProperties = {
     ...(size === "full" ? { width: "100%" } : {}),
     ...(width === undefined ? {} : { width }),
   }
 
   return (
-    <CarouselContext.Provider value={{ api, aspectRatio, objectFit, size }}>
-      <div className={wrapper()} style={resolvedWrapperStyle}>
-        <div
-          {...rootProps}
-          className={root({ className })}
-          style={resolvedRootStyle}
-        >
-          {children}
-        </div>
-      </div>
-    </CarouselContext.Provider>
+    <CarouselApiContext.Provider value={api}>
+      <CarouselSizeContext.Provider value={size}>
+        <CarouselObjectFitContext.Provider value={objectFit}>
+          <CarouselAspectRatioContext.Provider value={aspectRatio}>
+            <div className={wrapper()} style={resolvedWrapperStyle}>
+              <div
+                {...rootProps}
+                className={root({ className })}
+                style={resolvedRootStyle}
+              >
+                {children}
+              </div>
+            </div>
+          </CarouselAspectRatioContext.Provider>
+        </CarouselObjectFitContext.Provider>
+      </CarouselSizeContext.Provider>
+    </CarouselApiContext.Provider>
   )
 }
 
-Carousel.Slides = function CarouselSlides({
-  slides,
-  size: overrideSize,
-  imageAs,
-  className,
-}: CarouselSlidesProps) {
-  const {
-    api,
-    size: contextSize,
-    objectFit,
-    aspectRatio,
-  } = useCarouselContext()
-  const size = overrideSize ?? contextSize
-  const { slideGroup } = carouselVariants({
-    aspectRatio,
-    objectFit,
-    size,
-  })
-  const hasCustomImageComponent = imageAs && imageAs !== Image
-  const CustomImageComponent = hasCustomImageComponent ? imageAs : Image
-
-  return (
-    <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
-      {slides.map((slide, index) => (
-        <Carousel.Slide index={index} key={slide.id}>
-          {slide.content ||
-            (hasCustomImageComponent ? (
-              <CustomImageComponent
-                alt={slide.alt || ""}
-                src={slide.src || ""}
-                {...slide.imageProps}
-              />
-            ) : (
-              <Image
-                alt={slide.alt || ""}
-                src={slide.src || ""}
-                {...slide.imageProps}
-              />
-            ))}
-        </Carousel.Slide>
-      ))}
-    </div>
-  )
-}
-
-Carousel.Slide = function CarouselSlide({
+const CarouselSlide = ({
   index,
   children,
   size: overrideSize,
   className,
-}: CarouselSlideProps) {
-  const {
-    api,
-    size: contextSize,
-    objectFit,
-    aspectRatio,
-  } = useCarouselContext()
+}: CarouselSlideProps) => {
+  const api = useCarouselApi()
+  const contextSize = useContext(CarouselSizeContext)
+  const objectFit = useContext(CarouselObjectFitContext)
+  const aspectRatio = useContext(CarouselAspectRatioContext)
   const size = overrideSize ?? contextSize
   const { slide: slideSlot } = carouselVariants({
     aspectRatio,
@@ -431,11 +395,52 @@ Carousel.Slide = function CarouselSlide({
   )
 }
 
-Carousel.Previous = function CarouselPrevious({
+const CarouselSlides = ({
+  slides,
+  size: overrideSize,
+  imageAs,
+  className,
+}: CarouselSlidesProps) => {
+  const api = useCarouselApi()
+  const contextSize = useContext(CarouselSizeContext)
+  const objectFit = useContext(CarouselObjectFitContext)
+  const aspectRatio = useContext(CarouselAspectRatioContext)
+  const size = overrideSize ?? contextSize
+  const { slideGroup } = carouselVariants({
+    aspectRatio,
+    objectFit,
+    size,
+  })
+  const SlideImage = imageAs ?? Image
+
+  return (
+    <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
+      {slides.map((slide, index) => {
+        const hasContent = Boolean(slide.content)
+
+        return (
+          <CarouselSlide index={index} key={slide.id}>
+            {hasContent ? (
+              slide.content
+            ) : (
+              <SlideImage
+                alt={slide.alt ?? ""}
+                src={slide.src ?? ""}
+                {...slide.imageProps}
+              />
+            )}
+          </CarouselSlide>
+        )
+      })}
+    </div>
+  )
+}
+
+const CarouselPrevious = ({
   className,
   icon = "token-icon-carousel-prev",
-}: CarouselPreviousProps) {
-  const { api } = useCarouselContext()
+}: CarouselPreviousProps) => {
+  const api = useCarouselApi()
   const { prevTrigger } = carouselVariants()
 
   return (
@@ -447,11 +452,11 @@ Carousel.Previous = function CarouselPrevious({
   )
 }
 
-Carousel.Next = function CarouselNext({
+const CarouselNext = ({
   className,
   icon = "token-icon-carousel-next",
-}: CarouselNextProps) {
-  const { api } = useCarouselContext()
+}: CarouselNextProps) => {
+  const api = useCarouselApi()
   const { nextTrigger } = carouselVariants()
 
   return (
@@ -463,15 +468,16 @@ Carousel.Next = function CarouselNext({
   )
 }
 
-Carousel.Indicators = function CarouselIndicators({
+const CarouselIndicators = ({
   className,
   children,
-}: CarouselIndicatorsProps & { children?: ReactNode }) {
-  const { api } = useCarouselContext()
+}: CarouselIndicatorsProps & { children?: ReactNode }) => {
+  const api = useCarouselApi()
   const { indicatorGroup, indicator } = carouselVariants()
+  const hasChildren = Boolean(children)
 
   // If children are provided, render them (custom indicators)
-  if (children) {
+  if (hasChildren) {
     return (
       <div
         className={indicatorGroup({ className })}
@@ -487,7 +493,7 @@ Carousel.Indicators = function CarouselIndicators({
       className={indicatorGroup({ className })}
       {...api.getIndicatorGroupProps()}
     >
-      {api.pageSnapPoints.map((_, index) => (
+      {Array.from({ length: api.pageSnapPoints.length }, (_, index) => (
         <Button
           className={indicator()}
           key={`indicator-${index}`}
@@ -500,12 +506,12 @@ Carousel.Indicators = function CarouselIndicators({
   )
 }
 
-Carousel.Indicator = function CarouselIndicator({
+const CarouselIndicator = ({
   index,
   className,
   children,
-}: CarouselIndicatorProps) {
-  const { api } = useCarouselContext()
+}: CarouselIndicatorProps) => {
+  const api = useCarouselApi()
   const { indicator } = carouselVariants()
 
   return (
@@ -520,10 +526,8 @@ Carousel.Indicator = function CarouselIndicator({
   )
 }
 
-Carousel.Autoplay = function CarouselAutoplay({
-  className,
-}: CarouselAutoplayProps) {
-  const { api } = useCarouselContext()
+const CarouselAutoplay = ({ className }: CarouselAutoplayProps) => {
+  const api = useCarouselApi()
   const { autoplayTrigger: autoplayTriggerSlot } = carouselVariants()
 
   return (
@@ -537,12 +541,12 @@ Carousel.Autoplay = function CarouselAutoplay({
   )
 }
 
-Carousel.Control = function CarouselControl({
+const CarouselControl = ({
   children,
   className,
   controlPosition,
-}: CarouselControlProps) {
-  const { api } = useCarouselContext()
+}: CarouselControlProps) => {
+  const api = useCarouselApi()
   const { control } = carouselVariants({ controlPosition })
 
   return (
@@ -552,4 +556,13 @@ Carousel.Control = function CarouselControl({
   )
 }
 
+Carousel.Slide = CarouselSlide
+Carousel.Slides = CarouselSlides
+Carousel.Previous = CarouselPrevious
+Carousel.Next = CarouselNext
+Carousel.Indicators = CarouselIndicators
+Carousel.Indicator = CarouselIndicator
+Carousel.Autoplay = CarouselAutoplay
+Carousel.Control = CarouselControl
 Carousel.Root = Carousel
+Carousel.displayName = "Carousel"
