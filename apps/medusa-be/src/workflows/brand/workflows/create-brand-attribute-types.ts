@@ -5,10 +5,8 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
 
-import {
-  createBrandAttributeTypesStep,
-  getBrandAttributeTypeLockKeys,
-} from "../steps"
+import { createBrandAttributeTypesStep } from "../steps/create-brand-attribute-types"
+import { getBrandAttributeTypeLockKeys } from "../steps/helpers"
 import type { CreateBrandAttributeTypesWorkflowInput } from "../types"
 
 export const createBrandAttributeTypesWorkflow = createWorkflow(

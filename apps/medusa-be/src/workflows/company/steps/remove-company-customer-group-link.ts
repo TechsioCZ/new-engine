@@ -6,12 +6,9 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { isRecord } from "@techsio/std/object"
 
 import { COMPANY_MODULE } from "../../../modules/company"
-
-interface EmployeeWithCustomer {
-  customer?: { id?: string } | null
-}
 
 interface RemoveCompanyCustomerGroupLinkCompensation {
   company_id: string
@@ -40,21 +37,41 @@ const getCompanyCustomerGroupLink = (companyId: string, groupId: string) => ({
   },
 })
 
-const getCustomerGroupCustomers = (
-  employees: EmployeeWithCustomer[] | undefined,
-  groupId: string,
-) =>
-  (employees ?? [])
-    .filter(
-      (
-        employee,
-      ): employee is EmployeeWithCustomer & { customer: { id: string } } =>
-        Boolean(employee?.customer?.id),
+const getCustomerGroupCustomerIds = (employees: unknown): string[] => {
+  if (!Array.isArray(employees)) {
+    return []
+  }
+
+  return employees.flatMap((employee) => {
+    if (!isRecord(employee)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Company query returned an invalid employee record",
+      )
+    }
+    const { customer } = employee
+    if (customer === undefined || customer === null) {
+      return []
+    }
+    if (!isRecord(customer) || typeof customer["id"] !== "string") {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Company query returned an invalid employee customer",
+      )
+    }
+    return customer["id"].length > 0 ? [customer["id"]] : []
+  })
+}
+
+const getGraphData = (result: unknown): unknown[] => {
+  if (!isRecord(result) || !Array.isArray(result["data"])) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Company query returned invalid data",
     )
-    .map((employee) => ({
-      customer_group_id: groupId,
-      customer_id: employee.customer.id,
-    }))
+  }
+  return result["data"]
+}
 
 export const removeCompanyCustomerGroupLinkStep = createStep(
   "remove-company-customer-group-link",
@@ -75,9 +92,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       Modules.CUSTOMER,
     )
 
-    const {
-      data: [company],
-    } = await query.graph(
+    const companyResult: unknown = await query.graph(
       {
         entity: "companies",
         fields: [
@@ -90,24 +105,42 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       },
       { throwIfKeyNotFound: true },
     )
+    const [company] = getGraphData(companyResult)
 
-    if (!company) {
+    if (company === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Company ${companyId} was not found`,
       )
     }
 
-    const groupId = company.customer_group?.id
+    if (!isRecord(company)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Company query returned an invalid company record",
+      )
+    }
+    const customerGroup = company["customer_group"]
+    const groupId = isRecord(customerGroup) ? customerGroup["id"] : undefined
+    if (groupId !== undefined && typeof groupId !== "string") {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Company query returned an invalid customer group identifier",
+      )
+    }
 
-    if (expectedGroupId && groupId !== expectedGroupId) {
+    if (
+      expectedGroupId !== undefined &&
+      expectedGroupId.length > 0 &&
+      groupId !== expectedGroupId
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Company is not linked to the requested customer group.",
       )
     }
 
-    if (!groupId) {
+    if (typeof groupId !== "string" || groupId.length === 0) {
       return new StepResponse(undefined, {
         company_id: companyId,
         customer_ids: [],
@@ -115,18 +148,19 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       })
     }
 
-    const customerGroupCustomers = getCustomerGroupCustomers(
-      company.employees as EmployeeWithCustomer[] | undefined,
-      groupId,
-    )
+    const customerIds = getCustomerGroupCustomerIds(company["employees"])
+    const customerGroupCustomers = customerIds.map((customerId) => ({
+      customer_group_id: groupId,
+      customer_id: customerId,
+    }))
 
-    if (customerGroupCustomers.length) {
+    if (customerGroupCustomers.length > 0) {
       await customerModuleService.removeCustomerFromGroup(
         customerGroupCustomers,
       )
     }
 
-    if (!preserveLink) {
+    if (preserveLink !== true) {
       await link.dismiss(getCompanyCustomerGroupLink(companyId, groupId))
     }
 
@@ -136,14 +170,14 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
         ({ customer_id }) => customer_id,
       ),
       group_id: groupId,
-      link_removed: !preserveLink,
+      link_removed: preserveLink !== true,
     })
   },
   async (
     input: RemoveCompanyCustomerGroupLinkCompensation | undefined,
     { container },
   ) => {
-    if (!input?.group_id) {
+    if (input?.group_id === undefined || input.group_id.length === 0) {
       return
     }
 
@@ -153,11 +187,11 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       Modules.CUSTOMER,
     )
 
-    if (input.link_removed) {
+    if (input.link_removed === true) {
       await link.create(getCompanyCustomerGroupLink(input.company_id, groupId))
     }
 
-    if (input.customer_ids.length) {
+    if (input.customer_ids.length > 0) {
       await customerModuleService.addCustomerToGroup(
         input.customer_ids.map((id) => ({
           customer_group_id: groupId,

@@ -19,9 +19,10 @@ const mergePaymentProviders = (
   currentProviderIds: string[] | undefined,
   paykitProviderIds: readonly string[],
 ) => {
-  const baseProviderIds = currentProviderIds?.length
-    ? currentProviderIds
-    : [SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID]
+  const baseProviderIds =
+    currentProviderIds !== undefined && currentProviderIds.length > 0
+      ? currentProviderIds
+      : [SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID]
 
   return [...new Set([...baseProviderIds, ...paykitProviderIds])]
 }

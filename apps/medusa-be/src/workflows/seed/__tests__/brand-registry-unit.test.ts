@@ -8,10 +8,10 @@ import {
 } from "../steps/create-products"
 
 const GPSR_EMAIL_CONFLICT_ERROR =
-  /Conflicting gpsr_contact_email values.*product-1.*product-2/
+  /Conflicting gpsr_contact_email values.*product-1.*product-2/u
 const OUTSIDE_EU_CONFLICT_ERROR =
-  /Conflicting gpsr_manufactured_outside_eu values/
-const ATTRIBUTE_CONFLICT_ERROR = /Conflicting attribute "supplier" values/
+  /Conflicting gpsr_manufactured_outside_eu values/u
+const ATTRIBUTE_CONFLICT_ERROR = /Conflicting attribute "supplier" values/u
 
 describe(buildBrandRegistry, () => {
   it.each([

@@ -14,7 +14,8 @@ import {
   BRAND_SEARCH_PROJECTION_EVENT_OPTIONS,
   buildBrandSearchProjectionEventData,
 } from "../../meilisearch/events"
-import { createBrandsStep, getBrandAttributeTypeLockKeys } from "../steps"
+import { createBrandsStep } from "../steps/create-brands"
+import { getBrandAttributeTypeLockKeys } from "../steps/helpers"
 import type { CreateBrandsWorkflowInput } from "../types"
 
 export const createBrandsWorkflow = createWorkflow(

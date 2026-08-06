@@ -4,7 +4,8 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 
 import type { ModuleUpdateCompany } from "../../../types"
-import { updateCompaniesStep, validateCompanyActiveStep } from "../steps"
+import { updateCompaniesStep } from "../steps/update-companies"
+import { validateCompanyActiveStep } from "../steps/validate-company-active"
 
 interface UpdateCompaniesWorkflowInput {
   id: string

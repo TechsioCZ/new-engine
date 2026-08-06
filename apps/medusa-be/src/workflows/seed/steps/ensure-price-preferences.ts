@@ -34,56 +34,54 @@ export interface EnsurePricePreferencesStepInput {
 
 const EnsurePricePreferencesStepId = "ensure-price-preferences-seed-step"
 
-function normalizeId(value: unknown): string | undefined {
+const normalizeId = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
-    return
+    return undefined
   }
 
   const normalized = value.trim()
-  return normalized || undefined
+  return normalized.length > 0 ? normalized : undefined
 }
 
-function normalizeCurrencyCode(value: unknown): string | undefined {
+const normalizeCurrencyCode = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
-    return
+    return undefined
   }
 
   const normalized = value.trim().toLowerCase()
-  if (!normalized) {
-    return
+  if (normalized.length === 0) {
+    return undefined
   }
 
   return normalized
 }
 
-function isDefinedString(value: string | undefined): value is string {
-  return typeof value === "string" && value.length > 0
-}
+const isDefinedString = (value: string | undefined): value is string =>
+  typeof value === "string" && value.length > 0
 
-function buildKey(attribute: PricePreferenceAttribute, value: string): string {
-  return `${attribute}:${value}`
-}
+const buildKey = (attribute: PricePreferenceAttribute, value: string): string =>
+  `${attribute}:${value}`
 
-function uniqueDefinedStrings(values: (string | undefined)[]): string[] {
-  return [...new Set(values.filter(isDefinedString))]
-}
+const uniqueDefinedStrings = (values: (string | undefined)[]): string[] => [
+  ...new Set(values.filter(isDefinedString)),
+]
 
-function normalizeRegionIds(regionIds: string[] | undefined): string[] {
-  return uniqueDefinedStrings((regionIds ?? []).map(normalizeId))
-}
+const normalizeRegionIds = (regionIds: string[] | undefined): string[] =>
+  uniqueDefinedStrings((regionIds ?? []).map(normalizeId))
 
-function normalizeCurrencyCodes(currencyCodes: string[] | undefined): string[] {
-  return uniqueDefinedStrings((currencyCodes ?? []).map(normalizeCurrencyCode))
-}
+const normalizeCurrencyCodes = (
+  currencyCodes: string[] | undefined,
+): string[] =>
+  uniqueDefinedStrings((currencyCodes ?? []).map(normalizeCurrencyCode))
 
-function buildExistingPreferenceMap(
+const buildExistingPreferenceMap = (
   preferences: {
     attribute: unknown
     value: unknown
     id?: unknown
     is_tax_inclusive: boolean
   }[],
-): Map<string, ExistingPreference> {
+): Map<string, ExistingPreference> => {
   const existingByKey = new Map<string, ExistingPreference>()
 
   for (const preference of preferences) {
@@ -109,13 +107,13 @@ function buildExistingPreferenceMap(
   return existingByKey
 }
 
-function addPreferencePlanEntry(params: {
+const addPreferencePlanEntry = (params: {
   plan: PricePreferencePlan
   existingByKey: Map<string, ExistingPreference>
   attribute: PricePreferenceAttribute
   value: string
   isTaxInclusive: boolean
-}): void {
+}): void => {
   const { plan, existingByKey, attribute, value, isTaxInclusive } = params
   const existingPreference = existingByKey.get(buildKey(attribute, value))
 
@@ -125,7 +123,7 @@ function addPreferencePlanEntry(params: {
       is_tax_inclusive: isTaxInclusive,
       value,
     })
-    return
+    return undefined
   }
 
   if (existingPreference.isTaxInclusive !== isTaxInclusive) {
@@ -133,12 +131,12 @@ function addPreferencePlanEntry(params: {
   }
 }
 
-function buildPricePreferencePlan(params: {
+const buildPricePreferencePlan = (params: {
   regionIds: string[]
   currencyCodes: string[]
   existingByKey: Map<string, ExistingPreference>
   isTaxInclusive: boolean
-}): PricePreferencePlan {
+}): PricePreferencePlan => {
   const plan: PricePreferencePlan = {
     createPayloads: [],
     updateIds: [],

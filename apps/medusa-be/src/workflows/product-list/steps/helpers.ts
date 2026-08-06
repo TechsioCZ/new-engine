@@ -18,6 +18,7 @@ import {
   toProductListItemProductLinks,
   toProductListItemVariantLinks,
 } from "../../../utils/product-list-links"
+import type { ProductListItemRecord } from "../types"
 
 interface ProductRecord {
   id: string
@@ -32,6 +33,7 @@ interface ProductVariantRecord {
 }
 
 const PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE = 1000
+const PRODUCT_LIST_ITEM_LOOKUP_MAX_PAGES = 1000
 
 const isProductRecord = (value: unknown): value is ProductRecord =>
   isObjectRecord(value) &&
@@ -40,17 +42,39 @@ const isProductRecord = (value: unknown): value is ProductRecord =>
 
 const isProductVariantRecord = (
   value: unknown,
-): value is ProductVariantRecord =>
-  isObjectRecord(value) &&
-  typeof value["id"] === "string" &&
-  (value["product"] === undefined ||
-    (isObjectRecord(value["product"]) &&
-      (value["product"]["id"] === undefined ||
-        typeof value["product"]["id"] === "string")))
+): value is ProductVariantRecord => {
+  if (!isObjectRecord(value) || typeof value["id"] !== "string") {
+    return false
+  }
+
+  const { product } = value
+  if (product === undefined) {
+    return true
+  }
+
+  return (
+    isObjectRecord(product) &&
+    (product["id"] === undefined || typeof product["id"] === "string")
+  )
+}
+
+const isProductListType = (type: string): type is ProductListType =>
+  PRODUCT_LIST_TYPES.some((candidate) => candidate === type)
+
+const getQueryData = (result: unknown, context: string): unknown[] => {
+  if (!isObjectRecord(result) || !Array.isArray(result["data"])) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `${context} query returned invalid data`,
+    )
+  }
+
+  return result["data"]
+}
 
 export const getProductListType = (type: string): ProductListType => {
-  if (PRODUCT_LIST_TYPES.includes(type as ProductListType)) {
-    return type as ProductListType
+  if (isProductListType(type)) {
+    return type
   }
 
   throw new MedusaError(
@@ -65,7 +89,7 @@ export const findCustomerFavoriteProductList = async (
 ) => {
   const productListIds = await listCustomerProductListIds(container, customerId)
 
-  if (!productListIds.length) {
+  if (productListIds.length === 0) {
     return null
   }
 
@@ -91,7 +115,7 @@ export const findCustomerCustomProductListByHandle = async (
 ) => {
   const productListIds = await listCustomerProductListIds(container, customerId)
 
-  if (!productListIds.length) {
+  if (productListIds.length === 0) {
     return null
   }
 
@@ -117,7 +141,7 @@ export const assertProductSelectionExists = async (
   variantId?: string,
 ) => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const { data: productData } = await query.graph({
+  const productResult: unknown = await query.graph({
     entity: "product",
     fields: ["id", "status"],
     filters: {
@@ -128,22 +152,20 @@ export const assertProductSelectionExists = async (
       take: 1,
     },
   })
-  const product = Array.isArray(productData)
-    ? productData.find(isProductRecord)
-    : null
+  const product = getQueryData(productResult, "Product").find(isProductRecord)
 
-  if (!product) {
+  if (product === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product ${productId} was not found`,
     )
   }
 
-  if (!variantId) {
+  if (variantId === undefined || variantId.length === 0) {
     return
   }
 
-  const { data: variantData } = await query.graph({
+  const variantResult: unknown = await query.graph({
     entity: "product_variant",
     fields: ["id", "product.id"],
     filters: {
@@ -153,16 +175,136 @@ export const assertProductSelectionExists = async (
       take: 1,
     },
   })
-  const variant = Array.isArray(variantData)
-    ? variantData.find(isProductVariantRecord)
-    : null
+  const variant = getQueryData(variantResult, "Product variant").find(
+    isProductVariantRecord,
+  )
 
-  if (!variant || variant.product?.id !== productId) {
+  if (variant === undefined || variant.product?.id !== productId) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product variant ${variantId} was not found`,
     )
   }
+}
+
+const findProductListItemForSelectionPage = async ({
+  listId,
+  productId,
+  query,
+  remainingPages,
+  service,
+  skip,
+  variantId,
+}: {
+  listId: string
+  productId: string
+  query: Query
+  remainingPages: number
+  service: ProductListModuleService
+  skip: number
+  variantId?: string
+}): Promise<ProductListItemRecord | null> => {
+  if (remainingPages === 0) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Product list ${listId} exceeded the bounded item lookup limit`,
+    )
+  }
+
+  const listItems = await service.listProductListItems(
+    {
+      list_id: listId,
+    },
+    {
+      select: ["id"],
+      skip,
+      take: PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE,
+    },
+  )
+  const listItemIds = listItems.map((item) => item.id)
+  if (listItemIds.length === 0) {
+    return null
+  }
+
+  const productLinksResult: unknown = await query.graph({
+    entity: ProductListItemProductLink.entryPoint,
+    fields: ["product_list_item_id"],
+    filters: {
+      product_id: productId,
+      product_list_item_id: { $in: listItemIds },
+    },
+    pagination: {
+      take: Math.min(listItemIds.length, PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE),
+    },
+  })
+  let itemIds = toProductListItemProductLinks(
+    getQueryData(productLinksResult, "Product-list item product link"),
+  ).flatMap((link) =>
+    link.product_list_item_id === undefined ||
+    link.product_list_item_id.length === 0
+      ? []
+      : [link.product_list_item_id],
+  )
+
+  if (itemIds.length > 0) {
+    const variantLinksResult: unknown = await query.graph({
+      entity: ProductListItemVariantLink.entryPoint,
+      fields: ["product_list_item_id"],
+      filters: {
+        product_list_item_id: { $in: itemIds },
+        ...(variantId !== undefined && variantId.length > 0
+          ? { product_variant_id: variantId }
+          : {}),
+      },
+      pagination: {
+        take: Math.min(itemIds.length, PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE),
+      },
+    })
+    const variantItemIds = new Set(
+      toProductListItemVariantLinks(
+        getQueryData(variantLinksResult, "Product-list item variant link"),
+      ).flatMap((link) =>
+        link.product_list_item_id === undefined ||
+        link.product_list_item_id.length === 0
+          ? []
+          : [link.product_list_item_id],
+      ),
+    )
+
+    itemIds = itemIds.filter((itemId) =>
+      variantId !== undefined && variantId.length > 0
+        ? variantItemIds.has(itemId)
+        : !variantItemIds.has(itemId),
+    )
+  }
+
+  if (itemIds.length > 0) {
+    const [item] = await service.listProductListItems(
+      {
+        id: { $in: itemIds },
+        list_id: listId,
+      },
+      {
+        take: 1,
+      },
+    )
+
+    return item ?? null
+  }
+
+  if (listItems.length < PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE) {
+    return null
+  }
+
+  return await findProductListItemForSelectionPage({
+    listId,
+    productId,
+    query,
+    remainingPages: remainingPages - 1,
+    service,
+    skip: skip + PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE,
+    ...(variantId === undefined ? {} : { variantId }),
+  })
 }
 
 export const findProductListItemForSelection = async (
@@ -174,81 +316,14 @@ export const findProductListItemForSelection = async (
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const service =
     container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
-  let skip = 0
 
-  while (true) {
-    const listItems = await service.listProductListItems(
-      {
-        list_id: listId,
-      },
-      {
-        select: ["id"],
-        skip,
-        take: PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE,
-      },
-    )
-    const listItemIds = listItems.map((item) => item.id)
-
-    if (!listItemIds.length) {
-      return null
-    }
-
-    const { data: productLinks } = await query.graph({
-      entity: ProductListItemProductLink.entryPoint,
-      fields: ["product_list_item_id"],
-      filters: {
-        product_id: productId,
-        product_list_item_id: { $in: listItemIds },
-      },
-      pagination: {
-        take: Math.min(listItemIds.length, PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE),
-      },
-    })
-    let itemIds = toProductListItemProductLinks(productLinks).flatMap((link) =>
-      link.product_list_item_id ? [link.product_list_item_id] : [],
-    )
-
-    if (itemIds.length) {
-      const { data: variantLinks } = await query.graph({
-        entity: ProductListItemVariantLink.entryPoint,
-        fields: ["product_list_item_id"],
-        filters: {
-          product_list_item_id: { $in: itemIds },
-          ...(variantId ? { product_variant_id: variantId } : {}),
-        },
-        pagination: {
-          take: Math.min(itemIds.length, PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE),
-        },
-      })
-      const variantItemIds = new Set(
-        toProductListItemVariantLinks(variantLinks).flatMap((link) =>
-          link.product_list_item_id ? [link.product_list_item_id] : [],
-        ),
-      )
-
-      itemIds = itemIds.filter((itemId) =>
-        variantId ? variantItemIds.has(itemId) : !variantItemIds.has(itemId),
-      )
-    }
-
-    if (itemIds.length) {
-      const [item] = await service.listProductListItems(
-        {
-          id: { $in: itemIds },
-          list_id: listId,
-        },
-        {
-          take: 1,
-        },
-      )
-
-      return item ?? null
-    }
-
-    if (listItems.length < PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE) {
-      return null
-    }
-
-    skip += PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE
-  }
+  return await findProductListItemForSelectionPage({
+    listId,
+    productId,
+    query,
+    remainingPages: PRODUCT_LIST_ITEM_LOOKUP_MAX_PAGES,
+    service,
+    skip: 0,
+    ...(variantId === undefined ? {} : { variantId }),
+  })
 }

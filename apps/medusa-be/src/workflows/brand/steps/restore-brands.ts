@@ -20,17 +20,19 @@ export const restoreBrandsStep = createStep(
     const foundIds = new Set(brands.map((brand) => brand.id))
     const missingIds = input.ids.filter((id) => !foundIds.has(id))
 
-    if (missingIds.length) {
+    if (missingIds.length > 0) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Brand ids were not found: ${missingIds.join(", ")}`,
       )
     }
 
-    const deletedBrands = brands.filter((brand) => !!brand.deleted_at)
+    const deletedBrands = brands.filter(
+      (brand) => brand.deleted_at !== null && brand.deleted_at !== undefined,
+    )
     const deletedIds = deletedBrands.map((brand) => brand.id)
 
-    if (deletedBrands.length) {
+    if (deletedBrands.length > 0) {
       const activeCollisions = await service.listBrands(
         {
           handle: { $in: deletedBrands.map((brand) => brand.handle) },
@@ -58,8 +60,9 @@ export const restoreBrandsStep = createStep(
     return new StepResponse(input.ids, deletedIds)
   },
   async (restoredIds, { container }) => {
-    if (restoredIds?.length) {
-      await getBrandService(container).softDeleteBrands(restoredIds)
+    if (restoredIds === undefined || restoredIds.length === 0) {
+      return
     }
+    await getBrandService(container).softDeleteBrands(restoredIds)
   },
 )

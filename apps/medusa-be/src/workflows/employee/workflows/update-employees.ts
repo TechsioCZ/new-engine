@@ -7,13 +7,11 @@ import {
 import type { WorkflowData } from "@medusajs/framework/workflows-sdk"
 
 import type { ModuleUpdateEmployee, QueryGraphEmployee } from "../../../types"
-import { validateCompanyActiveStep } from "../../company/steps"
-import {
-  getEmployeeAdminStateStep,
-  removeAdminRoleStep,
-  setAdminRoleStep,
-  updateEmployeesStep,
-} from "../steps"
+import { validateCompanyActiveStep } from "../../company/steps/validate-company-active"
+import { getEmployeeAdminStateStep } from "../steps/get-employee-admin-state"
+import { removeAdminRoleStep } from "../steps/remove-admin-role"
+import { setAdminRoleStep } from "../steps/set-admin-role"
+import { updateEmployeesStep } from "../steps/update-employees"
 
 export const updateEmployeesWorkflow = createWorkflow(
   "update-employees",
@@ -34,25 +32,30 @@ export const updateEmployeesWorkflow = createWorkflow(
 
     const adminRoleChange = transform(
       { previousEmployee, updatedEmployee },
-      (roleData) => ({
-        customerId: roleData.updatedEmployee.customer?.id ?? "",
-        email: roleData.updatedEmployee.customer?.email ?? "",
-        employeeId: roleData.updatedEmployee.id,
-        shouldRemoveAdminRole:
-          roleData.previousEmployee.is_admin &&
-          !roleData.updatedEmployee.is_admin &&
-          !!roleData.updatedEmployee.customer?.email,
-        shouldSetAdminRole:
-          !roleData.previousEmployee.is_admin &&
-          roleData.updatedEmployee.is_admin &&
-          !!roleData.updatedEmployee.customer?.id,
-      }),
+      (roleData) => {
+        const customerId = roleData.updatedEmployee.customer?.id ?? ""
+        const customerEmail = roleData.updatedEmployee.customer?.email ?? ""
+        return {
+          customerId,
+          email: customerEmail,
+          employeeId: roleData.updatedEmployee.id,
+          shouldRemoveAdminRole:
+            roleData.previousEmployee.is_admin &&
+            !roleData.updatedEmployee.is_admin &&
+            customerEmail.length > 0,
+          shouldSetAdminRole:
+            !roleData.previousEmployee.is_admin &&
+            roleData.updatedEmployee.is_admin &&
+            customerId.length > 0,
+        }
+      },
     )
 
-    when(
+    const { then: removeAdminRoleWhenRequired } = when(
       adminRoleChange,
       ({ shouldRemoveAdminRole }) => shouldRemoveAdminRole,
-    ).then(() => {
+    )
+    removeAdminRoleWhenRequired(() => {
       removeAdminRoleStep({
         customer_id: adminRoleChange.customerId,
         email: adminRoleChange.email,
@@ -60,14 +63,16 @@ export const updateEmployeesWorkflow = createWorkflow(
       })
     })
 
-    when(adminRoleChange, ({ shouldSetAdminRole }) => shouldSetAdminRole).then(
-      () => {
-        setAdminRoleStep({
-          customerId: adminRoleChange.customerId,
-          employeeId: updatedEmployee.id,
-        })
-      },
+    const { then: setAdminRoleWhenRequired } = when(
+      adminRoleChange,
+      ({ shouldSetAdminRole }) => shouldSetAdminRole,
     )
+    setAdminRoleWhenRequired(() => {
+      setAdminRoleStep({
+        customerId: adminRoleChange.customerId,
+        employeeId: updatedEmployee.id,
+      })
+    })
 
     return new WorkflowResponse(updatedEmployee)
   },

@@ -9,11 +9,9 @@ import { createRemoteLinkStep } from "@medusajs/medusa/core-flows"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ModuleApprovalSettings } from "../../../types"
-import { validateCompanyActiveStep } from "../../company/steps"
-import {
-  dismissCompanyApprovalSettingsLinksStep,
-  ensureApprovalSettingsStep,
-} from "../steps"
+import { validateCompanyActiveStep } from "../../company/steps/validate-company-active"
+import { dismissCompanyApprovalSettingsLinksStep } from "../steps/dismiss-company-approval-settings-links"
+import { ensureApprovalSettingsStep } from "../steps/ensure-approval-settings"
 
 export const ensureApprovalSettingsWorkflow = createWorkflow(
   "ensure-approval-settings",
@@ -43,12 +41,14 @@ export const ensureApprovalSettingsWorkflow = createWorkflow(
       settings.map((setting) => setting.company_id),
     )
 
-    when(createdApprovalSettings, (settings) => settings.length > 0).then(
-      () => {
-        dismissCompanyApprovalSettingsLinksStep(createdCompanyIds)
-        createRemoteLinkStep(linkData)
-      },
+    const { then: linkCreatedApprovalSettings } = when(
+      createdApprovalSettings,
+      (settings) => settings.length > 0,
     )
+    linkCreatedApprovalSettings(() => {
+      dismissCompanyApprovalSettingsLinksStep(createdCompanyIds)
+      createRemoteLinkStep(linkData)
+    })
 
     return new WorkflowResponse(approvalSettings)
   },

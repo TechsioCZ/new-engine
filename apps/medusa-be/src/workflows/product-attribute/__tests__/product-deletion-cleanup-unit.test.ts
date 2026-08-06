@@ -14,7 +14,7 @@ const createLockingModule = () => {
   // `execute` is generic, and `vi.fn` collapses a generic implementation to its
   // instantiated signature. Keep the real generic function as the port and
   // record its arguments through a plain spy so both stay type-correct.
-  const execute = vi.fn()
+  const execute = vi.fn<(...args: unknown[]) => void>()
   const lockingModule: ProductAttributeDeletionLock = {
     execute: async (...callArgs) => {
       execute(...callArgs)

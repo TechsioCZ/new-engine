@@ -5,13 +5,11 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 
 import type { ModuleCreateEmployee, QueryGraphEmployee } from "../../../types"
-import { validateCompanyActiveStep } from "../../company/steps"
-import {
-  createOrRestoreEmployeeStep,
-  prepareEmployeeCustomerLinkStep,
-  setAdminRoleStep,
-} from "../steps"
+import { validateCompanyActiveStep } from "../../company/steps/validate-company-active"
 import { addEmployeeToCustomerGroupStep } from "../steps/add-employee-to-customer-group"
+import { createOrRestoreEmployeeStep } from "../steps/create-or-restore-employee"
+import { prepareEmployeeCustomerLinkStep } from "../steps/prepare-employee-customer-link"
+import { setAdminRoleStep } from "../steps/set-admin-role"
 
 interface WorkflowInput {
   employeeData: ModuleCreateEmployee
@@ -29,9 +27,11 @@ export const createEmployeesWorkflow = createWorkflow(
 
     const employee = createOrRestoreEmployeeStep(input.employeeData)
 
-    when(input.employeeData, (employeeData) =>
-      Boolean(employeeData.is_admin),
-    ).then(() => {
+    const { then: setAdminRoleWhenRequested } = when(
+      input.employeeData,
+      (employeeData) => employeeData.is_admin === true,
+    )
+    setAdminRoleWhenRequested(() => {
       setAdminRoleStep({
         customerId: input.customerId,
         employeeId: employee.id,

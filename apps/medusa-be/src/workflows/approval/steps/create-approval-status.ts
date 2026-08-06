@@ -4,47 +4,75 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { isRecord } from "@techsio/std/object"
 
 import { APPROVAL_MODULE } from "../../../modules/approval"
-import { ApprovalStatusType } from "../../../types"
-import type { IApprovalModuleService } from "../../../types"
+import { ApprovalStatusType } from "../../../types/approval/module"
+import type { ModuleApprovalStatus } from "../../../types/approval/module"
+import type { IApprovalModuleService } from "../../../types/approval/service"
+import { isUnknownArray } from "../../../utils/guards"
 
-export const createApprovalStatusStep = createStep(
+export const createApprovalStatusStep = createStep<
+  string[],
+  ModuleApprovalStatus,
+  string[]
+>(
   "create-approval-status",
-  async (cartIds: string[], { container }) => {
+  async (
+    cartIds: string[],
+    { container },
+  ): Promise<StepResponse<ModuleApprovalStatus, string[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const approvalModuleService =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     const [firstCartId] = cartIds
 
-    if (!firstCartId) {
+    if (firstCartId === undefined || firstCartId.length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "At least one cart id is required to create an approval status",
       )
     }
 
-    const {
-      data: [existingApprovalStatus],
-    } = await query.graph({
+    const graphResult: unknown = await query.graph({
       entity: "approval_status",
       fields: ["*"],
       filters: {
         cart_id: firstCartId,
       },
     })
+    const graphData: unknown = isRecord(graphResult)
+      ? graphResult["data"]
+      : undefined
+    if (!isUnknownArray(graphData)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Approval status query returned invalid data",
+      )
+    }
 
-    if (existingApprovalStatus) {
+    const [existingApprovalStatus] = graphData
+    if (existingApprovalStatus !== undefined) {
+      if (
+        !isRecord(existingApprovalStatus) ||
+        typeof existingApprovalStatus["id"] !== "string"
+      ) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          "Approval status query returned an invalid record",
+        )
+      }
+
       const [updatedApprovalStatus] =
         await approvalModuleService.updateApprovalStatuses([
           {
-            id: existingApprovalStatus.id,
+            id: existingApprovalStatus["id"],
             status: ApprovalStatusType.PENDING,
           },
         ])
 
-      if (!updatedApprovalStatus) {
+      if (updatedApprovalStatus === undefined) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
           "Failed to update approval status",
@@ -64,7 +92,7 @@ export const createApprovalStatusStep = createStep(
         approvalStatusesToCreate,
       )
 
-    if (!createdApprovalStatus) {
+    if (createdApprovalStatus === undefined) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         "Failed to create approval status",
@@ -74,7 +102,7 @@ export const createApprovalStatusStep = createStep(
     return new StepResponse(createdApprovalStatus, [createdApprovalStatus.id])
   },
   async (statusIds: string[] | undefined, { container }) => {
-    if (!statusIds) {
+    if (statusIds === undefined) {
       return
     }
 

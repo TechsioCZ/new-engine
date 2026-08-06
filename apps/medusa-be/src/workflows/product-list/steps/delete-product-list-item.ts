@@ -14,7 +14,7 @@ export const deleteProductListItemStep = createStep(
     return new StepResponse({ id: item.id }, item)
   },
   async (item, { container }) => {
-    if (!item?.list_id) {
+    if (item?.list_id === undefined || item.list_id.length === 0) {
       return
     }
 

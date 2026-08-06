@@ -14,8 +14,9 @@ export const updateApprovalSettingsStep = createStep(
 
     const previousData = await approvalModule.retrieveApprovalSettings(input.id)
 
-    const updatedApprovalSettings =
-      await approvalModule.updateApprovalSettings(input)
+    const updatedApprovalSettings = await approvalModule.updateApprovalSettings(
+      { ...input, id: previousData.id },
+    )
 
     return new StepResponse(updatedApprovalSettings, previousData)
   },
@@ -23,7 +24,7 @@ export const updateApprovalSettingsStep = createStep(
     previousData: ModuleUpdateApprovalSettings | undefined,
     { container },
   ) => {
-    if (!previousData) {
+    if (previousData === undefined) {
       return
     }
 

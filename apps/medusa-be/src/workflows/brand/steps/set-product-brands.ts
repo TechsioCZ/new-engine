@@ -40,7 +40,7 @@ export const prepareSetProductBrandsStep = createStep(
     const activeCurrentIds = await getActiveBrandIds(container, currentIds)
 
     if (
-      input.fail_on_conflict &&
+      input.fail_on_conflict === true &&
       hasActiveBrandConflict(currentIds, activeCurrentIds, input.brand_ids)
     ) {
       throw new MedusaError(
@@ -49,13 +49,13 @@ export const prepareSetProductBrandsStep = createStep(
       )
     }
 
-    if (input.brand_ids.length) {
+    if (input.brand_ids.length > 0) {
       const activeBrandIds = await getActiveBrandIds(container, input.brand_ids)
       const inactiveBrandIds = input.brand_ids.filter(
         (brandId) => !activeBrandIds.has(brandId),
       )
 
-      if (inactiveBrandIds.length) {
+      if (inactiveBrandIds.length > 0) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           `Brands are inactive or deleted: ${inactiveBrandIds.join(", ")}`,

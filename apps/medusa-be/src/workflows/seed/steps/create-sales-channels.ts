@@ -3,7 +3,11 @@ import type {
   Logger,
   SalesChannelDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { createSalesChannelsWorkflow } from "@medusajs/medusa/core-flows"
 
@@ -12,15 +16,21 @@ export type CreateSalesChannelsStepInput = {
   default: boolean
 }[]
 
-export function validateSalesChannelSeedInput(
+export const validateSalesChannelSeedInput = (
   input: CreateSalesChannelsStepInput,
-) {
+) => {
   const names = input.map(({ name }) => name.trim())
   if (new Set(names).size !== names.length) {
-    throw new Error("Seed sales channel names must be unique")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Seed sales channel names must be unique",
+    )
   }
   if (input.filter(({ default: isDefault }) => isDefault).length !== 1) {
-    throw new Error("Seed sales channels must define exactly one default")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Seed sales channels must define exactly one default",
+    )
   }
   return names
 }
@@ -68,7 +78,10 @@ export const createSalesChannelsStep = createStep(
     const result = salesChannels.map((name, index) => {
       const channel = channelsByName.get(name)
       if (!channel) {
-        throw new Error(`Could not find configured sales channel "${name}"`)
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `Could not find configured sales channel "${name}"`,
+        )
       }
       return { ...channel, isDefault: input[index]?.default ?? false }
     })
@@ -76,7 +89,10 @@ export const createSalesChannelsStep = createStep(
       (channel) => channel.name === defaultName,
     )
     if (!defaultSalesChannel) {
-      throw new Error("Could not find default sales channel")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Could not find default sales channel",
+      )
     }
     logger.info(`Found default sales channel: ${defaultSalesChannel.name}`)
 

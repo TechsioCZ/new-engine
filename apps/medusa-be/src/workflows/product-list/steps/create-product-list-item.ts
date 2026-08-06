@@ -73,7 +73,7 @@ export const createProductListItemStep = createStep(
     )
   },
   async (input, { container }) => {
-    if (!(input?.created && input.item_id)) {
+    if (input?.created !== true || input.item_id.length === 0) {
       return
     }
 

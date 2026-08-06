@@ -16,7 +16,7 @@ export interface CategoryRaw {
 }
 
 const seedCategoriesWorkflowId = "seed-categories-workflow"
-function seedCategoriesWorkflowComposer(input: CategoryRaw[]) {
+const seedCategoriesWorkflowComposer = (input: CategoryRaw[]) => {
   const productCategories: CreateProductCategoriesStepInput = transform(
     {
       input,
@@ -24,10 +24,14 @@ function seedCategoriesWorkflowComposer(input: CategoryRaw[]) {
     (data) =>
       data.input.map((i) => ({
         name: i.title,
-        ...(i.description ? { description: i.description } : {}),
+        ...(i.description !== undefined && i.description.length > 0
+          ? { description: i.description }
+          : {}),
         handle: i.handle,
         isActive: Boolean(Number(i.isActive)),
-        ...(i.parentHandle ? { parentHandle: i.parentHandle } : {}),
+        ...(i.parentHandle !== undefined && i.parentHandle.length > 0
+          ? { parentHandle: i.parentHandle }
+          : {}),
       })),
   )
 

@@ -4,6 +4,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { chunk } from "@techsio/std/array"
 import { isRecord } from "@techsio/std/object"
 
 import { ProductBrandLink } from "../../../links/product-brand"
@@ -42,14 +43,12 @@ interface BrandSnapshotRecord {
   id: string
   title: string
   handle: string
-  attributes: Array<
-    BrandAttributeRecord & {
-      attributeType: {
-        id?: string
-        name: string
-      }
+  attributes: (BrandAttributeRecord & {
+    attributeType: {
+      id?: string
+      name: string
     }
-  >
+  })[]
   gpsr_contact_email?: string | null
   gpsr_european_reseller_contact_email?: string | null
   gpsr_european_reseller_manufacturing_company_name?: string | null
@@ -64,20 +63,27 @@ interface ProductBrandLinkRecord {
   brand_id?: string
 }
 
-interface BrandIdRecord {
-  id: string
-}
-
 const CHUNK_SIZE = 500
+const QUERY_CONCURRENCY = 4
 
-const chunkArray = <T>(items: T[], size: number): T[][] => {
-  const chunks: T[][] = []
-
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
+const mapWithConcurrency = async <T, R>(
+  items: T[],
+  task: (item: T) => Promise<R>,
+  offset = 0,
+  results: R[] = [],
+): Promise<R[]> => {
+  if (offset >= items.length) {
+    return results
   }
-
-  return chunks
+  const currentResults = await Promise.all(
+    items
+      .slice(offset, offset + QUERY_CONCURRENCY)
+      .map(async (item) => await task(item)),
+  )
+  return await mapWithConcurrency(items, task, offset + QUERY_CONCURRENCY, [
+    ...results,
+    ...currentResults,
+  ])
 }
 
 export const getBrandService = (container: MedusaContainer) =>
@@ -86,7 +92,7 @@ export const getBrandService = (container: MedusaContainer) =>
 export const withBrandTransaction = async <T>(
   service: BrandModuleService,
   task: (sharedContext: Context) => Promise<T>,
-) => service.runInTransaction(task)
+) => await service.runInTransaction(task)
 
 const isBrandSnapshotRecord = (
   brand: unknown,
@@ -95,17 +101,17 @@ const isBrandSnapshotRecord = (
     return false
   }
 
-  if (
-    typeof brand["id"] !== "string" ||
-    typeof brand["title"] !== "string" ||
-    typeof brand["handle"] !== "string" ||
-    !Array.isArray(brand["attributes"]) ||
-    !(
-      brand["gpsr_manufactured_outside_eu"] === undefined ||
-      brand["gpsr_manufactured_outside_eu"] === null ||
-      typeof brand["gpsr_manufactured_outside_eu"] === "boolean"
-    )
-  ) {
+  const manufacturedOutsideEu = brand["gpsr_manufactured_outside_eu"]
+  const hasRequiredFields = [
+    typeof brand["id"] === "string",
+    typeof brand["title"] === "string",
+    typeof brand["handle"] === "string",
+    Array.isArray(brand["attributes"]),
+    manufacturedOutsideEu === undefined ||
+      manufacturedOutsideEu === null ||
+      typeof manufacturedOutsideEu === "boolean",
+  ].every(Boolean)
+  if (!hasRequiredFields || !Array.isArray(brand["attributes"])) {
     return false
   }
 
@@ -217,7 +223,9 @@ export const setBrandAttributes = async (
   brandId: string,
   inputAttributes: BrandAttributeInput[] = [],
   sharedContext: Context = {},
-) => await service.setBrandAttributes(brandId, inputAttributes, sharedContext)
+) => {
+  await service.setBrandAttributes(brandId, inputAttributes, sharedContext)
+}
 
 export const buildBrandWriteInput = (brand: BrandScalarWriteInput) =>
   pickBrandWriteFields(normalizeBrandWriteInput(brand))
@@ -234,12 +242,12 @@ export const brandProductLink = (productId: string, brandId: string) => ({
 export const getProductBrandLockKeys = (productIds: string[]) => [
   "product-brand-relations",
   ...[...new Set(productIds)]
-    .sort()
+    .toSorted()
     .map((productId) => `product-brand:${productId}`),
 ]
 
 export const getBrandMutationLockKeys = (brandIds: string[]) =>
-  [...new Set(brandIds)].sort().map((brandId) => `brand:${brandId}`)
+  [...new Set(brandIds)].toSorted().map((brandId) => `brand:${brandId}`)
 
 export const getBrandLifecycleLockKeys = (brandIds: string[]) => [
   "product-brand-relations",
@@ -249,7 +257,7 @@ export const getBrandLifecycleLockKeys = (brandIds: string[]) => [
 export const getBrandAttributeTypeLockKeys = (namesOrIds: string[]) => [
   "brand-attribute-types",
   ...[...new Set(namesOrIds)]
-    .sort()
+    .toSorted()
     .map((value) => `brand-attribute-type:${value}`),
 ]
 
@@ -269,7 +277,7 @@ export const normalizeBrandProductDelta = (input: {
     removeProductIdSet.has(productId),
   )
 
-  if (overlappingProductIds.length) {
+  if (overlappingProductIds.length > 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       `Product ids cannot be added and removed in the same request: ${overlappingProductIds.join(", ")}`,
@@ -319,22 +327,97 @@ export const partitionProductBrandConflicts = (
   }
 }
 
+const getGraphData = (result: unknown, context: string): unknown[] => {
+  if (!isRecord(result) || !Array.isArray(result["data"])) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `${context} query returned invalid data`,
+    )
+  }
+
+  return result["data"]
+}
+
+const parseProductBrandLink = (
+  value: unknown,
+  context: string,
+): ProductBrandLinkRecord => {
+  if (!isRecord(value)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `${context} query returned an invalid link record`,
+    )
+  }
+
+  const productId = value["product_id"]
+  const brandId = value["brand_id"]
+  if (
+    (productId !== undefined && typeof productId !== "string") ||
+    (brandId !== undefined && typeof brandId !== "string")
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `${context} query returned invalid link identifiers`,
+    )
+  }
+
+  return {
+    ...(typeof brandId === "string" ? { brand_id: brandId } : {}),
+    ...(typeof productId === "string" ? { product_id: productId } : {}),
+  }
+}
+
+const queryProductBrandLinks = async (
+  query: Query,
+  filters: Record<string, unknown>,
+  context: string,
+): Promise<ProductBrandLinkRecord[]> => {
+  const result: unknown = await query.graph({
+    entity: ProductBrandLink.entryPoint,
+    fields: ["product_id", "brand_id"],
+    filters,
+  })
+
+  return getGraphData(result, context).map((value) =>
+    parseProductBrandLink(value, context),
+  )
+}
+
+const queryProductBrandLinkChunks = async (
+  query: Query,
+  field: "brand_id" | "product_id",
+  ids: string[],
+): Promise<ProductBrandLinkRecord[]> => {
+  const chunks = chunk(ids, CHUNK_SIZE)
+  const responses = await mapWithConcurrency(
+    chunks,
+    async (idChunk) =>
+      await queryProductBrandLinks(
+        query,
+        { [field]: { $in: idChunk } },
+        `Product-brand ${field}`,
+      ),
+  )
+
+  return responses.flat()
+}
+
 export const getCurrentProductBrandIds = async (
   container: MedusaContainer,
   productId: string,
 ) => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const { data } = await query.graph({
-    entity: ProductBrandLink.entryPoint,
-    fields: ["brand_id"],
-    filters: {
-      product_id: productId,
-    },
-  })
+  const links = await queryProductBrandLinks(
+    query,
+    { product_id: productId },
+    "Product brands",
+  )
 
-  return (data as ProductBrandLinkRecord[])
-    .map((link) => link.brand_id)
-    .filter((brandId): brandId is string => !!brandId)
+  return links.flatMap((link) =>
+    link.brand_id === undefined || link.brand_id.length === 0
+      ? []
+      : [link.brand_id],
+  )
 }
 
 export const getCurrentProductBrandLinks = async (
@@ -343,28 +426,19 @@ export const getCurrentProductBrandLinks = async (
 ) => {
   const ids = [...new Set(productIds)]
 
-  if (!ids.length) {
+  if (ids.length === 0) {
     return []
   }
 
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const data: ProductBrandLinkRecord[] = []
-
-  for (const idChunk of chunkArray(ids, CHUNK_SIZE)) {
-    const response = await query.graph({
-      entity: ProductBrandLink.entryPoint,
-      fields: ["product_id", "brand_id"],
-      filters: {
-        product_id: { $in: idChunk },
-      },
-    })
-
-    data.push(...(response.data as ProductBrandLinkRecord[]))
-  }
+  const data = await queryProductBrandLinkChunks(query, "product_id", ids)
 
   return data.filter(
     (link): link is Required<ProductBrandLinkRecord> =>
-      !!(link.product_id && link.brand_id),
+      link.product_id !== undefined &&
+      link.product_id.length > 0 &&
+      link.brand_id !== undefined &&
+      link.brand_id.length > 0,
   )
 }
 
@@ -374,28 +448,19 @@ export const getCurrentBrandProductLinks = async (
 ) => {
   const ids = [...new Set(brandIds)]
 
-  if (!ids.length) {
+  if (ids.length === 0) {
     return []
   }
 
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const data: ProductBrandLinkRecord[] = []
-
-  for (const idChunk of chunkArray(ids, CHUNK_SIZE)) {
-    const response = await query.graph({
-      entity: ProductBrandLink.entryPoint,
-      fields: ["product_id", "brand_id"],
-      filters: {
-        brand_id: { $in: idChunk },
-      },
-    })
-
-    data.push(...(response.data as ProductBrandLinkRecord[]))
-  }
+  const data = await queryProductBrandLinkChunks(query, "brand_id", ids)
 
   return data.filter(
     (link): link is Required<ProductBrandLinkRecord> =>
-      !!(link.product_id && link.brand_id),
+      link.product_id !== undefined &&
+      link.product_id.length > 0 &&
+      link.brand_id !== undefined &&
+      link.brand_id.length > 0,
   )
 }
 
@@ -405,25 +470,35 @@ export const getExistingProductIds = async (
 ) => {
   const ids = [...new Set(productIds)]
 
-  if (!ids.length) {
+  if (ids.length === 0) {
     return new Set<string>()
   }
 
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const products: BrandIdRecord[] = []
+  const responses: unknown[] = await mapWithConcurrency(
+    chunk(ids, CHUNK_SIZE),
+    async (idChunk) =>
+      await query.graph({
+        entity: "product",
+        fields: ["id"],
+        filters: {
+          id: { $in: idChunk },
+        },
+      }),
+  )
+  const productIdsFromQuery = responses.flatMap((response) =>
+    getGraphData(response, "Products").map((product) => {
+      if (!isRecord(product) || typeof product["id"] !== "string") {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          "Products query returned an invalid record",
+        )
+      }
+      return product["id"]
+    }),
+  )
 
-  for (const idChunk of chunkArray(ids, CHUNK_SIZE)) {
-    const { data } = await query.graph({
-      entity: "product",
-      fields: ["id"],
-      filters: {
-        id: { $in: idChunk },
-      },
-    })
-    products.push(...(data as BrandIdRecord[]))
-  }
-
-  return new Set(products.map((product) => product.id))
+  return new Set(productIdsFromQuery)
 }
 
 export const diffIds = (currentIds: string[], nextIds: string[]) => {

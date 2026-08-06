@@ -33,7 +33,7 @@ export const removeAdminRoleStep = createStep(
         query,
       })
 
-    if (!providerIdentityIds.length) {
+    if (providerIdentityIds.length === 0) {
       return new StepResponse(undefined, [])
     }
 
@@ -49,7 +49,7 @@ export const removeAdminRoleStep = createStep(
     return new StepResponse(undefined, providerIdentityIds)
   },
   async (providerIdentityIds: string[] | undefined, { container }) => {
-    if (!providerIdentityIds?.length) {
+    if (providerIdentityIds === undefined || providerIdentityIds.length === 0) {
       return
     }
 

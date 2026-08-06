@@ -10,18 +10,15 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { isRecord, omitKeys } from "@techsio/std/object"
 
 import { ORDER_NOTE_MODULE } from "../../modules/order-note"
 import type OrderNoteModuleService from "../../modules/order-note/service"
+import { isUnknownArray } from "../../utils/guards"
 
 interface UpsertOrderNoteWorkflowInput {
   note: string
   order_id: string
-}
-
-interface OrderRecord {
-  id: string
-  metadata?: Record<string, unknown> | null
 }
 
 interface RestorableOrderNote {
@@ -46,7 +43,7 @@ const upsertOrderNoteStep = createStep(
       container.resolve<OrderNoteModuleService>(ORDER_NOTE_MODULE)
     const trimmedNote = input.note.trim()
 
-    if (!trimmedNote) {
+    if (trimmedNote.length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Order note cannot be empty",
@@ -66,7 +63,11 @@ const upsertOrderNoteStep = createStep(
       order_id: input.order_id,
     }
 
-    if (existingNoteRecord && typeof existingNoteRecord.note === "string") {
+    if (
+      existingNoteRecord !== null &&
+      existingNoteRecord !== undefined &&
+      typeof existingNoteRecord.note === "string"
+    ) {
       compensation.previousNote = {
         note: existingNoteRecord.note,
         order_id: existingNoteRecord.order_id ?? input.order_id,
@@ -81,17 +82,18 @@ const upsertOrderNoteStep = createStep(
     )
   },
   async (input, { container }) => {
-    if (!input) {
+    if (input === undefined) {
       return
     }
 
     const orderNoteService =
       container.resolve<OrderNoteModuleService>(ORDER_NOTE_MODULE)
 
-    if (input.previousNote?.note.trim()) {
+    const { previousNote } = input
+    if (previousNote !== undefined && previousNote.note.trim().length > 0) {
       await orderNoteService.upsertOrderNote({
-        note: input.previousNote.note,
-        order_id: input.previousNote.order_id,
+        note: previousNote.note,
+        order_id: previousNote.order_id,
       })
       return
     }
@@ -106,25 +108,45 @@ const clearOrderNoteMetadataStep = createStep(
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const orderService = container.resolve<IOrderModuleService>(Modules.ORDER)
 
-    const {
-      data: [order],
-    } = await query.graph({
+    const orderResult: unknown = await query.graph({
       entity: "order",
       fields: ["id", "metadata"],
       filters: { id: input.order_id },
       pagination: { skip: 0, take: 1 },
     })
+    const orderData: unknown = isRecord(orderResult)
+      ? orderResult["data"]
+      : undefined
+    if (!isUnknownArray(orderData)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Order query returned invalid data",
+      )
+    }
+    const [order] = orderData
 
-    if (!order) {
+    if (order === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Order ${input.order_id} not found`,
       )
     }
 
-    const orderRecord = order as OrderRecord
-    const previousMetadata = { ...orderRecord.metadata }
-    const { order_note: _orderNote, ...nextMetadata } = previousMetadata
+    if (!isRecord(order)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Order query returned an invalid record",
+      )
+    }
+    const { metadata } = order
+    if (metadata !== undefined && metadata !== null && !isRecord(metadata)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Order query returned invalid metadata",
+      )
+    }
+    const previousMetadata = metadata ?? {}
+    const nextMetadata = omitKeys(previousMetadata, ["order_note"])
 
     await orderService.updateOrders(input.order_id, {
       metadata: nextMetadata,
@@ -144,7 +166,7 @@ const clearOrderNoteMetadataStep = createStep(
     )
   },
   async (input, { container }) => {
-    if (!input) {
+    if (input === undefined) {
       return
     }
 

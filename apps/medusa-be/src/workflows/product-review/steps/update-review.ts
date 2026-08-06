@@ -12,14 +12,14 @@ export const updateReviewStep = createStep(
     )
     const previousReview = await service.retrieveReview(input.id)
     const review = await service.updateReviews({
-      id: input.id,
+      id: previousReview.id,
       ...input.review,
     })
 
     return new StepResponse(review, previousReview)
   },
   async (previousReview, { container }) => {
-    if (!previousReview) {
+    if (previousReview === undefined) {
       return
     }
 

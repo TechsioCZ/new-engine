@@ -64,7 +64,7 @@ const restoreImportedCatalog = async (
   compensation: StorefrontTextCatalogImportCompensation,
   sharedContext: Context,
 ) => {
-  if (compensation.importedPreviousValues.length) {
+  if (compensation.importedPreviousValues.length > 0) {
     await service.updateStorefrontTexts(
       compensation.importedPreviousValues,
       sharedContext,
@@ -94,7 +94,7 @@ const resolveImportedStorefrontTextUpdate = ({
   previousValue: PreviousStorefrontTextValue
   updateInput: StorefrontTextUpdateInput
 } | null => {
-  if (!record) {
+  if (record === undefined) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `Storefront text "${definition.key}" is missing after synchronization`,
@@ -103,7 +103,7 @@ const resolveImportedStorefrontTextUpdate = ({
 
   const importedValue = value.trim()
 
-  if (!importedValue) {
+  if (importedValue.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       `${definition.key}: Imported value cannot be blank`,
@@ -156,6 +156,23 @@ const resolveImportedStorefrontTextUpdate = ({
   }
 }
 
+const listStorefrontTextsAfterSynchronization = async (
+  service: ImportStorefrontTextCatalogService,
+  catalog: ReturnType<typeof parseImportCatalog>,
+  sharedContext: Context,
+  synchronization: Awaited<ReturnType<typeof synchronizeStorefrontTexts>>,
+) => ({
+  records: await service.listStorefrontTexts(
+    {
+      locale: catalog.locale,
+      market: catalog.market,
+    },
+    {},
+    sharedContext,
+  ),
+  synchronization,
+})
+
 const importStorefrontTextCatalogInTransaction = async ({
   catalog,
   input,
@@ -167,19 +184,18 @@ const importStorefrontTextCatalogInTransaction = async ({
   service: ImportStorefrontTextCatalogService
   sharedContext: Context
 }) => {
-  const sync = await synchronizeStorefrontTexts(
+  const synchronization = await synchronizeStorefrontTexts(
     service,
     { market: input.market },
     sharedContext,
   )
-  const records = await service.listStorefrontTexts(
-    {
-      locale: catalog.locale,
-      market: catalog.market,
-    },
-    {},
-    sharedContext,
-  )
+  const { records, synchronization: sync } =
+    await listStorefrontTextsAfterSynchronization(
+      service,
+      catalog,
+      sharedContext,
+      synchronization,
+    )
   const recordsByKey = new Map(records.map((record) => [record.key, record]))
   const defaultMessages = getStorefrontTextDefaultMessages({
     market: input.market,
@@ -204,7 +220,7 @@ const importStorefrontTextCatalogInTransaction = async ({
     updateInputs.push(update.updateInput)
   }
 
-  if (updateInputs.length) {
+  if (updateInputs.length > 0) {
     await service.updateStorefrontTexts(updateInputs, sharedContext)
   }
 
@@ -252,7 +268,7 @@ export const importStorefrontTextCatalogStep = createStep(
     return new StepResponse(result, compensation)
   },
   async (compensation, { container }) => {
-    if (!compensation) {
+    if (compensation === undefined) {
       return
     }
 

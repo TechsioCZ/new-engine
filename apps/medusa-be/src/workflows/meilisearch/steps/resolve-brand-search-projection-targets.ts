@@ -1,6 +1,10 @@
 import type { MedusaContainer, Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { isRecord } from "@techsio/std/object"
 
 import { ProductBrandLink } from "../../../links/product-brand"
 import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
@@ -9,10 +13,6 @@ import {
   buildBrandSearchProjectionEventData,
 } from "../events"
 import type { BrandSearchProjectionChangedEventData } from "../events"
-
-interface ProductBrandLinkRecord {
-  product_id?: string
-}
 
 export type BrandSearchProjectionTargets =
   BrandSearchProjectionChangedEventData & {
@@ -23,7 +23,9 @@ export const buildBrandSearchProjectionLockKeys = ({
   brand_ids: brandIds,
   product_ids: productIds,
 }: BrandSearchProjectionChangedEventData) =>
-  brandIds.length || productIds.length ? [BRAND_SEARCH_PROJECTION_LOCK_KEY] : []
+  brandIds.length > 0 || productIds.length > 0
+    ? [BRAND_SEARCH_PROJECTION_LOCK_KEY]
+    : []
 
 export const resolveBrandSearchProjectionTargets = async (
   input: BrandSearchProjectionChangedEventData,
@@ -43,19 +45,33 @@ export const resolveBrandSearchProjectionTargets = async (
 
   const productIds = new Set(normalized.product_ids)
 
-  if (normalized.brand_ids.length) {
+  if (normalized.brand_ids.length > 0) {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-    const { data } = await query.graph({
+    const result: unknown = await query.graph({
       entity: ProductBrandLink.entryPoint,
       fields: ["product_id"],
       filters: {
         brand_id: { $in: normalized.brand_ids },
       },
     })
+    const data = isRecord(result) ? result["data"] : undefined
+    if (!Array.isArray(data)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Product-brand link query returned invalid data",
+      )
+    }
 
-    for (const link of data as ProductBrandLinkRecord[]) {
-      if (link.product_id) {
-        productIds.add(link.product_id)
+    for (const link of data) {
+      if (!isRecord(link)) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          "Product-brand link query returned an invalid record",
+        )
+      }
+      const productId = link["product_id"]
+      if (typeof productId === "string" && productId.length > 0) {
+        productIds.add(productId)
       }
     }
   }

@@ -5,26 +5,25 @@ import {
   selectExclusivelyScopedBrandIds,
   selectScopedLegacyBrandAttributeIds,
 } from "../steps/cleanup-product-brand-attributes"
+import type { ProductInput } from "../steps/create-products"
 import { collectCanonicalProductAttributeDefinitions } from "../steps/reconcile-product-attributes"
 
-const OPTION_COLLISION_PATTERN = /option key collision.*Bio Herba.*Bio-Herba/
+const OPTION_COLLISION_PATTERN = /option key collision.*Bio Herba.*Bio-Herba/u
 const DUPLICATE_DEFINITION_PATTERN =
-  /contains duplicate Product Attribute definition "supplier"/
+  /contains duplicate Product Attribute definition "supplier"/u
 
 const product = (
   handle: string,
-  productAttributes: NonNullable<
-    Parameters<
-      typeof collectCanonicalProductAttributeDefinitions
-    >[0][number]["productAttributes"]
-  >,
-) =>
-  ({
-    handle,
-    productAttributes,
-  }) as Parameters<
-    typeof collectCanonicalProductAttributeDefinitions
-  >[0][number]
+  productAttributes: NonNullable<ProductInput["productAttributes"]>,
+): ProductInput => ({
+  categories: [],
+  description: "",
+  handle,
+  images: [],
+  productAttributes,
+  shippingProfileName: "",
+  title: handle,
+})
 
 describe("Herbatica Product Attribute reconciliation", () => {
   it("collects canonical options while retaining explicit source absence", () => {

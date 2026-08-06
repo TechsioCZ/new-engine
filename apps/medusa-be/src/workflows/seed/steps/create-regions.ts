@@ -36,7 +36,7 @@ export const createRegionsStep = createStep(
     })
 
     const missingRegions = input.filter(
-      (i) => !existingRegions.find((j) => j.name === i.name),
+      (i) => !existingRegions.some((j) => j.name === i.name),
     )
     const updateRegions = input.flatMap((inputRegion) => {
       const existingRegion = existingRegions.find(
@@ -64,11 +64,11 @@ export const createRegionsStep = createStep(
       ).run({
         input: {
           regions: missingRegions.map((i) => ({
-            name: i.name,
+            ...(i.countries === undefined ? {} : { countries: i.countries }),
             currency_code: i.currencyCode,
-            ...(i.countries ? { countries: i.countries } : {}),
-            payment_providers: i.paymentProviders ?? ["pp_system_default"],
             is_tax_inclusive: i.isTaxInclusive ?? true,
+            name: i.name,
+            payment_providers: i.paymentProviders ?? ["pp_system_default"],
           })),
         },
       })
@@ -82,22 +82,24 @@ export const createRegionsStep = createStep(
       const toUpdate = updateRegions.map((i) => ({
         selector: { name: i.name },
         update: {
+          ...(i.countries === undefined ? {} : { countries: i.countries }),
           currency_code: i.currency_code,
-          ...(i.countries ? { countries: i.countries } : {}),
-          payment_providers: i.payment_providers ?? ["pp_system_default"],
           is_tax_inclusive: i.is_tax_inclusive,
+          payment_providers: i.payment_providers ?? ["pp_system_default"],
         },
       }))
 
-      for (const regionToUpdate of toUpdate) {
-        const { result: updateResult } = await updateRegionsWorkflow(
-          container,
-        ).run({
-          input: regionToUpdate,
-        })
-
-        result.push(...updateResult)
-      }
+      const updateResults = await Promise.all(
+        toUpdate.map(
+          async (regionToUpdate) =>
+            await updateRegionsWorkflow(container).run({
+              input: regionToUpdate,
+            }),
+        ),
+      )
+      result.push(
+        ...updateResults.flatMap(({ result: updateResult }) => updateResult),
+      )
     }
 
     return new StepResponse({
