@@ -13,7 +13,7 @@ export default async function productReviewRequestOnPaymentHandler({
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const orderId = await resolveOrderIdFromPaymentEvent(container, event.data)
 
-  if (!orderId) {
+  if (orderId === undefined || orderId === "") {
     logger.warn(
       `Skipping product review request queueing: could not resolve order from ${event.name} event ${JSON.stringify(event.data)}`,
     )

@@ -6,11 +6,16 @@ import {
   Text,
   Tooltip,
 } from "@medusajs/ui"
-import type * as LabelPrimitives from "@radix-ui/react-label"
+import type { Root as LabelRoot } from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
-import type React from "react"
 import { createContext, useContext, useId } from "react"
-import type { ReactNode } from "react"
+import type {
+  ComponentPropsWithoutRef,
+  ComponentRef,
+  HTMLAttributes,
+  ReactNode,
+  Ref,
+} from "react"
 import {
   Controller,
   FormProvider,
@@ -21,16 +26,16 @@ import type { ControllerProps, FieldPath, FieldValues } from "react-hook-form"
 
 const Provider = FormProvider
 
-interface FormFieldContextValue<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-> {
-  name: TName
-}
+const EMPTY_ERROR_MESSAGES = new Set<ReactNode>([
+  null,
+  undefined,
+  false,
+  "",
+  0,
+  "undefined",
+])
 
-const FormFieldContext = createContext<FormFieldContextValue>(
-  {} as FormFieldContextValue,
-)
+const FormFieldContext = createContext<string | null>(null)
 
 const Field = <
   TFieldValues extends FieldValues = FieldValues,
@@ -38,30 +43,29 @@ const Field = <
 >({
   ...props
 }: ControllerProps<TFieldValues, TName>) => (
-  <FormFieldContext.Provider value={{ name: props.name }}>
+  <FormFieldContext.Provider value={props.name}>
     <Controller {...props} />
   </FormFieldContext.Provider>
 )
 
-interface FormItemContextValue {
-  id: string
-}
-
-const FormItemContext = createContext<FormItemContextValue>({})
+const FormItemContext = createContext<string | null>(null)
 
 const useFormField = () => {
   const fieldContext = useContext(FormFieldContext)
   const itemContext = useContext(FormItemContext)
   const { getFieldState } = useFormContext()
+  const fieldName = fieldContext ?? ""
+  const formState = useFormState({ name: fieldName })
+  const fieldState = getFieldState(fieldName, formState)
 
-  const formState = useFormState({ name: fieldContext.name })
-  const fieldState = getFieldState(fieldContext.name, formState)
-
-  if (!fieldContext) {
+  if (fieldContext === null) {
     throw new Error("useFormField should be used within a FormField")
   }
+  if (itemContext === null) {
+    throw new Error("useFormField should be used within a FormItem")
+  }
 
-  const { id } = itemContext
+  const id = itemContext
 
   return {
     formDescriptionId: `${id}-form-item-description`,
@@ -69,20 +73,20 @@ const useFormField = () => {
     formItemId: `${id}-form-item`,
     formLabelId: `${id}-form-item-label`,
     id,
-    name: fieldContext.name,
+    name: fieldContext,
     ...fieldState,
   }
 }
 
-type ItemProps = React.HTMLAttributes<HTMLDivElement> & {
-  ref?: React.Ref<HTMLDivElement>
+type ItemProps = HTMLAttributes<HTMLDivElement> & {
+  ref?: Ref<HTMLDivElement>
 }
 
 const Item = ({ className, ref, ...props }: ItemProps) => {
   const id = useId()
 
   return (
-    <FormItemContext.Provider value={{ id }}>
+    <FormItemContext.Provider value={id}>
       <div
         className={clx("flex flex-col space-y-2", className)}
         ref={ref}
@@ -93,12 +97,10 @@ const Item = ({ className, ref, ...props }: ItemProps) => {
 }
 Item.displayName = "Form.Item"
 
-type LabelProps = React.ComponentPropsWithoutRef<
-  typeof LabelPrimitives.Root
-> & {
+type LabelProps = ComponentPropsWithoutRef<typeof LabelRoot> & {
   icon?: ReactNode
   optional?: boolean
-  ref?: React.Ref<React.ElementRef<typeof LabelPrimitives.Root>>
+  ref?: Ref<ComponentRef<typeof LabelRoot>>
   tooltip?: ReactNode
 }
 
@@ -123,7 +125,7 @@ const Label = ({
         weight="plus"
         {...props}
       />
-      {tooltip && (
+      {Boolean(tooltip) && (
         <Tooltip content={tooltip}>
           <InformationCircleSolid className="text-ui-fg-muted" />
         </Tooltip>
@@ -139,8 +141,8 @@ const Label = ({
 }
 Label.displayName = "Form.Label"
 
-type ControlProps = React.ComponentPropsWithoutRef<typeof Slot> & {
-  ref?: React.Ref<React.ElementRef<typeof Slot>>
+type ControlProps = ComponentPropsWithoutRef<typeof Slot> & {
+  ref?: Ref<ComponentRef<typeof Slot>>
 }
 
 const Control = ({ ref, ...props }: ControlProps) => {
@@ -155,9 +157,11 @@ const Control = ({ ref, ...props }: ControlProps) => {
   return (
     <Slot
       aria-describedby={
-        error ? `${formDescriptionId} ${formErrorMessageId}` : formDescriptionId
+        error === undefined
+          ? formDescriptionId
+          : `${formDescriptionId} ${formErrorMessageId}`
       }
-      aria-invalid={!!error}
+      aria-invalid={error !== undefined}
       aria-labelledby={formLabelId}
       id={formItemId}
       ref={ref}
@@ -167,8 +171,8 @@ const Control = ({ ref, ...props }: ControlProps) => {
 }
 Control.displayName = "Form.Control"
 
-type HintProps = React.HTMLAttributes<HTMLParagraphElement> & {
-  ref?: React.Ref<HTMLParagraphElement>
+type HintProps = HTMLAttributes<HTMLParagraphElement> & {
+  ref?: Ref<HTMLParagraphElement>
 }
 
 const Hint = ({ className, ref, ...props }: HintProps) => {
@@ -185,8 +189,8 @@ const Hint = ({ className, ref, ...props }: HintProps) => {
 }
 Hint.displayName = "Form.Hint"
 
-type ErrorMessageProps = React.HTMLAttributes<HTMLParagraphElement> & {
-  ref?: React.Ref<HTMLParagraphElement>
+type ErrorMessageProps = HTMLAttributes<HTMLParagraphElement> & {
+  ref?: Ref<HTMLParagraphElement>
 }
 
 const ErrorMessage = ({
@@ -196,9 +200,9 @@ const ErrorMessage = ({
   ...props
 }: ErrorMessageProps) => {
   const { error, formErrorMessageId } = useFormField()
-  const msg = error ? String(error?.message) : children
+  const msg = error === undefined ? children : String(error.message)
 
-  if (!msg || msg === "undefined") {
+  if (EMPTY_ERROR_MESSAGES.has(msg)) {
     return null
   }
 
@@ -207,7 +211,7 @@ const ErrorMessage = ({
       className={className}
       id={formErrorMessageId}
       ref={ref}
-      variant={error ? "error" : "info"}
+      variant={error === undefined ? "info" : "error"}
       {...props}
     >
       {msg}

@@ -14,21 +14,23 @@ export const StoreCmsArticleSchema = z.object({
 export type StoreCmsArticleSchemaType = z.infer<typeof StoreCmsArticleSchema>
 
 /** Store API handler for returning a published CMS article by slug. */
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, StoreCmsArticleSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { slug } = req.params
-  if (!slug) {
+  if (slug === undefined || slug === "") {
     return res.status(400).json({ message: "Missing slug" })
   }
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
   const article = await cmsService.getPublishedArticle(slug, req.locale)
 
-  if (!article) {
+  if (article === null || article === undefined) {
     return res.status(404).json({ message: "Article not found" })
   }
 
   return res.json({ article })
 }
+
+export { get as GET }

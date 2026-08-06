@@ -1,4 +1,4 @@
-import { resolve } from "node:path"
+import path from "node:path"
 
 import type { TaxRateSeedConfig } from "../workflows/seed/steps/create-tax-rates"
 import type { SyncPriceListsStepConfig } from "../workflows/seed/steps/sync-price-lists"
@@ -14,11 +14,11 @@ export const HERBATICA_MANUFACTURERS_CSV_ENV =
   "HERBATICA_MANUFACTURERS_CSV_PATH"
 
 export const HERBATICA_PRODUCTS_XML_PATHS = [
-  resolve(__dirname, "seed-files/productsComplete.xml"),
+  path.resolve(process.cwd(), "src/scripts/seed-files/productsComplete.xml"),
 ] as const
 
 export const HERBATICA_CATEGORIES_XML_PATHS = [
-  resolve(__dirname, "seed-files/categories.xml"),
+  path.resolve(process.cwd(), "src/scripts/seed-files/categories.xml"),
 ] as const
 
 export const HERBATICA_COUNTRIES = [

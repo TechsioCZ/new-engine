@@ -1,30 +1,34 @@
-import type { UpdatePaymentOutput } from "@medusajs/framework/types"
+import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
 import { QR_PAYMENT_MODULE } from "../constants"
-import type { QrPaymentModuleService } from "../service"
+import { QrPaymentModuleService } from "../service"
 import { QrManualPaymentProvider } from "../services/manual"
 
-const PNG_DATA_URL_PATTERN = /^data:image\/png;base64,/
+const PNG_DATA_URL_PATTERN = /^data:image\/png;base64,/u
 
-// QrManualPaymentProvider only ever calls `getIban()` on the injected
-// qr_payment module (see services/manual.ts#getIban), so the test double
-// only needs to implement that member. The cast is legal without going
-// through `unknown` because `QrPaymentModuleService` (which has every
-// member, including `getIban`) is assignable to this narrower literal type.
+class MockQrPaymentModuleService extends QrPaymentModuleService {
+  readonly #getIban: () => Promise<string | null>
+
+  constructor(getIban: () => Promise<string | null>) {
+    super({})
+    this.#getIban = getIban
+  }
+
+  override async getIban(): Promise<string | null> {
+    return await this.#getIban()
+  }
+}
+
 const createMockQrPaymentModule = (
   getIban: () => Promise<string | null>,
-): QrPaymentModuleService => ({ getIban }) as QrPaymentModuleService
-
-// updatePayment delegates to initiatePayment at runtime (which resolves an
-// `id`), but the DTO it is declared to return (`UpdatePaymentOutput`) does
-// not include `id`. Narrow the assertion locally instead of widening the
-// production return type.
-type UpdatePaymentOutputWithId = UpdatePaymentOutput & { id?: string }
+): QrPaymentModuleService => new MockQrPaymentModuleService(getIban)
 
 describe(QrManualPaymentProvider, () => {
   it("generates SPAYD and QR image data for a payment session", async () => {
-    const getIban = vi.fn().mockResolvedValue("CZ65 0800 0000 1920 0014 5399")
+    const getIban = vi
+      .fn<() => Promise<string | null>>()
+      .mockResolvedValue("CZ65 0800 0000 1920 0014 5399")
     const provider = new QrManualPaymentProvider({
       [QR_PAYMENT_MODULE]: createMockQrPaymentModule(getIban),
     })
@@ -37,27 +41,34 @@ describe(QrManualPaymentProvider, () => {
       currency_code: "czk",
     })
 
-    expect(result.id).toBe("1234567890")
-    expect(result.status).toBe("pending")
-    expect(result.data?.["payment_qr_spayd"]).toContain(
-      "ACC:CZ6508000000192000145399",
-    )
-    expect(result.data?.["payment_qr_spayd"]).toContain("AM:1234.50")
-    expect(result.data?.["payment_qr_spayd"]).toContain("CC:CZK")
-    expect(result.data?.["payment_qr_spayd"]).toContain("X-VS:1234567890")
+    expect(result).toMatchObject({
+      data: {
+        qr_payment: {
+          amount: 1234.5,
+          currency_code: "CZK",
+          iban: "CZ6508000000192000145399",
+          reference: "1234567890",
+        },
+      },
+      id: "1234567890",
+      status: "pending",
+    })
+    const spayd = result.data?.["payment_qr_spayd"]
+    expect([spayd, spayd, spayd, spayd]).toStrictEqual([
+      expect.stringContaining("ACC:CZ6508000000192000145399"),
+      expect.stringContaining("AM:1234.50"),
+      expect.stringContaining("CC:CZK"),
+      expect.stringContaining("X-VS:1234567890"),
+    ])
     expect(result.data?.["payment_qr_data_url"]).toStrictEqual(
       expect.stringMatching(PNG_DATA_URL_PATTERN),
     )
-    expect(result.data?.["qr_payment"]).toMatchObject({
-      amount: 1234.5,
-      currency_code: "CZK",
-      iban: "CZ6508000000192000145399",
-      reference: "1234567890",
-    })
   })
 
   it("loads IBAN from the qr payment module", async () => {
-    const getIban = vi.fn().mockResolvedValue("CZ6508000000192000145399")
+    const getIban = vi
+      .fn<() => Promise<string | null>>()
+      .mockResolvedValue("CZ6508000000192000145399")
     const provider = new QrManualPaymentProvider({
       [QR_PAYMENT_MODULE]: createMockQrPaymentModule(getIban),
     })
@@ -75,12 +86,14 @@ describe(QrManualPaymentProvider, () => {
   })
 
   it("preserves the existing QR payment reference when payment amount changes", async () => {
-    const getIban = vi.fn().mockResolvedValue("CZ6508000000192000145399")
+    const getIban = vi
+      .fn<() => Promise<string | null>>()
+      .mockResolvedValue("CZ6508000000192000145399")
     const provider = new QrManualPaymentProvider({
       [QR_PAYMENT_MODULE]: createMockQrPaymentModule(getIban),
     })
 
-    const result = (await provider.updatePayment({
+    const result: unknown = await provider.updatePayment({
       amount: 250,
       context: {
         idempotency_key: "new-idempotency-key",
@@ -91,12 +104,14 @@ describe(QrManualPaymentProvider, () => {
           reference: "1234567890",
         },
       },
-    })) as UpdatePaymentOutputWithId
+    })
 
-    expect(result.id).toBe("1234567890")
-    expect(result.data?.["payment_qr_spayd"]).toContain("AM:250.00")
-    expect(result.data?.["payment_qr_spayd"]).toContain("X-VS:1234567890")
-    expect(result.data?.["qr_payment"]).toMatchObject({
+    expect(isRecord(result) ? result["id"] : undefined).toBe("1234567890")
+    const data =
+      isRecord(result) && isRecord(result["data"]) ? result["data"] : {}
+    expect(data["payment_qr_spayd"]).toContain("AM:250.00")
+    expect(data["payment_qr_spayd"]).toContain("X-VS:1234567890")
+    expect(data["qr_payment"]).toMatchObject({
       reference: "1234567890",
     })
   })

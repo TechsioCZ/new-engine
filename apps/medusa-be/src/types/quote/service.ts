@@ -24,40 +24,30 @@ export interface ModuleQuoteFilters extends BaseFilterable<ModuleQuoteFilters> {
  */
 export interface IQuoteModuleService extends IModuleService {
   /* Entity: Quotes */
-  createQuotes(
-    data: ModuleCreateQuote,
-    sharedContext?: Context,
-  ): Promise<ModuleQuote>
+  createQuotes: {
+    (data: ModuleCreateQuote, sharedContext?: Context): Promise<ModuleQuote>
+    (data: ModuleCreateQuote[], sharedContext?: Context): Promise<ModuleQuote[]>
+  }
 
-  createQuotes(
-    data: ModuleCreateQuote[],
-    sharedContext?: Context,
-  ): Promise<ModuleQuote[]>
+  updateQuotes: {
+    (data: ModuleUpdateQuote, sharedContext?: Context): Promise<ModuleQuote>
+    (data: ModuleUpdateQuote[], sharedContext?: Context): Promise<ModuleQuote[]>
+  }
 
-  updateQuotes(
-    data: ModuleUpdateQuote,
-    sharedContext?: Context,
-  ): Promise<ModuleQuote>
-
-  updateQuotes(
-    data: ModuleUpdateQuote[],
-    sharedContext?: Context,
-  ): Promise<ModuleQuote[]>
-
-  listQuotes(
+  listQuotes: (
     filters?: ModuleQuoteFilters,
     config?: FindConfig<ModuleQuote>,
     sharedContext?: Context,
-  ): Promise<ModuleQuote[]>
+  ) => Promise<ModuleQuote[]>
 
-  deleteQuotes(ids: string[], sharedContext?: Context): Promise<void>
+  deleteQuotes: (ids: string[], sharedContext?: Context) => Promise<void>
 
   /* Entity: Message */
 
-  createMessages(
+  createMessages: (
     data: ModuleCreateQuoteMessage,
     sharedContext?: Context,
-  ): Promise<ModuleQuoteMessage>
+  ) => Promise<ModuleQuoteMessage>
 
-  deleteMessages(ids: string[], sharedContext?: Context): Promise<void>
+  deleteMessages: (ids: string[], sharedContext?: Context) => Promise<void>
 }

@@ -1,3 +1,4 @@
+import { isRecord } from "@techsio/std/object"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -55,13 +56,18 @@ describe("legacy Warranty migration preparation", () => {
     }
     expect(result.metadata).not.toHaveProperty("warranty")
     expect(result.metadata["unrelated"]).toStrictEqual({ keep: true })
-    expect(result.metadata["content_sections"]).toHaveLength(5)
-    expect(
-      (result.metadata["content_sections"] as { html: string }[])[4]?.html,
-    ).toBe("<p>Keep before</p>\n<p>Keep after</p>")
-    expect(
-      (result.metadata["content_sections_map"] as { other: string }).other,
-    ).toBe("<p>Keep before</p>\n<p>Keep after</p>")
+    const contentSections: unknown = result.metadata["content_sections"]
+    if (!Array.isArray(contentSections) || contentSections.length !== 5) {
+      throw new TypeError("Expected five migrated content sections")
+    }
+    const finalSection: unknown = contentSections[4]
+    expect(isRecord(finalSection) ? finalSection["html"] : undefined).toBe(
+      "<p>Keep before</p>\n<p>Keep after</p>",
+    )
+    const sectionMap: unknown = result.metadata["content_sections_map"]
+    expect(isRecord(sectionMap) ? sectionMap["other"] : undefined).toBe(
+      "<p>Keep before</p>\n<p>Keep after</p>",
+    )
   })
 
   it("leaves ambiguous metadata untouched", () => {

@@ -5,13 +5,13 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../../employee/utils/admin-auth-metadata"
 
 interface CompanyWithEmployees {
-  employees?: Array<{
+  employees?: {
     customer?: {
       email?: string | null
       id?: string | null
     } | null
     is_admin?: boolean
-  }>
+  }[]
 }
 
 export const clearCompanyAdminAuthMetadataStep = createStep(
@@ -21,27 +21,35 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
     { container },
   ): Promise<StepResponse<undefined, string[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-    const { data: companies } = (await query.graph({
-      entity: "company",
-      fields: [
-        "id",
-        "employees.is_admin",
-        "employees.customer.email",
-        "employees.customer.id",
-      ],
-      filters: { id: companyIds },
-    })) as { data: CompanyWithEmployees[] }
-    const adminCandidates = companies
-      .flatMap((company) => company.employees ?? [])
-      .filter((employee) => employee.is_admin)
-      .map((employee) => ({
-        ...(employee.customer?.id === undefined
-          ? {}
-          : { customer_id: employee.customer?.id }),
-        ...(employee.customer?.email === undefined
-          ? {}
-          : { email: employee.customer?.email }),
-      }))
+    const companiesResult: { data: CompanyWithEmployees[] } = await query.graph(
+      {
+        entity: "company",
+        fields: [
+          "id",
+          "employees.is_admin",
+          "employees.customer.email",
+          "employees.customer.id",
+        ],
+        filters: { id: companyIds },
+      },
+    )
+    const { data: companies } = companiesResult
+    const adminCandidates = companies.flatMap((company) =>
+      (company.employees ?? []).flatMap((employee) =>
+        employee.is_admin === true
+          ? [
+              {
+                ...(employee.customer?.id === undefined
+                  ? {}
+                  : { customer_id: employee.customer.id }),
+                ...(employee.customer?.email === undefined
+                  ? {}
+                  : { email: employee.customer.email }),
+              },
+            ]
+          : [],
+      ),
+    )
     const providerIdentityIds =
       await getProviderIdentityIdsWithoutActiveAdminRole({
         candidates: adminCandidates,
@@ -49,7 +57,7 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
         query,
       })
 
-    if (providerIdentityIds.length) {
+    if (providerIdentityIds.length > 0) {
       const authModuleService = container.resolve<IAuthModuleService>(
         Modules.AUTH,
       )
@@ -67,7 +75,7 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
     return new StepResponse(undefined, providerIdentityIds)
   },
   async (providerIdentityIds: string[] | undefined, { container }) => {
-    if (!providerIdentityIds?.length) {
+    if (providerIdentityIds === undefined || providerIdentityIds.length === 0) {
       return
     }
 

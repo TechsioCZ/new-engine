@@ -13,7 +13,7 @@ import {
   usePrompt,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router-dom"
 
@@ -29,10 +29,7 @@ import type {
   MeasurementUnitAssignedProduct,
   MeasurementUnitStatus,
 } from "../../../../lib/measurement-units"
-import {
-  getPaginationTranslations,
-  onRowKeyboardActivate,
-} from "../../../../lib/table"
+import { getPaginationTranslations } from "../../../../lib/table"
 import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
@@ -48,7 +45,7 @@ const AssignedProductRows = ({
   error: unknown
   isLoading: boolean
   onOpen: (productId: string) => void
-  onRemove: (product: MeasurementUnitAssignedProduct) => void
+  onRemove: (product: MeasurementUnitAssignedProduct) => Promise<void>
   products: MeasurementUnitAssignedProduct[]
   removeProductId?: string | undefined
 }) => {
@@ -65,7 +62,7 @@ const AssignedProductRows = ({
     )
   }
 
-  if (error) {
+  if (error !== null && error !== undefined) {
     return (
       <Table.Row>
         <Table.Cell className="text-ui-fg-error">
@@ -78,7 +75,7 @@ const AssignedProductRows = ({
     )
   }
 
-  if (!products.length) {
+  if (products.length === 0) {
     return (
       <Table.Row>
         <Table.Cell>{t("units.assignedProductsEmpty")}</Table.Cell>
@@ -94,22 +91,22 @@ const AssignedProductRows = ({
 
     return (
       <Table.Row
-        aria-label={product.title ?? product.product_id}
         className="cursor-pointer"
         key={product.product_id}
         onClick={() => {
           onOpen(product.product_id)
         }}
-        onKeyDown={onRowKeyboardActivate(() => {
-          onOpen(product.product_id)
-        })}
-        role="button"
-        tabIndex={0}
       >
         <Table.Cell>
-          <Text size="small" weight="plus">
-            {product.title ?? product.product_id}
-          </Text>
+          <button
+            aria-label={product.title ?? product.product_id}
+            className="w-full text-left"
+            type="button"
+          >
+            <Text size="small" weight="plus">
+              {product.title ?? product.product_id}
+            </Text>
+          </button>
         </Table.Cell>
         <Table.Cell className="text-ui-fg-subtle">
           {product.handle ?? "-"}
@@ -134,7 +131,7 @@ const AssignedProductRows = ({
                 aria-label={t("actions.remove")}
                 disabled={removeProductId === product.product_id}
                 onClick={() => {
-                  onRemove(product)
+                  void onRemove(product)
                 }}
                 size="small"
                 type="button"
@@ -161,25 +158,22 @@ const MeasurementUnitDetailPage = () => {
   const [status, setStatus] = useState<MeasurementUnitStatus>("active")
   const debouncedQ = useDebouncedValue(q)
 
-  const params = useMemo(
-    () => ({
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      order_by: "title",
-      q: debouncedQ,
-      status,
-    }),
-    [debouncedQ, pageIndex, status],
-  )
+  const params = {
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    order_by: "title",
+    q: debouncedQ,
+    status,
+  }
 
   const {
     data: unitData,
     error: unitError,
     isLoading: unitIsLoading,
   } = useQuery({
-    enabled: !!id,
+    enabled: id !== undefined && id !== "",
     queryFn: async () => {
-      if (!id) {
+      if (id === undefined || id === "") {
         throw new Error("Measurement unit id is required")
       }
 
@@ -193,10 +187,10 @@ const MeasurementUnitDetailPage = () => {
     error: productsError,
     isLoading: productsAreLoading,
   } = useQuery({
-    enabled: !!id,
+    enabled: id !== undefined && id !== "",
     placeholderData: (previousData) => previousData,
     queryFn: async () => {
-      if (!id) {
+      if (id === undefined || id === "") {
         throw new Error("Measurement unit id is required")
       }
 
@@ -259,19 +253,27 @@ const MeasurementUnitDetailPage = () => {
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
 
   const handleRemove = async (product: MeasurementUnitAssignedProduct) => {
-    const confirmed = await prompt({
-      cancelText: t("actions.cancel"),
-      confirmText: t("actions.remove"),
-      description: t("detail.removeAssignmentDescription"),
-      title: product.title ?? product.product_id,
-    })
+    try {
+      const confirmed = await prompt({
+        cancelText: t("actions.cancel"),
+        confirmText: t("actions.remove"),
+        description: t("detail.removeAssignmentDescription"),
+        title: product.title ?? product.product_id,
+      })
 
-    if (confirmed) {
-      removeMutation.mutate(product.product_id)
+      if (confirmed) {
+        removeMutation.mutate(product.product_id)
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("errors.removeAssignmentFailed"),
+      )
     }
   }
 
-  if (unitError) {
+  if (unitError !== null && unitError !== undefined) {
     return (
       <Container>
         <Text className="text-ui-fg-error">{t("errors.loadDetailFailed")}</Text>
@@ -279,7 +281,7 @@ const MeasurementUnitDetailPage = () => {
     )
   }
 
-  if (unitIsLoading || !unit) {
+  if (unitIsLoading || unit === null || unit === undefined) {
     return (
       <Container>
         <Text>{t("status.loading")}</Text>
@@ -300,11 +302,19 @@ const MeasurementUnitDetailPage = () => {
             </Link>
           </IconButton>
           <Heading level="h1">{unit.name}</Heading>
-          <StatusBadge color={unit.deleted_at ? "red" : "green"}>
-            {unit.deleted_at ? t("status.deleted") : t("status.active")}
+          <StatusBadge
+            color={
+              unit.deleted_at === null || unit.deleted_at === undefined
+                ? "green"
+                : "red"
+            }
+          >
+            {unit.deleted_at === null || unit.deleted_at === undefined
+              ? t("status.active")
+              : t("status.deleted")}
           </StatusBadge>
         </div>
-        {unit.deleted_at ? (
+        {unit.deleted_at !== null && unit.deleted_at !== undefined ? (
           <Button
             isLoading={restoreMutation.isPending}
             onClick={() => {

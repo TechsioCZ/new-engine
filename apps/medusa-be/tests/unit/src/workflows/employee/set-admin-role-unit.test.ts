@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+type StepImplementation = (...args: unknown[]) => unknown
+
+type CreateStepFn = (
+  name: string,
+  invoke: StepImplementation,
+  compensate?: StepImplementation,
+) => StepImplementation & { compensate?: StepImplementation }
+
+type AsyncMockFn = (...args: unknown[]) => Promise<unknown>
+
 vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
@@ -22,7 +32,7 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.compensateInput = compensateInput
     }
   },
-  createStep: vi.fn((_name, invoke, compensate) =>
+  createStep: vi.fn<CreateStepFn>((_name, invoke, compensate) =>
     Object.assign(invoke, { compensate }),
   ),
 }))
@@ -55,33 +65,29 @@ interface MockStep {
   ) => Promise<void>
 }
 
+const isMockStep = (candidate: unknown): candidate is MockStep =>
+  typeof candidate === "function" &&
+  "compensate" in candidate &&
+  typeof candidate.compensate === "function"
+
 const asMockStep = (candidate: unknown): MockStep => {
-  if (typeof candidate !== "function") {
+  if (!isMockStep(candidate)) {
     throw new TypeError(
-      "Expected the imported workflow step to be a mocked function",
+      "Expected the imported workflow step to expose a compensate function",
     )
   }
 
-  if (
-    !("compensate" in candidate) ||
-    typeof candidate.compensate !== "function"
-  ) {
-    throw new TypeError(
-      "Expected the mocked workflow step to expose a compensate function",
-    )
-  }
-
-  return candidate as MockStep
+  return candidate
 }
 
 const makeContainer = ({
   graph,
-  updateProviderIdentities = vi.fn(),
+  updateProviderIdentities = vi.fn<AsyncMockFn>(),
 }: {
-  graph: ReturnType<typeof vi.fn>
-  updateProviderIdentities?: ReturnType<typeof vi.fn>
+  graph: ReturnType<typeof vi.fn<AsyncMockFn>>
+  updateProviderIdentities?: ReturnType<typeof vi.fn<AsyncMockFn>>
 }) => ({
-  resolve: vi.fn((key) => {
+  resolve: vi.fn<(key: string) => unknown>((key) => {
     if (key === "query") {
       return { graph }
     }
@@ -90,7 +96,7 @@ const makeContainer = ({
       return { updateProviderIdentities }
     }
 
-    throw new Error(`Unexpected dependency: ${String(key)}`)
+    throw new Error(`Unexpected dependency: ${key}`)
   }),
 })
 
@@ -103,13 +109,13 @@ describe("setAdminRoleStep", () => {
     const { setAdminRoleStep } =
       await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
-      .fn()
+      .fn<AsyncMockFn>()
       .mockResolvedValueOnce({
         data: [{ customer: { has_account: true }, id: "employee_1" }],
       })
       .mockResolvedValueOnce({ data: [{ email: "employee@example.com" }] })
       .mockResolvedValueOnce({ data: [] })
-    const updateProviderIdentities = vi.fn()
+    const updateProviderIdentities = vi.fn<AsyncMockFn>()
     const container = makeContainer({ graph, updateProviderIdentities })
 
     const result = await asMockStep(setAdminRoleStep)(
@@ -125,13 +131,13 @@ describe("setAdminRoleStep", () => {
     const { setAdminRoleStep } =
       await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
-      .fn()
+      .fn<AsyncMockFn>()
       .mockResolvedValueOnce({
         data: [{ customer: { has_account: true }, id: "employee_1" }],
       })
       .mockResolvedValueOnce({ data: [{ email: "employee@example.com" }] })
       .mockResolvedValueOnce({ data: [{ id: "authpi_1" }] })
-    const updateProviderIdentities = vi.fn().mockResolvedValue()
+    const updateProviderIdentities = vi.fn<AsyncMockFn>().mockResolvedValue()
     const container = makeContainer({ graph, updateProviderIdentities })
 
     const result = await asMockStep(setAdminRoleStep)(
@@ -159,7 +165,7 @@ describe("setAdminRoleStep", () => {
     const { setAdminRoleStep } =
       await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
-      .fn()
+      .fn<AsyncMockFn>()
       .mockResolvedValueOnce({
         data: [{ customer_id: "cus_1", employee_id: "employee_1" }],
       })
@@ -175,7 +181,7 @@ describe("setAdminRoleStep", () => {
         ],
       })
       .mockResolvedValueOnce({ data: [{ id: "authpi_1" }] })
-    const updateProviderIdentities = vi.fn().mockResolvedValue()
+    const updateProviderIdentities = vi.fn<AsyncMockFn>().mockResolvedValue()
     const container = makeContainer({ graph, updateProviderIdentities })
 
     await asMockStep(setAdminRoleStep).compensate(
@@ -202,7 +208,7 @@ describe("setAdminRoleStep", () => {
     const { setAdminRoleStep } =
       await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
-      .fn()
+      .fn<AsyncMockFn>()
       .mockResolvedValueOnce({
         data: [
           { customer_id: "cus_1", employee_id: "employee_1" },
@@ -227,7 +233,7 @@ describe("setAdminRoleStep", () => {
           },
         ],
       })
-    const updateProviderIdentities = vi.fn().mockResolvedValue()
+    const updateProviderIdentities = vi.fn<AsyncMockFn>().mockResolvedValue()
     const container = makeContainer({ graph, updateProviderIdentities })
 
     await asMockStep(setAdminRoleStep).compensate(

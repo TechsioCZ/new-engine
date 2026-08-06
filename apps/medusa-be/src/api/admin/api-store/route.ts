@@ -1,23 +1,25 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import type { ApiStoreModuleService } from "../../../modules/api-store"
 import { API_STORE_MODULE } from "../../../modules/api-store"
+import { definedProperties } from "../../../utils/defined-properties"
 import { createApiStoreConfigWorkflow } from "../../../workflows/create-api-store-config"
 import type {
   GetAdminApiStoreSchemaType,
   PostAdminApiStoreSchemaType,
 } from "./validators"
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, GetAdminApiStoreSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const apiStoreService =
     req.scope.resolve<ApiStoreModuleService>(API_STORE_MODULE)
   const { limit, offset, name } = req.validatedQuery
 
   const [apiStores, count] = await apiStoreService.listApiStoreConfigs(
-    name ? { name } : {},
-    { take: limit, skip: offset }
+    name === undefined || name === "" ? {} : { name },
+    { skip: offset, take: limit },
   )
 
   res.json({
@@ -28,13 +30,15 @@ export async function GET(
   })
 }
 
-export async function POST(
+const post = async (
   req: MedusaRequest<PostAdminApiStoreSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { result } = await createApiStoreConfigWorkflow(req.scope).run({
-    input: req.validatedBody,
+    input: definedProperties(req.validatedBody),
   })
 
   res.status(201).json(result)
 }
+
+export { get as GET, post as POST }

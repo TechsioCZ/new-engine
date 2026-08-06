@@ -13,7 +13,7 @@ type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
 export const markReviewTokenUsedStep = createStep(
   "mark-review-token-used",
   async (input: CreateReviewWorkflowInput, { container }) => {
-    if (!input.review_token_id) {
+    if (input.review_token_id === undefined || input.review_token_id === "") {
       return new StepResponse({ updated: false }, null)
     }
 
@@ -31,17 +31,22 @@ export const markReviewTokenUsedStep = createStep(
     return new StepResponse({ updated: true }, input.review_token_id)
   },
   async (reviewTokenId, { container }) => {
-    if (!reviewTokenId) {
+    if (
+      reviewTokenId === null ||
+      reviewTokenId === undefined ||
+      reviewTokenId === ""
+    ) {
       return
     }
 
-    await container
-      .resolve<ProductReviewModuleServiceWithTokens>(PRODUCT_REVIEW_MODULE)
-      .updateReviewTokens([
-        {
-          id: reviewTokenId,
-          used_at: null,
-        },
-      ])
+    const service = container.resolve<ProductReviewModuleServiceWithTokens>(
+      PRODUCT_REVIEW_MODULE,
+    )
+    await service.updateReviewTokens([
+      {
+        id: reviewTokenId,
+        used_at: null,
+      },
+    ])
   },
 )

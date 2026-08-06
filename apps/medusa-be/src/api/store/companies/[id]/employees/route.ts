@@ -2,26 +2,31 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { definedProperties } from "../../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../../utils/path-params"
-import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows"
+import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows/create-employees"
 import type {
   StoreCreateEmployeeType,
   StoreGetEmployeeParamsType,
 } from "../../validators"
 
-export const GET = async (
+interface CompanyEmployeesQueryRow {
+  employees?: Record<string, unknown>[]
+}
+
+const get = async (
   req: AuthenticatedMedusaRequest<StoreGetEmployeeParamsType>,
   res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-  const {
-    data: [company],
-    metadata,
+  const queryResult: {
+    data: CompanyEmployeesQueryRow[]
+    metadata?: { count?: number; skip?: number; take?: number }
   } = await query.graph(
     {
       entity: "company",
@@ -33,6 +38,8 @@ export const GET = async (
     },
     { throwIfKeyNotFound: true },
   )
+  const [company] = queryResult.data
+  const { metadata } = queryResult
   const employees = company?.employees ?? []
 
   res.json({
@@ -43,12 +50,12 @@ export const GET = async (
   })
 }
 
-export const POST = async (
+const post = async (
   req: AuthenticatedMedusaRequest<StoreCreateEmployeeType>,
   res: MedusaResponse,
 ) => {
   const id = requirePathParam(req.params["id"], "Company id")
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
   const { result: createdEmployee } = await createEmployeesWorkflow(
     req.scope,
@@ -57,26 +64,28 @@ export const POST = async (
       customerId: req.validatedBody.customer_id,
       employeeData: definedProperties({
         ...req.validatedBody,
-        spending_limit: req.validatedBody.spending_limit ?? undefined,
-        is_admin: req.validatedBody.is_admin ?? undefined,
         company_id: id,
+        is_admin: req.validatedBody.is_admin ?? undefined,
+        spending_limit: req.validatedBody.spending_limit ?? undefined,
       }),
     },
   })
 
-  const {
-    data: [employee],
-  } = await query.graph(
-    {
-      entity: "employee",
-      fields: req.queryConfig.fields,
-      filters: {
-        ...req.filterableFields,
-        id: createdEmployee.id,
+  const employeeQueryResult: { data: Record<string, unknown>[] } =
+    await query.graph(
+      {
+        entity: "employee",
+        fields: req.queryConfig.fields,
+        filters: {
+          ...req.filterableFields,
+          id: createdEmployee.id,
+        },
       },
-    },
-    { throwIfKeyNotFound: true },
-  )
+      { throwIfKeyNotFound: true },
+    )
+  const [employee] = employeeQueryResult.data
 
-  res.json({ employee })
+  res.json({ employee: employee ?? null })
 }
+
+export { get as GET, post as POST }

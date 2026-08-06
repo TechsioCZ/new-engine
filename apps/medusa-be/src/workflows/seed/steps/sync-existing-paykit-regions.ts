@@ -29,7 +29,7 @@ export const syncExistingPaykitRegionsStep = createStep(
   async (input: SyncExistingPaykitRegionsStepInput, { container }) => {
     const regionsToSync = input.filter(hasIdAndCurrency)
 
-    if (!regionsToSync.length) {
+    if (regionsToSync.length === 0) {
       return new StepResponse([])
     }
 
@@ -40,18 +40,18 @@ export const syncExistingPaykitRegionsStep = createStep(
 
     logger.info("Syncing existing PayKit seed regions...")
 
-    const updatedRegions: RegionDTO[] = []
-
-    for (const region of regionsToSync) {
-      const [updatedRegion] = await regionService.updateRegions(
-        { id: region.id },
-        { currency_code: region.currencyCode.trim().toLowerCase() },
-      )
-
-      if (updatedRegion) {
-        updatedRegions.push(updatedRegion)
-      }
-    }
+    const updateResults = await Promise.all(
+      regionsToSync.map(
+        async (region) =>
+          await regionService.updateRegions(
+            { id: region.id },
+            { currency_code: region.currencyCode.trim().toLowerCase() },
+          ),
+      ),
+    )
+    const updatedRegions: RegionDTO[] = updateResults.flatMap(
+      ([updatedRegion]) => (updatedRegion === undefined ? [] : [updatedRegion]),
+    )
 
     return new StepResponse(updatedRegions)
   },

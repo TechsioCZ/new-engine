@@ -6,7 +6,7 @@ import {
 } from "../../../../src/utils/query-params"
 
 describe("queryParams utilities", () => {
-  describe(optionalStringParam, () => {
+  describe("optional string parameter", () => {
     it("returns undefined for empty or whitespace strings", () => {
       const result = optionalStringParam.safeParse("   ")
       expect(result.success).toBeTruthy()
@@ -25,7 +25,7 @@ describe("queryParams utilities", () => {
     })
   })
 
-  describe(optionalPositiveIntParam, () => {
+  describe("optional positive integer parameter", () => {
     it("parses positive integers from strings", () => {
       const result = optionalPositiveIntParam.safeParse(" 42 ")
       expect(result.success).toBeTruthy()

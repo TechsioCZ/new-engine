@@ -104,7 +104,7 @@ class ProductListModuleService extends MedusaService({
     }
     const trimmedHandle = input.handle?.trim()
     const handle =
-      trimmedHandle == null || trimmedHandle === ""
+      trimmedHandle === undefined || trimmedHandle === ""
         ? kebabCase(title)
         : kebabCase(trimmedHandle)
 

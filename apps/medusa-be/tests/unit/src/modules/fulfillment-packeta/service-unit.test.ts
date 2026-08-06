@@ -6,19 +6,18 @@ import type {
   FulfillmentOrderDTO,
   ValidateFulfillmentDataContext,
 } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 import type { Mocked } from "vitest"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import PacketaFulfillmentProviderService from "../../../../../src/modules/fulfillment-packeta/service"
+import type { PacketaClientModuleService } from "../../../../../src/modules/packeta-client"
+import type { PacketaOptions } from "../../../../../src/modules/packeta-client/types"
 
 vi.mock(import("../../../../../src/modules/packeta-client"), () => ({
   PACKETA_CLIENT_MODULE: "packeta_client",
 }))
-
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-
-import PacketaFulfillmentProviderService from "../../../../../src/modules/fulfillment-packeta/service"
-// Import after mock
-import type { PacketaClientModuleService } from "../../../../../src/modules/packeta-client"
-import type { PacketaOptions } from "../../../../../src/modules/packeta-client/types"
 
 type PacketaClientStub = Pick<
   PacketaClientModuleService,
@@ -44,12 +43,12 @@ interface QueryStub {
 }
 
 const mockPacketaClient: Mocked<PacketaClientStub> = {
-  cancelPacket: vi.fn(),
-  createPacket: vi.fn(),
-  downloadLabelPdf: vi.fn(),
-  getBranches: vi.fn(),
-  getEffectiveConfig: vi.fn(),
-  getPacketStatus: vi.fn(),
+  cancelPacket: vi.fn<PacketaClientStub["cancelPacket"]>(),
+  createPacket: vi.fn<PacketaClientStub["createPacket"]>(),
+  downloadLabelPdf: vi.fn<PacketaClientStub["downloadLabelPdf"]>(),
+  getBranches: vi.fn<PacketaClientStub["getBranches"]>(),
+  getEffectiveConfig: vi.fn<PacketaClientStub["getEffectiveConfig"]>(),
+  getPacketStatus: vi.fn<PacketaClientStub["getPacketStatus"]>(),
 }
 
 const mockFileService: Mocked<FileServiceStub> = {
@@ -60,7 +59,7 @@ const mockFileService: Mocked<FileServiceStub> = {
 }
 
 const mockQuery: Mocked<QueryStub> = {
-  graph: vi.fn(),
+  graph: vi.fn<QueryStub["graph"]>(),
 }
 
 const validationContext: ValidateFulfillmentDataContext = {
@@ -76,11 +75,10 @@ const validationContext: ValidateFulfillmentDataContext = {
   },
   id: "cart_1",
   items: [],
-  shipping_address: undefined,
 }
 
-const PICKUP_POINT_ERROR = /Pickup point/
-const INVALID_PICKUP_POINT_ERROR = /Invalid pickup point ID/
+const PICKUP_POINT_ERROR = /Pickup point/u
+const INVALID_PICKUP_POINT_ERROR = /Invalid pickup point ID/u
 
 type ServiceConstructorArgs = ConstructorParameters<
   typeof PacketaFulfillmentProviderService
@@ -176,10 +174,11 @@ describe(PacketaFulfillmentProviderService, () => {
     it("returns both z_point options when enabled", async () => {
       const options = await createService().getFulfillmentOptions()
       expect(options).toHaveLength(2)
-      expect(options.map((o: any) => o.code)).toStrictEqual([
-        "z_point",
-        "z_point_cod",
-      ])
+      expect(
+        options.map((option: unknown) =>
+          isRecord(option) ? option["code"] : undefined,
+        ),
+      ).toStrictEqual(["z_point", "z_point_cod"])
     })
   })
 
@@ -242,7 +241,8 @@ describe(PacketaFulfillmentProviderService, () => {
     })
 
     it("throws when shipping_address is missing", async () => {
-      const { shipping_address: _shippingAddress, ...order } = createOrder()
+      const order = createOrder()
+      Reflect.deleteProperty(order, "shipping_address")
       await expect(
         createService().createFulfillment(createShippingData(), [], order, {
           id: "ful_1",
@@ -273,7 +273,13 @@ describe(PacketaFulfillmentProviderService, () => {
       expect(mockPacketaClient.downloadLabelPdf).toHaveBeenCalledWith(
         987_654_321,
       )
-      expect(mockFileService.createFiles).toHaveBeenCalledWith()
+      expect(mockFileService.createFiles).toHaveBeenCalledWith([
+        {
+          content: "UERG",
+          filename: "packeta-label-Z987654321.pdf",
+          mimeType: "application/pdf",
+        },
+      ])
       expect(result.data).toMatchObject({
         access_point_id: 4242,
         barcode: "Z987654321",
@@ -305,7 +311,7 @@ describe(PacketaFulfillmentProviderService, () => {
 
     it("throws for COD when order total is missing", async () => {
       const order = createOrder()
-      Object.defineProperty(order, "total", { value: undefined })
+      Reflect.deleteProperty(order, "total")
       await expect(
         createService().createFulfillment(
           createShippingData({ supports_cod: true }),

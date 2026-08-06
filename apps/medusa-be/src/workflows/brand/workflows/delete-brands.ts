@@ -14,7 +14,8 @@ import {
   BRAND_SEARCH_PROJECTION_EVENT_OPTIONS,
   buildBrandSearchProjectionEventData,
 } from "../../meilisearch/events"
-import { deleteBrandsStep, getBrandLifecycleLockKeys } from "../steps"
+import { deleteBrandsStep } from "../steps/delete-brands"
+import { getBrandLifecycleLockKeys } from "../steps/helpers"
 import type { DeleteBrandsWorkflowInput } from "../types"
 
 export const deleteBrandsWorkflow = createWorkflow(

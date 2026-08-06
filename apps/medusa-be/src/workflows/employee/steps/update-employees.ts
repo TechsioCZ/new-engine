@@ -11,6 +11,7 @@ import type {
   ModuleUpdateEmployee,
   QueryGraphEmployee,
 } from "../../../types"
+import { definedProperties } from "../../../utils/defined-properties"
 
 type UpdateEmployeeCompensation = Pick<
   ModuleUpdateEmployee,
@@ -30,12 +31,12 @@ export const updateEmployeesStep = createStep(
     const { company_id: companyId, ...updatePayload } = input
     const filters = {
       id: input.id,
-      ...(companyId ? { company_id: companyId } : {}),
+      ...(companyId === undefined || companyId === ""
+        ? {}
+        : { company_id: companyId }),
     }
 
-    const {
-      data: [currentData],
-    } = await query.graph(
+    const currentDataResult: { data: QueryGraphEmployee[] } = await query.graph(
       {
         entity: "employee",
         fields: ["*"],
@@ -43,8 +44,9 @@ export const updateEmployeesStep = createStep(
       },
       { throwIfKeyNotFound: true },
     )
+    const [currentData] = currentDataResult.data
 
-    if (!currentData) {
+    if (currentData === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         "Employee was not found for the requested company.",
@@ -54,9 +56,7 @@ export const updateEmployeesStep = createStep(
     const updatedEmployee =
       await companyModuleService.updateEmployees(updatePayload)
 
-    const {
-      data: [employee],
-    } = await query.graph(
+    const employeeResult: { data: QueryGraphEmployee[] } = await query.graph(
       {
         entity: "employee",
         fields: ["*", "customer.*", "company.*"],
@@ -67,25 +67,29 @@ export const updateEmployeesStep = createStep(
       },
       { throwIfKeyNotFound: true },
     )
+    const [employee] = employeeResult.data
 
-    if (!employee) {
+    if (employee === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Updated employee "${updatedEmployee.id}" was not found`,
       )
     }
 
-    return new StepResponse(employee, {
-      id: currentData.id,
-      is_admin: currentData.is_admin,
-      spending_limit: currentData.spending_limit,
-    })
+    return new StepResponse(
+      employee,
+      definedProperties({
+        id: currentData.id,
+        is_admin: currentData.is_admin,
+        spending_limit: currentData.spending_limit,
+      }),
+    )
   },
   async (
     currentData: UpdateEmployeeCompensation | undefined,
     { container },
   ) => {
-    if (!currentData) {
+    if (currentData === undefined) {
       return
     }
 

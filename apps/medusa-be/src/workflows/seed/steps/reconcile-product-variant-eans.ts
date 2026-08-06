@@ -97,7 +97,7 @@ const metadataString = (
 
 const normalizedEan = (value: null | string | undefined): string | null => {
   const normalized = value?.trim()
-  return normalized ?? null
+  return normalized === undefined || normalized === "" ? null : normalized
 }
 
 const sourceIdentity = (params: {

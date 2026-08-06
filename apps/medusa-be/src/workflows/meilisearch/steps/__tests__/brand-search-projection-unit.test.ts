@@ -25,10 +25,10 @@ vi.mock(import("../../../../links/product-brand"), () => ({
  * property of the huge container interface while still validating the shape
  * the code under test actually reads from at runtime.
  */
-function assertMockShape<T>(
+const assertMockShape = (
   candidate: unknown,
   requiredKeys: readonly string[],
-): asserts candidate is T {
+): asserts candidate is MedusaContainer => {
   if (!isRecord(candidate)) {
     throw new TypeError("Expected a mock object")
   }
@@ -42,10 +42,10 @@ function assertMockShape<T>(
 
 const asContainer = (resolve: (key: string) => unknown): MedusaContainer => {
   const candidate: unknown = {
-    resolve: vi.fn(resolve),
+    resolve: vi.fn<(key: string) => unknown>(resolve),
   }
 
-  assertMockShape<MedusaContainer>(candidate, ["resolve"])
+  assertMockShape(candidate, ["resolve"])
   return candidate
 }
 
@@ -75,9 +75,13 @@ describe("Brand search projection", () => {
 
   it("expands changed Brands to their currently linked products", async () => {
     vi.stubEnv("MEILISEARCH_ENABLED", "1")
-    const graph = vi.fn().mockResolvedValue({
-      data: [{ product_id: "prod_linked" }, { product_id: "prod_explicit" }],
-    })
+    const graph = vi
+      .fn<
+        (...args: unknown[]) => Promise<{ data: Record<string, unknown>[] }>
+      >()
+      .mockResolvedValue({
+        data: [{ product_id: "prod_linked" }, { product_id: "prod_explicit" }],
+      })
     const container = asContainer((key) =>
       key === ContainerRegistrationKeys.QUERY ? { graph } : undefined,
     )
@@ -100,7 +104,9 @@ describe("Brand search projection", () => {
   it("upserts current active documents and deletes stale or non-published targets", async () => {
     vi.stubEnv("MEILISEARCH_ENABLED", "1")
     const graph = vi
-      .fn()
+      .fn<
+        (...args: unknown[]) => Promise<{ data: Record<string, unknown>[] }>
+      >()
       .mockResolvedValueOnce({
         data: [{ handle: "active", id: "brand_active", title: "Active" }],
       })
@@ -111,14 +117,18 @@ describe("Brand search projection", () => {
         ],
       })
     const meilisearch = {
-      addDocuments: vi.fn().mockResolvedValue(),
-      deleteDocuments: vi.fn().mockResolvedValue(),
+      addDocuments: vi
+        .fn<(...args: unknown[]) => Promise<void>>()
+        .mockResolvedValue(),
+      deleteDocuments: vi
+        .fn<(...args: unknown[]) => Promise<void>>()
+        .mockResolvedValue(),
       getFieldsForType: vi
-        .fn()
+        .fn<(...args: unknown[]) => string[]>()
         .mockReturnValueOnce(["id", "title", "handle"])
         .mockReturnValueOnce(["id", "status", "brand.id"]),
       getIndexesByType: vi
-        .fn()
+        .fn<(...args: unknown[]) => string[]>()
         .mockReturnValueOnce(["brands"])
         .mockReturnValueOnce(["products"]),
     }
@@ -129,7 +139,7 @@ describe("Brand search projection", () => {
       if (key === "meilisearch") {
         return meilisearch
       }
-      return
+      throw new Error(`Unexpected dependency: ${key}`)
     })
 
     const result = await reconcileBrandSearchProjection(
@@ -178,7 +188,7 @@ describe("Brand search projection", () => {
 
   it("does not resolve services when Meilisearch is disabled", async () => {
     vi.stubEnv("MEILISEARCH_ENABLED", "0")
-    const resolve = vi.fn()
+    const resolve = vi.fn<(key: string) => unknown>()
     const container = asContainer(resolve)
 
     await expect(

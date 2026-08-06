@@ -6,13 +6,11 @@ import {
 
 /* Company Validators */
 export type AdminGetCompanyParamsType = z.infer<typeof AdminGetCompanyParams>
-export const AdminGetCompanyParams = createFindParams().merge(
-  z.object({
-    order_by: z.string().optional(),
-    q: z.string().optional(),
-    status: z.enum(["active", "deleted", "all"]).optional(),
-  }),
-)
+export const AdminGetCompanyParams = createFindParams().extend({
+  order_by: z.string().optional(),
+  q: z.string().optional(),
+  status: z.enum(["active", "deleted", "all"]).optional(),
+})
 
 export type AdminCreateCompanyType = z.infer<typeof AdminCreateCompany>
 export const AdminCreateCompany = z
@@ -77,8 +75,8 @@ export const AdminCreateEmployee = z
     is_admin: z.boolean().optional(),
     raw_spending_limit: z
       .object({
-        value: z.number().optional(),
         precision: z.number().optional(),
+        value: z.number().optional(),
       })
       .optional(),
     spending_limit: z.number().optional(),
@@ -91,8 +89,8 @@ export const AdminUpdateEmployee = z
     is_admin: z.boolean().optional(),
     raw_spending_limit: z
       .object({
-        value: z.number().optional(),
         precision: z.number().optional(),
+        value: z.number().optional(),
       })
       .optional(),
     spending_limit: z.number().optional(),

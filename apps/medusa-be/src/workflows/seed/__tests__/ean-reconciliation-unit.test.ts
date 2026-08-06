@@ -5,60 +5,54 @@ import type { ProductInput } from "../steps/create-products"
 import { resolveProductVariantEanClaims } from "../steps/reconcile-product-variant-eans"
 import type { PersistedEanOwner } from "../steps/reconcile-product-variant-eans"
 
-function product(params: {
+const product = (params: {
   ean?: null | string
   handle: string
   sku: string
   sourceVariantId?: string
-}): ProductInput {
-  return {
-    categories: [],
-    description: "",
-    handle: params.handle,
-    images: [],
-    metadata: { source: "shoptet" },
-    salesChannelNames: [],
-    shippingProfileName: "Default",
-    status: ProductStatus.PUBLISHED,
-    title: params.handle,
-    variants: [
-      {
-        title: params.sku,
-        sku: params.sku,
-        ean: params.ean,
-        metadata: { source_variant_id: params.sourceVariantId },
-      },
-    ],
-  }
-}
+}): ProductInput => ({
+  categories: [],
+  description: "",
+  handle: params.handle,
+  images: [],
+  metadata: { source: "shoptet" },
+  salesChannelNames: [],
+  shippingProfileName: "Default",
+  status: ProductStatus.PUBLISHED,
+  title: params.handle,
+  variants: [
+    {
+      ean: params.ean,
+      metadata: { source_variant_id: params.sourceVariantId },
+      sku: params.sku,
+      title: params.sku,
+    },
+  ],
+})
 
-function persistedOwner(params: {
+const persistedOwner = (params: {
   ean: string
   handle: string
   id?: string
   sku: string
   sourceVariantId?: string
-}): PersistedEanOwner {
-  return {
-    ean: params.ean,
-    id: params.id ?? `variant-${params.handle}`,
-    metadata: { source_variant_id: params.sourceVariantId },
-    product: {
-      handle: params.handle,
-      id: `product-${params.handle}`,
-    },
-    product_id: `product-${params.handle}`,
-    sku: params.sku,
-  }
-}
+}): PersistedEanOwner => ({
+  ean: params.ean,
+  id: params.id ?? `variant-${params.handle}`,
+  metadata: { source_variant_id: params.sourceVariantId },
+  product: {
+    handle: params.handle,
+    id: `product-${params.handle}`,
+  },
+  product_id: `product-${params.handle}`,
+  sku: params.sku,
+})
 
-function resolvedEan(
+const resolvedEan = (
   products: ProductInput[],
   productHandle: string,
-): null | string | undefined {
-  return products.find((item) => item.handle === productHandle)?.variants?.[0]
-    ?.ean
-}
+): null | string | undefined =>
+  products.find((item) => item.handle === productHandle)?.variants?.[0]?.ean
 
 describe(resolveProductVariantEanClaims, () => {
   it("accepts a single unowned EAN claim", () => {
@@ -110,13 +104,12 @@ describe(resolveProductVariantEanClaims, () => {
 
       expect(resolvedEan(result.products, "shopitem-10")).toBe("3800000000002")
       expect(resolvedEan(result.products, "shopitem-20")).toBeNull()
-      expect(result.issues).toStrictEqual([
-        expect.objectContaining({
-          ean: "3800000000002",
-          owner: expect.objectContaining({ product_handle: "shopitem-10" }),
-          resolution: "selected_stable_claimant",
-        }),
-      ])
+      expect(result.issues).toHaveLength(1)
+      expect(result.issues[0]).toMatchObject({
+        ean: "3800000000002",
+        owner: { product_handle: "shopitem-10" },
+        resolution: "selected_stable_claimant",
+      })
     }
   })
 
@@ -213,13 +206,12 @@ describe(resolveProductVariantEanClaims, () => {
     expect(result.transfers).toStrictEqual([
       { ean: "3800000000005", id: "variant-current-owner" },
     ])
-    expect(result.issues).toStrictEqual([
-      expect.objectContaining({
-        ean: "3800000000005",
-        owner: expect.objectContaining({ product_handle: "shopitem-2" }),
-        resolution: "transferred",
-      }),
-    ])
+    expect(result.issues).toHaveLength(1)
+    expect(result.issues[0]).toMatchObject({
+      ean: "3800000000005",
+      owner: { product_handle: "shopitem-2" },
+      resolution: "transferred",
+    })
   })
 
   it("normalizes blank claims to null without inventing identifier validation", () => {

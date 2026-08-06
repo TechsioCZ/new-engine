@@ -3,6 +3,7 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import { PaykitPaymentProviderBase } from "../core/base"
@@ -29,14 +30,14 @@ const getStringValue = (...values: unknown[]): string | undefined => {
     }
   }
 
-  return
+  return undefined
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u
 
 const getEmailValue = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
-    return
+    return undefined
   }
 
   const email = value.trim()
@@ -44,30 +45,55 @@ const getEmailValue = (value: unknown): string | undefined => {
   return EMAIL_PATTERN.test(email) ? email : undefined
 }
 
-export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<PaykitComgateOptions> {
-  static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
+const getComgateCustomerEmail = (
+  input: InitiatePaymentInput,
+  data: Record<string, unknown>,
+): string | undefined => {
+  const dataCustomer = data["customer"]
 
-  // Medusa's provider loader instantiates provider classes directly.
-  // the base constructor is protected; this keeps the provider constructor public.
+  const directCustomerEmail =
+    typeof dataCustomer === "string" ? getEmailValue(dataCustomer) : undefined
+  const nestedCustomerEmail = isRecord(dataCustomer)
+    ? getEmailValue(dataCustomer["email"])
+    : undefined
+  const dataEmail = getEmailValue(data["email"])
+  const contextEmail = getEmailValue(input.context?.customer?.email)
+
+  return directCustomerEmail ?? nestedCustomerEmail ?? dataEmail ?? contextEmail
+}
+
+export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<PaykitComgateOptions> {
+  static override readonly identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
+
+  readonly #comgateOptions: PaykitComgateOptions
+
   constructor(
     container: PaykitInjectedDependencies,
     options: PaykitComgateOptions,
   ) {
     super(container, options)
+    this.#comgateOptions = options
   }
 
   static override validateOptions(options: PaykitComgateOptions = {}): void {
-    if (options.client || options.clientFactory || options.apiStoreName) {
+    if (
+      options.client !== undefined ||
+      options.clientFactory !== undefined ||
+      (options.apiStoreName !== undefined && options.apiStoreName !== "")
+    ) {
       return
     }
 
-    requirePaykitOptions("PayKit Comgate", options, ["merchant", "secret"])
+    requirePaykitOptions("PayKit Comgate", { ...options }, [
+      "merchant",
+      "secret",
+    ])
   }
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
     const options = await resolveComgateRuntimeOptions(
       this.container_,
-      this.options_,
+      this.#comgateOptions,
     )
 
     return await createPaykitClient(
@@ -111,9 +137,9 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     input: InitiatePaymentInput,
     data: Record<string, unknown>,
   ): { id: string } {
-    const email = this.getComgateCustomerEmail(input, data)
+    const email = this.#getComgateCustomerEmail(input, data)
 
-    if (!email) {
+    if (email === undefined || email === "") {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "PayKit Comgate requires a customer email",
@@ -123,32 +149,14 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     return { id: email }
   }
 
-  private getComgateCustomerEmail(
-    input: InitiatePaymentInput,
-    data: Record<string, unknown>,
-  ): string | undefined {
-    const dataCustomer = data["customer"]
-
-    return (
-      (typeof dataCustomer === "string"
-        ? getEmailValue(dataCustomer)
-        : undefined) ??
-      (dataCustomer &&
-      typeof dataCustomer === "object" &&
-      "email" in dataCustomer
-        ? getEmailValue(dataCustomer.email)
-        : undefined) ??
-      getEmailValue(data["email"]) ??
-      getEmailValue(input.context?.customer?.email)
-    )
-  }
+  readonly #getComgateCustomerEmail = getComgateCustomerEmail
 
   protected override getCreateProviderMetadata(
     input: InitiatePaymentInput,
     data: Record<string, unknown>,
   ): Record<string, unknown> {
     const providerMetadata = super.getProviderMetadata(data)
-    const email = this.getComgateCustomerEmail(input, data)
+    const email = this.#getComgateCustomerEmail(input, data)
     const paymentLabel = getStringValue(
       providerMetadata["paymentLabel"],
       providerMetadata["label"],

@@ -6,10 +6,10 @@ import type { RemoteQueryFunction } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { requirePathParam } from "../../../../../utils/path-params"
-import { customerRejectQuoteWorkflow } from "../../../../../workflows/quote/workflows"
+import { customerRejectQuoteWorkflow } from "../../../../../workflows/quote/workflows/customer-reject-quote"
 import type { RejectQuoteType } from "../../validators"
 
-export const POST = async (
+const post = async (
   req: AuthenticatedMedusaRequest<RejectQuoteType>,
   res: MedusaResponse,
 ) => {
@@ -27,9 +27,7 @@ export const POST = async (
     },
   })
 
-  const {
-    data: [quote],
-  } = await query.graph(
+  const queryResult: { data: Record<string, unknown>[] } = await query.graph(
     {
       entity: "quote",
       fields: req.queryConfig.fields,
@@ -37,6 +35,9 @@ export const POST = async (
     },
     { throwIfKeyNotFound: true },
   )
+  const [quote] = queryResult.data
 
-  return res.json({ quote })
+  return res.json({ quote: quote ?? null })
 }
+
+export { post as POST }
