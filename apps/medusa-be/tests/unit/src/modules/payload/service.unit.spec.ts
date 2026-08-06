@@ -166,6 +166,7 @@ describe("PayloadModuleService", () => {
       )
       expect(parsedUrl.searchParams.get("limit")).toBe("1")
       expect(parsedUrl.searchParams.get("locale")).toBe("en")
+      expect(parsedUrl.searchParams.get("fallbackLocale")).toBe("none")
 
       expect(options?.method).toBe("GET")
       expect(options?.headers).toMatchObject({
@@ -340,6 +341,7 @@ describe("PayloadModuleService", () => {
       expect(parsedUrl.searchParams.get("page")).toBe("2")
       expect(parsedUrl.searchParams.get("sort")).toBe("-createdAt")
       expect(parsedUrl.searchParams.get("locale")).toBe("en")
+      expect(parsedUrl.searchParams.get("fallbackLocale")).toBe("none")
 
       expect(cacheService.set).toHaveBeenCalledWith(
         expect.objectContaining({
