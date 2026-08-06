@@ -16,6 +16,27 @@ interface Cart {
   items?: { quantity?: number }[]
 }
 
+// Node 24 implements `Promise.withResolvers`, but this project's tsconfig
+// `lib` is pinned to `es2022`, which predates the ambient type. Declare the
+// shape locally instead of using a `new Promise` executor for deferred
+// resolution in the race-condition tests below.
+declare global {
+  interface PromiseConstructor {
+    withResolvers: <T>() => {
+      promise: Promise<T>
+      resolve: (value?: T) => void
+      reject: (reason?: unknown) => void
+    }
+  }
+}
+
+type RetrieveCartFn = (
+  cartId: string,
+  signal?: AbortSignal,
+) => Promise<Cart | null>
+type CreateCartFn = (params: { region_id?: string }) => Promise<Cart>
+type DeferredRetrieveCartFn = () => Promise<Cart>
+
 const createMemoryStorage = (): Storage => {
   const store = new Map<string, string>()
 
@@ -37,14 +58,12 @@ const createMemoryStorage = (): Storage => {
   }
 }
 
-const createWrapper = (client: QueryClient) =>
-  function ({ children }: { children: ReactNode }) {
-    return (
-      <StorefrontDataProvider client={client}>
-        {children}
-      </StorefrontDataProvider>
-    )
-  }
+const createWrapper = (client: QueryClient) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
+  )
+  return Wrapper
+}
 
 describe("createCartHooks reactive storage and cache sync", () => {
   it("reacts to observable cartStorage changes", async () => {
@@ -53,11 +72,14 @@ describe("createCartHooks reactive storage and cache sync", () => {
       key,
       storage: createMemoryStorage(),
     })
-    const retrieveCart = vi.fn(async (cartId: string) => ({
-      id: cartId,
-      items: [{ quantity: 2 }],
-      region_id: "reg_1",
-    }))
+    const retrieveCart = vi.fn<RetrieveCartFn>(
+      async (cartId) =>
+        await Promise.resolve({
+          id: cartId,
+          items: [{ quantity: 2 }],
+          region_id: "reg_1",
+        }),
+    )
 
     const { useCart } = createCartHooks<
       Cart,
@@ -67,7 +89,8 @@ describe("createCartHooks reactive storage and cache sync", () => {
       cartStorage,
       requireRegion: false,
       service: {
-        createCart: async () => ({ id: "cart_created", region_id: "reg_1" }),
+        createCart: async () =>
+          await Promise.resolve({ id: "cart_created", region_id: "reg_1" }),
         retrieveCart,
       },
     })
@@ -106,16 +129,19 @@ describe("createCartHooks reactive storage and cache sync", () => {
       key,
       storage: backingStorage,
     })
-    const retrieveCart = vi.fn(async (cartId: string) => ({
-      id: cartId,
-      items: [{ quantity: 1 }],
-      region_id: "reg_1",
-    }))
-    const createCart = vi.fn(async () => ({
+    const retrieveCart = vi.fn<RetrieveCartFn>(
+      async (cartId) =>
+        await Promise.resolve({
+          id: cartId,
+          items: [{ quantity: 1 }],
+          region_id: "reg_1",
+        }),
+    )
+    const createCart = vi.fn<CreateCartFn>().mockResolvedValue({
       id: "cart_created",
       items: [{ quantity: 1 }],
       region_id: "reg_1",
-    }))
+    })
 
     const { useCart } = createCartHooks<
       Cart,
@@ -149,16 +175,20 @@ describe("createCartHooks reactive storage and cache sync", () => {
     }
 
     const container = document.createElement("div")
-    container.innerHTML = renderToString(
-      <Wrapper>
-        <CartProbe />
-      </Wrapper>,
+    container.insertAdjacentHTML(
+      "afterbegin",
+      renderToString(
+        <Wrapper>
+          <CartProbe />
+        </Wrapper>,
+      ),
     )
     document.body.append(container)
 
     let root: ReturnType<typeof hydrateRoot> | null = null
 
     await act(async () => {
+      await Promise.resolve()
       root = hydrateRoot(
         container,
         <Wrapper>
@@ -181,6 +211,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
 
     await act(async () => {
+      await Promise.resolve()
       root?.unmount()
     })
     container.remove()
@@ -191,9 +222,9 @@ describe("createCartHooks reactive storage and cache sync", () => {
     const cartStorage = {
       clear() {
         this.currentCartId = null
-        this.listeners.forEach((listener) => {
+        for (const listener of this.listeners) {
           listener()
-        })
+        }
       },
       currentCartId: null as string | null,
       get() {
@@ -208,9 +239,9 @@ describe("createCartHooks reactive storage and cache sync", () => {
       listeners,
       set(cartId: string) {
         this.currentCartId = cartId
-        this.listeners.forEach((listener) => {
+        for (const listener of this.listeners) {
           listener()
-        })
+        }
       },
       subscribe(listener: () => void) {
         this.listeners.add(listener)
@@ -219,11 +250,14 @@ describe("createCartHooks reactive storage and cache sync", () => {
         }
       },
     }
-    const retrieveCart = vi.fn(async (cartId: string) => ({
-      id: cartId,
-      items: [{ quantity: 1 }],
-      region_id: "reg_1",
-    }))
+    const retrieveCart = vi.fn<RetrieveCartFn>(
+      async (cartId) =>
+        await Promise.resolve({
+          id: cartId,
+          items: [{ quantity: 1 }],
+          region_id: "reg_1",
+        }),
+    )
 
     const { useCart } = createCartHooks<
       Cart,
@@ -233,7 +267,8 @@ describe("createCartHooks reactive storage and cache sync", () => {
       cartStorage,
       requireRegion: false,
       service: {
-        createCart: async () => ({ id: "cart_created", region_id: "reg_1" }),
+        createCart: async () =>
+          await Promise.resolve({ id: "cart_created", region_id: "reg_1" }),
         retrieveCart,
       },
     })
@@ -277,9 +312,9 @@ describe("createCartHooks reactive storage and cache sync", () => {
       queryKeys,
       requireRegion: false,
       service: {
-        addLineItem: async () => updatedCart,
-        createCart: async () => updatedCart,
-        retrieveCart: async () => updatedCart,
+        addLineItem: async () => await Promise.resolve(updatedCart),
+        createCart: async () => await Promise.resolve(updatedCart),
+        retrieveCart: async () => await Promise.resolve(updatedCart),
       },
     })
 
@@ -329,10 +364,8 @@ describe("createCartHooks reactive storage and cache sync", () => {
       items: [{ quantity: 2 }],
       region_id: "reg_1",
     }
-    let resolveFirstCancellation: (() => void) | undefined
-    const firstCancellation = new Promise<void>((resolve) => {
-      resolveFirstCancellation = resolve
-    })
+    const { promise: firstCancellation, resolve: resolveFirstCancellation } =
+      Promise.withResolvers<undefined>()
     const queryKeys = createCartQueryKeys("test-cart-mutation-order")
     const { useUpdateLineItem } = createCartHooks<
       Cart,
@@ -342,10 +375,10 @@ describe("createCartHooks reactive storage and cache sync", () => {
       queryKeys,
       requireRegion: false,
       service: {
-        createCart: async () => olderCart,
-        retrieveCart: async () => olderCart,
+        createCart: async () => await Promise.resolve(olderCart),
+        retrieveCart: async () => await Promise.resolve(olderCart),
         updateLineItem: async (_cartId, _lineItemId, input) =>
-          input.quantity === 1 ? olderCart : newerCart,
+          await Promise.resolve(input.quantity === 1 ? olderCart : newerCart),
       },
     })
     const queryClient = new QueryClient({
@@ -357,9 +390,9 @@ describe("createCartHooks reactive storage and cache sync", () => {
     const cancelQueries = vi
       .spyOn(queryClient, "cancelQueries")
       .mockImplementation(async () => {
-        cancelQueries.mock.calls.length <= 2
-          ? await firstCancellation
-          : await Promise.resolve()
+        await (cancelQueries.mock.calls.length <= 2
+          ? firstCancellation
+          : Promise.resolve())
       })
     const wrapper = createWrapper(queryClient)
     const { result } = renderHook(() => useUpdateLineItem(), { wrapper })
@@ -383,7 +416,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
       expect(queryClient.getQueryData(detailKey)).toStrictEqual(newerCart)
     })
 
-    resolveFirstCancellation?.()
+    resolveFirstCancellation()
     await Promise.all([firstMutation, secondMutation])
 
     expect(queryClient.getQueryData(detailKey)).toStrictEqual(newerCart)
@@ -409,8 +442,8 @@ describe("createCartHooks reactive storage and cache sync", () => {
       queryKeys,
       requireRegion: false,
       service: {
-        createCart: async () => staleCart,
-        retrieveCart: async () => staleCart,
+        createCart: async () => await Promise.resolve(staleCart),
+        retrieveCart: async () => await Promise.resolve(staleCart),
       },
     })
     const queryClient = new QueryClient({
@@ -463,12 +496,11 @@ describe("createCartHooks reactive storage and cache sync", () => {
       region_id: "reg_1",
     }
     let resolveCartRead: ((cart: Cart) => void) | undefined
-    const retrieveCart = vi.fn(
-      async () =>
-        await new Promise<Cart>((resolve) => {
-          resolveCartRead = resolve
-        }),
-    )
+    const retrieveCart = vi.fn<DeferredRetrieveCartFn>(async () => {
+      const deferred = Promise.withResolvers<Cart>()
+      resolveCartRead = deferred.resolve
+      return await deferred.promise
+    })
 
     const { useCart, useUpdateLineItem } = createCartHooks<
       Cart,
@@ -477,9 +509,9 @@ describe("createCartHooks reactive storage and cache sync", () => {
     >({
       requireRegion: false,
       service: {
-        createCart: async () => staleCart,
+        createCart: async () => await Promise.resolve(staleCart),
         retrieveCart,
-        updateLineItem: async () => updatedCart,
+        updateLineItem: async () => await Promise.resolve(updatedCart),
       },
     })
 
@@ -536,12 +568,11 @@ describe("createCartHooks reactive storage and cache sync", () => {
       region_id: "reg_1",
     }
     let resolveCartRead: ((cart: Cart) => void) | undefined
-    const retrieveCart = vi.fn(
-      async () =>
-        await new Promise<Cart>((resolve) => {
-          resolveCartRead = resolve
-        }),
-    )
+    const retrieveCart = vi.fn<DeferredRetrieveCartFn>(async () => {
+      const deferred = Promise.withResolvers<Cart>()
+      resolveCartRead = deferred.resolve
+      return await deferred.promise
+    })
 
     const { useCart, useUpdateLineItem } = createCartHooks<
       Cart,
@@ -550,9 +581,10 @@ describe("createCartHooks reactive storage and cache sync", () => {
     >({
       requireRegion: false,
       service: {
-        createCart: async () => cart,
+        createCart: async () => await Promise.resolve(cart),
         retrieveCart,
         updateLineItem: async () => {
+          await Promise.resolve()
           throw new Error("update failed")
         },
       },
