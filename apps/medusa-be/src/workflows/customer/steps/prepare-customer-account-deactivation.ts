@@ -5,6 +5,7 @@ import {
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { hasArrayData } from "../../../utils/guards"
+import { isInactiveCustomerFirstName } from "../normalizers"
 
 type PrepareCustomerAccountDeactivationInput = {
   customer_id: string
@@ -14,6 +15,7 @@ type CustomerRecord = {
   deleted_at?: Date | string | null
   email?: string | null
   first_name?: string | null
+  has_account?: boolean | null
   id: string
 }
 
@@ -43,7 +45,7 @@ export const prepareCustomerAccountDeactivationStep = createStep(
 
     const customerResult: unknown = await query.graph({
       entity: "customer",
-      fields: ["id", "email", "first_name", "deleted_at"],
+      fields: ["id", "email", "first_name", "has_account", "deleted_at"],
       filters: { id: input.customer_id },
       withDeleted: true,
     })
@@ -64,7 +66,11 @@ export const prepareCustomerAccountDeactivationStep = createStep(
       )
     }
 
-    if (customer.deleted_at) {
+    if (
+      customer.deleted_at ||
+      customer.has_account === false ||
+      isInactiveCustomerFirstName(customer.first_name)
+    ) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         "Customer account is already deactivated."

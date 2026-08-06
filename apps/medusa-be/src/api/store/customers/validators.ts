@@ -12,11 +12,14 @@ export const StoreConfirmDeactivateCustomerAccountSchema = z
   })
   .strict()
 
-export const StoreReactivateCustomerAccountSchema = z
+export const StoreCreateCustomerAccountSchema = z
   .object({
+    company_name: z.string().nullable().optional(),
     email: z.string().email(),
-    first_name: z.string().optional(),
-    last_name: z.string().optional(),
+    first_name: z.string().nullable().optional(),
+    last_name: z.string().nullable().optional(),
+    metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+    phone: z.string().nullable().optional(),
   })
   .strict()
 
@@ -28,6 +31,6 @@ export type StoreConfirmDeactivateCustomerAccountSchemaType = z.infer<
   typeof StoreConfirmDeactivateCustomerAccountSchema
 >
 
-export type StoreReactivateCustomerAccountSchemaType = z.infer<
-  typeof StoreReactivateCustomerAccountSchema
+export type StoreCreateCustomerAccountSchemaType = z.infer<
+  typeof StoreCreateCustomerAccountSchema
 >

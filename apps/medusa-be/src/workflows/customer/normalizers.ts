@@ -28,6 +28,10 @@ export function normalizeInactiveCustomerFirstName(firstName?: string | null) {
   return `${INACTIVE_CUSTOMER_NAME_PREFIX} ${normalizedFirstName}`
 }
 
+export function isInactiveCustomerFirstName(firstName?: string | null) {
+  return firstName?.trim().startsWith(INACTIVE_CUSTOMER_NAME_PREFIX) ?? false
+}
+
 export function normalizeReactivatedCustomerFirstName(
   firstName?: string | null
 ) {

@@ -6,7 +6,6 @@ import {
 import { deleteAuthIdentityStep } from "../steps/delete-auth-identity"
 import { markCustomerAccountInactiveStep } from "../steps/mark-customer-account-inactive"
 import { prepareCustomerAccountDeactivationStep } from "../steps/prepare-customer-account-deactivation"
-import { softDeleteCustomerStep } from "../steps/soft-delete-customer"
 
 type DeactivateCustomerAccountWorkflowInput = {
   customer_id: string
@@ -24,14 +23,8 @@ export const deactivateCustomerAccountWorkflow = createWorkflow(
       }))
     )
 
-    const softDelete = softDeleteCustomerStep(
-      transform({ inactiveMarker, prepared }, ({ prepared: payload }) => ({
-        customer_id: payload.customer_id,
-      }))
-    )
-
     const authIdentityDeletion = deleteAuthIdentityStep(
-      transform({ prepared, softDelete }, ({ prepared: payload }) => ({
+      transform({ inactiveMarker, prepared }, ({ prepared: payload }) => ({
         auth_identity_id: payload.auth_identity_id,
       }))
     )

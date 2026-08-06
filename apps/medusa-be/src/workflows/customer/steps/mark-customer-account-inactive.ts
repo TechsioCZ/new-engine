@@ -13,6 +13,12 @@ type MarkCustomerAccountInactiveCompensation = {
   first_name?: string | null
 }
 
+type CustomerUpdateInput = Parameters<
+  ICustomerModuleService["updateCustomers"]
+>[1] & {
+  has_account?: boolean
+}
+
 export const markCustomerAccountInactiveStep = createStep(
   "mark-customer-account-inactive",
   async (
@@ -29,9 +35,12 @@ export const markCustomerAccountInactiveStep = createStep(
     )
     const firstName = normalizeInactiveCustomerFirstName(input.first_name)
 
-    await customerModuleService.updateCustomers(input.customer_id, {
+    const update: CustomerUpdateInput = {
       first_name: firstName,
-    })
+      has_account: false,
+    }
+
+    await customerModuleService.updateCustomers(input.customer_id, update)
 
     return new StepResponse(
       {
@@ -53,8 +62,11 @@ export const markCustomerAccountInactiveStep = createStep(
       Modules.CUSTOMER
     )
 
-    await customerModuleService.updateCustomers(input.customer_id, {
+    const update: CustomerUpdateInput = {
       first_name: input.first_name ?? null,
-    })
+      has_account: true,
+    }
+
+    await customerModuleService.updateCustomers(input.customer_id, update)
   }
 )

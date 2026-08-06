@@ -5,13 +5,23 @@ import {
 import { authenticate } from "@medusajs/framework/http"
 import {
   StoreConfirmDeactivateCustomerAccountSchema,
+  StoreCreateCustomerAccountSchema,
   StoreDeactivateCustomerAccountSchema,
-  StoreReactivateCustomerAccountSchema,
 } from "./validators"
 
 const customerAuth = authenticate("customer", ["session", "bearer"])
 
 export const storeCustomersMiddlewares: MiddlewareRoute[] = [
+  {
+    method: ["POST"],
+    matcher: "/store/customers",
+    middlewares: [
+      authenticate("customer", ["session", "bearer"], {
+        allowUnregistered: true,
+      }),
+      validateAndTransformBody(StoreCreateCustomerAccountSchema),
+    ],
+  },
   {
     method: ["POST"],
     matcher: "/store/customers/me/deactivate",
@@ -25,16 +35,6 @@ export const storeCustomersMiddlewares: MiddlewareRoute[] = [
     matcher: "/store/customers/deactivate/confirm",
     middlewares: [
       validateAndTransformBody(StoreConfirmDeactivateCustomerAccountSchema),
-    ],
-  },
-  {
-    method: ["POST"],
-    matcher: "/store/customers/reactivate",
-    middlewares: [
-      authenticate("customer", ["session", "bearer"], {
-        allowUnregistered: true,
-      }),
-      validateAndTransformBody(StoreReactivateCustomerAccountSchema),
     ],
   },
 ]
