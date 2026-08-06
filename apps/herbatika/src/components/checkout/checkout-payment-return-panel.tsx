@@ -3,11 +3,11 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import type { Route } from "next"
+import type { StatusTextProps } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
 import { useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import type { ReactNode } from "react"
+import type { ReactElement, ReactNode } from "react"
 
 import NextLink from "@/components/app-link"
 import { readAccountSetupRequested } from "@/components/checkout/account-setup-metadata"
@@ -31,7 +31,69 @@ import { storefront } from "@/lib/storefront/storefront"
 const MAX_PAYMENT_RETURN_ATTEMPTS = 8
 const PAYMENT_RETURN_RETRY_DELAY_MS = 1500
 
-export function CheckoutPaymentReturnPanel() {
+const isPaymentProviderAuthorizationFailure = (message: string) => {
+  const normalizedMessage = message.toLowerCase()
+
+  return (
+    normalizedMessage.includes("not authorized with the provider") ||
+    normalizedMessage.includes("was not authorized")
+  )
+}
+
+const resolvePaymentReturnFailureMessage = (
+  message: string,
+  authorizationFailureMessage: string,
+) => {
+  if (isPaymentProviderAuthorizationFailure(message)) {
+    return authorizationFailureMessage
+  }
+
+  return message
+}
+
+const normalizeSearchParam = (value: string | null) => {
+  const normalized = value?.trim()
+  return normalized !== undefined && normalized.length > 0 ? normalized : null
+}
+
+const resolvePaymentCancelled = (searchParams: {
+  get: (name: string) => string | null
+}) =>
+  ["payment_cancelled", "cancelled", "canceled"].some((key) => {
+    const value = searchParams.get(key)?.toLowerCase()
+    return value === "true" || value === "1" || value === "yes"
+  })
+
+const PaymentReturnStatusCard = ({
+  actions,
+  children,
+  status,
+  title,
+}: {
+  actions?: ReactElement
+  children: ReactNode
+  status: StatusTextProps["status"]
+  title: string
+}) => {
+  const tCheckout = useTranslations("checkout")
+
+  return (
+    <section className="mx-auto flex max-w-2xl flex-col gap-300 rounded-sm border border-border-primary bg-surface p-400 sm:p-550">
+      <h1 className="font-rubik font-semibold text-fg-primary text-xl">
+        {title}
+      </h1>
+      <StatusText aria-live="polite" showIcon status={status}>
+        {children}
+      </StatusText>
+      <SupportingText>{tCheckout("payment_return_help")}</SupportingText>
+      {actions === undefined ? null : (
+        <div className="flex flex-wrap gap-200">{actions}</div>
+      )}
+    </section>
+  )
+}
+
+export const CheckoutPaymentReturnPanel = () => {
   const tCheckout = useTranslations("checkout")
   const confirmationPendingMessage = tCheckout(
     "payment_return_confirmation_pending",
@@ -49,7 +111,7 @@ export function CheckoutPaymentReturnPanel() {
   const debugCartQuery = useCart({
     autoCreate: false,
     ...(cartId === null ? {} : { cartId }),
-    enabled: Boolean(cartId && isAccountSetupDebugEnabled),
+    enabled: cartId !== null && isAccountSetupDebugEnabled,
   })
   const debugCartMetadata = debugCartQuery.cart?.metadata
   const completeCartMutation = storefront.flows.cart.useCompleteCart()
@@ -60,7 +122,7 @@ export function CheckoutPaymentReturnPanel() {
   }, [completeCartMutation.mutateAsync])
 
   useEffect(() => {
-    if (!(isAccountSetupDebugEnabled && cartId)) {
+    if (!(isAccountSetupDebugEnabled && cartId !== null)) {
       return
     }
 
@@ -79,81 +141,88 @@ export function CheckoutPaymentReturnPanel() {
   ])
 
   useEffect(() => {
-    if (!cartId || isCancelled || completedOrderId || returnError) {
-      return
-    }
-
     let retryTimeout: number | undefined
     let didCancel = false
     let attemptCount = 0
 
-    const completeReturnedPayment = async () => {
-      attemptCount += 1
+    const hasReturnError = returnError !== null && returnError.length > 0
+    const shouldSkipCompletion =
+      isCancelled || completedOrderId !== null || hasReturnError
+    const activeCartId = shouldSkipCompletion ? null : cartId
 
-      try {
-        logCheckoutAccountSetupDebug("payment return complete attempt", {
-          attempt_count: attemptCount,
-          cart_id: cartId,
-          cart_metadata_requested: readAccountSetupRequested(debugCartMetadata),
-        })
-
-        const completeResult = await completeCartRef.current({
-          cartId,
-        })
-        if (didCancel) {
+    if (activeCartId !== null) {
+      const scheduleRetryOrFail = (
+        message: string,
+        retryAttempt: () => Promise<void>,
+      ) => {
+        if (attemptCount >= MAX_PAYMENT_RETURN_ATTEMPTS) {
+          setReturnError(
+            resolvePaymentReturnFailureMessage(
+              message,
+              paymentNotCompletedMessage,
+            ),
+          )
           return
         }
 
-        const orderId = resolveOrderId(completeResult)
-        if (orderId) {
-          logCheckoutAccountSetupDebug("payment return complete succeeded", {
+        retryTimeout = window.setTimeout(() => {
+          runDetachedPromise(retryAttempt())
+        }, PAYMENT_RETURN_RETRY_DELAY_MS)
+      }
+
+      const completeReturnedPayment = async () => {
+        attemptCount += 1
+
+        try {
+          logCheckoutAccountSetupDebug("payment return complete attempt", {
             attempt_count: attemptCount,
-            cart_id: cartId,
-            order_id: orderId,
+            cart_id: activeCartId,
+            cart_metadata_requested:
+              readAccountSetupRequested(debugCartMetadata),
           })
-          clearStoredPaymentProviderSelection(cartId)
-          setCompletedOrderId(orderId)
-          return
+
+          const completeResult = await completeCartRef.current({
+            cartId: activeCartId,
+          })
+          if (didCancel) {
+            return
+          }
+
+          const orderId = resolveOrderId(completeResult)
+          if (orderId !== null && orderId.length > 0) {
+            logCheckoutAccountSetupDebug("payment return complete succeeded", {
+              attempt_count: attemptCount,
+              cart_id: activeCartId,
+              order_id: orderId,
+            })
+            clearStoredPaymentProviderSelection(activeCartId)
+            setCompletedOrderId(orderId)
+            return
+          }
+
+          const failureMessage =
+            resolveCompleteCartFailure(completeResult) ??
+            confirmationPendingMessage
+          scheduleRetryOrFail(failureMessage, completeReturnedPayment)
+        } catch (error) {
+          if (didCancel) {
+            return
+          }
+
+          const errorMessage = resolveErrorMessage(
+            error,
+            verificationFailedMessage,
+          )
+          scheduleRetryOrFail(errorMessage, completeReturnedPayment)
         }
-
-        const failureMessage =
-          resolveCompleteCartFailure(completeResult) ??
-          confirmationPendingMessage
-        scheduleRetryOrFail(failureMessage)
-      } catch (error) {
-        if (didCancel) {
-          return
-        }
-
-        const errorMessage = resolveErrorMessage(
-          error,
-          verificationFailedMessage,
-        )
-        scheduleRetryOrFail(errorMessage)
-      }
-    }
-
-    const scheduleRetryOrFail = (message: string) => {
-      if (attemptCount >= MAX_PAYMENT_RETURN_ATTEMPTS) {
-        setReturnError(
-          resolvePaymentReturnFailureMessage(
-            message,
-            paymentNotCompletedMessage,
-          ),
-        )
-        return
       }
 
-      retryTimeout = window.setTimeout(() => {
-        runDetachedPromise(completeReturnedPayment())
-      }, PAYMENT_RETURN_RETRY_DELAY_MS)
+      runDetachedPromise(completeReturnedPayment())
     }
-
-    runDetachedPromise(completeReturnedPayment())
 
     return () => {
       didCancel = true
-      if (retryTimeout) {
+      if (retryTimeout !== undefined) {
         window.clearTimeout(retryTimeout)
       }
     }
@@ -168,7 +237,7 @@ export function CheckoutPaymentReturnPanel() {
     verificationFailedMessage,
   ])
 
-  if (completedOrderId) {
+  if (completedOrderId !== null) {
     return <CheckoutCompletedOrderSection completedOrderId={completedOrderId} />
   }
 
@@ -202,7 +271,7 @@ export function CheckoutPaymentReturnPanel() {
     )
   }
 
-  if (!cartId) {
+  if (cartId === null) {
     return (
       <PaymentReturnStatusCard
         actions={
@@ -218,7 +287,7 @@ export function CheckoutPaymentReturnPanel() {
     )
   }
 
-  if (returnError) {
+  if (returnError !== null && returnError.length > 0) {
     return (
       <PaymentReturnStatusCard
         actions={
@@ -260,65 +329,4 @@ export function CheckoutPaymentReturnPanel() {
       {tCheckout("payment_return_verifying_description")}
     </PaymentReturnStatusCard>
   )
-}
-
-function PaymentReturnStatusCard({
-  actions,
-  children,
-  status,
-  title,
-}: {
-  actions?: ReactNode
-  children: ReactNode
-  status: "default" | "error" | "success" | "warning"
-  title: string
-}) {
-  const tCheckout = useTranslations("checkout")
-
-  return (
-    <section className="mx-auto flex max-w-2xl flex-col gap-300 rounded-sm border border-border-primary bg-surface p-400 sm:p-550">
-      <h1 className="font-rubik font-semibold text-fg-primary text-xl">
-        {title}
-      </h1>
-      <StatusText aria-live="polite" showIcon status={status}>
-        {children}
-      </StatusText>
-      <SupportingText>{tCheckout("payment_return_help")}</SupportingText>
-      {actions ? <div className="flex flex-wrap gap-200">{actions}</div> : null}
-    </section>
-  )
-}
-
-function resolvePaymentReturnFailureMessage(
-  message: string,
-  authorizationFailureMessage: string,
-) {
-  if (isPaymentProviderAuthorizationFailure(message)) {
-    return authorizationFailureMessage
-  }
-
-  return message
-}
-
-function isPaymentProviderAuthorizationFailure(message: string) {
-  const normalizedMessage = message.toLowerCase()
-
-  return (
-    normalizedMessage.includes("not authorized with the provider") ||
-    normalizedMessage.includes("was not authorized")
-  )
-}
-
-function normalizeSearchParam(value: string | null) {
-  const normalized = value?.trim()
-  return normalized && normalized.length > 0 ? normalized : null
-}
-
-function resolvePaymentCancelled(searchParams: {
-  get: (name: string) => string | null
-}) {
-  return ["payment_cancelled", "cancelled", "canceled"].some((key) => {
-    const value = searchParams.get(key)?.toLowerCase()
-    return value === "true" || value === "1" || value === "yes"
-  })
 }
