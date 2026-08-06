@@ -4,6 +4,7 @@ import { zodValidator } from "@medusajs/framework"
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import type { z } from "@medusajs/framework/zod"
+import { isRecord, omitKeys } from "@techsio/std/object"
 import qs from "qs"
 
 import { safeResolve } from "../../utils/safe-resolve"
@@ -39,7 +40,7 @@ const ARTICLE_CATEGORIES = "article-categories"
 const PAGE_CATEGORY_GROUPS = "page-categories-with-pages"
 const ARTICLE_CATEGORY_GROUPS = "article-categories-with-articles"
 const RETURN_HTML_HEADER = "X-Payload-Return-Html"
-const TRAILING_SLASH_REGEX = /\/$/
+const TRAILING_SLASH_REGEX = /\/$/u
 const PRIVATE_PAYLOAD_FIELD_NAMES = new Set([
   "apiKey",
   "apiKeyIndex",
@@ -79,36 +80,195 @@ const DEFAULT_TTLS = {
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 
 /**
+ * Build a query string from Payload list/query options.
+ */
+const buildQuery = (options?: PayloadQueryOptions): string => {
+  if (!options) {
+    return ""
+  }
+  return `?${qs.stringify(options, { encodeValuesOnly: true })}`
+}
+
+/**
+ * Build a query string from raw params while skipping null/undefined values.
+ */
+const buildParamsQuery = (params?: Record<string, unknown>): string => {
+  if (!params) {
+    return ""
+  }
+  const query = qs.stringify(params, {
+    encodeValuesOnly: true,
+    skipNulls: true,
+  })
+  return query ? `?${query}` : ""
+}
+
+/**
+ * Create a cache key for list queries using locale and pagination options.
+ */
+const buildListCacheKey = (
+  prefix: string,
+  options?: CmsListOptions,
+): string => {
+  const locale = options?.locale ?? DEFAULT_LOCALE
+
+  if (!options) {
+    return `${prefix}:${locale}:default`
+  }
+
+  const rest = omitKeys(options, ["locale"])
+  const hasOptions =
+    rest.limit !== undefined ||
+    rest.page !== undefined ||
+    rest.sort !== undefined
+  const hash = hasOptions
+    ? createHash("sha256").update(JSON.stringify(rest)).digest("hex")
+    : "default"
+
+  return `${prefix}:${locale}:${hash}`
+}
+
+/**
+ * Create a cache key for category list queries by locale and slug filter.
+ */
+const buildCategoryListCacheKey = (
+  prefix: string,
+  options?: CmsCategoryListOptions,
+): string => {
+  const locale = options?.locale ?? DEFAULT_LOCALE
+  const slug = options?.categorySlug ?? "all"
+  return `${prefix}:${locale}:${slug}`
+}
+
+/**
+ * Build a locale-specific cache tag.
+ */
+const buildLocaleTag = (tag: string, locale?: string): string =>
+  `${tag}:locale:${locale ?? DEFAULT_LOCALE}`
+
+/**
+ * Normalize locale query values that might be stringified null/undefined.
+ */
+const normalizeLocale = (locale?: string): string | undefined => {
+  if (
+    locale === undefined ||
+    locale === "" ||
+    locale === "null" ||
+    locale === "undefined"
+  ) {
+    return undefined
+  }
+  return locale
+}
+
+/**
+ * Extract a human-readable error message from a Payload API error response.
+ */
+const getPayloadErrorMessage = (result: unknown, status: number): string => {
+  if (isRecord(result) && typeof result["message"] === "string") {
+    return result["message"]
+  }
+  return `Payload API error: ${status}`
+}
+
+/**
+ * Payload relationship fields can include expanded auth users. Strip private
+ * auth fields before responses are cached or returned by public Store APIs.
+ */
+const redactValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((entry) => redactValue(entry))
+  }
+
+  if (!isRecord(value) || value instanceof Date) {
+    return value
+  }
+
+  const shouldRedactEmail = Object.keys(value).some((key) =>
+    PRIVATE_PAYLOAD_FIELD_NAMES.has(key),
+  )
+
+  const entries: [string, unknown][] = []
+  for (const [key, entryValue] of Object.entries(value)) {
+    if (
+      PRIVATE_PAYLOAD_FIELD_NAMES.has(key) ||
+      (shouldRedactEmail && key === "email")
+    ) {
+      continue
+    }
+    entries.push([key, redactValue(entryValue)])
+  }
+
+  return Object.fromEntries(entries)
+}
+
+/**
+ * Build a type predicate from a zod schema for safely narrowing `unknown`
+ * values (e.g. validated API responses) without a type cast.
+ */
+const isValidatedBy =
+  <T>(schema: z.ZodType<T>) =>
+  (value: unknown): value is T =>
+    schema.safeParse(value).success
+
+/**
+ * Type predicates for safely narrowing cached `unknown` values back to their
+ * expected DTO shape without a type cast. Cache entries always originate
+ * from this service's own previously schema-validated writes, so a
+ * lightweight shape check (rather than a full schema re-validation) is
+ * sufficient here and keeps cache-read behavior unchanged.
+ */
+const isCachedPage = (value: unknown): value is CmsPageDTO | null =>
+  value === null || isRecord(value)
+
+const isCachedArticle = (value: unknown): value is CmsArticleDTO | null =>
+  value === null || isRecord(value)
+
+const isCachedPageCategoryList = (
+  value: unknown,
+): value is CmsPageCategoryDTO[] => Array.isArray(value)
+
+const isCachedArticleCategoryList = (
+  value: unknown,
+): value is CmsArticleCategoryDTO[] => Array.isArray(value)
+
+const isCachedHeroCarouselList = (
+  value: unknown,
+): value is CmsHeroCarouselDTO[] => Array.isArray(value)
+
+/**
  * Medusa module service for reading Payload CMS content with caching support.
  */
 export default class PayloadModuleService extends MedusaService({}) {
-  protected options_: PayloadModuleOptions
-  protected baseUrl_: string
-  protected headers_: Record<string, string>
-  protected cacheService_: CachingDependency | null
-  protected logger_: Logger
-  protected contentCacheTtl_: number
-  protected listCacheTtl_: number
-  protected requestTimeoutMs_: number
+  protected _options: PayloadModuleOptions
+  protected _baseUrl: string
+  protected _headers: Record<string, string>
+  protected _cacheService: CachingDependency | null
+  protected _logger: Logger
+  protected _contentCacheTtl: number
+  protected _listCacheTtl: number
+  protected _requestTimeoutMs: number
+  private readonly buildQuery = buildQuery
+  private readonly buildParamsQuery = buildParamsQuery
 
   constructor(container: InjectedDependencies, options: PayloadModuleOptions) {
     super(container, options)
-    this.options_ = options
+    this._options = options
     this.validateOptions()
-    this.baseUrl_ = `${options.serverUrl.replace(TRAILING_SLASH_REGEX, "")}/api`
-    this.headers_ = {
+    this._baseUrl = `${options.serverUrl.replace(TRAILING_SLASH_REGEX, "")}/api`
+    this._headers = {
       Authorization: `users API-Key ${options.apiKey}`,
       "Content-Type": "application/json",
     }
-    this.logger_ = container.logger
-    this.cacheService_ = safeResolve<CachingDependency>(
+    this._logger = container.logger
+    this._cacheService = safeResolve<CachingDependency>(
       container,
       Modules.CACHING,
     )
 
-    this.contentCacheTtl_ = options.contentCacheTtl ?? DEFAULT_TTLS.CONTENT
-    this.listCacheTtl_ = options.listCacheTtl ?? DEFAULT_TTLS.LIST
-    this.requestTimeoutMs_ =
+    this._contentCacheTtl = options.contentCacheTtl ?? DEFAULT_TTLS.CONTENT
+    this._listCacheTtl = options.listCacheTtl ?? DEFAULT_TTLS.LIST
+    this._requestTimeoutMs =
       options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
   }
 
@@ -116,13 +276,13 @@ export default class PayloadModuleService extends MedusaService({}) {
    * Validate required module options and throw on missing values.
    */
   private validateOptions(): void {
-    if (!this.options_.serverUrl) {
+    if (!this._options.serverUrl) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Payload serverUrl is required",
       )
     }
-    if (!this.options_.apiKey) {
+    if (!this._options.apiKey) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Payload apiKey is required",
@@ -136,18 +296,18 @@ export default class PayloadModuleService extends MedusaService({}) {
   private async makeRequest<T>(
     method: string,
     endpoint: string,
-    data?: unknown,
-    options?: {
-      schema?: z.ZodType
+    data: unknown,
+    options: {
+      schema: z.ZodType<T>
       headers?: Record<string, string>
     },
   ): Promise<T> {
-    const url = `${this.baseUrl_}${endpoint}`
+    const url = `${this._baseUrl}${endpoint}`
     const controller = new AbortController()
     const timeoutId = setTimeout(() => {
       controller.abort()
-    }, this.requestTimeoutMs_)
-    const headers = { ...this.headers_, ...options?.headers }
+    }, this._requestTimeoutMs)
+    const headers = { ...this._headers, ...options?.headers }
 
     let response: Response
     try {
@@ -164,7 +324,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       if (error instanceof Error && error.name === "AbortError") {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          `Payload request timed out after ${this.requestTimeoutMs_}ms: ${url}`,
+          `Payload request timed out after ${this._requestTimeoutMs}ms: ${url}`,
         )
       }
       throw error
@@ -172,122 +332,74 @@ export default class PayloadModuleService extends MedusaService({}) {
       clearTimeout(timeoutId)
     }
 
-    const result = await response.json()
+    const result: unknown = await response.json()
 
     if (!response.ok) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        this.getPayloadErrorMessage(result, response.status),
+        getPayloadErrorMessage(result, response.status),
       )
     }
 
-    if (options?.schema) {
-      try {
-        return (await zodValidator(options.schema, result)) as T
-      } catch (error) {
-        if (error instanceof MedusaError) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `Payload response validation failed for ${method} ${endpoint}: ${error.message}`,
-          )
-        }
-        throw error
-      }
-    }
-
-    return result as T
-  }
-
-  private isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === "object" && value !== null
-  }
-
-  /**
-   * Payload relationship fields can include expanded auth users. Strip private
-   * auth fields before responses are cached or returned by public Store APIs.
-   */
-  private redactPrivatePayloadFields<T>(value: T): T {
-    if (Array.isArray(value)) {
-      return value.map((entry) => this.redactPrivatePayloadFields(entry)) as T
-    }
-
-    if (!this.isRecord(value) || value instanceof Date) {
-      return value
-    }
-
-    const shouldRedactEmail = Object.keys(value).some((key) =>
-      PRIVATE_PAYLOAD_FIELD_NAMES.has(key),
-    )
-
-    return Object.fromEntries(
-      Object.entries(value)
-        .filter(
-          ([key]) =>
-            !(
-              PRIVATE_PAYLOAD_FIELD_NAMES.has(key) ||
-              (shouldRedactEmail && key === "email")
-            ),
+    let validated: unknown
+    try {
+      validated = await zodValidator(options.schema, result)
+    } catch (error) {
+      if (error instanceof MedusaError) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Payload response validation failed for ${method} ${endpoint}: ${error.message}`,
         )
-        .map(([key, entryValue]) => [
-          key,
-          this.redactPrivatePayloadFields(entryValue),
-        ]),
-    ) as T
-  }
-
-  private getPayloadErrorMessage(result: unknown, status: number): string {
-    if (this.isRecord(result) && typeof result["message"] === "string") {
-      return result["message"]
+      }
+      throw error
     }
-    return `Payload API error: ${status}`
+
+    const isValidResult = isValidatedBy(options.schema)
+    if (!isValidResult(validated)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Payload response validation failed for ${method} ${endpoint}: unexpected shape after validation`,
+      )
+    }
+
+    return validated
   }
 
   /**
-   * Build a query string from Payload list/query options.
+   * Fetch data with optional caching keyed by TTL and tags. `isCached` is a
+   * type predicate used to safely narrow both cache reads and post-redaction
+   * data without an unsafe type assertion.
    */
-  private buildQuery(options?: PayloadQueryOptions): string {
-    if (!options) {
-      return ""
-    }
-    return `?${qs.stringify(options, { encodeValuesOnly: true })}`
-  }
-
-  /**
-   * Build a query string from raw params while skipping null/undefined values.
-   */
-  private buildParamsQuery(params?: Record<string, unknown>): string {
-    if (!params) {
-      return ""
-    }
-    const query = qs.stringify(params, {
-      encodeValuesOnly: true,
-      skipNulls: true,
-    })
-    return query ? `?${query}` : ""
-  }
-
-  /**
-   * Fetch data with optional caching keyed by TTL and tags.
-   */
-  private async getCached<T>(
+  private async getCached<T extends object | null>(
     key: string,
     fetcher: () => Promise<T>,
     ttl: number,
     tags: string[],
+    isCached: (value: unknown) => value is T,
   ): Promise<T> {
-    if (this.cacheService_) {
-      const cached = (await this.cacheService_.get({ key })) as T | null
+    if (this._cacheService) {
+      const cached: unknown = await this._cacheService.get({ key })
       if (cached !== null) {
-        return this.redactPrivatePayloadFields(cached)
+        const redactedCached = redactValue(cached)
+        if (isCached(redactedCached)) {
+          return redactedCached
+        }
       }
     }
 
     const data = await fetcher()
-    const redactedData = this.redactPrivatePayloadFields(data)
+    const redactedData = redactValue(data)
 
-    if (this.cacheService_ && redactedData !== null) {
-      await this.cacheService_.set({
-        data: redactedData as object,
+    if (!isCached(redactedData)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Payload: redacted value for cache key "${key}" no longer matches the expected shape`,
+      )
+    }
+
+    if (this._cacheService && redactedData !== null) {
+      await this._cacheService.set({
+        data: redactedData,
         key,
         tags,
         ttl,
@@ -295,57 +407,6 @@ export default class PayloadModuleService extends MedusaService({}) {
     }
 
     return redactedData
-  }
-
-  /**
-   * Create a cache key for list queries using locale and pagination options.
-   */
-  private buildListCacheKey(prefix: string, options?: CmsListOptions): string {
-    const locale = options?.locale ?? DEFAULT_LOCALE
-
-    if (!options) {
-      return `${prefix}:${locale}:default`
-    }
-
-    const { locale: _ignoredLocale, ...rest } = options
-    const hasOptions =
-      rest.limit !== undefined ||
-      rest.page !== undefined ||
-      rest.sort !== undefined
-    const hash = hasOptions
-      ? createHash("sha256").update(JSON.stringify(rest)).digest("hex")
-      : "default"
-
-    return `${prefix}:${locale}:${hash}`
-  }
-
-  /**
-   * Create a cache key for category list queries by locale and slug filter.
-   */
-  private buildCategoryListCacheKey(
-    prefix: string,
-    options?: CmsCategoryListOptions,
-  ): string {
-    const locale = options?.locale ?? DEFAULT_LOCALE
-    const slug = options?.categorySlug ?? "all"
-    return `${prefix}:${locale}:${slug}`
-  }
-
-  /**
-   * Build a locale-specific cache tag.
-   */
-  private buildLocaleTag(tag: string, locale?: string): string {
-    return `${tag}:locale:${locale ?? DEFAULT_LOCALE}`
-  }
-
-  /**
-   * Normalize locale query values that might be stringified null/undefined.
-   */
-  private normalizeLocale(locale?: string): string | undefined {
-    if (!locale || locale === "null" || locale === "undefined") {
-      return
-    }
-    return locale
   }
 
   /**
@@ -386,8 +447,9 @@ export default class PayloadModuleService extends MedusaService({}) {
 
         return page
       },
-      this.contentCacheTtl_,
+      this._contentCacheTtl,
       [CACHE_TAGS.ALL, CACHE_TAGS.PAGES],
+      isCachedPage,
     )
   }
 
@@ -397,11 +459,11 @@ export default class PayloadModuleService extends MedusaService({}) {
   async listPageCategoriesWithPages(
     options?: CmsCategoryListOptions,
   ): Promise<CmsPageCategoryDTO[]> {
-    const cacheKey = this.buildCategoryListCacheKey(
+    const cacheKey = buildCategoryListCacheKey(
       CACHE_TAGS.PAGE_CATEGORIES,
       options,
     )
-    const localeTag = this.buildLocaleTag(
+    const localeTag = buildLocaleTag(
       CACHE_TAGS.PAGE_CATEGORIES,
       options?.locale,
     )
@@ -419,8 +481,9 @@ export default class PayloadModuleService extends MedusaService({}) {
         })
         return result.categories ?? []
       },
-      this.listCacheTtl_,
+      this._listCacheTtl,
       [CACHE_TAGS.ALL, CACHE_TAGS.PAGE_CATEGORIES, localeTag],
+      isCachedPageCategoryList,
     )
   }
 
@@ -461,8 +524,9 @@ export default class PayloadModuleService extends MedusaService({}) {
         }
         return post
       },
-      this.contentCacheTtl_,
+      this._contentCacheTtl,
       [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLES],
+      isCachedArticle,
     )
   }
 
@@ -472,11 +536,11 @@ export default class PayloadModuleService extends MedusaService({}) {
   async listArticleCategoriesWithArticles(
     options?: CmsCategoryListOptions,
   ): Promise<CmsArticleCategoryDTO[]> {
-    const cacheKey = this.buildCategoryListCacheKey(
+    const cacheKey = buildCategoryListCacheKey(
       CACHE_TAGS.ARTICLE_CATEGORIES,
       options,
     )
-    const localeTag = this.buildLocaleTag(
+    const localeTag = buildLocaleTag(
       CACHE_TAGS.ARTICLE_CATEGORIES,
       options?.locale,
     )
@@ -495,8 +559,9 @@ export default class PayloadModuleService extends MedusaService({}) {
         })
         return result.categories ?? []
       },
-      this.listCacheTtl_,
+      this._listCacheTtl,
       [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLE_CATEGORIES, localeTag],
+      isCachedArticleCategoryList,
     )
   }
 
@@ -506,11 +571,8 @@ export default class PayloadModuleService extends MedusaService({}) {
   async listHeroCarousels(
     options?: CmsListOptions,
   ): Promise<CmsHeroCarouselDTO[]> {
-    const cacheKey = this.buildListCacheKey(CACHE_TAGS.HERO_CAROUSELS, options)
-    const localeTag = this.buildLocaleTag(
-      CACHE_TAGS.HERO_CAROUSELS,
-      options?.locale,
-    )
+    const cacheKey = buildListCacheKey(CACHE_TAGS.HERO_CAROUSELS, options)
+    const localeTag = buildLocaleTag(CACHE_TAGS.HERO_CAROUSELS, options?.locale)
     return await this.getCached(
       cacheKey,
       async () => {
@@ -527,8 +589,9 @@ export default class PayloadModuleService extends MedusaService({}) {
         })
         return result.docs
       },
-      this.listCacheTtl_,
+      this._listCacheTtl,
       [CACHE_TAGS.ALL, CACHE_TAGS.HERO_CAROUSELS, localeTag],
+      isCachedHeroCarouselList,
     )
   }
 
@@ -540,16 +603,16 @@ export default class PayloadModuleService extends MedusaService({}) {
     slug?: string,
     locale?: string,
   ): Promise<void> {
-    if (!this.cacheService_) {
+    if (!this._cacheService) {
       return
     }
 
-    const normalizedLocale = this.normalizeLocale(locale)
-    const clearAllLocales = !normalizedLocale
-    if (slug && !clearAllLocales) {
+    const normalizedLocale = normalizeLocale(locale)
+    const clearAllLocales = normalizedLocale === undefined
+    if (slug !== undefined && slug !== "" && !clearAllLocales) {
       const key = `${CMS}:${collection}:${slug}:${normalizedLocale ?? DEFAULT_LOCALE}`
-      this.logger_.info(`CMS: Clearing cache key ${key}`)
-      await this.cacheService_.clear({ key })
+      this._logger.info(`CMS: Clearing cache key ${key}`)
+      await this._cacheService.clear({ key })
     }
 
     const tags: string[] = []
@@ -557,7 +620,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       if (clearAllLocales) {
         tags.push(...allTags)
       } else {
-        tags.push(this.buildLocaleTag(localeTag, normalizedLocale))
+        tags.push(buildLocaleTag(localeTag, normalizedLocale))
       }
     }
 
@@ -598,11 +661,11 @@ export default class PayloadModuleService extends MedusaService({}) {
     }
 
     if (tags.length === 0) {
-      this.logger_.info(`CMS: No cache tags to clear for ${collection}`)
+      this._logger.info(`CMS: No cache tags to clear for ${collection}`)
       return
     }
-    this.logger_.info(`CMS: Clearing cache tags ${tags.join(", ")}`)
-    await this.cacheService_.clear({ tags })
-    this.logger_.info(`CMS: Invalidated cache for ${collection}`)
+    this._logger.info(`CMS: Clearing cache tags ${tags.join(", ")}`)
+    await this._cacheService.clear({ tags })
+    this._logger.info(`CMS: Invalidated cache for ${collection}`)
   }
 }
