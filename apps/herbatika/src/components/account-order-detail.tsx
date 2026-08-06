@@ -2,7 +2,9 @@
 
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildAccountUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useTranslations } from "next-intl"
 import { AccountSurface } from "@/components/account/account-surface"
 import { AccountOrderDetailItems } from "@/components/account/orders/account-order-detail-items"
@@ -18,6 +20,7 @@ type AccountOrderDetailProps = {
 }
 
 export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
+  const market = useMarketContext().code
   const tAuth = useTranslations("auth")
   const tNavigation = useTranslations("navigation")
   const authQuery = useAuth()
@@ -37,8 +40,8 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
           {orderQuery.error}
         </StatusText>
         <LinkButton
-          as={NextLink}
-          href="/account/orders"
+          as={StorefrontLink}
+          href={buildAccountUrl(market, "account.orders")}
           size="sm"
           variant="secondary"
         >
@@ -58,8 +61,8 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
           {tAuth("account.orders.not_found_description")}
         </p>
         <LinkButton
-          as={NextLink}
-          href="/account/orders"
+          as={StorefrontLink}
+          href={buildAccountUrl(market, "account.orders")}
           size="sm"
           variant="secondary"
         >
@@ -76,10 +79,10 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
       <HerbatikaBreadcrumb
         items={[
           { label: tNavigation("breadcrumbs.home"), href: "/" },
-          { label: tAuth("account_label"), href: "/account" },
+          { label: tAuth("account_label"), href: buildAccountUrl(market) },
           {
             label: tAuth("account.navigation.orders"),
-            href: "/account/orders",
+            href: buildAccountUrl(market, "account.orders"),
           },
           { label: resolveOrderDisplayId(order) },
         ]}

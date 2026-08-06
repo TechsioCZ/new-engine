@@ -1,5 +1,6 @@
 "use client"
 
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useEffect } from "react"
@@ -28,6 +29,7 @@ type CheckoutFlowProps = {
 
 export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
   const router = useRouter()
+  const market = useMarketContext().code
   const controller = useCheckoutController()
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
@@ -83,7 +85,7 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
       return
     }
 
-    router.push(resolveCheckoutStepHref(targetStep.slug))
+    window.location.assign(resolveCheckoutStepHref(market, targetStep.slug))
   }
 
   useEffect(() => {
@@ -91,7 +93,7 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
       return
     }
 
-    router.replace(resolveCheckoutStepHref(redirectStep))
+    window.location.replace(resolveCheckoutStepHref(market, redirectStep))
   }, [redirectStep, router, shouldRedirectStep])
 
   if (shouldRedirectStep) {

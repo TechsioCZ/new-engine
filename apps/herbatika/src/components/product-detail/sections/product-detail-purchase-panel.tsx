@@ -7,7 +7,10 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildUrl } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useLocale, useTranslations } from "next-intl"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import type {
@@ -29,7 +32,8 @@ type ProductInfoLink = {
 
 const resolveProductInfoLink = (
   product: Product,
-  primaryCategory: HttpTypes.StoreProductCategory | undefined
+  primaryCategory: HttpTypes.StoreProductCategory | undefined,
+  market: Market
 ): ProductInfoLink | null => {
   const brand = asRecord((product as Product & { brand?: unknown }).brand)
   const brandTitle = asString(brand?.title)
@@ -39,7 +43,9 @@ const resolveProductInfoLink = (
     const brandSlug = createBrandSlug(brandHandle || brandTitle)
 
     return {
-      href: brandSlug ? `/znacka/${brandSlug}` : null,
+      href: brandSlug
+        ? buildUrl({ market, kind: "brand", slug: brandSlug })
+        : null,
       label: brandTitle,
     }
   }
@@ -50,7 +56,7 @@ const resolveProductInfoLink = (
   }
 
   return {
-    href: `/c/${primaryCategory.handle}`,
+    href: buildUrl({ market, kind: "category", slug: primaryCategory.handle }),
     label: primaryCategoryName,
   }
 }
@@ -98,7 +104,8 @@ export function ProductDetailPurchasePanel({
   const tCart = useTranslations("cart")
   const tCatalog = useTranslations("catalog")
   const primaryCategory = productCategories[0]
-  const productInfoLink = resolveProductInfoLink(product, primaryCategory)
+  const market = useMarketContext().code
+  const productInfoLink = resolveProductInfoLink(product, primaryCategory, market)
   const flags = resolveFlags(product, Boolean(displayOriginalLabel), {
     action: tCatalog("filters.status.action"),
     new: tCatalog("filters.status.new"),
@@ -134,7 +141,7 @@ export function ProductDetailPurchasePanel({
                 </span>
                 {productInfoLink.href ? (
                   <Link
-                    as={NextLink}
+                    as={StorefrontLink}
                     className="min-w-0 break-words font-normal text-primary text-sm leading-tight underline hover:text-primary-strong"
                     href={productInfoLink.href}
                   >

@@ -4,7 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import Image from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
@@ -13,6 +13,7 @@ import {
   resolveLineItemUnitAmount,
 } from "@/lib/storefront/cart-calculations"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import {
   FALLBACK_MAX_QUANTITY,
@@ -37,9 +38,10 @@ export function CartItemRow({
   onUpdateQuantity,
 }: CartItemRowProps) {
   const t = useTranslations("cart")
+  const market = useMarketContext().code
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
-  const itemHref = resolveLineItemHref(item)
+  const itemHref = resolveLineItemHref(item, market)
   const itemVariant = item.variant_title
   const itemInventory = resolveLineItemInventory(item)
   const itemMaxQuantity = Math.max(
@@ -53,7 +55,7 @@ export function CartItemRow({
 
   return (
     <article className="grid grid-cols-[auto_1fr_auto] items-start gap-200">
-      <NextLink href={itemHref}>
+      <StorefrontLink href={itemHref}>
         <Image
           alt={itemName}
           className="h-16 w-16 rounded-md object-cover"
@@ -61,11 +63,11 @@ export function CartItemRow({
           src={resolveLineItemThumbnail(item)}
           width={60}
         />
-      </NextLink>
+      </StorefrontLink>
 
       <div className="min-w-0">
         <Link
-          as={NextLink}
+          as={StorefrontLink}
           className="block truncate font-semibold text-sm underline"
           href={itemHref}
         >

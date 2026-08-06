@@ -1,6 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 type CategoryTopLevelLinksProps = {
   topLevelCategories: HttpTypes.StoreProductCategory[]
@@ -21,12 +23,14 @@ export function CategoryTopLevelLinks({
   onCategoryMouseEnter,
   onCategoryMouseLeave,
 }: CategoryTopLevelLinksProps) {
+  const market = useMarketContext().code
+
   return (
     <div className="flex flex-wrap gap-200">
       {topLevelCategories.map((category) => (
         <LinkButton
-          as={NextLink}
-          href={`/c/${category.handle}`}
+          as={StorefrontLink}
+          href={buildUrl({ market, kind: "category", slug: category.handle })}
           key={category.id}
           onBlur={() => onCategoryBlur(category)}
           onFocus={() => onCategoryFocus(category)}

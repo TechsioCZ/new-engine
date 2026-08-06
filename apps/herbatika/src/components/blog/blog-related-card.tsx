@@ -1,7 +1,9 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useLocale } from "next-intl"
 import type { BlogPost } from "@/lib/storefront/blog-content"
 import { formatBlogDate, formatTopicFromKey } from "./blog-formatters"
@@ -13,9 +15,12 @@ type BlogRelatedCardProps = {
 export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
   const locale = useLocale()
 
+  const market = useMarketContext().code
+  const articleHref = buildUrl({ market, kind: "article", slug: post.slug })
+
   return (
     <article className="min-h-950 overflow-hidden rounded-2xl border border-border-secondary bg-surface">
-      <Link as={NextLink} className="block" href={`/blog/${post.slug}`}>
+      <Link as={StorefrontLink} className="block" href={articleHref}>
         <NextImage
           alt={post.title}
           className="aspect-video w-full object-cover"
@@ -41,9 +46,9 @@ export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
         </div>
 
         <Link
-          as={NextLink}
+          as={StorefrontLink}
           className="line-clamp-2 font-bold text-fg-primary text-lg leading-snug hover:text-primary"
-          href={`/blog/${post.slug}`}
+          href={articleHref}
         >
           {post.title}
         </Link>

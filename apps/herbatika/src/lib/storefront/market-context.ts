@@ -18,7 +18,6 @@ export type HerbatikaMarketContext = {
 }
 
 type ResolveMarketContextInput = {
-  acceptLanguage?: string | null
   host?: string | null
 }
 
@@ -92,19 +91,10 @@ const HOST_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
   "www.herbatika.ro": "ro",
 }
 
-const LANGUAGE_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
-  cs: "cz",
-  cz: "cz",
-  hu: "hu",
-  ro: "ro",
-  sk: "sk",
-}
-
 export const DEFAULT_MARKET_CODE: HerbatikaMarketCode = "sk"
 const marketResolver = defineStorefrontMarkets({
   defaultMarketCode: DEFAULT_MARKET_CODE,
   hostMarketMap: HOST_MARKET_MAP,
-  languageMarketMap: LANGUAGE_MARKET_MAP,
   markets: MARKET_CONFIG,
 })
 
@@ -116,7 +106,6 @@ export const getHerbatikaMarketContext = (
 ): HerbatikaMarketContext => marketResolver.getMarket(code)
 
 export const resolveMarketContext = ({
-  acceptLanguage,
   host,
-}: ResolveMarketContextInput = {}): HerbatikaMarketContext =>
-  marketResolver.resolveMarket({ acceptLanguage, host })
+}: ResolveMarketContextInput = {}): HerbatikaMarketContext | null =>
+  marketResolver.resolveMarket({ host }, { mode: "host-only" })

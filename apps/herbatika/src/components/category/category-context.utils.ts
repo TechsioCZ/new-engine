@@ -1,4 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
+import { buildUrl } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
 import { buildCategoryContextImageTiles } from "@/components/category/category-context-image-tile-grid"
 import { rewriteCategoryMetadataHtml } from "@/components/category/category-html-rewrite"
 import {
@@ -41,6 +43,7 @@ type ResolveCategoryIntroTextInput = {
 }
 
 type ResolveCategoryHtmlInput = ResolveCategoryIntroTextInput & {
+  market: Market
   categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
 }
 
@@ -59,6 +62,7 @@ const resolveCategoryMetadataHtml = ({
   activeCategory,
   categoryByHandle,
   field,
+  market,
 }: ResolveCategoryHtmlInput & {
   field: "bottom_description_html" | "top_description_html"
 }) => {
@@ -68,7 +72,7 @@ const resolveCategoryMetadataHtml = ({
     return null
   }
 
-  return rewriteCategoryMetadataHtml(html, categoryByHandle)
+  return rewriteCategoryMetadataHtml(html, categoryByHandle, market)
 }
 
 export const resolveCategoryIntroHtml = (input: ResolveCategoryHtmlInput) =>
@@ -78,6 +82,7 @@ export const resolveCategoryBottomHtml = (input: ResolveCategoryHtmlInput) =>
   resolveCategoryMetadataHtml({ ...input, field: "bottom_description_html" })
 
 type ResolveCategoryContextTilesInput = {
+  market: Market
   activeCategory: HttpTypes.StoreProductCategory | null
   activeCategoryFilterIds: string[]
   categories: HttpTypes.StoreProductCategory[]
@@ -89,6 +94,7 @@ export const resolveCategoryContextImageTiles = ({
   activeCategoryFilterIds,
   categories,
   categoryById,
+  market,
 }: ResolveCategoryContextTilesInput) => {
   if (!activeCategory) {
     return []
@@ -103,7 +109,7 @@ export const resolveCategoryContextImageTiles = ({
   ).map((category) => ({
     id: category.id,
     label: normalizeCategoryName(category.name),
-    href: `/c/${category.handle}`,
+    href: buildUrl({ market, kind: "category", slug: category.handle }),
     handle: category.handle,
     parentCategoryId: category.parent_category_id ?? null,
   }))
@@ -130,7 +136,7 @@ export const resolveCategoryContextImageTiles = ({
     .map((category) => ({
       id: category.id,
       label: normalizeCategoryName(category.name),
-      href: `/c/${category.handle}`,
+      href: buildUrl({ market, kind: "category", slug: category.handle }),
       handle: category.handle,
       parentCategoryId: category.parent_category_id ?? null,
     }))

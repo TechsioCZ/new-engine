@@ -6,7 +6,10 @@ import {
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildUrl } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useTranslations } from "next-intl"
 import type { ComponentProps } from "react"
 import type { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "@/components/header/herbatika-header.submenu-data"
@@ -39,6 +42,7 @@ type PurposeCarouselSlidesProps = {
 const DEFAULT_ROOT_HANDLE: PurposeCarouselRootHandle = "trapi-ma"
 
 const buildResolvedPurposeCarouselItems = (
+  market: Market,
   rootHandle: PurposeCarouselRootHandle,
   groupsByRootHandle: ReturnType<
     typeof useHerbatikaHeaderSubmenu
@@ -56,7 +60,7 @@ const buildResolvedPurposeCarouselItems = (
 
     return [
       {
-        href: `/c/${item.handle}`,
+        href: buildUrl({ market, kind: "category", slug: item.handle }),
         id: item.id,
         label: item.label,
         src: item.src,
@@ -70,7 +74,7 @@ const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] =>
     id: item.id,
     content: (
       <Link
-        as={NextLink}
+        as={StorefrontLink}
         className="grid h-full min-h-800 w-full grid-rows-[auto_1fr] items-start justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center text-fg-primary"
         href={item.href}
       >
@@ -131,9 +135,10 @@ export function PurposeCarousel({
   viewAllHref,
 }: PurposeCarouselProps) {
   const tContent = useTranslations("content")
+  const market = useMarketContext().code
   const { groupsByRootHandle } = useHerbatikaHeaderSubmenu()
   const resolvedItems =
-    items ?? buildResolvedPurposeCarouselItems(rootHandle, groupsByRootHandle)
+    items ?? buildResolvedPurposeCarouselItems(market, rootHandle, groupsByRootHandle)
   const resolvedTitle = title ?? tContent("home.purpose.title")
   const slides = buildImageSlides(resolvedItems)
 
@@ -147,7 +152,7 @@ export function PurposeCarousel({
         <h2 className="font-bold text-3xl text-fg-primary leading-none">
           {resolvedTitle}
         </h2>
-        <TextActionLink href={viewAllHref ?? `/c/${rootHandle}`} />
+        <TextActionLink href={viewAllHref ?? buildUrl({ market, kind: "category", slug: rootHandle })} />
       </div>
 
       <div className="space-y-200">

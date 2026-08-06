@@ -2,19 +2,19 @@
 
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { type ComponentPropsWithoutRef, Fragment } from "react"
 
-type NextLinkProps = ComponentPropsWithoutRef<typeof NextLink>
+type StorefrontLinkProps = ComponentPropsWithoutRef<typeof StorefrontLink>
 
 export type HerbatikaBreadcrumbItem = {
   label: string
-  href?: NextLinkProps["href"]
+  href?: StorefrontLinkProps["href"]
   icon?: IconType
   isCurrent?: boolean
   ariaLabel?: string
-  linkProps?: Omit<NextLinkProps, "as" | "children" | "className" | "href">
+  linkProps?: Omit<StorefrontLinkProps, "as" | "children" | "className" | "href">
 }
 
 export type HerbatikaBreadcrumbProps = Omit<
@@ -77,7 +77,7 @@ export function HerbatikaBreadcrumb({
                 ) : (
                   <Breadcrumb.Link
                     aria-label={item.ariaLabel}
-                    as={NextLink}
+                    as={StorefrontLink}
                     href={item.href ?? "#"}
                     {...item.linkProps}
                   >

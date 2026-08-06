@@ -6,7 +6,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { parseAsInteger, useQueryState } from "nuqs"
 import { useEffect, useTransition } from "react"
@@ -96,7 +96,7 @@ export function AccountOrdersList() {
         <p className="text-fg-secondary text-sm">
           {tAuth("account.orders.empty_description")}
         </p>
-        <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
+        <LinkButton as={StorefrontLink} href="/" size="sm" variant="secondary">
           {tAuth("account.orders.browse_products")}
         </LinkButton>
       </AccountSurface>
@@ -139,7 +139,7 @@ export function AccountOrdersList() {
         <Pagination
           count={ordersQuery.totalCount}
           getPageUrl={getPageUrl}
-          linkAs={NextLink}
+          linkAs={StorefrontLink}
           page={currentPage}
           pageSize={ORDER_PAGE_SIZE}
           size="sm"

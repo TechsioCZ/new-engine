@@ -1,4 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
+import { buildUrl } from "@/lib/url/builder"
+import { getSegment } from "@/lib/url/segments"
+import type { Market } from "@/lib/url/types"
 
 const SHOW_MORE_MARKER_PATTERN = /#showmore#/gi
 const SHOW_MORE_MARKER_PARAGRAPH_PATTERN =
@@ -18,7 +21,8 @@ const stripShowMoreMarker = (html: string) =>
 
 const resolveLegacyCategoryHref = (
   href: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
+  market: Market
 ) => {
   const trimmedHref = href.trim()
   if (!trimmedHref || trimmedHref.startsWith("#")) {
@@ -41,7 +45,8 @@ const resolveLegacyCategoryHref = (
   }
 
   const normalizedPath = pathname.replace(/^\/+|\/+$/g, "")
-  if (!normalizedPath || normalizedPath.startsWith("c/")) {
+  const categoryRoot = getSegment(market, "categories")
+  if (!normalizedPath || normalizedPath.startsWith(`${categoryRoot}/`)) {
     return href
   }
 
@@ -50,7 +55,7 @@ const resolveLegacyCategoryHref = (
     return href
   }
 
-  return `/c/${handle}`
+  return buildUrl({ market, kind: "category", slug: handle })
 }
 
 const resolveLegacyMediaUrl = (value: string) => {
@@ -91,22 +96,26 @@ const rewriteLegacyMediaUrls = (html: string) =>
 
 const rewriteLegacyCategoryLinks = (
   html: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
+  market: Market
 ) =>
   html.replace(
     /\bhref=(["'])(.*?)\1/gi,
     (_match, quote: string, href: string) =>
       `href=${quote}${resolveLegacyCategoryHref(
         href,
-        categoryByHandle
+        categoryByHandle,
+        market
       )}${quote}`
   )
 
 export const rewriteCategoryMetadataHtml = (
   html: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
+  market: Market
 ) =>
   rewriteLegacyCategoryLinks(
     rewriteLegacyMediaUrls(stripShowMoreMarker(html)),
-    categoryByHandle
+    categoryByHandle,
+    market
   )

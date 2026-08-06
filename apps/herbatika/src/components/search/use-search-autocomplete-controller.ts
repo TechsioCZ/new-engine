@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import {
   type FocusEvent,
@@ -34,7 +33,6 @@ export function useSearchAutocompleteController({
   onSubmit,
   regionId,
 }: UseSearchAutocompleteControllerInput) {
-  const router = useRouter()
   const t = useTranslations("search")
   const panelId = `${useId()}-search-autocomplete`
   const [value, setValue] = useState("")
@@ -128,7 +126,7 @@ export function useSearchAutocompleteController({
 
     if (event.key === "Enter" && activeItem) {
       event.preventDefault()
-      router.push(activeItem.href)
+      window.location.assign(activeItem.href)
       closePanel()
     }
   }

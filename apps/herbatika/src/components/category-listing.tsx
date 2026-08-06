@@ -7,9 +7,10 @@ import { normalizeCategoryName } from "@/components/category/category-product-ut
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { CategoryRichText } from "@/components/category/category-rich-text"
 import { useCategoryListingController } from "@/components/category/use-category-listing-controller"
-import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation"
+import { createPrimaryNavItems } from "@/components/header/herbatika-header.navigation"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
 
 type CategoryListingProps = {
@@ -31,6 +32,7 @@ const humanizeCategorySlug = (value: string) =>
 
 export function CategoryListing({ slug }: CategoryListingProps) {
   const controller = useCategoryListingController({ slug })
+  const market = useMarketContext().code
   const hasResultProducts = controller.products.length > 0
   const isResultsLoading =
     controller.categoriesQuery.isLoading ||
@@ -39,7 +41,7 @@ export function CategoryListing({ slug }: CategoryListingProps) {
     controller.catalogQuery.isFetching &&
     (hasResultProducts || controller.catalogQuery.query.isPlaceholderData)
   const fallbackNavTitle =
-    PRIMARY_NAV_ITEMS.find((item) => item.href === `/c/${slug}`)?.label ??
+    createPrimaryNavItems(market).find((item) => item.slug === slug)?.label ??
     humanizeCategorySlug(slug)
   const categoryTitle = normalizeCategoryName(
     controller.activeCategory?.name ?? fallbackNavTitle

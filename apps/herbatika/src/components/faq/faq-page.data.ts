@@ -1,7 +1,10 @@
-export type FaqLink = {
-  href: string
-  label: string
-}
+import type { AccountSegmentKey } from "@/lib/url/builder"
+import type { UrlKind } from "@/lib/url/types"
+
+export type FaqLink =
+  | { href: string; label: string; accountSection?: never; kind?: never; slug?: never }
+  | { accountSection: AccountSegmentKey; href?: never; label: string; kind?: never; slug?: never }
+  | { accountSection?: never; href?: never; kind: UrlKind; label: string; slug?: string }
 
 export type FaqAnswerBlock =
   | {
@@ -204,8 +207,8 @@ export const faqItems = [
       {
         type: "links",
         items: [
-          { href: "/registracia/", label: "Registrácia" },
-          { href: "/newsletter/", label: "Newsletter" },
+          { accountSection: "account.register", label: "Registrácia" },
+          { kind: "page", label: "Newsletter", slug: "newsletter" },
           {
             href: "https://www.instagram.com/herbatica/",
             label: "Instagram",
@@ -308,7 +311,8 @@ export const faqItems = [
         type: "links",
         items: [
           {
-            href: "/reklamacny-poriadok/",
+            kind: "page",
+            slug: "reklamacny-poriadok",
             label: "Reklamačný formulár",
           },
         ],
@@ -328,7 +332,8 @@ export const faqItems = [
         type: "links",
         items: [
           {
-            href: "/obchodne-podmienky/",
+            kind: "page",
+            slug: "obchodne-podmienky",
             label: "Dokumenty k stiahnutiu",
           },
         ],

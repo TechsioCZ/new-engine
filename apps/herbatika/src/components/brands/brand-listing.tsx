@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl"
 import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
+import { buildIndexUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
@@ -15,6 +17,7 @@ type BrandListingProps = {
 }
 
 export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
+  const market = useMarketContext().code
   const t = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const controller = useBrandListingController({ brandFacetId })
@@ -28,7 +31,7 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
             href: "/",
             icon: "token-icon-home",
           },
-          { label: t("brands.label"), href: "/znacka" },
+          { label: t("brands.label"), href: buildIndexUrl({ market, kind: "brand" }) },
           { label: brandTitle },
         ]}
       />

@@ -15,6 +15,9 @@ import {
 } from "@/components/category/category-product-utils"
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items"
 import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
+import { buildUrl } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import {
   buildCatalogProductsParams,
@@ -37,7 +40,8 @@ const resolveBreadcrumbItems = (
   slug: string,
   activeCategory: HttpTypes.StoreProductCategory | null,
   categoryById: Map<string, HttpTypes.StoreProductCategory>,
-  homeLabel: string
+  homeLabel: string,
+  market: Market
 ) => {
   const items: HerbatikaBreadcrumbItem[] = [
     { label: homeLabel, href: "/", icon: "token-icon-home" },
@@ -67,7 +71,9 @@ const resolveBreadcrumbItems = (
     const label = normalizeCategoryName(category.name)
     const isLast = index === trail.length - 1
     const href =
-      isLast || !category.handle ? undefined : `/c/${category.handle}`
+      isLast || !category.handle
+        ? undefined
+        : buildUrl({ market, kind: "category", slug: category.handle })
 
     items.push({
       label,
@@ -90,6 +96,7 @@ export function useCategoryListingQueries({
   const locale = useLocale()
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
+  const market = useMarketContext().code
   const regionCurrencyCode = resolveRegionCurrency(region)
   const categoriesQuery = useCategories({
     page: 1,
@@ -140,7 +147,8 @@ export function useCategoryListingQueries({
     slug,
     activeCategory,
     categoryById,
-    tNavigation("breadcrumbs.home")
+    tNavigation("breadcrumbs.home"),
+    market
   )
 
   const catalogProductsInput = buildCatalogProductsParams({
@@ -193,6 +201,7 @@ export function useCategoryListingQueries({
     activeCategoryFilterIds,
     categories: categoriesQuery.categories,
     categoryById,
+    market,
   })
 
   return {
@@ -209,11 +218,13 @@ export function useCategoryListingQueries({
     categoryBottomHtml: resolveCategoryBottomHtml({
       activeCategory,
       categoryByHandle,
+      market,
     }),
     categoryContextImageTiles,
     categoryIntroHtml: resolveCategoryIntroHtml({
       activeCategory,
       categoryByHandle,
+      market,
     }),
     categoryIntroText: resolveCategoryIntroText({ activeCategory }),
     categorySubtitle:

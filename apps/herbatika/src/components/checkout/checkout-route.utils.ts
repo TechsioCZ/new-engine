@@ -1,3 +1,5 @@
+import { buildCartUrl, buildCheckoutUrl, type CheckoutSegmentKey } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
 import {
   CHECKOUT_STEPS,
   type CheckoutStepSlug,
@@ -19,8 +21,22 @@ export const resolveCheckoutStepSlug = (
   return isCheckoutStepSlug(value) ? value : DEFAULT_CHECKOUT_STEP_SLUG
 }
 
-export const resolveCheckoutStepHref = (step: CheckoutStepSlug) =>
-  `/checkout/${step}`
+const CHECKOUT_SEGMENT_BY_STEP = {
+  "doprava-platba": "checkout.shipping",
+  udaje: "checkout.contact",
+  suhrn: "checkout.review",
+} as const satisfies Partial<Record<CheckoutStepSlug, CheckoutSegmentKey>>
+
+export const resolveCheckoutStepHref = (
+  market: Market,
+  step: CheckoutStepSlug
+) => {
+  if (step === "kosik") {
+    return buildCartUrl(market)
+  }
+
+  return buildCheckoutUrl(market, CHECKOUT_SEGMENT_BY_STEP[step])
+}
 
 export const resolveCheckoutStepIndexBySlug = (step: CheckoutStepSlug) => {
   const index = CHECKOUT_STEPS.findIndex((item) => item.slug === step)

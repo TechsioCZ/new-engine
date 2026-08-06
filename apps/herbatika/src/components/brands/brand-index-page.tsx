@@ -1,4 +1,4 @@
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { getTranslations } from "next-intl/server"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import {
@@ -6,12 +6,14 @@ import {
   groupStorefrontBrands,
   type StorefrontBrand,
 } from "@/lib/storefront/brands"
+import type { Market } from "@/lib/url/types"
 
 type BrandIndexPageProps = {
+  market: Market
   brands: StorefrontBrand[]
 }
 
-export async function BrandIndexPage({ brands }: BrandIndexPageProps) {
+export async function BrandIndexPage({ brands, market }: BrandIndexPageProps) {
   const [t, tNavigation] = await Promise.all([
     getTranslations("catalog"),
     getTranslations("navigation"),
@@ -58,12 +60,12 @@ export async function BrandIndexPage({ brands }: BrandIndexPageProps) {
               <ul className="col-span-10 grid gap-x-800 gap-y-200 sm:col-span-11 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {group.brands.map((brand) => (
                   <li className="min-w-0" key={brand.id}>
-                    <NextLink
+                    <StorefrontLink
                       className="inline-flex max-w-full font-medium text-base text-primary uppercase leading-snug hover:text-primary-strong hover:underline"
-                      href={createBrandHref(brand)}
+                      href={createBrandHref(brand, market)}
                     >
                       <span className="break-words">{brand.title}</span>
-                    </NextLink>
+                    </StorefrontLink>
                   </li>
                 ))}
               </ul>

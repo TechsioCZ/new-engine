@@ -1,3 +1,4 @@
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
@@ -27,10 +28,11 @@ export function CheckoutStepContent({
 }: CheckoutStepContentProps) {
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
-  const cartStepHref = resolveCheckoutStepHref("kosik")
-  const shippingStepHref = resolveCheckoutStepHref("doprava-platba")
-  const detailsStepHref = resolveCheckoutStepHref("udaje")
-  const summaryStepHref = resolveCheckoutStepHref("suhrn")
+  const market = useMarketContext().code
+  const cartStepHref = resolveCheckoutStepHref(market, "kosik")
+  const shippingStepHref = resolveCheckoutStepHref(market, "doprava-platba")
+  const detailsStepHref = resolveCheckoutStepHref(market, "udaje")
+  const summaryStepHref = resolveCheckoutStepHref(market, "suhrn")
   const selectedPaymentProviderId = controller.selectedPaymentProviderId
   const selectedShippingOption = controller.checkoutShippingQuery.selectedOption
   const selectedShippingLabel = selectedShippingOption?.name ?? undefined

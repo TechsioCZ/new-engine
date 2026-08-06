@@ -3,14 +3,17 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { HeaderContext } from "@techsio/ui-kit/organisms/header"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useContext, useEffect } from "react"
-import { HEADER_ACTION_ITEMS } from "./herbatika-header.navigation"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { createHeaderActionItems } from "./herbatika-header.navigation"
 import { HerbatikaMobileMenuNav } from "./herbatika-mobile-menu-nav"
 
 const HEADER_DESKTOP_MEDIA_QUERY = "(min-width: 896px)"
 
 export function HerbatikaMobileMenuDialog() {
+  const market = useMarketContext().code
+  const headerActionItems = createHeaderActionItems(market)
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useContext(HeaderContext)
 
   useEffect(() => {
@@ -50,9 +53,9 @@ export function HerbatikaMobileMenuDialog() {
           <HerbatikaMobileMenuNav />
 
           <div className="grid w-full grid-cols-1 gap-200 p-400 sm:grid-cols-2">
-            {HEADER_ACTION_ITEMS.map((action) => (
+            {headerActionItems.map((action) => (
               <LinkButton
-                as={NextLink}
+                as={StorefrontLink}
                 className="h-fit rounded-xs bg-surface px-300 py-400 font-bold text-fg-primary text-sm hover:bg-highlight"
                 href={action.href}
                 key={`mobile-action-${action.href}`}

@@ -6,7 +6,10 @@ import { Input } from "@techsio/ui-kit/atoms/input"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildAccountUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { withUrlSearchParams } from "@/lib/storefront/url-search-params"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
@@ -35,6 +38,7 @@ function ProductListPickerListRow({
   onAdd,
   row,
 }: ProductListPickerListRowProps) {
+  const market = useMarketContext().code
   const tAuth = useTranslations("auth")
 
   return (
@@ -64,9 +68,12 @@ function ProductListPickerListRow({
           aria-label={tAuth("product_lists.picker.open_list_aria", {
             listTitle: row.title,
           })}
-          as={NextLink}
+          as={StorefrontLink}
           className="h-500 w-500 p-0"
-          href={`/account/lists?list=${encodeURIComponent(row.list.id)}`}
+          href={withUrlSearchParams(
+            buildAccountUrl(market, "account.lists"),
+            { list: row.list.id }
+          )}
           icon="token-icon-chevron-right"
           iconSize="sm"
           size="current"
@@ -105,7 +112,7 @@ export function ProductListPickerPopover({
           {tAuth("product_lists.picker.auth_required")}
         </p>
         <LinkButton
-          as={NextLink}
+          as={StorefrontLink}
           block
           href={picker.loginHref}
           size="sm"

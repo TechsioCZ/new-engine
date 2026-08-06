@@ -1,3 +1,5 @@
+import { buildUrl } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
 export type StorefrontBrand = {
   id: string
   title: string
@@ -65,8 +67,10 @@ export const createBrandSlug = (value: string): string =>
     .replaceAll(/-+/g, "-")
     .replaceAll(/^-+|-+$/g, "")
 
-export const createBrandHref = (brand: Pick<StorefrontBrand, "slug">) =>
-  `/znacka/${brand.slug}`
+export const createBrandHref = (
+  brand: Pick<StorefrontBrand, "slug">,
+  market: Market
+) => buildUrl({ market, kind: "brand", slug: brand.slug })
 
 export const createBrandFacetId = (value: string) =>
   `${BRAND_FACET_PREFIX}${createBrandSlug(value)}`

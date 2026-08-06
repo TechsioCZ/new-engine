@@ -1,6 +1,10 @@
+"use client"
+
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildIndexUrl, buildUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import type { AboutParagraph } from "./about-page.data"
 
 export type AboutImage = {
@@ -17,7 +21,26 @@ const textLinkClassName =
 
 const isExternalHref = (href: string) => href.startsWith("http")
 
+const resolveAboutLinkHref = (
+  link: Exclude<AboutParagraph, string>[number],
+  market: ReturnType<typeof useMarketContext>["code"]
+) => {
+  if (typeof link === "string") {
+    return ""
+  }
+  if ("href" in link && link.href) {
+    return link.href
+  }
+  if (!("kind" in link && link.kind)) {
+    return "/"
+  }
+  return link.slug
+    ? buildUrl({ market, kind: link.kind, slug: link.slug })
+    : buildIndexUrl({ market, kind: link.kind })
+}
+
 export function AboutRichText({ content }: { content: AboutParagraph }) {
+  const market = useMarketContext().code
   if (typeof content === "string") {
     return content
   }
@@ -27,16 +50,17 @@ export function AboutRichText({ content }: { content: AboutParagraph }) {
       return part
     }
 
+    const href = resolveAboutLinkHref(part, market)
     return (
-      <NextLink
+      <StorefrontLink
         className={textLinkClassName}
-        href={part.href}
-        key={`${part.href}-${index}`}
-        rel={isExternalHref(part.href) ? "noreferrer noopener" : undefined}
-        target={isExternalHref(part.href) ? "_blank" : undefined}
+        href={href}
+        key={`${href}-${index}`}
+        rel={isExternalHref(href) ? "noreferrer noopener" : undefined}
+        target={isExternalHref(href) ? "_blank" : undefined}
       >
         {part.label}
-      </NextLink>
+      </StorefrontLink>
     )
   })
 }

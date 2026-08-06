@@ -3,7 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
@@ -98,7 +98,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
           <StatusText showIcon status="error">
             {tCatalog("product_detail.errors.not_found")}
           </StatusText>
-          <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
+          <LinkButton as={StorefrontLink} href="/" size="sm" variant="secondary">
             {tCatalog("product_detail.back_home")}
           </LinkButton>
         </section>

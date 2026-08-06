@@ -7,6 +7,8 @@ import {
   resolveCategoryRank,
 } from "@/components/category/category-product-utils"
 import { resolveCategoryImage } from "@/lib/category-images"
+import { buildUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useCategories } from "@/lib/storefront/categories"
 import {
   CATEGORY_TREE_FIELDS,
@@ -49,6 +51,7 @@ const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
   })
 
 export function useHerbatikaHeaderSubmenu() {
+  const market = useMarketContext().code
   const categoriesQuery = useCategories({
     page: 1,
     limit: CATEGORY_TREE_LIMIT,
@@ -100,12 +103,16 @@ export function useHerbatikaHeaderSubmenu() {
               label: category.name,
               parentCategoryId: category.parent_category_id,
             }),
-            href: category.handle ? `/c/${category.handle}` : "#",
+            href: category.handle
+              ? buildUrl({ market, kind: "category", slug: category.handle })
+              : "#",
             childItems: (childrenByParentId.get(category.id) ?? []).map(
               (child) => ({
                 id: child.id,
                 label: normalizeCategoryName(child.name),
-                href: child.handle ? `/c/${child.handle}` : "#",
+                href: child.handle
+                  ? buildUrl({ market, kind: "category", slug: child.handle })
+                  : "#",
               })
             ),
           }))

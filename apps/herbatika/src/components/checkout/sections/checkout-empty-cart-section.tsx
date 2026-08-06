@@ -3,7 +3,9 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useTranslations } from "next-intl"
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import { SupportingText } from "@/components/text/supporting-text"
@@ -21,6 +23,7 @@ const EMPTY_CART_RECOMMENDATIONS_LIMIT = 10
 const EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT = 32
 
 export function CheckoutEmptyCartSection() {
+  const market = useMarketContext().code
   const tCheckout = useTranslations("checkout")
   const region = useRegionContext()
   const categoriesQuery = useCategories({
@@ -80,16 +83,16 @@ export function CheckoutEmptyCartSection() {
 
             <div className="flex flex-col gap-200 sm:flex-row sm:flex-wrap">
               <LinkButton
-                as={NextLink}
+                as={StorefrontLink}
                 className="w-full sm:w-auto"
-                href="/c/novinky"
+                href={buildUrl({ market, kind: "category", slug: "novinky" })}
                 size="md"
                 variant="primary"
               >
                 {tCheckout("empty_cart_browse_new_products")}
               </LinkButton>
               <LinkButton
-                as={NextLink}
+                as={StorefrontLink}
                 className="w-full sm:w-auto"
                 href="/"
                 size="md"

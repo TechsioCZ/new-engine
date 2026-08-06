@@ -5,7 +5,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
@@ -20,6 +20,7 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import {
   resolveAvailabilityText,
@@ -73,9 +74,10 @@ export function CheckoutCartItemRow({
   product,
 }: CheckoutCartItemRowProps) {
   const tCart = useTranslations("cart")
+  const market = useMarketContext().code
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
-  const itemHref = resolveLineItemHref(item)
+  const itemHref = resolveLineItemHref(item, market)
   const itemInventory = resolveLineItemInventory(item)
   const itemMaxQuantity = Math.max(
     baseQuantity,
@@ -89,7 +91,7 @@ export function CheckoutCartItemRow({
     <article className="flex w-full flex-col gap-250 sm:flex-row sm:items-start md:grid md:grid-cols-[auto_1fr] md:gap-300">
       <div className="flex gap-100">
         <Link
-          as={NextLink}
+          as={StorefrontLink}
           className="inline-flex size-[120px] shrink-0"
           href={itemHref}
         >
@@ -104,7 +106,7 @@ export function CheckoutCartItemRow({
         </Link>
         <div className="flex w-full flex-col items-start gap-300 sm:hidden">
           <Link
-            as={NextLink}
+            as={StorefrontLink}
             className="font-normal text-fg-primary text-md leading-snug no-underline hover:text-fg-primary"
             href={itemHref}
           >
@@ -137,7 +139,7 @@ export function CheckoutCartItemRow({
         <div className="hidden gap-200 sm:grid sm:grid-cols-[3fr_1fr_1fr]">
           <div className="flex items-start">
             <Link
-              as={NextLink}
+              as={StorefrontLink}
               className="font-normal text-fg-primary text-md leading-snug no-underline hover:text-fg-primary"
               href={itemHref}
             >

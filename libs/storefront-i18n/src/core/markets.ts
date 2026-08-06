@@ -8,6 +8,10 @@ export type ResolveStorefrontMarketInput = {
   host?: string | null
 }
 
+export type ResolveStorefrontMarketOptions = {
+  mode?: "fallback" | "host-only"
+}
+
 export const normalizeStorefrontHost = (host?: string | null) => {
   const firstHost = host?.split(",")[0]?.trim().toLowerCase()
 
@@ -72,10 +76,18 @@ export const defineStorefrontMarkets = <
 }: DefineStorefrontMarketsOptions<TMarkets>) => {
   const getMarket = (code: MarketCode<TMarkets>) => markets[code]
 
-  const resolveMarket = ({
-    acceptLanguage,
-    host,
-  }: ResolveStorefrontMarketInput = {}) => {
+  function resolveMarket(
+    input: ResolveStorefrontMarketInput,
+    options: { mode: "host-only" }
+  ): TMarkets[MarketCode<TMarkets>] | null
+  function resolveMarket(
+    input?: ResolveStorefrontMarketInput,
+    options?: ResolveStorefrontMarketOptions
+  ): TMarkets[MarketCode<TMarkets>]
+  function resolveMarket(
+    { acceptLanguage, host }: ResolveStorefrontMarketInput = {},
+    { mode = "fallback" }: ResolveStorefrontMarketOptions = {}
+  ): TMarkets[MarketCode<TMarkets>] | null {
     const normalizedHost = normalizeStorefrontHost(host)
     const hostMarketCode = normalizedHost
       ? hostMarketMap[normalizedHost]
@@ -83,6 +95,12 @@ export const defineStorefrontMarkets = <
 
     if (hostMarketCode) {
       return getMarket(hostMarketCode)
+    }
+
+    // Strict storefront ingress never negotiates by language and never falls
+    // back to a default market for an unknown authority.
+    if (mode === "host-only") {
+      return null
     }
 
     for (const language of getAcceptedLanguages(acceptLanguage)) {

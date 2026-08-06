@@ -1,3 +1,5 @@
+import { buildUrl } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import {
@@ -33,7 +35,8 @@ const resolveProductInStock = (hit: RawSearchAutocompleteProductHit) => {
 
 const createProductSuggestion = (
   hit: RawSearchAutocompleteProductHit,
-  currencyCode: HerbatikaCurrencyCode
+  currencyCode: HerbatikaCurrencyCode,
+  market: Market
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(hit.id)
   const title = normalizeString(hit.title)
@@ -54,7 +57,7 @@ const createProductSuggestion = (
     id,
     type: "product",
     title,
-    href: `/p/${handle}`,
+    href: buildUrl({ market, kind: "product", slug: handle }),
     subtitle: [brandTitle, categoryName].filter(Boolean).join(" | "),
     imageUrl: normalizeString(hit.thumbnail) || undefined,
     priceLabel: price
@@ -67,9 +70,10 @@ const createProductSuggestion = (
 export const createProductSuggestions = (
   hits: RawSearchAutocompleteProductHit[],
   currencyCode: HerbatikaCurrencyCode,
-  limit: number
+  limit: number,
+  market: Market
 ) =>
   hits
-    .map((hit) => createProductSuggestion(hit, currencyCode))
+    .map((hit) => createProductSuggestion(hit, currencyCode, market))
     .filter((item): item is SearchAutocompleteSuggestion => Boolean(item))
     .slice(0, limit)

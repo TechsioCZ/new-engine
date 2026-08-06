@@ -3,7 +3,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import {
   type HerbatikaProductCardBaseProps,
@@ -51,7 +51,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
   return (
     <ProductCard className="h-full min-w-0">
       <div className="relative flex justify-center pb-250">
-        <NextLink
+        <StorefrontLink
           className="block w-full"
           href={productHref}
           onBlur={() => onProductHoverEnd?.(product)}
@@ -69,7 +69,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
             src={imageSrc}
             width={320}
           />
-        </NextLink>
+        </StorefrontLink>
 
         {flags.length > 0 ? (
           <ProductCard.Badges className="absolute top-0 left-0 flex-col items-start gap-100 font-verdana">
@@ -99,9 +99,9 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
       <div className="flex flex-col gap-450">
         <div className="flex flex-col gap-450">
           <ProductCard.Name className="sm:min-h-800">
-            <NextLink className="hover:text-primary" href={productHref}>
+            <StorefrontLink className="hover:text-primary" href={productHref}>
               {title}
-            </NextLink>
+            </StorefrontLink>
           </ProductCard.Name>
 
           {description ? (

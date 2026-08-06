@@ -1,7 +1,7 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useLocale, useTranslations } from "next-intl"
 import {
   formatBlogDate,
@@ -29,7 +29,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
             className="flex h-full flex-col overflow-hidden rounded-2xl border border-border-secondary bg-surface"
             key={post.id}
           >
-            <Link as={NextLink} className="block" href={post.href}>
+            <Link as={StorefrontLink} className="block" href={post.href}>
               <NextImage
                 alt={post.title}
                 className="aspect-video w-full object-cover"
@@ -55,7 +55,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
 
               <h3 className="line-clamp-2 font-bold text-fg-primary text-lg leading-snug">
                 <Link
-                  as={NextLink}
+                  as={StorefrontLink}
                   className="hover:text-primary"
                   href={post.href}
                 >
@@ -69,7 +69,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
 
               <div className="mt-auto flex items-center justify-between gap-300">
                 <Link
-                  as={NextLink}
+                  as={StorefrontLink}
                   className="font-semibold text-fg-primary text-xs leading-normal underline underline-offset-2 hover:text-primary"
                   href={post.href}
                 >

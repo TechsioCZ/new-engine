@@ -1,6 +1,6 @@
 "use client"
 
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
 import type {
@@ -108,7 +108,7 @@ function SearchAutocompleteRow({
 
   return (
     <li role="presentation">
-      <NextLink
+      <StorefrontLink
         aria-selected={isActive}
         className={joinClassNames(
           "flex min-w-0 items-center gap-300 px-300 py-200 text-fg-primary transition-colors",
@@ -136,7 +136,7 @@ function SearchAutocompleteRow({
           item={item}
           outOfStockLabel={t("availability.out_of_stock")}
         />
-      </NextLink>
+      </StorefrontLink>
     </li>
   )
 }

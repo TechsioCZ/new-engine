@@ -1,7 +1,9 @@
 "use client"
 
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildAccountUrl, buildIndexUrl, buildUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useCallback, useState } from "react"
 import type {
   FaqAnswerBlock as FaqAnswerBlockData,
@@ -32,7 +34,15 @@ function isExternalHref(href: string) {
   )
 }
 
-function FaqLinkItem({ href, label }: FaqLink) {
+function FaqLinkItem(link: FaqLink) {
+  const market = useMarketContext().code
+  const { label } = link
+  const href = link.href ?? (link.accountSection
+    ? buildAccountUrl(market, link.accountSection)
+    : link.slug
+      ? buildUrl({ market, kind: link.kind, slug: link.slug })
+      : buildIndexUrl({ market, kind: link.kind }))
+
   if (isExternalHref(href)) {
     return (
       <a
@@ -47,9 +57,9 @@ function FaqLinkItem({ href, label }: FaqLink) {
   }
 
   return (
-    <NextLink className={answerLinkClassName} href={href}>
+    <StorefrontLink className={answerLinkClassName} href={href}>
       {label}
-    </NextLink>
+    </StorefrontLink>
   )
 }
 
@@ -71,9 +81,8 @@ function FaqAnswerBlockContent({ block }: { block: FaqAnswerBlockData }) {
       <div className="flex flex-wrap items-center gap-300 pt-100">
         {block.items.map((link) => (
           <FaqLinkItem
-            href={link.href}
-            key={`${link.href}-${link.label}`}
-            label={link.label}
+            {...link}
+            key={`${link.label}-${link.href ?? link.accountSection ?? `${link.kind}:${link.slug ?? "index"}`}`}
           />
         ))}
       </div>

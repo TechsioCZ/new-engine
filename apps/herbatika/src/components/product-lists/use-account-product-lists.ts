@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { type FormEvent, useEffect, useState } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
+import { buildAccountUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { withUrlSearchParams } from "@/lib/storefront/url-search-params"
 import { useAuth } from "@/lib/storefront/auth"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
@@ -94,6 +97,7 @@ export function useAccountProductLists() {
   const authQuery = useAuth()
   const region = useRegionContext()
   const router = useRouter()
+  const market = useMarketContext().code
   const searchParams = useSearchParams()
   const toast = useAppToast()
   const [activeListId, setActiveListId] = useState<string | null>(null)
@@ -197,9 +201,11 @@ export function useAccountProductLists() {
 
   const selectList = (listId: string) => {
     setActiveListId(listId)
-    router.replace(`/account/lists?list=${encodeURIComponent(listId)}`, {
-      scroll: false,
-    })
+    window.location.replace(
+      withUrlSearchParams(buildAccountUrl(market, "account.lists"), {
+        list: listId,
+      })
+    )
   }
 
   const openCreateListDialog = () => {
@@ -433,7 +439,7 @@ export function useAccountProductLists() {
           selectList(nextList.id)
         } else {
           setActiveListId(null)
-          router.replace("/account/lists", { scroll: false })
+          window.location.replace(buildAccountUrl(market, "account.lists"))
         }
       }
 

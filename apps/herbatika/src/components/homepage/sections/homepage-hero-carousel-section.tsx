@@ -4,7 +4,7 @@ import {
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
 import Image from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import type { MouseEventHandler, PointerEventHandler } from "react"
 import { useEffect, useRef, useState } from "react"
@@ -40,7 +40,7 @@ function HeroBannerCard({
       : label
 
   return (
-    <NextLink
+    <StorefrontLink
       aria-label={ariaLabel}
       className="group relative h-full overflow-hidden rounded-lg font-open-sans shadow-sm"
       href={banner.href}
@@ -76,7 +76,7 @@ function HeroBannerCard({
           ) : null}
         </div>
       )}
-    </NextLink>
+    </StorefrontLink>
   )
 }
 

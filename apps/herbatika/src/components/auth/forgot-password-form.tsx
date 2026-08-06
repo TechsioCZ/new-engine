@@ -3,7 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 import {
@@ -64,7 +64,7 @@ export const ForgotPasswordForm = ({
         </p>
         <div className="flex flex-wrap gap-200">
           <LinkButton
-            as={NextLink}
+            as={StorefrontLink}
             block
             href={loginHref}
             size="sm"

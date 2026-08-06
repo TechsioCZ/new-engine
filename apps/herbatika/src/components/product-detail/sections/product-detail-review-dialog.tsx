@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
@@ -18,6 +18,7 @@ import {
   ProductReviewForm,
   type ProductReviewFormSubmitValues,
 } from "@/components/reviews/product-review-form"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useAuth } from "@/lib/storefront/auth"
 import { useCreateProductReview } from "@/lib/storefront/reviews"
 
@@ -38,12 +39,14 @@ export function ProductReviewCreateDialog({
   const reviewErrorMessages = translateProductReviewErrorMessages(tCatalog)
   const authQuery = useAuth()
   const pathname = usePathname()
+  const market = useMarketContext().code
   const [formResetKey, setFormResetKey] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const loginHref = buildAuthRouteHref(
-    "/auth/login",
+    market,
+    "account.login",
     `${pathname}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
   )
   const createReviewMutation = useCreateProductReview({
@@ -135,7 +138,7 @@ export function ProductReviewCreateDialog({
             {tCatalog("reviews.close")}
           </Button>
           <LinkButton
-            as={NextLink}
+            as={StorefrontLink}
             href={loginHref}
             size="sm"
             variant="primary"

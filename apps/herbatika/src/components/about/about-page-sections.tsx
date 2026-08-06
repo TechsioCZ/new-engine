@@ -1,4 +1,4 @@
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { Fragment } from "react"
 import { ABOUT_PAGE, type AboutParagraph } from "./about-page.data"
 import {
@@ -19,7 +19,9 @@ function getAboutParagraphKey(paragraph: AboutParagraph) {
 
   return paragraph
     .map((part) =>
-      typeof part === "string" ? part : `${part.label}:${part.href}`
+      typeof part === "string"
+        ? part
+        : `${part.label}:${part.href ?? `${part.kind}:${part.slug ?? "index"}`}`
     )
     .join("|")
 }
@@ -131,7 +133,7 @@ function AboutSocialLinks() {
     <ul className="flex flex-wrap gap-150">
       {ABOUT_PAGE.socialLinks.map((link) => (
         <li key={link.href}>
-          <NextLink
+          <StorefrontLink
             aria-label={link.label}
             className={iconLinkClassName}
             href={link.href}
@@ -139,7 +141,7 @@ function AboutSocialLinks() {
             target="_blank"
           >
             <span aria-hidden="true" className={`${link.icon} text-icon-lg`} />
-          </NextLink>
+          </StorefrontLink>
         </li>
       ))}
     </ul>

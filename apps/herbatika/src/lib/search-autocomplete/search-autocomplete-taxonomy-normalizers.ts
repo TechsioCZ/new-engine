@@ -1,3 +1,5 @@
+import { buildUrl } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
 import { createBrandHref } from "@/lib/storefront/brands"
 import {
   createHandleLabel,
@@ -26,7 +28,8 @@ const categoryMatchesQuery = (
 ) => matchesQuery([category.name, category.handle], query)
 
 const createCategorySuggestion = (
-  category: RawSearchAutocompleteCategoryRef
+  category: RawSearchAutocompleteCategoryRef,
+  market: Market
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(category.id)
   const handle = normalizeString(category.handle)
@@ -40,7 +43,7 @@ const createCategorySuggestion = (
     id,
     type: "category",
     title,
-    href: `/c/${handle}`,
+    href: buildUrl({ market, kind: "category", slug: handle }),
   }
 }
 
@@ -48,10 +51,12 @@ export const createCategorySuggestions = ({
   productHits,
   query,
   limit,
+  market,
 }: {
   productHits: RawSearchAutocompleteProductHit[]
   query: string
   limit: number
+  market: Market
 }) => {
   const suggestions: SearchAutocompleteSuggestion[] = []
   const seen = new Set<string>()
@@ -68,7 +73,7 @@ export const createCategorySuggestions = ({
   for (const product of productHits) {
     for (const category of product.categories ?? []) {
       if (categoryMatchesQuery(category, query)) {
-        pushSuggestion(createCategorySuggestion(category))
+        pushSuggestion(createCategorySuggestion(category, market))
       }
     }
   }
@@ -82,7 +87,8 @@ const brandMatchesQuery = (
 ) => matchesQuery([brand.title, brand.handle], query)
 
 const createBrandSuggestion = (
-  brand: RawSearchAutocompleteBrandRef
+  brand: RawSearchAutocompleteBrandRef,
+  market: Market
 ): SearchAutocompleteSuggestion | null => {
   const title = normalizeString(brand.title)
   const handle = normalizeString(brand.handle)
@@ -97,12 +103,13 @@ const createBrandSuggestion = (
     id,
     type: "brand",
     title,
-    href: createBrandHref({ slug }),
+    href: createBrandHref({ slug }, market),
   }
 }
 
 const createBrandSuggestionFromFacet = (
-  facet: RawSearchAutocompleteFacetItem
+  facet: RawSearchAutocompleteFacetItem,
+  market: Market
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(facet.id)
   const title = normalizeString(facet.label)
@@ -118,7 +125,7 @@ const createBrandSuggestionFromFacet = (
     id,
     type: "brand",
     title,
-    href: createBrandHref({ slug }),
+    href: createBrandHref({ slug }, market),
   }
 }
 
@@ -140,11 +147,13 @@ export const createBrandSuggestions = ({
   productHits,
   query,
   limit,
+  market,
 }: {
   brandFacets: RawSearchAutocompleteFacetItem[]
   productHits: RawSearchAutocompleteProductHit[]
   query: string
   limit: number
+  market: Market
 }) => {
   const suggestions: SearchAutocompleteSuggestion[] = []
   const seen = new Set<string>()
@@ -157,7 +166,7 @@ export const createBrandSuggestions = ({
     pushUniqueSuggestion(
       suggestions,
       seen,
-      createBrandSuggestionFromFacet(facet)
+      createBrandSuggestionFromFacet(facet, market)
     )
   }
 
@@ -167,7 +176,7 @@ export const createBrandSuggestions = ({
       continue
     }
 
-    pushUniqueSuggestion(suggestions, seen, createBrandSuggestion(brand))
+    pushUniqueSuggestion(suggestions, seen, createBrandSuggestion(brand, market))
   }
 
   return suggestions.slice(0, limit)

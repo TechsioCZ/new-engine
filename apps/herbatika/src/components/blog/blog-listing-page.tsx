@@ -2,7 +2,11 @@
 
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildIndexUrl } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { withUrlSearchParams } from "@/lib/storefront/url-search-params"
 import { useTranslations } from "next-intl"
 import {
   HerbatikaBreadcrumb,
@@ -20,35 +24,32 @@ type BlogListingPageProps = {
 }
 
 const resolveBlogListingHref = ({
+  market,
   topic,
   page,
 }: {
+  market: Market
   topic: BlogTopicKey
   page: number
 }) => {
-  const query = new URLSearchParams()
-
-  if (topic !== "all") {
-    query.set("topic", topic)
-  }
-
-  if (page > 1) {
-    query.set("page", String(page))
-  }
-
-  const serialized = query.toString()
-  return serialized.length > 0 ? `/blog?${serialized}` : "/blog"
+  const pathname = buildIndexUrl({ market, kind: "article" })
+  return withUrlSearchParams(pathname, {
+    topic: topic === "all" ? undefined : topic,
+    strana: page > 1 ? page : undefined,
+  })
 }
 
 const getFilterLabel = (filter: BlogTopicFilter) =>
   `${filter.label} (${filter.count})`
 
 export function BlogListingPage({ listing }: BlogListingPageProps) {
+  const market = useMarketContext().code
+  const blogIndexHref = buildIndexUrl({ market, kind: "article" })
   const tContent = useTranslations("content")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: tContent("pages.blog"),
-      href: "/blog",
+      href: blogIndexHref,
       icon: "token-icon-home",
     },
   ]
@@ -79,9 +80,10 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
 
                 return (
                   <LinkButton
-                    as={NextLink}
+                    as={StorefrontLink}
                     className={`h-full rounded-full border-1 border-primary px-450 py-250 font-bold font-open-sans text-md leading-[18px] ${!isActive && "border-border-muted bg-surface text-fg-muted"}`}
                     href={resolveBlogListingHref({
+                      market,
                       topic: filter.key,
                       page: 1,
                     })}
@@ -107,9 +109,10 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
             <div className="relative flex min-h-600 items-center justify-center">
               {shouldShowLoadMore ? (
                 <LinkButton
-                  as={NextLink}
+                  as={StorefrontLink}
                   className="rounded-full px-550 py-250 font-open-sans font-semibold text-sm"
                   href={resolveBlogListingHref({
+                    market,
                     topic: listing.topic,
                     page: nextPage,
                   })}
@@ -123,9 +126,10 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
 
               {shouldShowPageIndicator ? (
                 <Link
-                  as={NextLink}
+                  as={StorefrontLink}
                   className="absolute right-0 font-semibold text-primary text-sm leading-normal underline underline-offset-2 hover:text-primary-hover"
                   href={resolveBlogListingHref({
+                    market,
                     topic: listing.topic,
                     page: nextPage,
                   })}

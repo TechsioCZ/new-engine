@@ -3,7 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 import {
@@ -18,6 +18,8 @@ import {
   type ProductReviewTokenProductStatus,
   resolveProductStatusMessage,
 } from "@/components/reviews/product-review-token-status"
+import { buildUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useProducts } from "@/lib/storefront/products"
 import { useCreateProductReview } from "@/lib/storefront/reviews"
 
@@ -46,7 +48,10 @@ export function ProductReviewTokenPage({
     enabled: Boolean(normalizedProductId),
   })
   const product = productQuery.products[0] ?? null
-  const productHref = product?.handle ? `/p/${product.handle}` : null
+  const market = useMarketContext().code
+  const productHref = product?.handle
+    ? buildUrl({ market, kind: "product", slug: product.handle })
+    : null
   const backHref = productHref ?? "/"
   const backLabel = productHref
     ? tCatalog("reviews.token.back_to_product")
@@ -144,12 +149,12 @@ export function ProductReviewTokenPage({
               {tCatalog("reviews.token.product_label")}
             </p>
             {productHref ? (
-              <NextLink
+              <StorefrontLink
                 className="font-semibold text-fg-primary underline underline-offset-2"
                 href={productHref}
               >
                 {product.title}
-              </NextLink>
+              </StorefrontLink>
             ) : (
               <p className="font-semibold text-fg-primary">{product.title}</p>
             )}
@@ -162,7 +167,7 @@ export function ProductReviewTokenPage({
               {tCatalog("reviews.submit_success")}
             </StatusText>
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               href={backHref}
               size="md"
               variant="primary"
@@ -193,7 +198,7 @@ export function ProductReviewTokenPage({
                 {tCatalog("reviews.submit")}
               </Button>
               <LinkButton
-                as={NextLink}
+                as={StorefrontLink}
                 href={backHref}
                 size="md"
                 theme="outlined"

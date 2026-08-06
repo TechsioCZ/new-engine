@@ -1,5 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+import { buildUrl } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
 import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
@@ -75,7 +77,8 @@ export const resolveProductBreadcrumbItems = (
   productCategories: HttpTypes.StoreProductCategory[],
   product: Product | null,
   handle: string,
-  homeLabel: string
+  homeLabel: string,
+  market: Market
 ): HerbatikaBreadcrumbItem[] => {
   const primaryCategory = productCategories[0]
   const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")
@@ -86,7 +89,7 @@ export const resolveProductBreadcrumbItems = (
       ? [
           {
             label: primaryCategoryName,
-            href: `/c/${primaryCategory.handle}`,
+            href: buildUrl({ market, kind: "category", slug: primaryCategory.handle }),
           },
         ]
       : []),

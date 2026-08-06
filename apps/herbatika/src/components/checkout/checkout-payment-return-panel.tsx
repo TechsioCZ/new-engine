@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { Route } from "next"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { type ReactNode, useEffect, useRef, useState } from "react"
@@ -21,6 +21,7 @@ import { clearStoredPaymentProviderSelection } from "@/components/checkout/check
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
 import { SupportingText } from "@/components/text/supporting-text"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useCart } from "@/lib/storefront/cart"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
@@ -31,6 +32,7 @@ const PAYMENT_RETURN_RETRY_DELAY_MS = 1500
 
 export function CheckoutPaymentReturnPanel() {
   const tCheckout = useTranslations("checkout")
+  const market = useMarketContext().code
   const confirmationPendingMessage = tCheckout(
     "payment_return_confirmation_pending"
   )
@@ -171,19 +173,19 @@ export function CheckoutPaymentReturnPanel() {
     return <CheckoutCompletedOrderSection completedOrderId={completedOrderId} />
   }
 
-  const summaryHref = resolveCheckoutStepHref("suhrn") as Route
-  const paymentHref = resolveCheckoutStepHref("doprava-platba") as Route
+  const summaryHref = resolveCheckoutStepHref(market, "suhrn") as Route
+  const paymentHref = resolveCheckoutStepHref(market, "doprava-platba") as Route
 
   if (isCancelled) {
     return (
       <PaymentReturnStatusCard
         actions={
           <>
-            <LinkButton as={NextLink} href={summaryHref} size="md">
+            <LinkButton as={StorefrontLink} href={summaryHref} size="md">
               {tCheckout("payment_return_back_to_summary")}
             </LinkButton>
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               href={paymentHref}
               size="md"
               theme="outlined"
@@ -205,7 +207,7 @@ export function CheckoutPaymentReturnPanel() {
     return (
       <PaymentReturnStatusCard
         actions={
-          <LinkButton as={NextLink} href={summaryHref} size="md">
+          <LinkButton as={StorefrontLink} href={summaryHref} size="md">
             {tCheckout("payment_return_back_to_summary")}
           </LinkButton>
         }
@@ -233,7 +235,7 @@ export function CheckoutPaymentReturnPanel() {
               {tCheckout("payment_return_retry")}
             </Button>
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               href={summaryHref}
               size="md"
               theme="outlined"

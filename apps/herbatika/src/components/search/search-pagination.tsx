@@ -1,7 +1,7 @@
 "use client"
 
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder"
 
 type SearchPaginationProps = {
@@ -27,7 +27,7 @@ export function SearchPagination({
     <Pagination
       count={count}
       getPageUrl={getPageUrl}
-      linkAs={NextLink}
+      linkAs={StorefrontLink}
       page={currentPage}
       pageSize={pageSize}
       size="sm"

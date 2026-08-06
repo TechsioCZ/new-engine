@@ -2,8 +2,9 @@ import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import { useLocale, useTranslations } from "next-intl"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   formatOrderAmount,
   formatOrderDate,
@@ -15,6 +16,7 @@ import {
   resolveOrderProgressState,
   resolveOrderTotalAmount,
 } from "@/lib/storefront/order-format"
+import { buildAccountUrl, buildUrl } from "@/lib/url/builder"
 
 type AccountOrderGroupProps = {
   order: HttpTypes.StoreOrder
@@ -29,7 +31,8 @@ export function AccountOrderGroup({
   const tAuth = useTranslations("auth")
   const translateOrderStatus: OrderStatusTranslator = (group, status) =>
     tAuth(`account.orders.status.${group}`, { status })
-  const detailHref = `/account/orders/${order.id}`
+  const market = useMarketContext().code
+  const detailHref = buildAccountUrl(market, "account.orders", order.id)
   const invoiceUrl = resolveOrderInvoiceUrl(order)
   const orderTotalAmount = resolveOrderTotalAmount(order)
   const orderProgress = resolveOrderProgressState(order, translateOrderStatus)
@@ -86,7 +89,7 @@ export function AccountOrderGroup({
         <div className="flex flex-wrap gap-order-group-md lg:justify-self-end">
           {invoiceUrl && (
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               href={invoiceUrl}
               rel="noreferrer"
               size="sm"
@@ -98,7 +101,7 @@ export function AccountOrderGroup({
             </LinkButton>
           )}
           <LinkButton
-            as={NextLink}
+            as={StorefrontLink}
             href={detailHref}
             onFocus={() => {
               onPrefetchOrderDetail(order.id)
@@ -175,21 +178,27 @@ export function AccountOrderGroup({
                 </div>
 
                 <div className="flex items-center justify-end lg:justify-self-end">
-                  <LinkButton
-                    as={NextLink}
-                    href={`/p/${item.product_handle}`}
-                    onFocus={() => {
-                      onPrefetchOrderDetail(order.id)
-                    }}
-                    onMouseEnter={() => {
-                      onPrefetchOrderDetail(order.id)
-                    }}
-                    size="sm"
-                    theme="outlined"
-                    variant="secondary"
-                  >
-                    {tAuth("account.orders.product_detail")}
-                  </LinkButton>
+                  {item.product_handle ? (
+                    <LinkButton
+                      as={StorefrontLink}
+                      href={buildUrl({
+                        market,
+                        kind: "product",
+                        slug: item.product_handle,
+                      })}
+                      onFocus={() => {
+                        onPrefetchOrderDetail(order.id)
+                      }}
+                      onMouseEnter={() => {
+                        onPrefetchOrderDetail(order.id)
+                      }}
+                      size="sm"
+                      theme="outlined"
+                      variant="secondary"
+                    >
+                      {tAuth("account.orders.product_detail")}
+                    </LinkButton>
+                  ) : null}
                 </div>
               </li>
             )

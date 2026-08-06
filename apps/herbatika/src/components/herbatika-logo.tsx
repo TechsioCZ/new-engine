@@ -1,6 +1,6 @@
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import logo from "@/assets/herbatica-logo.avif"
 
 type HerbatikaLogoProps = {
@@ -27,7 +27,7 @@ export function HerbatikaLogo({
     : sizeClass
 
   return (
-    <Link as={NextLink} className={className} href={href}>
+    <Link as={StorefrontLink} className={className} href={href}>
       <NextImage
         alt="Herbatika"
         className={imageClasses}

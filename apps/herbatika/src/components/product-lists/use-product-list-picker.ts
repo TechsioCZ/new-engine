@@ -5,6 +5,9 @@ import { useTranslations } from "next-intl"
 import { type FormEvent, useEffect, useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { useAppToast } from "@/hooks/use-app-toast"
+import { buildAccountUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { withUrlSearchParams } from "@/lib/storefront/url-search-params"
 import { useAuth } from "@/lib/storefront/auth"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
@@ -57,6 +60,7 @@ export function useProductListPicker({
 }: UseProductListPickerInput) {
   const tAuth = useTranslations("auth")
   const pathname = usePathname()
+  const market = useMarketContext().code
   const authQuery = useAuth()
   const toast = useAppToast()
   const [isOpen, setIsOpen] = useState(false)
@@ -229,7 +233,10 @@ export function useProductListPicker({
     isMutating,
     isOpen,
     listsQuery,
-    loginHref: `/auth/login?next=${encodeURIComponent(pathname)}`,
+    loginHref: withUrlSearchParams(
+      buildAccountUrl(market, "account.login"),
+      { next: pathname }
+    ),
     newListTitle,
     retryLists,
     rows,

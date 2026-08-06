@@ -3,6 +3,7 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import {
   resolveOptionTitlesById,
@@ -48,6 +49,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
+  const market = useMarketContext().code
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [quantity, setQuantity] = useState(1)
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
@@ -213,7 +215,8 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     productCategories,
     product,
     handle,
-    tNavigation("breadcrumbs.home")
+    tNavigation("breadcrumbs.home"),
+    market
   )
   const freeShippingThresholdLabel =
     resolveFreeShippingThresholdLabel(currentCurrencyCode)

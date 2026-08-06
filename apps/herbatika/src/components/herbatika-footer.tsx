@@ -3,8 +3,11 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
-import type { Route } from "next"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildIndexUrl, buildUrl } from "@/lib/url/builder"
+import { getSegment } from "@/lib/url/segments"
+import type { Market } from "@/lib/url/types"
+import { HERBATIKA_MARKETS } from "@/lib/storefront/market-context"
 import { useTranslations } from "next-intl"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
@@ -12,7 +15,7 @@ import { HerbatikaLogo } from "./herbatika-logo"
 
 type FooterNavigationLink =
   | {
-      href: Route
+      href: string
       labelKey: string
       external?: false
     }
@@ -27,24 +30,39 @@ type FooterColumn = {
   links: readonly FooterNavigationLink[]
 }
 
-const giftVoucherHref = "/c/darceky" as Route
-const brandListingHref = "/znacka" as Route
 const formatMarketDomain = (domain: string) =>
   `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
 
-const FOOTER_COLUMNS: readonly FooterColumn[] = [
+const createFooterColumns = (market: Market): readonly FooterColumn[] => [
   {
     titleKey: "footer.columns.information.title",
     links: [
-      { href: "/blog", labelKey: "footer.columns.information.blog" },
-      { href: "/o-nas", labelKey: "footer.columns.information.about" },
-      { href: "/faq", labelKey: "footer.columns.information.faq" },
       {
-        href: giftVoucherHref,
+        href: buildIndexUrl({ market, kind: "article" }),
+        labelKey: "footer.columns.information.blog",
+      },
+      {
+        href: buildUrl({
+          market,
+          kind: "page",
+          slug: getSegment(market, "about"),
+        }),
+        labelKey: "footer.columns.information.about",
+      },
+      {
+        href: buildUrl({
+          market,
+          kind: "page",
+          slug: getSegment(market, "faq"),
+        }),
+        labelKey: "footer.columns.information.faq",
+      },
+      {
+        href: buildUrl({ market, kind: "category", slug: "darceky" }),
         labelKey: "footer.columns.information.gift_voucher",
       },
       {
-        href: brandListingHref,
+        href: buildIndexUrl({ market, kind: "brand" }),
         labelKey: "footer.columns.information.brands",
       },
       {
@@ -58,23 +76,23 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
     titleKey: "footer.columns.important.title",
     links: [
       {
-        href: "/#doprava-a-platby",
+        href: buildUrl({ market, kind: "page", slug: getSegment(market, "shipping") }),
         labelKey: "footer.columns.important.shipping_payment",
       },
       {
-        href: "/#reklamacia-a-vratenie",
+        href: buildUrl({ market, kind: "page", slug: getSegment(market, "returns") }),
         labelKey: "footer.columns.important.claims_returns",
       },
       {
-        href: "/#obchodne-podmienky",
+        href: buildUrl({ market, kind: "page", slug: getSegment(market, "terms") }),
         labelKey: "footer.columns.important.terms",
       },
       {
-        href: "/#ochrana-osobnych-udajov",
+        href: buildUrl({ market, kind: "page", slug: getSegment(market, "privacy") }),
         labelKey: "footer.columns.important.privacy",
       },
       {
-        href: "/#cookies",
+        href: buildUrl({ market, kind: "page", slug: getSegment(market, "cookies") }),
         labelKey: "footer.columns.important.cookies",
       },
     ],
@@ -83,19 +101,19 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
     titleKey: "footer.columns.partners.title",
     links: [
       {
-        href: "/#affiliate",
+        href: buildUrl({ market, kind: "page", slug: "affiliate" }),
         labelKey: "footer.columns.partners.affiliate",
       },
       {
-        href: "/#velkoobchod",
+        href: buildUrl({ market, kind: "page", slug: "velkoobchod" }),
         labelKey: "footer.columns.partners.wholesale",
       },
       {
-        href: "/#dropshipping",
+        href: buildUrl({ market, kind: "page", slug: "dropshipping" }),
         labelKey: "footer.columns.partners.dropshipping",
       },
       {
-        href: "/#private-label",
+        href: buildUrl({ market, kind: "page", slug: "private-label" }),
         labelKey: "footer.columns.partners.private_label",
       },
     ],
@@ -130,15 +148,17 @@ const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
   },
 ]
 
-const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
-  { code: "SK", icon: "token-icon-sk", active: true },
-  { code: "CZ", icon: "token-icon-cz" },
-  { code: "HU", icon: "token-icon-hu" },
-  { code: "RO", icon: "token-icon-ro" },
-]
+const MARKET_ICONS = {
+  sk: "token-icon-sk",
+  cz: "token-icon-cz",
+  hu: "token-icon-hu",
+  ro: "token-icon-ro",
+} as const satisfies Record<Market, IconType>
+
 export function HerbatikaFooter() {
   const t = useTranslations("navigation")
   const marketContext = useMarketContext()
+  const footerColumns = createFooterColumns(marketContext.code)
 
   return (
     <Footer direction="vertical">
@@ -180,7 +200,7 @@ export function HerbatikaFooter() {
           </Footer.Link>
         </Footer.Section>
 
-        {FOOTER_COLUMNS.map((column) => (
+        {footerColumns.map((column) => (
           <Footer.Section className="px-500" key={column.titleKey}>
             <Footer.Title className="uppercase leading-relaxed">
               {t(column.titleKey)}
@@ -193,7 +213,7 @@ export function HerbatikaFooter() {
                       {t(link.labelKey)}
                     </Footer.Link>
                   ) : (
-                    <Footer.Link as={NextLink} href={link.href}>
+                    <Footer.Link as={StorefrontLink} href={link.href}>
                       {t(link.labelKey)}
                     </Footer.Link>
                   )}
@@ -239,29 +259,37 @@ export function HerbatikaFooter() {
             year: new Date().getFullYear(),
           })}{" "}
           <Footer.Link
-            as={NextLink}
+            as={StorefrontLink}
             className="text-primary underline"
-            href="/#cookies"
+            href={buildUrl({
+              market: marketContext.code,
+              kind: "page",
+              slug: getSegment(marketContext.code, "cookies"),
+            })}
           >
             {t("footer.cookie_settings")}
           </Footer.Link>
         </Footer.Text>
 
         <div className="flex w-full flex-wrap items-center justify-center gap-150 md:w-auto md:justify-end">
-          {FOOTER_LOCALES.map((locale) => (
-            <Button
-              className={`${!locale.active && "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
-              icon={locale.icon}
-              iconSize="md"
-              key={locale.code}
-              size="sm"
-              theme={locale.active ? "light" : "borderless"}
-              type="button"
-              variant={locale.active ? "primary" : "primary"}
-            >
-              {locale.code}
-            </Button>
-          ))}
+          {HERBATIKA_MARKETS.map((market) => {
+            const isActive = market.code === marketContext.code
+            // TODO(#545): equivalence switcher — replace the home fallback with
+            // server-provided registry alternates when the current entity has one.
+            const href = `https://${market.domain}`
+
+            return (
+              <a
+                aria-current={isActive ? "page" : undefined}
+                className={`${!isActive ? "bg-base" : "bg-primary text-on-primary"} inline-flex items-center gap-150 rounded-sm px-300 py-200 font-bold`}
+                href={href}
+                key={market.code}
+              >
+                <Icon icon={MARKET_ICONS[market.code]} size="md" />
+                {market.code.toUpperCase()}
+              </a>
+            )
+          })}
         </div>
       </Footer.Bottom>
     </Footer>

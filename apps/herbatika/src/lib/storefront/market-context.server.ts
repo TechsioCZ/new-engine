@@ -3,6 +3,7 @@ import "server-only"
 import { headers } from "next/headers"
 import { cache } from "react"
 import {
+  getHerbatikaMarketContext,
   type HerbatikaMarketCode,
   type HerbatikaMarketContext,
   resolveMarketContext,
@@ -46,13 +47,20 @@ export const resolveMarketSalesChannelId = (
 export const getMarketServerContext = cache(
   async (): Promise<HerbatikaServerMarketContext> => {
     const headerStore = await headers()
-    const marketContext = resolveMarketContext({
-      acceptLanguage: headerStore.get("accept-language"),
-      host:
-        headerStore.get("x-forwarded-host") ??
-        headerStore.get("host") ??
-        undefined,
-    })
+    const trustedMarket = headerStore.get("x-sf-market")
+    const marketContext =
+      trustedMarket === "sk" ||
+      trustedMarket === "cz" ||
+      trustedMarket === "hu" ||
+      trustedMarket === "ro"
+        ? getHerbatikaMarketContext(trustedMarket)
+        : resolveMarketContext({
+            host: headerStore.get("host") ?? undefined,
+          })
+
+    if (!marketContext) {
+      throw new Error("Unknown storefront host; market context is unavailable")
+    }
 
     return {
       ...marketContext,

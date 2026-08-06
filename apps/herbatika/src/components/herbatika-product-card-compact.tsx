@@ -2,7 +2,7 @@
 
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import {
   type HerbatikaProductCardBaseProps,
@@ -32,7 +32,7 @@ export function HerbatikaProductCardCompact({
 
   return (
     <ProductCard>
-      <NextLink
+      <StorefrontLink
         className="block"
         href={productHref}
         onBlur={() => onProductHoverEnd?.(product)}
@@ -50,13 +50,13 @@ export function HerbatikaProductCardCompact({
           src={imageSrc}
           width={320}
         />
-      </NextLink>
+      </StorefrontLink>
 
       <div className="mt-250 flex flex-col gap-150">
         <ProductCard.Name className="font-bold text-md text-primary leading-snug">
-          <NextLink className="hover:text-primary-hover" href={productHref}>
+          <StorefrontLink className="hover:text-primary-hover" href={productHref}>
             {title}
-          </NextLink>
+          </StorefrontLink>
         </ProductCard.Name>
 
         <ProductCard.Price className="text-lg leading-tight">

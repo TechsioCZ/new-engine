@@ -3,7 +3,7 @@
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import {
   type HerbatikaHeaderSubmenuFeaturedItem,
@@ -81,7 +81,7 @@ export function HerbatikaDesktopSubmenu({
             <div className="grid grid-cols-1 gap-x-750 gap-y-700 lg:grid-cols-3 xl:grid-cols-4">
               {desktopSubmenuItems.map((item) => (
                 <div className="flex min-w-0 items-start gap-300" key={item.id}>
-                  <NextLink
+                  <StorefrontLink
                     className="flex h-submenu-image w-submenu-image shrink-0 items-start justify-start"
                     href={item.href}
                   >
@@ -95,11 +95,11 @@ export function HerbatikaDesktopSubmenu({
                         width={76}
                       />
                     ) : null}
-                  </NextLink>
+                  </StorefrontLink>
 
                   <div className="min-w-0 space-y-300 pt-100">
                     <Link
-                      as={NextLink}
+                      as={StorefrontLink}
                       className="block font-bold text-fg-primary leading-tight hover:text-primary"
                       href={item.href}
                       onClick={onClose}
@@ -112,7 +112,7 @@ export function HerbatikaDesktopSubmenu({
                         {item.childItems.map((childItem) => (
                           <li key={childItem.id}>
                             <Link
-                              as={NextLink}
+                              as={StorefrontLink}
                               className="text-primary text-sm hover:text-fg-primary"
                               href={childItem.href}
                               onClick={onClose}

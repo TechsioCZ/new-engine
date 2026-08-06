@@ -19,7 +19,7 @@ export async function GET(
     const registry = await getUrlRegistry()
     return new Response(await buildSitemapIndexXml(registry, market), {
       headers: {
-        "cache-control": "public, max-age=0, s-maxage=300",
+        "cache-control": "no-store",
         "content-type": "application/xml; charset=utf-8",
       },
     })

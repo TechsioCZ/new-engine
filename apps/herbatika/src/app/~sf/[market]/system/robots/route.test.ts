@@ -4,7 +4,11 @@ import { GET } from "./route"
 const originalAllowedMarkets = process.env.ALLOWED_MARKETS
 
 afterEach(() => {
-  process.env.ALLOWED_MARKETS = originalAllowedMarkets
+  if (originalAllowedMarkets === undefined) {
+    process.env.ALLOWED_MARKETS = undefined
+  } else {
+    process.env.ALLOWED_MARKETS = originalAllowedMarkets
+  }
 })
 
 describe("internal robots handler", () => {

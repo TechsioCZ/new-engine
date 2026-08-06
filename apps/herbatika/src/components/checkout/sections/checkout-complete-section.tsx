@@ -2,7 +2,10 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildUrl } from "@/lib/url/builder"
+import { getSegment } from "@/lib/url/segments"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useTranslations } from "next-intl"
 import type { AddressFormState } from "@/components/checkout/checkout.constants"
 import {
@@ -12,7 +15,6 @@ import {
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
 type CheckoutCompleteSectionProps = {
@@ -142,6 +144,7 @@ export function CheckoutCompleteSection({
   shippingStepHref,
 }: CheckoutCompleteSectionProps) {
   const tCart = useTranslations("cart")
+  const market = useMarketContext().code
   const tCheckout = useTranslations("checkout")
   const tForm = useTranslations("form")
   const marketContext = useMarketContext()
@@ -231,20 +234,20 @@ export function CheckoutCompleteSection({
           <p className="mx-auto max-w-[42rem] text-center text-fg-secondary text-xs leading-relaxed">
             {tCheckout.rich("review_legal_confirmation", {
               privacy: (chunks) => (
-                <NextLink
+                <StorefrontLink
                   className={summaryInlineLinkClassName}
-                  href="/#ochrana-osobnych-udajov"
+                  href={buildUrl({ market, kind: "page", slug: getSegment(market, "privacy") })}
                 >
                   {chunks}
-                </NextLink>
+                </StorefrontLink>
               ),
               terms: (chunks) => (
-                <NextLink
+                <StorefrontLink
                   className={summaryInlineLinkClassName}
-                  href="/#obchodne-podmienky"
+                  href={buildUrl({ market, kind: "page", slug: getSegment(market, "terms") })}
                 >
                   {chunks}
-                </NextLink>
+                </StorefrontLink>
               ),
             })}
           </p>
@@ -276,7 +279,7 @@ export function CheckoutCompleteSection({
             {tCheckout("customer_details")}
           </p>
           <LinkButton
-            as={NextLink}
+            as={StorefrontLink}
             className={summaryEditLinkClassName}
             href={detailsStepHref}
             icon="token-icon-pen"
@@ -346,7 +349,7 @@ function SummaryRecapCard({
         </div>
 
         <LinkButton
-          as={NextLink}
+          as={StorefrontLink}
           className={summaryEditLinkClassName}
           href={href}
           icon="token-icon-pen"

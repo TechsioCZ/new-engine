@@ -1,7 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useLocale, useTranslations } from "next-intl"
 import {
   resolveOrderAddresses,
@@ -155,7 +155,7 @@ export function AccountOrderDetailSummary({
           <Badge variant={orderProgress.variant}>{orderProgress.label}</Badge>
           {invoiceUrl && (
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               href={invoiceUrl}
               rel="noreferrer"
               size="sm"

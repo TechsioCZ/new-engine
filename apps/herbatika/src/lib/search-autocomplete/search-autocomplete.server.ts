@@ -1,5 +1,6 @@
 import "server-only"
 
+import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import {
   MEDUSA_BACKEND_URL,
@@ -142,6 +143,7 @@ export const fetchSearchAutocomplete = async ({
     return createEmptySearchAutocompleteResponse(normalizedQuery)
   }
 
+  const market = (await getMarketServerContext()).code
   const safeCurrencyCode = resolveSupportedCurrencyCode(currencyCode)
   const catalogResponse = await fetchCatalogCandidates({
     countryCode,
@@ -156,18 +158,21 @@ export const fetchSearchAutocomplete = async ({
     products: createProductSuggestions(
       productHits,
       safeCurrencyCode,
-      PRODUCT_LIMIT
+      PRODUCT_LIMIT,
+      market
     ),
     categories: createCategorySuggestions({
       productHits,
       query: normalizedQuery,
       limit: CATEGORY_LIMIT,
+      market,
     }),
     brands: createBrandSuggestions({
       brandFacets: catalogResponse.facets?.brand ?? [],
       productHits,
       query: normalizedQuery,
       limit: BRAND_LIMIT,
+      market,
     }),
   }
 }

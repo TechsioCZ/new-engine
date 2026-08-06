@@ -1,6 +1,8 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useLocale, useTranslations } from "next-intl"
 import type { BlogPost } from "@/lib/storefront/blog-content"
 import { formatBlogDate, formatTopicFromKey } from "./blog-formatters"
@@ -11,11 +13,13 @@ type BlogListingCardProps = {
 
 export function BlogListingCard({ post }: BlogListingCardProps) {
   const locale = useLocale()
+  const market = useMarketContext().code
+  const articleHref = buildUrl({ market, kind: "article", slug: post.slug })
   const tContent = useTranslations("content")
 
   return (
     <article className="flex h-full min-h-950 flex-col overflow-hidden rounded-2xl border border-border-secondary bg-surface">
-      <NextLink className="block" href={`/blog/${post.slug}`}>
+      <StorefrontLink className="block" href={articleHref}>
         <NextImage
           alt={post.title}
           className="aspect-video w-full object-cover"
@@ -25,7 +29,7 @@ export function BlogListingCard({ post }: BlogListingCardProps) {
           src={post.imageSrc}
           width={640}
         />
-      </NextLink>
+      </StorefrontLink>
 
       <div className="flex h-full flex-col gap-200 p-300">
         <div className="flex items-center justify-between gap-200">
@@ -40,24 +44,24 @@ export function BlogListingCard({ post }: BlogListingCardProps) {
           </Badge>
         </div>
 
-        <NextLink
+        <StorefrontLink
           className="line-clamp-2 font-bold text-fg-primary text-lg leading-snug hover:text-primary"
-          href={`/blog/${post.slug}`}
+          href={articleHref}
         >
           {post.title}
-        </NextLink>
+        </StorefrontLink>
 
         <p className="line-clamp-3 font-verdana text-fg-secondary text-xs leading-relaxed">
           {post.excerpt}
         </p>
 
         <div className="mt-auto flex items-center justify-between gap-300">
-          <NextLink
+          <StorefrontLink
             className="font-semibold text-fg-primary text-xs leading-normal underline underline-offset-2 hover:text-primary"
-            href={`/blog/${post.slug}`}
+            href={articleHref}
           >
             {tContent("blog.card.open_article")} →
-          </NextLink>
+          </StorefrontLink>
           <span className="text-2xs text-fg-secondary leading-normal">
             {post.readingTime}
           </span>

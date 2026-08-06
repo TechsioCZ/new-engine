@@ -3,7 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { AccountSurface } from "@/components/account/account-surface"
 import { AddListDialog } from "@/components/product-lists/add-list-dialog"
@@ -34,7 +34,7 @@ function ProductListsEmptyState({
         >
           {tAuth("product_lists.new_list")}
         </Button>
-        <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
+        <LinkButton as={StorefrontLink} href="/" size="sm" variant="secondary">
           {tAuth("product_lists.browse_products")}
         </LinkButton>
       </div>

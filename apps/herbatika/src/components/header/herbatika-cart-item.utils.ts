@@ -1,5 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
+import { buildCartUrl, buildUrl } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
 import { asFiniteNumber } from "@/lib/storefront/cart-calculations"
 import { resolveDefaultStockInventoryQuantity } from "@/lib/storefront/default-stock-availability"
 
@@ -14,14 +16,17 @@ export const resolveLineItemProductHandle = (
     : null
 }
 
-export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
+export const resolveLineItemHref = (
+  item: HttpTypes.StoreCartLineItem,
+  market: Market
+) => {
   const productHandle = resolveLineItemProductHandle(item)
 
   if (productHandle) {
-    return `/p/${productHandle}`
+    return buildUrl({ market, kind: "product", slug: productHandle })
   }
 
-  return "/checkout/kosik"
+  return buildCartUrl(market)
 }
 
 export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {

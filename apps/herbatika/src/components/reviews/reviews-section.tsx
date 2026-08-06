@@ -4,7 +4,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Rating } from "@techsio/ui-kit/atoms/rating"
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useFormatter, useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
 import { FractionalRating } from "@/components/reviews/fractional-rating"
@@ -184,14 +184,14 @@ export function ReviewsSection({
         ) : null}
 
         {shouldShowLink && resolvedLinkHref && resolvedLinkLabel ? (
-          <NextLink
+          <StorefrontLink
             className="inline-flex items-center gap-50 font-verdana text-fg-strong text-sm leading-relaxed underline decoration-1 underline-offset-2 hover:text-fg-primary"
             href={resolvedLinkHref}
             onClick={onLinkClick}
           >
             {resolvedLinkLabel}
             <Icon icon="token-icon-chevron-right" size="md" />
-          </NextLink>
+          </StorefrontLink>
         ) : null}
       </header>
 

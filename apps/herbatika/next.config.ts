@@ -69,16 +69,10 @@ const nextConfig: NextConfig = {
     "@techsio/storefront-i18n",
   ],
   reactCompiler: true,
-  cacheComponents: true,
-  redirects() {
-    return [
-      {
-        source: "/homepage-promo",
-        destination: "/#homepage-promo",
-        permanent: false,
-      },
-    ]
-  },
+  cacheComponents: false,
+  skipProxyUrlNormalize: true,
+  skipTrailingSlashRedirect: true,
+  redirects: async () => [],
   outputFileTracingRoot: join(__dirname, "../../"),
   outputFileTracingExcludes: {
     "*": [

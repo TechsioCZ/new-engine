@@ -2,6 +2,10 @@ import type {
   LoginFormValues,
   RegisterFormValues,
 } from "@/lib/auth/auth-form-validators"
+import { buildAccountUrl } from "@/lib/url/builder"
+import type { AccountSegmentKey } from "@/lib/url/builder"
+import type { Market } from "@/lib/url/types"
+import { withUrlSearchParams } from "@/lib/storefront/url-search-params"
 import { normalizeCountryCode } from "@/lib/forms/country-options"
 
 type BuildRegisterDefaultsOptions = {
@@ -21,19 +25,18 @@ export const resolveSafeRedirectHref = (value?: string) => {
 }
 
 export const buildAuthRouteHref = (
-  path: "/auth/login" | "/auth/register",
+  market: Market,
+  section: Extract<AccountSegmentKey, "account.login" | "account.register">,
   next?: string
 ) => {
-  if (!next) {
-    return path
-  }
-
-  return `${path}?next=${encodeURIComponent(next)}`
+  const pathname = buildAccountUrl(market, section)
+  return next ? withUrlSearchParams(pathname, { next }) : pathname
 }
 
 export const resolveAfterAuthHref = (
+  market: Market,
   value?: string | string[],
-  fallback = "/account"
+  fallback = buildAccountUrl(market)
 ) => {
   const nextValue = typeof value === "string" ? value : undefined
   return resolveSafeRedirectHref(nextValue) ?? fallback

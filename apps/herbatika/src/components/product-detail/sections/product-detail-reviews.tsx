@@ -5,7 +5,7 @@ import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { useFormatter, useTranslations } from "next-intl"
 import { createParser, createSerializer, useQueryState } from "nuqs"
@@ -302,7 +302,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
           <Pagination
             count={totalCount}
             getPageUrl={getReviewPageUrl}
-            linkAs={NextLink}
+            linkAs={StorefrontLink}
             page={currentPage}
             pageSize={PRODUCT_REVIEWS_PAGE_SIZE}
             siblingCount={0}

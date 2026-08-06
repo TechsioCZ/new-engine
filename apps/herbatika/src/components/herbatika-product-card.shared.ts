@@ -3,6 +3,8 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useEffect, useState } from "react"
+import { buildUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
 import { resolveThumbnail } from "@/components/product-card/product-card.thumbnail"
@@ -24,8 +26,11 @@ export function useHerbatikaProductCardState(
   { priceUnavailableLabel, onImageError }: HerbatikaProductCardStateOptions
 ) {
   const region = useRegionContext()
+  const market = useMarketContext().code
   const currencyCode = resolveRegionCurrency(region)
-  const productHref = product.handle ? `/p/${product.handle}` : "/#"
+  const productHref = product.handle
+    ? buildUrl({ market, kind: "product", slug: product.handle })
+    : "#"
   const price = resolvePriceState(product, currencyCode, priceUnavailableLabel)
   const thumbnail = resolveThumbnail(product)
   const [imageSrc, setImageSrc] = useState(thumbnail)

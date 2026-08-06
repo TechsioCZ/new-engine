@@ -6,7 +6,9 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import Image from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
@@ -75,7 +77,10 @@ export function AccountProductListItemRow({
   const itemProduct = product ?? item.product ?? null
   const productTitle =
     itemProduct?.title?.trim() || item.product_id || item.id || ""
-  const productHref = itemProduct?.handle ? `/p/${itemProduct.handle}` : "#"
+  const market = useMarketContext().code
+  const productHref = itemProduct?.handle
+    ? buildUrl({ market, kind: "product", slug: itemProduct.handle })
+    : "#"
   const imageSrc = itemProduct?.thumbnail ?? PRODUCT_FALLBACK_IMAGE
   const price = itemProduct
     ? resolvePriceState(
@@ -129,7 +134,7 @@ export function AccountProductListItemRow({
 
   return (
     <article className="flex flex-col gap-300 border-border-secondary border-b bg-base p-300 md:flex-row md:items-center">
-      <NextLink className="shrink-0" href={productHref}>
+      <StorefrontLink className="shrink-0" href={productHref}>
         <Image
           alt={productTitle}
           className="h-850 w-850 rounded-md object-contain"
@@ -137,11 +142,11 @@ export function AccountProductListItemRow({
           src={imageSrc}
           width={80}
         />
-      </NextLink>
+      </StorefrontLink>
 
       <div className="min-w-0 flex-1 space-y-100">
         <Link
-          as={NextLink}
+          as={StorefrontLink}
           className="block truncate font-semibold text-primary text-sm underline"
           href={productHref}
         >

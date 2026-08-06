@@ -1,11 +1,13 @@
 "use client"
 
+import { buildCartUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { useEffect, useRef, useState } from "react"
 import {
@@ -43,6 +45,7 @@ function CartTotals({
   shippingAmount,
   taxAmount,
 }: CartTotalsProps) {
+  const market = useMarketContext().code
   const t = useTranslations("cart")
 
   return (
@@ -105,6 +108,7 @@ export function HerbatikaCartPopover({
   currencyCode,
   itemCount,
 }: HerbatikaCartPopoverProps) {
+  const market = useMarketContext().code
   const t = useTranslations("cart")
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -175,10 +179,10 @@ export function HerbatikaCartPopover({
         {(api) => (
           <LinkButton
             {...api.getAnchorProps()}
-            as={NextLink}
+            as={StorefrontLink}
             className="relative inline-flex items-center gap-250 py-550 text-xl data-[state=open]:bg-button-bg-primary-hover sm:w-36"
             data-state={isPopoverOpen ? "open" : "closed"}
-            href="/checkout/kosik"
+            href={buildCartUrl(market)}
             onClick={handleClose}
             onMouseEnter={handlePreviewOpen}
             onMouseLeave={schedulePreviewClose}
@@ -250,9 +254,9 @@ export function HerbatikaCartPopover({
 
               <div className="space-y-150">
                 <LinkButton
-                  as={NextLink}
+                  as={StorefrontLink}
                   block
-                  href="/checkout/kosik"
+                  href={buildCartUrl(market)}
                   onClick={handleClose}
                   size="md"
                   variant="primary"

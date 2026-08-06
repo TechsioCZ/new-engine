@@ -2,7 +2,9 @@ import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { buildIndexUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useLocale, useTranslations } from "next-intl"
 import { CategoryRichText } from "@/components/category/category-rich-text"
 import {
@@ -29,11 +31,13 @@ export function BlogDetailPage({
   relatedPosts,
   sidebarFeaturedProduct,
 }: BlogDetailPageProps) {
+  const market = useMarketContext().code
+  const blogIndexHref = buildIndexUrl({ market, kind: "article" })
   const tContent = useTranslations("content")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: tContent("pages.blog"),
-      href: "/blog",
+      href: blogIndexHref,
       icon: "token-icon-home",
     },
     {
@@ -211,9 +215,9 @@ export function BlogDetailPage({
                 </h2>
 
                 <Link
-                  as={NextLink}
+                  as={StorefrontLink}
                   className="font-medium text-fg-primary text-md leading-tight underline underline-offset-2 hover:text-primary"
-                  href="/blog"
+                  href={blogIndexHref}
                 >
                   {tContent("actions.view_all")} →
                 </Link>

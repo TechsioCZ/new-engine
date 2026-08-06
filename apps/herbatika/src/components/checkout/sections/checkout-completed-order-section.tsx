@@ -1,9 +1,11 @@
 "use client"
 
+import { buildAccountUrl } from "@/lib/url/builder"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useQuery } from "@tanstack/react-query"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { SupportingText } from "@/components/text/supporting-text"
@@ -23,6 +25,7 @@ const QR_PAYMENT_PENDING_TIMEOUT_MS = 15_000
 export function CheckoutCompletedOrderSection({
   completedOrderId,
 }: CheckoutCompletedOrderSectionProps) {
+  const market = useMarketContext().code
   const tCheckout = useTranslations("checkout")
   const [hasQrPaymentPendingTimedOut, setHasQrPaymentPendingTimedOut] =
     useState(false)
@@ -98,12 +101,12 @@ export function CheckoutCompletedOrderSection({
         ) : null}
       </section>
       <div className="flex w-full flex-wrap gap-200">
-        <LinkButton as={NextLink} href="/" size="md">
+        <LinkButton as={StorefrontLink} href="/" size="md">
           {tCheckout("completed_order_continue_shopping")}
         </LinkButton>
         <LinkButton
-          as={NextLink}
-          href="/account"
+          as={StorefrontLink}
+          href={buildAccountUrl(market)}
           size="md"
           theme="outlined"
           variant="secondary"

@@ -2,7 +2,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import {
@@ -122,7 +122,7 @@ export function CategoryResultsSection({
         <Pagination
           count={totalCount}
           getPageUrl={getPageUrl}
-          linkAs={NextLink}
+          linkAs={StorefrontLink}
           page={page}
           pageSize={pageSize}
           size="sm"
