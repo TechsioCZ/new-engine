@@ -1,3 +1,5 @@
+import { hasTrimmedString } from "@techsio/std/string"
+
 import { VALIDATION_MESSAGES } from "@/lib/validation-messages"
 
 export interface AddressFormData {
@@ -39,13 +41,13 @@ const ADDRESS_VALIDATION_RULES = {
   phone: {
     pattern: {
       message: VALIDATION_MESSAGES.phone.invalid,
-      value: /^(\+420\s)?\d{3}\s\d{3}\s\d{3}$|^$/,
+      value: /^(?:\+420\s)?\d{3}\s\d{3}\s\d{3}$|^$/u,
     },
   },
   postal_code: {
     pattern: {
       message: VALIDATION_MESSAGES.postalCode.invalid,
-      value: /^\d{3}\s\d{2}$/,
+      value: /^\d{3}\s\d{2}$/u,
     },
     required: VALIDATION_MESSAGES.postalCode.required,
   },
@@ -60,96 +62,93 @@ const REQUIRED_ADDRESS_FIELDS = [
   "country_code",
 ] as const satisfies readonly AddressFieldKey[]
 
-function validateAddressField(
-  field: AddressFieldKey,
+const validateRequiredLength = (
   value: string,
-  _countryCode?: string,
-): string | undefined {
-  switch (field) {
-    case "first_name": {
-      if (!value.trim()) {
-        return ADDRESS_VALIDATION_RULES.first_name.required
-      }
-      if (value.length < ADDRESS_VALIDATION_RULES.first_name.minLength.value) {
-        return ADDRESS_VALIDATION_RULES.first_name.minLength.message
-      }
-      break
-    }
-    case "last_name": {
-      if (!value.trim()) {
-        return ADDRESS_VALIDATION_RULES.last_name.required
-      }
-      if (value.length < ADDRESS_VALIDATION_RULES.last_name.minLength.value) {
-        return ADDRESS_VALIDATION_RULES.last_name.minLength.message
-      }
-      break
-    }
-    case "address_1": {
-      if (!value.trim()) {
-        return ADDRESS_VALIDATION_RULES.address_1.required
-      }
-      if (value.length < ADDRESS_VALIDATION_RULES.address_1.minLength.value) {
-        return ADDRESS_VALIDATION_RULES.address_1.minLength.message
-      }
-      break
-    }
-    case "city": {
-      if (!value.trim()) {
-        return ADDRESS_VALIDATION_RULES.city.required
-      }
-      if (value.length < ADDRESS_VALIDATION_RULES.city.minLength.value) {
-        return ADDRESS_VALIDATION_RULES.city.minLength.message
-      }
-      break
-    }
-    case "country_code": {
-      if (!value.trim()) {
-        return ADDRESS_VALIDATION_RULES.country_code.required
-      }
-      break
-    }
-    case "postal_code": {
-      if (!value.trim()) {
-        return ADDRESS_VALIDATION_RULES.postal_code.required
-      }
-      if (!ADDRESS_VALIDATION_RULES.postal_code.pattern.value.test(value)) {
-        return ADDRESS_VALIDATION_RULES.postal_code.pattern.message
-      }
-      break
-    }
-    case "phone": {
-      if (value && !ADDRESS_VALIDATION_RULES.phone.pattern.value.test(value)) {
-        return ADDRESS_VALIDATION_RULES.phone.pattern.message
-      }
-      break
-    }
-    case "company":
-    case "address_2":
-    case "province": {
-      break
-    }
-
-    default: {
-      break
-    }
+  rule: { required: string; minLength: { value: number; message: string } },
+): string | undefined => {
+  if (!hasTrimmedString(value)) {
+    return rule.required
   }
-  return
+  return value.length < rule.minLength.value
+    ? rule.minLength.message
+    : undefined
 }
 
-export function validateAddressForm(data: AddressFormData): AddressErrors {
+const validateRequired = (
+  value: string,
+  message: string,
+): string | undefined => (hasTrimmedString(value) ? undefined : message)
+
+const validatePostalCode = (value: string): string | undefined => {
+  const requiredError = validateRequired(
+    value,
+    ADDRESS_VALIDATION_RULES.postal_code.required,
+  )
+  if (requiredError !== undefined) {
+    return requiredError
+  }
+  return ADDRESS_VALIDATION_RULES.postal_code.pattern.value.test(value)
+    ? undefined
+    : ADDRESS_VALIDATION_RULES.postal_code.pattern.message
+}
+
+const validatePhone = (value: string): string | undefined =>
+  value === "" || ADDRESS_VALIDATION_RULES.phone.pattern.value.test(value)
+    ? undefined
+    : ADDRESS_VALIDATION_RULES.phone.pattern.message
+
+type OptionalAddressField = "address_2" | "company" | "province"
+const OPTIONAL_ADDRESS_ERRORS: Partial<Record<OptionalAddressField, string>> =
+  {}
+
+const validateAddressLine = (value: string): string | undefined =>
+  validateRequiredLength(value, ADDRESS_VALIDATION_RULES.address_1)
+const validateCity = (value: string): string | undefined =>
+  validateRequiredLength(value, ADDRESS_VALIDATION_RULES.city)
+const validateCountryCode = (value: string): string | undefined =>
+  validateRequired(value, ADDRESS_VALIDATION_RULES.country_code.required)
+const validateFirstName = (value: string): string | undefined =>
+  validateRequiredLength(value, ADDRESS_VALIDATION_RULES.first_name)
+const validateLastName = (value: string): string | undefined =>
+  validateRequiredLength(value, ADDRESS_VALIDATION_RULES.last_name)
+
+const ADDRESS_FIELD_VALIDATORS: Record<
+  Exclude<AddressFieldKey, OptionalAddressField>,
+  (value: string) => string | undefined
+> = {
+  address_1: validateAddressLine,
+  city: validateCity,
+  country_code: validateCountryCode,
+  first_name: validateFirstName,
+  last_name: validateLastName,
+  phone: validatePhone,
+  postal_code: validatePostalCode,
+}
+
+const validateAddressField = (
+  field: AddressFieldKey,
+  value: string,
+): string | undefined => {
+  if (field === "address_2" || field === "company" || field === "province") {
+    return OPTIONAL_ADDRESS_ERRORS[field]
+  }
+  return ADDRESS_FIELD_VALIDATORS[field](value)
+}
+
+export const validateAddressForm = (data: AddressFormData): AddressErrors => {
   const errors: AddressErrors = {}
 
   for (const field of REQUIRED_ADDRESS_FIELDS) {
-    const fieldValue = data[field] || ""
-    const error = validateAddressField(field, fieldValue, data.country_code)
-    if (error) {
+    const fieldValue = data[field]
+    const error = validateAddressField(field, fieldValue)
+    if (error !== null && error !== undefined && error !== "") {
       errors[field] = error
     }
   }
 
-  if (data.phone) {
+  if (data.phone !== null && data.phone !== undefined && data.phone !== "") {
     const phoneError = validateAddressField("phone", data.phone)
-    if (phoneError) {
+    if (phoneError !== null && phoneError !== undefined && phoneError !== "") {
       errors.phone = phoneError
     }
   }

@@ -51,7 +51,10 @@ export const prefetchLogger = {
       return
     }
 
-    const reasonStr = reason ? ` (${reason})` : ""
+    const reasonStr =
+      reason !== null && reason !== undefined && reason !== ""
+        ? ` (${reason})`
+        : ""
     console.log(`⏭️ [Prefetch ${type}] ${label} skipped${reasonStr}`)
   },
 

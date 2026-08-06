@@ -1,4 +1,4 @@
-import { join } from "node:path"
+import path from "node:path"
 
 import type { NextConfig } from "next"
 
@@ -34,8 +34,8 @@ const nextConfig: NextConfig = {
     qualities: [40, 50, 60, 75, 90],
     remotePatterns: [
       {
-        protocol: "https",
         hostname: "pub-adde8a563e2c43f7b6bc296d81c86358.r2.dev",
+        protocol: "https",
       },
     ],
   },
@@ -54,7 +54,7 @@ const nextConfig: NextConfig = {
       "node_modules/puppeteer",
     ],
   },
-  outputFileTracingRoot: join(__dirname, "../../"),
+  outputFileTracingRoot: path.join(import.meta.dirname, "../../"),
   reactCompiler: true,
   reactStrictMode: true,
   transpilePackages: ["@new-engine/ui", "@techsio/analytics"],

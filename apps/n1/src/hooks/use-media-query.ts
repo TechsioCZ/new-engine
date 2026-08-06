@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 
 const breakpoints = {
   "2xl": "(min-width: 1536px)",
@@ -9,36 +9,23 @@ const breakpoints = {
   xl: "(min-width: 1280px)",
 } as const
 
-type Breakpoint = keyof typeof breakpoints
+const resolveMediaQuery = (query: string): string =>
+  Object.entries(breakpoints).find(
+    ([breakpoint]) => breakpoint === query,
+  )?.[1] ?? query
 
-export function useMediaQuery(query: string): boolean {
-  // Resolve breakpoint key to actual media query
-  const mediaQuery =
-    query in breakpoints ? breakpoints[query as Breakpoint] : query
+export const useMediaQuery = (query: string): boolean => {
+  const mediaQuery = resolveMediaQuery(query)
 
-  const [matches, setMatches] = useState(() => {
-    // SSR safe - return false on server
-    if (typeof window === "undefined") {
-      return false
-    }
-    return window.matchMedia(mediaQuery).matches
-  })
-
-  useEffect(() => {
-    const mql = window.matchMedia(mediaQuery)
-
-    // Update state on mount (handles SSR hydration)
-    setMatches(mql.matches)
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setMatches(e.matches)
-    }
-
-    mql.addEventListener("change", handleChange)
-    return () => {
-      mql.removeEventListener("change", handleChange)
-    }
-  }, [mediaQuery])
-
-  return matches
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const queryList = window.matchMedia(mediaQuery)
+      queryList.addEventListener("change", onStoreChange)
+      return () => {
+        queryList.removeEventListener("change", onStoreChange)
+      }
+    },
+    () => window.matchMedia(mediaQuery).matches,
+    () => false,
+  )
 }

@@ -14,18 +14,22 @@ interface UsePrefetchRootCategoriesParams {
   delay?: number
 }
 
-export function usePrefetchRootCategories({
+export const usePrefetchRootCategories = ({
   enabled = true,
   currentHandle,
   delay = 200,
-}: UsePrefetchRootCategoriesParams) {
+}: UsePrefetchRootCategoriesParams) => {
   const { regionId } = useRegion()
   const { prefetchRootCategories } = usePrefetchProducts()
   const hasPrefetched = useRef(false)
 
   useEffect(() => {
-    if (!(enabled && regionId) || hasPrefetched.current) {
-      return
+    const hasRegion =
+      regionId !== undefined && regionId !== null && regionId !== ""
+    if (!enabled || !hasRegion || hasPrefetched.current) {
+      return () => {
+        // No resources were allocated.
+      }
     }
 
     hasPrefetched.current = true

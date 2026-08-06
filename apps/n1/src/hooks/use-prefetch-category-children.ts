@@ -15,10 +15,10 @@ interface UsePrefetchCategoryChildrenParams {
   categoryHandle: string
 }
 
-export function usePrefetchCategoryChildren({
+export const usePrefetchCategoryChildren = ({
   enabled = true,
   categoryHandle,
-}: UsePrefetchCategoryChildrenParams) {
+}: UsePrefetchCategoryChildrenParams) => {
   const queryClient = useQueryClient()
   const currentCategory = allCategories.find(
     (cat) => cat.handle === categoryHandle,
@@ -27,8 +27,12 @@ export function usePrefetchCategoryChildren({
   const { prefetchCategoryProducts } = usePrefetchProducts()
 
   useEffect(() => {
-    if (!(enabled && currentCategory && regionId)) {
-      return
+    const hasRegion =
+      regionId !== undefined && regionId !== null && regionId !== ""
+    if (!enabled || currentCategory === undefined || !hasRegion) {
+      return () => {
+        // No resources were allocated.
+      }
     }
 
     let isCancelled = false
@@ -46,11 +50,13 @@ export function usePrefetchCategoryChildren({
         await Promise.all(
           children.map(async (child) => {
             const categoryIds = ALL_CATEGORIES_MAP[child.handle]
-            if (categoryIds?.length) {
+            if (
+              categoryIds !== null &&
+              categoryIds !== undefined &&
+              categoryIds.length > 0
+            ) {
               await prefetchCategoryProducts(categoryIds, categoryHandle)
-              return
             }
-            return
           }),
         )
 
@@ -67,9 +73,11 @@ export function usePrefetchCategoryChildren({
       // Cancel ongoing prefetch requests for this category's children
       // Uses meta scope to avoid canceling queries from other categories
       void queryClient.cancelQueries({
-        predicate: (query) =>
+        predicate: (query) => {
           // ✅ Only cancel queries prefetched by THIS categoryHandle
-          query.meta?.prefetchedBy === categoryHandle,
+          const { prefetchedBy } = query.meta ?? {}
+          return prefetchedBy === categoryHandle
+        },
       })
 
       prefetchLogger.info(

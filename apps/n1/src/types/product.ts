@@ -6,6 +6,12 @@ export interface StoreProductExtended extends StoreProduct {
 }
 
 // Lightweight type for product listing
+type StockStatus = keyof {
+  "in-stock": true
+  "limited-stock": true
+  "out-of-stock": true
+}
+
 export interface Product {
   id: string
   title: string
@@ -14,7 +20,7 @@ export interface Product {
   withoutTax?: string
   badges?: BadgeProps[]
   imageSrc?: string
-  stockStatus?: "in-stock" | "out-of-stock" | "limited-stock" | undefined
+  stockStatus?: StockStatus
   stockValue?: "Skladem" | "Vyprodáno"
   variants?: string[]
 }
@@ -33,14 +39,14 @@ export interface ProductImage {
 export interface Brand {
   id: string
   title: string
-  attributes?: Array<{
+  attributes?: {
     value: string
     attributeType?:
       | {
           name: string
         }
       | undefined
-  }>
+  }[]
 }
 
 export interface ProductVariantDetail {
@@ -56,10 +62,10 @@ export interface ProductVariantDetail {
   inventory_quantity?: number | undefined
   metadata?:
     | {
-        images?: Array<{ url: string }>
+        images?: { url: string }[]
         thumbnail?: string
         user_code?: string
-        attributes?: Array<{ name: string; value: string }>
+        attributes?: { name: string; value: string }[]
       }
     | undefined
   calculated_price?:

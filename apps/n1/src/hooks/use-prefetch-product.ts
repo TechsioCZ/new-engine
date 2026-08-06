@@ -11,34 +11,37 @@ import { getProductByHandle } from "@/services/product-service"
 import { useRegion } from "./use-region"
 
 const PREFETCH_DELAY = 400
-export function usePrefetchProduct() {
+export const usePrefetchProduct = () => {
   const { regionId, countryCode } = useRegion()
   const queryClient = useQueryClient()
   const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   const prefetchProduct = async (handle: string, fields?: string) => {
-    if (!(regionId && handle)) {
+    if (regionId === undefined || regionId === "" || handle === "") {
       return
     }
 
     const queryKey = queryKeys.products.detail(handle, regionId, countryCode)
-    const cached = queryClient.getQueryData(queryKey)
+    const cached =
+      queryClient.getQueryData<Awaited<ReturnType<typeof getProductByHandle>>>(
+        queryKey,
+      )
 
-    if (cached) {
-      prefetchLogger.cacheHit("Product", handle)
-    } else {
+    if (cached === undefined) {
       prefetchLogger.start("Product", handle)
       await queryClient.prefetchQuery({
         queryFn: async () =>
-          getProductByHandle({
+          await getProductByHandle({
+            country_code: countryCode,
             handle,
             region_id: regionId,
-            country_code: countryCode,
-            ...(fields ? { fields } : {}),
+            ...(fields !== undefined && fields !== "" ? { fields } : {}),
           }),
         queryKey,
         ...cacheConfig.semiStatic,
       })
+    } else {
+      prefetchLogger.cacheHit("Product", handle)
     }
   }
 

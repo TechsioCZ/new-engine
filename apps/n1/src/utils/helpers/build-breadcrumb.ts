@@ -4,13 +4,13 @@ import type { Category } from "@/data/static/type"
 
 import { getCategoryPath } from "../transform/get-category-path"
 
-export function buildBreadcrumbs(
+export const buildBreadcrumbs = (
   categoryId: string | undefined,
   categoryMap: Record<string, Category>,
-): BreadcrumbTemplateItem[] {
+): BreadcrumbTemplateItem[] => {
   const breadcrumbs: BreadcrumbTemplateItem[] = [{ href: "/", label: "Domů" }]
 
-  if (!categoryId) {
+  if (categoryId === null || categoryId === undefined || categoryId === "") {
     return breadcrumbs
   }
 
@@ -36,12 +36,12 @@ export function buildBreadcrumbs(
   return breadcrumbs
 }
 
-export function buildProductBreadcrumbs(
+export const buildProductBreadcrumbs = (
   categoryId: string | undefined,
   categoryMap: Record<string, Category>,
   productTitle: string,
   productHandle: string,
-): BreadcrumbTemplateItem[] {
+): BreadcrumbTemplateItem[] => {
   const categoryBreadcrumbs = buildBreadcrumbs(categoryId, categoryMap)
 
   return [

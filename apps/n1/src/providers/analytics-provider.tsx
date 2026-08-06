@@ -27,6 +27,17 @@ interface AnalyticsContextValue extends Analytics {
   trackPageview: () => boolean
 }
 
+const createAnalyticsContextValue = (
+  analytics: Analytics,
+  leadhubAdapter: ReturnType<typeof useLeadhubAdapter>,
+): AnalyticsContextValue => ({
+  ...analytics,
+  trackIdentify: leadhubAdapter.trackIdentify,
+  trackPageview: leadhubAdapter.trackPageview,
+  trackSetCart: leadhubAdapter.trackSetCart,
+  trackViewCategory: leadhubAdapter.trackViewCategory,
+})
+
 const AnalyticsContext = createContext<AnalyticsContextValue | null>(null)
 
 interface AnalyticsProviderProps {
@@ -52,11 +63,11 @@ interface AnalyticsProviderProps {
  * analytics.trackViewContent({ productId, productName, value, currency })
  * ```
  */
-export function AnalyticsProvider({
+export const AnalyticsProvider = ({
   children,
   debug = process.env.NODE_ENV === "development",
   googleConversionLabel,
-}: AnalyticsProviderProps) {
+}: AnalyticsProviderProps) => {
   // Create Leadhub adapter - we need direct access to its specific methods
   const leadhubAdapter = useLeadhubAdapter({ debug })
 
@@ -66,7 +77,9 @@ export function AnalyticsProvider({
       useMetaAdapter({ debug }),
       useGoogleAdapter({
         debug,
-        ...(googleConversionLabel
+        ...(googleConversionLabel !== null &&
+        googleConversionLabel !== undefined &&
+        googleConversionLabel !== ""
           ? { conversionLabel: googleConversionLabel }
           : {}),
       }),
@@ -75,15 +88,7 @@ export function AnalyticsProvider({
     debug,
   })
 
-  const value: AnalyticsContextValue = {
-    // Unified methods (sends to all adapters)
-    ...analytics,
-    // Leadhub-specific methods
-    trackViewCategory: leadhubAdapter.trackViewCategory,
-    trackIdentify: leadhubAdapter.trackIdentify,
-    trackSetCart: leadhubAdapter.trackSetCart,
-    trackPageview: leadhubAdapter.trackPageview,
-  }
+  const value = createAnalyticsContextValue(analytics, leadhubAdapter)
 
   return (
     <AnalyticsContext.Provider value={value}>
@@ -95,7 +100,7 @@ export function AnalyticsProvider({
 /**
  * Hook to access analytics tracking methods
  *
- * @throws Error if used outside of AnalyticsProvider
+ * @throws {Error} If used outside of AnalyticsProvider
  *
  * @example
  * ```tsx
@@ -113,7 +118,7 @@ export function AnalyticsProvider({
  * }
  * ```
  */
-export function useAnalytics(): AnalyticsContextValue {
+export const useAnalytics = (): AnalyticsContextValue => {
   const context = useContext(AnalyticsContext)
 
   if (!context) {

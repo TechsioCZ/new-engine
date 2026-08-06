@@ -9,7 +9,7 @@ export interface UseLoginOptions {
   onError?: (error: Error) => void
 }
 
-export function useLogin(options?: UseLoginOptions) {
+export const useLogin = (options?: UseLoginOptions) => {
   const queryClient = useQueryClient()
 
   return useMutation({

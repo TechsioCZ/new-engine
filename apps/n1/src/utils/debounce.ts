@@ -1,17 +1,25 @@
 export interface DebouncedFunction<Args extends unknown[]> {
   (...args: Args): void
   cancel: () => void
+  update: (
+    fn: (...args: Args) => void,
+    delay: number,
+    options?: { leading?: boolean },
+  ) => void
 }
 
-export function debounce<Args extends unknown[]>(
+export const debounce = <Args extends unknown[]>(
   fn: (...args: Args) => void,
   delay: number,
   options?: {
     leading?: boolean
   },
-): DebouncedFunction<Args> {
+): DebouncedFunction<Args> => {
   let timeoutId: ReturnType<typeof setTimeout> | null = null
   let lastArgs: Args | null = null
+  let currentFn = fn
+  let currentDelay = delay
+  let leading = options?.leading === true
 
   const cancel = () => {
     if (timeoutId !== null) {
@@ -24,12 +32,12 @@ export function debounce<Args extends unknown[]>(
   const debouncedFn = (...args: Args): void => {
     lastArgs = args
 
-    if (options?.leading && timeoutId === null) {
-      fn(...args)
+    if (leading && timeoutId === null) {
+      currentFn(...args)
       timeoutId = setTimeout(() => {
         timeoutId = null
         lastArgs = null
-      }, delay)
+      }, currentDelay)
       return
     }
 
@@ -39,14 +47,23 @@ export function debounce<Args extends unknown[]>(
 
     timeoutId = setTimeout(() => {
       if (lastArgs !== null) {
-        fn(...lastArgs)
+        currentFn(...lastArgs)
       }
       timeoutId = null
       lastArgs = null
-    }, delay)
+    }, currentDelay)
   }
 
   debouncedFn.cancel = cancel
+  debouncedFn.update = (
+    nextFn: (...args: Args) => void,
+    nextDelay: number,
+    nextOptions?: { leading?: boolean },
+  ) => {
+    currentFn = nextFn
+    currentDelay = nextDelay
+    leading = nextOptions?.leading === true
+  }
 
   return debouncedFn
 }

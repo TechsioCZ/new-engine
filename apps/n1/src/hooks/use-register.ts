@@ -9,11 +9,11 @@ export interface UseRegisterOptions {
   onError?: (error: Error) => void
 }
 
-export function useRegister(options?: UseRegisterOptions) {
+export const useRegister = (options?: UseRegisterOptions) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (data: RegisterData) => register(data),
+    mutationFn: async (data: RegisterData) => await register(data),
     onError: (error: Error) => {
       options?.onError?.(error)
     },

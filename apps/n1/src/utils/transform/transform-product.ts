@@ -11,7 +11,7 @@ import type {
 
 import { formatPrice, formatVariants } from "../format/format-product"
 
-const IMAGE_PREFIX_REGEX = /^[a-f0-9]{10}-/
+const IMAGE_PREFIX_REGEX = /^[a-f0-9]{10}-/u
 
 const formatStockValue = (
   variants?: StoreProduct["variants"],
@@ -29,11 +29,14 @@ const formatStockValue = (
 const getBaseProductFields = (product: StoreProduct) => ({
   handle: product.handle,
   id: product.id,
-  imageSrc: product.thumbnail || "/placeholder.jpg",
+  imageSrc:
+    product.thumbnail === ""
+      ? "/placeholder.jpg"
+      : (product.thumbnail ?? "/placeholder.jpg"),
   price: formatPrice({ variants: product.variants }),
   stockValue: formatStockValue(product.variants),
   title: product.title,
-  withoutTax: formatPrice({ variants: product.variants, tax: false }),
+  withoutTax: formatPrice({ tax: false, variants: product.variants }),
 })
 
 export const transformProduct = (product: StoreProduct): Product => ({
@@ -44,7 +47,7 @@ export const transformProduct = (product: StoreProduct): Product => ({
 const removeDuplicatedImageUrl = (images: ProductImage[]) => {
   const uniqueUrls = new Set<string>()
   return images.filter((img) => {
-    const filename = img.src.split("/").pop() || ""
+    const filename = img.src.split("/").pop() ?? ""
     const baseName = filename.replace(IMAGE_PREFIX_REGEX, "")
     if (uniqueUrls.has(baseName)) {
       return false
@@ -54,6 +57,63 @@ const removeDuplicatedImageUrl = (images: ProductImage[]) => {
   })
 }
 
+const isMetadataImage = (value: unknown): value is { url: string } => {
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+  return "url" in value && typeof value.url === "string"
+}
+
+const isMetadataAttribute = (
+  value: unknown,
+): value is { name: string; value: string } => {
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+  if (!("name" in value) || typeof value.name !== "string") {
+    return false
+  }
+  return "value" in value && typeof value.value === "string"
+}
+
+const normalizeVariantMetadata = (
+  metadata: unknown,
+): ProductVariantDetail["metadata"] => {
+  if (typeof metadata !== "object" || metadata === null) {
+    return undefined
+  }
+
+  const rawImages: unknown = "images" in metadata ? metadata.images : undefined
+  const images =
+    Array.isArray(rawImages) && rawImages.every(isMetadataImage)
+      ? rawImages.map((image) => ({ url: image.url }))
+      : undefined
+  const rawAttributes: unknown =
+    "attributes" in metadata ? metadata.attributes : undefined
+  const attributes =
+    Array.isArray(rawAttributes) && rawAttributes.every(isMetadataAttribute)
+      ? rawAttributes.map((attribute) => ({
+          name: attribute.name,
+          value: attribute.value,
+        }))
+      : undefined
+  const thumbnail =
+    "thumbnail" in metadata && typeof metadata.thumbnail === "string"
+      ? metadata.thumbnail
+      : undefined
+  const userCode =
+    "user_code" in metadata && typeof metadata.user_code === "string"
+      ? metadata.user_code
+      : undefined
+
+  return {
+    ...(attributes === undefined ? {} : { attributes }),
+    ...(images === undefined ? {} : { images }),
+    ...(thumbnail === undefined ? {} : { thumbnail }),
+    ...(userCode === undefined ? {} : { user_code: userCode }),
+  }
+}
+
 // ============================================
 // V2 Transform - Optimized for new API structure
 // ============================================
@@ -61,8 +121,9 @@ const removeDuplicatedImageUrl = (images: ProductImage[]) => {
 export const transformProductDetail = (
   product: StoreProductExtended,
 ): ProductDetail => {
-  const variantMetadata = product.variants?.[0]
-    ?.metadata as ProductVariantDetail["metadata"]
+  const variantMetadata = normalizeVariantMetadata(
+    product.variants?.[0]?.metadata,
+  )
   const variantImages = variantMetadata?.images
   const imagesData: ProductImage[] =
     variantImages && variantImages.length > 0
@@ -70,10 +131,10 @@ export const transformProductDetail = (
           id: slugify(img.url),
           src: img.url,
         }))
-      : product.images?.map((img) => ({
+      : (product.images?.map((img) => ({
           id: img.id,
           src: img.url,
-        })) || []
+        })) ?? [])
 
   const images: ProductImage[] = removeDuplicatedImageUrl(imagesData)
 
@@ -88,8 +149,8 @@ export const transformProductDetail = (
               variant.calculated_price.calculated_amount_with_tax,
             calculated_amount_without_tax:
               variant.calculated_price.calculated_amount_without_tax,
-            original_amount: variant.calculated_price.original_amount,
             currency_code: variant.calculated_price.currency_code,
+            original_amount: variant.calculated_price.original_amount,
           }
         : undefined,
       ean: variant.ean,
@@ -97,48 +158,44 @@ export const transformProductDetail = (
       inventory_quantity: variant.inventory_quantity ?? undefined,
       manage_inventory: variant.manage_inventory ?? true,
       material: variant.material,
-      metadata: variant.metadata as ProductVariantDetail["metadata"],
+      metadata: normalizeVariantMetadata(variant.metadata),
       sku: variant.sku,
-      title: variant.title || "",
+      title: variant.title ?? "",
       upc: variant.upc,
-    })) || []
+    })) ?? []
 
   return {
     // Base Product fields
     ...getBaseProductFields(product),
-
-    // Extended fields
-    description: product.description,
-    subtitle: product.subtitle,
-    thumbnail: product.thumbnail,
-    collection_id: product.collection_id,
-    type_id: product.type_id,
-    weight: product.weight,
-    material: product.material,
-
-    // Full data
-    images,
-    variants,
-    tags:
-      product.tags?.map((tag) => ({
-        id: tag.id,
-        value: tag.value,
-      })) || [],
     // Brand data
     brand: product.brand
       ? {
           attributes:
             product.brand.attributes?.map((attr) => ({
-              value: attr.value,
               attributeType: attr.attributeType
                 ? {
                     name: attr.attributeType.name,
                   }
                 : undefined,
-            })) || [],
+              value: attr.value,
+            })) ?? [],
           id: product.brand.id,
           title: product.brand.title,
         }
       : undefined,
+    collection_id: product.collection_id,
+    description: product.description,
+    images,
+    material: product.material,
+    subtitle: product.subtitle,
+    tags:
+      product.tags?.map((tag) => ({
+        id: tag.id,
+        value: tag.value,
+      })) ?? [],
+    thumbnail: product.thumbnail,
+    type_id: product.type_id,
+    variants,
+    weight: product.weight,
   }
 }

@@ -17,9 +17,9 @@ export interface RegisterData {
   last_name: string
 }
 
-export async function login(
+export const login = async (
   credentials: LoginCredentials,
-): Promise<string | undefined> {
+): Promise<string | undefined> => {
   try {
     const token = await sdk.auth.login("customer", "emailpass", {
       email: credentials.email,
@@ -34,13 +34,13 @@ export async function login(
     return token
   } catch (error) {
     logError("AuthService.login", error)
-    throw new Error(mapAuthError(error), { cause: err })
+    throw new Error(mapAuthError(error), { cause: error })
   }
 }
 
-export async function register(
+export const register = async (
   data: RegisterData,
-): Promise<string | undefined> {
+): Promise<string | undefined> => {
   try {
     // Step 1: Register creates auth identity (email + password)
     const token = await sdk.auth.register("customer", "emailpass", {
@@ -77,11 +77,11 @@ export async function register(
     // If register() succeeded but create() failed, we have token without customer
     clearToken()
 
-    throw new Error(mapAuthError(error), { cause: err })
+    throw new Error(mapAuthError(error), { cause: error })
   }
 }
 
-export async function logout(): Promise<void> {
+export const logout = async (): Promise<void> => {
   try {
     await sdk.auth.logout()
   } catch (error) {
@@ -90,17 +90,17 @@ export async function logout(): Promise<void> {
   }
 }
 
-export async function getCustomer(): Promise<StoreCustomer | null> {
+export const getCustomer = async (): Promise<StoreCustomer | null> => {
   try {
     const response = await sdk.store.customer.retrieve()
     const { customer } = response
 
-    if (!customer) {
-      return null
-    }
-
-    if (customer.addresses?.length) {
-      customer.addresses = [...customer.addresses].sort(
+    if (
+      customer.addresses !== null &&
+      customer.addresses !== undefined &&
+      customer.addresses.length > 0
+    ) {
+      customer.addresses = customer.addresses.toSorted(
         (a, b) =>
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       )

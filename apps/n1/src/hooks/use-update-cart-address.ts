@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { hasTrimmedString } from "@techsio/std/string"
 
 import { CartAddressUpdateError, resolveErrorMessage } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
@@ -7,6 +8,11 @@ import { queryKeys } from "@/lib/query-keys"
 import type { Cart } from "@/services/cart-service"
 import type { AddressErrors, AddressFormData } from "@/utils/address-validation"
 import { validateAddressForm } from "@/utils/address-validation"
+
+type CartAddressInput = Exclude<
+  HttpTypes.StoreUpdateCart["shipping_address"],
+  string | undefined
+>
 
 interface UpdateCartAddressOptions {
   onSuccess?: (cart: Cart) => void
@@ -18,10 +24,8 @@ interface MutationContext {
 }
 
 /** Helper to clean address data for Medusa API */
-function cleanAddress(
-  address: AddressFormData,
-): HttpTypes.StoreUpdateCart["shipping_address"] {
-  const cleaned: HttpTypes.StoreUpdateCart["shipping_address"] = {
+const cleanAddress = (address: AddressFormData): CartAddressInput => {
+  const cleaned: CartAddressInput = {
     address_1: address.address_1,
     city: address.city,
     country_code: address.country_code,
@@ -30,23 +34,23 @@ function cleanAddress(
     postal_code: address.postal_code,
   }
 
-  if (address.address_2?.trim()) {
+  if (hasTrimmedString(address.address_2)) {
     cleaned.address_2 = address.address_2
   }
-  if (address.company?.trim()) {
+  if (hasTrimmedString(address.company)) {
     cleaned.company = address.company
   }
-  if (address.province?.trim()) {
+  if (hasTrimmedString(address.province)) {
     cleaned.province = address.province
   }
-  if (address.phone?.trim()) {
+  if (hasTrimmedString(address.phone)) {
     cleaned.phone = address.phone
   }
 
   return cleaned
 }
 
-export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
+export const useUpdateCartAddress = (options?: UpdateCartAddressOptions) => {
   const queryClient = useQueryClient()
 
   return useMutation<
@@ -84,28 +88,18 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
       const cleanedShippingAddress = cleanAddress(shippingAddress)
 
       // Update the cart with both addresses
-      const response = await sdk.store.cart
-        .update(cartId, {
-          ...(cleanedBillingAddress
-            ? { billing_address: cleanedBillingAddress }
-            : {}),
-          ...(cleanedShippingAddress
-            ? { shipping_address: cleanedShippingAddress }
-            : {}),
-          ...(email ? { email } : {}),
+      let response: Awaited<ReturnType<typeof sdk.store.cart.update>>
+      try {
+        response = await sdk.store.cart.update(cartId, {
+          billing_address: cleanedBillingAddress,
+          shipping_address: cleanedShippingAddress,
+          ...(email !== undefined && email !== "" ? { email } : {}),
         })
-        .catch((error: unknown) => {
-          throw new CartAddressUpdateError(
-            resolveErrorMessage(error),
-            "ADDRESS_UPDATE_REJECTED",
-            error,
-          )
-        })
-
-      if (!response.cart) {
+      } catch (error) {
         throw new CartAddressUpdateError(
-          "Failed to update addresses",
+          resolveErrorMessage(error),
           "ADDRESS_UPDATE_REJECTED",
+          error,
         )
       }
 

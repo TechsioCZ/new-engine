@@ -1,34 +1,25 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useReducer } from "react"
 
 import { debounce } from "@/utils/debounce"
 import type { DebouncedFunction } from "@/utils/debounce"
 
-export function useDebounce<Args extends unknown[], R>(
-  callback: (...args: Args) => R,
+export const useDebounce = <Args extends unknown[]>(
+  callback: (...args: Args) => void,
   delay: number,
   options?: {
     leading?: boolean
   },
-): DebouncedFunction<Args> {
-  const callbackRef = useRef(callback)
-
-  // Always update callback ref to latest version
-  callbackRef.current = callback
-
-  // Create debounced function synchronously during render (not after)
-  const debouncedFn = useMemo(
-    () =>
-      debounce(
-        (...args: Args) => {
-          callbackRef.current(...args)
-        },
-        delay,
-        options,
-      ),
-    [delay, options?.leading, options], // Recreate if delay or leading option changes
+): DebouncedFunction<Args> => {
+  const [debouncedFn] = useReducer(
+    (current: DebouncedFunction<Args>) => current,
+    undefined,
+    () => debounce(callback, delay, options),
   )
 
-  // Cleanup: cancel pending execution on unmount or dependency change
+  useEffect(() => {
+    debouncedFn.update(callback, delay, options)
+  }, [callback, debouncedFn, delay, options])
+
   useEffect(
     () => () => {
       debouncedFn.cancel()

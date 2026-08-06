@@ -29,25 +29,28 @@ interface UseCheckoutPaymentReturn {
   hasPaymentSessions: boolean
 }
 
-export function useCheckoutPayment(
+export const useCheckoutPayment = (
   cartId?: string,
   regionId?: string,
   cart?: Cart | null,
-): UseCheckoutPaymentReturn {
+): UseCheckoutPaymentReturn => {
   const queryClient = useQueryClient()
   const toast = useCartToast()
 
-  const canLoadProviders = !!regionId
+  const canLoadProviders =
+    regionId !== undefined && regionId !== null && regionId !== ""
 
   // Fetch available payment providers for region
   const { data: paymentProviders } = useSuspenseQuery({
-    queryFn: () => {
-      if (!(canLoadProviders && regionId)) {
+    queryFn: async () => {
+      if (!canLoadProviders) {
         return []
       }
-      return getPaymentProviders(regionId)
+      return await getPaymentProviders(regionId)
     },
-    queryKey: queryKeys.payment.providers(regionId || "unknown"),
+    queryKey: queryKeys.payment.providers(
+      regionId === "" ? "unknown" : (regionId ?? "unknown"),
+    ),
     staleTime: CACHE_TIMES.PAYMENT_PROVIDERS_STALE,
   })
 
@@ -59,7 +62,7 @@ export function useCheckoutPayment(
       string
     >({
       mutationFn: async (providerId: string) => {
-        if (!cartId) {
+        if (cartId === null || cartId === undefined || cartId === "") {
           throw new CartServiceError("Cart ID je povinné", "VALIDATION_ERROR")
         }
         if (!providerId) {
@@ -93,10 +96,14 @@ export function useCheckoutPayment(
     })
 
   const hasShippingMethod = !!cart?.shipping_methods?.[0]
-  const canInitiatePayment = !!cartId && hasShippingMethod
+  const canInitiatePayment =
+    cartId !== null &&
+    cartId !== undefined &&
+    cartId !== "" &&
+    hasShippingMethod
   const hasPaymentCollection = !!cart?.payment_collection
   const hasPaymentSessions =
-    (cart?.payment_collection?.payment_sessions?.length || 0) > 0
+    (cart?.payment_collection?.payment_sessions?.length ?? 0) > 0
 
   return {
     canInitiatePayment,

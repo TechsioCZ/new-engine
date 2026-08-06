@@ -19,14 +19,15 @@ interface BuilderParams extends Partial<ProductQueryParams> {
   page?: number
 }
 
-export function buildProductQueryParams(
+export const buildProductQueryParams = (
   params: BuilderParams,
-): ProductQueryParams {
+): ProductQueryParams => {
   const { page = 1, limit = PRODUCT_LIMIT, ...rest } = params
 
   return {
+    // Default country code; callers can override it.
+    country_code: "cz",
     fields: PRODUCT_LIST_FIELDS,
-    country_code: "cz", // default, can be overridden
     ...rest,
     limit,
     offset: (page - 1) * limit,
@@ -36,14 +37,13 @@ export function buildProductQueryParams(
 /**
  * Always prefetches page 1
  */
-export function buildPrefetchParams(
+export const buildPrefetchParams = (
   params: Pick<BuilderParams, "category_id" | "region_id" | "country_code">,
-): ProductQueryParams {
-  return buildProductQueryParams({
+): ProductQueryParams =>
+  buildProductQueryParams({
     ...params,
     page: 1,
   })
-}
 
 /**
  * Converts query params to URL query string
@@ -57,9 +57,9 @@ type QueryParamValue =
   | null
   | undefined
 
-export function buildQueryString(
+export const buildQueryString = (
   params: Record<string, QueryParamValue>,
-): string {
+): string => {
   const searchParams = new URLSearchParams()
 
   for (const [key, value] of Object.entries(params)) {
@@ -69,9 +69,9 @@ export function buildQueryString(
 
     if (Array.isArray(value)) {
       // category_id[0]=xxx&category_id[1]=yyy
-      value.forEach((v, i) => {
-        searchParams.append(`${key}[${i}]`, String(v))
-      })
+      for (const [index, item] of value.entries()) {
+        searchParams.append(`${key}[${index}]`, String(item))
+      }
     } else {
       searchParams.append(key, String(value))
     }

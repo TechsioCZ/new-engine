@@ -28,7 +28,7 @@ export interface UseSuspenseAuthReturn {
  * Checks token expiration before making API request
  * Uses userData cache - invalidated explicitly on login/logout/register
  */
-export function useAuth(): UseAuthReturn {
+export const useAuth = (): UseAuthReturn => {
   const {
     data: customer = null,
     isLoading,
@@ -38,8 +38,9 @@ export function useAuth(): UseAuthReturn {
       // Check token expiration BEFORE making request
       const token = getTokenFromStorage()
 
-      if (!token) {
-        return null // No token = not authenticated
+      if (token === null || token === undefined || token === "") {
+        // No token means the user is not authenticated.
+        return null
       }
 
       if (isTokenExpired(token)) {
@@ -49,16 +50,21 @@ export function useAuth(): UseAuthReturn {
       }
 
       // Token valid - fetch customer data
-      return getCustomer()
+      return await getCustomer()
     },
     queryKey: queryKeys.customer.profile(),
-    retry: false, // Don't retry auth failures
-    ...cacheConfig.userData, // 5min stale, invalidated on auth actions
+    // Do not retry authentication failures.
+    retry: false,
+    // Five-minute stale window; authentication actions invalidate the cache.
+    ...cacheConfig.userData,
   })
 
   // Check current token expiration status for UI
   const token = getTokenFromStorage()
-  const tokenExpired = token ? isTokenExpired(token) : false
+  const tokenExpired =
+    token !== null && token !== undefined && token !== ""
+      ? isTokenExpired(token)
+      : false
 
   return {
     customer,
@@ -69,12 +75,12 @@ export function useAuth(): UseAuthReturn {
   }
 }
 
-export function useSuspenseAuth(): UseSuspenseAuthReturn {
+export const useSuspenseAuth = (): UseSuspenseAuthReturn => {
   const { data: customer } = useSuspenseQuery({
     queryFn: async () => {
       const token = getTokenFromStorage()
 
-      if (!token) {
+      if (token === null || token === undefined || token === "") {
         return null
       }
 
@@ -83,7 +89,7 @@ export function useSuspenseAuth(): UseSuspenseAuthReturn {
         return null
       }
 
-      return getCustomer()
+      return await getCustomer()
     },
     queryKey: queryKeys.customer.profile(),
     retry: false,
@@ -91,7 +97,10 @@ export function useSuspenseAuth(): UseSuspenseAuthReturn {
   })
 
   const token = getTokenFromStorage()
-  const tokenExpired = token ? isTokenExpired(token) : false
+  const tokenExpired =
+    token !== null && token !== undefined && token !== ""
+      ? isTokenExpired(token)
+      : false
 
   return {
     customer,

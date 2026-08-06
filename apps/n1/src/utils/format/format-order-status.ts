@@ -1,21 +1,6 @@
-type OrderStatus =
-  | "pending"
-  | "completed"
-  | "canceled"
-  | "archived"
-  | "requires_action"
-
-const orderStatusMap: Record<OrderStatus, string> = {
-  archived: "Archivována",
-  canceled: "Zrušena",
-  completed: "Dokončena",
-  pending: "Čeká na zpracování",
-  requires_action: "Vyžaduje akci",
-}
-
-export function getOrderStatusColor(
+export const getOrderStatusColor = (
   status: string,
-): "success" | "danger" | "info" {
+): "success" | "danger" | "info" => {
   switch (status) {
     case "completed": {
       return "success"
@@ -29,6 +14,25 @@ export function getOrderStatusColor(
   }
 }
 
-export function getOrderStatusLabel(status: string): string {
-  return orderStatusMap[status as OrderStatus] || status
+export const getOrderStatusLabel = (status: string): string => {
+  switch (status) {
+    case "archived": {
+      return "Archivována"
+    }
+    case "canceled": {
+      return "Zrušena"
+    }
+    case "completed": {
+      return "Dokončena"
+    }
+    case "pending": {
+      return "Čeká na zpracování"
+    }
+    case "requires_action": {
+      return "Vyžaduje akci"
+    }
+    default: {
+      return status
+    }
+  }
 }

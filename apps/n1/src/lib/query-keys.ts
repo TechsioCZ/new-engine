@@ -24,7 +24,7 @@ export const queryKeys = {
     all: () => [...queryKeys.all, "orders"] as const,
     detail: (id: string) => [...queryKeys.orders.all(), "detail", id] as const,
     list: (params?: { limit?: number; offset?: number }) =>
-      [...queryKeys.orders.all(), "list", params || {}] as const,
+      [...queryKeys.orders.all(), "list", params ?? {}] as const,
   },
 
   payment: {
@@ -44,7 +44,7 @@ export const queryKeys = {
         countryCode,
       ] as const,
     list: (params?: ProductQueryParams) =>
-      [...queryKeys.products.all(), "list", params || {}] as const,
+      [...queryKeys.products.all(), "list", params ?? {}] as const,
   },
 
   regions: () => [...queryKeys.all, "regions"] as const,

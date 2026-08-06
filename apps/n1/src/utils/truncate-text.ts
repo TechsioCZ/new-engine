@@ -1,4 +1,4 @@
-export function truncateText(text: string, maxWords = 3): string {
+export const truncateText = (text: string, maxWords = 3): string => {
   const words = text.split(" ")
   if (words.length <= maxWords) {
     return text

@@ -16,7 +16,7 @@ export interface UseLogoutOptions {
  * - Cart (active cart)
  * - Customer (addresses)
  */
-export function useLogout(options?: UseLogoutOptions) {
+export const useLogout = (options?: UseLogoutOptions) => {
   const queryClient = useQueryClient()
 
   return useMutation({

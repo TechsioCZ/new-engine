@@ -1,4 +1,4 @@
-export function formatLogValue(value: unknown): string {
+export const formatLogValue = (value: unknown): string => {
   if (value === null) {
     return "null"
   }

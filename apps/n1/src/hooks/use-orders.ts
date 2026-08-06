@@ -11,10 +11,10 @@ export interface UseOrdersOptions {
   offset?: number
 }
 
-export function useSuspenseOrders(options?: UseOrdersOptions) {
+export const useSuspenseOrders = (options?: UseOrdersOptions) => {
   const { isAuthenticated } = useSuspenseAuth()
-  const limit = options?.limit || 20
-  const offset = options?.offset || 0
+  const limit = options?.limit === 0 ? 20 : (options?.limit ?? 20)
+  const offset = options?.offset ?? 0
 
   if (!isAuthenticated) {
     throw new Error("Uživatel není přihlášen")

@@ -128,7 +128,8 @@ interface SubMenuItem {
   name: string
   href: string
   image?: StaticImageData | undefined
-  categoryIds?: string[] // Optional for backward compatibility
+  // Optional for backward compatibility
+  categoryIds?: string[]
 }
 
 export interface SubmenuCategory {
@@ -149,7 +150,7 @@ const CATEGORY_IMAGE_EXCEPTIONS: Record<string, string> = {
   snowboarding: "snowboard",
   "trika-a-tilka": "trika",
 }
-const CATEGORY_SUFFIX_REGEX = /-category-\d+$/
+const CATEGORY_SUFFIX_REGEX = /-category-\d+$/u
 
 // Helper: Convert handle to headerImgs key (removes -category-XXX pattern and converts to camelCase)
 const handleToImageKey = (handle: string): string => {
@@ -157,8 +158,9 @@ const handleToImageKey = (handle: string): string => {
   const cleanHandle = handle.replace(CATEGORY_SUFFIX_REGEX, "")
 
   // Check for exceptions first
-  if (CATEGORY_IMAGE_EXCEPTIONS[cleanHandle]) {
-    return CATEGORY_IMAGE_EXCEPTIONS[cleanHandle]
+  const exception = CATEGORY_IMAGE_EXCEPTIONS[cleanHandle]
+  if (exception !== undefined && exception !== "") {
+    return exception
   }
 
   // Convert to camelCase
@@ -175,26 +177,30 @@ const getImageForCategory = (
   parentHandle: string,
   childHandle: string,
 ): StaticImageData | undefined => {
-  const parentKey = handleToImageKey(parentHandle) as keyof typeof headerImgs
+  const parentKey = handleToImageKey(parentHandle)
 
   // Try to find matching image in headerImgs structure
-  const parentImages = headerImgs[parentKey]
-  if (!parentImages || typeof parentImages !== "object") {
+  const parentEntry = Object.entries(headerImgs).find(
+    ([key]) => key === parentKey,
+  )
+  const parentImages = parentEntry?.[1]
+  if (parentImages === undefined) {
     if (process.env.NODE_ENV === "development") {
       console.warn(
         `[Header] No images found for parent category: ${parentHandle} (key: ${parentKey})`,
       )
     }
-    return
+    return undefined
   }
 
   // Convert child handle to camelCase for image lookup
-  const childKey = handleToImageKey(childHandle) as keyof typeof parentImages
-
-  const image = parentImages[childKey] as StaticImageData | undefined
-  if (!image && process.env.NODE_ENV === "development") {
+  const childKey = handleToImageKey(childHandle)
+  const image = Object.entries(parentImages).find(
+    ([key]) => key === childKey,
+  )?.[1]
+  if (image === undefined && process.env.NODE_ENV === "development") {
     console.warn(
-      `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${String(childKey)})`,
+      `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${childKey})`,
     )
   }
   return image
@@ -226,10 +232,10 @@ export const submenuItems: SubmenuCategory[] = rootCategories.map((rootCat) => {
   return {
     href: `/kategorie/${rootCat.handle}`,
     items: directChildren.map((child) => ({
-      name: child.name,
+      categoryIds: ALL_CATEGORIES_MAP[child.handle] ?? [],
       href: `/kategorie/${child.handle}`,
       image: getImageForCategory(rootCat.handle, child.handle),
-      categoryIds: ALL_CATEGORIES_MAP[child.handle] || [],
+      name: child.name,
     })),
     name: rootCat.name,
   }

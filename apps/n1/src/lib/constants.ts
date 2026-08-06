@@ -10,9 +10,9 @@ const ROOT_CATEGORIES = rootCategories.map((cat) => ({
 }))
 
 const CATEGORIES_LEAFS_IDS = ROOT_CATEGORIES.map((cat) => {
-  const children = leafCategories
-    .filter((leaf) => leaf.root_category_id === cat.id)
-    .map((leaf) => leaf.id)
+  const children = leafCategories.flatMap((leaf) =>
+    leaf.root_category_id === cat.id ? [leaf.id] : [],
+  )
   return {
     children,
     handle: cat.handle,
@@ -94,7 +94,8 @@ export const PRODUCT_LIMIT = 24 as const
  * Tax rate for Czech Republic (DPH)
  * Used for price calculations and display
  */
-export const TAX_RATE = 0.21 // 21% VAT
+// 21% VAT
+export const TAX_RATE = 0.21
 
 /**
  * Default country code for addresses and regions

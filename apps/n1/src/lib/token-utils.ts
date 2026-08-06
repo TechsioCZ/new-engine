@@ -3,34 +3,49 @@ interface JWTPayload {
   [key: string]: unknown
 }
 
-function parseJWT(token: string): JWTPayload | null {
+const parseJWT = (token: string): JWTPayload | null => {
   try {
     const parts = token.split(".")
     if (parts.length !== 3) {
       return null
     }
-    const payloadSegment = parts[1]
-    if (!payloadSegment) {
+    const [, payloadSegment] = parts
+    if (
+      payloadSegment === null ||
+      payloadSegment === undefined ||
+      payloadSegment === ""
+    ) {
       return null
     }
-    const payload = JSON.parse(atob(payloadSegment)) as JWTPayload
-    return payload
+    const payload: unknown = JSON.parse(atob(payloadSegment))
+    if (typeof payload !== "object" || payload === null) {
+      return null
+    }
+    if (!("exp" in payload) || payload.exp === undefined) {
+      return {}
+    }
+    return typeof payload.exp === "number" ? { exp: payload.exp } : null
   } catch {
     return null
   }
 }
 
-export function getTokenFromStorage(): string | null {
+export const getTokenFromStorage = (): string | null => {
   if (typeof window === "undefined") {
     return null
   }
   return localStorage.getItem("medusa_auth_token")
 }
 
-export function isTokenExpired(token: string): boolean {
+export const isTokenExpired = (token: string): boolean => {
   const payload = parseJWT(token)
-  if (!payload?.exp) {
-    return true // No valid payload or expiration = treat as expired
+  if (
+    payload?.exp === null ||
+    payload?.exp === undefined ||
+    payload.exp === 0
+  ) {
+    // No valid payload or expiration means the token is expired.
+    return true
   }
 
   const expirationTime = payload.exp * 1000
@@ -39,7 +54,7 @@ export function isTokenExpired(token: string): boolean {
   return currentTime >= expirationTime
 }
 
-export function clearToken(): void {
+export const clearToken = (): void => {
   if (typeof window === "undefined") {
     return
   }

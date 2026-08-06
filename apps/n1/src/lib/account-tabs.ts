@@ -5,8 +5,12 @@ export const resolveTab = (
   tabParam: string | null,
   pathname: string,
 ): AccountTab => {
-  if (tabParam && ACCOUNT_TABS.includes(tabParam as AccountTab)) {
-    return tabParam as AccountTab
+  if (
+    tabParam === ACCOUNT_TABS[0] ||
+    tabParam === ACCOUNT_TABS[1] ||
+    tabParam === ACCOUNT_TABS[2]
+  ) {
+    return tabParam
   }
 
   if (pathname.startsWith("/ucet/objednavky")) {

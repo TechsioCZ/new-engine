@@ -48,16 +48,16 @@ class CacheLogger {
     }
 
     const indicator = STATUS_INDICATORS[status]
-    const level = options.level || "info"
+    const level = options.level ?? "info"
 
-    if (options.group) {
+    if (options.group === true) {
       console.group(`%c${indicator} [Cache] ${operation}`, LEVEL_STYLES[level])
       if (details) {
         for (const [key, value] of Object.entries(details)) {
           console.log(`   ${key}:`, value)
         }
       }
-      if (options.trace) {
+      if (options.trace === true) {
         console.trace("Call stack")
       }
       console.groupEnd()
@@ -94,28 +94,31 @@ class CacheLogger {
       return
     }
 
-    const cacheAge = status.dataUpdatedAt
-      ? Date.now() - status.dataUpdatedAt
-      : 0
+    const cacheAge =
+      status.dataUpdatedAt !== null &&
+      status.dataUpdatedAt !== undefined &&
+      status.dataUpdatedAt !== 0
+        ? Date.now() - status.dataUpdatedAt
+        : 0
     const ageSeconds = Math.round(cacheAge / 1000)
 
     // Determine status and indicator
     let indicator = "🔍"
     let statusText = "unknown"
 
-    if (status.isError) {
+    if (status.isError === true) {
       indicator = "❌"
       statusText = "error"
-    } else if (status.isLoading) {
+    } else if (status.isLoading === true) {
       indicator = "⏳"
       statusText = "loading"
-    } else if (status.isFetching) {
+    } else if (status.isFetching === true) {
       indicator = "🔄"
       statusText = "fetching"
-    } else if (status.isSuccess && cacheAge < 3_600_000) {
+    } else if (status.isSuccess === true && cacheAge < 3_600_000) {
       indicator = "🟢"
       statusText = `fresh (${ageSeconds}s)`
-    } else if (status.isSuccess) {
+    } else if (status.isSuccess === true) {
       indicator = "🟡"
       statusText = `stale (${ageSeconds}s)`
     }

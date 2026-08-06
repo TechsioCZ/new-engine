@@ -1,6 +1,6 @@
-export function formatPostalCode(value: string): string {
+export const formatPostalCode = (value: string): string => {
   // remove all except numbers
-  const cleaned = value.replaceAll(/\D/g, "")
+  const cleaned = value.replaceAll(/\D/gu, "")
 
   const limited = cleaned.slice(0, 5)
 
@@ -11,6 +11,5 @@ export function formatPostalCode(value: string): string {
   return limited
 }
 
-export function cleanPostalCode(value: string): string {
-  return value.replaceAll(/\s/g, "")
-}
+export const cleanPostalCode = (value: string): string =>
+  value.replaceAll(/\s/gu, "")

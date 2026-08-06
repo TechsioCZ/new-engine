@@ -19,19 +19,15 @@ export interface CreateAddressData {
   phone?: string
 }
 
-export async function createAddress(
+export const createAddress = async (
   data: CreateAddressData,
-): Promise<StoreCustomerAddress> {
+): Promise<StoreCustomerAddress> => {
   try {
     const response = await sdk.store.customer.createAddress(data)
 
-    if (!response.customer.addresses) {
-      throw new Error("Nepodařilo se vytvořit adresu")
-    }
-
     const newAddress = response.customer.addresses.at(-1)
 
-    if (!newAddress) {
+    if (newAddress === null || newAddress === undefined) {
       throw new Error("Nepodařilo se vytvořit adresu")
     }
 
@@ -42,22 +38,18 @@ export async function createAddress(
   }
 }
 
-export async function updateAddress(
+export const updateAddress = async (
   addressId: string,
   data: Partial<CreateAddressData>,
-): Promise<StoreCustomerAddress> {
+): Promise<StoreCustomerAddress> => {
   try {
     const response = await sdk.store.customer.updateAddress(addressId, data)
-
-    if (!response.customer.addresses) {
-      throw new Error("Nepodařilo se aktualizovat adresu")
-    }
 
     const updatedAddress = response.customer.addresses.find(
       (addr) => addr.id === addressId,
     )
 
-    if (!updatedAddress) {
+    if (updatedAddress === null || updatedAddress === undefined) {
       throw new Error("Aktualizovaná adresa nenalezena")
     }
 
@@ -68,7 +60,7 @@ export async function updateAddress(
   }
 }
 
-export async function deleteAddress(addressId: string): Promise<void> {
+export const deleteAddress = async (addressId: string): Promise<void> => {
   try {
     await sdk.store.customer.deleteAddress(addressId)
   } catch (error) {
@@ -85,9 +77,9 @@ export interface UpdateCustomerData {
   metadata?: Record<string, unknown>
 }
 
-export async function updateCustomer(
+export const updateCustomer = async (
   data: UpdateCustomerData,
-): Promise<StoreCustomer> {
+): Promise<StoreCustomer> => {
   try {
     const response = await sdk.store.customer.update(data)
     return response.customer

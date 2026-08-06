@@ -14,10 +14,15 @@ interface UseProductParams {
   fields?: string
 }
 
-export function useSuspenseProduct({ handle, fields }: UseProductParams) {
+export const useSuspenseProduct = ({ handle, fields }: UseProductParams) => {
   const { regionId, countryCode } = useSuspenseRegion()
 
-  if (!(handle && regionId && countryCode)) {
+  if (
+    handle === "" ||
+    regionId === undefined ||
+    regionId === "" ||
+    countryCode === ""
+  ) {
     throw new Error("Missing required product query parameters")
   }
 
@@ -27,10 +32,10 @@ export function useSuspenseProduct({ handle, fields }: UseProductParams) {
     queryFn: async () => {
       const start = performance.now()
       const data = await getProductByHandle({
+        country_code: countryCode,
         handle,
         region_id: regionId,
-        country_code: countryCode,
-        ...(fields ? { fields } : {}),
+        ...(fields !== undefined && fields !== "" ? { fields } : {}),
       })
       const duration = performance.now() - start
 

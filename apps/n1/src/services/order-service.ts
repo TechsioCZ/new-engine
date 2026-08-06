@@ -18,26 +18,28 @@ export interface GetOrdersParams {
   fields?: string
 }
 
-export async function getOrders(
+export const getOrders = async (
   params?: GetOrdersParams,
-): Promise<OrdersResponse> {
-  const limit = params?.limit || 20
-  const offset = params?.offset || 0
-  const fields = params?.fields || "*items" // Lightweight for list view
+): Promise<OrdersResponse> => {
+  const limit = params?.limit === 0 ? 20 : (params?.limit ?? 20)
+  const offset = params?.offset ?? 0
+  // Lightweight fields for list view
+  const fields = params?.fields === "" ? "*items" : (params?.fields ?? "*items")
 
   try {
     const response = await sdk.store.order.list({
       fields,
       limit,
       offset,
-      order: "-created_at", // Sort by newest first,
+      // Sort by newest first
+      order: "-created_at",
     })
 
     return {
-      count: response.count || 0,
+      count: response.count,
       limit,
       offset,
-      orders: response.orders || [],
+      orders: response.orders,
     }
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
@@ -47,13 +49,9 @@ export async function getOrders(
   }
 }
 
-export async function getOrderById(orderId: string): Promise<StoreOrder> {
+export const getOrderById = async (orderId: string): Promise<StoreOrder> => {
   try {
     const response = await sdk.store.order.retrieve(orderId)
-
-    if (!response.order) {
-      throw new Error("Objednávka nenalezena")
-    }
 
     return response.order
   } catch (error) {

@@ -40,43 +40,55 @@ interface UseSuspenseProductsReturn {
   hasPrevPage: boolean
 }
 
-export function useProducts({
+const getCategoryLabel = (categoryIds: string[]): string => {
+  const label = categoryIds[0]?.slice(-6)
+  return label === "" ? "all" : (label ?? "all")
+}
+
+const fetchProductsWithLogging = async (
+  params: Parameters<typeof getProducts>[0],
+  signal: AbortSignal | undefined,
+  categoryIds: string[],
+): ReturnType<typeof getProducts> => {
+  const start = performance.now()
+  const result = await getProducts(params, signal)
+  if (process.env.NODE_ENV === "development") {
+    fetchLogger.current(
+      getCategoryLabel(categoryIds),
+      performance.now() - start,
+    )
+  }
+  return result
+}
+
+export const useProducts = ({
   category_id = [],
   page = 1,
   limit = PRODUCT_LIMIT,
-}: UseProductsProps): UseProductsReturn {
+}: UseProductsProps): UseProductsReturn => {
   const { regionId, countryCode } = useRegion()
 
+  const hasRegion = regionId !== undefined && regionId !== ""
   const queryParams = buildProductQueryParams({
     category_id,
-    ...(regionId ? { region_id: regionId } : {}),
     country_code: countryCode,
-    page,
     limit,
+    page,
+    ...(hasRegion ? { region_id: regionId } : {}),
   })
 
   const { data, isLoading, error, dataUpdatedAt, isFetching, isSuccess } =
     useQuery({
-      enabled: !!regionId,
-      queryFn: async ({ signal }) => {
-        const start = performance.now()
-        const result = await getProducts(queryParams, signal)
-        const duration = performance.now() - start
-
-        if (process.env.NODE_ENV === "development") {
-          const categoryLabel = category_id?.[0]?.slice(-6) || "all"
-          fetchLogger.current(categoryLabel, duration)
-        }
-
-        return result
-      },
+      enabled: hasRegion,
+      queryFn: async ({ signal }) =>
+        await fetchProductsWithLogging(queryParams, signal, category_id),
       queryKey: queryKeys.products.list(queryParams),
       ...cacheConfig.semiStatic,
     })
 
   // Enhanced dev logging with cache-logger
-  if (process.env.NODE_ENV === "development" && data) {
-    const categoryName = category_id?.[0]?.slice(-6) || "all"
+  if (process.env.NODE_ENV === "development") {
+    const categoryName = getCategoryLabel(category_id)
     const operation = `useProducts(${categoryName} p${page})`
 
     logQuery(operation, queryKeys.products.list(queryParams), {
@@ -89,12 +101,7 @@ export function useProducts({
 
   const totalCount = data?.count ?? 0
   const totalPages = Math.ceil(totalCount / limit)
-  let errorMessage: string | null = null
-  if (error instanceof Error) {
-    errorMessage = error.message
-  } else if (error) {
-    errorMessage = String(error)
-  }
+  const errorMessage = error?.message ?? null
 
   return {
     currentPage: page,
@@ -110,14 +117,14 @@ export function useProducts({
   }
 }
 
-export function useSuspenseProducts({
+export const useSuspenseProducts = ({
   category_id = [],
   page = 1,
   limit = PRODUCT_LIMIT,
-}: UseProductsProps): UseSuspenseProductsReturn {
+}: UseProductsProps): UseSuspenseProductsReturn => {
   const { regionId, countryCode } = useSuspenseRegion()
 
-  if (!(regionId && countryCode)) {
+  if (regionId === undefined || regionId === "" || countryCode === "") {
     throw new Error("Region is required for product queries")
   }
 
@@ -130,24 +137,14 @@ export function useSuspenseProducts({
   })
 
   const { data, isFetching, dataUpdatedAt } = useSuspenseQuery({
-    queryFn: async ({ signal }) => {
-      const start = performance.now()
-      const result = await getProducts(queryParams, signal)
-      const duration = performance.now() - start
-
-      if (process.env.NODE_ENV === "development") {
-        const categoryLabel = category_id?.[0]?.slice(-6) || "all"
-        fetchLogger.current(categoryLabel, duration)
-      }
-
-      return result
-    },
+    queryFn: async ({ signal }) =>
+      await fetchProductsWithLogging(queryParams, signal, category_id),
     queryKey: queryKeys.products.list(queryParams),
     ...cacheConfig.semiStatic,
   })
 
-  if (process.env.NODE_ENV === "development" && data) {
-    const categoryName = category_id?.[0]?.slice(-6) || "all"
+  if (process.env.NODE_ENV === "development") {
+    const categoryName = getCategoryLabel(category_id)
     const operation = `useSuspenseProducts(${categoryName} p${page})`
 
     logQuery(operation, queryKeys.products.list(queryParams), {

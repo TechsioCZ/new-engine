@@ -12,8 +12,8 @@ interface UsePrefetchOnHoverReturn {
   cancelHover: () => void
 }
 
-export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
-  const timeoutRef = useRef<NodeJS.Timeout | undefined>()
+export const usePrefetchOnHover = (): UsePrefetchOnHoverReturn => {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { prefetchCategoryProducts } = usePrefetchProducts()
 
   const handleHover = (categoryHandle: string) => {
@@ -34,7 +34,11 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
         )
       }
 
-      if (categoryIds?.length) {
+      if (
+        categoryIds !== null &&
+        categoryIds !== undefined &&
+        categoryIds.length > 0
+      ) {
         // Use categoryHandle as scopedBy for potential cancellation
         void prefetchCategoryProducts(categoryIds, categoryHandle)
       }
@@ -44,7 +48,7 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
   const cancelHover = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
-      timeoutRef.current = undefined
+      timeoutRef.current = null
     }
   }
 

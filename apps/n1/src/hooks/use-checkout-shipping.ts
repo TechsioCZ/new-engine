@@ -38,28 +38,29 @@ export interface UseCheckoutShippingReturn {
   selectedOption?: HttpTypes.StoreCartShippingOption | undefined
 }
 
-export function useCheckoutShipping(
+export const useCheckoutShipping = (
   cartId?: string,
   cart?: Cart | null,
-): UseCheckoutShippingReturn {
+): UseCheckoutShippingReturn => {
   const queryClient = useQueryClient()
   const toast = useCartToast()
 
-  const canLoadShipping = !!cartId && (cart?.items?.length ?? 0) > 0
+  const hasCartId = cartId !== undefined && cartId !== null && cartId !== ""
+  const canLoadShipping = hasCartId && (cart?.items?.length ?? 0) > 0
 
   // Fetch shipping options for cart
   const { data: shippingOptions } = useSuspenseQuery({
-    queryKey: queryKeys.cart.shippingOptions(cartId ?? "unknown"),
+    gcTime: CACHE_TIMES.SHIPPING_OPTIONS_GC,
     queryFn: async () => {
-      if (!(canLoadShipping && cartId)) {
+      if (!canLoadShipping) {
         return []
       }
-      return getShippingOptions(cartId)
+      return await getShippingOptions(cartId)
     },
+    queryKey: queryKeys.cart.shippingOptions(cartId ?? "unknown"),
+    refetchOnWindowFocus: false,
     // Longer cache for shipping options - they don't change often
     staleTime: CACHE_TIMES.SHIPPING_OPTIONS_STALE,
-    gcTime: CACHE_TIMES.SHIPPING_OPTIONS_GC,
-    refetchOnWindowFocus: false,
   })
 
   // Set shipping method mutation
@@ -70,7 +71,7 @@ export function useCheckoutShipping(
     CartMutationContext
   >({
     mutationFn: async ({ optionId, data }) => {
-      if (!cartId) {
+      if (cartId === null || cartId === undefined || cartId === "") {
         throw new CartServiceError("Cart ID je povinné", "VALIDATION_ERROR")
       }
       return await setShippingMethod(cartId, optionId, data)
@@ -98,7 +99,7 @@ export function useCheckoutShipping(
       )
 
       // Optimistically update cart with new shipping method
-      if (previousCart && shippingOptions) {
+      if (previousCart !== null && previousCart !== undefined) {
         const selectedOption = shippingOptions.find(
           (opt) => opt.id === optionId,
         )

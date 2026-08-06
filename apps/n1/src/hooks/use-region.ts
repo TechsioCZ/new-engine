@@ -24,16 +24,22 @@ const getRegionQueryOptions = () =>
     staleTime: REGION_STALE_TIME,
   })
 
-export function useRegion() {
+export const useRegion = () => {
   const { data: regions = [], isLoading } = useQuery(getRegionQueryOptions())
 
   const selectedRegion =
-    regions.find((r) => r.countries?.some((c) => c.iso_2 === "cz")) ||
+    regions.find((r) => r.countries?.some((c) => c.iso_2 === "cz") === true) ??
     regions[0]
 
   return {
-    countryCode: selectedRegion?.countries?.[0]?.iso_2 || "cz",
-    currencyCode: selectedRegion?.currency_code || "czk",
+    countryCode:
+      selectedRegion?.countries?.[0]?.iso_2 === ""
+        ? "cz"
+        : (selectedRegion?.countries?.[0]?.iso_2 ?? "cz"),
+    currencyCode:
+      selectedRegion?.currency_code === ""
+        ? "czk"
+        : (selectedRegion?.currency_code ?? "czk"),
     isLoading,
     regionId: selectedRegion?.id,
     regions,
@@ -41,16 +47,22 @@ export function useRegion() {
   }
 }
 
-export function useSuspenseRegion() {
+export const useSuspenseRegion = () => {
   const { data: regions } = useSuspenseQuery(getRegionQueryOptions())
 
   const selectedRegion =
-    regions.find((r) => r.countries?.some((c) => c.iso_2 === "cz")) ||
+    regions.find((r) => r.countries?.some((c) => c.iso_2 === "cz") === true) ??
     regions[0]
 
   return {
-    countryCode: selectedRegion?.countries?.[0]?.iso_2 || "cz",
-    currencyCode: selectedRegion?.currency_code || "czk",
+    countryCode:
+      selectedRegion?.countries?.[0]?.iso_2 === ""
+        ? "cz"
+        : (selectedRegion?.countries?.[0]?.iso_2 ?? "cz"),
+    currencyCode:
+      selectedRegion?.currency_code === ""
+        ? "czk"
+        : (selectedRegion?.currency_code ?? "czk"),
     regionId: selectedRegion?.id,
     regions,
     selectedRegion,

@@ -56,14 +56,15 @@ interface UseAddToCartOptions {
   onError?: (error: CartMutationError) => void
 }
 
-export function useCart(): UseCartReturn {
+export const useCart = (): UseCartReturn => {
   const {
     data: cart,
     isLoading,
     isError,
     error,
   } = useQuery({
-    enabled: true, // Always enabled for guest and authenticated users
+    // Always enabled for guest and authenticated users.
+    enabled: true,
     queryFn: getCart,
     queryKey: queryKeys.cart.active(),
     retry: (failureCount, retryError) => {
@@ -83,7 +84,7 @@ export function useCart(): UseCartReturn {
   })
 
   const itemCount =
-    cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
+    cart?.items?.reduce((acc, item) => acc + item.quantity, 0) ?? 0
   const isEmpty = itemCount === 0
   const hasItems = itemCount > 0
 
@@ -98,7 +99,7 @@ export function useCart(): UseCartReturn {
   }
 }
 
-export function useSuspenseCart(): UseSuspenseCartReturn {
+export const useSuspenseCart = (): UseSuspenseCartReturn => {
   const { data: cart } = useSuspenseQuery({
     queryFn: getCart,
     queryKey: queryKeys.cart.active(),
@@ -115,7 +116,7 @@ export function useSuspenseCart(): UseSuspenseCartReturn {
   })
 
   const itemCount =
-    cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
+    cart?.items?.reduce((acc, item) => acc + item.quantity, 0) ?? 0
   const isEmpty = itemCount === 0
   const hasItems = itemCount > 0
 
@@ -127,7 +128,7 @@ export function useSuspenseCart(): UseSuspenseCartReturn {
   }
 }
 
-export function useAddToCart(options?: UseAddToCartOptions) {
+export const useAddToCart = (options?: UseAddToCartOptions) => {
   const queryClient = useQueryClient()
   const { regionId } = useRegion()
 
@@ -151,7 +152,12 @@ export function useAddToCart(options?: UseAddToCartOptions) {
       // Get current cart or create new one
       let cart = queryClient.getQueryData<Cart>(queryKeys.cart.active())
 
-      if (!cart && autoCreateCart && regionId) {
+      if (
+        cart === undefined &&
+        autoCreateCart &&
+        regionId !== undefined &&
+        regionId !== ""
+      ) {
         // Create cart synchronously if needed
         cart = await createCart(regionId)
         queryClient.setQueryData(queryKeys.cart.active(), cart)
@@ -212,7 +218,7 @@ export function useAddToCart(options?: UseAddToCartOptions) {
   })
 }
 
-export function useUpdateLineItem() {
+export const useUpdateLineItem = () => {
   const queryClient = useQueryClient()
 
   return useMutation<
@@ -249,7 +255,7 @@ export function useUpdateLineItem() {
           _optimistic: true,
           items: previousCart.items.map((item): OptimisticLineItem =>
             item.id === lineItemId
-              ? { ...item, quantity, _optimistic: true }
+              ? { ...item, _optimistic: true, quantity }
               : item,
           ),
         }
@@ -272,7 +278,7 @@ export function useUpdateLineItem() {
   })
 }
 
-export function useRemoveLineItem() {
+export const useRemoveLineItem = () => {
   const queryClient = useQueryClient()
 
   return useMutation<
@@ -335,7 +341,7 @@ interface UseCompleteCartOptions {
   ) => void
 }
 
-export function useCompleteCart(options?: UseCompleteCartOptions) {
+export const useCompleteCart = (options?: UseCompleteCartOptions) => {
   const queryClient = useQueryClient()
 
   return useMutation<

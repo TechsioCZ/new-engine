@@ -12,7 +12,7 @@ export const fetchLogger = {
       return
     }
 
-    const offsetStr = offset !== undefined ? ` @offset:${offset}` : ""
+    const offsetStr = offset === undefined ? "" : ` @offset:${offset}`
     console.log(`🚫 [Cancelled] ${label}${offsetStr}`)
   },
 
