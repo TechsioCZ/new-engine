@@ -344,7 +344,8 @@ describe("storefront-data cache/query consistency", () => {
     const authInvalidationCalls = invalidateSpy.mock.calls.filter(
       ([arg]) =>
         isRecord(arg) &&
-        JSON.stringify(arg.queryKey) === JSON.stringify(authCustomerQueryKey),
+        JSON.stringify(arg["queryKey"]) ===
+          JSON.stringify(authCustomerQueryKey),
     )
 
     expect(authInvalidationCalls).toHaveLength(3)

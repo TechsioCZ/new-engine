@@ -151,26 +151,26 @@ describe(createMedusaStorefrontServerReadPreset, () => {
     const productListOptions = fetchCalls[2]?.[1]
     const productListDetailOptions = fetchCalls[3]?.[1]
     const productQueryInput =
-      isRecord(productOptions) && isRecord(productOptions.query)
-        ? productOptions.query
+      isRecord(productOptions) && isRecord(productOptions["query"])
+        ? productOptions["query"]
         : null
     const regionQueryInput =
-      isRecord(regionOptions) && isRecord(regionOptions.query)
-        ? regionOptions.query
+      isRecord(regionOptions) && isRecord(regionOptions["query"])
+        ? regionOptions["query"]
         : null
     const productListQueryInput =
-      isRecord(productListOptions) && isRecord(productListOptions.query)
-        ? productListOptions.query
+      isRecord(productListOptions) && isRecord(productListOptions["query"])
+        ? productListOptions["query"]
         : null
 
     expect({
       paths: fetchCalls.map(([path]) => path),
-      productLimit: productQueryInput?.limit,
-      productListLimit: productListQueryInput?.limit,
-      productListOffset: productListQueryInput?.offset,
+      productLimit: productQueryInput?.["limit"],
+      productListLimit: productListQueryInput?.["limit"],
+      productListOffset: productListQueryInput?.["offset"],
       productListSignal:
         isRecord(productListDetailOptions) &&
-        productListDetailOptions.signal instanceof AbortSignal,
+        productListDetailOptions["signal"] instanceof AbortSignal,
       regionQueryInput,
     }).toStrictEqual({
       paths: [

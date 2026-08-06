@@ -877,7 +877,7 @@ describe("Medusa flow helpers", () => {
       | undefined
 
     await act(async () => {
-      checkoutResult = await result.current.mutateAsync()
+      checkoutResult = await result.current.mutateAsync({})
     })
 
     expect(checkoutResult).toMatchObject({
@@ -934,7 +934,7 @@ describe("Medusa flow helpers", () => {
       | undefined
 
     await act(async () => {
-      checkoutResult = await result.current.mutateAsync()
+      checkoutResult = await result.current.mutateAsync({})
     })
 
     expect(checkoutResult).toMatchObject({
@@ -1003,7 +1003,7 @@ describe("Medusa flow helpers", () => {
       | undefined
 
     await act(async () => {
-      checkoutResult = await result.current.mutateAsync()
+      checkoutResult = await result.current.mutateAsync({})
     })
 
     expect(checkoutResult).toMatchObject({
@@ -1099,7 +1099,7 @@ describe("Medusa flow helpers", () => {
       | undefined
 
     await act(async () => {
-      checkoutResult = await result.current.mutateAsync()
+      checkoutResult = await result.current.mutateAsync({})
     })
 
     expect(checkoutResult).toMatchObject({
@@ -1151,7 +1151,7 @@ describe("Medusa flow helpers", () => {
       { wrapper },
     )
 
-    await expect(result.current.mutateAsync()).rejects.toMatchObject({
+    await expect(result.current.mutateAsync({})).rejects.toMatchObject({
       message: "No payment provider available",
       stage: "payment_provider",
     })
@@ -1188,7 +1188,7 @@ describe("Medusa flow helpers", () => {
       { wrapper },
     )
 
-    await expect(result.current.mutateAsync()).rejects.toMatchObject({
+    await expect(result.current.mutateAsync({})).rejects.toMatchObject({
       message: "Resolver crashed",
       stage: "payment_provider",
     })
@@ -1232,7 +1232,7 @@ describe("Medusa flow helpers", () => {
       { wrapper },
     )
 
-    await expect(result.current.mutateAsync()).rejects.toMatchObject({
+    await expect(result.current.mutateAsync({})).rejects.toMatchObject({
       message: "Payment providers fetch failed",
       stage: "payment_provider",
     })
@@ -1267,7 +1267,7 @@ describe("Medusa flow helpers", () => {
       { wrapper },
     )
 
-    await expect(result.current.mutateAsync()).rejects.toMatchObject({
+    await expect(result.current.mutateAsync({})).rejects.toMatchObject({
       message: "No payment provider available",
       stage: "payment_provider",
     })
@@ -1315,7 +1315,7 @@ describe("Medusa flow helpers", () => {
       { wrapper },
     )
 
-    await expect(result.current.mutateAsync()).rejects.toMatchObject({
+    await expect(result.current.mutateAsync({})).rejects.toMatchObject({
       message: "Payment authorization failed",
       stage: "complete",
     })

@@ -6,6 +6,10 @@ import { vi, describe, expect, it } from "vitest"
 import { createCheckoutCustomerAddressAdapter } from "../src/checkout/address"
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
+import type {
+  MedusaCustomerAddressCreateInput,
+  MedusaCustomerAddressUpdateInput,
+} from "../src/customers/medusa-service"
 import type { CustomerAddressAdapter } from "../src/customers/types"
 import { StorefrontAddressValidationError } from "../src/shared/address"
 import type { StorefrontAddressValidationIssue } from "../src/shared/address"
@@ -281,24 +285,33 @@ describe("customer validation regression", () => {
     const updateAddress = vi
       .fn<(id: string, params: SharedUpdateParams) => Promise<Address>>()
       .mockResolvedValue({ id: "addr_1" })
+    const addressAdapter = createCheckoutCustomerAddressAdapter<
+      CheckoutAddress,
+      UpdateInput
+    >({
+      defaultCountryCode: "CZ",
+    })
+    const { toCreateParams, toUpdateParams } = addressAdapter
+    if (toCreateParams === undefined || toUpdateParams === undefined) {
+      throw new TypeError("Checkout customer address adapter is incomplete")
+    }
     const { useUpdateCustomerAddress } = createCustomerHooks<
       Customer,
       Address,
       { enabled?: boolean },
       ListParams,
       CheckoutAddress,
-      CheckoutAddress,
+      MedusaCustomerAddressCreateInput,
       UpdateInput,
-      SharedUpdateParams,
+      MedusaCustomerAddressUpdateInput,
       UpdateCustomerParams,
       UpdateCustomerParams
     >({
-      addressAdapter: createCheckoutCustomerAddressAdapter<
-        CheckoutAddress,
-        UpdateInput
-      >({
-        defaultCountryCode: "CZ",
-      }),
+      addressAdapter: {
+        ...addressAdapter,
+        toCreateParams,
+        toUpdateParams,
+      },
       buildListParams: () => ({}),
       buildUpdateCustomerParams: (input) => input,
       queryKeyNamespace: "customers-validation-partial-update",

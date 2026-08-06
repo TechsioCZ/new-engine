@@ -1,11 +1,15 @@
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { cache } from "react"
 
 import { makeQueryClient } from "../shared/query-client"
 
 const ensureServerEnvironment = () => {
+  const environment: unknown =
+    typeof process === "undefined" ? undefined : process.env
   const isVitest =
-    typeof process !== "undefined" &&
-    (process.env.VITEST === "true" || process.env.NODE_ENV === "test")
+    isRecord(environment) &&
+    (getRecordValue(environment, "VITEST") === "true" ||
+      getRecordValue(environment, "NODE_ENV") === "test")
 
   if (typeof window !== "undefined" && !isVitest) {
     throw new Error(

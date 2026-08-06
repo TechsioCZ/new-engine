@@ -10,7 +10,7 @@ interface RegionAwareInput {
 
 describe(applyRegion, () => {
   it("applies context region when input omits region fields", () => {
-    const result = applyRegion(
+    const result = applyRegion<RegionAwareInput>(
       { q: "kretin" },
       {
         country_code: "sk",

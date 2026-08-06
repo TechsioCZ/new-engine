@@ -25,8 +25,8 @@ interface CatalogFacets {
   status: string[]
 }
 interface CatalogListInput {
-  page?: number
-  limit?: number
+  page: number
+  limit: number
   region_id?: string
   country_code?: string
   enabled?: boolean

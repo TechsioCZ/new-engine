@@ -218,11 +218,12 @@ describe("cart cache sync helpers", () => {
     expect(matcher(activeKey, "cart_derived")).toBeTruthy()
     expect(matcher(activeKey, "cart_other")).toBeFalsy()
 
-    syncCartCaches(queryClient, queryKeys, {
+    const updatedCart: Cart = {
       id: "cart_derived",
       item_count: 9,
       region_id: "reg_1",
-    } satisfies Cart)
+    }
+    syncCartCaches(queryClient, queryKeys, updatedCart)
 
     expect(queryClient.getQueryData(activeKey)).toStrictEqual({
       id: "cart_derived",

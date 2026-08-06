@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
-import { isRecord, omitKeys } from "@techsio/std/object"
+import { isRecord } from "@techsio/std/object"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
@@ -10,7 +10,11 @@ import { createCartQueryKeys } from "../src/cart/query-keys"
 import type { CartService, UpdateCartInputBase } from "../src/cart/types"
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
-import type { CustomerService } from "../src/customers/types"
+import type {
+  CustomerAddressInputBase,
+  CustomerAddressUpdateInputBase,
+  CustomerService,
+} from "../src/customers/types"
 import { createOrderHooks } from "../src/orders/hooks"
 import type {
   OrderDetailInputBase,
@@ -281,6 +285,18 @@ interface Customer {
 interface CreateParams {
   address_1?: string
 }
+
+type UpdateParams = CreateParams
+
+const buildCreateAddressParams = (
+  input: CustomerAddressInputBase,
+): CreateParams =>
+  typeof input.address_1 === "string" ? { address_1: input.address_1 } : {}
+
+const buildUpdateAddressParams = (
+  input: CustomerAddressUpdateInputBase,
+): UpdateParams =>
+  typeof input.address_1 === "string" ? { address_1: input.address_1 } : {}
 
 const isAddress = (value: unknown): value is Address => {
   if (!isRecord(value)) {
@@ -735,9 +751,12 @@ describe("storefront-data hook smoke tests", () => {
 
       const wrapper = createWrapper(queryClient)
 
-      const listHook = renderHook(() => useOrders({ limit: 1, page: 1 }), {
-        wrapper,
-      })
+      const listHook = renderHook(
+        () => useOrders({ limit: 1, offset: 0, page: 1 }),
+        {
+          wrapper,
+        },
+      )
 
       await waitFor(() => {
         expect(listHook.result.current.isSuccess).toBeTruthy()
@@ -757,9 +776,6 @@ describe("storefront-data hook smoke tests", () => {
 
   describe("customers", () => {
     type ListParams = Record<string, never>
-    interface UpdateParams {
-      address_1?: string
-    }
     interface UpdateCustomerParams {
       metadata?: Record<string, unknown>
     }
@@ -896,8 +912,8 @@ describe("storefront-data hook smoke tests", () => {
         useUpdateCustomer,
       } = createCustomerHooks({
         addressAdapter: {
-          toCreateParams: (input) => input,
-          toUpdateParams: (input) => omitKeys(input, ["addressId"]),
+          toCreateParams: buildCreateAddressParams,
+          toUpdateParams: buildUpdateAddressParams,
         },
         buildListParams: () => ({}),
         buildUpdateCustomerParams: (input) => input,

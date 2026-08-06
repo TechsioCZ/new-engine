@@ -961,7 +961,7 @@ describe("storefront-data missing hook coverage", () => {
     })
     const wrapper = createWrapper(queryClient)
 
-    const input = { limit: 2, page: 1 }
+    const input = { limit: 2, offset: 0, page: 1 }
     const listParams = buildPaginationParams(input)
     queryClient.setQueryData(queryKeys.list(listParams), {
       categories: [],
@@ -1040,7 +1040,7 @@ describe("storefront-data missing hook coverage", () => {
     })
     const wrapper = createWrapper(queryClient)
 
-    const input = { limit: 2, page: 1 }
+    const input = { limit: 2, offset: 0, page: 1 }
     const listParams = buildPaginationParams(input)
     queryClient.setQueryData(queryKeys.list(listParams), {
       collections: [],
