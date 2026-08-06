@@ -49,7 +49,6 @@ export type CreateProductReviewInput = {
   rating: number
   review_token?: string
   title: string
-  turnstileToken?: string
 }
 
 export type ProductReviewService<

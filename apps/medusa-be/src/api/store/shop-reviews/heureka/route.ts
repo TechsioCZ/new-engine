@@ -10,14 +10,7 @@ const normalizeLocale = (locale: unknown): "cs" | "sk" => {
 
 const getLocaleFromRequest = (
   req: MedusaRequest<unknown, StoreHeurekaShopReviewsSchemaType>
-): "cs" | "sk" => {
-  const rawLocale = new URL(
-    req.originalUrl,
-    "http://localhost"
-  ).searchParams.get("locale")
-
-  return normalizeLocale(rawLocale ?? req.validatedQuery?.locale)
-}
+): "cs" | "sk" => normalizeLocale(req.validatedQuery?.locale)
 
 export async function GET(
   req: MedusaRequest<unknown, StoreHeurekaShopReviewsSchemaType>,

@@ -7,6 +7,7 @@ import {
   Heading,
   Input,
   Label,
+  Switch,
   Table,
   Text,
   Textarea,
@@ -25,6 +26,7 @@ type ApiStoreConfig = {
   api_url: string | null
   has_api_key: boolean
   has_credentials: boolean
+  enabled: boolean
   created_at?: string
   updated_at?: string
 }
@@ -45,6 +47,7 @@ type ApiStoreCreatePayload = {
   api_url?: string | null
   api_key?: string | null
   credentials?: Record<string, unknown> | null
+  enabled?: boolean
 }
 
 type ApiStoreUpdatePayload = Partial<ApiStoreCreatePayload>
@@ -54,6 +57,7 @@ type ApiStoreFormState = {
   api_url: string
   api_key: string
   credentials: string
+  enabled: boolean
 }
 
 type FormErrors = Partial<Record<keyof ApiStoreFormState, string>>
@@ -67,6 +71,7 @@ const EMPTY_FORM: ApiStoreFormState = {
   api_url: "",
   api_key: "",
   credentials: "",
+  enabled: true,
 }
 
 const parseCredentials = (value: string): Record<string, unknown> | null => {
@@ -115,13 +120,30 @@ const ApiStoreFormFields = ({
   errors: FormErrors
   form: ApiStoreFormState
   mode: "create" | "edit"
-  onChange: (field: keyof ApiStoreFormState, value: string) => void
+  onChange: <K extends keyof ApiStoreFormState>(
+    field: K,
+    value: ApiStoreFormState[K]
+  ) => void
   onClearApiKey?: () => void
   onClearCredentials?: () => void
   willClearApiKey?: boolean
   willClearCredentials?: boolean
 }) => (
   <div className="flex flex-col gap-4">
+    <div className="flex items-center justify-between gap-4 rounded-rounded border border-ui-border-base px-4 py-3">
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={`api-store-${mode}-enabled`}>Enabled</Label>
+        <Text className="text-ui-fg-subtle" size="small">
+          Runtime integrations read this value on each operation.
+        </Text>
+      </div>
+      <Switch
+        checked={form.enabled}
+        id={`api-store-${mode}-enabled`}
+        onCheckedChange={(checked) => onChange("enabled", checked)}
+      />
+    </div>
+
     <div className="flex flex-col gap-2">
       <Label htmlFor={`api-store-${mode}-name`}>Name *</Label>
       <Input
@@ -261,7 +283,10 @@ const CreateApiStoreModal = () => {
     },
   })
 
-  const updateField = (field: keyof ApiStoreFormState, value: string) => {
+  const updateField = <K extends keyof ApiStoreFormState>(
+    field: K,
+    value: ApiStoreFormState[K]
+  ) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     setErrors((prev) => ({ ...prev, [field]: undefined }))
   }
@@ -301,6 +326,7 @@ const CreateApiStoreModal = () => {
       api_url: toOptionalString(form.api_url),
       api_key: apiKey,
       credentials,
+      enabled: form.enabled,
     })
   }
 
@@ -395,6 +421,7 @@ const buildUpdatePayload = ({
   const payload: ApiStoreUpdatePayload = {
     name,
     api_url: toOptionalString(form.api_url),
+    enabled: form.enabled,
   }
 
   if (apiKey) {
@@ -450,6 +477,7 @@ const EditApiStoreDrawer = ({
         api_url: apiStoreConfig.api_url ?? "",
         api_key: "",
         credentials: "",
+        enabled: apiStoreConfig.enabled,
       })
       setErrors({})
       setClearApiKey(false)
@@ -480,7 +508,10 @@ const EditApiStoreDrawer = ({
     return null
   }
 
-  const updateField = (field: keyof ApiStoreFormState, value: string) => {
+  const updateField = <K extends keyof ApiStoreFormState>(
+    field: K,
+    value: ApiStoreFormState[K]
+  ) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     setErrors((prev) => ({ ...prev, [field]: undefined }))
     if (field === "api_key") {
@@ -611,6 +642,16 @@ const ApiStoreTableRows = ({
         <SecretState isSet={apiStoreConfig.has_credentials} />
       </Table.Cell>
       <Table.Cell>
+        <Text
+          className={
+            apiStoreConfig.enabled ? "text-ui-fg-base" : "text-ui-fg-subtle"
+          }
+          size="small"
+        >
+          {apiStoreConfig.enabled ? "Enabled" : "Disabled"}
+        </Text>
+      </Table.Cell>
+      <Table.Cell>
         <div className="flex justify-end gap-2">
           <Button
             onClick={() => onEdit(apiStoreConfig)}
@@ -702,6 +743,7 @@ const ApiStoreSettingsPage = () => {
                 <Table.HeaderCell>API URL</Table.HeaderCell>
                 <Table.HeaderCell>API key</Table.HeaderCell>
                 <Table.HeaderCell>Credentials</Table.HeaderCell>
+                <Table.HeaderCell>Status</Table.HeaderCell>
                 <Table.HeaderCell className="text-right">
                   Actions
                 </Table.HeaderCell>

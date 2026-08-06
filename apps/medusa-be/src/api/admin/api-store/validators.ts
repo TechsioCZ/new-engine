@@ -16,6 +16,7 @@ export const PostAdminApiStoreSchema = z
     api_url: z.string().trim().min(1).nullable().optional(),
     api_key: z.string().min(1).nullable().optional(),
     credentials: CredentialsSchema.nullable().optional(),
+    enabled: z.boolean().optional(),
   })
   .strict()
   .refine((data) => !!data.api_key || !!data.credentials, {
@@ -29,6 +30,7 @@ export const PostAdminApiStoreByIdSchema = z
     api_url: z.string().trim().min(1).nullable().optional(),
     api_key: z.string().min(1).nullable().optional(),
     credentials: CredentialsSchema.nullable().optional(),
+    enabled: z.boolean().optional(),
   })
   .strict()
   .refine((data) => Object.keys(data).length > 0, {
