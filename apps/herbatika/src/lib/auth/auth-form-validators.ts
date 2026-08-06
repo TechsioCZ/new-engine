@@ -13,6 +13,7 @@ import {
   validateRequiredAgreement,
 } from "@/lib/forms/validators/shared"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import type { HerbatikaCountryCode } from "@/lib/storefront/market-context"
 
 export type LoginFormValues = {
   email: string
@@ -143,8 +144,11 @@ export const PASSWORD_REQUIREMENTS = [
   },
 ] as const
 
-export const createRegisterValidators = (messages: AuthValidationMessages) => {
-  const addressValidators = createAddressFieldValidators(messages)
+export const createRegisterValidators = (
+  messages: AuthValidationMessages,
+  countryCode: HerbatikaCountryCode
+) => {
+  const addressValidators = createAddressFieldValidators(messages, countryCode)
   const validatePassword = createPasswordValidator(messages)
   const validatePasswordConfirmation =
     createPasswordConfirmationValidator(messages)
