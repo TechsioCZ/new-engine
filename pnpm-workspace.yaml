@@ -14,9 +14,9 @@ catalogs:
     vite: 5.4.21
     vitest: ^3.2.7
   vite8-testing:
-    "@vitest/coverage-v8": ^4.1.5
+    "@vitest/coverage-v8": 4.1.10
     vite: 8.1.3
-    vitest: ^4.1.5
+    vitest: 4.1.10
 
 strictPeerDependencies: true
 disallowWorkspaceCycles: true
