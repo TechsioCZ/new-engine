@@ -5,6 +5,7 @@ import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import type { PaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination"
 import { useFormatter, useTranslations } from "next-intl"
 import { usePathname, useSearchParams } from "next/navigation"
 import { createParser, createSerializer, useQueryState } from "nuqs"
@@ -31,7 +32,10 @@ interface ProductDetailReviewsProps {
 const REVIEW_PAGE_PARAM = "reviews_page"
 
 const resolveReviewInitial = (author: string) =>
-  author.trim().charAt(0).toUpperCase() || "A"
+  (() => {
+    const initial = author.trim().charAt(0).toUpperCase()
+    return initial === "" ? "A" : initial
+  })()
 
 const reviewPageParser = createParser({
   parse: (value) => {
@@ -45,12 +49,12 @@ const serializeReviewPage = createSerializer({
   [REVIEW_PAGE_PARAM]: reviewPageParser,
 })
 
-function ProductDetailReviewsSkeleton() {
+const ProductDetailReviewsSkeleton = () => {
   const tCatalog = useTranslations("catalog")
 
   return (
     // existing loading skeleton announces itself via aria-busy + aria-label; markup kept unchanged.
-    <div
+    <output
       aria-busy="true"
       aria-label={tCatalog("reviews.loading_aria")}
       className="space-y-500"
@@ -81,11 +85,11 @@ function ProductDetailReviewsSkeleton() {
           </article>
         ))}
       </div>
-    </div>
+    </output>
   )
 }
 
-function ProductDetailReviewsHeader({
+const ProductDetailReviewsHeader = ({
   averageRating,
   productId,
   totalCount,
@@ -93,7 +97,7 @@ function ProductDetailReviewsHeader({
   averageRating: number
   productId: string
   totalCount: number
-}) {
+}) => {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
   const formattedAverageRating = format.number(averageRating, {
@@ -129,49 +133,49 @@ function ProductDetailReviewsHeader({
   )
 }
 
-function ProductReviewListItem({ review }: { review: ReviewItem }) {
-  return (
-    <article className="border-border-secondary not-last:border-b p-400">
-      <div className="flex gap-300">
-        <div className="flex size-36 shrink-0 items-center justify-center rounded-full bg-base">
-          <span className="font-normal text-2xl text-fg-secondary leading-none">
-            {resolveReviewInitial(review.author)}
-          </span>
-        </div>
+const ProductReviewListItem = ({ review }: { review: ReviewItem }) => (
+  <article className="border-border-secondary not-last:border-b p-400">
+    <div className="flex gap-300">
+      <div className="flex size-36 shrink-0 items-center justify-center rounded-full bg-base">
+        <span className="font-normal text-2xl text-fg-secondary leading-none">
+          {resolveReviewInitial(review.author)}
+        </span>
+      </div>
 
-        <div className="min-w-0 flex-1 space-y-250">
-          <header className="flex flex-col gap-150 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 space-y-100">
-              <p className="truncate font-semibold text-fg-primary text-md leading-tight">
-                {review.author}
-              </p>
-              <Rating
-                className="pointer-events-none"
-                readOnly
-                size="sm"
-                value={review.rating}
-              />
-            </div>
-
-            {review.dateLabel ? (
-              <p className="shrink-0 text-fg-placeholder text-sm leading-tight">
-                {review.dateLabel}
-              </p>
-            ) : null}
-          </header>
-
-          <div className="space-y-150">
-            <p className="text-fg-secondary text-md leading-relaxed">
-              {review.message}
+      <div className="min-w-0 flex-1 space-y-250">
+        <header className="flex flex-col gap-150 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-100">
+            <p className="truncate font-semibold text-fg-primary text-md leading-tight">
+              {review.author}
             </p>
+            <Rating
+              className="pointer-events-none"
+              readOnly
+              size="sm"
+              value={review.rating}
+            />
           </div>
+
+          {review.dateLabel === "" ? null : (
+            <p className="shrink-0 text-fg-placeholder text-sm leading-tight">
+              {review.dateLabel}
+            </p>
+          )}
+        </header>
+
+        <div className="space-y-150">
+          <p className="text-fg-secondary text-md leading-relaxed">
+            {review.message}
+          </p>
         </div>
       </div>
-    </article>
-  )
-}
+    </div>
+  </article>
+)
 
-export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
+export const ProductDetailReviews = ({
+  productId,
+}: ProductDetailReviewsProps) => {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
   const pathname = usePathname()
@@ -180,9 +184,9 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
     REVIEW_PAGE_PARAM,
     reviewPageParser,
   )
-  const getReviewPageUrl = ({ page }: { page: number }) => {
+  const getReviewPageUrl: PaginationGetPageUrl = ({ page }) => {
     const query = searchParams.toString()
-    const baseHref = query ? `${pathname}?${query}` : pathname
+    const baseHref = query === "" ? pathname : `${pathname}?${query}`
     const href = serializeReviewPage(baseHref, {
       reviews_page: page <= 1 ? null : page,
     })
@@ -190,7 +194,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   }
 
   const reviewsQuery = useProductReviews({
-    ...(productId == null ? {} : { productId }),
+    ...(productId === null || productId === undefined ? {} : { productId }),
     enabled: Boolean(productId),
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
     page: currentPage,
@@ -227,7 +231,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
     )
   }, [isPageOutOfRange, reviewsQuery.totalPages, setCurrentPage])
 
-  if (!productId) {
+  if (productId === null || productId === undefined || productId === "") {
     return (
       <StatusText showIcon status="warning">
         {tCatalog("reviews.unavailable")}
@@ -243,7 +247,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
     return <ProductDetailReviewsSkeleton />
   }
 
-  if (reviewsQuery.error && reviews.length === 0) {
+  if (reviewsQuery.error !== null && reviews.length === 0) {
     return (
       <div className="space-y-300">
         <StatusText showIcon status="error">

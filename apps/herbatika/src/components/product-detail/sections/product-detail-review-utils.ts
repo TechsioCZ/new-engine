@@ -5,7 +5,7 @@ export const PRODUCT_DETAIL_REVIEWS_SECTION_ID = "product-detail-reviews"
 export const PRODUCT_DETAIL_REVIEWS_TAB_VALUE = "reviews"
 
 const resolveReviewDate = (value?: string) => {
-  if (!value) {
+  if (value === undefined || value === "") {
     return null
   }
 
@@ -20,9 +20,11 @@ const resolveReviewDate = (value?: string) => {
 const resolveReviewAuthor = (review: ProductReview, anonymousLabel: string) => {
   const firstName = review.customer?.first_name?.trim()
   const lastName = review.customer?.last_name?.trim()
-  const author = [firstName, lastName].filter(Boolean).join(" ")
+  const author = [firstName, lastName]
+    .filter((name): name is string => name !== undefined && name !== "")
+    .join(" ")
 
-  return author || anonymousLabel
+  return author === "" ? anonymousLabel : author
 }
 
 export const toReviewItem = (
@@ -35,7 +37,7 @@ export const toReviewItem = (
   author: resolveReviewAuthor(review, presentation.anonymousLabel),
   dateLabel: (() => {
     const date = resolveReviewDate(review.created_at)
-    return date ? presentation.formatDate(date) : ""
+    return date === null ? "" : presentation.formatDate(date)
   })(),
   id: review.id,
   message: review.content,

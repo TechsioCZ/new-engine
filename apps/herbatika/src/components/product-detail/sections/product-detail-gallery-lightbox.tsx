@@ -21,21 +21,21 @@ interface ProductDetailGalleryLightboxProps {
   value: number
 }
 
-export function ProductDetailGalleryLightbox({
+export const ProductDetailGalleryLightbox = ({
   items,
   onOpenChange,
   onValueChange,
   open,
   value,
-}: ProductDetailGalleryLightboxProps) {
+}: ProductDetailGalleryLightboxProps) => {
   const tCatalog = useTranslations("catalog")
   const maxIndex = Math.max(items.length - 1, 0)
   const safeValue = Math.min(value, maxIndex)
   const hasMultipleImages = items.length > 1
   const lightboxItems: GalleryItem[] = items.map((item, index) => {
-    const imageSrc = item.src || FALLBACK_IMAGE_SRC
+    const imageSrc = item.src ?? FALLBACK_IMAGE_SRC
     const imageAlt =
-      item.alt ||
+      item.alt ??
       tCatalog("product_detail.gallery.image_alt", { index: index + 1 })
 
     return {
@@ -63,10 +63,6 @@ export function ProductDetailGalleryLightbox({
     return null
   }
 
-  const handleOpenChange = ({ open: nextOpen }: { open: boolean }) => {
-    onOpenChange(nextOpen)
-  }
-
   const handleValueChange = ({
     value: nextValue,
   }: GalleryValueChangeDetails) => {
@@ -83,7 +79,9 @@ export function ProductDetailGalleryLightbox({
         className="h-full w-full max-w-none overflow-hidden rounded-none border-0 bg-transparent p-0 shadow-none"
         customTrigger
         hideCloseButton
-        onOpenChange={handleOpenChange}
+        onOpenChange={({ open: nextOpen }) => {
+          onOpenChange(nextOpen)
+        }}
         open={open}
         placement="right"
         portal={false}

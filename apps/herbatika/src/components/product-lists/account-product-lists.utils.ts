@@ -24,11 +24,20 @@ export interface ProductListPriceSummary {
   totalWithoutTaxLabel: string | null
 }
 
+const PRODUCT_LIST_ITEM_AVAILABILITY_STATUS = {
+  limitedStock: "limited_stock",
+  outOfStock: "out_of_stock",
+  productUnavailable: "product_unavailable",
+} as const
+
+type ProductListItemAvailabilityStatus =
+  (typeof PRODUCT_LIST_ITEM_AVAILABILITY_STATUS)[keyof typeof PRODUCT_LIST_ITEM_AVAILABILITY_STATUS]
+
 export interface ProductListItemAvailability {
   availableQuantity: number | null
   badgeVariant: "danger" | "warning"
   canAddToCart: boolean
-  status: "limited_stock" | "out_of_stock" | "product_unavailable" | null
+  status: ProductListItemAvailabilityStatus | null
 }
 
 interface ProductListAvailableItem {
@@ -47,7 +56,7 @@ export const sortProductLists = (
   lists: StoreProductList[],
   labels: { favorite: string; untitled: string },
 ) =>
-  [...lists].sort((first, second) => {
+  lists.toSorted((first, second) => {
     if (isFavoriteProductList(first)) {
       return -1
     }
@@ -65,7 +74,7 @@ export const uniqueProductIds = (items: StoreProductListItem[]) => [
   ...new Set(
     items
       .map((item) => item.product_id ?? item.product?.id)
-      .filter((id): id is string => Boolean(id)),
+      .filter((id): id is string => id !== undefined && id !== ""),
   ),
 ]
 
@@ -76,8 +85,15 @@ export const buildProductMap = (
   const map = new Map<string, HttpTypes.StoreProduct>()
 
   for (const item of items) {
-    if (item.product?.id) {
-      map.set(item.product.id, item.product)
+    const itemProduct = item.product
+    const productId = itemProduct?.id
+    if (
+      itemProduct !== null &&
+      itemProduct !== undefined &&
+      productId !== undefined &&
+      productId !== ""
+    ) {
+      map.set(productId, itemProduct)
     }
   }
 
@@ -99,9 +115,11 @@ const resolveProductListItemProduct = (
 ) => {
   const productId = item.product_id ?? item.product?.id
 
-  return productId
-    ? (productsById.get(productId) ?? item.product ?? null)
-    : (item.product ?? null)
+  if (productId === undefined || productId === "") {
+    return item.product ?? null
+  }
+
+  return productsById.get(productId) ?? item.product ?? null
 }
 
 const resolveProductListItemVariant = (
@@ -111,18 +129,21 @@ const resolveProductListItemVariant = (
   const variants = product.variants ?? []
   const variantId = item.variant_id ?? item.variant?.id ?? null
 
-  return (
-    (variantId ? variants.find((variant) => variant.id === variantId) : null) ??
-    variants[0] ??
-    null
-  )
+  if (variantId !== null && variantId !== "") {
+    const matchingVariant = variants.find((variant) => variant.id === variantId)
+    if (matchingVariant !== undefined) {
+      return matchingVariant
+    }
+  }
+
+  return variants[0] ?? null
 }
 
 export const resolveProductListItemAvailability = (
   item: StoreProductListItem,
   product: HttpTypes.StoreProduct | null,
 ): ProductListItemAvailability => {
-  if (!product) {
+  if (product === null) {
     return {
       availableQuantity: null,
       badgeVariant: "danger",
@@ -182,7 +203,7 @@ export const resolveProductListAvailabilitySummary = (params: {
     const product = resolveProductListItemProduct(item, params.productsById)
     const availability = resolveProductListItemAvailability(item, product)
 
-    if (availability.canAddToCart && product) {
+    if (availability.canAddToCart && product !== null) {
       purchasableItems.push({ item, product })
     } else {
       skippedCount += 1
@@ -218,7 +239,7 @@ const resolveProductListItemPrice = (params: {
     topOffer,
   })
 
-  if (!price) {
+  if (price === null) {
     return null
   }
 
@@ -255,32 +276,24 @@ export const resolveProductListPriceSummary = (params: {
 
   for (const item of params.items) {
     const product = resolveProductListItemProduct(item, params.productsById)
-    if (!product) {
+    const price =
+      product === null
+        ? null
+        : resolveProductListItemPrice({ currencyCode, item, product })
+
+    if (price === null) {
       hasMissingPrice = true
       hasMissingAmountWithoutTax = true
-      continue
-    }
-
-    const price = resolveProductListItemPrice({
-      currencyCode,
-      item,
-      product,
-    })
-
-    if (!price) {
-      hasMissingPrice = true
-      hasMissingAmountWithoutTax = true
-      continue
-    }
-
-    const quantity = resolveProductListItemQuantity(item)
-    hasPricedItems = true
-    totalWithTaxAmount += price.amountWithTax * quantity
-
-    if (typeof price.amountWithoutTax === "number") {
-      totalWithoutTaxAmount += price.amountWithoutTax * quantity
     } else {
-      hasMissingAmountWithoutTax = true
+      const quantity = resolveProductListItemQuantity(item)
+      hasPricedItems = true
+      totalWithTaxAmount += price.amountWithTax * quantity
+
+      if (typeof price.amountWithoutTax === "number") {
+        totalWithoutTaxAmount += price.amountWithoutTax * quantity
+      } else {
+        hasMissingAmountWithoutTax = true
+      }
     }
   }
 

@@ -4,8 +4,8 @@ import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import type { FormEvent } from "react"
+import { useState } from "react"
+import type { SubmitEvent } from "react"
 
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
@@ -21,9 +21,11 @@ import {
   useProductLists,
   useUpdateProductListItem,
 } from "@/lib/storefront/product-lists"
-import type { StoreProductListItem } from "@/lib/storefront/product-lists"
+import type {
+  StoreProductList,
+  StoreProductListItem,
+} from "@/lib/storefront/product-lists"
 import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products"
-import type { ProductListInput } from "@/lib/storefront/products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import {
   resolveAddProductToCartErrorMessage,
@@ -39,7 +41,7 @@ import {
   uniqueProductIds,
 } from "./account-product-lists.utils"
 
-const MISSING_VARIANT_ERROR_PATTERN = /has no variant selected|no variant/i
+const MISSING_VARIANT_ERROR_PATTERN = /has no variant selected|no variant/iu
 
 interface ListCartErrorMessages {
   addListFailed: string
@@ -88,7 +90,61 @@ const showPartialListCartResult = ({
   })
 }
 
-export function useAccountProductLists() {
+const resolveActiveListId = (
+  sortedLists: StoreProductList[],
+  requestedListId: string | null,
+  selectedListId: string | null,
+) => {
+  if (sortedLists.some((list) => list.id === requestedListId)) {
+    return requestedListId
+  }
+  if (sortedLists.some((list) => list.id === selectedListId)) {
+    return selectedListId
+  }
+  const [firstList] = sortedLists
+  return firstList?.id ?? null
+}
+
+const hasRegionSelection = (
+  regionId: string | undefined,
+  countryCode: string | undefined,
+) =>
+  (regionId !== undefined && regionId !== "") ||
+  (countryCode !== undefined && countryCode !== "")
+
+const resolveRegionMutationOptions = (
+  regionId: string | undefined,
+  countryCode: string | undefined,
+) => ({
+  ...(regionId === undefined ? {} : { regionId }),
+  ...(countryCode === undefined ? {} : { countryCode }),
+})
+
+const resolveActiveList = (
+  sortedLists: StoreProductList[],
+  queriedList: StoreProductList | null,
+  activeListId: string | null,
+) => queriedList ?? sortedLists.find((list) => list.id === activeListId) ?? null
+
+const resolveDeleteList = (
+  sortedLists: StoreProductList[],
+  deleteListId: string | null,
+) =>
+  sortedLists.find(
+    (list) => list.id === deleteListId && !isFavoriteProductList(list),
+  ) ?? null
+
+const shouldLoadProductListProducts = (
+  regionId: string | undefined,
+  activeListId: string | null,
+  productCount: number,
+) => {
+  const hasRegionId = regionId !== undefined && regionId !== ""
+  const hasActiveListId = activeListId !== null && activeListId !== ""
+  return hasRegionId && hasActiveListId && productCount > 0
+}
+
+export const useAccountProductLists = () => {
   const tAuth = useTranslations("auth")
   const tCart = useTranslations("cart")
   const authQuery = useAuth()
@@ -96,7 +152,7 @@ export function useAccountProductLists() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useAppToast()
-  const [activeListId, setActiveListId] = useState<string | null>(null)
+  const [selectedListId, setSelectedListId] = useState<string | null>(null)
   const [showCreateListDialog, setShowCreateListDialog] = useState(false)
   const [newListTitle, setNewListTitle] = useState("")
   const [activeProductId, setActiveProductId] = useState<string | null>(null)
@@ -110,6 +166,8 @@ export function useAccountProductLists() {
   const [deleteListId, setDeleteListId] = useState<string | null>(null)
 
   const customerId = authQuery.customer?.id ?? null
+  const regionId = region?.region_id
+  const countryCode = region?.country_code
   const listsQuery = useProductLists({
     customerId,
     enabled: authQuery.isAuthenticated,
@@ -119,25 +177,36 @@ export function useAccountProductLists() {
     favorite: tAuth("product_lists.favorite_title"),
     untitled: tAuth("product_lists.untitled_list"),
   })
+  const requestedListId = searchParams.get("list")
+  const activeListId = resolveActiveListId(
+    sortedLists,
+    requestedListId,
+    selectedListId,
+  )
   const activeListQuery = useProductList(activeListId, {
     customerId,
-    enabled: authQuery.isAuthenticated && Boolean(activeListId),
+    enabled:
+      authQuery.isAuthenticated && activeListId !== null && activeListId !== "",
   })
-  const activeList =
-    activeListQuery.productList ??
-    sortedLists.find((list) => list.id === activeListId) ??
-    null
-  const activeListSupportsQuantity = Boolean(activeList)
-  const deleteList =
-    sortedLists.find(
-      (list) => list.id === deleteListId && !isFavoriteProductList(list),
-    ) ?? null
+  const activeList = resolveActiveList(
+    sortedLists,
+    activeListQuery.productList,
+    activeListId,
+  )
+  const activeListSupportsQuantity = activeList !== null
+  const deleteList = resolveDeleteList(sortedLists, deleteListId)
   const activeItems = getProductListItems(activeList)
   const productIds = uniqueProductIds(activeItems)
+  const shouldLoadProducts = shouldLoadProductListProducts(
+    regionId,
+    activeListId,
+    productIds.length,
+  )
+  const productIdsFilter = productIds.length === 0 ? undefined : productIds
   const productsQuery = useProducts({
-    enabled: Boolean(region?.region_id && activeListId && productIds.length),
+    enabled: shouldLoadProducts,
     fields: PRODUCT_CARD_FIELDS,
-    id: productIds.length > 0 ? productIds : undefined,
+    ...(productIdsFilter === undefined ? {} : { id: productIdsFilter }),
     limit: Math.max(productIds.length, 1),
     page: 1,
   })
@@ -160,47 +229,18 @@ export function useAccountProductLists() {
   const deleteListMutation = useDeleteProductList()
   const updateItemMutation = useUpdateProductListItem()
   const deleteItemMutation = useDeleteProductListItem()
-  const addToCart = useAddProductToCart({
-    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
-    ...(region?.country_code === undefined
-      ? {}
-      : { countryCode: region?.country_code }),
-  })
-  const activeListCanCreateCart = Boolean(
-    activeList?.id &&
-    activeListAvailabilitySummary.canAddAnyToCart &&
-    (region?.region_id || region?.country_code),
+  const addToCart = useAddProductToCart(
+    resolveRegionMutationOptions(regionId, countryCode),
   )
-
-  useEffect(() => {
-    const firstList = sortedLists[0]
-
-    if (!firstList) {
-      setActiveListId(null)
-      return
-    }
-
-    const requestedListId = searchParams.get("list")
-    const requestedListExists = sortedLists.some(
-      (list) => list.id === requestedListId,
-    )
-    const activeListExists = sortedLists.some(
-      (list) => list.id === activeListId,
-    )
-    let nextActiveListId = firstList.id
-    if (requestedListId && requestedListExists) {
-      nextActiveListId = requestedListId
-    } else if (activeListExists && activeListId) {
-      nextActiveListId = activeListId
-    }
-
-    if (nextActiveListId !== activeListId) {
-      setActiveListId(nextActiveListId)
-    }
-  }, [activeListId, searchParams, sortedLists])
+  const regionIsSelected = hasRegionSelection(regionId, countryCode)
+  const activeListCanCreateCart =
+    activeList?.id !== undefined &&
+    activeList.id !== "" &&
+    activeListAvailabilitySummary.canAddAnyToCart &&
+    regionIsSelected
 
   const selectList = (listId: string) => {
-    setActiveListId(listId)
+    setSelectedListId(listId)
     router.replace(`/account/lists?list=${encodeURIComponent(listId)}`, {
       scroll: false,
     })
@@ -217,7 +257,7 @@ export function useAccountProductLists() {
 
   const openDeleteListDialog = (listId: string) => {
     const list = sortedLists.find((candidate) => candidate.id === listId)
-    if (!list || isFavoriteProductList(list)) {
+    if (list === undefined || isFavoriteProductList(list)) {
       return
     }
 
@@ -228,11 +268,11 @@ export function useAccountProductLists() {
     setDeleteListId(null)
   }
 
-  const handleCreateList = async (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateList = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const title = newListTitle.trim()
-    if (!title) {
+    if (title === "") {
       toast.warning({
         title: tAuth("product_lists.validation.title_required"),
       })
@@ -245,7 +285,7 @@ export function useAccountProductLists() {
         title,
       })
 
-      if (createdList?.id) {
+      if (createdList?.id !== undefined && createdList.id !== "") {
         selectList(createdList.id)
       }
 
@@ -291,38 +331,39 @@ export function useAccountProductLists() {
 
   const addPurchasableItemsToCart = async () => {
     const { purchasableItems } = activeListAvailabilitySummary
-    let failedCount = 0
-
-    for (const purchasableItem of purchasableItems) {
-      const { item, product } = purchasableItem
-
-      setActiveProductId(product.id)
-
-      try {
-        await addToCart.addProductToCart({
-          product,
-          quantity: resolveProductListItemQuantity(item),
-          ...(item.variant_id === undefined
-            ? {}
-            : { variantId: item.variant_id }),
-        })
-      } catch {
-        failedCount += 1
-      }
-    }
+    const addResults = await Promise.all(
+      purchasableItems.map(async ({ item, product }) => {
+        try {
+          await addToCart.addProductToCart({
+            product,
+            quantity: resolveProductListItemQuantity(item),
+            ...(item.variant_id === undefined
+              ? {}
+              : { variantId: item.variant_id }),
+          })
+          return true
+        } catch {
+          return false
+        }
+      }),
+    )
 
     return {
-      failedCount,
+      failedCount: addResults.filter((wasAdded) => !wasAdded).length,
       totalCount: purchasableItems.length,
     }
   }
 
   const handleAddListToCart = async () => {
-    if (!(activeList?.id && activeListAvailabilitySummary.canAddAnyToCart)) {
+    if (
+      activeList?.id === undefined ||
+      activeList.id === "" ||
+      !activeListAvailabilitySummary.canAddAnyToCart
+    ) {
       return
     }
 
-    if (!(region?.region_id || region?.country_code)) {
+    if (!regionIsSelected) {
       toast.warning({
         title: tCart("missing_region"),
       })
@@ -335,12 +376,8 @@ export function useAccountProductLists() {
       if (activeListAvailabilitySummary.canAddWholeList) {
         await createListCartMutation.mutateAsync({
           listId: activeList.id,
-          ...(region.region_id === undefined
-            ? {}
-            : { regionId: region.region_id }),
-          ...(region.country_code === undefined
-            ? {}
-            : { countryCode: region.country_code }),
+          ...(regionId === undefined ? {} : { regionId }),
+          ...(countryCode === undefined ? {} : { countryCode }),
           ...(authQuery.customer?.email === undefined
             ? {}
             : { email: authQuery.customer?.email }),
@@ -388,7 +425,11 @@ export function useAccountProductLists() {
     item: StoreProductListItem,
     quantity: number,
   ) => {
-    if (!(item.id && activeListSupportsQuantity)) {
+    if (
+      item.id === undefined ||
+      item.id === "" ||
+      !activeListSupportsQuantity
+    ) {
       return
     }
 
@@ -426,7 +467,7 @@ export function useAccountProductLists() {
   }
 
   const handleDeleteList = async () => {
-    if (!deleteList?.id) {
+    if (deleteList?.id === undefined || deleteList.id === "") {
       return
     }
 
@@ -443,10 +484,10 @@ export function useAccountProductLists() {
       await deleteListMutation.mutateAsync({ listId: deletedListId })
 
       if (activeListId === deletedListId) {
-        if (nextList?.id) {
+        if (nextList?.id !== undefined && nextList.id !== "") {
           selectList(nextList.id)
         } else {
-          setActiveListId(null)
+          setSelectedListId(null)
           router.replace("/account/lists", { scroll: false })
         }
       }
@@ -463,7 +504,12 @@ export function useAccountProductLists() {
   }
 
   const handleDeleteItem = async (item: StoreProductListItem) => {
-    if (!(activeList?.id && item.id)) {
+    if (
+      activeList?.id === undefined ||
+      activeList.id === "" ||
+      item.id === undefined ||
+      item.id === ""
+    ) {
       return
     }
 

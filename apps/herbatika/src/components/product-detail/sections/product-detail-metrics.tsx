@@ -20,29 +20,27 @@ interface ProductDetailMetricsProps {
 
 const PRODUCT_REVIEW_TEASER_LIMIT = 4
 
-function ProductDetailMetricsSkeleton() {
-  return (
-    <section className="space-y-500 pt-750">
-      <div className="grid grid-cols-1 gap-500 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: PRODUCT_REVIEW_TEASER_LIMIT }, (_, index) => (
-          <ReviewSkeleton key={`product-review-teaser-skeleton-${index + 1}`} />
-        ))}
-      </div>
-    </section>
-  )
-}
+const ProductDetailMetricsSkeleton = () => (
+  <section className="space-y-500 pt-750">
+    <div className="grid grid-cols-1 gap-500 md:grid-cols-2 xl:grid-cols-4">
+      {Array.from({ length: PRODUCT_REVIEW_TEASER_LIMIT }, (_, index) => (
+        <ReviewSkeleton key={`product-review-teaser-skeleton-${index + 1}`} />
+      ))}
+    </div>
+  </section>
+)
 
-export function ProductDetailMetrics({
+export const ProductDetailMetrics = ({
   onShowAllReviews,
   productId,
-}: ProductDetailMetricsProps) {
+}: ProductDetailMetricsProps) => {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
   const reviewsQuery = useProductReviews({
     enabled: Boolean(productId),
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
     offset: 0,
-    ...(productId == null ? {} : { productId }),
+    ...(productId === null || productId === undefined ? {} : { productId }),
   })
   const reviews = reviewsQuery.reviews
     .slice(0, PRODUCT_REVIEW_TEASER_LIMIT)
@@ -58,7 +56,7 @@ export function ProductDetailMetrics({
       }),
     )
 
-  if (!productId) {
+  if (productId === null || productId === undefined || productId === "") {
     return null
   }
 
@@ -74,7 +72,7 @@ export function ProductDetailMetrics({
     <ReviewsSection
       linkHref={`#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`}
       onLinkClick={(event) => {
-        if (!onShowAllReviews) {
+        if (onShowAllReviews === undefined) {
           return
         }
 

@@ -7,9 +7,9 @@ interface UseProductDetailControllerProps {
   handle: string
 }
 
-export function useProductDetailController({
+export const useProductDetailController = ({
   handle,
-}: UseProductDetailControllerProps) {
+}: UseProductDetailControllerProps) => {
   const data = useProductDetailData({ handle })
   const actions = useProductDetailActions({
     product: data.product,

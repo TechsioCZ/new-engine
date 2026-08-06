@@ -14,11 +14,11 @@ interface UseProductDetailGalleryStateProps {
   getOpenImageAriaLabel: (index: number) => string
 }
 
-export function useProductDetailGalleryState({
+export const useProductDetailGalleryState = ({
   galleryItems,
   getFallbackImageAlt,
   getOpenImageAriaLabel,
-}: UseProductDetailGalleryStateProps) {
+}: UseProductDetailGalleryStateProps) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const pendingOpenImageIndexRef = useRef<number | null>(null)
@@ -68,8 +68,8 @@ export function useProductDetailGalleryState({
 
   const galleryItemsWithFallback: GalleryItem[] = galleryItems.map(
     (item, index) => {
-      const imageSrc = item.src || FALLBACK_IMAGE_SRC
-      const imageAlt = item.alt || getFallbackImageAlt(index)
+      const imageSrc = item.src ?? FALLBACK_IMAGE_SRC
+      const imageAlt = item.alt ?? getFallbackImageAlt(index)
       const imageContent = item.content ?? (
         <FallbackImage
           alt={imageAlt}
@@ -109,12 +109,20 @@ export function useProductDetailGalleryState({
         thumbnailContent: item.thumbnailContent ?? (
           <span className="flex h-full w-full items-center justify-center">
             <FallbackImage
-              alt={item.thumbnailAlt || imageAlt}
+              alt={
+                item.thumbnailAlt === undefined || item.thumbnailAlt === ""
+                  ? imageAlt
+                  : item.thumbnailAlt
+              }
               className="h-full w-full object-contain"
               height={88}
               quality={60}
               sizes="88px"
-              src={item.thumbnailSrc || imageSrc}
+              src={
+                item.thumbnailSrc === undefined || item.thumbnailSrc === ""
+                  ? imageSrc
+                  : item.thumbnailSrc
+              }
               width={88}
             />
           </span>

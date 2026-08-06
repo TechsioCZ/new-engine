@@ -24,6 +24,9 @@ const ALLOWED_HTML_TAGS = new Set([
   "ul",
 ])
 
+export const isSanitizedHtmlTagAllowed = (tag: string) =>
+  ALLOWED_HTML_TAGS.has(tag)
+
 const ALLOWED_GLOBAL_ATTRIBUTES = new Set(["title"])
 
 const ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
@@ -82,29 +85,98 @@ const escapeHtmlAttribute = (value: string): string =>
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
 
+const isAttributeNameCharacter = (character: string) =>
+  /[a-zA-Z0-9:-]/u.test(character)
+
+const skipWhitespace = (value: string, startIndex: number) => {
+  let index = startIndex
+  while (/\s/u.test(value[index] ?? "")) {
+    index += 1
+  }
+  return index
+}
+
+const readAttributeName = (rawAttributes: string, startIndex: number) => {
+  let index = startIndex
+  while (isAttributeNameCharacter(rawAttributes[index] ?? "")) {
+    index += 1
+  }
+  return {
+    index,
+    name: rawAttributes.slice(startIndex, index).toLowerCase(),
+  }
+}
+
+const readQuotedAttributeValue = (
+  rawAttributes: string,
+  startIndex: number,
+  quote: string,
+) => {
+  let index = startIndex
+  while (index < rawAttributes.length && rawAttributes[index] !== quote) {
+    index += 1
+  }
+  const value = rawAttributes.slice(startIndex, index)
+  return {
+    index: rawAttributes[index] === quote ? index + 1 : index,
+    value,
+  }
+}
+
+const readUnquotedAttributeValue = (
+  rawAttributes: string,
+  startIndex: number,
+) => {
+  let index = startIndex
+  while (
+    index < rawAttributes.length &&
+    !/[\s"'=<>`]/u.test(rawAttributes[index] ?? "")
+  ) {
+    index += 1
+  }
+  return {
+    index,
+    value: rawAttributes.slice(startIndex, index),
+  }
+}
+
+const readAttributeValue = (rawAttributes: string, startIndex: number) => {
+  if (rawAttributes[startIndex] !== "=") {
+    return { index: startIndex, value: "" }
+  }
+  const valueStart = skipWhitespace(rawAttributes, startIndex + 1)
+  const quote = rawAttributes[valueStart]
+  if (quote === '"' || quote === "'") {
+    return readQuotedAttributeValue(rawAttributes, valueStart + 1, quote)
+  }
+  return readUnquotedAttributeValue(rawAttributes, valueStart)
+}
+
 const parseTagAttributes = (rawAttributes: string) => {
   const attributes: { name: string; value: string }[] = []
-  // Capture groups stay unnamed: this project targets ES2017, where named capture
-  // groups are a TypeScript error (TS1503).
-  const attributePattern =
-    /([a-zA-Z0-9:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/gu
+  let index = 0
 
-  let match = attributePattern.exec(rawAttributes)
-  while (match) {
-    const name = match[1]?.toLowerCase()
-    const value = (match[2] ?? match[3] ?? match[4] ?? "").trim()
-
-    if (name) {
-      attributes.push({ name, value })
+  while (index < rawAttributes.length) {
+    const nameStart = skipWhitespace(rawAttributes, index)
+    const nameResult = readAttributeName(rawAttributes, nameStart)
+    if (nameResult.name === "") {
+      index = nameStart + 1
+    } else {
+      const equalsIndex = skipWhitespace(rawAttributes, nameResult.index)
+      const valueResult = readAttributeValue(rawAttributes, equalsIndex)
+      const { index: nextIndex, value } = valueResult
+      attributes.push({
+        name: nameResult.name,
+        value: value.trim(),
+      })
+      index = nextIndex
     }
-
-    match = attributePattern.exec(rawAttributes)
   }
 
   return attributes
 }
 
-type AttributeAllowanceInput = {
+interface AttributeAllowanceInput {
   allowedAttributesForTag: Set<string>
   name: string
   options: SanitizeHtmlOptions
@@ -216,7 +288,7 @@ const applySanitizedAttribute = (
     return
   }
 
-  if (value) {
+  if (value !== "") {
     state.attributes.push(`${name}="${escapeHtmlAttribute(value)}"`)
   }
 }
@@ -331,11 +403,24 @@ const sanitizeHtmlTag = (
   return sanitizeOpeningTag(tag, rawAttributes, options)
 }
 
+const sanitizeMatchedHtmlTag = (
+  matchedTag: string,
+  options: SanitizeHtmlOptions,
+) => {
+  const innerTag = matchedTag.slice(1, -1).trim()
+  const isClosing = innerTag.startsWith("/")
+  const tagContent = isClosing ? innerTag.slice(1).trimStart() : innerTag
+  const tagEnd = tagContent.search(/[\s/]/u)
+  const rawTag = tagEnd === -1 ? tagContent : tagContent.slice(0, tagEnd)
+  const rawAttributes = tagEnd === -1 ? "" : tagContent.slice(tagEnd)
+  return sanitizeHtmlTag(isClosing ? "/" : "", rawTag, rawAttributes, options)
+}
+
 export const sanitizeHtml = (
   html: string,
   options: SanitizeHtmlOptions = {},
 ): string => {
-  if (!html) {
+  if (html === "") {
     return ""
   }
 
@@ -353,10 +438,8 @@ export const sanitizeHtml = (
     .replaceAll(/<embed[\s\S]*?<\/embed>/giu, "")
 
   const sanitized = cleanedHtml.replaceAll(
-    // Capture groups stay unnamed: ES2017 target, see parseTagAttributes.
-    /<\s*(\/?)\s*([a-zA-Z0-9]+)([^>]*)>/gu,
-    (_, closingSlash: string, rawTag: string, rawAttributes: string) =>
-      sanitizeHtmlTag(closingSlash, rawTag, rawAttributes, options),
+    /<\s*\/?\s*[a-zA-Z0-9]+[^>]*>/gu,
+    (matchedTag: string) => sanitizeMatchedHtmlTag(matchedTag, options),
   )
 
   return sanitized.trim()
@@ -390,7 +473,7 @@ export const hasRenderableHtmlContent = (
   }
 
   const sanitizedHtml = sanitizeHtml(value)
-  if (!sanitizedHtml) {
+  if (sanitizedHtml === "") {
     return false
   }
 

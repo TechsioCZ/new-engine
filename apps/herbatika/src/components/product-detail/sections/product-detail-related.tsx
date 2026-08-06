@@ -17,13 +17,13 @@ interface ProductDetailRelatedProps {
   sections: RelatedProductsSection[]
 }
 
-export function ProductDetailRelated({
+export const ProductDetailRelated = ({
   isProductAdding,
   onAddToCart,
   onProductHoverEnd,
   onProductHoverStart,
   sections,
-}: ProductDetailRelatedProps) {
+}: ProductDetailRelatedProps) => {
   const tCatalog = useTranslations("catalog")
 
   if (sections.length === 0) {

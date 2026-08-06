@@ -2,8 +2,8 @@
 
 import { useTranslations } from "next-intl"
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
-import type { FormEvent } from "react"
+import { useState } from "react"
+import type { SubmitEvent } from "react"
 
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { useAppToast } from "@/hooks/use-app-toast"
@@ -44,7 +44,7 @@ const listById = (lists: (StoreProductList | null | undefined)[]) => {
   const map = new Map<string, StoreProductList>()
 
   for (const list of lists) {
-    if (list?.id) {
+    if (list?.id !== undefined && list.id !== "") {
       map.set(list.id, list)
     }
   }
@@ -52,19 +52,46 @@ const listById = (lists: (StoreProductList | null | undefined)[]) => {
   return map
 }
 
-export function useProductListPicker({
+export const useProductListPicker = ({
   product,
   quantity,
   selectedVariantId,
-}: UseProductListPickerInput) {
+}: UseProductListPickerInput) => {
   const tAuth = useTranslations("auth")
   const pathname = usePathname()
   const authQuery = useAuth()
   const toast = useAppToast()
-  const [isOpen, setIsOpen] = useState(false)
-  const [showNewListInput, setShowNewListInput] = useState(false)
-  const [newListTitle, setNewListTitle] = useState("")
-  const [activeListKey, setActiveListKey] = useState<string | null>(null)
+  const [isOpenState, setIsOpenState] = useState(false)
+  const isOpen = isOpenState
+  const [pickerState, setPickerState] = useState<{
+    activeListKey: string | null
+    newListTitle: string
+    showNewListInput: boolean
+  }>({
+    activeListKey: null,
+    newListTitle: "",
+    showNewListInput: false,
+  })
+  const { activeListKey, newListTitle, showNewListInput } = pickerState
+  const setActiveListKey = (value: string | null) => {
+    setPickerState((current) => ({ ...current, activeListKey: value }))
+  }
+  const setNewListTitle = (value: string) => {
+    setPickerState((current) => ({ ...current, newListTitle: value }))
+  }
+  const setShowNewListInput = (value: boolean) => {
+    setPickerState((current) => ({ ...current, showNewListInput: value }))
+  }
+  const setIsOpen = (nextIsOpen: boolean) => {
+    setIsOpenState(nextIsOpen)
+    if (!nextIsOpen) {
+      setPickerState({
+        activeListKey: null,
+        newListTitle: "",
+        showNewListInput: false,
+      })
+    }
+  }
 
   const customerId = authQuery.customer?.id ?? null
   const shouldFetchLists = isOpen && authQuery.isAuthenticated
@@ -73,7 +100,9 @@ export function useProductListPicker({
     enabled: shouldFetchLists,
     limit: 100,
   })
-  const listIds = listsQuery.productLists.map((list) => list.id).filter(Boolean)
+  const listIds = listsQuery.productLists.flatMap((list) =>
+    list.id === "" ? [] : [list.id],
+  )
   const detailQueries = useProductListDetails(listIds, {
     customerId,
     enabled: shouldFetchLists && listIds.length > 0,
@@ -121,22 +150,12 @@ export function useProductListPicker({
     })),
   ]
 
-  useEffect(() => {
-    if (isOpen) {
-      return
-    }
-
-    setShowNewListInput(false)
-    setNewListTitle("")
-    setActiveListKey(null)
-  }, [isOpen])
-
   const addProductToList = async (row: ProductListPickerRow) => {
     if (row.checked) {
       return
     }
 
-    if (!(row.isFavorite || row.list?.id)) {
+    if (!row.isFavorite && (row.list?.id === undefined || row.list.id === "")) {
       return
     }
 
@@ -149,7 +168,7 @@ export function useProductListPicker({
           quantity: quantityToAdd,
           variantId: selectedVariantId,
         })
-      } else if (row.list?.id) {
+      } else if (row.list?.id !== undefined && row.list.id !== "") {
         await addItemMutation.mutateAsync({
           listId: row.list.id,
           productId: product.id,
@@ -169,11 +188,11 @@ export function useProductListPicker({
     }
   }
 
-  const handleCreateList = async (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateList = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const title = newListTitle.trim()
-    if (!title) {
+    if (title === "") {
       toast.warning({
         title: tAuth("product_lists.validation.title_required"),
       })
@@ -188,7 +207,7 @@ export function useProductListPicker({
         title,
       })
 
-      if (!createdList?.id) {
+      if (createdList?.id === undefined || createdList.id === "") {
         throw new Error(tAuth("product_lists.errors.create_failed"))
       }
 
@@ -199,8 +218,11 @@ export function useProductListPicker({
         variantId: selectedVariantId,
       })
 
-      setNewListTitle("")
-      setShowNewListInput(false)
+      setPickerState((current) => ({
+        ...current,
+        newListTitle: "",
+        showNewListInput: false,
+      }))
     } catch (mutationError) {
       toast.error({
         title: resolveErrorMessage(
@@ -216,7 +238,7 @@ export function useProductListPicker({
   const retryLists = async () => {
     await Promise.all([
       listsQuery.query.refetch(),
-      ...detailQueries.map(async (query) => query.refetch()),
+      ...detailQueries.map(async (query) => await query.refetch()),
     ])
   }
 
@@ -226,7 +248,7 @@ export function useProductListPicker({
     authQuery,
     detailsAreLoading:
       listIds.length > 0 && detailQueries.some((query) => query.isLoading),
-    detailsHaveError: detailQueries.some((query) => Boolean(query.error)),
+    detailsHaveError: detailQueries.some((query) => query.error !== null),
     handleCreateList,
     isMutating,
     isOpen,

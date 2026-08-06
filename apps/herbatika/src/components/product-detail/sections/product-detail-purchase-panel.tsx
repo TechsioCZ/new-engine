@@ -25,6 +25,9 @@ import { ProductListPickerPopover } from "@/components/product-lists/product-lis
 import { appHref } from "@/lib/routing"
 import { createBrandSlug } from "@/lib/storefront/brands"
 
+const BRAND_TITLE_KEY = "title"
+const BRAND_HANDLE_KEY = "handle"
+
 interface ProductInfoLink {
   href: string | null
   label: string
@@ -35,20 +38,25 @@ const resolveProductInfoLink = (
   primaryCategory: HttpTypes.StoreProductCategory | undefined,
 ): ProductInfoLink | null => {
   const brand = asRecord((product as Product & { brand?: unknown }).brand)
-  const brandTitle = asString(brand?.title)
+  const brandTitle = asString(brand?.[BRAND_TITLE_KEY])
 
-  if (brandTitle) {
-    const brandHandle = asString(brand?.handle)
+  if (brandTitle !== null && brandTitle !== "") {
+    const brandHandle = asString(brand?.[BRAND_HANDLE_KEY])
     const brandSlug = createBrandSlug(brandHandle ?? brandTitle)
 
     return {
-      href: brandSlug ? `/znacka/${brandSlug}` : null,
+      href:
+        brandSlug === null || brandSlug === "" ? null : `/znacka/${brandSlug}`,
       label: brandTitle,
     }
   }
 
   const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")
-  if (!(primaryCategory?.handle && primaryCategoryName)) {
+  if (
+    primaryCategory?.handle === undefined ||
+    primaryCategory.handle === "" ||
+    primaryCategoryName === ""
+  ) {
     return null
   }
 
@@ -78,6 +86,18 @@ interface ProductDetailPurchasePanelProps {
   vipCreditLabel: string | null
 }
 
+const resolveAccessibleProductName = (product: Product) => {
+  const trimmedTitle = product.title?.trim()
+  if (trimmedTitle !== undefined && trimmedTitle !== "") {
+    return trimmedTitle
+  }
+  const trimmedHandle = product.handle?.trim()
+  if (trimmedHandle !== undefined && trimmedHandle !== "") {
+    return trimmedHandle
+  }
+  return product.id
+}
+
 export const ProductDetailPurchasePanel = ({
   canAddToCart,
   currentAmountLabel,
@@ -100,7 +120,7 @@ export const ProductDetailPurchasePanel = ({
   const locale = useLocale()
   const tCart = useTranslations("cart")
   const tCatalog = useTranslations("catalog")
-  const primaryCategory = productCategories[0]
+  const [primaryCategory] = productCategories
   const productInfoLink = resolveProductInfoLink(product, primaryCategory)
   const flags = resolveFlags(product, Boolean(displayOriginalLabel), {
     action: tCatalog("filters.status.action"),
@@ -108,9 +128,12 @@ export const ProductDetailPurchasePanel = ({
     tip: tCatalog("filters.status.tip"),
   })
   const displayHighlights = productHighlights
-    .map((highlight) => highlight.replaceAll(/\s+/g, " ").trim())
-    .filter(Boolean)
+    .flatMap((highlight) => {
+      const normalizedHighlight = highlight.replaceAll(/\s+/gu, " ").trim()
+      return normalizedHighlight === "" ? [] : [normalizedHighlight]
+    })
     .slice(0, 3)
+  const accessibleProductName = resolveAccessibleProductName(product)
 
   return (
     <div className="min-w-0 rounded-base bg-surface p-400 sm:p-550">
@@ -130,12 +153,17 @@ export const ProductDetailPurchasePanel = ({
             <span className="text-fg-placeholder text-sm leading-tight">
               ID: {offerState.code ?? product.handle}
             </span>
-            {productInfoLink ? (
+            {productInfoLink === null ? null : (
               <>
                 <span className="text-fg-placeholder text-sm leading-tight">
                   •
                 </span>
-                {productInfoLink.href ? (
+                {productInfoLink.href === null ||
+                productInfoLink.href === "" ? (
+                  <span className="min-w-0 break-words text-primary text-sm leading-tight">
+                    {productInfoLink.label}
+                  </span>
+                ) : (
                   <Link
                     as={NextLink}
                     className="min-w-0 break-words font-normal text-primary text-sm leading-tight underline hover:text-primary-strong"
@@ -143,13 +171,9 @@ export const ProductDetailPurchasePanel = ({
                   >
                     {productInfoLink.label}
                   </Link>
-                ) : (
-                  <span className="min-w-0 break-words text-primary text-sm leading-tight">
-                    {productInfoLink.label}
-                  </span>
                 )}
               </>
-            ) : null}
+            )}
           </div>
 
           <ProductListPickerPopover
@@ -185,20 +209,20 @@ export const ProductDetailPurchasePanel = ({
               <p className="font-medium text-fg-primary text-xl leading-tight md:text-3xl">
                 {currentAmountLabel}
               </p>
-              {displayOriginalLabel ? (
+              {displayOriginalLabel !== null && displayOriginalLabel !== "" ? (
                 <span className="pb-50 font-normal text-fg-secondary text-md leading-normal line-through md:text-lg">
                   {displayOriginalLabel}
                 </span>
               ) : null}
             </div>
-            {unitPriceLabel ? (
+            {unitPriceLabel !== null && unitPriceLabel !== "" ? (
               <p className="text-fg-secondary text-sm leading-tight md:text-md">
                 {unitPriceLabel}
               </p>
             ) : null}
           </div>
 
-          {vipCreditLabel ? (
+          {vipCreditLabel !== null && vipCreditLabel !== "" ? (
             <div className="flex w-full min-w-0 items-center gap-400 rounded-sm bg-highlight px-400 py-200 sm:w-auto">
               <Icon
                 className="text-primary"
@@ -223,11 +247,16 @@ export const ProductDetailPurchasePanel = ({
           <Select
             className="w-full sm:max-w-xs"
             items={variantItems}
-            onValueChange={(details) => {
-              onVariantChange(details.value[0] ?? null)
+            onValueChange={({ value }) => {
+              const [nextVariantId] = value
+              onVariantChange(nextVariantId ?? null)
             }}
             size="lg"
-            value={selectedVariantId ? [selectedVariantId] : []}
+            value={
+              selectedVariantId === null || selectedVariantId === ""
+                ? []
+                : [selectedVariantId]
+            }
           >
             <Select.Label>
               {tCatalog("product_detail.variant_label")}
@@ -273,10 +302,7 @@ export const ProductDetailPurchasePanel = ({
               <NumericInput.DecrementTrigger className="min-h-750 w-auto" />
               <NumericInput.Input
                 aria-label={tCatalog("product_detail.quantity_aria", {
-                  productName:
-                    product.title?.trim() ||
-                    product.handle?.trim() ||
-                    product.id,
+                  productName: accessibleProductName,
                 })}
                 className="min-h-750 px-0 py-0 text-center"
               />

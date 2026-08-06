@@ -41,7 +41,7 @@ interface ProductDetailHeroProps {
   vipCreditLabel: string | null
 }
 
-export function ProductDetailHero({
+export const ProductDetailHero = ({
   children,
   canAddToCart,
   currentAmountLabel,
@@ -65,44 +65,42 @@ export function ProductDetailHero({
   unitPriceLabel,
   variantItems,
   vipCreditLabel,
-}: ProductDetailHeroProps) {
-  return (
-    <section className="grid min-w-0 max-w-full gap-500 sm:px-product-detail lg:grid-cols-2">
-      <ProductDetailMediaColumn
-        discountPercent={discountPercent}
-        galleryItems={galleryItems}
-        mediaFacts={mediaFacts}
+}: ProductDetailHeroProps) => (
+  <section className="grid min-w-0 max-w-full gap-500 sm:px-product-detail lg:grid-cols-2">
+    <ProductDetailMediaColumn
+      discountPercent={discountPercent}
+      galleryItems={galleryItems}
+      mediaFacts={mediaFacts}
+    />
+
+    <div className="min-w-0 space-y-300">
+      <ProductDetailPurchasePanel
+        canAddToCart={canAddToCart}
+        currentAmountLabel={currentAmountLabel}
+        displayOriginalLabel={displayOriginalLabel}
+        isAdding={isAdding}
+        maxQuantity={maxQuantity}
+        offerState={offerState}
+        onAddToCart={onAddToCart}
+        onQuantityChange={onQuantityChange}
+        onVariantChange={onVariantChange}
+        product={product}
+        productCategories={productCategories}
+        productHighlights={productHighlights}
+        quantity={quantity}
+        selectedVariantId={selectedVariantId}
+        unitPriceLabel={unitPriceLabel}
+        variantItems={variantItems}
+        vipCreditLabel={vipCreditLabel}
       />
 
-      <div className="min-w-0 space-y-300">
-        <ProductDetailPurchasePanel
-          canAddToCart={canAddToCart}
-          currentAmountLabel={currentAmountLabel}
-          displayOriginalLabel={displayOriginalLabel}
-          isAdding={isAdding}
-          maxQuantity={maxQuantity}
-          offerState={offerState}
-          onAddToCart={onAddToCart}
-          onQuantityChange={onQuantityChange}
-          onVariantChange={onVariantChange}
-          product={product}
-          productCategories={productCategories}
-          productHighlights={productHighlights}
-          quantity={quantity}
-          selectedVariantId={selectedVariantId}
-          unitPriceLabel={unitPriceLabel}
-          variantItems={variantItems}
-          vipCreditLabel={vipCreditLabel}
-        />
+      <ProductDetailDeliveryInfo
+        freeShippingThresholdLabel={freeShippingThresholdLabel}
+        locationAvailabilityState={locationAvailabilityState}
+        offerState={offerState}
+      />
 
-        <ProductDetailDeliveryInfo
-          freeShippingThresholdLabel={freeShippingThresholdLabel}
-          locationAvailabilityState={locationAvailabilityState}
-          offerState={offerState}
-        />
-
-        {children}
-      </div>
-    </section>
-  )
-}
+      {children}
+    </div>
+  </section>
+)

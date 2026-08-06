@@ -43,7 +43,9 @@ export const ProductDetailTabs = ({
 }: ProductDetailTabsProps) => {
   const tCatalog = useTranslations("catalog")
   const selectedSectionValue = activeSectionValue ?? defaultSectionValue
-  const tabSections = productId
+  const hasProductId =
+    productId !== null && productId !== undefined && productId !== ""
+  const tabSections = hasProductId
     ? [
         ...sections,
         {
@@ -55,22 +57,30 @@ export const ProductDetailTabs = ({
     : sections
 
   const handleAccordionChange = (value: string[]) => {
-    const sectionValue = value[0]
+    const [sectionValue] = value
     onSectionValueChange(sectionValue)
 
-    if (!sectionValue) {
+    if (sectionValue === undefined || sectionValue === "") {
       return
     }
 
     window.requestAnimationFrame(() => {
       document
-        .getElementById(getAccordionSectionId(sectionValue))
+        .querySelector<HTMLElement>(
+          `#${CSS.escape(getAccordionSectionId(sectionValue))}`,
+        )
         ?.scrollIntoView({ block: "start" })
     })
   }
 
+  const reviewsSlot = (
+    <ProductDetailReviewsSlot
+      {...(productId === undefined ? {} : { productId })}
+    />
+  )
+
   return (
-    <section id={productId ? PRODUCT_DETAIL_REVIEWS_SECTION_ID : undefined}>
+    <section id={hasProductId ? PRODUCT_DETAIL_REVIEWS_SECTION_ID : undefined}>
       <h2 className="mb-400 font-semibold text-3xl text-fg-primary">
         {tCatalog("product_detail.information_title")}
       </h2>
@@ -105,9 +115,7 @@ export const ProductDetailTabs = ({
               value={section.key}
             >
               {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
-                <ProductDetailReviewsSlot
-                  {...(productId === undefined ? {} : { productId })}
-                />
+                reviewsSlot
               ) : (
                 <ProductDetailHtmlContent html={section.html} />
               )}
@@ -121,7 +129,11 @@ export const ProductDetailTabs = ({
           collapsible
           onChange={handleAccordionChange}
           size="sm"
-          value={activeSectionValue ? [activeSectionValue] : []}
+          value={
+            activeSectionValue === undefined || activeSectionValue === ""
+              ? []
+              : [activeSectionValue]
+          }
           variant="default"
         >
           {tabSections.map((section) => (
@@ -135,9 +147,7 @@ export const ProductDetailTabs = ({
               </Accordion.Header>
               <Accordion.Content>
                 {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
-                  <ProductDetailReviewsSlot
-                    {...(productId === undefined ? {} : { productId })}
-                  />
+                  reviewsSlot
                 ) : (
                   <ProductDetailHtmlContent html={section.html} />
                 )}

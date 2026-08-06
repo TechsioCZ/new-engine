@@ -17,13 +17,13 @@ interface UseProductDetailActionsProps {
   selectedVolumeDiscountOption: ProductDetailDataState["selectedVolumeDiscountOption"]
 }
 
-export function useProductDetailActions({
+export const useProductDetailActions = ({
   product,
   quantity,
   region,
   selectedVariant,
   selectedVolumeDiscountOption,
-}: UseProductDetailActionsProps) {
+}: UseProductDetailActionsProps) => {
   const addToCart = useAddProductToCartAction({
     ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
     ...(region?.country_code === undefined
@@ -51,7 +51,11 @@ export function useProductDetailActions({
 
   return {
     handleAddMainProductToCart: () => {
-      if (!(product && selectedVariant?.id)) {
+      if (
+        product === null ||
+        selectedVariant?.id === undefined ||
+        selectedVariant.id === ""
+      ) {
         return
       }
 
@@ -63,7 +67,12 @@ export function useProductDetailActions({
       runDetachedPromise(addProductToCart(productToAdd, 1))
     },
     handleAddVolumeDiscountToCart: () => {
-      if (!(product && selectedVariant?.id && selectedVolumeDiscountOption)) {
+      if (
+        product === null ||
+        selectedVariant?.id === undefined ||
+        selectedVariant.id === "" ||
+        selectedVolumeDiscountOption === null
+      ) {
         return
       }
 
@@ -87,7 +96,7 @@ export function useProductDetailActions({
       sectionId: string,
       hoveredProduct: Product,
     ) => {
-      if (!hoveredProduct.handle) {
+      if (hoveredProduct.handle === undefined || hoveredProduct.handle === "") {
         return
       }
 
@@ -102,7 +111,8 @@ export function useProductDetailActions({
     },
     isMainProductAdding:
       addToCart.isAddPending &&
-      Boolean(product?.id) &&
+      product?.id !== undefined &&
+      product.id !== "" &&
       addToCart.activeProductId === product?.id,
     isProductAdding: (productId: string) =>
       addToCart.isProductAdding(productId),

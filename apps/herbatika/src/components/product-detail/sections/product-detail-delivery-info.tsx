@@ -16,21 +16,24 @@ interface ProductDetailDeliveryInfoProps {
   offerState: ProductOfferState
 }
 
-export function ProductDetailDeliveryInfo({
+export const ProductDetailDeliveryInfo = ({
   freeShippingThresholdLabel,
   locationAvailabilityState,
   offerState,
-}: ProductDetailDeliveryInfoProps) {
+}: ProductDetailDeliveryInfoProps) => {
   const { error, isInventoryManaged, isLoading, items } =
     locationAvailabilityState
+  const hasLocationError = error !== null && error !== ""
   const showLocationAvailability =
-    !(isLoading || error) && Boolean(items?.length)
-  const showLocationAvailabilityError = !isLoading && Boolean(error)
+    !(isLoading || hasLocationError) && (items?.length ?? 0) > 0
+  const showLocationAvailabilityError = !isLoading && hasLocationError
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
+  const AVAILABLE_TONE_CLASS = "text-primary"
+  const UNAVAILABLE_TONE_CLASS = "text-warning"
   const availabilityToneClass = offerState.isInStock
-    ? "text-primary"
-    : "text-warning"
+    ? AVAILABLE_TONE_CLASS
+    : UNAVAILABLE_TONE_CLASS
   const expectedDeliveryDateLabel = offerState.expectedDeliveryDate
     ? format.dateTime(offerState.expectedDeliveryDate, {
         day: "numeric",
@@ -44,7 +47,7 @@ export function ProductDetailDeliveryInfo({
       <div className="flex flex-nowrap items-center gap-650 lg:max-lg:flex lg:max-lg:flex-col">
         <div className="flex items-start gap-200">
           <Icon
-            className={`self-start text-icon-delivery-size leading-none ${offerState.isInStock ? "text-primary" : "text-warning"}`}
+            className={`self-start text-icon-delivery-size leading-none ${offerState.isInStock ? AVAILABLE_TONE_CLASS : UNAVAILABLE_TONE_CLASS}`}
             icon={
               offerState.isInStock ? "token-icon-check" : "token-icon-alert"
             }
@@ -53,17 +56,18 @@ export function ProductDetailDeliveryInfo({
             <span className={`font-semibold ${availabilityToneClass}`}>
               {offerState.availabilityLabel}
             </span>
-            {expectedDeliveryDateLabel ? (
+            {expectedDeliveryDateLabel === null ? null : (
               <span className="font-normal text-fg-secondary">
                 {`, ${tCatalog("product_detail.delivery_by", {
                   date: expectedDeliveryDateLabel,
                 })}`}
               </span>
-            ) : null}
+            )}
           </SupportingText>
         </div>
 
-        {freeShippingThresholdLabel ? (
+        {freeShippingThresholdLabel !== null &&
+        freeShippingThresholdLabel !== "" ? (
           <div className="flex items-center gap-200">
             <Icon
               className="self-start text-primary"
@@ -87,7 +91,7 @@ export function ProductDetailDeliveryInfo({
         </Skeleton>
       ) : null}
 
-      {showLocationAvailability && items ? (
+      {showLocationAvailability && items !== null ? (
         <dl className="grid gap-250 border-border-secondary border-t pt-400">
           {items.map((location) => {
             const isAvailable =

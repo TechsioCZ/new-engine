@@ -59,7 +59,7 @@ const ProductListPickerListRow = ({
       />
       <span className="min-w-0 flex-1 truncate text-sm">{row.title}</span>
       <span className="text-fg-tertiary text-xs">{row.count}</span>
-      {row.list?.id ? (
+      {row.list?.id !== undefined && row.list.id !== "" ? (
         <LinkButton
           aria-label={tAuth("product_lists.picker.open_list_aria", {
             listTitle: row.title,
@@ -123,7 +123,7 @@ export const ProductListPickerPopover = ({
         </Skeleton>
       </div>
     )
-  } else if (picker.listsQuery.error || picker.detailsHaveError) {
+  } else if (picker.listsQuery.error !== null || picker.detailsHaveError) {
     pickerContent = (
       <div className="space-y-300 px-350 py-350">
         <p className="text-danger text-sm">
@@ -163,7 +163,9 @@ export const ProductListPickerPopover = ({
           {picker.showNewListInput ? (
             <form
               className="flex items-center gap-200"
-              onSubmit={picker.handleCreateList}
+              onSubmit={(event) => {
+                runDetachedPromise(picker.handleCreateList(event))
+              }}
             >
               <label
                 className="sr-only"

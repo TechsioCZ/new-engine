@@ -5,9 +5,9 @@ import { useEffect } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { asRecord } from "@/components/product-detail/utils/value-utils"
 
-export function useProductDetailDebugLog(product: Product | null) {
+export const useProductDetailDebugLog = (product: Product | null) => {
   useEffect(() => {
-    if (process.env.NODE_ENV === "production" || !product) {
+    if (process.env.NODE_ENV === "production" || product === null) {
       return
     }
 

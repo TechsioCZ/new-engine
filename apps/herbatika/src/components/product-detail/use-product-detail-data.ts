@@ -2,7 +2,7 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import {
   resolveOptionTitlesById,
@@ -18,6 +18,7 @@ import {
   resolveProductVolumeDiscountOptions,
   resolveSelectedVolumeDiscountOption,
 } from "@/components/product-detail/product-detail-pricing-data.utils"
+import type { Product } from "@/components/product-detail/product-detail.types"
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log"
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products"
 import {
@@ -46,45 +47,159 @@ interface UseProductDetailDataProps {
   handle: string
 }
 
-export function useProductDetailData({ handle }: UseProductDetailDataProps) {
+interface ProductDetailSelectionState {
+  productKey: string
+  quantity: number
+  selectedVariantId: string | null
+  selectedVolumeDiscountId: string | null
+}
+
+const createDefaultSelection = (
+  productKey: string,
+): ProductDetailSelectionState => ({
+  productKey,
+  quantity: 1,
+  selectedVariantId: null,
+  selectedVolumeDiscountId: null,
+})
+
+const resolveCurrentSelection = (
+  selection: ProductDetailSelectionState,
+  productKey: string,
+) =>
+  selection.productKey === productKey
+    ? selection
+    : createDefaultSelection(productKey)
+
+const updateCurrentSelection = (
+  selection: ProductDetailSelectionState,
+  productKey: string,
+  update: Partial<
+    Pick<
+      ProductDetailSelectionState,
+      "quantity" | "selectedVariantId" | "selectedVolumeDiscountId"
+    >
+  >,
+): ProductDetailSelectionState => ({
+  ...resolveCurrentSelection(selection, productKey),
+  ...update,
+})
+
+const resolveAvailableQuantity = (
+  requestedQuantity: number,
+  availableQuantity: number | null,
+) => {
+  if (availableQuantity === null || availableQuantity < 1) {
+    return requestedQuantity
+  }
+  return Math.min(requestedQuantity, availableQuantity)
+}
+
+const resolveProductPrice = (
+  product: Product | null,
+  selectedVariantId: string | null,
+  regionCurrencyCode: string,
+  priceUnavailableLabel: string,
+) =>
+  product === null
+    ? null
+    : resolvePriceState(
+        product,
+        selectedVariantId,
+        regionCurrencyCode,
+        priceUnavailableLabel,
+      )
+
+const resolveGalleryFallbackLabel = (
+  product: Product | null,
+  handle: string,
+) => {
+  const productHandle = product?.handle?.trim()
+  if (productHandle !== undefined && productHandle !== "") {
+    return productHandle
+  }
+  return product?.id ?? handle
+}
+
+const resolveCanAddToCart = (
+  selectedVariantId: string | undefined,
+  currentAmount: number | null | undefined,
+  isPurchasable: boolean,
+) =>
+  selectedVariantId !== undefined &&
+  selectedVariantId !== "" &&
+  typeof currentAmount === "number" &&
+  isPurchasable
+
+const resolveProductQueryState = (
+  queriedProduct: Product | null | undefined,
+  handle: string,
+) => {
+  const product = queriedProduct ?? null
+  return {
+    product,
+    productCategories: product?.categories ?? [],
+    productKey: product?.id ?? `handle:${handle}`,
+    variants: product?.variants ?? [],
+  }
+}
+
+const resolveProductQueryIdentifiers = (
+  product: Product | null,
+  selectedVariantId: string | undefined,
+  inventory: { managesInventory: boolean | null | undefined },
+) => ({
+  locationInventoryOptions: {
+    isInventoryManaged: inventory.managesInventory,
+  },
+  productId: product?.id ?? null,
+  selectedVariantId: selectedVariantId ?? null,
+})
+
+const resolveDefaultInformationSection = (sections: { key: string }[]) =>
+  sections[0]?.key ?? "description"
+
+const isRegionBootstrapping = (regionId: string | undefined) =>
+  regionId === undefined || regionId === ""
+
+export const useProductDetailData = ({ handle }: UseProductDetailDataProps) => {
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
-  const [quantity, setQuantity] = useState(1)
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
-    null,
-  )
-  const [selectedVolumeDiscountId, setSelectedVolumeDiscountId] = useState<
-    string | null
-  >(null)
+  const [selectionState, setSelectionState] =
+    useState<ProductDetailSelectionState>(() =>
+      createDefaultSelection(`handle:${handle}`),
+    )
 
   const productQuery = useProduct({
     fields: PRODUCT_DETAIL_FIELDS,
     handle,
   })
 
-  const product = productQuery.product ?? null
-  const variants = product?.variants ?? []
-  const productCategories = product?.categories ?? []
+  const { product, productCategories, productKey, variants } =
+    resolveProductQueryState(productQuery.product, handle)
+  const currentSelection = resolveCurrentSelection(selectionState, productKey)
+  const { selectedVariantId, selectedVolumeDiscountId } = currentSelection
 
   const selectedVariant = resolveSelectedVariant(variants, selectedVariantId)
+  const queryIdentifiers = resolveProductQueryIdentifiers(
+    product,
+    selectedVariant?.id,
+    { managesInventory: selectedVariant?.manage_inventory },
+  )
   const productLocationAvailabilityQuery =
     storefront.hooks.productLocationAvailability.useProductLocationAvailability(
-      {
-        productId: product?.id ?? null,
-      },
+      { productId: queryIdentifiers.productId },
     )
   const productAttributesQuery =
     storefront.hooks.productAttributes.useProductAttributes({
-      productId: product?.id ?? null,
+      productId: queryIdentifiers.productId,
     })
   const locationAvailabilityState = resolveProductLocationAvailabilityState(
     productLocationAvailabilityQuery,
-    selectedVariant?.id ?? null,
-    {
-      isInventoryManaged: selectedVariant?.manage_inventory,
-    },
+    queryIdentifiers.selectedVariantId,
+    queryIdentifiers.locationInventoryOptions,
   )
   const optionTitlesById = resolveOptionTitlesById(product)
   const variantItems = resolveVariantItems(variants, optionTitlesById)
@@ -93,18 +208,24 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     inStock: tCatalog("product_detail.stock.in_stock"),
     outOfStock: tCatalog("product_detail.stock.out_of_stock"),
   })
+  const preliminaryVariantInventory = resolveVariantInventoryState(
+    selectedVariant,
+    currentSelection.quantity,
+  )
+  const quantity = resolveAvailableQuantity(
+    currentSelection.quantity,
+    preliminaryVariantInventory.availableQuantity,
+  )
   const selectedVariantInventory = resolveVariantInventoryState(
     selectedVariant,
     quantity,
   )
-  const productPrice = product
-    ? resolvePriceState(
-        product,
-        selectedVariantId,
-        regionCurrencyCode,
-        tCatalog("product_detail.price_on_request"),
-      )
-    : null
+  const productPrice = resolveProductPrice(
+    product,
+    selectedVariantId,
+    regionCurrencyCode,
+    tCatalog("product_detail.price_on_request"),
+  )
   const shortDescriptionHtml = resolveShortDescriptionHtml(product)
   const productSummaryText = resolveProductSummaryText(
     product,
@@ -114,7 +235,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const galleryItems = resolveGalleryItems(
     productImages,
     product?.title,
-    product?.handle?.trim() ?? product?.id ?? handle,
+    resolveGalleryFallbackLabel(product, handle),
   )
   const productHighlights = resolveProductHighlights(productSummaryText)
   const otherSectionTitle = tCatalog("product_detail.sections.other")
@@ -149,10 +270,11 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     productPrice,
     regionCurrencyCode,
   })
-  const canAddToCart =
-    Boolean(selectedVariant?.id) &&
-    typeof productPrice?.currentAmount === "number" &&
-    selectedVariantInventory.isPurchasable
+  const canAddToCart = resolveCanAddToCart(
+    selectedVariant?.id,
+    productPrice?.currentAmount,
+    selectedVariantInventory.isPurchasable,
+  )
   const maxQuantity = selectedVariantInventory.maxPurchaseQuantity
 
   const { availableQuantity } = selectedVariantInventory
@@ -179,34 +301,25 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     product,
   })
 
-  useEffect(() => {
-    setQuantity(1)
-    setSelectedVariantId(product?.variants?.[0]?.id ?? null)
-    setSelectedVolumeDiscountId(null)
-  }, [product?.variants])
-
-  useEffect(() => {
-    if (availableQuantity === null || availableQuantity < 1) {
-      return
-    }
-
-    if (quantity > availableQuantity) {
-      setQuantity(availableQuantity)
-    }
-  }, [availableQuantity, quantity])
-
-  useEffect(() => {
-    setSelectedVolumeDiscountId((currentOptionId) => {
-      if (
-        currentOptionId &&
-        volumeDiscountOptions.some((option) => option.id === currentOptionId)
-      ) {
-        return currentOptionId
-      }
-
-      return volumeDiscountOptions[0]?.id ?? null
-    })
-  }, [volumeDiscountOptions])
+  const setQuantity = (nextQuantity: number) => {
+    setSelectionState((current) =>
+      updateCurrentSelection(current, productKey, { quantity: nextQuantity }),
+    )
+  }
+  const setSelectedVariantId = (nextVariantId: string | null) => {
+    setSelectionState((current) =>
+      updateCurrentSelection(current, productKey, {
+        selectedVariantId: nextVariantId,
+      }),
+    )
+  }
+  const setSelectedVolumeDiscountId = (nextOptionId: string | null) => {
+    setSelectionState((current) =>
+      updateCurrentSelection(current, productKey, {
+        selectedVolumeDiscountId: nextOptionId,
+      }),
+    )
+  }
 
   useProductDetailDebugLog(product)
   useRecordRecentlyVisitedProduct(product)
@@ -224,12 +337,14 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     breadcrumbItems,
     canAddToCart,
     currentAmountLabel,
-    defaultInfoSectionValue: productContentSections[0]?.key ?? "description",
+    defaultInfoSectionValue: resolveDefaultInformationSection(
+      productContentSections,
+    ),
     discountPercent,
     displayOriginalLabel,
     freeShippingThresholdLabel,
     galleryItems,
-    isBootstrappingRegion: !region?.region_id,
+    isBootstrappingRegion: isRegionBootstrapping(region?.region_id),
     locationAvailabilityState,
     maxQuantity,
     mediaFacts,

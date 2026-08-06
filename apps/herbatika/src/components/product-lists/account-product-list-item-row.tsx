@@ -7,7 +7,7 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
-import { useCallback, useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 
 import NextLink from "@/components/app-link"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
@@ -20,10 +20,12 @@ import {
 } from "./account-product-lists.utils"
 
 interface AccountProductListItemRowProps {
-  canChangeQuantity: boolean
-  isAddingToCart: boolean
-  isDeleting: boolean
-  isSettingQuantity: boolean
+  state: {
+    canChangeQuantity: boolean
+    isAddingToCart: boolean
+    isDeleting: boolean
+    isSettingQuantity: boolean
+  }
   item: StoreProductListItem
   onAddToCart: (
     item: StoreProductListItem,
@@ -60,58 +62,46 @@ const resolveAvailabilityLabel = (
   return null
 }
 
-export function AccountProductListItemRow({
-  canChangeQuantity,
-  isAddingToCart,
-  isDeleting,
+interface ProductListQuantityInputProps {
+  isSettingQuantity: boolean
+  item: StoreProductListItem
+  onQuantitySet: (item: StoreProductListItem, quantity: number) => void
+  productTitle: string
+  quantity: number
+}
+
+const ProductListQuantityInput = ({
   isSettingQuantity,
   item,
-  onAddToCart,
-  onDelete,
   onQuantitySet,
-  product,
-}: AccountProductListItemRowProps) {
+  productTitle,
+  quantity,
+}: ProductListQuantityInputProps) => {
   const tAuth = useTranslations("auth")
-  const tCart = useTranslations("cart")
-  const tCatalog = useTranslations("catalog")
-  const itemProduct = product ?? item.product ?? null
-  const productTitle =
-    itemProduct?.title?.trim() || item.product_id || item.id || ""
-  const productHref = itemProduct?.handle ? `/p/${itemProduct.handle}` : "#"
-  const imageSrc = itemProduct?.thumbnail ?? PRODUCT_FALLBACK_IMAGE
-  const price = itemProduct
-    ? resolvePriceState(
-        itemProduct,
-        undefined,
-        tCatalog("product_card.price_on_request"),
-      )
-    : null
-  const quantity = resolveProductListItemQuantity(item)
-  const availability = resolveProductListItemAvailability(item, itemProduct)
-  const availabilityLabel = resolveAvailabilityLabel(availability, tAuth)
-  const { canAddToCart } = availability
-  const availabilityBadgeId = useId()
   const [localQuantity, setLocalQuantity] = useState(quantity)
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const clearPendingUpdate = useCallback(() => {
-    if (updateTimeoutRef.current === null) {
-      return
+  const clearPendingUpdate = () => {
+    if (updateTimeoutRef.current !== null) {
+      clearTimeout(updateTimeoutRef.current)
+      updateTimeoutRef.current = null
     }
+  }
 
-    clearTimeout(updateTimeoutRef.current)
-    updateTimeoutRef.current = null
-  }, [])
-
-  useEffect(() => {
-    setLocalQuantity(quantity)
-    clearPendingUpdate()
-  }, [clearPendingUpdate, quantity])
-
-  useEffect(() => clearPendingUpdate, [clearPendingUpdate])
+  useEffect(
+    () => () => {
+      clearPendingUpdate()
+    },
+    [],
+  )
 
   const handleQuantityChange = (nextQuantity: number) => {
-    if (!item.id || isSettingQuantity || !Number.isFinite(nextQuantity)) {
+    if (
+      item.id === undefined ||
+      item.id === "" ||
+      isSettingQuantity ||
+      !Number.isFinite(nextQuantity)
+    ) {
       return
     }
 
@@ -128,6 +118,112 @@ export function AccountProductListItemRow({
       updateTimeoutRef.current = null
     }, 250)
   }
+
+  return (
+    <NumericInput
+      allowOverflow={false}
+      className="w-product-list-quantity"
+      disabled={item.id === undefined || item.id === "" || isSettingQuantity}
+      min={1}
+      onChange={handleQuantityChange}
+      size="sm"
+      step={1}
+      value={localQuantity}
+    >
+      <NumericInput.Control>
+        <NumericInput.DecrementTrigger
+          disabled={isSettingQuantity || localQuantity <= 1}
+        />
+        <NumericInput.Input
+          aria-label={tAuth("product_lists.item.quantity_aria", {
+            productName: productTitle,
+          })}
+        />
+        <NumericInput.IncrementTrigger disabled={isSettingQuantity} />
+      </NumericInput.Control>
+    </NumericInput>
+  )
+}
+
+const resolveProductTitle = (
+  itemProduct: HttpTypes.StoreProduct | null,
+  item: StoreProductListItem,
+) => {
+  const trimmedTitle = itemProduct?.title?.trim()
+  if (trimmedTitle !== undefined && trimmedTitle !== "") {
+    return trimmedTitle
+  }
+  if (
+    item.product_id !== null &&
+    item.product_id !== undefined &&
+    item.product_id !== ""
+  ) {
+    return item.product_id
+  }
+  return item.id ?? ""
+}
+
+const resolveProductListItemPresentation = (
+  item: StoreProductListItem,
+  product: HttpTypes.StoreProduct | null,
+  priceUnavailableLabel: string,
+) => {
+  const itemProduct = product ?? item.product ?? null
+  const productTitle = resolveProductTitle(itemProduct, item)
+  const productHref =
+    itemProduct?.handle === null ||
+    itemProduct?.handle === undefined ||
+    itemProduct.handle === ""
+      ? "#"
+      : `/p/${itemProduct.handle}`
+  const imageSrc = itemProduct?.thumbnail ?? PRODUCT_FALLBACK_IMAGE
+  const price =
+    itemProduct === null
+      ? null
+      : resolvePriceState(itemProduct, undefined, priceUnavailableLabel)
+  const quantity = resolveProductListItemQuantity(item)
+  const availability = resolveProductListItemAvailability(item, itemProduct)
+
+  return {
+    availability,
+    imageSrc,
+    itemProduct,
+    price,
+    productHref,
+    productTitle,
+    quantity,
+  }
+}
+
+export const AccountProductListItemRow = ({
+  item,
+  onAddToCart,
+  onDelete,
+  onQuantitySet,
+  product,
+  state,
+}: AccountProductListItemRowProps) => {
+  const { canChangeQuantity, isAddingToCart, isDeleting, isSettingQuantity } =
+    state
+  const tAuth = useTranslations("auth")
+  const tCart = useTranslations("cart")
+  const tCatalog = useTranslations("catalog")
+  const {
+    availability,
+    imageSrc,
+    itemProduct,
+    price,
+    productHref,
+    productTitle,
+    quantity,
+  } = resolveProductListItemPresentation(
+    item,
+    product,
+    tCatalog("product_card.price_on_request"),
+  )
+  const availabilityLabel = resolveAvailabilityLabel(availability, tAuth)
+  const { canAddToCart } = availability
+  const availabilityBadgeId = useId()
 
   return (
     <article className="flex flex-col gap-300 border-border-secondary border-b bg-base p-300 md:flex-row md:items-center">
@@ -149,7 +245,7 @@ export function AccountProductListItemRow({
         >
           {productTitle}
         </Link>
-        {item.variant?.title ? (
+        {item.variant?.title !== undefined && item.variant.title !== "" ? (
           <p className="truncate text-fg-secondary text-xs">
             {item.variant.title}
           </p>
@@ -160,10 +256,10 @@ export function AccountProductListItemRow({
               {tAuth("product_lists.item.quantity", { quantity })}
             </span>
           )}
-          {price ? (
+          {price === null ? null : (
             <span className="font-semibold">{price.currentLabel}</span>
-          ) : null}
-          {availabilityLabel ? (
+          )}
+          {availabilityLabel === null ? null : (
             <Badge
               id={availabilityBadgeId}
               size="sm"
@@ -171,43 +267,31 @@ export function AccountProductListItemRow({
             >
               {availabilityLabel}
             </Badge>
-          ) : null}
+          )}
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-300">
         {canChangeQuantity ? (
-          <NumericInput
-            allowOverflow={false}
-            className="w-product-list-quantity"
-            disabled={!item.id || isSettingQuantity}
-            min={1}
-            onChange={handleQuantityChange}
-            size="sm"
-            step={1}
-            value={localQuantity}
-          >
-            <NumericInput.Control>
-              <NumericInput.DecrementTrigger
-                disabled={isSettingQuantity || localQuantity <= 1}
-              />
-              <NumericInput.Input
-                aria-label={tAuth("product_lists.item.quantity_aria", {
-                  productName: productTitle,
-                })}
-              />
-              <NumericInput.IncrementTrigger disabled={isSettingQuantity} />
-            </NumericInput.Control>
-          </NumericInput>
+          <ProductListQuantityInput
+            isSettingQuantity={isSettingQuantity}
+            item={item}
+            key={`${item.id ?? "missing-item-id"}-${quantity}`}
+            onQuantitySet={onQuantitySet}
+            productTitle={productTitle}
+            quantity={quantity}
+          />
         ) : null}
         <Button
-          aria-describedby={availabilityLabel ? availabilityBadgeId : undefined}
+          aria-describedby={
+            availabilityLabel === null ? undefined : availabilityBadgeId
+          }
           disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAddingToCart}
           loadingText={tCart("adding_to_cart")}
           onClick={() => {
-            if (itemProduct) {
+            if (itemProduct !== null) {
               onAddToCart(item, itemProduct)
             }
           }}
@@ -221,7 +305,7 @@ export function AccountProductListItemRow({
             productName: productTitle,
           })}
           className="text-danger"
-          disabled={!item.id || isDeleting}
+          disabled={item.id === undefined || item.id === "" || isDeleting}
           icon="token-icon-trash"
           iconSize="md"
           isLoading={isDeleting}

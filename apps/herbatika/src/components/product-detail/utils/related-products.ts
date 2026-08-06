@@ -19,16 +19,16 @@ const normalizeProductReferenceCode = (value: string) => value.trim()
 const slugifyProductReferenceCode = (value: string) =>
   normalizeProductReferenceCode(value)
     .normalize("NFKD")
-    .replaceAll(/[\u0300-\u036F]/g, "")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
     .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/-+/g, "-")
-    .replaceAll(/^-|-$/g, "")
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/-+/gu, "-")
+    .replaceAll(/^-|-$/gu, "")
 
 export const resolveProductReferenceHandle = (code: string) => {
   const slug = slugifyProductReferenceCode(code)
 
-  return slug ? `shopitem-${slug}` : null
+  return slug === "" ? null : `shopitem-${slug}`
 }
 
 export const resolveRelatedProductReferenceCodes = (
@@ -44,12 +44,10 @@ export const resolveRelatedProductReferenceCodes = (
 
   for (const code of codes) {
     const normalized = normalizeProductReferenceCode(code)
-    if (!normalized || seen.has(normalized)) {
-      continue
+    if (normalized !== "" && !seen.has(normalized)) {
+      seen.add(normalized)
+      result.push(normalized)
     }
-
-    seen.add(normalized)
-    result.push(normalized)
   }
 
   return result
@@ -65,13 +63,13 @@ export const orderProductsByReferenceCodes = (
   const result: Product[] = []
 
   for (const product of products) {
-    if (product.handle) {
+    if (product.handle !== undefined && product.handle !== "") {
       productByHandle.set(product.handle, product)
     }
 
     const metadata = isRecord(product.metadata) ? product.metadata : null
     const sourceShopitemId = metadata?.source_shopitem_id
-    if (typeof sourceShopitemId === "string" && sourceShopitemId) {
+    if (typeof sourceShopitemId === "string" && sourceShopitemId !== "") {
       productBySourceId.set(sourceShopitemId, product)
     }
   }
@@ -80,14 +78,18 @@ export const orderProductsByReferenceCodes = (
     const referenceHandle = resolveProductReferenceHandle(code)
     const product =
       productBySourceId.get(code) ??
-      (referenceHandle ? productByHandle.get(referenceHandle) : undefined)
+      (referenceHandle === null
+        ? undefined
+        : productByHandle.get(referenceHandle))
 
-    if (!product?.id || usedProductIds.has(product.id)) {
-      continue
+    if (
+      product?.id !== undefined &&
+      product.id !== "" &&
+      !usedProductIds.has(product.id)
+    ) {
+      usedProductIds.add(product.id)
+      result.push(product)
     }
-
-    usedProductIds.add(product.id)
-    result.push(product)
   }
 
   return result
@@ -119,12 +121,10 @@ const fillSectionProducts = (
       break
     }
 
-    if (usedIds.has(product.id)) {
-      continue
+    if (!usedIds.has(product.id)) {
+      sectionProducts.push(product)
+      usedIds.add(product.id)
     }
-
-    sectionProducts.push(product)
-    usedIds.add(product.id)
   }
 
   return sectionProducts

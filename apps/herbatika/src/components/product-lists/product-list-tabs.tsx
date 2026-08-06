@@ -21,7 +21,9 @@ interface ProductListTabsProps {
   accountLists: AccountProductListsController
 }
 
-function ProductListEmptyPanel() {
+const PRODUCT_LIST_SKELETON_ROWS = [0, 1, 2] as const
+
+const ProductListEmptyPanel = () => {
   const tAuth = useTranslations("auth")
 
   return (
@@ -33,14 +35,12 @@ function ProductListEmptyPanel() {
   )
 }
 
-function ProductListItemsSkeleton() {
+const ProductListItemsSkeleton = () => {
   const tAuth = useTranslations("auth")
-  const rows = [0, 1, 2] as const
-
   return (
     <Skeleton aria-label={tAuth("product_lists.loading_items_aria")}>
       <div className="space-y-250">
-        {rows.map((row) => (
+        {PRODUCT_LIST_SKELETON_ROWS.map((row) => (
           <article
             className="flex flex-col gap-300 border-border-secondary border-b bg-base p-300 md:flex-row md:items-center"
             key={row}
@@ -73,11 +73,11 @@ function ProductListItemsSkeleton() {
   )
 }
 
-function ProductListSummary({
+const ProductListSummary = ({
   accountLists,
 }: {
   accountLists: AccountProductListsController
-}) {
+}) => {
   const tAuth = useTranslations("auth")
   const tCart = useTranslations("cart")
   const availabilitySummary = accountLists.activeListAvailabilitySummary
@@ -133,18 +133,18 @@ function ProductListSummary({
   )
 }
 
-function ProductListActiveContent({
+const ProductListActiveContent = ({
   accountLists,
 }: {
   accountLists: AccountProductListsController
-}) {
+}) => {
   const tAuth = useTranslations("auth")
 
   if (accountLists.activeListQuery.isLoading) {
     return <ProductListItemsSkeleton />
   }
 
-  if (accountLists.activeListQuery.error) {
+  if (accountLists.activeListQuery.error !== null) {
     return (
       <div className="space-y-300 rounded-md border border-border-secondary p-400">
         <p className="text-danger text-sm">
@@ -177,27 +177,44 @@ function ProductListActiveContent({
       {accountLists.activeItems.map((item) => {
         const productId = item.product_id ?? item.product?.id
         const variantId = item.variant_id ?? item.variant?.id
-        const product = productId
-          ? (accountLists.productsById.get(productId) ?? null)
-          : (item.product ?? null)
-        const existingItem =
-          productId && accountLists.activeList
-            ? findProductListItem(accountLists.activeList, productId, variantId)
-            : item
+        let product = item.product ?? null
+        let existingItem = item
+        if (productId !== undefined && productId !== "") {
+          product = accountLists.productsById.get(productId) ?? null
+          if (accountLists.activeList !== null) {
+            existingItem =
+              findProductListItem(
+                accountLists.activeList,
+                productId,
+                variantId,
+              ) ?? item
+          }
+        }
 
         return (
           <AccountProductListItemRow
-            canChangeQuantity={accountLists.activeListSupportsQuantity}
-            isAddingToCart={accountLists.activeProductId === product?.id}
-            isDeleting={accountLists.activeDeleteItemId === existingItem?.id}
-            isSettingQuantity={
-              accountLists.activeQuantitySetItemId === existingItem?.id
-            }
+            state={{
+              canChangeQuantity: accountLists.activeListSupportsQuantity,
+              isAddingToCart: accountLists.activeProductId === product?.id,
+              isDeleting: accountLists.activeDeleteItemId === existingItem?.id,
+              isSettingQuantity:
+                accountLists.activeQuantitySetItemId === existingItem?.id,
+            }}
             item={existingItem ?? item}
             key={item.id}
-            onAddToCart={accountLists.handleAddToCart}
-            onDelete={accountLists.handleDeleteItem}
-            onQuantitySet={accountLists.handleQuantitySet}
+            onAddToCart={(nextItem, nextProduct) => {
+              runDetachedPromise(
+                accountLists.handleAddToCart(nextItem, nextProduct),
+              )
+            }}
+            onDelete={(nextItem) => {
+              runDetachedPromise(accountLists.handleDeleteItem(nextItem))
+            }}
+            onQuantitySet={(nextItem, quantity) => {
+              runDetachedPromise(
+                accountLists.handleQuantitySet(nextItem, quantity),
+              )
+            }}
             product={product}
           />
         )
@@ -207,7 +224,7 @@ function ProductListActiveContent({
   )
 }
 
-export function ProductListTabs({ accountLists }: ProductListTabsProps) {
+export const ProductListTabs = ({ accountLists }: ProductListTabsProps) => {
   const tAuth = useTranslations("auth")
   const titleLabels = {
     favorite: tAuth("product_lists.favorite_title"),
@@ -216,7 +233,9 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
 
   return (
     <Tabs
-      onValueChange={accountLists.selectList}
+      onValueChange={(listId: string) => {
+        accountLists.selectList(listId)
+      }}
       size="sm"
       value={accountLists.activeListId ?? accountLists.sortedLists[0]?.id}
       variant="line"
@@ -257,7 +276,9 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
           aria-label={tAuth("product_lists.create_list_aria")}
           disabled={accountLists.createListMutation.isPending}
           icon="token-icon-plus"
-          onClick={accountLists.openCreateListDialog}
+          onClick={() => {
+            accountLists.openCreateListDialog()
+          }}
           size="sm"
           theme="borderless"
           type="button"

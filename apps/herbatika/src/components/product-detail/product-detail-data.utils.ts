@@ -13,6 +13,8 @@ import {
   asString,
 } from "@/components/product-detail/utils/value-utils"
 
+const SHORT_DESCRIPTION_KEY = "short_description"
+
 export const resolveSelectedVariant = (
   variants: HttpTypes.StoreProductVariant[],
   selectedVariantId: string | null,
@@ -25,16 +27,15 @@ export const resolveOptionTitlesById = (product: Product | null) => {
   const optionTitlesById = new Map<string, string>()
 
   for (const option of product?.options ?? []) {
-    if (!option.id) {
-      continue
-    }
-
     const title = asString(option.title)
-    if (!title) {
-      continue
+    if (
+      option.id !== null &&
+      option.id !== undefined &&
+      title !== null &&
+      title !== ""
+    ) {
+      optionTitlesById.set(option.id, title)
     }
-
-    optionTitlesById.set(option.id, title)
   }
 
   return optionTitlesById
@@ -56,7 +57,7 @@ export const resolveVariantItems = (
 
 export const resolveShortDescriptionHtml = (product: Product | null) => {
   const metadata = asRecord(product?.metadata)
-  return asString(metadata?.short_description) ?? ""
+  return asString(metadata?.[SHORT_DESCRIPTION_KEY]) ?? ""
 }
 
 export const resolveProductSummaryText = (
@@ -64,7 +65,7 @@ export const resolveProductSummaryText = (
   shortDescriptionHtml: string,
 ) => {
   const shortText = stripHtml(shortDescriptionHtml)
-  if (shortText) {
+  if (shortText !== "") {
     return shortText
   }
 
@@ -78,12 +79,14 @@ export const resolveProductBreadcrumbItems = (
   handle: string,
   homeLabel: string,
 ): HerbatikaBreadcrumbItem[] => {
-  const primaryCategory = productCategories[0]
+  const [primaryCategory] = productCategories
   const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")
 
   return [
     { href: "/", icon: "token-icon-home", label: homeLabel },
-    ...(primaryCategory?.handle && primaryCategoryName
+    ...(primaryCategory?.handle !== undefined &&
+    primaryCategory.handle !== "" &&
+    primaryCategoryName !== ""
       ? [
           {
             href: `/c/${primaryCategory.handle}`,
@@ -91,6 +94,11 @@ export const resolveProductBreadcrumbItems = (
           },
         ]
       : []),
-    { label: product?.title || handle },
+    {
+      label:
+        product?.title === undefined || product.title === ""
+          ? handle
+          : product.title,
+    },
   ]
 }

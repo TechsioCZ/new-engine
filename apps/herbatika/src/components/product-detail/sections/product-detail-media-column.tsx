@@ -20,11 +20,11 @@ interface ProductDetailMediaColumnProps {
   mediaFacts: ProductMediaFact[]
 }
 
-export function ProductDetailMediaColumn({
+export const ProductDetailMediaColumn = ({
   discountPercent,
   galleryItems,
   mediaFacts,
-}: ProductDetailMediaColumnProps) {
+}: ProductDetailMediaColumnProps) => {
   const tCatalog = useTranslations("catalog")
   const isDesktopGallery = useMediaQuery("md")
   const carouselOrientation = isDesktopGallery ? "vertical" : "horizontal"

@@ -15,16 +15,17 @@ import {
   asNumber,
   asRecord,
   asString,
+  readRecordProperty,
 } from "@/components/product-detail/utils/value-utils"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 
-const SECTION_KEY_WHITESPACE_PATTERN = /\s+/g
-const SECTION_KEY_UNSUPPORTED_CHARS_PATTERN = /[^a-z0-9_-]/g
-const CATEGORY_NAME_PREFIX_PATTERN = /^>\s*/
+const SECTION_KEY_WHITESPACE_PATTERN = /\s+/gu
+const SECTION_KEY_UNSUPPORTED_CHARS_PATTERN = /[^a-z0-9_-]/gu
+const CATEGORY_NAME_PREFIX_PATTERN = /^>\s*/u
 
 const normalizeSectionKey = (value: unknown): string | null => {
   const parsed = asString(value)
-  if (!parsed) {
+  if (parsed === null) {
     return null
   }
 
@@ -58,7 +59,7 @@ export const normalizeCategoryName = (
   value?: string | null,
   fallbackLabel = "Kategória",
 ) => {
-  if (!value) {
+  if (value === undefined || value === null || value === "") {
     return fallbackLabel
   }
 
@@ -66,13 +67,17 @@ export const normalizeCategoryName = (
 }
 
 export const resolveProductImages = (product: Product | null): string[] => {
-  if (!product) {
+  if (product === null) {
     return []
   }
 
   const imageUrls = new Set<string>()
 
-  if (product.thumbnail) {
+  if (
+    product.thumbnail !== null &&
+    product.thumbnail !== undefined &&
+    product.thumbnail !== ""
+  ) {
     imageUrls.add(product.thumbnail)
   }
 
@@ -92,17 +97,22 @@ export const resolveVariantLabel = (
   const optionLabels = (variant.options ?? [])
     .map((option) => {
       const optionValue = asString(option?.value)
-      if (!optionValue) {
+      if (optionValue === null) {
         return null
       }
 
-      const optionTitle = option.option_id
-        ? optionTitlesById.get(option.option_id)
-        : undefined
+      const optionTitle =
+        option.option_id === null ||
+        option.option_id === undefined ||
+        option.option_id === ""
+          ? undefined
+          : optionTitlesById.get(option.option_id)
 
-      return optionTitle ? `${optionTitle}: ${optionValue}` : optionValue
+      return optionTitle === undefined || optionTitle === ""
+        ? optionValue
+        : `${optionTitle}: ${optionValue}`
     })
-    .filter((value): value is string => Boolean(value))
+    .filter((value): value is string => value !== null)
 
   if (optionLabels.length > 0) {
     return optionLabels.join(" | ")
@@ -110,11 +120,76 @@ export const resolveVariantLabel = (
 
   const title = asString(variant.title)
 
-  if (title && title !== "Default") {
+  if (title !== null && title !== "Default") {
     return title
   }
 
   return asString(variant.sku) ?? variant.id
+}
+
+const resolveOfferMetadataSource = (
+  product: Product | null,
+  selectedVariant: HttpTypes.StoreProductVariant | null,
+) => {
+  const productMetadata = asRecord(product?.metadata)
+  const topOffer = asRecord(readRecordProperty(productMetadata, "top_offer"))
+  const variantMetadata = asRecord(selectedVariant?.metadata)
+  return topOffer ?? variantMetadata
+}
+
+const resolveActiveDiscount = (
+  source: Record<string, unknown> | null,
+  currentAmount: number | null,
+  actionAmount: number | null,
+) => {
+  const activeDiscountFlag = asBoolean(
+    readRecordProperty(source, "has_active_discount"),
+  )
+  if (activeDiscountFlag !== null) {
+    return activeDiscountFlag
+  }
+  return (
+    actionAmount !== null &&
+    currentAmount !== null &&
+    actionAmount < currentAmount
+  )
+}
+
+const resolveOfferValues = (
+  source: Record<string, unknown> | null,
+  selectedVariant: HttpTypes.StoreProductVariant | null,
+  availableQuantity: number | null,
+  fallbackLabels: { inStock: string; outOfStock: string },
+) => {
+  const stock = asRecord(readRecordProperty(source, "stock"))
+  const currentAmount =
+    asNumber(readRecordProperty(source, "current_price")) ??
+    asNumber(readRecordProperty(source, "price_vat"))
+  const actionAmount = asNumber(readRecordProperty(source, "action_price"))
+
+  return {
+    actionAmount,
+    code:
+      asString(readRecordProperty(source, "code")) ??
+      asString(selectedVariant?.sku),
+    currentAmount,
+    ean:
+      asString(readRecordProperty(source, "ean")) ??
+      asString(selectedVariant?.ean),
+    hasActiveDiscount: resolveActiveDiscount(
+      source,
+      currentAmount,
+      actionAmount,
+    ),
+    inStockLabel:
+      asString(readRecordProperty(source, "availability_in_stock")) ??
+      fallbackLabels.inStock,
+    outOfStockLabel:
+      asString(readRecordProperty(source, "availability_out_of_stock")) ??
+      fallbackLabels.outOfStock,
+    stockAmount:
+      availableQuantity ?? asNumber(readRecordProperty(stock, "amount")),
+  }
 }
 
 export const resolveOfferState = (
@@ -125,45 +200,33 @@ export const resolveOfferState = (
     outOfStock: string
   },
 ): ProductOfferState => {
-  const metadata = asRecord(product?.metadata)
-  const topOffer = asRecord(metadata?.top_offer)
-  const variantMetadata = asRecord(selectedVariant?.metadata)
-  const source = topOffer ?? variantMetadata
-  const stock = asRecord(source?.stock)
+  const source = resolveOfferMetadataSource(product, selectedVariant)
   const variantInventory = resolveVariantInventoryState(selectedVariant)
-  const stockAmount =
-    variantInventory.availableQuantity ?? asNumber(stock?.amount)
   const { isInStock } = variantInventory
-
-  const inStockLabel =
-    asString(source?.availability_in_stock) ?? fallbackLabels.inStock
-  const outOfStockLabel =
-    asString(source?.availability_out_of_stock) ?? fallbackLabels.outOfStock
-  const currentAmount =
-    asNumber(source?.current_price) ?? asNumber(source?.price_vat)
-
-  const actionAmount = asNumber(source?.action_price)
-  const hasActiveDiscountFlag = asBoolean(source?.has_active_discount)
-  const hasActiveDiscount =
-    hasActiveDiscountFlag ??
-    (typeof actionAmount === "number" &&
-      typeof currentAmount === "number" &&
-      actionAmount < currentAmount)
+  const values = resolveOfferValues(
+    source,
+    selectedVariant,
+    variantInventory.availableQuantity,
+    fallbackLabels,
+  )
 
   return {
-    actionAmount,
-    applyLoyaltyDiscount: asBoolean(source?.apply_loyalty_discount) === true,
-    applyQuantityDiscount: asBoolean(source?.apply_quantity_discount) === true,
-    applyVolumeDiscount: asBoolean(source?.apply_volume_discount) === true,
-    availabilityLabel: isInStock ? inStockLabel : outOfStockLabel,
-    code: asString(source?.code) ?? asString(selectedVariant?.sku),
-    currentAmount,
-    ean: asString(source?.ean) ?? asString(selectedVariant?.ean),
+    actionAmount: values.actionAmount,
+    applyLoyaltyDiscount:
+      asBoolean(readRecordProperty(source, "apply_loyalty_discount")) === true,
+    applyQuantityDiscount:
+      asBoolean(readRecordProperty(source, "apply_quantity_discount")) === true,
+    applyVolumeDiscount:
+      asBoolean(readRecordProperty(source, "apply_volume_discount")) === true,
+    availabilityLabel: isInStock ? values.inStockLabel : values.outOfStockLabel,
+    code: values.code,
+    currentAmount: values.currentAmount,
+    ean: values.ean,
     expectedDeliveryDate: isInStock ? addBusinessDays(new Date(), 3) : null,
-    hasActiveDiscount,
+    hasActiveDiscount: values.hasActiveDiscount,
     isInStock,
-    standardAmount: asNumber(source?.standard_price),
-    stockAmount,
+    standardAmount: asNumber(readRecordProperty(source, "standard_price")),
+    stockAmount: values.stockAmount,
   }
 }
 
@@ -175,48 +238,45 @@ export const resolveProductContentSections = (
   >,
 ): ProductDetailContentSection[] => {
   const metadata = asRecord(product?.metadata)
-  const sectionMap = asRecord(metadata?.content_sections_map)
-  const sectionsFromList = Array.isArray(metadata?.content_sections)
-    ? metadata.content_sections
-    : []
+  const sectionMap = asRecord(
+    readRecordProperty(metadata, "content_sections_map"),
+  )
+  const sectionsValue = readRecordProperty(metadata, "content_sections")
+  const sectionsFromList = Array.isArray(sectionsValue) ? sectionsValue : []
   const productDescriptionHtml = asString(product?.description) ?? ""
 
   const sectionHtmlByKey = new Map<string, string>()
   for (const section of sectionsFromList) {
     const sectionRecord = asRecord(section)
-    if (!sectionRecord) {
-      continue
+    if (sectionRecord !== null) {
+      const key = normalizeSectionKey(readRecordProperty(sectionRecord, "key"))
+      const html = asString(readRecordProperty(sectionRecord, "html"))
+      if (key !== null && html !== null && !sectionHtmlByKey.has(key)) {
+        sectionHtmlByKey.set(key, html)
+      }
     }
-
-    const key = normalizeSectionKey(sectionRecord.key)
-    const html = asString(sectionRecord.html)
-    if (!(key && html) || sectionHtmlByKey.has(key)) {
-      continue
-    }
-
-    sectionHtmlByKey.set(key, html)
   }
 
-  const sections = PRODUCT_DETAIL_SECTION_ORDER.map((sectionKey) => {
+  return PRODUCT_DETAIL_SECTION_ORDER.flatMap((sectionKey) => {
     const metadataSectionHtml =
       sectionHtmlByKey.get(sectionKey) ??
       asString(sectionMap?.[sectionKey]) ??
       ""
     const html =
-      sectionKey === "description"
-        ? productDescriptionHtml || metadataSectionHtml
+      sectionKey === "description" && productDescriptionHtml !== ""
+        ? productDescriptionHtml
         : metadataSectionHtml
 
-    return {
-      html,
-      key: sectionKey,
-      title: sectionTitles[sectionKey] ?? sectionTitles.content,
+    if (!hasRenderableSectionHtml(html)) {
+      return []
     }
-  }).filter((section) => hasRenderableSectionHtml(section.html))
 
-  if (sections.length > 0) {
-    return sections
-  }
-
-  return []
+    return [
+      {
+        html,
+        key: sectionKey,
+        title: sectionTitles[sectionKey] ?? sectionTitles.content,
+      },
+    ]
+  })
 }
