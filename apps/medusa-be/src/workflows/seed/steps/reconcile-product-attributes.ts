@@ -42,12 +42,12 @@ type ResolvedSeedAttribute = SeedProductAttributeInput & {
 
 const normalizeSeedLabel = (value: string) => value.trim()
 
-function assertCanonicalDefinitionCompatible(
+const assertCanonicalDefinitionCompatible = (
   existing: CanonicalDefinition | undefined,
   source: SeedProductAttributeInput,
   key: string,
   label: string,
-) {
+) => {
   if (
     existing &&
     (existing.input_type !== source.input_type ||
@@ -60,11 +60,11 @@ function assertCanonicalDefinitionCompatible(
   }
 }
 
-function getCanonicalDefinition(
+const getCanonicalDefinition = (
   definitions: Map<string, CanonicalDefinition>,
   source: SeedProductAttributeInput,
   key: string,
-) {
+) => {
   const label = normalizeSeedLabel(source.label)
   const existing = definitions.get(key)
   assertCanonicalDefinitionCompatible(existing, source, key, label)
@@ -83,11 +83,11 @@ function getCanonicalDefinition(
   return definition
 }
 
-function collectCanonicalOption(
+const collectCanonicalOption = (
   definition: CanonicalDefinition,
   source: SeedProductAttributeInput,
   definitionKey: string,
-) {
+) => {
   if (source.input_type === "text") {
     if (source.option) {
       throw new Error(
@@ -96,7 +96,11 @@ function collectCanonicalOption(
     }
     return
   }
-  if (source.text_value) {
+  if (
+    source.text_value !== null &&
+    source.text_value !== undefined &&
+    source.text_value !== ""
+  ) {
     throw new Error(
       `Select Product Attribute "${definitionKey}" cannot contain text_value`,
     )
@@ -111,7 +115,11 @@ function collectCanonicalOption(
     `option key for "${definitionKey}"`,
   )
   const existingLabel = definition.options.get(optionKey)
-  if (existingLabel && existingLabel !== optionLabel) {
+  if (
+    existingLabel !== undefined &&
+    existingLabel !== "" &&
+    existingLabel !== optionLabel
+  ) {
     throw new Error(
       `Product Attribute option key collision for "${definitionKey}:${optionKey}" from source labels "${existingLabel}" and "${optionLabel}"`,
     )
@@ -119,9 +127,9 @@ function collectCanonicalOption(
   definition.options.set(optionKey, optionLabel)
 }
 
-export function collectCanonicalProductAttributeDefinitions(
+export const collectCanonicalProductAttributeDefinitions = (
   input: CreateProductsStepInput,
-) {
+) => {
   const definitions = new Map<string, CanonicalDefinition>()
 
   for (const product of input) {
@@ -148,39 +156,12 @@ export function collectCanonicalProductAttributeDefinitions(
   return definitions
 }
 
-async function ensureDefinitionsAndOptions(
-  input: CreateProductsStepInput,
-  service: ReturnType<typeof getProductAttributeService>,
-) {
-  const canonical = collectCanonicalProductAttributeDefinitions(input)
-  const keys = [...canonical.keys()]
-  const existingDefinitions = await service.listProductAttributeDefinitions(
-    { key: { $in: keys } },
-    { take: Math.max(keys.length, 1), withDeleted: true },
-  )
-  const definitionByKey = new Map(
-    existingDefinitions.map((definition) => [definition.key, definition]),
-  )
-
-  for (const [key, source] of canonical) {
-    const definition = await ensureDefinition(
-      key,
-      source,
-      definitionByKey,
-      service,
-    )
-    await ensureOptions(definition, source.options, service)
-  }
-
-  return { canonical, definitionByKey }
-}
-
-async function ensureDefinition(
+const ensureDefinition = async (
   key: string,
   source: CanonicalDefinition,
   definitionByKey: Map<string, ProductAttributeDefinitionRecord>,
   service: ReturnType<typeof getProductAttributeService>,
-) {
+) => {
   let definition = definitionByKey.get(key)
   if (definition && definition.input_type !== source.input_type) {
     throw new Error(
@@ -211,11 +192,11 @@ async function ensureDefinition(
   return activeDefinition
 }
 
-async function ensureOptions(
+const ensureOptions = async (
   definition: ProductAttributeDefinitionRecord,
   sourceOptions: Map<string, string>,
   service: ReturnType<typeof getProductAttributeService>,
-) {
+) => {
   if (sourceOptions.size === 0) {
     return
   }
@@ -231,7 +212,13 @@ async function ensureOptions(
     existingOptions.map((option) => [option.key, option]),
   )
 
-  for (const [optionKey, optionLabel] of sourceOptions) {
+  const sourceOptionEntries = [...sourceOptions]
+  const ensureNext = async (index: number): Promise<void> => {
+    const entry = sourceOptionEntries[index]
+    if (entry === undefined) {
+      return
+    }
+    const [optionKey, optionLabel] = entry
     const existingOption = optionByKey.get(optionKey)
     if (!existingOption) {
       await service.createProductAttributeOptions({
@@ -239,7 +226,8 @@ async function ensureOptions(
         key: optionKey,
         label: optionLabel,
       })
-      continue
+      await ensureNext(index + 1)
+      return
     }
     if (existingOption.deleted_at) {
       await service.restoreProductAttributeOptions([existingOption.id])
@@ -248,23 +236,67 @@ async function ensureOptions(
       id: existingOption.id,
       label: optionLabel,
     })
+    await ensureNext(index + 1)
   }
+  await ensureNext(0)
 }
 
-async function resolveOptions(
+const ensureDefinitionsAndOptions = async (
+  input: CreateProductsStepInput,
+  service: ReturnType<typeof getProductAttributeService>,
+) => {
+  const canonical = collectCanonicalProductAttributeDefinitions(input)
+  const keys = [...canonical.keys()]
+  const existingDefinitions = await service.listProductAttributeDefinitions(
+    { key: { $in: keys } },
+    { take: Math.max(keys.length, 1), withDeleted: true },
+  )
+  const definitionByKey = new Map(
+    existingDefinitions.map((definition) => [definition.key, definition]),
+  )
+
+  const canonicalEntries = [...canonical]
+  const ensureNext = async (index: number): Promise<void> => {
+    const entry = canonicalEntries[index]
+    if (entry === undefined) {
+      return
+    }
+    const [key, source] = entry
+    const definition = await ensureDefinition(
+      key,
+      source,
+      definitionByKey,
+      service,
+    )
+    await ensureOptions(definition, source.options, service)
+    await ensureNext(index + 1)
+  }
+  await ensureNext(0)
+
+  return { canonical, definitionByKey }
+}
+
+const resolveOptions = async (
   canonical: Map<string, CanonicalDefinition>,
   definitionByKey: Map<string, ProductAttributeDefinitionRecord>,
   service: ReturnType<typeof getProductAttributeService>,
-) {
+) => {
   const optionByDefinitionAndKey = new Map<
     string,
     ProductAttributeOptionRecord
   >()
 
-  for (const [key, source] of canonical) {
+  const canonicalEntries = [...canonical]
+  const resolveNext = async (index: number): Promise<void> => {
+    const entry = canonicalEntries[index]
+    if (entry === undefined) {
+      return
+    }
+    const [key, source] = entry
     const definition = definitionByKey.get(key)
     if (!(definition && source.options.size)) {
-      continue
+      await resolveNext(index + 1)
+      return
     }
     const options = await service.listProductAttributeOptions(
       {
@@ -276,16 +308,18 @@ async function resolveOptions(
     for (const option of options) {
       optionByDefinitionAndKey.set(`${definition.id}:${option.key}`, option)
     }
+    await resolveNext(index + 1)
   }
+  await resolveNext(0)
 
   return optionByDefinitionAndKey
 }
 
-function resolveSeedAttribute(
+const resolveSeedAttribute = (
   attribute: SeedProductAttributeInput,
   definitionByKey: Map<string, ProductAttributeDefinitionRecord>,
   optionByDefinitionAndKey: Map<string, ProductAttributeOptionRecord>,
-): ResolvedSeedAttribute {
+): ResolvedSeedAttribute => {
   const key = normalizeRequiredProductAttributeKey(attribute.key)
   const definition = definitionByKey.get(key)
   if (!definition) {
@@ -296,10 +330,11 @@ function resolveSeedAttribute(
         attribute.option.key ?? attribute.option.label,
       )
     : undefined
-  const option = optionKey
-    ? optionByDefinitionAndKey.get(`${definition.id}:${optionKey}`)
-    : undefined
-  if (optionKey && !option) {
+  const option =
+    optionKey !== undefined && optionKey !== ""
+      ? optionByDefinitionAndKey.get(`${definition.id}:${optionKey}`)
+      : undefined
+  if (optionKey !== undefined && optionKey !== "" && !option) {
     throw new Error(
       `Product Attribute option "${key}:${optionKey}" was not reconciled`,
     )
@@ -311,101 +346,31 @@ function resolveSeedAttribute(
   }
 }
 
-async function reconcileProductBatch({
-  batch,
-  definitionByKey,
-  optionByDefinitionAndKey,
-  productByHandle,
-  service,
-}: {
-  batch: CreateProductsStepInput
-  definitionByKey: Map<string, ProductAttributeDefinitionRecord>
-  optionByDefinitionAndKey: Map<string, ProductAttributeOptionRecord>
-  productByHandle: Map<string, ProductDTO>
-  service: ReturnType<typeof getProductAttributeService>
-}) {
-  await withProductAttributeTransaction(service, async (context) => {
-    const existingByProductAndDefinition = await loadBatchAssignments({
-      batch,
-      context,
-      definitionByKey,
-      productByHandle,
-      service,
-    })
-
-    for (const inputProduct of batch) {
-      await reconcileProductAssignments({
-        context,
-        definitionByKey,
-        existingByProductAndDefinition,
-        inputProduct,
-        optionByDefinitionAndKey,
-        productByHandle,
-        service,
-      })
-    }
-  })
-}
-
-function resolveBatchProductIds(
+const resolveBatchProductIds = (
   batch: CreateProductsStepInput,
   productByHandle: Map<string, ProductDTO>,
-) {
-  return batch.map(({ handle }) => {
+) =>
+  batch.map(({ handle }) => {
     const productId = productByHandle.get(handle)?.id
-    if (!productId) {
+    if (productId === undefined || productId === "") {
       throw new Error(`Product "${handle}" was not found`)
     }
     return productId
   })
-}
 
-async function loadBatchAssignments({
-  batch,
-  context,
-  definitionByKey,
-  productByHandle,
-  service,
-}: {
-  batch: CreateProductsStepInput
-  context: Context<SqlEntityManager>
-  definitionByKey: Map<string, ProductAttributeDefinitionRecord>
-  productByHandle: Map<string, ProductDTO>
-  service: ReturnType<typeof getProductAttributeService>
-}) {
-  const productIds = resolveBatchProductIds(batch, productByHandle)
-  const definitionIds = [...definitionByKey.values()].map(({ id }) => id)
-  const existing = await service.listProductAttributes(
-    {
-      definition_id: { $in: definitionIds },
-      product_id: { $in: productIds },
-    },
-    {
-      take: Math.max(batch.length * definitionIds.length, 1),
-      withDeleted: true,
-    },
-    context,
-  )
-
-  return new Map(
-    existing.map((assignment) => [
-      `${assignment.product_id}:${assignment.definition_id}`,
-      assignment,
-    ]),
-  )
-}
-
-function resolveAssignmentValues(attribute: ResolvedSeedAttribute) {
+const resolveAssignmentValues = (attribute: ResolvedSeedAttribute) => {
   if (attribute.input_type === "select") {
-    return attribute.option_id
+    return attribute.option_id !== undefined && attribute.option_id !== ""
       ? { option_id: attribute.option_id, text_value: null }
       : null
   }
   const textValue = attribute.text_value?.trim()
-  return textValue ? { option_id: null, text_value: textValue } : null
+  return textValue !== undefined && textValue !== ""
+    ? { option_id: null, text_value: textValue }
+    : null
 }
 
-async function reconcileAssignment({
+const reconcileAssignment = async ({
   attribute,
   context,
   existingAssignment,
@@ -417,7 +382,7 @@ async function reconcileAssignment({
   existingAssignment?: ProductAttributeAssignmentRecord
   productId: string
   service: ReturnType<typeof getProductAttributeService>
-}) {
+}) => {
   const values = resolveAssignmentValues(attribute)
   if (!values) {
     if (existingAssignment && !existingAssignment.deleted_at) {
@@ -449,7 +414,42 @@ async function reconcileAssignment({
   )
 }
 
-async function reconcileProductAssignments({
+const loadBatchAssignments = async ({
+  batch,
+  context,
+  definitionByKey,
+  productByHandle,
+  service,
+}: {
+  batch: CreateProductsStepInput
+  context: Context<SqlEntityManager>
+  definitionByKey: Map<string, ProductAttributeDefinitionRecord>
+  productByHandle: Map<string, ProductDTO>
+  service: ReturnType<typeof getProductAttributeService>
+}) => {
+  const productIds = resolveBatchProductIds(batch, productByHandle)
+  const definitionIds = [...definitionByKey.values()].map(({ id }) => id)
+  const existing = await service.listProductAttributes(
+    {
+      definition_id: { $in: definitionIds },
+      product_id: { $in: productIds },
+    },
+    {
+      take: Math.max(batch.length * definitionIds.length, 1),
+      withDeleted: true,
+    },
+    context,
+  )
+
+  return new Map(
+    existing.map((assignment) => [
+      `${assignment.product_id}:${assignment.definition_id}`,
+      assignment,
+    ]),
+  )
+}
+
+const reconcileProductAssignments = async ({
   context,
   definitionByKey,
   existingByProductAndDefinition,
@@ -465,12 +465,17 @@ async function reconcileProductAssignments({
   optionByDefinitionAndKey: Map<string, ProductAttributeOptionRecord>
   productByHandle: Map<string, ProductDTO>
   service: ReturnType<typeof getProductAttributeService>
-}) {
+}) => {
   const product = productByHandle.get(inputProduct.handle)
   if (!product) {
     throw new Error(`Product "${inputProduct.handle}" was not found`)
   }
-  for (const sourceAttribute of inputProduct.productAttributes ?? []) {
+  const sourceAttributes = inputProduct.productAttributes ?? []
+  const reconcileNext = async (index: number): Promise<void> => {
+    const sourceAttribute = sourceAttributes[index]
+    if (sourceAttribute === undefined) {
+      return
+    }
     const attribute = resolveSeedAttribute(
       sourceAttribute,
       definitionByKey,
@@ -486,7 +491,51 @@ async function reconcileProductAssignments({
       productId: product.id,
       service,
     })
+    await reconcileNext(index + 1)
   }
+  await reconcileNext(0)
+}
+
+const reconcileProductBatch = async ({
+  batch,
+  definitionByKey,
+  optionByDefinitionAndKey,
+  productByHandle,
+  service,
+}: {
+  batch: CreateProductsStepInput
+  definitionByKey: Map<string, ProductAttributeDefinitionRecord>
+  optionByDefinitionAndKey: Map<string, ProductAttributeOptionRecord>
+  productByHandle: Map<string, ProductDTO>
+  service: ReturnType<typeof getProductAttributeService>
+}) => {
+  await withProductAttributeTransaction(service, async (context) => {
+    const existingByProductAndDefinition = await loadBatchAssignments({
+      batch,
+      context,
+      definitionByKey,
+      productByHandle,
+      service,
+    })
+
+    const reconcileNext = async (index: number): Promise<void> => {
+      const inputProduct = batch[index]
+      if (inputProduct === undefined) {
+        return
+      }
+      await reconcileProductAssignments({
+        context,
+        definitionByKey,
+        existingByProductAndDefinition,
+        inputProduct,
+        optionByDefinitionAndKey,
+        productByHandle,
+        service,
+      })
+      await reconcileNext(index + 1)
+    }
+    await reconcileNext(0)
+  })
 }
 
 export const reconcileProductAttributesStep = createStep(
@@ -531,23 +580,31 @@ export const reconcileProductAttributesStep = createStep(
       )
     }
 
-    for (const batch of chunk(input, RECONCILIATION_BATCH_SIZE)) {
+    const batches = chunk(input, RECONCILIATION_BATCH_SIZE)
+    const reconcileNextBatch = async (index: number): Promise<void> => {
+      const batch = batches[index]
+      if (batch === undefined) {
+        return
+      }
       const lockKeys = resolveBatchProductIds(batch, productByHandle)
         .map(getProductAttributeProductLockKey)
-        .sort()
+        .toSorted()
       await lockingModule.execute(
         lockKeys,
-        async () =>
-          reconcileProductBatch({
+        async () => {
+          await reconcileProductBatch({
             batch,
             definitionByKey,
             optionByDefinitionAndKey,
             productByHandle,
             service,
-          }),
+          })
+        },
         { timeout: 30 },
       )
+      await reconcileNextBatch(index + 1)
     }
+    await reconcileNextBatch(0)
 
     logger.info(
       `Reconciled ${canonical.size} Product Attribute definitions for ${input.length} products`,
