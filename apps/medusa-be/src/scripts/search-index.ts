@@ -4,6 +4,7 @@ import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
 import { isRecord } from "@techsio/std/object"
 
 import { isMeilisearchEnabled } from "../modules/meilisearch/env"
+import { isUnknownArray } from "../utils/guards"
 
 const BATCH_SIZE = 1000
 
@@ -87,7 +88,7 @@ const fetchEntityBatch = async (
     ...(config.filters ? { filters: config.filters } : {}),
   })
 
-  return Array.isArray(data) ? data : []
+  return isUnknownArray(data) ? data : []
 }
 
 const indexEntityBatch = async (
