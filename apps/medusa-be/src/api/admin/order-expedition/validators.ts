@@ -11,13 +11,21 @@ import {
   ORDER_EXPEDITION_TARGET_STATUSES,
 } from "../../../utils/order-expedition"
 
+const firstQueryValue = (value: unknown): unknown => {
+  if (!Array.isArray(value)) {
+    return value
+  }
+
+  return z.array(z.unknown()).parse(value).at(0)
+}
+
 const OptionalNonNegativeIntQuerySchema = z.preprocess(
-  (value) => (Array.isArray(value) ? value[0] : value),
+  firstQueryValue,
   z.coerce.number().int().min(0).optional(),
 )
 
 const OptionalLimitQuerySchema = z.preprocess(
-  (value) => (Array.isArray(value) ? value[0] : value),
+  firstQueryValue,
   z.coerce.number().int().min(1).max(ORDER_EXPEDITION_MAX_LIMIT).optional(),
 )
 

@@ -6,7 +6,7 @@ import type {
 import {
   deleteProductAttributeDefinitionsWorkflow,
   updateProductAttributeDefinitionWorkflow,
-} from "../../../../../workflows/product-attribute"
+} from "../../../../../workflows/product-attribute/workflows/definitions"
 import {
   getDefinitionUsageCountMap,
   retrieveProductAttributeDefinitionOrThrow,
@@ -14,10 +14,7 @@ import {
 } from "../../utils"
 import type { AdminUpdateProductAttributeDefinitionSchemaType } from "../../validators"
 
-export async function GET(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse,
-) {
+const get = async (req: AuthenticatedMedusaRequest, res: MedusaResponse) => {
   const definitionId = req.params["id"] ?? ""
   const definition = await retrieveProductAttributeDefinitionOrThrow(
     req.scope,
@@ -35,10 +32,12 @@ export async function GET(
   })
 }
 
-export async function POST(
+export { get as GET }
+
+const post = async (
   req: AuthenticatedMedusaRequest<AdminUpdateProductAttributeDefinitionSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const definitionId = req.params["id"] ?? ""
   const { input_type, is_public, label } = req.validatedBody
   const { result } = await updateProductAttributeDefinitionWorkflow(
@@ -60,10 +59,12 @@ export async function POST(
   })
 }
 
-export async function DELETE(
+export { post as POST }
+
+const deleteHandler = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const { result } = await deleteProductAttributeDefinitionsWorkflow(
     req.scope,
   ).run({
@@ -71,3 +72,5 @@ export async function DELETE(
   })
   res.json({ definition: result[0] ?? null })
 }
+
+export { deleteHandler as DELETE }

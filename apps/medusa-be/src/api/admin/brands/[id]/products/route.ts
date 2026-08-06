@@ -3,7 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 
-import { batchLinkProductsToBrandWorkflow } from "../../../../../workflows/brand"
+import { batchLinkProductsToBrandWorkflow } from "../../../../../workflows/brand/workflows/batch-link-products-to-brand"
 import {
   listAndCountProductsByIds,
   listProductIdsForBrand,
@@ -17,12 +17,12 @@ import type {
 } from "../../validators"
 
 const ORDER_FIELDS = new Set(["handle", "status", "title", "created_at"])
-const LEADING_DASH_REGEX = /^-/
+const LEADING_DASH_REGEX = /^-/u
 
 const parseOrder = (
-  value: string = "title",
+  value = "title",
 ): { direction: "ASC" | "DESC"; field: string } => {
-  const direction: "ASC" | "DESC" = value.startsWith("-") ? "DESC" : "ASC"
+  const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
   if (!ORDER_FIELDS.has(field)) {
@@ -36,10 +36,10 @@ const getProductOrder = (field: string, direction: "ASC" | "DESC") => ({
   [field]: direction,
 })
 
-export async function GET(
+const get = async (
   req: AuthenticatedMedusaRequest<unknown, AdminGetBrandProductsSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const brandId = req.params["id"] ?? ""
 
   await retrieveBrandOrThrow(req.scope, brandId, { withDeleted: true })
@@ -69,10 +69,12 @@ export async function GET(
   })
 }
 
-export async function POST(
+export { get as GET }
+
+const post = async (
   req: AuthenticatedMedusaRequest<AdminUpdateBrandProductsSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const brandId = req.params["id"] ?? ""
 
   const { result } = await batchLinkProductsToBrandWorkflow(req.scope).run({
@@ -85,3 +87,5 @@ export async function POST(
 
   res.status(200).json(result)
 }
+
+export { post as POST }

@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { createReviewWorkflow } from "../../../workflows/product-review/workflows/create-review"
 import {
   ensureCustomerPurchasedProduct,
@@ -13,44 +14,46 @@ import {
 } from "./helpers"
 import type { StoreCreateReviewSchemaType } from "./validators"
 
-export async function POST(
+const post = async (
   req: MedusaRequest<StoreCreateReviewSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { content, product_id, rating, review_token, title } = req.validatedBody
-  const tokenRecord = review_token
-    ? await retrieveReviewToken(req, review_token, product_id)
-    : undefined
-  const authenticatedCustomerId = tokenRecord
-    ? undefined
-    : getAuthenticatedCustomerId(req)
-  if (!(tokenRecord || authenticatedCustomerId)) {
+  const tokenRecord =
+    typeof review_token === "string" && review_token.length > 0
+      ? await retrieveReviewToken(req, review_token, product_id)
+      : undefined
+  const authenticatedCustomerId =
+    tokenRecord === undefined ? getAuthenticatedCustomerId(req) : null
+  if (tokenRecord === undefined && authenticatedCustomerId === null) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "Review token is required for guest reviews."
+      "Review token is required for guest reviews.",
     )
   }
 
-  const customerId = tokenRecord
-    ? getReviewTokenCustomerId(tokenRecord)
-    : authenticatedCustomerId
+  const customerId =
+    tokenRecord === undefined
+      ? authenticatedCustomerId
+      : getReviewTokenCustomerId(tokenRecord)
 
-  if (!customerId) {
+  if (!(typeof customerId === "string" && customerId.length > 0)) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "Review customer could not be resolved."
+      "Review customer could not be resolved.",
     )
   }
 
-  const isGuestReview = Boolean(tokenRecord && !tokenRecord.customer_id)
+  const isGuestReview =
+    tokenRecord !== undefined && tokenRecord.customer_id === null
 
   await ensureProductExists(req, product_id)
 
-  if (authenticatedCustomerId) {
+  if (authenticatedCustomerId !== null) {
     await ensureCustomerPurchasedProduct(
       req,
       authenticatedCustomerId,
-      product_id
+      product_id,
     )
   }
 
@@ -60,13 +63,14 @@ export async function POST(
     req,
   })
 
-  const customer = authenticatedCustomerId
-    ? await retrieveCustomer(req, authenticatedCustomerId)
-    : undefined
+  const customer =
+    authenticatedCustomerId === null
+      ? undefined
+      : await retrieveCustomer(req, authenticatedCustomerId)
   const authorName = getReviewAuthorName({
-    customer,
+    ...(customer === undefined ? {} : { customer }),
     isGuest: isGuestReview,
-    reviewToken: tokenRecord,
+    ...(tokenRecord === undefined ? {} : { reviewToken: tokenRecord }),
   })
   const { result: review } = await createReviewWorkflow(req.scope).run({
     input: {
@@ -79,9 +83,11 @@ export async function POST(
         rating,
         title,
       },
-      review_token_id: tokenRecord?.id,
+      ...(tokenRecord === undefined ? {} : { review_token_id: tokenRecord.id }),
     },
   })
 
   res.status(200).json({ review })
 }
+
+export { post as POST }

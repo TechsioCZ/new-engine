@@ -14,11 +14,11 @@ import type { PostAdminPplConfigSchemaType } from "./validators"
 /** Maps config DTO to API response with sensitive fields masked */
 const toConfigResponse = (config: PplConfigDTO): PplConfigResponse => ({
   client_id: config.client_id,
-  client_secret_set: !!config.client_secret,
-  cod_bank_account_set: !!config.cod_bank_account,
-  cod_bank_code_set: !!config.cod_bank_code,
-  cod_iban_set: !!config.cod_iban,
-  cod_swift_set: !!config.cod_swift,
+  client_secret_set: Boolean(config.client_secret),
+  cod_bank_account_set: Boolean(config.cod_bank_account),
+  cod_bank_code_set: Boolean(config.cod_bank_code),
+  cod_iban_set: Boolean(config.cod_iban),
+  cod_swift_set: Boolean(config.cod_swift),
   default_label_format: config.default_label_format,
   environment: config.environment,
   id: config.id,
@@ -37,7 +37,7 @@ const toConfigResponse = (config: PplConfigDTO): PplConfigResponse => ({
  *
  * Returns the current PPL configuration with sensitive fields masked.
  */
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const pplService =
     req.scope.resolve<PplClientModuleService>(PPL_CLIENT_MODULE)
 
@@ -52,19 +52,23 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   res.json({ config: toConfigResponse(config) })
 }
 
+export { get as GET }
+
 /**
  * POST /admin/ppl-config
  *
  * Updates the PPL configuration.
  * Empty string for sensitive fields = keep existing value.
  */
-export async function POST(
+const post = async (
   req: MedusaRequest<PostAdminPplConfigSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { result: updated } = await updatePplConfigWorkflow(req.scope).run({
     input: definedProperties(req.validatedBody),
   })
 
   res.json({ config: toConfigResponse(updated) })
 }
+
+export { post as POST }

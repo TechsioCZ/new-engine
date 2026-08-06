@@ -1,6 +1,9 @@
 import crypto from "node:crypto"
+
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+
 import {
   getCredentialString,
   INTEGRATION_CONFIG_NAMES,
@@ -11,16 +14,17 @@ import { EMAIL_LOG_MODULE } from "../../../modules/email-log"
 import type EmailLogModuleService from "../../../modules/email-log/service"
 import { CHECKED_RESEND_EVENT_TYPES } from "../../../utils/resend-webhook-events"
 
-type ResendWebhookEvent = {
-  type?: string
-  created_at?: string
-  data?: {
-    email_id?: string
-    [key: string]: unknown
-  }
-}
+const ResendWebhookEventSchema = z
+  .object({
+    created_at: z.string().optional(),
+    data: z.object({ email_id: z.string().optional() }).loose().optional(),
+    type: z.string().optional(),
+  })
+  .loose()
 
-type EmailLogDTO = {
+type ResendWebhookEvent = z.infer<typeof ResendWebhookEventSchema>
+
+interface EmailLogDTO {
   id: string
   email_id: string
   checked_at: Date | null
@@ -34,45 +38,39 @@ type EmailLogService = EmailLogModuleService & {
       processed_at: Date | null
       received_at: Date
       type: string
-    }[]
+    }[],
   ) => Promise<unknown[]>
   listEmailLogs: (
     filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ) => Promise<EmailLogDTO[]>
   updateEmailLogs: (
-    data: { id: string; checked_at: Date }[]
+    data: { id: string; checked_at: Date }[],
   ) => Promise<EmailLogDTO[]>
 }
 
 const SVIX_TOLERANCE_IN_SECONDS = 5 * 60
 
-function getHeader(req: MedusaRequest, header: string) {
-  const value = req.headers[header]
-
-  return Array.isArray(value) ? value[0] : value
+const getHeader = (req: MedusaRequest, header: string) => {
+  const value = z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .parse(req.headers[header])
+  if (Array.isArray(value)) {
+    return value.at(0)
+  }
+  return value
 }
 
-function getPayload(req: MedusaRequest) {
-  const requestWithRawBody = req as MedusaRequest & {
-    rawBody?: Buffer | string
-  }
+const getPayload = (req: MedusaRequest) => {
+  const { rawBody } = z
+    .object({ rawBody: z.union([z.instanceof(Buffer), z.string()]) })
+    .parse(req)
 
-  if (Buffer.isBuffer(requestWithRawBody.rawBody)) {
-    return requestWithRawBody.rawBody.toString("utf8")
-  }
-
-  if (typeof requestWithRawBody.rawBody === "string") {
-    return requestWithRawBody.rawBody
-  }
-
-  throw new MedusaError(
-    MedusaError.Types.INVALID_DATA,
-    "Resend webhook requires the raw request body for signature verification"
-  )
+  return Buffer.isBuffer(rawBody) ? rawBody.toString("utf-8") : rawBody
 }
 
-function getSvixSecret(secret: string) {
+const getSvixSecret = (secret: string) => {
   const secretValue = secret.startsWith("whsec_")
     ? secret.slice("whsec_".length)
     : secret
@@ -80,7 +78,7 @@ function getSvixSecret(secret: string) {
   return Buffer.from(secretValue, "base64")
 }
 
-function verifySvixSignature({
+const verifySvixSignature = ({
   id,
   payload,
   secret,
@@ -92,7 +90,7 @@ function verifySvixSignature({
   secret: string
   signature: string
   timestamp: string
-}) {
+}) => {
   const timestampNumber = Number(timestamp)
   if (!Number.isFinite(timestampNumber)) {
     return false
@@ -126,33 +124,34 @@ function verifySvixSignature({
   })
 }
 
-function parsePayload(payload: string, body: unknown) {
-  if (body && typeof body === "object") {
-    return body as ResendWebhookEvent
-  }
+const parsePayload = (payload: string, body: unknown): ResendWebhookEvent => {
+  const parsedPayload: unknown =
+    typeof body === "object" && body !== null ? body : JSON.parse(payload)
 
-  return JSON.parse(payload) as ResendWebhookEvent
+  return ResendWebhookEventSchema.parse(parsedPayload)
 }
 
-function hasRequiredResendWebhookFields(
-  event: ResendWebhookEvent
+const hasRequiredResendWebhookFields = (
+  event: ResendWebhookEvent,
 ): event is ResendWebhookEvent & {
   data: { email_id: string; [key: string]: unknown }
   type: string
-} {
-  return Boolean(event.type && event.data?.email_id)
-}
+} =>
+  typeof event.type === "string" &&
+  event.type.length > 0 &&
+  typeof event.data?.email_id === "string" &&
+  event.data.email_id.length > 0
 
-async function markEmailLogChecked({
+const markEmailLogChecked = async ({
   emailId,
   emailLogService,
 }: {
   emailId: string
   emailLogService: EmailLogService
-}) {
+}) => {
   const emailLogs = await emailLogService.listEmailLogs(
     { email_id: emailId },
-    { select: ["id", "email_id", "checked_at"] }
+    { select: ["id", "email_id", "checked_at"] },
   )
 
   const uncheckedLogs = emailLogs.filter((emailLog) => !emailLog.checked_at)
@@ -165,9 +164,9 @@ async function markEmailLogChecked({
 
   await emailLogService.updateEmailLogs(
     uncheckedLogs.map((emailLog) => ({
-      id: emailLog.id,
       checked_at: new Date(),
-    }))
+      id: emailLog.id,
+    })),
   )
 
   return {
@@ -176,7 +175,7 @@ async function markEmailLogChecked({
   }
 }
 
-async function storePendingWebhookEvent({
+const storePendingWebhookEvent = async ({
   emailId,
   emailLogService,
   event,
@@ -184,7 +183,7 @@ async function storePendingWebhookEvent({
   emailId: string
   emailLogService: EmailLogService
   event: ResendWebhookEvent & { type: string }
-}) {
+}) => {
   await emailLogService.createEmailWebhookEvents([
     {
       email_id: emailId,
@@ -197,26 +196,30 @@ async function storePendingWebhookEvent({
 }
 
 const getResendWebhookSecret = async (
-  req: MedusaRequest
+  req: MedusaRequest,
 ): Promise<string | undefined> => {
   const config = await retrieveIntegrationConfig(
-    req.scope as unknown as Record<string, unknown>,
-    INTEGRATION_CONFIG_NAMES.RESEND
+    req.scope,
+    INTEGRATION_CONFIG_NAMES.RESEND,
   )
 
-  if (config?.enabled) {
+  if (config?.enabled === true) {
     const credentials = requireCredentialObject(config)
     return getCredentialString(credentials, "webhookSecret", "webhook_secret")
   }
 
-  return process.env.RESEND_WEBHOOK_SECRET
+  return z
+    .string()
+    .min(1)
+    .optional()
+    .parse(process.env["RESEND_WEBHOOK_SECRET"])
 }
 
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
+const post = async (req: MedusaRequest, res: MedusaResponse) => {
   const payload = getPayload(req)
   const webhookSecret = await getResendWebhookSecret(req)
 
-  if (webhookSecret) {
+  if (typeof webhookSecret === "string" && webhookSecret.length > 0) {
     const isValidSignature = verifySvixSignature({
       id: getHeader(req, "svix-id") ?? "",
       payload,
@@ -228,7 +231,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     if (!isValidSignature) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Invalid Resend webhook signature"
+        "Invalid Resend webhook signature",
       )
     }
   }
@@ -238,14 +241,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   if (!hasRequiredResendWebhookFields(event)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Invalid Resend webhook payload"
+      "Invalid Resend webhook payload",
     )
   }
 
   const emailId = event.data.email_id
 
   if (!CHECKED_RESEND_EVENT_TYPES.has(event.type)) {
-    res.json({ received: true, checked: false })
+    res.json({ checked: false, received: true })
     return
   }
 
@@ -271,3 +274,5 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     type: event.type,
   })
 }
+
+export { post as POST }

@@ -7,8 +7,9 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
-import { setProductAttributesWorkflow } from "../../../../../workflows/product-attribute"
+import { setProductAttributesWorkflow } from "../../../../../workflows/product-attribute/workflows/set-product-attributes"
 import { getProductAttributeDetail } from "../../../product-attributes/utils"
 import type { AdminSetProductAttributesSchemaType } from "../../../product-attributes/validators"
 
@@ -23,7 +24,7 @@ const ensureProductExists = async (
     filters: { id: productId },
     pagination: { take: 1 },
   })
-  if (!data[0]) {
+  if (z.array(z.object({ id: z.string() })).parse(data).length === 0) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product "${productId}" was not found.`,
@@ -31,10 +32,7 @@ const ensureProductExists = async (
   }
 }
 
-export async function GET(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse,
-) {
+const get = async (req: AuthenticatedMedusaRequest, res: MedusaResponse) => {
   const productId = req.params["id"] ?? ""
   await ensureProductExists(req, productId)
   res.json({
@@ -42,10 +40,12 @@ export async function GET(
   })
 }
 
-export async function POST(
+export { get as GET }
+
+const post = async (
   req: AuthenticatedMedusaRequest<AdminSetProductAttributesSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const productId = req.params["id"] ?? ""
   await setProductAttributesWorkflow(req.scope).run({
     input: {
@@ -57,3 +57,5 @@ export async function POST(
     product_attributes: await getProductAttributeDetail(req.scope, productId),
   })
 }
+
+export { post as POST }

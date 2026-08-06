@@ -1,17 +1,18 @@
 import { z } from "@medusajs/framework/zod"
 
-const queryBoolean = z.preprocess((value) => {
-  if (value === undefined || value === "") {
-    return
-  }
-  if (value === true || value === "true") {
+const parseQueryBoolean = (value: unknown): unknown => {
+  const normalizedValues: unknown[] = value === "" ? [] : [value]
+  const [normalizedValue] = normalizedValues
+  if (normalizedValue === true || normalizedValue === "true") {
     return true
   }
-  if (value === false || value === "false") {
+  if (normalizedValue === false || normalizedValue === "false") {
     return false
   }
-  return value
-}, z.boolean().optional())
+  return normalizedValue
+}
+
+const queryBoolean = z.preprocess(parseQueryBoolean, z.boolean().optional())
 
 const listStatus = z.enum(["active", "deleted", "all"])
 

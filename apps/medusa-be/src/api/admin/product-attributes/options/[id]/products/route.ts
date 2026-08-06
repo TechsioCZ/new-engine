@@ -9,7 +9,7 @@ import {
 } from "../../../utils"
 import type { AdminGetProductAttributeOptionProductsSchemaType } from "../../../validators"
 
-export const GET = async (
+const get = async (
   req: AuthenticatedMedusaRequest<
     unknown,
     AdminGetProductAttributeOptionProductsSchemaType
@@ -36,3 +36,5 @@ export const GET = async (
     products,
   })
 }
+
+export { get as GET }

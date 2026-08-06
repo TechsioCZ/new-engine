@@ -13,17 +13,20 @@ import {
 } from "../utils"
 import type { AdminGetProductAttributeOptionsSchemaType } from "../validators"
 
-export async function GET(
+const get = async (
   req: AuthenticatedMedusaRequest<
     unknown,
     AdminGetProductAttributeOptionsSchemaType
   >,
   res: MedusaResponse,
-) {
+) => {
   const { definition_id, limit, offset, order, q, status } = req.validatedQuery
   const filters: Record<string, unknown> = { definition_id }
-  const escapedQuery = q ? escapeProductAttributeLikePattern(q) : undefined
-  if (escapedQuery) {
+  const escapedQuery =
+    typeof q === "string" && q.length > 0
+      ? escapeProductAttributeLikePattern(q)
+      : undefined
+  if (typeof escapedQuery === "string" && escapedQuery.length > 0) {
     filters["$or"] = [
       { key: { $ilike: `%${escapedQuery}%` } },
       { label: { $ilike: `%${escapedQuery}%` } },
@@ -53,3 +56,5 @@ export async function GET(
     ),
   })
 }
+
+export { get as GET }

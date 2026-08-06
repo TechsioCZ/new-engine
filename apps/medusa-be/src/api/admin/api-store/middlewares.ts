@@ -3,6 +3,7 @@ import {
   validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework/http"
+
 import {
   GetAdminApiStoreSchema,
   PostAdminApiStoreByIdSchema,
@@ -11,20 +12,20 @@ import {
 
 export const adminApiStoreRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/admin/api-store",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(GetAdminApiStoreSchema, { isList: true }),
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/api-store",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(PostAdminApiStoreSchema)],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/api-store/:id",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(PostAdminApiStoreByIdSchema)],
   },
 ]

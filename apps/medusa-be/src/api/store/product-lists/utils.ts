@@ -38,19 +38,6 @@ export interface ProductListItemRecord {
   updated_at?: string | Date
 }
 
-export const toProductListResponse = (list: ProductListRecord) => ({
-  access_type: list.access_type ?? "private",
-  created_at: list.created_at,
-  description: list.description ?? null,
-  handle: list.handle,
-  id: list.id,
-  items: list.items?.map(toProductListItemResponse) ?? [],
-  metadata: list.metadata ?? null,
-  title: list.title,
-  type: list.type,
-  updated_at: list.updated_at,
-})
-
 export const toProductListItemResponse = (item: ProductListItemRecord) => ({
   created_at: item.created_at,
   id: item.id,
@@ -64,6 +51,19 @@ export const toProductListItemResponse = (item: ProductListItemRecord) => ({
   variant_id: item.variant_id ?? null,
 })
 
+export const toProductListResponse = (list: ProductListRecord) => ({
+  access_type: list.access_type ?? "private",
+  created_at: list.created_at,
+  description: list.description ?? null,
+  handle: list.handle,
+  id: list.id,
+  items: list.items?.map(toProductListItemResponse) ?? [],
+  metadata: list.metadata ?? null,
+  title: list.title,
+  type: list.type,
+  updated_at: list.updated_at,
+})
+
 export const withProductListItemSelections = async (
   container: MedusaContainer,
   items: ProductListItemRecord[],
@@ -75,39 +75,55 @@ export const withProductListItemSelections = async (
   }
 
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const { data: productLinks } = await query.graph({
-    entity: ProductListItemProductLink.entryPoint,
-    fields: ["product_list_item_id", "product_id"],
-    filters: {
-      product_list_item_id: itemIds,
-    },
-    pagination: {
-      take: itemIds.length,
-    },
-  })
-  const { data: variantLinks } = await query.graph({
-    entity: ProductListItemVariantLink.entryPoint,
-    fields: ["product_list_item_id", "product_variant_id"],
-    filters: {
-      product_list_item_id: itemIds,
-    },
-    pagination: {
-      take: itemIds.length,
-    },
-  })
+  const [{ data: productLinks }, { data: variantLinks }] = await Promise.all([
+    query.graph({
+      entity: ProductListItemProductLink.entryPoint,
+      fields: ["product_list_item_id", "product_id"],
+      filters: {
+        product_list_item_id: itemIds,
+      },
+      pagination: {
+        take: itemIds.length,
+      },
+    }),
+    query.graph({
+      entity: ProductListItemVariantLink.entryPoint,
+      fields: ["product_list_item_id", "product_variant_id"],
+      filters: {
+        product_list_item_id: itemIds,
+      },
+      pagination: {
+        take: itemIds.length,
+      },
+    }),
+  ])
   const productIdsByItemId = new Map(
-    toProductListItemProductLinks(productLinks).flatMap((link) =>
-      link.product_list_item_id && link.product_id
-        ? [[link.product_list_item_id, link.product_id]]
-        : [],
-    ),
+    toProductListItemProductLinks(productLinks).flatMap((link) => {
+      if (
+        typeof link.product_list_item_id !== "string" ||
+        link.product_list_item_id.length === 0 ||
+        typeof link.product_id !== "string" ||
+        link.product_id.length === 0
+      ) {
+        return []
+      }
+
+      return [[link.product_list_item_id, link.product_id]]
+    }),
   )
   const variantIdsByItemId = new Map(
-    toProductListItemVariantLinks(variantLinks).flatMap((link) =>
-      link.product_list_item_id && link.product_variant_id
-        ? [[link.product_list_item_id, link.product_variant_id]]
-        : [],
-    ),
+    toProductListItemVariantLinks(variantLinks).flatMap((link) => {
+      if (
+        typeof link.product_list_item_id !== "string" ||
+        link.product_list_item_id.length === 0 ||
+        typeof link.product_variant_id !== "string" ||
+        link.product_variant_id.length === 0
+      ) {
+        return []
+      }
+
+      return [[link.product_list_item_id, link.product_variant_id]]
+    }),
   )
 
   return items.map((item) => ({
@@ -134,29 +150,24 @@ export const withProductListItems = async (
     order: { created_at: "ASC", list_id: "ASC", sort_order: "ASC" },
   }
 
-  const items =
-    options.previewLimit === undefined
-      ? await service.listProductListItems(
-          {
-            list_id: { $in: listIds },
-          },
-          config,
-        )
-      : (
-          await Promise.all(
-            listIds.map(async (listId) =>
-              service.listProductListItems(
-                {
-                  list_id: listId,
-                },
-                {
-                  ...config,
-                  take: options.previewLimit,
-                },
-              ),
-            ),
-          )
-        ).flat()
+  let items: ProductListItemRecord[]
+  if (options.previewLimit === undefined) {
+    items = await service.listProductListItems(
+      { list_id: { $in: listIds } },
+      config,
+    )
+  } else {
+    const itemBatches = await Promise.all(
+      listIds.map(
+        async (listId) =>
+          await service.listProductListItems(
+            { list_id: listId },
+            { ...config, take: options.previewLimit },
+          ),
+      ),
+    )
+    items = itemBatches.flat()
+  }
   const enrichedItems = await withProductListItemSelections(container, items)
   const itemsByListId = new Map<string, ProductListItemRecord[]>()
 

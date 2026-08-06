@@ -44,7 +44,7 @@ const getRequestUrl = (req: MedusaRequest): string => {
     getHeaderValue(req, "host") ??
     req.get?.("host")
 
-  if (!host) {
+  if (!(typeof host === "string" && host.length > 0)) {
     return url
   }
 
@@ -62,10 +62,7 @@ const hasGopayPaymentId = (url: string): boolean => {
   }
 }
 
-export async function GET(
-  req: MedusaRequest,
-  res: MedusaResponse,
-): Promise<void> {
+const get = async (req: MedusaRequest, res: MedusaResponse): Promise<void> => {
   const fullUrl = getRequestUrl(req)
 
   if (!hasGopayPaymentId(fullUrl)) {
@@ -84,3 +81,5 @@ export async function GET(
 
   res.sendStatus(200)
 }
+
+export { get as GET }

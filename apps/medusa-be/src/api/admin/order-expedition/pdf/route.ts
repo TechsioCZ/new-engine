@@ -3,10 +3,10 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../validators"
 import { createOrderExpeditionPdfResponse } from "./pdf-service"
 
-export async function POST(
+const post = async (
   req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
   res: MedusaResponse,
-): Promise<void> {
+): Promise<void> => {
   const { order_ids: orderIds } = req.validatedBody
   const { buffer, filename } = await createOrderExpeditionPdfResponse(
     req,
@@ -20,3 +20,5 @@ export async function POST(
   })
   res.send(buffer)
 }
+
+export { post as POST }

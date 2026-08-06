@@ -3,22 +3,21 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { addToCartWorkflow } from "@medusajs/medusa/core-flows"
 
 import { requirePathParam } from "../../../../../../utils/path-params"
 import type { StoreAddLineItemsBulkType } from "../../../validators"
 
-export async function POST(
+const post = async (
   req: MedusaRequest<StoreAddLineItemsBulkType>,
   res: MedusaResponse,
-) {
+) => {
   const id = requirePathParam(req.params["id"], "Cart id")
   const { line_items } = req.validatedBody
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const {
-    data: [cart],
-  } = await query.graph(
+  const { data: cartData } = await query.graph(
     {
       entity: "cart",
       fields: req.queryConfig.fields,
@@ -26,8 +25,12 @@ export async function POST(
     },
     { throwIfKeyNotFound: true },
   )
+  const cart = z
+    .array(z.object({ id: z.string() }).loose())
+    .parse(cartData)
+    .at(0)
 
-  if (!cart) {
+  if (cart === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Cart ${id} was not found`,
@@ -43,9 +46,7 @@ export async function POST(
     input: workflowInput,
   })
 
-  const {
-    data: [upatedCart],
-  } = await query.graph(
+  const { data: updatedCartData } = await query.graph(
     {
       entity: "cart",
       fields: req.queryConfig.fields,
@@ -53,6 +54,12 @@ export async function POST(
     },
     { throwIfKeyNotFound: true },
   )
+  const updatedCart = z
+    .array(z.object({ id: z.string() }).loose())
+    .parse(updatedCartData)
+    .at(0)
 
-  res.json({ cart: upatedCart })
+  res.json({ cart: updatedCart })
 }
+
+export { post as POST }

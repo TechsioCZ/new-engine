@@ -31,10 +31,10 @@ const requireMarketConfiguration = (
   return configuration
 }
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, AdminGetStorefrontTextCatalogSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { market } = req.validatedQuery
   const configuration = requireMarketConfiguration(market)
   const service = req.scope.resolve<StorefrontTextModuleService>(
@@ -59,10 +59,12 @@ export async function GET(
   })
 }
 
-export async function POST(
+export { get as GET }
+
+const post = async (
   req: MedusaRequest<AdminImportStorefrontTextCatalogSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { catalog, market } = req.validatedBody
   const configuration = requireMarketConfiguration(market)
 
@@ -85,3 +87,5 @@ export async function POST(
     handleStorefrontTextLockError(error, res)
   }
 }
+
+export { post as POST }

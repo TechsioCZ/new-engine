@@ -1,10 +1,15 @@
 import type { MedusaResponse } from "@medusajs/framework/http"
-import type { HttpTypes, QueryContextType } from "@medusajs/framework/types"
+import type {
+  HttpTypes,
+  Query,
+  QueryContextType,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
   QueryContext,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   filterOutInternalProductCategories,
   wrapProductsWithTaxPrices,
@@ -22,7 +27,49 @@ type InventoryDecoratableVariant = HttpTypes.StoreProductVariant & {
   manage_inventory?: boolean
 }
 
-const INCLUDED_FIELD_PREFIX_PATTERN = /^[+*]/
+const StoreProductSchema = z
+  .object({
+    created_at: z.string().nullable(),
+    deleted_at: z.string().nullable(),
+    description: z.string().nullable(),
+    discountable: z.boolean(),
+    external_id: z.string().nullable(),
+    handle: z.string(),
+    height: z.number().nullable(),
+    hs_code: z.string().nullable(),
+    id: z.string(),
+    images: z.array(z.record(z.string(), z.unknown())).nullable(),
+    is_giftcard: z.boolean(),
+    length: z.number().nullable(),
+    material: z.string().nullable(),
+    mid_code: z.string().nullable(),
+    options: z.array(z.record(z.string(), z.unknown())).nullable(),
+    origin_country: z.string().nullable(),
+    status: z.enum(["draft", "proposed", "published", "rejected"]),
+    subtitle: z.string().nullable(),
+    thumbnail: z.string().nullable(),
+    title: z.string(),
+    type_id: z.string().nullable(),
+    updated_at: z.string().nullable(),
+    variants: z
+      .array(
+        z
+          .object({
+            id: z.string(),
+            manage_inventory: z.boolean().nullable(),
+          })
+          .loose(),
+      )
+      .nullable(),
+    weight: z.number().nullable(),
+    width: z.number().nullable(),
+  })
+  .loose()
+
+const isStoreProduct = (value: unknown): value is HttpTypes.StoreProduct =>
+  StoreProductSchema.safeParse(value).success
+
+const INCLUDED_FIELD_PREFIX_PATTERN = /^[+*]/u
 
 const isInventoryDecoratableVariant = (
   variant: HttpTypes.StoreProductVariant,
@@ -46,12 +93,7 @@ const includesCategoryVisibilityField = (fields: string[]) =>
     (field) => normalizeIncludedField(field) === "categories.is_internal",
   )
 
-const toStoreProduct = (product: object): HttpTypes.StoreProduct =>
-  // query.graph uses the generated module entity type even when the selected
-  // fields form a Store API response. Bridge that Medusa type boundary once.
-  product as HttpTypes.StoreProduct
-
-export const GET = async (
+const get = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,
   res: MedusaResponse<HttpTypes.StoreProductResponse>,
 ) => {
@@ -72,12 +114,10 @@ export const GET = async (
     ...req.filterableFields,
   }
 
-  const context: QueryContextType = {}
-
-  if (req.pricingContext) {
-    context["variants"] ??= {}
-    context["variants"].calculated_price ??= QueryContext(req.pricingContext)
-  }
+  const context: QueryContextType =
+    req.pricingContext === undefined
+      ? {}
+      : { variants: { calculated_price: QueryContext(req.pricingContext) } }
 
   const includesCategoriesField = includesCategoryField(
     productFieldsBeforeDecoration,
@@ -93,7 +133,7 @@ export const GET = async (
     measurementDecorationOptions,
   )
 
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
   const { data: products } = await query.graph(
     {
@@ -104,16 +144,14 @@ export const GET = async (
     },
     req.locale === undefined ? {} : { locale: req.locale },
   )
-  const queriedProduct = products[0]
+  const product: unknown = products.at(0)
 
-  if (!queriedProduct) {
+  if (!isStoreProduct(product)) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product with id: ${req.params["id"]} was not found`,
     )
   }
-
-  const product = toStoreProduct(queriedProduct)
 
   if (withInventoryQuantity) {
     const variants = (product.variants ?? []).filter(
@@ -136,3 +174,5 @@ export const GET = async (
 
   res.json({ product })
 }
+
+export { get as GET }

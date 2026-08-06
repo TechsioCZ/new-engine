@@ -3,12 +3,13 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { requirePathParam } from "../../../../../utils/path-params"
-import { customerAcceptQuoteWorkflow } from "../../../../../workflows/quote/workflows"
+import { customerAcceptQuoteWorkflow } from "../../../../../workflows/quote/workflows/customer-accept-quote"
 import type { AcceptQuoteType } from "../../validators"
 
-export const POST = async (
+const post = async (
   req: AuthenticatedMedusaRequest<AcceptQuoteType>,
   res: MedusaResponse,
 ) => {
@@ -23,9 +24,7 @@ export const POST = async (
     },
   })
 
-  const {
-    data: [quote],
-  } = await query.graph(
+  const { data } = await query.graph(
     {
       entity: "quote",
       fields: req.queryConfig.fields,
@@ -33,6 +32,12 @@ export const POST = async (
     },
     { throwIfKeyNotFound: true },
   )
+  const quote = z
+    .array(z.object({ id: z.string() }).loose())
+    .parse(data)
+    .at(0)
 
   return res.json({ quote })
 }
+
+export { post as POST }

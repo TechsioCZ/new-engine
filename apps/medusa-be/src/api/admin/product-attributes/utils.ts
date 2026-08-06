@@ -16,8 +16,8 @@ import type {
 
 export type ProductAttributeListStatus = "active" | "all" | "deleted"
 
-const LIKE_WILDCARD_REGEX = /[\\%_]/g
-const LEADING_DASH_REGEX = /^-/
+const LIKE_WILDCARD_REGEX = /[\\%_]/gu
+const LEADING_DASH_REGEX = /^-/u
 const ORDER_FIELDS = new Set(["key", "label", "created_at", "updated_at"])
 const ASSIGNED_PRODUCT_ORDER_FIELDS = new Set([
   "handle",
@@ -27,34 +27,39 @@ const ASSIGNED_PRODUCT_ORDER_FIELDS = new Set([
 ])
 const ASSIGNMENT_QUERY_BATCH_SIZE = 100
 const PRODUCT_ATTRIBUTE_DETAIL_BATCH_SIZE = 100
+const MAX_PRODUCT_ATTRIBUTE_QUERY_PAGES = 1000
 
 export const listAllProductAttributeRecords = async <T>(
   listPage: (skip: number, take: number) => Promise<[T[], number]>,
 ) => {
-  const records: T[] = []
-  let count = Number.POSITIVE_INFINITY
+  const loadPage = async (records: T[], pageCount: number): Promise<T[]> => {
+    if (pageCount >= MAX_PRODUCT_ATTRIBUTE_QUERY_PAGES) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Product attribute query exceeded ${MAX_PRODUCT_ATTRIBUTE_QUERY_PAGES} pages`,
+      )
+    }
 
-  while (records.length < count) {
     const [page, total] = await listPage(
       records.length,
       PRODUCT_ATTRIBUTE_DETAIL_BATCH_SIZE,
     )
-    records.push(...page)
-    count = total
-
-    if (page.length === 0) {
-      break
+    const nextRecords = [...records, ...page]
+    if (page.length === 0 || nextRecords.length >= total) {
+      return nextRecords
     }
+
+    return await loadPage(nextRecords, pageCount + 1)
   }
 
-  return records
+  return await loadPage([], 0)
 }
 
 export const escapeProductAttributeLikePattern = (value: string) =>
   value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
 
-export const parseProductAttributeOrder = (value: string = "label") => {
-  const direction: "ASC" | "DESC" = value.startsWith("-") ? "DESC" : "ASC"
+export const parseProductAttributeOrder = (value = "label") => {
+  const direction = value.startsWith("-") ? "DESC" : "ASC"
   const requestedField = value.replace(LEADING_DASH_REGEX, "")
   const field = ORDER_FIELDS.has(requestedField) ? requestedField : "label"
   return { [field]: direction, id: "ASC" as const }
@@ -80,7 +85,7 @@ export const retrieveProductAttributeDefinitionOrThrow = async (
   const definitions = await getProductAttributeService(
     scope,
   ).listProductAttributeDefinitions({ id }, { take: 1, withDeleted })
-  const definition = definitions[0]
+  const [definition] = definitions
 
   if (!definition) {
     throw new MedusaError(
@@ -99,7 +104,7 @@ export const retrieveProductAttributeOptionOrThrow = async (
   const options = await getProductAttributeService(
     scope,
   ).listProductAttributeOptions({ id }, { take: 1, withDeleted })
-  const option = options[0]
+  const [option] = options
 
   if (!option) {
     throw new MedusaError(
@@ -127,7 +132,7 @@ export const getOptionUsageCountMap = async (
   )
 
 const getAssignedProductOrder = (input = "title") => {
-  const direction: "ASC" | "DESC" = input.startsWith("-") ? "DESC" : "ASC"
+  const direction = input.startsWith("-") ? "DESC" : "ASC"
   const requestedField = input.replace(LEADING_DASH_REGEX, "")
   const field = ASSIGNED_PRODUCT_ORDER_FIELDS.has(requestedField)
     ? requestedField
@@ -141,10 +146,18 @@ const listOptionAssignmentProductIds = async (
   optionId: string,
 ) => {
   const service = getProductAttributeService(scope)
-  const productIds = new Set<string>()
-  let skip = 0
+  const loadPage = async (
+    productIds: Set<string>,
+    skip: number,
+    pageCount: number,
+  ): Promise<string[]> => {
+    if (pageCount >= MAX_PRODUCT_ATTRIBUTE_QUERY_PAGES) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Product attribute assignment query exceeded ${MAX_PRODUCT_ATTRIBUTE_QUERY_PAGES} pages`,
+      )
+    }
 
-  while (true) {
     const assignments = await service.listProductAttributes(
       { option_id: optionId },
       {
@@ -154,15 +167,17 @@ const listOptionAssignmentProductIds = async (
         take: ASSIGNMENT_QUERY_BATCH_SIZE,
       },
     )
-
     for (const assignment of assignments) {
       productIds.add(assignment.product_id)
     }
     if (assignments.length < ASSIGNMENT_QUERY_BATCH_SIZE) {
       return [...productIds]
     }
-    skip += assignments.length
+
+    return await loadPage(productIds, skip + assignments.length, pageCount + 1)
   }
+
+  return await loadPage(new Set(), 0, 0)
 }
 
 export const listProductAttributeOptionAssignedProducts = async ({
@@ -185,12 +200,15 @@ export const listProductAttributeOptionAssignedProducts = async ({
     return { count: 0, products: [] }
   }
 
-  const escapedQuery = q ? escapeProductAttributeLikePattern(q) : undefined
+  const escapedQuery =
+    typeof q === "string" && q.length > 0
+      ? escapeProductAttributeLikePattern(q)
+      : undefined
   const productService = scope.resolve<IProductModuleService>(Modules.PRODUCT)
   const [products, count] = await productService.listAndCountProducts(
     {
       id: { $in: productIds },
-      ...(escapedQuery
+      ...(typeof escapedQuery === "string" && escapedQuery.length > 0
         ? {
             $or: [
               { title: { $ilike: `%${escapedQuery}%` } },
@@ -297,7 +315,10 @@ export const getProductAttributeDetail = async (
   const selectedOptionIds = [
     ...new Set(
       assignments.flatMap((assignment) =>
-        assignment.option_id ? [assignment.option_id] : [],
+        typeof assignment.option_id === "string" &&
+        assignment.option_id.length > 0
+          ? [assignment.option_id]
+          : [],
       ),
     ),
   ]
@@ -323,18 +344,23 @@ export const getProductAttributeDetail = async (
   )
   const optionById = new Map(options.map((option) => [option.id, option]))
 
-  return definitions
-    .filter(
-      (definition) =>
-        !definition.deleted_at || assignmentByDefinitionId.has(definition.id),
-    )
-    .map((definition) => {
-      const assignment = assignmentByDefinitionId.get(definition.id)
-      const selectedOption = assignment?.option_id
-        ? (optionById.get(assignment.option_id) ?? null)
+  return definitions.flatMap((definition) => {
+    if (
+      definition.deleted_at !== null &&
+      definition.deleted_at !== undefined &&
+      !assignmentByDefinitionId.has(definition.id)
+    ) {
+      return []
+    }
+    const assignment = assignmentByDefinitionId.get(definition.id)
+    const selectedOptionId = assignment?.option_id
+    const selectedOption =
+      typeof selectedOptionId === "string" && selectedOptionId.length > 0
+        ? (optionById.get(selectedOptionId) ?? null)
         : null
 
-      return {
+    return [
+      {
         assignment: toProductAttributeAssignmentResponse(
           definition,
           assignment,
@@ -344,12 +370,14 @@ export const getProductAttributeDetail = async (
           definition,
           definitionUsageCounts.get(definition.id) ?? 0,
         ),
-        selected_option: selectedOption
-          ? toProductAttributeOptionResponse(
-              selectedOption,
-              optionUsageCounts.get(selectedOption.id) ?? 0,
-            )
-          : null,
-      }
-    })
+        selected_option:
+          selectedOption === null
+            ? null
+            : toProductAttributeOptionResponse(
+                selectedOption,
+                optionUsageCounts.get(selectedOption.id) ?? 0,
+              ),
+      },
+    ]
+  })
 }

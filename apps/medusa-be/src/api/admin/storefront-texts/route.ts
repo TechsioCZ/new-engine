@@ -61,11 +61,11 @@ const buildEffectiveValueSearchFilters = (
 const buildSearchFilters = (
   query: string | undefined,
   searchScope: AdminGetStorefrontTextsSchemaType["search_scope"],
-): StorefrontTextFilters["$or"] => {
+): NonNullable<StorefrontTextFilters["$or"]> => {
   const normalizedQuery = query?.trim()
 
-  if (!normalizedQuery) {
-    return
+  if (!(typeof normalizedQuery === "string" && normalizedQuery.length > 0)) {
+    return []
   }
 
   const searchValue = `%${escapeLikePattern(normalizedQuery)}%`
@@ -110,7 +110,7 @@ const buildStorefrontTextFilters = ({
     filters.status = status
   }
 
-  if (searchFilters) {
+  if (searchFilters.length > 0) {
     filters.$or = searchFilters
   }
 
@@ -139,10 +139,10 @@ const serializeStorefrontText = (storefrontText: StorefrontTextRecord) => {
   }
 }
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, AdminGetStorefrontTextsSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { limit, offset } = req.validatedQuery
   const filters = buildStorefrontTextFilters(req.validatedQuery)
   const service = req.scope.resolve<StorefrontTextModuleService>(
@@ -174,3 +174,5 @@ export async function GET(
     })[],
   })
 }
+
+export { get as GET }

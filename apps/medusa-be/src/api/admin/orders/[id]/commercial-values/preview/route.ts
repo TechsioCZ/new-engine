@@ -10,10 +10,10 @@ import {
 } from "../utils"
 import type { PostAdminOrderCommercialValuesPreviewSchemaType } from "../validators"
 
-export async function POST(
+const post = async (
   req: MedusaRequest<PostAdminOrderCommercialValuesPreviewSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const id = requireCommercialValuesOrderId(req.params["id"])
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const order = await fetchEditableCommercialValuesOrder(
@@ -31,3 +31,5 @@ export async function POST(
 
   res.json({ preview })
 }
+
+export { post as POST }

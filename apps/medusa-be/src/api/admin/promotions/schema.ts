@@ -15,14 +15,14 @@ export type RuleAttributeOptionsQuerySchemaType = z.infer<
 
 /** Schema for rule-value-options query params */
 export const RuleValueOptionsQuerySchema = z.object({
-  id: z.union([z.string(), z.array(z.string())]).optional(),
-  q: z.string().optional(),
-  value: z.union([z.string(), z.array(z.string())]).optional(),
-  limit: z.coerce.number().min(1).max(100).optional().default(100),
-  offset: z.coerce.number().min(0).optional().default(0),
   // Additional fields passed by admin UI
   application_method_target_type: z.string().optional(),
+  id: z.union([z.string(), z.array(z.string())]).optional(),
+  limit: z.coerce.number().min(1).max(100).optional().default(100),
+  offset: z.coerce.number().min(0).optional().default(0),
   promotion_type: z.string().optional(),
+  q: z.string().optional(),
+  value: z.union([z.string(), z.array(z.string())]).optional(),
 })
 
 export type RuleValueOptionsQuerySchemaType = z.infer<

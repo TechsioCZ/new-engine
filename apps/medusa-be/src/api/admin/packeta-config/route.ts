@@ -13,11 +13,11 @@ import type { PostAdminPacketaConfigSchemaType } from "./validators"
 
 /** Maps config DTO to API response with sensitive fields masked. */
 const toConfigResponse = (config: PacketaConfigDTO): PacketaConfigResponse => ({
-  api_password_set: !!config.api_password,
-  cod_bank_account_set: !!config.cod_bank_account,
-  cod_bank_code_set: !!config.cod_bank_code,
-  cod_iban_set: !!config.cod_iban,
-  cod_swift_set: !!config.cod_swift,
+  api_password_set: Boolean(config.api_password),
+  cod_bank_account_set: Boolean(config.cod_bank_account),
+  cod_bank_code_set: Boolean(config.cod_bank_code),
+  cod_iban_set: Boolean(config.cod_iban),
+  cod_swift_set: Boolean(config.cod_swift),
   default_label_format: config.default_label_format,
   default_label_offset: config.default_label_offset,
   environment: config.environment,
@@ -37,7 +37,7 @@ const toConfigResponse = (config: PacketaConfigDTO): PacketaConfigResponse => ({
 /**
  * GET /admin/packeta-config
  */
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const packetaService = req.scope.resolve<PacketaClientModuleService>(
     PACKETA_CLIENT_MODULE,
   )
@@ -53,19 +53,23 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   res.json({ config: toConfigResponse(packetaConfig) })
 }
 
+export { get as GET }
+
 /**
  * POST /admin/packeta-config
  *
  * Empty string on a sensitive field = keep existing value.
  * null on a sensitive field = clear it.
  */
-export async function POST(
+const post = async (
   req: MedusaRequest<PostAdminPacketaConfigSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { result: updated } = await updatePacketaConfigWorkflow(req.scope).run({
     input: definedProperties(req.validatedBody),
   })
 
   res.json({ config: toConfigResponse(updated) })
 }
+
+export { post as POST }

@@ -4,10 +4,10 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import type { StoreBrandsSchemaType } from "./validators"
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, StoreBrandsSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data: brands } = await query.graph({
     entity: "brand",
@@ -16,3 +16,5 @@ export async function GET(
 
   res.json({ brands })
 }
+
+export { get as GET }

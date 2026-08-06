@@ -9,7 +9,7 @@ import {
 
 import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
 
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const selectFields = remapKeysForProduct(req.queryConfig.fields ?? [])
   const { data: products, metadata } = await refetchEntities({
     entity: "product",
@@ -30,10 +30,10 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     count: metadata.count,
     limit: metadata.take,
     offset: metadata.skip,
-    products: products.map((product) =>
-      // Medusa applies this helper to field-selected graph results, but its
-      // public parameter type is the stricter, fully populated ProductDTO.
-      remapProductResponse(product as ProductDTO),
+    products: products.map((product: ProductDTO) =>
+      remapProductResponse(product),
     ),
   })
 }
+
+export { get as GET }

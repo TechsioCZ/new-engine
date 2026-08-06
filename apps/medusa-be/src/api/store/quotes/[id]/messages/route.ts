@@ -3,13 +3,14 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { definedProperties } from "../../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../../utils/path-params"
-import { createQuoteMessageWorkflow } from "../../../../../workflows/quote/workflows"
+import { createQuoteMessageWorkflow } from "../../../../../workflows/quote/workflows/create-quote-message"
 import type { StoreCreateQuoteMessageType } from "../../validators"
 
-export const POST = async (
+const post = async (
   req: AuthenticatedMedusaRequest<StoreCreateQuoteMessageType>,
   res: MedusaResponse,
 ) => {
@@ -24,9 +25,7 @@ export const POST = async (
     }),
   })
 
-  const {
-    data: [quote],
-  } = await query.graph(
+  const { data } = await query.graph(
     {
       entity: "quote",
       fields: req.queryConfig.fields,
@@ -34,6 +33,12 @@ export const POST = async (
     },
     { throwIfKeyNotFound: true },
   )
+  const quote = z
+    .array(z.object({ id: z.string() }).loose())
+    .parse(data)
+    .at(0)
 
   res.json({ quote })
 }
+
+export { post as POST }

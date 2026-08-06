@@ -1,6 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 
-const LOCK_TIMEOUT_MESSAGE_PATTERN = /timed-out acquiring lock/i
+const LOCK_TIMEOUT_MESSAGE_PATTERN = /timed-out acquiring lock/iu
 
 // Medusa's redis locking provider rejects with a typed MedusaError, but the
 // in-memory and postgres providers reject with a bare Error whose message is
@@ -25,10 +25,10 @@ export interface StorefrontTextLockErrorResponse {
   status: (code: number) => { json: (body: unknown) => unknown }
 }
 
-export function handleStorefrontTextLockError(
+export const handleStorefrontTextLockError = (
   error: unknown,
   res: StorefrontTextLockErrorResponse,
-): void {
+): void => {
   if (!isLockTimeoutError(error)) {
     throw error
   }

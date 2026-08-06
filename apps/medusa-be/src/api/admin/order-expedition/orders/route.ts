@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { ORDER_NOTE_MODULE } from "../../../../modules/order-note"
 import type OrderNoteModuleService from "../../../../modules/order-note/service"
@@ -62,13 +63,192 @@ interface CollectMatchingOrdersInput {
 const ORDER_EXPEDITION_SCAN_BATCH_SIZE = 100
 const ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS = 1000
 
-function isOrderExpeditionQueryOrder<T>(
+const isOrderExpeditionQueryOrder = <T>(
   order: T,
-): order is T & OrderExpeditionRawOrder {
-  return isOrderExpeditionRawOrder(order)
+): order is T & OrderExpeditionRawOrder => isOrderExpeditionRawOrder(order)
+
+const fetchOrderBatch = async (
+  query: Query,
+  offset: number,
+  limit: number,
+): Promise<OrderExpeditionOrderBatch> => {
+  const { data: orders, metadata } = await query.graph({
+    entity: "order",
+    fields: ORDER_EXPEDITION_ORDER_FIELDS,
+    pagination: {
+      skip: offset,
+      take: limit,
+    },
+  })
+  const queryOrders = z.array(z.unknown()).parse(orders)
+  const validOrders = queryOrders.filter(isOrderExpeditionQueryOrder)
+  const scannedCount = queryOrders.length
+
+  return {
+    metadataCount: metadata?.count ?? null,
+    orders: validOrders,
+    scannedCount,
+  }
 }
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const orderMatchesFilters = (
+  order: OrderExpeditionRawOrder,
+  filters: OrderExpeditionOrderFilters,
+) => {
+  if (
+    filters.carrier !== undefined &&
+    !orderMatchesExpeditionCarrier(order, filters.carrier)
+  ) {
+    return false
+  }
+
+  if (
+    filters.businessStatus !== undefined ||
+    filters.businessStatusGroup !== undefined
+  ) {
+    const businessStatusId = resolveOrderBusinessStatus(order).id
+
+    if (
+      filters.businessStatus !== undefined &&
+      businessStatusId !== filters.businessStatus
+    ) {
+      return false
+    }
+
+    if (
+      filters.businessStatusGroup === "action_required" &&
+      !isActionRequiredOrderBusinessStatusId(businessStatusId)
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const collectMatchingOrders = ({
+  accumulator,
+  filters,
+  limit,
+  offset,
+  orders,
+}: CollectMatchingOrdersInput) => {
+  for (const order of orders) {
+    if (orderMatchesFilters(order, filters)) {
+      if (accumulator.matchingCount >= offset) {
+        accumulator.matchingOrders.push(order)
+      }
+      accumulator.matchingCount += 1
+
+      if (accumulator.matchingOrders.length > limit) {
+        return
+      }
+    }
+  }
+}
+
+const fetchOrders = async (
+  query: Query,
+  limit: number,
+  offset: number,
+): Promise<OrderExpeditionOrdersPage> => {
+  const batch = await fetchOrderBatch(query, offset, limit)
+  const count = batch.metadataCount ?? batch.orders.length
+
+  return {
+    carrierFilterLimitReached: false,
+    count,
+    countExact: true,
+    hasNext: offset + limit < count,
+    orders: batch.orders,
+    scannedCount: null,
+  }
+}
+
+const fetchFilteredOrders = async (
+  query: Query,
+  filters: OrderExpeditionOrderFilters,
+  limit: number,
+  offset: number,
+): Promise<OrderExpeditionOrdersPage> => {
+  const accumulator: CarrierFilterAccumulator = {
+    matchingCount: 0,
+    matchingOrders: [],
+  }
+  const scanNext = async (
+    scanOffset: number,
+    scannedCount: number,
+  ): Promise<{
+    carrierFilterLimitReached: boolean
+    scannedAllOrders: boolean
+    scannedCount: number
+  }> => {
+    const remainingScanRows =
+      ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS - scanOffset
+    if (remainingScanRows <= 0) {
+      return {
+        carrierFilterLimitReached: true,
+        scannedAllOrders: false,
+        scannedCount,
+      }
+    }
+
+    const batch = await fetchOrderBatch(
+      query,
+      scanOffset,
+      Math.min(ORDER_EXPEDITION_SCAN_BATCH_SIZE, remainingScanRows),
+    )
+    if (batch.scannedCount === 0) {
+      return {
+        carrierFilterLimitReached: false,
+        scannedAllOrders: true,
+        scannedCount,
+      }
+    }
+
+    collectMatchingOrders({
+      accumulator,
+      filters,
+      limit,
+      offset,
+      orders: batch.orders,
+    })
+    const nextOffset = scanOffset + batch.scannedCount
+    const nextScannedCount = scannedCount + batch.scannedCount
+    const totalCount = batch.metadataCount ?? nextOffset
+    if (totalCount <= nextOffset) {
+      return {
+        carrierFilterLimitReached: false,
+        scannedAllOrders: true,
+        scannedCount: nextScannedCount,
+      }
+    }
+    if (accumulator.matchingOrders.length > limit) {
+      return {
+        carrierFilterLimitReached: false,
+        scannedAllOrders: false,
+        scannedCount: nextScannedCount,
+      }
+    }
+
+    return await scanNext(nextOffset, nextScannedCount)
+  }
+
+  const scanResult = await scanNext(0, 0)
+  return {
+    carrierFilterLimitReached: scanResult.carrierFilterLimitReached,
+    count: accumulator.matchingCount,
+    countExact: scanResult.scannedAllOrders,
+    hasNext: accumulator.matchingOrders.length > limit,
+    orders: accumulator.matchingOrders.slice(0, limit),
+    scannedCount: scanResult.scannedCount,
+  }
+}
+
+const get = async (
+  req: MedusaRequest<unknown, GetAdminOrderExpeditionOrdersSchemaType>,
+  res: MedusaResponse,
+) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const orderNoteService =
     req.scope.resolve<OrderNoteModuleService>(ORDER_NOTE_MODULE)
@@ -78,18 +258,22 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     carrier,
     limit,
     offset,
-  } = req.validatedQuery as GetAdminOrderExpeditionOrdersSchemaType
+  } = req.validatedQuery
   const normalizedLimit = limit ?? ORDER_EXPEDITION_DEFAULT_LIMIT
   const normalizedOffset = offset ?? 0
 
   const result =
-    carrier || businessStatus || businessStatusGroup
+    carrier !== undefined ||
+    businessStatus !== undefined ||
+    businessStatusGroup !== undefined
       ? await fetchFilteredOrders(
           query,
           {
-            ...(businessStatusGroup ? { businessStatusGroup } : {}),
-            ...(businessStatus ? { businessStatus } : {}),
-            ...(carrier ? { carrier } : {}),
+            ...(businessStatusGroup === undefined
+              ? {}
+              : { businessStatusGroup }),
+            ...(businessStatus === undefined ? {} : { businessStatus }),
+            ...(carrier === undefined ? {} : { carrier }),
           },
           normalizedLimit,
           normalizedOffset,
@@ -127,168 +311,4 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   })
 }
 
-async function fetchOrders(
-  query: Query,
-  limit: number,
-  offset: number,
-): Promise<OrderExpeditionOrdersPage> {
-  const batch = await fetchOrderBatch(query, offset, limit)
-  const count = batch.metadataCount ?? batch.orders.length
-
-  return {
-    carrierFilterLimitReached: false,
-    count,
-    countExact: true,
-    hasNext: offset + limit < count,
-    orders: batch.orders,
-    scannedCount: null,
-  }
-}
-
-async function fetchFilteredOrders(
-  query: Query,
-  filters: OrderExpeditionOrderFilters,
-  limit: number,
-  offset: number,
-): Promise<OrderExpeditionOrdersPage> {
-  const accumulator: CarrierFilterAccumulator = {
-    matchingCount: 0,
-    matchingOrders: [],
-  }
-  let scanOffset = 0
-  let scannedCount = 0
-  let scannedAllOrders = false
-  let carrierFilterLimitReached = false
-
-  while (true) {
-    const remainingScanRows =
-      ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS - scanOffset
-    if (remainingScanRows <= 0) {
-      carrierFilterLimitReached = true
-      break
-    }
-
-    const batch = await fetchOrderBatch(
-      query,
-      scanOffset,
-      Math.min(ORDER_EXPEDITION_SCAN_BATCH_SIZE, remainingScanRows),
-    )
-
-    if (!batch.scannedCount) {
-      scannedAllOrders = true
-      break
-    }
-
-    scannedCount += batch.scannedCount
-    collectMatchingOrders({
-      accumulator,
-      filters,
-      limit,
-      offset,
-      orders: batch.orders,
-    })
-    scanOffset += batch.scannedCount
-
-    const totalCount = batch.metadataCount ?? scanOffset
-    if (totalCount <= scanOffset) {
-      scannedAllOrders = true
-      break
-    }
-
-    if (accumulator.matchingOrders.length > limit) {
-      break
-    }
-
-    if (scanOffset >= ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS) {
-      carrierFilterLimitReached = true
-      break
-    }
-  }
-
-  return {
-    carrierFilterLimitReached,
-    count: accumulator.matchingCount,
-    countExact: scannedAllOrders,
-    hasNext: accumulator.matchingOrders.length > limit,
-    orders: accumulator.matchingOrders.slice(0, limit),
-    scannedCount,
-  }
-}
-
-function collectMatchingOrders({
-  accumulator,
-  filters,
-  limit,
-  offset,
-  orders,
-}: CollectMatchingOrdersInput) {
-  for (const order of orders) {
-    if (!orderMatchesFilters(order, filters)) {
-      continue
-    }
-
-    if (accumulator.matchingCount >= offset) {
-      accumulator.matchingOrders.push(order)
-    }
-
-    accumulator.matchingCount += 1
-
-    if (accumulator.matchingOrders.length > limit) {
-      break
-    }
-  }
-}
-
-function orderMatchesFilters(
-  order: OrderExpeditionRawOrder,
-  filters: OrderExpeditionOrderFilters,
-) {
-  if (
-    filters.carrier &&
-    !orderMatchesExpeditionCarrier(order, filters.carrier)
-  ) {
-    return false
-  }
-
-  if (filters.businessStatus || filters.businessStatusGroup) {
-    const businessStatusId = resolveOrderBusinessStatus(order).id
-
-    if (filters.businessStatus && businessStatusId !== filters.businessStatus) {
-      return false
-    }
-
-    if (
-      filters.businessStatusGroup === "action_required" &&
-      !isActionRequiredOrderBusinessStatusId(businessStatusId)
-    ) {
-      return false
-    }
-  }
-
-  return true
-}
-
-async function fetchOrderBatch(
-  query: Query,
-  offset: number,
-  limit: number,
-): Promise<OrderExpeditionOrderBatch> {
-  const { data: orders, metadata } = await query.graph({
-    entity: "order",
-    fields: ORDER_EXPEDITION_ORDER_FIELDS,
-    pagination: {
-      skip: offset,
-      take: limit,
-    },
-  })
-  const validOrders = Array.isArray(orders)
-    ? orders.filter(isOrderExpeditionQueryOrder)
-    : []
-  const scannedCount = Array.isArray(orders) ? orders.length : 0
-
-  return {
-    metadataCount: metadata?.count ?? null,
-    orders: validOrders,
-    scannedCount,
-  }
-}
+export { get as GET }

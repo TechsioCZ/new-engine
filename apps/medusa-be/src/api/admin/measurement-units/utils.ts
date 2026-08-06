@@ -1,12 +1,14 @@
 import type {
   IProductModuleService,
   MedusaContainer,
+  Query,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import {
   getMeasurementUnitActiveProductCounts,
@@ -48,9 +50,10 @@ const ASSIGNED_PRODUCT_ORDER_FIELDS = new Set([
   "title",
   "updated_at",
 ])
-const LIKE_WILDCARD_REGEX = /[\\%_]/g
-const LEADING_DASH_REGEX = /^-/
+const LIKE_WILDCARD_REGEX = /[\\%_]/gu
+const LEADING_DASH_REGEX = /^-/u
 const ASSIGNMENT_QUERY_CHUNK_SIZE = 500
+const MAX_ASSIGNMENT_QUERY_PAGES = 1000
 
 export const escapeLikePattern = (value: string) =>
   value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
@@ -107,7 +110,7 @@ export const retrieveProductOrThrow = async (
   scope: MedusaContainer,
   productId: string,
 ) => {
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product",
     fields: ["id"],
@@ -116,21 +119,22 @@ export const retrieveProductOrThrow = async (
     },
   })
 
-  if (!data[0]) {
+  const [product] = z.array(z.object({ id: z.string() })).parse(data)
+  if (product === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product with id "${productId}" was not found`,
     )
   }
 
-  return data[0]
+  return product
 }
 
 export const retrieveProductVariants = async (
   scope: MedusaContainer,
   productId: string,
 ): Promise<ProductMeasurementVariantResponse[]> => {
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product_variant",
     fields: ["id", "sku", "title"],
@@ -139,11 +143,20 @@ export const retrieveProductVariants = async (
     },
   })
 
-  return data.map((variant) => ({
-    id: variant.id,
-    sku: variant.sku ?? null,
-    title: variant.title ?? null,
-  }))
+  return z
+    .array(
+      z.object({
+        id: z.string(),
+        sku: z.string().nullable().optional(),
+        title: z.string().nullable().optional(),
+      }),
+    )
+    .parse(data)
+    .map((variant) => ({
+      id: variant.id,
+      sku: variant.sku ?? null,
+      title: variant.title ?? null,
+    }))
 }
 
 export const retrieveProductVariantOrThrow = async (
@@ -151,7 +164,7 @@ export const retrieveProductVariantOrThrow = async (
   productId: string,
   productVariantId: string,
 ) => {
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product_variant",
     fields: ["id", "product_id"],
@@ -159,11 +172,16 @@ export const retrieveProductVariantOrThrow = async (
       id: productVariantId,
     },
   })
-  const variant = data[0] as
-    | { id?: string; product_id?: null | string }
-    | undefined
+  const [variant] = z
+    .array(
+      z.object({
+        id: z.string(),
+        product_id: z.string().nullable().optional(),
+      }),
+    )
+    .parse(data)
 
-  if (!variant?.id) {
+  if (variant === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product variant with id "${productVariantId}" was not found`,
@@ -221,10 +239,17 @@ const listMeasurementUnitAssignments = async ({
   }
 
   const service = getMeasurementUnitService(scope)
-  const measurements: ProductMeasurementRecord[] = []
-  let skip = 0
+  const loadPage = async (
+    skip: number,
+    pageCount: number,
+  ): Promise<ProductMeasurementRecord[]> => {
+    if (pageCount >= MAX_ASSIGNMENT_QUERY_PAGES) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Measurement assignment query exceeded ${MAX_ASSIGNMENT_QUERY_PAGES} pages`,
+      )
+    }
 
-  while (true) {
     const chunk = await service.listProductMeasurements(filters, {
       order: { id: "ASC" },
       select: ["id", "product_id", "deleted_at", "updated_at"],
@@ -232,14 +257,44 @@ const listMeasurementUnitAssignments = async ({
       take: ASSIGNMENT_QUERY_CHUNK_SIZE,
       withDeleted: true,
     })
-    measurements.push(...chunk)
-
     if (chunk.length < ASSIGNMENT_QUERY_CHUNK_SIZE) {
-      return measurements
+      return chunk
     }
 
-    skip += ASSIGNMENT_QUERY_CHUNK_SIZE
+    return [
+      ...chunk,
+      ...(await loadPage(skip + ASSIGNMENT_QUERY_CHUNK_SIZE, pageCount + 1)),
+    ]
   }
+
+  return await loadPage(0, 0)
+}
+
+const isDeletedMeasurement = (
+  measurement: ProductMeasurementRecord | undefined,
+) =>
+  measurement !== undefined &&
+  measurement.deleted_at !== null &&
+  measurement.deleted_at !== undefined
+
+const shouldReplaceCanonicalAssignment = (
+  existing: ProductMeasurementRecord | undefined,
+  measurement: ProductMeasurementRecord,
+) => {
+  if (existing === undefined) {
+    return true
+  }
+
+  const existingIsDeleted = isDeletedMeasurement(existing)
+  const measurementIsDeleted = isDeletedMeasurement(measurement)
+  if (existingIsDeleted !== measurementIsDeleted) {
+    return existingIsDeleted
+  }
+
+  return (
+    new Date(measurement.updated_at).getTime() >
+    new Date(existing.updated_at).getTime()
+  )
 }
 
 export const getCanonicalAssignmentByProductId = (
@@ -250,13 +305,7 @@ export const getCanonicalAssignmentByProductId = (
   for (const measurement of measurements) {
     const existing = byProductId.get(measurement.product_id)
 
-    if (
-      !existing ||
-      (existing.deleted_at && !measurement.deleted_at) ||
-      (!!existing.deleted_at === !!measurement.deleted_at &&
-        new Date(measurement.updated_at).getTime() >
-          new Date(existing.updated_at).getTime())
-    ) {
+    if (shouldReplaceCanonicalAssignment(existing, measurement)) {
       byProductId.set(measurement.product_id, measurement)
     }
   }
@@ -297,12 +346,13 @@ export const listMeasurementUnitAssignedProducts = async ({
     }
   }
 
-  const escapedQuery = q ? escapeLikePattern(q) : undefined
+  const escapedQuery =
+    typeof q === "string" && q.length > 0 ? escapeLikePattern(q) : undefined
   const productService = scope.resolve<IProductModuleService>(Modules.PRODUCT)
   const [products, count] = await productService.listAndCountProducts(
     {
       id: { $in: productIds },
-      ...(escapedQuery
+      ...(typeof escapedQuery === "string" && escapedQuery.length > 0
         ? {
             $or: [
               { title: { $ilike: `%${escapedQuery}%` } },

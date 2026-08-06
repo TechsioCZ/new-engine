@@ -18,7 +18,7 @@ const toConfigResponse = (
   id: config.id,
 })
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const qrPaymentService =
     req.scope.resolve<QrPaymentModuleService>(QR_PAYMENT_MODULE)
 
@@ -33,10 +33,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   res.json({ config: toConfigResponse(qrPaymentConfig) })
 }
 
-export async function POST(
+export { get as GET }
+
+const post = async (
   req: MedusaRequest<PostAdminQrPaymentConfigSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { result: updated } = await updateQrPaymentConfigWorkflow(
     req.scope,
   ).run({
@@ -45,3 +47,5 @@ export async function POST(
 
   res.json({ config: toConfigResponse(updated) })
 }
+
+export { post as POST }
