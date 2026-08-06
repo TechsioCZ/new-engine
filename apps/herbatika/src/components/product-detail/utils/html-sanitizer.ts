@@ -51,11 +51,17 @@ export interface SanitizeHtmlOptions {
   additionalAllowedTags?: ReadonlySet<string>
 }
 
-const SAFE_ANCHOR_HREF_REGEX = /^(https?:|mailto:|tel:|\/|#)/i
-const SAFE_IMAGE_SRC_REGEX = /^(https?:|\/)/i
-const HTTP_URL_REGEX = /^https?:/i
-const SELF_CLOSING_TAG_SUFFIX_REGEX = /\/\s*$/
-const RENDERABLE_IMAGE_TAG_REGEX = /<\s*img\b/i
+// Case-insensitivity is spelled out as ASCII case pairs rather than the `i` flag.
+// Combined with the required `u` flag, `i` switches to full Unicode case folding, so `s`
+// would also match U+017F (LATIN SMALL LETTER LONG S). That widens this sanitizer's
+// filter surface: `<ſcript>…</ſcript>` would become strippable, and stripping it can
+// splice the surrounding text into a new live tag (`<im` + `g src=…>` -> `<img src=…>`).
+const SAFE_ANCHOR_HREF_REGEX =
+  /^(?:[hH][tT][tT][pP][sS]?:|[mM][aA][iI][lL][tT][oO]:|[tT][eE][lL]:|\/|#)/u
+const SAFE_IMAGE_SRC_REGEX = /^(?:[hH][tT][tT][pP][sS]?:|\/)/u
+const HTTP_URL_REGEX = /^[hH][tT][tT][pP][sS]?:/u
+const SELF_CLOSING_TAG_SUFFIX_REGEX = /\/\s*$/u
+const RENDERABLE_IMAGE_TAG_REGEX = /<\s*[iI][mM][gG]\b/u
 
 const isSafeAnchorHref = (value: string): boolean =>
   SAFE_ANCHOR_HREF_REGEX.test(value)
@@ -78,8 +84,10 @@ const escapeHtmlAttribute = (value: string): string =>
 
 const parseTagAttributes = (rawAttributes: string) => {
   const attributes: { name: string; value: string }[] = []
+  // Capture groups stay unnamed: this project targets ES2017, where named capture
+  // groups are a TypeScript error (TS1503).
   const attributePattern =
-    /([a-zA-Z0-9:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g
+    /([a-zA-Z0-9:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/gu
 
   let match = attributePattern.exec(rawAttributes)
   while (match) {
@@ -110,9 +118,9 @@ const isAttributeAllowed = (
     return true
   }
 
-  return Boolean(
-    options.additionalAllowedTagAttributes?.[tag]?.has(name) &&
-    options.additionalAllowedAttributeValues?.[tag]?.[name]?.has(value),
+  return (
+    options.additionalAllowedTagAttributes?.[tag]?.has(name) === true &&
+    options.additionalAllowedAttributeValues?.[tag]?.[name]?.has(value) === true
   )
 }
 
@@ -206,7 +214,7 @@ const applySanitizedAttribute = (
 }
 
 const appendAnchorAttributes = (state: SanitizedAttributeState) => {
-  if (!state.href) {
+  if (state.href === null || state.href === "") {
     return
   }
 
@@ -217,17 +225,17 @@ const appendAnchorAttributes = (state: SanitizedAttributeState) => {
     return
   }
 
-  if (state.target) {
+  if (state.target !== null && state.target !== "") {
     state.attributes.push(`target="${escapeHtmlAttribute(state.target)}"`)
   }
 
-  if (state.rel) {
+  if (state.rel !== null && state.rel !== "") {
     state.attributes.push(`rel="${escapeHtmlAttribute(state.rel)}"`)
   }
 }
 
 const appendImageAttributes = (state: SanitizedAttributeState) => {
-  if (!state.imageSrc) {
+  if (state.imageSrc === null || state.imageSrc === "") {
     return false
   }
 
@@ -294,7 +302,10 @@ const sanitizeHtmlTag = (
   const tag = rawTag.toLowerCase()
 
   if (
-    !(ALLOWED_HTML_TAGS.has(tag) || options.additionalAllowedTags?.has(tag))
+    !(
+      ALLOWED_HTML_TAGS.has(tag) ||
+      options.additionalAllowedTags?.has(tag) === true
+    )
   ) {
     return ""
   }
@@ -314,16 +325,22 @@ export const sanitizeHtml = (
     return ""
   }
 
+  // `script` and `style` spell out ASCII case pairs (see the regex constants above);
+  // `iframe`/`object`/`embed` contain no `s`, so `iu` is equivalent to `i` for them.
   const cleanedHtml = html
-    .replaceAll(/<!--[\s\S]*?-->/g, "")
-    .replaceAll(/<script[\s\S]*?<\/script>/gi, "")
-    .replaceAll(/<style[\s\S]*?<\/style>/gi, "")
-    .replaceAll(/<iframe[\s\S]*?<\/iframe>/gi, "")
-    .replaceAll(/<object[\s\S]*?<\/object>/gi, "")
-    .replaceAll(/<embed[\s\S]*?<\/embed>/gi, "")
+    .replaceAll(/<!--[\s\S]*?-->/gu, "")
+    .replaceAll(
+      /<[sS][cC][rR][iI][pP][tT][\s\S]*?<\/[sS][cC][rR][iI][pP][tT]>/gu,
+      "",
+    )
+    .replaceAll(/<[sS][tT][yY][lL][eE][\s\S]*?<\/[sS][tT][yY][lL][eE]>/gu, "")
+    .replaceAll(/<iframe[\s\S]*?<\/iframe>/giu, "")
+    .replaceAll(/<object[\s\S]*?<\/object>/giu, "")
+    .replaceAll(/<embed[\s\S]*?<\/embed>/giu, "")
 
   const sanitized = cleanedHtml.replaceAll(
-    /<\s*(\/?)\s*([a-zA-Z0-9]+)([^>]*)>/g,
+    // Capture groups stay unnamed: ES2017 target, see parseTagAttributes.
+    /<\s*(\/?)\s*([a-zA-Z0-9]+)([^>]*)>/gu,
     (_, closingSlash: string, rawTag: string, rawAttributes: string) =>
       sanitizeHtmlTag(closingSlash, rawTag, rawAttributes, options),
   )
@@ -331,10 +348,30 @@ export const sanitizeHtml = (
   return sanitized.trim()
 }
 
+export const stripHtml = (value: string | null | undefined): string => {
+  if (value === null || value === undefined || value === "") {
+    return ""
+  }
+
+  return value
+    .replaceAll(
+      /<[sS][tT][yY][lL][eE][^>]*>[\s\S]*?<\/[sS][tT][yY][lL][eE]>/gu,
+      " ",
+    )
+    .replaceAll(
+      /<[sS][cC][rR][iI][pP][tT][^>]*>[\s\S]*?<\/[sS][cC][rR][iI][pP][tT]>/gu,
+      " ",
+    )
+    .replaceAll(/<[^>]+>/gu, " ")
+    .replaceAll(/&[nN][bB][sS][pP];/gu, " ")
+    .replaceAll(/\s+/gu, " ")
+    .trim()
+}
+
 export const hasRenderableHtmlContent = (
   value: string | null | undefined,
 ): boolean => {
-  if (!value) {
+  if (value === null || value === undefined || value === "") {
     return false
   }
 
@@ -347,18 +384,4 @@ export const hasRenderableHtmlContent = (
     stripHtml(sanitizedHtml).length > 0 ||
     RENDERABLE_IMAGE_TAG_REGEX.test(sanitizedHtml)
   )
-}
-
-export const stripHtml = (value: string | null | undefined): string => {
-  if (!value) {
-    return ""
-  }
-
-  return value
-    .replaceAll(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replaceAll(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
-    .replaceAll(/<[^>]+>/g, " ")
-    .replaceAll(/&nbsp;/gi, " ")
-    .replaceAll(/\s+/g, " ")
-    .trim()
 }
