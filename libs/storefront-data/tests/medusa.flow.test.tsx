@@ -3,6 +3,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import type { Mock } from "vitest"
 import { vi, describe, expect, it } from "vitest"
 
 import type { CartQueryKeys } from "../src/cart/types"
@@ -20,16 +21,25 @@ import {
   createStoreShippingOption,
 } from "./medusa-fixtures"
 
-const createWrapper =
-  (client: QueryClient) =>
-  ({ children }: { children: ReactNode }) => (
+const createWrapper = (client: QueryClient) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
+  return Wrapper
+}
+
+type CartResultFn = () => Promise<{ cart: HttpTypes.StoreCart }>
+type ClientFetchFn = (path: string) => Promise<Record<string, unknown>>
+type CompleteFn = () => Promise<HttpTypes.StoreCompleteCartResponse>
+type InitiatePaymentSessionFn = (
+  cart: HttpTypes.StoreCart,
+  input: { provider_id: string },
+) => Promise<{ payment_collection: HttpTypes.StorePaymentCollection }>
 
 interface SdkMockOverrides {
-  clientFetch?: ReturnType<typeof vi.fn>
-  complete?: ReturnType<typeof vi.fn>
-  createLineItem?: ReturnType<typeof vi.fn>
+  clientFetch?: Mock<ClientFetchFn>
+  complete?: Mock<CompleteFn>
+  createLineItem?: Mock<CartResultFn>
 }
 
 const createSdkMock = (overrides: SdkMockOverrides = {}) => {
@@ -40,26 +50,26 @@ const createSdkMock = (overrides: SdkMockOverrides = {}) => {
   })
   canonicalCart.items = [createStoreCartLineItem(canonicalCart)]
 
-  const defaultClientFetch = vi.fn(async (path: string) => {
+  const defaultClientFetch = vi.fn<ClientFetchFn>(async (path) => {
     if (path === "/store/carts/cart_1") {
-      return { cart: canonicalCart }
+      return await Promise.resolve({ cart: canonicalCart })
     }
 
     if (path === "/store/shipping-options") {
-      return {
+      return await Promise.resolve({
         shipping_options: [
           createStoreShippingOption("ship_1", { amount: 150 }),
         ],
-      }
+      })
     }
 
     if (path === "/store/payment-providers") {
-      return {
+      return await Promise.resolve({
         payment_providers: paymentProviders,
-      }
+      })
     }
 
-    return {}
+    return await Promise.resolve({})
   })
   const clientFetch = overrides.clientFetch ?? defaultClientFetch
 
@@ -69,13 +79,20 @@ const createSdkMock = (overrides: SdkMockOverrides = {}) => {
     enumerable: true,
     value: [{ quantity: 1 }],
   })
-  const defaultCreateLineItem = vi.fn(async () => ({ cart: incompleteCart }))
+  const defaultCreateLineItem = vi.fn<CartResultFn>(
+    async () => await Promise.resolve({ cart: incompleteCart }),
+  )
   const createLineItem = overrides.createLineItem ?? defaultCreateLineItem
-  const retrieve = vi.fn(async () => ({ cart: canonicalCart }))
-  const defaultComplete = vi.fn(async () => ({
-    order: createStoreOrder("order_1", { region_id: "reg_1" }),
-    type: "order" as const,
-  }))
+  const retrieve = vi.fn<CartResultFn>(
+    async () => await Promise.resolve({ cart: canonicalCart }),
+  )
+  const defaultComplete = vi.fn<CompleteFn>(
+    async () =>
+      await Promise.resolve({
+        order: createStoreOrder("order_1", { region_id: "reg_1" }),
+        type: "order" as const,
+      }),
+  )
   const complete = overrides.complete ?? defaultComplete
 
   const shippingCart = createStoreCart("cart_1", { region_id: "reg_1" })
@@ -86,14 +103,17 @@ const createSdkMock = (overrides: SdkMockOverrides = {}) => {
       shipping_option_id: "ship_1",
     }),
   ]
-  const addShippingMethod = vi.fn(async () => ({ cart: shippingCart }))
+  const addShippingMethod = vi.fn<CartResultFn>(
+    async () => await Promise.resolve({ cart: shippingCart }),
+  )
 
-  const initiatePaymentSession = vi.fn(
-    async (_cart: HttpTypes.StoreCart, input: { provider_id: string }) => ({
-      payment_collection: createStorePaymentCollection({
-        payment_sessions: [createStorePaymentSession(input.provider_id)],
+  const initiatePaymentSession = vi.fn<InitiatePaymentSessionFn>(
+    async (_cart, input) =>
+      await Promise.resolve({
+        payment_collection: createStorePaymentCollection({
+          payment_sessions: [createStorePaymentSession(input.provider_id)],
+        }),
       }),
-    }),
   )
 
   const sdk = new Medusa({ baseUrl: "https://storefront.test" })
@@ -102,9 +122,15 @@ const createSdkMock = (overrides: SdkMockOverrides = {}) => {
     addShippingMethod: { value: addShippingMethod },
     complete: { value: complete },
     create: {
-      value: vi.fn(async () => ({
-        cart: createStoreCart("cart_1", { region_id: "reg_1", items: [] }),
-      })),
+      value: vi.fn<CartResultFn>(
+        async () =>
+          await Promise.resolve({
+            cart: createStoreCart("cart_1", {
+              items: [],
+              region_id: "reg_1",
+            }),
+          }),
+      ),
     },
     createLineItem: { value: createLineItem },
     retrieve: { value: retrieve },
@@ -144,9 +170,9 @@ describe("Medusa flow helpers", () => {
   it("refreshes cart caches with canonical cart payload after add-to-cart", async () => {
     const { sdk, spies } = createSdkMock()
     const cartStorage = {
-      clear: vi.fn(),
+      clear: vi.fn<() => void>(),
       get: () => "cart_1",
-      set: vi.fn(),
+      set: vi.fn<(value: string) => void>(),
     }
 
     const storefront = createMedusaStorefrontPreset({
@@ -230,7 +256,7 @@ describe("Medusa flow helpers", () => {
       },
     })
     const wrapper = createWrapper(queryClient)
-    const onSuccess = vi.fn()
+    const onSuccess = vi.fn<(data: unknown) => void>()
 
     const { result } = renderHook(() => cartFlow.useAddToCart(), { wrapper })
 
@@ -258,7 +284,7 @@ describe("Medusa flow helpers", () => {
   })
 
   it("normalizes per-call add-to-cart errors for callbacks and mutateAsync", async () => {
-    const createLineItem = vi.fn().mockRejectedValue({
+    const createLineItem = vi.fn<CartResultFn>().mockRejectedValue({
       code: "out_of_stock",
       message: "Out of stock",
     })
@@ -272,7 +298,7 @@ describe("Medusa flow helpers", () => {
       },
     })
     const wrapper = createWrapper(queryClient)
-    const onError = vi.fn()
+    const onError = vi.fn<(error: unknown) => void>()
 
     const { result } = renderHook(() => cartFlow.useAddToCart(), { wrapper })
 
@@ -311,9 +337,9 @@ describe("Medusa flow helpers", () => {
   it("passes cart query input through to low-level hooks for region auto-create flows", async () => {
     const { sdk } = createSdkMock()
     const cartStorage = {
-      clear: vi.fn(),
+      clear: vi.fn<() => void>(),
       get: () => null,
-      set: vi.fn(),
+      set: vi.fn<(value: string) => void>(),
     }
 
     const storefront = createMedusaStorefrontPreset({
@@ -352,11 +378,11 @@ describe("Medusa flow helpers", () => {
 
   it("clears cart state and seeds order cache after complete-cart order result", async () => {
     const { sdk } = createSdkMock()
-    const clearCartId = vi.fn()
+    const clearCartId = vi.fn<() => void>()
     const cartStorage = {
       clear: clearCartId,
       get: () => "cart_1",
-      set: vi.fn(),
+      set: vi.fn<(value: string) => void>(),
     }
 
     const storefront = createMedusaStorefrontPreset({
@@ -436,9 +462,9 @@ describe("Medusa flow helpers", () => {
   it("supports custom active cart query matcher in cart flow", async () => {
     const { sdk } = createSdkMock()
     const cartStorage = {
-      clear: vi.fn(),
+      clear: vi.fn<() => void>(),
       get: () => "cart_1",
-      set: vi.fn(),
+      set: vi.fn<(value: string) => void>(),
     }
     const customCartNamespace = ["custom", "cart"] as const
     const customCartQueryKeys: CartQueryKeys = {
@@ -566,27 +592,25 @@ describe("Medusa flow helpers", () => {
   })
 
   it("does not clear a newly switched cart id when complete-cart finishes", async () => {
-    let resolveComplete:
-      | ((value: { type: "order"; order: HttpTypes.StoreOrder }) => void)
-      | undefined
-    const completePromise = new Promise<{
-      type: "order"
-      order: HttpTypes.StoreOrder
-    }>((resolve) => {
-      resolveComplete = resolve
-    })
+    let releaseComplete = false
+    const complete = vi.fn<CompleteFn>(async () => {
+      await vi.waitUntil(() => releaseComplete)
 
-    const complete = vi.fn(async () => completePromise)
+      return {
+        order: createStoreOrder("order_1", { region_id: "reg_1" }),
+        type: "order" as const,
+      }
+    })
     const { sdk } = createSdkMock({ complete })
     let storedCartId: string | null = "cart_1"
-    const clearCartId = vi.fn(() => {
+    const clearCartId = vi.fn<() => void>(() => {
       storedCartId = null
     })
 
     const cartStorage = {
       clear: clearCartId,
       get: () => storedCartId,
-      set: vi.fn((cartId: string) => {
+      set: vi.fn<(cartId: string) => void>((cartId) => {
         storedCartId = cartId
       }),
     }
@@ -640,13 +664,7 @@ describe("Medusa flow helpers", () => {
     })
 
     storedCartId = "cart_2"
-    if (!resolveComplete) {
-      throw new Error("Complete resolver was not initialized")
-    }
-    resolveComplete({
-      order: createStoreOrder("order_1", { region_id: "reg_1" }),
-      type: "order",
-    })
+    releaseComplete = true
 
     await act(async () => {
       await mutationPromise
@@ -738,8 +756,8 @@ describe("Medusa flow helpers", () => {
         region_id: "reg_1",
         shipping_methods: [
           {
-            shipping_option_id: "ship_1",
             data: { pickup_point_id: "pickup-1" },
+            shipping_option_id: "ship_1",
           },
         ],
       })
@@ -780,8 +798,8 @@ describe("Medusa flow helpers", () => {
       region_id: "reg_1",
       shipping_methods: [
         {
-          shipping_option_id: "ship_1",
           data: { pickup_point_id: "pickup-1" },
+          shipping_option_id: "ship_1",
         },
       ],
     })
@@ -809,9 +827,9 @@ describe("Medusa flow helpers", () => {
   it("completes checkout with fallback payment provider and returns order", async () => {
     const { sdk, spies } = createSdkMock()
     const cartStorage = {
-      clear: vi.fn(),
+      clear: vi.fn<() => void>(),
       get: () => "cart_1",
-      set: vi.fn(),
+      set: vi.fn<(value: string) => void>(),
     }
     const storefront = createMedusaStorefrontPreset({
       cart: {
@@ -941,7 +959,7 @@ describe("Medusa flow helpers", () => {
       payment_collection: {
         id: "payment_collection_1",
         payment_sessions: [
-          { provider_id: "pp_system_default", is_selected: true },
+          { is_selected: true, provider_id: "pp_system_default" },
         ],
       },
       region_id: "reg_1",
@@ -1083,25 +1101,21 @@ describe("Medusa flow helpers", () => {
   })
 
   it("returns stage-coded payment provider error when no provider is available", async () => {
-    const clientFetch = vi.fn(
-      async (path: string): Promise<Record<string, unknown>> => {
-        if (path === "/store/payment-providers") {
-          return {
-            payment_providers: [],
-          }
-        }
+    const clientFetch = vi.fn<ClientFetchFn>(async (path) => {
+      if (path === "/store/payment-providers") {
+        return await Promise.resolve({
+          payment_providers: [],
+        })
+      }
 
-        if (path === "/store/shipping-options") {
-          return {
-            shipping_options: [
-              { amount: 150, id: "ship_1", price_type: "flat" },
-            ],
-          }
-        }
+      if (path === "/store/shipping-options") {
+        return await Promise.resolve({
+          shipping_options: [{ amount: 150, id: "ship_1", price_type: "flat" }],
+        })
+      }
 
-        return {}
-      },
-    )
+      return await Promise.resolve({})
+    })
     const { sdk } = createSdkMock({ clientFetch })
 
     const storefront = createMedusaStorefrontPreset({
@@ -1170,23 +1184,19 @@ describe("Medusa flow helpers", () => {
   })
 
   it("returns stage-coded payment provider error when provider refetch fails", async () => {
-    const clientFetch = vi.fn(
-      async (path: string): Promise<Record<string, unknown>> => {
-        if (path === "/store/payment-providers") {
-          throw new Error("Payment providers fetch failed")
-        }
+    const clientFetch = vi.fn<ClientFetchFn>(async (path) => {
+      if (path === "/store/payment-providers") {
+        throw new Error("Payment providers fetch failed")
+      }
 
-        if (path === "/store/shipping-options") {
-          return {
-            shipping_options: [
-              { amount: 150, id: "ship_1", price_type: "flat" },
-            ],
-          }
-        }
+      if (path === "/store/shipping-options") {
+        return await Promise.resolve({
+          shipping_options: [{ amount: 150, id: "ship_1", price_type: "flat" }],
+        })
+      }
 
-        return {}
-      },
-    )
+      return await Promise.resolve({})
+    })
     const { sdk } = createSdkMock({ clientFetch })
 
     const storefront = createMedusaStorefrontPreset({
@@ -1256,19 +1266,20 @@ describe("Medusa flow helpers", () => {
   })
 
   it("returns stage-coded complete error when complete cart returns cart payload", async () => {
-    const complete = vi.fn(async () => ({
-      cart: {
-        id: "cart_1",
-        items: [expect.objectContaining({ id: "item_1", quantity: 1 })],
-        region_id: "reg_1",
-      },
-      error: {
-        message: "Payment authorization failed",
-        name: "PaymentError",
-        type: "payment",
-      },
-      type: "cart" as const,
-    }))
+    const rejectedCart = createStoreCart("cart_1", { region_id: "reg_1" })
+    rejectedCart.items = [createStoreCartLineItem(rejectedCart)]
+    const complete = vi.fn<CompleteFn>(
+      async () =>
+        await Promise.resolve({
+          cart: rejectedCart,
+          error: {
+            message: "Payment authorization failed",
+            name: "PaymentError",
+            type: "payment",
+          },
+          type: "cart" as const,
+        }),
+    )
     const { sdk } = createSdkMock({ complete })
 
     const storefront = createMedusaStorefrontPreset({
