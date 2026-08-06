@@ -18,7 +18,6 @@ import type {
 } from "../modules/ppl-client"
 import { checkTimeoutConditions } from "../modules/ppl-client/utils"
 import type {
-  FulfillmentRecord,
   PendingFulfillment,
   SyncAttemptInfo,
 } from "../modules/ppl-client/utils"
@@ -39,119 +38,30 @@ interface SyncContext {
   pplClient: PplClientModuleService
 }
 
-/**
- * PPL Label Sync Job
- *
- * Runs every 1 minute to:
- * 1. Find fulfillments with status='pending' and batch_id
- * 2. Poll PPL for batch completion
- * 3. Download labels and upload to S3
- * 4. Update fulfillment data with shipment_number, label_url, etc.
- *
- * Uses distributed locking to prevent concurrent runs across multiple instances.
- */
-export default async function pplLabelSyncJob(container: MedusaContainer) {
-  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+const isNonEmptyString = (value: string | undefined): value is string =>
+  typeof value === "string" && value.length > 0
 
-  // Check global feature flag (module loaded)
-  if (process.env["FEATURE_PPL_ENABLED"] !== "1") {
-    logger.debug(
-      "PPL Label Sync: PPL module is disabled (FEATURE_PPL_ENABLED != 1), skipping",
-    )
-    return
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const isPendingFulfillment = (value: unknown): value is PendingFulfillment => {
+  if (!(isRecord(value) && isRecord(value["data"]))) {
+    return false
   }
 
-  const pplClient = container.resolve<PplClientModuleService>(PPL_CLIENT_MODULE)
+  const rawData = value["data"]
+  const status: unknown = rawData["status"]
+  const batchId: unknown = rawData["batch_id"]
 
-  // Check runtime config (admin toggle)
-  const config = await pplClient.getConfig()
-  if (!config?.is_enabled) {
-    logger.debug(
-      "PPL Label Sync: PPL is disabled in settings (is_enabled = false), skipping",
-    )
-    return
-  }
-
-  const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
-
-  // Use distributed lock to prevent concurrent job runs
-  const result = await executeWithLockTimeout(
-    lockingModule,
-    JOB_LOCK_KEY,
-    JOB_LOCK_TIMEOUT,
-    async () => {
-      await executeSync(container, pplClient, logger)
-    },
-  )
-
-  if (result.status === "timed_out") {
-    logger.info(
-      "PPL Label Sync: Skipping - another instance is already running",
-    )
-  }
-}
-
-/**
- * Execute the actual sync logic (wrapped by distributed lock)
- */
-async function executeSync(
-  container: MedusaContainer,
-  pplClient: PplClientModuleService,
-  logger: Logger,
-): Promise<void> {
-  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const fulfillmentService = container.resolve<IFulfillmentModuleService>(
-    Modules.FULFILLMENT,
-  )
-  const fileService = container.resolve<IFileModuleService>(Modules.FILE)
-  const eventBus = container.resolve<IEventBusModuleService>(Modules.EVENT_BUS)
-
-  logger.info("PPL Label Sync: Starting...")
-
-  try {
-    const ctx: SyncContext = {
-      eventBus,
-      fileService,
-      fulfillmentService,
-      logger,
-      pplClient,
-    }
-
-    const pendingFulfillments = await fetchPendingFulfillments(query)
-
-    if (pendingFulfillments.length === 0) {
-      logger.info("PPL Label Sync: No pending fulfillments to process")
-      return
-    }
-
-    logger.info(
-      `PPL Label Sync: Found ${pendingFulfillments.length} pending fulfillments`,
-    )
-
-    for (const fulfillment of pendingFulfillments) {
-      await processFulfillment(ctx, fulfillment)
-    }
-
-    logger.info("PPL Label Sync: Completed")
-  } catch (error) {
-    logger.error(
-      "PPL Label Sync failed",
-      error instanceof Error ? error : new Error(String(error)),
-    )
-  }
-}
-
-export const config = {
-  name: "ppl-label-sync",
-  schedule: "*/1 * * * *",
+  return status === "pending" && typeof batchId === "string"
 }
 
 /**
  * Fetch pending PPL fulfillments from database
  */
-async function fetchPendingFulfillments(
+const fetchPendingFulfillments = async (
   query: Query,
-): Promise<PendingFulfillment[]> {
+): Promise<PendingFulfillment[]> => {
   const { data: fulfillments } = await query.graph({
     entity: "fulfillment",
     fields: ["id", "data", "created_at", "provider_id"],
@@ -161,119 +71,126 @@ async function fetchPendingFulfillments(
   })
 
   // JSON field filtering (data.status, data.batch_id) must be done in-memory
-  return (fulfillments as FulfillmentRecord[]).filter(
-    (f): f is PendingFulfillment =>
-      f.data?.status === "pending" && typeof f.data?.batch_id === "string",
-  )
+  const rawFulfillments: unknown = fulfillments
+  return Array.isArray(rawFulfillments)
+    ? rawFulfillments.filter(isPendingFulfillment)
+    : []
 }
 
 /**
- * Process a single pending fulfillment
+ * Download label from PPL and upload to S3
  */
-async function processFulfillment(
+const downloadAndStoreLabel = async (
   ctx: SyncContext,
-  fulfillment: PendingFulfillment,
-): Promise<void> {
-  const { logger, pplClient } = ctx
-  const fulfillmentData = fulfillment.data
-  const batchId = fulfillmentData.batch_id
-  const now = new Date().toISOString()
-
-  const attemptInfo: SyncAttemptInfo = {
-    firstSyncAttempt: fulfillmentData.first_sync_attempt || now,
-    now,
-    syncAttempts: (fulfillmentData.sync_attempts || 0) + 1,
-  }
+  shipmentNumber: string,
+  labelUrl: string,
+): Promise<string> => {
+  const { logger, fileService, pplClient } = ctx
 
   try {
-    // Check for timeout conditions
-    const timeoutError = checkTimeoutConditions(fulfillment, attemptInfo)
-    if (timeoutError) {
-      logger.error(
-        `PPL Label Sync: Fulfillment ${fulfillment.id} ${timeoutError.reason}`,
+    const labelBuffer = await pplClient.downloadLabel(labelUrl)
+
+    const uploadedFiles = await fileService.createFiles([
+      {
+        content: labelBuffer.toString("base64"),
+        filename: `ppl-label-${shipmentNumber}.png`,
+        mimeType: "image/png",
+      },
+    ])
+
+    if (uploadedFiles[0]) {
+      logger.info(
+        `PPL Label Sync: Label for ${shipmentNumber} stored at ${uploadedFiles[0].url}`,
       )
-      await markAsError(ctx, fulfillment, timeoutError.message, attemptInfo)
-      return
+      return uploadedFiles[0].url
     }
-
-    logger.debug(
-      `PPL Label Sync: Checking batch ${batchId} for fulfillment ${fulfillment.id} (attempt ${attemptInfo.syncAttempts})`,
-    )
-
-    const batchResult = await pplClient.getBatchStatus(batchId)
-    await handleBatchResult(ctx, fulfillment, batchResult, attemptInfo)
   } catch (error) {
-    logger.error(
-      `PPL Label Sync: Error processing fulfillment ${fulfillment.id}: ${error instanceof Error ? error.message : String(error)}`,
+    logger.warn(
+      `PPL Label Sync: Failed to store label in S3 for ${shipmentNumber}: ${error instanceof Error ? error.message : String(error)}. Using PPL URL.`,
     )
-
-    await updateAttemptCount(ctx, fulfillment, attemptInfo)
   }
+
+  return labelUrl
 }
 
 /**
- * Handle batch result based on item import state
+ * Update attempt count without marking as error
  */
-async function handleBatchResult(
+const updateAttemptCount = async (
   ctx: SyncContext,
   fulfillment: PendingFulfillment,
-  batchResult: PplBatchResponse,
   attemptInfo: SyncAttemptInfo,
-): Promise<void> {
-  const { logger, fulfillmentService } = ctx
-  const fulfillmentData = fulfillment.data
-  const item = batchResult.items[0]
+): Promise<void> => {
+  const { fulfillmentService, logger } = ctx
 
-  if (!item) {
-    await markAsError(
-      ctx,
-      fulfillment,
-      "Batch response has no items",
-      attemptInfo,
-    )
-    return
-  }
-
-  if (item.importState === "Complete") {
-    await handleCompletedItem(ctx, fulfillment, item, attemptInfo)
-  } else if (item.importState === "Error" || item.errorMessage) {
-    await markAsError(
-      ctx,
-      fulfillment,
-      `PPL error: ${item.errorMessage || "Unknown error"}`,
-      attemptInfo,
-    )
-  } else {
-    // Still processing (Received or InProcess)
-    logger.debug(
-      `PPL Label Sync: Batch ${fulfillmentData.batch_id} still processing (${item.importState}), will retry`,
-    )
-
+  try {
     await fulfillmentService.updateFulfillment(fulfillment.id, {
       data: {
-        ...fulfillmentData,
+        ...fulfillment.data,
         first_sync_attempt: attemptInfo.firstSyncAttempt,
         last_sync_attempt: attemptInfo.now,
         sync_attempts: attemptInfo.syncAttempts,
       },
     })
+  } catch (error) {
+    logger.error(
+      `PPL Label Sync: Failed to update attempt count for ${fulfillment.id}`,
+      error instanceof Error ? error : new Error(String(error)),
+    )
   }
+}
+
+/**
+ * Mark fulfillment as error and emit event
+ */
+const markAsError = async (
+  ctx: SyncContext,
+  fulfillment: PendingFulfillment,
+  errorMessage: string,
+  attemptInfo: SyncAttemptInfo,
+): Promise<void> => {
+  const { fulfillmentService, eventBus } = ctx
+  const fulfillmentData = fulfillment.data
+
+  const updatedData: PplFulfillmentData = {
+    ...fulfillmentData,
+    error_message: errorMessage,
+    first_sync_attempt: attemptInfo.firstSyncAttempt,
+    last_sync_attempt: attemptInfo.now,
+    status: "error",
+    sync_attempts: attemptInfo.syncAttempts,
+  }
+
+  await fulfillmentService.updateFulfillment(fulfillment.id, {
+    data: updatedData,
+  })
+
+  await eventBus.emit({
+    data: {
+      batch_id: fulfillmentData.batch_id,
+      error_message: errorMessage,
+      fulfillment_id: fulfillment.id,
+    },
+    name: "fulfillment.label_failed",
+  })
 }
 
 /**
  * Handle a completed item - validate, download label, update fulfillment
  */
-async function handleCompletedItem(
+const handleCompletedItem = async (
   ctx: SyncContext,
   fulfillment: PendingFulfillment,
   item: PplBatchItem,
   attemptInfo: SyncAttemptInfo,
-): Promise<void> {
+): Promise<void> => {
   const { logger, fulfillmentService, eventBus } = ctx
   const fulfillmentData = fulfillment.data
 
   // Validate item has required fields
-  if (!(item.shipmentNumber && item.labelUrl)) {
+  if (
+    !(isNonEmptyString(item.shipmentNumber) && isNonEmptyString(item.labelUrl))
+  ) {
     await markAsError(
       ctx,
       fulfillment,
@@ -293,7 +210,7 @@ async function handleCompletedItem(
   )
 
   const trackingUrl =
-    pplTrackingUrl ||
+    pplTrackingUrl ??
     `https://www.ppl.cz/vyhledat-zasilku?shipmentId=${shipmentNumber}`
 
   // Update fulfillment with completed data
@@ -329,99 +246,221 @@ async function handleCompletedItem(
 }
 
 /**
- * Download label from PPL and upload to S3
+ * Handle batch result based on item import state
  */
-async function downloadAndStoreLabel(
-  ctx: SyncContext,
-  shipmentNumber: string,
-  labelUrl: string,
-): Promise<string> {
-  const { logger, fileService, pplClient } = ctx
-
-  try {
-    const labelBuffer = await pplClient.downloadLabel(labelUrl)
-
-    const uploadedFiles = await fileService.createFiles([
-      {
-        content: labelBuffer.toString("base64"),
-        filename: `ppl-label-${shipmentNumber}.png`,
-        mimeType: "image/png",
-      },
-    ])
-
-    if (uploadedFiles[0]) {
-      logger.info(
-        `PPL Label Sync: Label for ${shipmentNumber} stored at ${uploadedFiles[0].url}`,
-      )
-      return uploadedFiles[0].url
-    }
-  } catch (error) {
-    logger.warn(
-      `PPL Label Sync: Failed to store label in S3 for ${shipmentNumber}: ${error instanceof Error ? error.message : String(error)}. Using PPL URL.`,
-    )
-  }
-
-  return labelUrl
-}
-
-/**
- * Update attempt count without marking as error
- */
-async function updateAttemptCount(
+const handleBatchResult = async (
   ctx: SyncContext,
   fulfillment: PendingFulfillment,
+  batchResult: PplBatchResponse,
   attemptInfo: SyncAttemptInfo,
-): Promise<void> {
-  const { fulfillmentService, logger } = ctx
+): Promise<void> => {
+  const { logger, fulfillmentService } = ctx
+  const fulfillmentData = fulfillment.data
+  const [item] = batchResult.items
 
-  try {
+  if (!item) {
+    await markAsError(
+      ctx,
+      fulfillment,
+      "Batch response has no items",
+      attemptInfo,
+    )
+    return
+  }
+
+  if (item.importState === "Complete") {
+    await handleCompletedItem(ctx, fulfillment, item, attemptInfo)
+  } else if (
+    item.importState === "Error" ||
+    isNonEmptyString(item.errorMessage)
+  ) {
+    await markAsError(
+      ctx,
+      fulfillment,
+      `PPL error: ${item.errorMessage ?? "Unknown error"}`,
+      attemptInfo,
+    )
+  } else {
+    // Still processing (Received or InProcess)
+    logger.debug(
+      `PPL Label Sync: Batch ${fulfillmentData.batch_id} still processing (${item.importState}), will retry`,
+    )
+
     await fulfillmentService.updateFulfillment(fulfillment.id, {
       data: {
-        ...fulfillment.data,
+        ...fulfillmentData,
         first_sync_attempt: attemptInfo.firstSyncAttempt,
         last_sync_attempt: attemptInfo.now,
         sync_attempts: attemptInfo.syncAttempts,
       },
     })
+  }
+}
+
+/**
+ * Process a single pending fulfillment
+ */
+const processFulfillment = async (
+  ctx: SyncContext,
+  fulfillment: PendingFulfillment,
+): Promise<void> => {
+  const { logger, pplClient } = ctx
+  const fulfillmentData = fulfillment.data
+  const batchId = fulfillmentData.batch_id
+  const now = new Date().toISOString()
+
+  const attemptInfo: SyncAttemptInfo = {
+    firstSyncAttempt: fulfillmentData.first_sync_attempt ?? now,
+    now,
+    syncAttempts: (fulfillmentData.sync_attempts ?? 0) + 1,
+  }
+
+  try {
+    // Check for timeout conditions
+    const timeoutError = checkTimeoutConditions(fulfillment, attemptInfo)
+    if (timeoutError) {
+      logger.error(
+        `PPL Label Sync: Fulfillment ${fulfillment.id} ${timeoutError.reason}`,
+      )
+      await markAsError(ctx, fulfillment, timeoutError.message, attemptInfo)
+      return
+    }
+
+    logger.debug(
+      `PPL Label Sync: Checking batch ${batchId} for fulfillment ${fulfillment.id} (attempt ${attemptInfo.syncAttempts})`,
+    )
+
+    const batchResult = await pplClient.getBatchStatus(batchId)
+    await handleBatchResult(ctx, fulfillment, batchResult, attemptInfo)
   } catch (error) {
     logger.error(
-      `PPL Label Sync: Failed to update attempt count for ${fulfillment.id}`,
+      `PPL Label Sync: Error processing fulfillment ${fulfillment.id}: ${error instanceof Error ? error.message : String(error)}`,
+    )
+
+    await updateAttemptCount(ctx, fulfillment, attemptInfo)
+  }
+}
+
+// Pending fulfillments are processed one at a time (not Promise.all) because
+// each fulfillment's PPL batch lookup, label download, and S3 upload must
+// complete before moving to the next. Bounded tail recursion replaces a
+// for-of/await loop so each item still runs strictly after the previous one.
+const processPendingFulfillments = async (
+  ctx: SyncContext,
+  pendingFulfillments: PendingFulfillment[],
+  index: number,
+): Promise<void> => {
+  const fulfillment = pendingFulfillments[index]
+  if (!fulfillment) {
+    return
+  }
+
+  await processFulfillment(ctx, fulfillment)
+
+  await processPendingFulfillments(ctx, pendingFulfillments, index + 1)
+}
+
+/**
+ * Execute the actual sync logic (wrapped by distributed lock)
+ */
+const executeSync = async (
+  container: MedusaContainer,
+  pplClient: PplClientModuleService,
+  logger: Logger,
+): Promise<void> => {
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const fulfillmentService = container.resolve<IFulfillmentModuleService>(
+    Modules.FULFILLMENT,
+  )
+  const fileService = container.resolve<IFileModuleService>(Modules.FILE)
+  const eventBus = container.resolve<IEventBusModuleService>(Modules.EVENT_BUS)
+
+  logger.info("PPL Label Sync: Starting...")
+
+  try {
+    const ctx: SyncContext = {
+      eventBus,
+      fileService,
+      fulfillmentService,
+      logger,
+      pplClient,
+    }
+
+    const pendingFulfillments = await fetchPendingFulfillments(query)
+
+    if (pendingFulfillments.length === 0) {
+      logger.info("PPL Label Sync: No pending fulfillments to process")
+      return
+    }
+
+    logger.info(
+      `PPL Label Sync: Found ${pendingFulfillments.length} pending fulfillments`,
+    )
+
+    await processPendingFulfillments(ctx, pendingFulfillments, 0)
+
+    logger.info("PPL Label Sync: Completed")
+  } catch (error) {
+    logger.error(
+      "PPL Label Sync failed",
       error instanceof Error ? error : new Error(String(error)),
     )
   }
 }
 
 /**
- * Mark fulfillment as error and emit event
+ * PPL Label Sync Job
+ *
+ * Runs every 1 minute to:
+ * 1. Find fulfillments with status='pending' and batch_id
+ * 2. Poll PPL for batch completion
+ * 3. Download labels and upload to S3
+ * 4. Update fulfillment data with shipment_number, label_url, etc.
+ *
+ * Uses distributed locking to prevent concurrent runs across multiple instances.
  */
-async function markAsError(
-  ctx: SyncContext,
-  fulfillment: PendingFulfillment,
-  errorMessage: string,
-  attemptInfo: SyncAttemptInfo,
-): Promise<void> {
-  const { fulfillmentService, eventBus } = ctx
-  const fulfillmentData = fulfillment.data
+export default async function pplLabelSyncJob(container: MedusaContainer) {
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
-  const updatedData: PplFulfillmentData = {
-    ...fulfillmentData,
-    error_message: errorMessage,
-    first_sync_attempt: attemptInfo.firstSyncAttempt,
-    last_sync_attempt: attemptInfo.now,
-    status: "error",
-    sync_attempts: attemptInfo.syncAttempts,
+  // Check global feature flag (module loaded)
+  if (process.env["FEATURE_PPL_ENABLED"] !== "1") {
+    logger.debug(
+      "PPL Label Sync: PPL module is disabled (FEATURE_PPL_ENABLED != 1), skipping",
+    )
+    return
   }
 
-  await fulfillmentService.updateFulfillment(fulfillment.id, {
-    data: updatedData,
-  })
+  const pplClient = container.resolve<PplClientModuleService>(PPL_CLIENT_MODULE)
 
-  await eventBus.emit({
-    data: {
-      batch_id: fulfillmentData.batch_id,
-      error_message: errorMessage,
-      fulfillment_id: fulfillment.id,
+  // Check runtime config (admin toggle)
+  const config = await pplClient.getConfig()
+  if (config === null || !config.is_enabled) {
+    logger.debug(
+      "PPL Label Sync: PPL is disabled in settings (is_enabled = false), skipping",
+    )
+    return
+  }
+
+  const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
+
+  // Use distributed lock to prevent concurrent job runs
+  const result = await executeWithLockTimeout(
+    lockingModule,
+    JOB_LOCK_KEY,
+    JOB_LOCK_TIMEOUT,
+    async () => {
+      await executeSync(container, pplClient, logger)
     },
-    name: "fulfillment.label_failed",
-  })
+  )
+
+  if (result.status === "timed_out") {
+    logger.info(
+      "PPL Label Sync: Skipping - another instance is already running",
+    )
+  }
+}
+
+export const config = {
+  name: "ppl-label-sync",
+  schedule: "*/1 * * * *",
 }
