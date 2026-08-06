@@ -1,15 +1,11 @@
-import { compactRecord } from "@techsio/std/object"
+import { omitKeys, omitUndefined } from "@techsio/std/object"
 
 import { resolvePagination } from "../shared/pagination"
 import type { ProductReviewListInputBase } from "./types"
 
 export const stripListInput = <TInput extends ProductReviewListInputBase>(
   input: TInput,
-) => {
-  const { enabled: _enabled, page: _page, ...params } = input
-
-  return params
-}
+) => omitKeys(input, ["enabled", "page"])
 
 export const createDefaultListParams = <
   TInput extends ProductReviewListInputBase,
@@ -17,14 +13,16 @@ export const createDefaultListParams = <
   input: TInput,
   defaultPageSize: number,
 ) => {
-  const params = stripListInput(input) as Record<string, unknown>
+  const params = { ...input }
+  delete params.enabled
+  delete params.page
 
   if (typeof input.page !== "number") {
-    return compactRecord(params)
+    return params
   }
 
   const pagination = resolvePagination(
-    compactRecord({
+    omitUndefined({
       limit: input.limit,
       offset: input.offset,
       page: input.page,
@@ -32,9 +30,9 @@ export const createDefaultListParams = <
     defaultPageSize,
   )
 
-  return compactRecord({
+  return {
     ...params,
     limit: pagination.limit,
     offset: pagination.offset,
-  })
+  }
 }

@@ -44,9 +44,9 @@ export interface CatalogQueryOptionsFactory<
   ) => QueryFactoryOptions<CatalogListResponse<TProduct, TFacets>>
 }
 
-export function createCatalogQueryOptionsFactory<
+export const createCatalogQueryOptionsFactory = <
   TProduct,
-  TListInput extends CatalogListInputBase,
+  TListInput extends CatalogListInputBase & TListParams,
   TListParams,
   TFacets = CatalogFacets,
 >({
@@ -60,26 +60,20 @@ export function createCatalogQueryOptionsFactory<
   TListInput,
   TListParams,
   TFacets
->): CatalogQueryOptionsFactory<TProduct, TListInput, TFacets> {
+>): CatalogQueryOptionsFactory<TProduct, TListInput, TFacets> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createCatalogQueryKeys<TListParams>(queryKeyNamespace)
-  const buildList =
-    buildListParams ??
-    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
+  const buildList = buildListParams ?? ((input: TListInput) => input)
 
   return {
     getListQueryOptions: (
       input,
       options,
     ): QueryFactoryOptions<CatalogListResponse<TProduct, TFacets>> => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        listInput as TListInput,
-        options?.region ?? undefined,
-      )
+      const queryInput = { ...input }
+      delete queryInput.enabled
+      const resolvedInput = applyRegion(queryInput, options?.region)
       const listParams = buildList(resolvedInput)
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 

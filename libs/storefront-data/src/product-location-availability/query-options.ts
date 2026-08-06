@@ -37,7 +37,7 @@ export interface ProductLocationAvailabilityQueryOptionsFactory<
   ) => QueryFactoryOptions<TResponse>
 }
 
-export function createProductLocationAvailabilityQueryOptionsFactory<
+export const createProductLocationAvailabilityQueryOptionsFactory = <
   TResponse,
   TInput extends ProductLocationAvailabilityInputBase & TParams,
   TParams = TInput,
@@ -51,7 +51,7 @@ export function createProductLocationAvailabilityQueryOptionsFactory<
   TResponse,
   TInput,
   TParams
->): ProductLocationAvailabilityQueryOptionsFactory<TResponse, TInput> {
+>): ProductLocationAvailabilityQueryOptionsFactory<TResponse, TInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
@@ -65,7 +65,11 @@ export function createProductLocationAvailabilityQueryOptionsFactory<
 
       return {
         queryFn: async ({ signal }) => {
-          if (!input.productId) {
+          if (
+            input.productId === undefined ||
+            input.productId === null ||
+            input.productId.length === 0
+          ) {
             throw new Error("Product id is required for location availability.")
           }
 

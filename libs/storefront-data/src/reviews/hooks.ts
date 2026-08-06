@@ -4,7 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { omitUndefined } from "@techsio/std/object"
+import { omitUndefined, toPlainRecord } from "@techsio/std/object"
 
 import {
   createCacheConfig,
@@ -63,9 +63,9 @@ const emptySummary: ReviewSummary = {
   count: 0,
 }
 
-export function createProductReviewHooks<
+export const createProductReviewHooks = <
   TReview,
-  TListInput extends ProductReviewListInputBase,
+  TListInput extends ProductReviewListInputBase & TListParams,
   TListParams,
   TCreateInput extends CreateProductReviewInput = CreateProductReviewInput,
 >({
@@ -80,14 +80,13 @@ export function createProductReviewHooks<
   TListInput,
   TListParams,
   TCreateInput
->) {
+>) => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createProductReviewQueryKeys<TListParams>(queryKeyNamespace)
   const buildList =
     buildListParams ??
-    ((input: TListInput) =>
-      createDefaultListParams(input, defaultPageSize) as TListParams)
+    ((input: TListInput) => createDefaultListParams(input, defaultPageSize))
   const { getProductReviewsQueryOptions } =
     createProductReviewQueryOptionsFactory({
       buildListParams: buildList,
@@ -102,8 +101,11 @@ export function createProductReviewHooks<
     params: TListParams,
     data?: ProductReviewListResponse<TReview>,
   ) => {
-    const limitFromParams = (params as { limit?: number }).limit
-    const offsetFromParams = (params as { offset?: number }).offset
+    const paramsRecord = toPlainRecord(params)
+    const { limit: rawLimit, offset: rawOffset } = paramsRecord ?? {}
+    const limitFromParams = typeof rawLimit === "number" ? rawLimit : undefined
+    const offsetFromParams =
+      typeof rawOffset === "number" ? rawOffset : undefined
     const pagination = resolvePagination(
       omitUndefined({
         limit: limitFromParams ?? input.limit,
@@ -113,9 +115,8 @@ export function createProductReviewHooks<
       defaultPageSize,
     )
     const totalCount = data?.count ?? 0
-    const totalPages = pagination.limit
-      ? Math.ceil(totalCount / pagination.limit)
-      : 0
+    const totalPages =
+      pagination.limit > 0 ? Math.ceil(totalCount / pagination.limit) : 0
 
     return {
       currentPage: pagination.page,
@@ -128,12 +129,12 @@ export function createProductReviewHooks<
     }
   }
 
-  function useProductReviews(
+  const useProductReviews = (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductReviewListResponse<TReview>>
     },
-  ): UseProductReviewsResult<TReview> {
+  ): UseProductReviewsResult<TReview> => {
     const enabled = input.enabled ?? Boolean(input.productId)
     const listParams = buildList(input)
     const query = useQuery({
@@ -154,19 +155,16 @@ export function createProductReviewHooks<
     }
   }
 
-  function useSuspenseProductReviews(
+  const useSuspenseProductReviews = (
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductReviewListResponse<TReview>>
     },
-  ): UseSuspenseProductReviewsResult<TReview> {
+  ): UseSuspenseProductReviewsResult<TReview> => {
     const listParams = buildList(input)
     const query = useSuspenseQuery({
-      ...getProductReviewsQueryOptions(input, {
-        queryOptions: options?.queryOptions as ReadQueryOptions<
-          ProductReviewListResponse<TReview>
-        >,
-      }),
+      ...getProductReviewsQueryOptions(input),
+      ...options?.queryOptions,
     })
 
     return {
@@ -179,9 +177,9 @@ export function createProductReviewHooks<
     }
   }
 
-  function usePrefetchProductReviews(
+  const usePrefetchProductReviews = (
     options?: ProductReviewPrefetchHookOptions,
-  ) {
+  ) => {
     const queryClient = useQueryClient()
     const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
@@ -194,7 +192,7 @@ export function createProductReviewHooks<
     )
 
     const prefetchProductReviews = async (input: TListInput) => {
-      if (!input.productId) {
+      if (input.productId === undefined || input.productId.length === 0) {
         return
       }
 
@@ -230,7 +228,9 @@ export function createProductReviewHooks<
       const queryKey = resolvedQueryKeys.productList(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
-        async () => await prefetchProductReviews(input),
+        async () => {
+          await prefetchProductReviews(input)
+        },
         id,
         delay,
       )
@@ -243,9 +243,9 @@ export function createProductReviewHooks<
     }
   }
 
-  function useCreateProductReview<TContext = unknown>(
+  const useCreateProductReview = <TContext = unknown>(
     options?: ProductReviewMutationOptions<TReview, TCreateInput, TContext>,
-  ): UseCreateProductReviewResult<TReview, TCreateInput, TContext> {
+  ): UseCreateProductReviewResult<TReview, TCreateInput, TContext> => {
     const queryClient = useQueryClient()
 
     return useMutation<TReview, unknown, TCreateInput, TContext>({
@@ -256,7 +256,9 @@ export function createProductReviewHooks<
         await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        options?.onSuccess?.(data, variables, context)
+        if (options?.onSuccess !== undefined) {
+          options.onSuccess(data, variables, context)
+        }
       },
       ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
@@ -273,7 +275,7 @@ export function createProductReviewHooks<
 
 export type ProductReviewHooks<
   TReview,
-  TListInput extends ProductReviewListInputBase,
+  TListInput extends ProductReviewListInputBase & TListParams,
   TListParams,
   TCreateInput extends CreateProductReviewInput = CreateProductReviewInput,
 > = ReturnType<

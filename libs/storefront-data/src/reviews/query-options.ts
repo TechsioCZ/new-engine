@@ -45,9 +45,9 @@ export interface ProductReviewQueryOptionsFactory<
   ) => QueryFactoryOptions<ProductReviewListResponse<TReview>>
 }
 
-export function createProductReviewQueryOptionsFactory<
+export const createProductReviewQueryOptionsFactory = <
   TReview,
-  TListInput extends ProductReviewListInputBase,
+  TListInput extends ProductReviewListInputBase & TListParams,
   TListParams,
 >({
   service,
@@ -60,14 +60,13 @@ export function createProductReviewQueryOptionsFactory<
   TReview,
   TListInput,
   TListParams
->): ProductReviewQueryOptionsFactory<TReview, TListInput> {
+>): ProductReviewQueryOptionsFactory<TReview, TListInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createProductReviewQueryKeys<TListParams>(queryKeyNamespace)
   const buildList =
     buildListParams ??
-    ((input: TListInput) =>
-      createDefaultListParams(input, defaultPageSize) as TListParams)
+    ((input: TListInput) => createDefaultListParams(input, defaultPageSize))
 
   return {
     getProductReviewsQueryOptions: (

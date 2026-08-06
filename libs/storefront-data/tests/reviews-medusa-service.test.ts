@@ -34,7 +34,7 @@ const createReviewResponse = ({
 
 const createSdkMock = () => {
   const sdk = createTestMedusaSdk()
-  const fetch = vi.fn()
+  const fetch = vi.fn<(path: string, options?: unknown) => Promise<unknown>>()
   Object.defineProperty(sdk.client, "fetch", { value: fetch })
   return { fetch, sdk }
 }

@@ -1,48 +1,30 @@
-import type { HttpTypes } from "@medusajs/types"
 import { vi, describe, expect, it } from "vitest"
 
 import { createMedusaCollectionService } from "../src/collections/medusa-service"
-import type {
-  MedusaCollectionDetailInput,
-  MedusaCollectionListInput,
-} from "../src/collections/medusa-service"
+import type { MedusaCollectionListInput } from "../src/collections/medusa-service"
+import { createTestMedusaSdk } from "./medusa-fixtures"
 
-interface SdkLike {
-  client: {
-    fetch: ReturnType<typeof vi.fn>
-  }
-}
+const createCollection = (id: string, title = "Collection", handle = id) => ({
+  handle,
+  id,
+  title,
+})
 
-const createCollection = (
-  id: string,
-  title = "Collection",
-  handle = id,
-): HttpTypes.StoreCollection =>
-  ({ handle, id, title }) as HttpTypes.StoreCollection
-
-function createSdkMock(
-  response?: Partial<HttpTypes.StoreCollectionListResponse>,
-): SdkLike {
-  return {
-    client: {
-      fetch: vi.fn().mockResolvedValue({
-        collections: [],
-        count: 0,
-        limit: 0,
-        offset: 0,
-        ...response,
-      }),
-    },
-  }
+const createSdkMock = (response: unknown = {}) => {
+  const sdk = createTestMedusaSdk()
+  const fetch = vi.fn<(path: string, options?: unknown) => Promise<unknown>>()
+  fetch.mockResolvedValue(response)
+  Object.defineProperty(sdk.client, "fetch", { value: fetch })
+  return { fetch, sdk }
 }
 
 describe(createMedusaCollectionService, () => {
   it("applies default list fields and forwards signal", async () => {
-    const sdk = createSdkMock({
+    const { fetch, sdk } = createSdkMock({
       collections: [createCollection("pcol_1", "Spring 2026", "spring-2026")],
       count: 1,
     })
-    const service = createMedusaCollectionService(sdk as never, {
+    const service = createMedusaCollectionService(sdk, {
       defaultListFields: "id,title,handle",
     })
     const controller = new AbortController()
@@ -52,7 +34,7 @@ describe(createMedusaCollectionService, () => {
       controller.signal,
     )
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/collections", {
+    expect(fetch).toHaveBeenCalledWith("/store/collections", {
       query: {
         fields: "id,title,handle",
         limit: 8,
@@ -63,14 +45,14 @@ describe(createMedusaCollectionService, () => {
   })
 
   it("supports custom list query normalization and list transforms", async () => {
-    const sdk = createSdkMock({
+    const { fetch, sdk } = createSdkMock({
       collections: [createCollection("pcol_2", "Summer Picks", "summer-picks")],
       count: 1,
     })
     const service = createMedusaCollectionService<
       { id: string; label: string },
       MedusaCollectionListInput & { q?: string }
-    >(sdk as never, {
+    >(sdk, {
       normalizeListQuery: ({ q, ...params }) => ({
         ...params,
         search: q,
@@ -91,7 +73,7 @@ describe(createMedusaCollectionService, () => {
       q: "summer",
     })
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/collections", {
+    expect(fetch).toHaveBeenCalledWith("/store/collections", {
       query: {
         limit: 10,
         offset: 0,
@@ -106,25 +88,25 @@ describe(createMedusaCollectionService, () => {
   })
 
   it("returns null and skips fetch when collection id is missing", async () => {
-    const sdk = createSdkMock()
-    const service = createMedusaCollectionService(sdk as never)
+    const { fetch, sdk } = createSdkMock()
+    const service = createMedusaCollectionService(sdk)
 
     const result = await service.getCollection({})
 
     expect(result).toBeNull()
-    expect(sdk.client.fetch).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
   })
 
   it("applies default detail fields and supports detail transforms", async () => {
-    const sdk = createSdkMock()
-    sdk.client.fetch.mockResolvedValueOnce({
+    const { fetch, sdk } = createSdkMock()
+    fetch.mockResolvedValueOnce({
       collection: createCollection("pcol_3", "Winter Gear", "winter-gear"),
-    } satisfies HttpTypes.StoreCollectionResponse)
+    })
 
-    const service = createMedusaCollectionService<
-      { slug: string; title: string },
-      MedusaCollectionListInput
-    >(sdk as never, {
+    const service = createMedusaCollectionService<{
+      slug: string
+      title: string
+    }>(sdk, {
       defaultDetailFields: "id,title,handle,metadata",
       transformDetailCollection: (collection) => ({
         slug: collection.handle,
@@ -138,7 +120,7 @@ describe(createMedusaCollectionService, () => {
 
     const result = await service.getCollection({ enabled: true, id: "pcol_3" })
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/collections/pcol_3", {
+    expect(fetch).toHaveBeenCalledWith("/store/collections/pcol_3", {
       query: {
         fields: "id,title,handle,metadata",
       },

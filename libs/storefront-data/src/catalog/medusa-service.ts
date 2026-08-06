@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { isRecord } from "@techsio/std/object"
 
 import type { IsExactly } from "../shared/type-utils"
 import type {
@@ -115,11 +116,11 @@ const normalizeNonNegativeNumber = (
     Number.isNaN(value) ||
     !Number.isFinite(value)
   ) {
-    return
+    return undefined
   }
 
   if (value < 0) {
-    return
+    return undefined
   }
 
   return value
@@ -129,23 +130,20 @@ const normalizeStringArray = (
   values: string[] | undefined,
 ): string[] | undefined => {
   if (!Array.isArray(values)) {
-    return
+    return undefined
   }
 
   const seenValues = new Set<string>()
   const normalizedValues: string[] = []
 
   for (const rawValue of values) {
-    if (typeof rawValue !== "string") {
-      continue
+    if (typeof rawValue === "string") {
+      const value = rawValue.trim()
+      if (value.length > 0 && !seenValues.has(value)) {
+        seenValues.add(value)
+        normalizedValues.push(value)
+      }
     }
-    const value = rawValue.trim()
-    if (!value || seenValues.has(value)) {
-      continue
-    }
-
-    seenValues.add(value)
-    normalizedValues.push(value)
   }
 
   return normalizedValues.length > 0 ? normalizedValues : undefined
@@ -158,20 +156,17 @@ const normalizeFacetItems = (items: unknown) => {
 
   return items
     .map((item) => {
-      if (!item || typeof item !== "object" || Array.isArray(item)) {
+      if (!isRecord(item)) {
         return null
       }
 
-      const typedItem = item as Record<string, unknown>
-      const rawId = typedItem.id
-      const rawLabel = typedItem.label
-      const rawCount = typedItem.count
+      const { count: rawCount, id: rawId, label: rawLabel } = item
       const id = typeof rawId === "string" ? rawId.trim() : ""
       const label = typeof rawLabel === "string" ? rawLabel.trim() : ""
       const count =
         typeof rawCount === "number" && Number.isFinite(rawCount) ? rawCount : 0
 
-      if (!(id && label)) {
+      if (id.length === 0 || label.length === 0) {
         return null
       }
 
@@ -181,42 +176,40 @@ const normalizeFacetItems = (items: unknown) => {
         label,
       }
     })
-    .filter((item): item is CatalogFacets["status"][number] => Boolean(item))
+    .filter((item): item is CatalogFacets["status"][number] => item !== null)
 }
 
 const normalizeFacets = (value: unknown): CatalogFacets => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (!isRecord(value)) {
     return EMPTY_FACETS
   }
 
-  const facetsRecord = value as Record<string, unknown>
+  const facetsRecord = value
   const { price } = facetsRecord
-  const priceRecord =
-    price && typeof price === "object" && !Array.isArray(price)
-      ? (price as Record<string, unknown>)
-      : {}
-  const rawMin = priceRecord.min
-  const rawMax = priceRecord.max
+  const priceRecord = isRecord(price) ? price : {}
+  const { max: rawMax, min: rawMin } = priceRecord
   const min =
     typeof rawMin === "number" && Number.isFinite(rawMin) ? rawMin : null
   const max =
     typeof rawMax === "number" && Number.isFinite(rawMax) ? rawMax : null
 
+  const { brand, form, ingredient, status } = facetsRecord
+
   return {
-    brand: normalizeFacetItems(facetsRecord.brand),
-    form: normalizeFacetItems(facetsRecord.form),
-    ingredient: normalizeFacetItems(facetsRecord.ingredient),
+    brand: normalizeFacetItems(brand),
+    form: normalizeFacetItems(form),
+    ingredient: normalizeFacetItems(ingredient),
     price: {
       max,
       min,
     },
-    status: normalizeFacetItems(facetsRecord.status),
+    status: normalizeFacetItems(status),
   }
 }
 
 const toCsv = (values: string[] | undefined): string | undefined => {
-  if (!values || values.length === 0) {
-    return
+  if (values === undefined || values.length === 0) {
+    return undefined
   }
 
   return values.join(",")
@@ -268,9 +261,15 @@ const buildDefaultListQuery = (
     page: normalizedPage,
     price_max: normalizedPriceMax,
     price_min: normalizedPriceMin,
-    q: params.q?.trim() || undefined,
+    q:
+      params.q === undefined || params.q.trim().length === 0
+        ? undefined
+        : params.q.trim(),
     region_id: params.region_id,
-    sort: params.sort || defaults.defaultSort,
+    sort:
+      params.sort === undefined || params.sort.length === 0
+        ? defaults.defaultSort
+        : params.sort,
     status: toCsv(normalizedStatus),
   })
 }

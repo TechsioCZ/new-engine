@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
+import { omitKeys, toPlainRecord } from "@techsio/std/object"
 
 import type { IsExactly } from "../shared/type-utils"
 import type { CollectionListResponse, CollectionService } from "./types"
@@ -88,15 +89,6 @@ export type MedusaCollectionServiceConfig<
       >
     : MedusaCollectionTransforms<TCollection, TListParams, TDetailParams>)
 
-const stripEnabled = <TQuery extends Record<string, unknown>>(
-  query: TQuery,
-): Omit<TQuery, "enabled"> => {
-  const { enabled: _enabled, ...rest } = query as TQuery & {
-    enabled?: unknown
-  }
-  return rest
-}
-
 /**
  * Creates a CollectionService for Medusa Store API.
  *
@@ -173,34 +165,39 @@ export function createMedusaCollectionService<
     ((collection: HttpTypes.StoreCollection) => baseTransform(collection))
 
   const buildListQuery = (params: TListParams): MedusaCollectionListQuery => {
-    const query = normalizeListQuery
+    const hasDefaultFields =
+      defaultListFields !== undefined && defaultListFields.length > 0
+    const hasParamFields =
+      params.fields !== undefined && params.fields.length > 0
+    const query: MedusaCollectionListQuery = normalizeListQuery
       ? normalizeListQuery(params)
-      : ({
-          ...params,
-          ...(defaultListFields && !params.fields
+      : {
+          ...toPlainRecord(params),
+          ...(hasDefaultFields && !hasParamFields
             ? { fields: defaultListFields }
             : {}),
-        } as MedusaCollectionListQuery)
+        }
 
-    return stripEnabled(query)
+    return omitKeys(query, ["enabled"])
   }
 
   const buildDetailQuery = (
     params: TDetailParams,
   ): MedusaCollectionDetailQuery => {
-    const query = normalizeDetailQuery
+    const hasDefaultFields =
+      defaultDetailFields !== undefined && defaultDetailFields.length > 0
+    const hasParamFields =
+      params.fields !== undefined && params.fields.length > 0
+    const query: MedusaCollectionDetailQuery = normalizeDetailQuery
       ? normalizeDetailQuery(params)
-      : ({
-          ...params,
-          ...(defaultDetailFields && !params.fields
+      : {
+          ...toPlainRecord(params),
+          ...(hasDefaultFields && !hasParamFields
             ? { fields: defaultDetailFields }
             : {}),
-        } as MedusaCollectionDetailQuery)
+        }
 
-    const { id: _id, ...withoutId } = query as MedusaCollectionDetailQuery & {
-      id?: string
-    }
-    return stripEnabled(withoutId)
+    return omitKeys(query, ["enabled", "id"])
   }
 
   return {
@@ -208,7 +205,7 @@ export function createMedusaCollectionService<
       params: TDetailParams,
       signal?: AbortSignal,
     ): Promise<unknown> {
-      if (!params.id) {
+      if (params.id === undefined || params.id.length === 0) {
         return null
       }
 
@@ -222,11 +219,13 @@ export function createMedusaCollectionService<
           },
         )
 
-      const collection = response.collection
-      if (!collection) {
+      const responseRecord = toPlainRecord(response)
+      const { collection: rawCollection } = responseRecord ?? {}
+      if (toPlainRecord(rawCollection) === undefined) {
         return null
       }
 
+      const { collection } = response
       return mapDetailCollection(collection, { params, query, response })
     },
 

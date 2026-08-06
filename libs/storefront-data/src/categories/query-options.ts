@@ -52,7 +52,7 @@ export interface CategoryQueryOptionsFactory<
   ) => QueryFactoryOptions<TCategory | null>
 }
 
-export function createCategoryQueryOptionsFactory<
+export const createCategoryQueryOptionsFactory = <
   TCategory,
   TListInput extends CategoryListInputBase,
   TListParams,
@@ -71,7 +71,7 @@ export function createCategoryQueryOptionsFactory<
   TListParams,
   TDetailInput,
   TDetailParams
->): CategoryQueryOptionsFactory<TCategory, TListInput, TDetailInput> {
+>): CategoryQueryOptionsFactory<TCategory, TListInput, TDetailInput> => {
   const resolvedQueryKeys =
     queryKeys ??
     createCategoryQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)

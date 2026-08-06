@@ -8,6 +8,19 @@ import type {
 
 export const MEDUSA_PRODUCT_ATTRIBUTES_PAGE_SIZE = 100
 
+const MAX_PRODUCT_ATTRIBUTE_PAGES = 1000
+
+class ProductAttributePaginationError extends Error {
+  readonly code = "PRODUCT_ATTRIBUTE_PAGINATION_LIMIT_EXCEEDED"
+  readonly productId: string
+
+  constructor(productId: string) {
+    super("Product Attribute pagination exceeded the request limit.")
+    this.name = "ProductAttributePaginationError"
+    this.productId = productId
+  }
+}
+
 export interface MedusaProductAttributesInput {
   productId?: null | string
   enabled?: boolean
@@ -30,45 +43,70 @@ const resolvePageSize = (pageSize?: number) => {
   return pageSize
 }
 
-export function createMedusaProductAttributeService(
+export const createMedusaProductAttributeService = (
   sdk: Medusa,
   config?: MedusaProductAttributeServiceConfig,
-): ProductAttributeService<ProductAttribute, MedusaProductAttributesInput> {
+): ProductAttributeService<ProductAttribute, MedusaProductAttributesInput> => {
   const productsPath = config?.productsPath ?? "/store/products"
   const pageSize = resolvePageSize(config?.pageSize)
 
-  return {
-    getProductAttributes: async (params, signal?: AbortSignal) => {
-      if (!params.productId) {
-        throw new Error("Product id is required for Product Attributes.")
+  const getProductAttributesPage = async (
+    productId: string,
+    offset: number,
+    signal?: AbortSignal,
+  ): Promise<ProductAttributeListResponse> =>
+    await sdk.client.fetch<ProductAttributeListResponse>(
+      `${productsPath}/${encodeURIComponent(productId)}/product-attributes`,
+      {
+        query: {
+          limit: pageSize,
+          offset,
+        },
+        ...(signal === undefined ? {} : { signal }),
+      },
+    )
+
+  const getProductAttributes = async (
+    params: MedusaProductAttributesInput,
+    signal?: AbortSignal,
+  ): Promise<ProductAttribute[]> => {
+    const { productId } = params
+    if (
+      productId === undefined ||
+      productId === null ||
+      productId.length === 0
+    ) {
+      throw new Error("Product id is required for Product Attributes.")
+    }
+
+    const collectPages = async (
+      offset: number,
+      collected: ProductAttribute[],
+      pageCount: number,
+    ): Promise<ProductAttribute[]> => {
+      if (pageCount >= MAX_PRODUCT_ATTRIBUTE_PAGES) {
+        throw new ProductAttributePaginationError(productId)
       }
 
-      const productAttributes: ProductAttribute[] = []
-      let offset = 0
+      const response = await getProductAttributesPage(productId, offset, signal)
+      const nextAttributes = [...collected, ...response.product_attributes]
 
-      while (true) {
-        const response = await sdk.client.fetch<ProductAttributeListResponse>(
-          `${productsPath}/${encodeURIComponent(params.productId)}/product-attributes`,
-          {
-            query: {
-              limit: pageSize,
-              offset,
-            },
-            ...(signal === undefined ? {} : { signal }),
-          },
-        )
-
-        productAttributes.push(...response.product_attributes)
-
-        if (
-          response.product_attributes.length === 0 ||
-          productAttributes.length >= response.count
-        ) {
-          return productAttributes
-        }
-
-        offset += response.product_attributes.length
+      if (
+        response.product_attributes.length === 0 ||
+        nextAttributes.length >= response.count
+      ) {
+        return nextAttributes
       }
-    },
+
+      return await collectPages(
+        offset + response.product_attributes.length,
+        nextAttributes,
+        pageCount + 1,
+      )
+    }
+
+    return await collectPages(0, [], 0)
   }
+
+  return { getProductAttributes }
 }

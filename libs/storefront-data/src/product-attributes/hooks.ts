@@ -43,9 +43,9 @@ export interface ProductAttributeHooks<
   ) => UseProductAttributesResult<TAttribute>
 }
 
-export function createProductAttributeHooks<
+export const createProductAttributeHooks = <
   TAttribute,
-  TInput extends ProductAttributesInputBase,
+  TInput extends ProductAttributesInputBase & TParams,
   TParams,
 >({
   service,
@@ -57,23 +57,23 @@ export function createProductAttributeHooks<
   TAttribute,
   TInput,
   TParams
->): ProductAttributeHooks<TAttribute, TInput> {
+>): ProductAttributeHooks<TAttribute, TInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createProductAttributeQueryKeys<TParams>(queryKeyNamespace)
   const { getDetailQueryOptions } = createProductAttributeQueryOptionsFactory({
-    service,
     ...(buildDetailParams === undefined ? {} : { buildDetailParams }),
-    queryKeys: resolvedQueryKeys,
     cacheConfig: resolvedCacheConfig,
+    queryKeys: resolvedQueryKeys,
+    service,
   })
 
-  function useProductAttributes(
+  const useProductAttributes = (
     input: TInput,
     options?: {
       queryOptions?: ReadQueryOptions<TAttribute[]>
     },
-  ): UseProductAttributesResult<TAttribute> {
+  ): UseProductAttributesResult<TAttribute> => {
     const enabled = input.enabled ?? Boolean(input.productId)
     const query = useQuery({
       ...getDetailQueryOptions(

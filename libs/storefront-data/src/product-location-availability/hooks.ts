@@ -43,7 +43,7 @@ export interface ProductLocationAvailabilityHooks<
   ) => UseProductLocationAvailabilityResult<TResponse>
 }
 
-export function createProductLocationAvailabilityHooks<
+export const createProductLocationAvailabilityHooks = <
   TResponse,
   TInput extends ProductLocationAvailabilityInputBase & TParams,
   TParams = TInput,
@@ -57,7 +57,7 @@ export function createProductLocationAvailabilityHooks<
   TResponse,
   TInput,
   TParams
->): ProductLocationAvailabilityHooks<TResponse, TInput> {
+>): ProductLocationAvailabilityHooks<TResponse, TInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
@@ -70,12 +70,12 @@ export function createProductLocationAvailabilityHooks<
       service,
     })
 
-  function useProductLocationAvailability(
+  const useProductLocationAvailability = (
     input: TInput,
     options?: {
       queryOptions?: ReadQueryOptions<TResponse>
     },
-  ): UseProductLocationAvailabilityResult<TResponse> {
+  ): UseProductLocationAvailabilityResult<TResponse> => {
     const enabled = input.enabled ?? Boolean(input.productId)
     const query = useQuery({
       ...getDetailQueryOptions(input, {

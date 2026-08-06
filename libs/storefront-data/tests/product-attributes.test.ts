@@ -1,9 +1,16 @@
-import type Medusa from "@medusajs/js-sdk"
 import { describe, expect, it, vi } from "vitest"
 
 import { createMedusaStorefrontPreset } from "../src/medusa/preset"
 import { createMedusaProductAttributeService } from "../src/product-attributes/medusa-service"
 import { createProductAttributeQueryKeys } from "../src/product-attributes/query-keys"
+import { createTestMedusaSdk } from "./medusa-fixtures"
+
+const createSdkMock = () => {
+  const sdk = createTestMedusaSdk()
+  const fetch = vi.fn<(path: string, options?: unknown) => Promise<unknown>>()
+  Object.defineProperty(sdk.client, "fetch", { value: fetch })
+  return { fetch, sdk }
+}
 
 const supplierAttribute = {
   definition: {
@@ -55,8 +62,8 @@ describe("product attributes", () => {
   })
 
   it("reads every Store API page and forwards cancellation", async () => {
-    const fetch = vi
-      .fn()
+    const { fetch, sdk } = createSdkMock()
+    fetch
       .mockResolvedValueOnce({
         count: 2,
         limit: 1,
@@ -69,11 +76,6 @@ describe("product attributes", () => {
         offset: 1,
         product_attributes: [warrantyAttribute],
       })
-    const sdk = {
-      client: {
-        fetch,
-      },
-    } as unknown as Medusa
     const { signal } = new AbortController()
     const service = createMedusaProductAttributeService(sdk, {
       pageSize: 1,
@@ -101,11 +103,7 @@ describe("product attributes", () => {
   })
 
   it("rejects page sizes outside the Store API contract", () => {
-    const sdk = {
-      client: {
-        fetch: vi.fn(),
-      },
-    } as unknown as Medusa
+    const { sdk } = createSdkMock()
 
     expect(() =>
       createMedusaProductAttributeService(sdk, { pageSize: 101 }),
@@ -113,11 +111,7 @@ describe("product attributes", () => {
   })
 
   it("exposes Product Attributes through the Medusa preset", () => {
-    const sdk = {
-      client: {
-        fetch: vi.fn(),
-      },
-    } as unknown as Medusa
+    const { sdk } = createSdkMock()
     const preset = createMedusaStorefrontPreset({
       queryKeyNamespace: "shop",
       sdk,

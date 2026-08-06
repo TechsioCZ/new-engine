@@ -37,11 +37,11 @@ export interface CreateCategoryHooksConfig<
   defaultPageSize?: number
 }
 
-export function createCategoryHooks<
+export const createCategoryHooks = <
   TCategory,
-  TListInput extends CategoryListInputBase,
+  TListInput extends CategoryListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CategoryDetailInputBase,
+  TDetailInput extends CategoryDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -57,17 +57,13 @@ export function createCategoryHooks<
   TListParams,
   TDetailInput,
   TDetailParams
->) {
+>) => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
     createCategoryQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
-  const buildList =
-    buildListParams ??
-    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
-  const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => ({ ...input }) as TDetailInput & TDetailParams)
+  const buildList = buildListParams ?? ((input: TListInput) => input)
+  const buildDetail = buildDetailParams ?? ((input: TDetailInput) => input)
   const { getListQueryOptions, getDetailQueryOptions } =
     createCategoryQueryOptionsFactory({
       buildDetailParams: buildDetail,
@@ -91,12 +87,12 @@ export function createCategoryHooks<
     resolvedQueryKeys,
   })
 
-  function useCategories(
+  const useCategories = (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<CategoryListResponse<TCategory>>
     },
-  ): UseCategoriesResult<TCategory> {
+  ): UseCategoriesResult<TCategory> => {
     const { items, ...result } = simpleHooks.useList(input, options)
     return {
       ...result,
@@ -104,12 +100,12 @@ export function createCategoryHooks<
     }
   }
 
-  function useSuspenseCategories(
+  const useSuspenseCategories = (
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<CategoryListResponse<TCategory>>
     },
-  ): UseSuspenseCategoriesResult<TCategory> {
+  ): UseSuspenseCategoriesResult<TCategory> => {
     const { items, ...result } = simpleHooks.useSuspenseList(input, options)
     return {
       ...result,
@@ -117,10 +113,10 @@ export function createCategoryHooks<
     }
   }
 
-  function useCategory(
+  const useCategory = (
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TCategory | null> },
-  ): UseCategoryResult<TCategory> {
+  ): UseCategoryResult<TCategory> => {
     const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
       ...result,
@@ -128,10 +124,10 @@ export function createCategoryHooks<
     }
   }
 
-  function useSuspenseCategory(
+  const useSuspenseCategory = (
     input: TDetailInput,
     options?: { queryOptions?: SuspenseQueryOptions<TCategory | null> },
-  ): UseSuspenseCategoryResult<TCategory> {
+  ): UseSuspenseCategoryResult<TCategory> => {
     const { item, ...result } = simpleHooks.useSuspenseDetail(input, options)
     return {
       ...result,
@@ -139,12 +135,12 @@ export function createCategoryHooks<
     }
   }
 
-  function usePrefetchCategories(options?: {
+  const usePrefetchCategories = (options?: {
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const { prefetchList, ...result } = simpleHooks.usePrefetchList(options)
 
     return {
@@ -153,12 +149,12 @@ export function createCategoryHooks<
     }
   }
 
-  function usePrefetchCategory(options?: {
+  const usePrefetchCategory = (options?: {
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const { prefetchDetail, ...result } = simpleHooks.usePrefetchDetail(options)
 
     return {
@@ -181,9 +177,9 @@ export function createCategoryHooks<
 
 export type CategoryHooks<
   TCategory,
-  TListInput extends CategoryListInputBase,
+  TListInput extends CategoryListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CategoryDetailInputBase,
+  TDetailInput extends CategoryDetailInputBase & TDetailParams,
   TDetailParams,
 > = ReturnType<
   typeof createCategoryHooks<

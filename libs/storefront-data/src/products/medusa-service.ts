@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { omitUndefined, toPlainRecord } from "@techsio/std/object"
 
 import type { IsExactly } from "../shared/type-utils"
 import type { ProductListResponse, ProductService } from "./types"
@@ -208,33 +209,41 @@ export function createMedusaProductService<
     ((product: HttpTypes.StoreProduct) => baseTransform(product))
 
   const buildListQuery = (params: TListParams): MedusaProductListQuery => {
-    const query = normalizeListQuery
+    const hasDefaultFields =
+      defaultListFields !== undefined && defaultListFields.length > 0
+    const hasParamFields =
+      params.fields !== undefined && params.fields.length > 0
+    const query: MedusaProductListQuery = normalizeListQuery
       ? normalizeListQuery(params)
-      : ({
-          ...params,
-          ...(defaultListFields && !params.fields
+      : {
+          ...toPlainRecord(params),
+          ...(hasDefaultFields && !hasParamFields
             ? { fields: defaultListFields }
             : {}),
-        } as MedusaProductListQuery)
+        }
 
     return normalizeCountryCode(query)
   }
 
   const buildDetailQuery = (params: TDetailParams): MedusaProductListQuery => {
-    const query = normalizeDetailQuery
-      ? normalizeDetailQuery(params)
-      : ({
-          cart_id: params.cart_id,
-          country_code: params.country_code,
-          handle: params.handle,
-          limit: 1,
-          locale: params.locale,
-          province: params.province,
-          region_id: params.region_id,
-          ...(params.fields || defaultDetailFields
-            ? { fields: params.fields ?? defaultDetailFields }
-            : {}),
-        } as MedusaProductListQuery)
+    if (normalizeDetailQuery !== undefined) {
+      return normalizeCountryCode(normalizeDetailQuery(params))
+    }
+
+    const fields =
+      params.fields !== undefined && params.fields.length > 0
+        ? params.fields
+        : defaultDetailFields
+    const query = omitUndefined({
+      cart_id: params.cart_id,
+      country_code: params.country_code,
+      fields,
+      handle: params.handle,
+      limit: 1,
+      locale: params.locale,
+      province: params.province,
+      region_id: params.region_id,
+    })
 
     return normalizeCountryCode(query)
   }
@@ -259,10 +268,10 @@ export function createMedusaProductService<
     return toListResponse(response, query, products)
   }
 
+  // The global fetcher intentionally bypasses per-call cancellation because it
+  // is meant for shared deduplicated prefetch usage.
   const getProductsGlobal = createGlobalFetcher
-    ? // Global fetcher intentionally bypasses per-call cancellation.
-      // It is meant for shared deduped prefetch usage.
-      async (params: TListParams) => await getProducts(params)
+    ? async (params: TListParams) => await getProducts(params)
     : undefined
 
   return {
@@ -279,7 +288,7 @@ export function createMedusaProductService<
           signal: signal ?? null,
         })
       const product = response.products?.[0]
-      if (!product) {
+      if (product === undefined) {
         return null
       }
       return mapDetailProduct(product, { params, query, response })

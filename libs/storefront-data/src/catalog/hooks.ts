@@ -35,6 +35,15 @@ import type {
 } from "./types"
 import { resolvePositiveInteger } from "./utils"
 
+const resolveCatalogInput = <TInput extends CatalogListInputBase>(
+  input: TInput,
+  region?: RegionInfo | null,
+): TInput => {
+  const queryInput = { ...input }
+  delete queryInput.enabled
+  return applyRegion(queryInput, region)
+}
+
 export interface CreateCatalogHooksConfig<
   TProduct,
   TListInput extends CatalogListInputBase,
@@ -51,9 +60,9 @@ export interface CreateCatalogHooksConfig<
   fallbackFacets: TFacets
 }
 
-export function createCatalogHooks<
+export const createCatalogHooks = <
   TProduct,
-  TListInput extends CatalogListInputBase,
+  TListInput extends CatalogListInputBase & TListParams,
   TListParams,
   TFacets,
 >({
@@ -65,13 +74,11 @@ export function createCatalogHooks<
   defaultPageSize = 12,
   requireRegion = true,
   fallbackFacets,
-}: CreateCatalogHooksConfig<TProduct, TListInput, TListParams, TFacets>) {
+}: CreateCatalogHooksConfig<TProduct, TListInput, TListParams, TFacets>) => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createCatalogQueryKeys<TListParams>(queryKeyNamespace)
-  const buildList =
-    buildListParams ??
-    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
+  const buildList = buildListParams ?? ((input: TListInput) => input)
   const { getListQueryOptions } = createCatalogQueryOptionsFactory({
     buildListParams: buildList,
     cacheConfig: resolvedCacheConfig,
@@ -79,21 +86,16 @@ export function createCatalogHooks<
     service,
   })
 
-  function useCatalogProducts(
+  const useCatalogProducts = (
     input: TListInput,
     options?: {
       cacheStrategy?: CacheStrategy
       queryOptions?: ReadQueryOptions<CatalogListResponse<TProduct, TFacets>>
     },
-  ): UseCatalogProductsResult<TProduct, TFacets> {
+  ): UseCatalogProductsResult<TProduct, TFacets> => {
     const contextRegion = useRegionContext()
-    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const resolvedInput = applyRegion(
-      listInput as TListInput,
-      contextRegion ?? undefined,
-    )
+    const inputEnabled = input.enabled
+    const resolvedInput = resolveCatalogInput(input, contextRegion)
     const enabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
@@ -139,7 +141,7 @@ export function createCatalogHooks<
     }
   }
 
-  function useSuspenseCatalogProducts(
+  const useSuspenseCatalogProducts = (
     input: TListInput,
     options?: {
       cacheStrategy?: CacheStrategy
@@ -147,16 +149,14 @@ export function createCatalogHooks<
         CatalogListResponse<TProduct, TFacets>
       >
     },
-  ): UseSuspenseCatalogProductsResult<TProduct, TFacets> {
+  ): UseSuspenseCatalogProductsResult<TProduct, TFacets> => {
     const contextRegion = useRegionContext()
-    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const resolvedInput = applyRegion(
-      listInput as TListInput,
-      contextRegion ?? undefined,
-    )
-    if (requireRegion && !resolvedInput.region_id) {
+    const resolvedInput = resolveCatalogInput(input, contextRegion)
+    if (
+      requireRegion &&
+      (resolvedInput.region_id === undefined ||
+        resolvedInput.region_id.length === 0)
+    ) {
       throw new Error("Region is required for catalog queries")
     }
 
@@ -201,12 +201,12 @@ export function createCatalogHooks<
     }
   }
 
-  function usePrefetchCatalogProducts(options?: {
+  const usePrefetchCatalogProducts = (options?: {
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
     const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
@@ -221,13 +221,8 @@ export function createCatalogHooks<
     )
 
     const prefetchCatalogProducts = async (input: TListInput) => {
-      const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        listInput as TListInput,
-        contextRegion ?? undefined,
-      )
+      const inputEnabled = input.enabled
+      const resolvedInput = resolveCatalogInput(input, contextRegion)
       const isEnabled =
         inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
       if (!isEnabled) {
@@ -250,7 +245,7 @@ export function createCatalogHooks<
 
       await queryClient.prefetchQuery({
         queryFn: async ({ signal }) =>
-          service.getCatalogProducts(listParams, signal),
+          await service.getCatalogProducts(listParams, signal),
         queryKey,
         ...prefetchCacheOptions,
       })
@@ -261,18 +256,14 @@ export function createCatalogHooks<
       delay = defaultDelay,
       prefetchId?: string,
     ) => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        listInput as TListInput,
-        contextRegion ?? undefined,
-      )
+      const resolvedInput = resolveCatalogInput(input, contextRegion)
       const listParams = buildList(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
-        async () => prefetchCatalogProducts(input),
+        async () => {
+          await prefetchCatalogProducts(input)
+        },
         id,
         delay,
       )
@@ -290,13 +281,8 @@ export function createCatalogHooks<
     input: TListInput,
     region?: RegionInfo | null,
   ) => {
-    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const resolvedInput = applyRegion(
-      listInput as TListInput,
-      region ?? undefined,
-    )
+    const inputEnabled = input.enabled
+    const resolvedInput = resolveCatalogInput(input, region)
     const isEnabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
     if (!isEnabled) {
@@ -324,7 +310,7 @@ export function createCatalogHooks<
 
 export type CatalogHooks<
   TProduct,
-  TListInput extends CatalogListInputBase,
+  TListInput extends CatalogListInputBase & TListParams,
   TListParams,
   TFacets,
 > = ReturnType<

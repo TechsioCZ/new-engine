@@ -43,14 +43,29 @@ const createQueryClient = () =>
 
 const createCatalogRegionTestContext = (queryKeyNamespace: string) => {
   const service = {
-    getCatalogProducts: vi.fn(async (_params: ListParams) => ({
-      count: 1,
-      facets: EMPTY_FACETS,
-      limit: 12,
-      page: 1,
-      products: [{ id: "prod_1" }],
-      totalPages: 1,
-    })),
+    getCatalogProducts: vi.fn<
+      (
+        params: ListParams,
+        signal?: AbortSignal,
+      ) => Promise<{
+        count: number
+        facets: CatalogFacets
+        limit: number
+        page: number
+        products: Product[]
+        totalPages: number
+      }>
+    >(
+      async (_params) =>
+        await Promise.resolve({
+          count: 1,
+          facets: EMPTY_FACETS,
+          limit: 12,
+          page: 1,
+          products: [{ id: "prod_1" }],
+          totalPages: 1,
+        }),
+    ),
   }
 
   const { getListQueryOptions } = createCatalogQueryOptionsFactory<
@@ -59,9 +74,13 @@ const createCatalogRegionTestContext = (queryKeyNamespace: string) => {
     ListParams
   >({
     buildListParams: (input) => ({
-      ...(input.q ? { q: input.q } : {}),
-      ...(input.region_id ? { region_id: input.region_id } : {}),
-      ...(input.country_code ? { country_code: input.country_code } : {}),
+      ...(input.q !== undefined && input.q.length > 0 ? { q: input.q } : {}),
+      ...(input.region_id !== undefined && input.region_id.length > 0
+        ? { region_id: input.region_id }
+        : {}),
+      ...(input.country_code !== undefined && input.country_code.length > 0
+        ? { country_code: input.country_code }
+        : {}),
     }),
     queryKeyNamespace,
     service,

@@ -52,7 +52,7 @@ export interface CollectionQueryOptionsFactory<
   ) => QueryFactoryOptions<TCollection | null>
 }
 
-export function createCollectionQueryOptionsFactory<
+export const createCollectionQueryOptionsFactory = <
   TCollection,
   TListInput extends CollectionListInputBase,
   TListParams,
@@ -71,7 +71,7 @@ export function createCollectionQueryOptionsFactory<
   TListParams,
   TDetailInput,
   TDetailParams
->): CollectionQueryOptionsFactory<TCollection, TListInput, TDetailInput> {
+>): CollectionQueryOptionsFactory<TCollection, TListInput, TDetailInput> => {
   const resolvedQueryKeys =
     queryKeys ??
     createCollectionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)

@@ -1,48 +1,30 @@
-import type { HttpTypes } from "@medusajs/types"
 import { vi, describe, expect, it } from "vitest"
 
 import { createMedusaCategoryService } from "../src/categories/medusa-service"
-import type {
-  MedusaCategoryDetailInput,
-  MedusaCategoryListInput,
-} from "../src/categories/medusa-service"
+import type { MedusaCategoryListInput } from "../src/categories/medusa-service"
+import { createTestMedusaSdk } from "./medusa-fixtures"
 
-interface SdkLike {
-  client: {
-    fetch: ReturnType<typeof vi.fn>
-  }
-}
+const createCategory = (id: string, name = "Category", handle = id) => ({
+  handle,
+  id,
+  name,
+})
 
-const createCategory = (
-  id: string,
-  name = "Category",
-  handle = id,
-): HttpTypes.StoreProductCategory =>
-  ({ handle, id, name }) as HttpTypes.StoreProductCategory
-
-function createSdkMock(
-  response?: Partial<HttpTypes.StoreProductCategoryListResponse>,
-): SdkLike {
-  return {
-    client: {
-      fetch: vi.fn().mockResolvedValue({
-        count: 0,
-        limit: 0,
-        offset: 0,
-        product_categories: [],
-        ...response,
-      }),
-    },
-  }
+const createSdkMock = (response: unknown = {}) => {
+  const sdk = createTestMedusaSdk()
+  const fetch = vi.fn<(path: string, options?: unknown) => Promise<unknown>>()
+  fetch.mockResolvedValue(response)
+  Object.defineProperty(sdk.client, "fetch", { value: fetch })
+  return { fetch, sdk }
 }
 
 describe(createMedusaCategoryService, () => {
   it("applies default list fields and forwards signal", async () => {
-    const sdk = createSdkMock({
+    const { fetch, sdk } = createSdkMock({
       count: 1,
       product_categories: [createCategory("pcat_1", "T-Shirts", "t-shirts")],
     })
-    const service = createMedusaCategoryService(sdk as never, {
+    const service = createMedusaCategoryService(sdk, {
       defaultListFields: "id,name,handle,parent_category_id",
     })
     const controller = new AbortController()
@@ -52,7 +34,7 @@ describe(createMedusaCategoryService, () => {
       controller.signal,
     )
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/product-categories", {
+    expect(fetch).toHaveBeenCalledWith("/store/product-categories", {
       query: {
         fields: "id,name,handle,parent_category_id",
         limit: 12,
@@ -63,17 +45,19 @@ describe(createMedusaCategoryService, () => {
   })
 
   it("supports custom list query normalization and list transforms", async () => {
-    const sdk = createSdkMock({
+    const { fetch, sdk } = createSdkMock({
       count: 1,
       product_categories: [createCategory("pcat_2", "Hoodies", "hoodies")],
     })
     const service = createMedusaCategoryService<
       { id: string; label: string },
       MedusaCategoryListInput & { parent?: string }
-    >(sdk as never, {
+    >(sdk, {
       normalizeListQuery: ({ parent, ...params }) => ({
         ...params,
-        ...(parent ? { parent_category_id: parent } : {}),
+        ...(parent !== undefined && parent.length > 0
+          ? { parent_category_id: parent }
+          : {}),
       }),
       transformDetailCategory: (category) => ({
         id: category.id,
@@ -91,7 +75,7 @@ describe(createMedusaCategoryService, () => {
       parent: "pcat_root",
     })
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/product-categories", {
+    expect(fetch).toHaveBeenCalledWith("/store/product-categories", {
       query: {
         limit: 20,
         offset: 0,
@@ -106,25 +90,25 @@ describe(createMedusaCategoryService, () => {
   })
 
   it("returns null and skips fetch when category id is missing", async () => {
-    const sdk = createSdkMock()
-    const service = createMedusaCategoryService(sdk as never)
+    const { fetch, sdk } = createSdkMock()
+    const service = createMedusaCategoryService(sdk)
 
     const result = await service.getCategory({})
 
     expect(result).toBeNull()
-    expect(sdk.client.fetch).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
   })
 
   it("applies default detail fields and supports detail transforms", async () => {
-    const sdk = createSdkMock()
-    sdk.client.fetch.mockResolvedValueOnce({
+    const { fetch, sdk } = createSdkMock()
+    fetch.mockResolvedValueOnce({
       product_category: createCategory("pcat_3", "Jackets", "jackets"),
-    } satisfies HttpTypes.StoreProductCategoryResponse)
+    })
 
-    const service = createMedusaCategoryService<
-      { slug: string; title: string },
-      MedusaCategoryListInput
-    >(sdk as never, {
+    const service = createMedusaCategoryService<{
+      slug: string
+      title: string
+    }>(sdk, {
       defaultDetailFields: "id,name,handle,parent_category_id",
       transformDetailCategory: (category) => ({
         slug: category.handle,
@@ -138,15 +122,12 @@ describe(createMedusaCategoryService, () => {
 
     const result = await service.getCategory({ enabled: true, id: "pcat_3" })
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith(
-      "/store/product-categories/pcat_3",
-      {
-        query: {
-          fields: "id,name,handle,parent_category_id",
-        },
-        signal: null,
+    expect(fetch).toHaveBeenCalledWith("/store/product-categories/pcat_3", {
+      query: {
+        fields: "id,name,handle,parent_category_id",
       },
-    )
+      signal: null,
+    })
     expect(result).toStrictEqual({ slug: "jackets", title: "Jackets" })
   })
 })

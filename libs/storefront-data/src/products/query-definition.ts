@@ -16,8 +16,9 @@ export const resolveProductQueryInput = <TInput extends ProductQueryInput>(
   input: TInput,
   region?: RegionInfo | null,
 ): TInput => {
-  const { enabled: _inputEnabled, ...baseInput } = input
-  return applyRegion(baseInput as TInput, region)
+  const queryInput = { ...input }
+  delete queryInput.enabled
+  return applyRegion(queryInput, region)
 }
 
 interface ProductListQueryDefinitionConfig<
@@ -59,7 +60,8 @@ export const createProductListQueryDefinition = <
     ? transformInput(resolvedInput)
     : resolvedInput
   const listParams = buildListParams(normalizedInput)
-  const globalFetcher = useGlobalFetcher ? service.getProductsGlobal : undefined
+  const globalFetcher =
+    useGlobalFetcher === true ? service.getProductsGlobal : undefined
   const queryKey = globalFetcher
     ? appendQueryKey(queryKeys.list(listParams), {
         fetcher: "global",
@@ -70,8 +72,8 @@ export const createProductListQueryDefinition = <
     listParams,
     queryFn: async ({ signal }: { signal?: AbortSignal }) =>
       globalFetcher
-        ? globalFetcher(listParams, signal)
-        : service.getProducts(listParams, signal),
+        ? await globalFetcher(listParams, signal)
+        : await service.getProducts(listParams, signal),
     queryKey,
     resolvedInput: normalizedInput,
     useGlobalFetcher: Boolean(globalFetcher),
@@ -114,11 +116,11 @@ export const createProductDetailQueryDefinition = <
   return {
     detailParams,
     queryFn: async ({ signal }: { signal?: AbortSignal }) => {
-      if (!resolvedInput.handle) {
+      if (resolvedInput.handle.length === 0) {
         throw new Error("Product handle is required for product queries")
       }
 
-      return service.getProductByHandle(detailParams, signal)
+      return await service.getProductByHandle(detailParams, signal)
     },
     queryKey: queryKeys.detail(detailParams),
     resolvedInput,

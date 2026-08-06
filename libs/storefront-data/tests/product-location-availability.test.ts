@@ -1,9 +1,16 @@
-import type Medusa from "@medusajs/js-sdk"
 import { describe, expect, it, vi } from "vitest"
 
 import { createMedusaStorefrontPreset } from "../src/medusa/preset"
 import { createMedusaProductLocationAvailabilityService } from "../src/product-location-availability/medusa-service"
 import { createProductLocationAvailabilityQueryKeys } from "../src/product-location-availability/query-keys"
+import { createTestMedusaSdk } from "./medusa-fixtures"
+
+const createSdkMock = () => {
+  const sdk = createTestMedusaSdk()
+  const fetch = vi.fn<(path: string, options?: unknown) => Promise<unknown>>()
+  Object.defineProperty(sdk.client, "fetch", { value: fetch })
+  return { fetch, sdk }
+}
 
 const availabilityResponse = {
   product_id: "prod_1",
@@ -28,12 +35,8 @@ describe("product location availability", () => {
   })
 
   it("fetches product location availability from the Store API route", async () => {
-    const fetch = vi.fn().mockResolvedValue(availabilityResponse)
-    const sdk = {
-      client: {
-        fetch,
-      },
-    } as unknown as Medusa
+    const { fetch, sdk } = createSdkMock()
+    fetch.mockResolvedValue(availabilityResponse)
     const { signal } = new AbortController()
     const service = createMedusaProductLocationAvailabilityService(sdk)
 
@@ -47,12 +50,7 @@ describe("product location availability", () => {
   })
 
   it("exposes availability through the Medusa preset surface", () => {
-    const fetch = vi.fn()
-    const sdk = {
-      client: {
-        fetch,
-      },
-    } as unknown as Medusa
+    const { sdk } = createSdkMock()
     const preset = createMedusaStorefrontPreset({
       queryKeyNamespace: "shop",
       sdk,

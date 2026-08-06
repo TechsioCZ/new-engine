@@ -1,4 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
+import { omitKeys } from "@techsio/std/object"
 
 import type { IsExactly } from "../shared/type-utils"
 import type {
@@ -41,19 +42,10 @@ export type MedusaProductReviewServiceConfig<TReview> =
 
 const stripListInput = (
   input: MedusaProductReviewListInput,
-): StoreProductReviewsQuery => {
-  const {
-    enabled: _enabled,
-    page: _page,
-    productId: _productId,
-    ...query
-  } = input
-
-  return query
-}
+): StoreProductReviewsQuery => omitKeys(input, ["enabled", "page", "productId"])
 
 const calculateReviewSummary = (reviews: ReviewBase[]) => {
-  if (!reviews.length) {
+  if (reviews.length === 0) {
     return {
       average_rating: 0,
       count: 0,
@@ -112,7 +104,7 @@ export function createMedusaProductReviewService(
       params: MedusaProductReviewListInput,
       signal?: AbortSignal,
     ): Promise<ProductReviewListResponse<unknown>> {
-      if (!params.productId) {
+      if (params.productId === undefined || params.productId.length === 0) {
         return {
           count: 0,
           limit: params.limit ?? 0,

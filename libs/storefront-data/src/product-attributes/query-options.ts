@@ -37,9 +37,9 @@ export interface ProductAttributeQueryOptionsFactory<
   ) => QueryFactoryOptions<TAttribute[]>
 }
 
-export function createProductAttributeQueryOptionsFactory<
+export const createProductAttributeQueryOptionsFactory = <
   TAttribute,
-  TInput extends ProductAttributesInputBase,
+  TInput extends ProductAttributesInputBase & TParams,
   TParams,
 >({
   service,
@@ -51,12 +51,11 @@ export function createProductAttributeQueryOptionsFactory<
   TAttribute,
   TInput,
   TParams
->): ProductAttributeQueryOptionsFactory<TAttribute, TInput> {
+>): ProductAttributeQueryOptionsFactory<TAttribute, TInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createProductAttributeQueryKeys<TParams>(queryKeyNamespace)
-  const buildDetail =
-    buildDetailParams ?? ((input: TInput) => ({ ...input }) as TInput & TParams)
+  const buildDetail = buildDetailParams ?? ((input: TInput) => input)
 
   return {
     getDetailQueryOptions: (
@@ -68,7 +67,11 @@ export function createProductAttributeQueryOptionsFactory<
 
       return {
         queryFn: async ({ signal }) => {
-          if (!input.productId) {
+          if (
+            input.productId === undefined ||
+            input.productId === null ||
+            input.productId.length === 0
+          ) {
             throw new Error("Product id is required for Product Attributes.")
           }
 
