@@ -1,21 +1,49 @@
 #!/usr/bin/env node
 
+// @ts-check
+/// <reference types="node" />
+
 import { spawnSync } from "node:child_process"
 
 import { formattableFiles, lintableFiles } from "./files.mjs"
 
-const stagedFiles = process.argv.slice(2).filter(Boolean)
+const stagedFiles = process.argv.slice(2).filter((file) => file.length > 0)
 const formatFiles = formattableFiles(stagedFiles)
 const lintFiles = lintableFiles(stagedFiles)
 
-const run = (command, args, options = {}) => {
+/**
+ * @param {string} command - Executable to invoke.
+ * @param {string[]} args - Command arguments.
+ */
+const run = (command, args) => {
   const result = spawnSync(command, args, {
-    encoding: options.capture ? "utf-8" : undefined,
     shell: false,
-    stdio: options.capture ? ["ignore", "pipe", "inherit"] : "inherit",
+    stdio: "inherit",
   })
 
-  if (result.error) {
+  if (result.error !== undefined) {
+    console.error(result.error.message)
+    process.exit(1)
+  }
+
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1)
+  }
+}
+
+/**
+ * @param {string} command - Executable to invoke.
+ * @param {string[]} args - Command arguments.
+ * @returns {string} Captured standard output.
+ */
+const capture = (command, args) => {
+  const result = spawnSync(command, args, {
+    encoding: "utf-8",
+    shell: false,
+    stdio: ["ignore", "pipe", "inherit"],
+  })
+
+  if (result.error !== undefined) {
     console.error(result.error.message)
     process.exit(1)
   }
@@ -24,7 +52,7 @@ const run = (command, args, options = {}) => {
     process.exit(result.status ?? 1)
   }
 
-  return options.capture ? result.stdout.trim() : ""
+  return result.stdout.trim()
 }
 
 // Auto-restaging rewrites the index entry from the working tree, so a
@@ -32,15 +60,14 @@ const run = (command, args, options = {}) => {
 // those files instead of clobbering them.
 const fixableFiles = [...new Set([...formatFiles, ...lintFiles])]
 if (fixableFiles.length > 0) {
-  const partiallyStaged = run(
-    "git",
-    ["diff", "--name-only", "--", ...fixableFiles],
-    {
-      capture: true,
-    },
-  )
+  const partiallyStaged = capture("git", [
+    "diff",
+    "--name-only",
+    "--",
+    ...fixableFiles,
+  ])
     .split("\n")
-    .filter(Boolean)
+    .filter((file) => file.length > 0)
 
   if (partiallyStaged.length > 0) {
     console.error(
