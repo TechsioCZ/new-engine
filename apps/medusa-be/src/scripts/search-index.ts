@@ -1,6 +1,7 @@
 import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+import { isRecord } from "@techsio/std/object"
 
 import { isMeilisearchEnabled } from "../modules/meilisearch/env"
 
@@ -51,20 +52,20 @@ const SYNC_ENTITIES: SyncEntityConfig[] = [
   },
 ]
 
-const resolveRecordId = (record: unknown): string | undefined => {
-  if (!record || typeof record !== "object" || Array.isArray(record)) {
-    return
+const resolveRecordId = (record: unknown): string | null => {
+  if (!isRecord(record)) {
+    return null
   }
 
-  const { id } = record as { id?: unknown }
-  if (typeof id === "string" && id.trim()) {
+  const { id } = record
+  if (typeof id === "string" && id.trim() !== "") {
     return id
   }
   if (typeof id === "number" && Number.isFinite(id)) {
     return String(id)
   }
 
-  return
+  return null
 }
 
 const EMPTY_SYNC_ENTITY_RESULT: SyncEntityResult = {
@@ -72,10 +73,10 @@ const EMPTY_SYNC_ENTITY_RESULT: SyncEntityResult = {
   indexed: 0,
 }
 
-async function fetchEntityBatch(
+const fetchEntityBatch = async (
   { config, fields, queryService }: SyncEntityContext,
   offset: number,
-): Promise<unknown[]> {
+): Promise<unknown[]> => {
   const { data } = await queryService.graph({
     entity: config.entity,
     fields,
@@ -89,61 +90,65 @@ async function fetchEntityBatch(
   return Array.isArray(data) ? data : []
 }
 
-async function indexEntityBatch(
+const indexEntityBatch = async (
   { config, container, indexes, meilisearchIndexService }: SyncEntityContext,
   records: unknown[],
-) {
+): Promise<void> => {
   await Promise.all(
-    indexes.map(async (index) =>
-      meilisearchIndexService.addDocuments(index, records, config.entityType, {
-        container,
-      }),
-    ),
+    indexes.map(async (index) => {
+      await meilisearchIndexService.addDocuments(
+        index,
+        records,
+        config.entityType,
+        { container },
+      )
+    }),
   )
 }
 
-function addIndexedRecordIds(indexedIds: Set<string>, records: unknown[]) {
+const addIndexedRecordIds = (
+  indexedIds: Set<string>,
+  records: unknown[],
+): void => {
   for (const record of records) {
     const id = resolveRecordId(record)
-    if (id) {
+    if (id !== null) {
       indexedIds.add(id)
     }
   }
 }
 
-async function indexEntityRecords(
+// Batch reads stay strictly sequential pagination; the entity count is finite
+// and the offset advances on every call, so each recursion terminates.
+const indexEntityRecords = async (
   context: SyncEntityContext,
-): Promise<Set<string>> {
+): Promise<Set<string>> => {
   const indexedIds = new Set<string>()
-  let offset = 0
-
-  while (true) {
+  const indexBatchesFrom = async (offset: number): Promise<Set<string>> => {
     const records = await fetchEntityBatch(context, offset)
     if (records.length === 0) {
-      break
+      return indexedIds
     }
 
     await indexEntityBatch(context, records)
     addIndexedRecordIds(indexedIds, records)
 
-    offset += records.length
     if (records.length < BATCH_SIZE) {
-      break
+      return indexedIds
     }
+    return await indexBatchesFrom(offset + records.length)
   }
 
-  return indexedIds
+  return await indexBatchesFrom(0)
 }
 
-async function collectOrphanedIdsForIndex(
+const collectOrphanedIdsForIndex = async (
   meilisearchIndexService: MeiliSearchService,
   index: string,
   indexedIds: Set<string>,
-): Promise<Set<string>> {
+): Promise<Set<string>> => {
   const orphanedIds = new Set<string>()
-  let searchOffset = 0
-
-  while (true) {
+  const collectFrom = async (searchOffset: number): Promise<Set<string>> => {
     const indexedResult = await meilisearchIndexService.search(index, "", {
       additionalOptions: {
         attributesToRetrieve: ["id"],
@@ -156,31 +161,40 @@ async function collectOrphanedIdsForIndex(
 
     const hits = Array.isArray(indexedResult.hits) ? indexedResult.hits : []
     if (hits.length === 0) {
-      break
+      return orphanedIds
     }
 
     for (const hit of hits) {
       const id = resolveRecordId(hit)
-      if (id && !indexedIds.has(id)) {
+      if (id !== null && !indexedIds.has(id)) {
         orphanedIds.add(id)
       }
     }
 
-    searchOffset += hits.length
     if (hits.length < BATCH_SIZE) {
-      break
+      return orphanedIds
     }
+    return await collectFrom(searchOffset + hits.length)
   }
 
-  return orphanedIds
+  return await collectFrom(0)
 }
 
-async function collectOrphanedIds(
+// Index scans stay sequential to bound Meilisearch load; the index list is
+// finite and shrinks on every call.
+const collectOrphanedIds = async (
   { indexes, meilisearchIndexService }: SyncEntityContext,
   indexedIds: Set<string>,
-): Promise<Set<string>> {
+): Promise<Set<string>> => {
   const orphanedIds = new Set<string>()
-  for (const index of indexes) {
+  const collectAcross = async (
+    remaining: readonly string[],
+  ): Promise<Set<string>> => {
+    const [index, ...rest] = remaining
+    if (index === undefined) {
+      return orphanedIds
+    }
+
     const indexOrphanedIds = await collectOrphanedIdsForIndex(
       meilisearchIndexService,
       index,
@@ -189,39 +203,41 @@ async function collectOrphanedIds(
     for (const id of indexOrphanedIds) {
       orphanedIds.add(id)
     }
+    return await collectAcross(rest)
   }
 
-  return orphanedIds
+  return await collectAcross(indexes)
 }
 
-async function deleteOrphanedIds(
+// Deletions run one bounded batch at a time; the id list shrinks by
+// BATCH_SIZE on every call, so the recursion terminates.
+const deleteOrphanedIds = async (
   { indexes, meilisearchIndexService }: SyncEntityContext,
   orphanedIds: Set<string>,
-) {
-  const idsToDelete = [...orphanedIds]
-  for (let cursor = 0; cursor < idsToDelete.length; cursor += BATCH_SIZE) {
-    const batch = idsToDelete.slice(cursor, cursor + BATCH_SIZE)
+): Promise<void> => {
+  const deleteBatches = async (
+    idsToDelete: readonly string[],
+  ): Promise<void> => {
+    if (idsToDelete.length === 0) {
+      return
+    }
+
+    const batch = idsToDelete.slice(0, BATCH_SIZE)
     await Promise.all(
-      indexes.map(async (index) =>
-        meilisearchIndexService.deleteDocuments(index, batch),
-      ),
+      indexes.map(async (index) => {
+        await meilisearchIndexService.deleteDocuments(index, batch)
+      }),
     )
+    await deleteBatches(idsToDelete.slice(BATCH_SIZE))
   }
+
+  await deleteBatches([...orphanedIds])
 }
 
-const syncEntityToMeilisearch = async ({
-  config,
-  container,
-  logger,
-  meilisearchIndexService,
-  queryService,
-}: {
-  config: SyncEntityConfig
-  container: ExecArgs["container"]
-  logger: Logger
-  meilisearchIndexService: MeiliSearchService
-  queryService: Query
-}): Promise<SyncEntityResult> => {
+const syncEntityToMeilisearch = async (
+  services: SyncEntityServices & { config: SyncEntityConfig },
+): Promise<SyncEntityResult> => {
+  const { config, logger, meilisearchIndexService } = services
   const fields = meilisearchIndexService.getFieldsForType(config.entityType)
   const indexes = meilisearchIndexService.getIndexesByType(config.entityType)
 
@@ -233,13 +249,9 @@ const syncEntityToMeilisearch = async ({
   }
 
   const context: SyncEntityContext = {
-    config,
-    container,
+    ...services,
     fields,
     indexes,
-    logger,
-    meilisearchIndexService,
-    queryService,
   }
 
   const indexedIds = await indexEntityRecords(context)
@@ -258,6 +270,25 @@ const syncEntityToMeilisearch = async ({
   }
 }
 
+// Entities sync one at a time to bound database and Meilisearch load; the
+// config list is finite and shrinks on every call.
+const syncEntities = async (
+  configs: readonly SyncEntityConfig[],
+  services: SyncEntityServices,
+  totals: SyncEntityResult,
+): Promise<SyncEntityResult> => {
+  const [config, ...remaining] = configs
+  if (config === undefined) {
+    return totals
+  }
+
+  const result = await syncEntityToMeilisearch({ ...services, config })
+  return await syncEntities(remaining, services, {
+    deleted: totals.deleted + result.deleted,
+    indexed: totals.indexed + result.indexed,
+  })
+}
+
 export default async function searchIndexScript({ container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
@@ -271,22 +302,13 @@ export default async function searchIndexScript({ container }: ExecArgs) {
   const meilisearchIndexService: MeiliSearchService =
     container.resolve("meilisearch")
 
-  let totalIndexed = 0
-  let totalDeleted = 0
-
-  for (const config of SYNC_ENTITIES) {
-    const result = await syncEntityToMeilisearch({
-      config,
-      container,
-      logger,
-      meilisearchIndexService,
-      queryService,
-    })
-    totalIndexed += result.indexed
-    totalDeleted += result.deleted
-  }
+  const totals = await syncEntities(
+    SYNC_ENTITIES,
+    { container, logger, meilisearchIndexService, queryService },
+    EMPTY_SYNC_ENTITY_RESULT,
+  )
 
   logger.info(
-    `MeiliSearch sync complete: indexed=${totalIndexed}, deleted=${totalDeleted}`,
+    `MeiliSearch sync complete: indexed=${totals.indexed}, deleted=${totals.deleted}`,
   )
 }
