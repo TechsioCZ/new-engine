@@ -71,20 +71,26 @@ const LABEL_FORMATS: { value: LabelFormat; label: string }[] = [
   { label: "A7", value: "A7" },
 ]
 
-function getPacketaLabels(order: AdminOrder): OrderFulfillment[] {
-  return (order.fulfillments ?? []).filter(
+const isLabelFormat = (value: string): value is LabelFormat =>
+  value === "A6" || value === "A7"
+
+const getPacketaLabels = (order: AdminOrder): OrderFulfillment[] =>
+  (order.fulfillments ?? []).filter(
     (fulfillment) =>
       fulfillment.provider_id === "packeta_packeta" &&
-      !fulfillment.canceled_at &&
+      (fulfillment.canceled_at === null ||
+        fulfillment.canceled_at === undefined) &&
       typeof fulfillment.data?.packet_id === "number",
   )
-}
 
-function getOrderNumber(order: AdminOrder): string {
-  return order.custom_display_id || `#${order.display_id}`
-}
+const getOrderNumber = (order: AdminOrder): string =>
+  order.custom_display_id === undefined ||
+  order.custom_display_id === null ||
+  order.custom_display_id === ""
+    ? `#${order.display_id}`
+    : order.custom_display_id
 
-async function downloadLabels(orderIds: string[], labelFormat: LabelFormat) {
+const downloadLabels = async (orderIds: string[], labelFormat: LabelFormat) => {
   const response = await fetch("/admin/packeta-labels", {
     body: JSON.stringify({
       label_format: labelFormat,
@@ -98,7 +104,13 @@ async function downloadLabels(orderIds: string[], labelFormat: LabelFormat) {
   })
 
   if (!response.ok) {
-    const payload: unknown = await response.json().catch(() => null)
+    let payload: unknown = null
+    try {
+      payload = await response.json()
+    } catch {
+      // The fallback error below covers non-JSON error responses.
+    }
+
     if (
       typeof payload === "object" &&
       payload !== null &&
@@ -139,7 +151,7 @@ const PacketaLabelsPage = () => {
         offset: String(offset),
         order: "-created_at",
       })
-      return sdk.client.fetch<OrdersResponse>(`/admin/orders?${search}`)
+      return await sdk.client.fetch<OrdersResponse>(`/admin/orders?${search}`)
     },
     queryKey: ["packeta-label-orders", offset],
   })
@@ -148,9 +160,12 @@ const PacketaLabelsPage = () => {
   const printableOrders = orders.filter(
     (order) => getPacketaLabels(order).length > 0,
   )
-  const selectedPrintableOrderIds = printableOrders
-    .map((order) => order.id)
-    .filter((id) => selectedOrderIds.has(id))
+  const selectedPrintableOrderIds: string[] = []
+  for (const order of printableOrders) {
+    if (selectedOrderIds.has(order.id)) {
+      selectedPrintableOrderIds.push(order.id)
+    }
+  }
 
   const allPrintableSelected =
     printableOrders.length > 0 &&
@@ -199,16 +214,18 @@ const PacketaLabelsPage = () => {
     try {
       await downloadLabels(selectedPrintableOrderIds, labelFormat)
       toast.success("Packeta labels generated")
-    } catch (error) {
+    } catch (printError) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to print labels",
+        printError instanceof Error
+          ? printError.message
+          : "Failed to print labels",
       )
     } finally {
       setIsPrinting(false)
     }
   }
 
-  if (error) {
+  if (error !== null) {
     throw error
   }
 
@@ -224,7 +241,9 @@ const PacketaLabelsPage = () => {
         <div className="flex items-center gap-2">
           <Select
             onValueChange={(value) => {
-              setLabelFormat(value as LabelFormat)
+              if (isLabelFormat(value)) {
+                setLabelFormat(value)
+              }
             }}
             value={labelFormat}
           >
@@ -242,7 +261,9 @@ const PacketaLabelsPage = () => {
           <Button
             disabled={selectedPrintableOrderIds.length === 0}
             isLoading={isPrinting}
-            onClick={handlePrint}
+            onClick={() => {
+              void handlePrint()
+            }}
             size="small"
           >
             <DocumentSeries />

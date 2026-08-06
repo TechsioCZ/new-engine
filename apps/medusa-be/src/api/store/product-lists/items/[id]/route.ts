@@ -13,10 +13,10 @@ import {
 import { StoreProductListItemParamsSchema } from "../../validators"
 import type { StoreUpdateProductListItemSchemaType } from "../../validators"
 
-export async function POST(
+const postRoute = async (
   req: AuthenticatedMedusaRequest<StoreUpdateProductListItemSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { id: itemId } = StoreProductListItemParamsSchema.parse(req.params)
   const { result: item } = await updateProductListItemWorkflow(req.scope).run({
     input: {
@@ -32,10 +32,10 @@ export async function POST(
   res.json({ item: toProductListItemResponse(itemWithSelection ?? item) })
 }
 
-export async function DELETE(
+const deleteRoute = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-) {
+) => {
   const { id: itemId } = StoreProductListItemParamsSchema.parse(req.params)
   await deleteProductListItemWorkflow(req.scope).run({
     input: {
@@ -46,3 +46,5 @@ export async function DELETE(
 
   res.status(200).json({ deleted: true, id: itemId })
 }
+
+export { deleteRoute as DELETE, postRoute as POST }

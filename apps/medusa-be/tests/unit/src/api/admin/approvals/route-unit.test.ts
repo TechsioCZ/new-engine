@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+import { isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { AdminGetApprovalsType } from "../../../../../../src/api/admin/approvals/validators"
@@ -12,51 +13,56 @@ vi.mock(import("@medusajs/framework/utils"), () => ({
   },
 }))
 
-/**
- * Asserts that a plain mock object contains the given keys before narrowing
- * it to a framework type. Building the mock as `unknown` first (instead of
- * the target type) avoids requiring every property of the huge Node
- * request/response interfaces while still validating the shape the route
- * handler actually reads from at runtime.
- */
-function assertMockShape<T>(
-  candidate: unknown,
-  requiredKeys: readonly string[],
-): asserts candidate is T {
-  if (typeof candidate !== "object" || candidate === null) {
-    throw new TypeError("Expected a mock object")
-  }
+type JsonMock = ReturnType<typeof vi.fn<(body: unknown) => unknown>>
+type GraphMock = ReturnType<typeof vi.fn<(input: unknown) => Promise<unknown>>>
+type MockJsonResponse = MedusaResponse & { json: JsonMock }
 
-  for (const key of requiredKeys) {
-    if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
-    }
+const assertMockJsonResponse = (
+  candidate: unknown,
+): asserts candidate is MockJsonResponse => {
+  if (!isRecord(candidate) || typeof candidate["json"] !== "function") {
+    throw new TypeError("Expected a mock response with a json method")
   }
 }
 
-type MockJsonResponse = MedusaResponse & { json: ReturnType<typeof vi.fn> }
+const assertMockRequest = (
+  candidate: unknown,
+): asserts candidate is AuthenticatedMedusaRequest<AdminGetApprovalsType> => {
+  if (
+    !isRecord(candidate) ||
+    !isRecord(candidate["queryConfig"]) ||
+    !isRecord(candidate["scope"])
+  ) {
+    throw new TypeError("Expected a route request mock")
+  }
+  if (
+    typeof candidate["scope"]["resolve"] !== "function" ||
+    !isRecord(candidate["validatedQuery"])
+  ) {
+    throw new TypeError("Expected a route request mock")
+  }
+}
 
 const createMockResponse = (): MockJsonResponse => {
-  const candidate: unknown = { json: vi.fn().mockReturnThis() }
-  assertMockShape<MockJsonResponse>(candidate, ["json"])
+  const candidate: unknown = {
+    json: vi.fn<(body: unknown) => unknown>().mockReturnThis(),
+  }
+  assertMockJsonResponse(candidate)
   return candidate
 }
 
 const createMockRequest = (
-  graph: ReturnType<typeof vi.fn>,
+  graph: GraphMock,
   validatedQuery: Record<string, unknown> = {},
 ): AuthenticatedMedusaRequest<AdminGetApprovalsType> => {
   const candidate: unknown = {
     queryConfig: {},
     scope: {
-      resolve: vi.fn(() => ({ graph })),
+      resolve: vi.fn<(key: string) => { graph: GraphMock }>(() => ({ graph })),
     },
     validatedQuery,
   }
-  assertMockShape<AuthenticatedMedusaRequest<AdminGetApprovalsType>>(
-    candidate,
-    ["queryConfig", "scope", "validatedQuery"],
-  )
+  assertMockRequest(candidate)
   return candidate
 }
 
@@ -76,7 +82,8 @@ describe("GET /admin/approvals", () => {
       status: "pending",
       type: "sales_manager",
     }
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<(input: unknown) => Promise<unknown>>()
+    graph.mockResolvedValue({
       data: [
         {
           cart: {
@@ -104,15 +111,16 @@ describe("GET /admin/approvals", () => {
 
     await GET(req, res)
 
-    expect(graph).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entity: "approval_status",
-        fields: expect.arrayContaining(["cart.approvals.*"]),
-        filters: {
-          status: "pending",
-        },
-      }),
+    const graphInput = graph.mock.calls[0]?.[0]
+    expect(isRecord(graphInput)).toBeTruthy()
+    if (!isRecord(graphInput)) {
+      throw new TypeError("Expected graph input")
+    }
+    expect(graphInput["entity"]).toBe("approval_status")
+    expect(graphInput["fields"]).toStrictEqual(
+      expect.arrayContaining(["cart.approvals.*"]),
     )
+    expect(graphInput["filters"]).toStrictEqual({ status: "pending" })
     expect(res.json).toHaveBeenCalledWith({
       carts_with_approvals: [
         {

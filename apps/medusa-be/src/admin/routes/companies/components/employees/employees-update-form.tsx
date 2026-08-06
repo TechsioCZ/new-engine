@@ -17,13 +17,14 @@ import type {
   QueryEmployee,
 } from "../../../../../types"
 import { CoolSwitch } from "../../../../components"
-import { currencySymbolMap } from "../../../../utils"
+import { currencySymbolMap } from "../../../../utils/currency-symbol-map"
+
+const currencySymbols = new Map(Object.entries(currencySymbolMap))
 
 const getCurrencySymbol = (currencyCode: string) =>
-  currencySymbolMap[currencyCode as keyof typeof currencySymbolMap] ??
-  currencyCode.toUpperCase()
+  currencySymbols.get(currencyCode) ?? currencyCode.toUpperCase()
 
-export function EmployeesUpdateForm({
+export const EmployeesUpdateForm = ({
   company,
   employee,
   handleSubmit,
@@ -35,20 +36,24 @@ export function EmployeesUpdateForm({
   handleSubmit: (data: AdminUpdateEmployee) => Promise<void>
   loading: boolean
   error: Error | null
-}) {
+}) => {
   const { t } = useTranslation("companies")
   const navigate = useNavigate()
-  const currencyCode = company.currency_code?.toLowerCase() || "usd"
+  const normalizedCurrencyCode = company.currency_code?.toLowerCase()
+  const currencyCode =
+    normalizedCurrencyCode === undefined || normalizedCurrencyCode === ""
+      ? "usd"
+      : normalizedCurrencyCode
   const customerId = employee.customer?.id
   const [formData, setFormData] = useState<{
     spending_limit: string
     is_admin: boolean
   }>({
     is_admin: employee?.is_admin,
-    spending_limit: employee?.spending_limit?.toString() || "0",
+    spending_limit: employee.spending_limit?.toString() ?? "0",
   })
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = (e: React.SyntheticEvent<HTMLFormElement>): void => {
     e.preventDefault()
 
     const spendingLimit = formData.spending_limit
@@ -60,7 +65,7 @@ export function EmployeesUpdateForm({
       ...(spendingLimit === undefined ? {} : { spending_limit: spendingLimit }),
     }
 
-    await handleSubmit(data)
+    void handleSubmit(data)
   }
 
   return (
@@ -73,9 +78,9 @@ export function EmployeesUpdateForm({
                 {t("employees.details")}
               </Text>
               <Button
-                disabled={!customerId}
+                disabled={customerId === undefined || customerId === ""}
                 onClick={() => {
-                  if (customerId) {
+                  if (customerId !== undefined && customerId !== "") {
                     navigate(`/customers/${customerId}/edit`)
                   }
                 }}
@@ -134,7 +139,7 @@ export function EmployeesUpdateForm({
                 onChange={(e) => {
                   setFormData({
                     ...formData,
-                    spending_limit: e.target.value.replaceAll(/[^0-9.]/g, ""),
+                    spending_limit: e.target.value.replaceAll(/[^0-9.]/gu, ""),
                   })
                 }}
                 placeholder={t("placeholders.spendingLimit")}

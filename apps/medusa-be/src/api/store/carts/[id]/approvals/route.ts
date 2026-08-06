@@ -2,36 +2,58 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+import { MedusaError } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { requirePathParam } from "../../../../../utils/path-params"
-import { createApprovalsWorkflow } from "../../../../../workflows/approval/workflows"
+import { createApprovalsWorkflow } from "../../../../../workflows/approval/workflows/create-approvals"
 
-export const POST = async (
+const postRoute = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
 ) => {
   const cartId = requirePathParam(req.params["id"], "Cart id")
-  const { customer_id } = req.auth_context.app_metadata as {
-    customer_id: string
-  }
+  const customerIdValue = isRecord(req.auth_context.app_metadata)
+    ? req.auth_context.app_metadata["customer_id"]
+    : undefined
+  const customerId = requirePathParam(
+    typeof customerIdValue === "string" ? customerIdValue : undefined,
+    "Customer id",
+  )
 
-  const { result: approvals, errors } = await createApprovalsWorkflow(
-    req.scope,
-  ).run({
+  const workflowResult: unknown = await createApprovalsWorkflow(req.scope).run({
     input: {
       cart_id: cartId,
-      created_by: customer_id,
+      created_by: customerId,
     },
     throwOnError: false,
   })
 
-  if (errors.length > 0) {
+  if (!isRecord(workflowResult)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Approval creation returned an invalid result",
+    )
+  }
+
+  const { errors } = workflowResult
+  if (Array.isArray(errors) && errors.length > 0) {
+    const errorItems: unknown[] = errors
+    const [firstError] = errorItems
+    const errorDetail = isRecord(firstError) ? firstError["error"] : undefined
+    const message =
+      isRecord(errorDetail) && typeof errorDetail["message"] === "string"
+        ? errorDetail["message"]
+        : "Approval creation failed"
+
     res.status(400).json({
       code: "INVALID_DATA",
-      message: errors[0]?.error.message,
+      message,
     })
     return
   }
 
-  res.json({ approvals })
+  res.json({ approvals: workflowResult["result"] })
 }
+
+export { postRoute as POST }

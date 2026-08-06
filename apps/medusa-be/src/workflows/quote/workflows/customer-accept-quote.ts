@@ -18,7 +18,7 @@ import { updateQuotesWorkflow } from "./update-quote"
 export const customerAcceptQuoteWorkflow = createWorkflow(
   "customer-accept-quote",
   (input: { quote_id: string; customer_id: string }) => {
-    const quote = useRemoteQueryStep({
+    const quoteResult: unknown = useRemoteQueryStep({
       entry_point: "quote",
       fields: ["id", "customer_id", "draft_order_id", "status"],
       list: false,
@@ -26,7 +26,7 @@ export const customerAcceptQuoteWorkflow = createWorkflow(
       variables: { customer_id: input.customer_id, id: input.quote_id },
     })
 
-    validateQuoteAcceptanceStep({ quote })
+    const quote = validateQuoteAcceptanceStep({ quote: quoteResult })
 
     updateQuotesWorkflow.runAsStep({
       input: [{ id: input.quote_id, status: "accepted" }],

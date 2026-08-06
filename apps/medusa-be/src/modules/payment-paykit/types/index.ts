@@ -17,19 +17,22 @@ import type {
 import type { createGopay } from "@paykit-sdk/gopay"
 import type { createStripe } from "@paykit-sdk/stripe"
 
+type PaykitAdditionalPaymentStatuses = keyof {
+  requires_action: never
+  requires_more: never
+  requires_capture: never
+  authorized: never
+  succeeded: never
+  captured: never
+  paid: never
+  canceled: never
+  cancelled: never
+  failed: never
+  error: never
+}
+
 export type PaykitPaymentStatus = LooseAutoComplete<
-  | PaymentStatus
-  | "requires_action"
-  | "requires_more"
-  | "requires_capture"
-  | "authorized"
-  | "succeeded"
-  | "captured"
-  | "paid"
-  | "canceled"
-  | "cancelled"
-  | "failed"
-  | "error"
+  PaymentStatus | PaykitAdditionalPaymentStatuses
 >
 
 export type PaykitPayment = Partial<

@@ -14,7 +14,8 @@ import {
   BRAND_SEARCH_PROJECTION_EVENT_OPTIONS,
   buildBrandSearchProjectionEventData,
 } from "../../meilisearch/events"
-import { getBrandLifecycleLockKeys, restoreBrandsStep } from "../steps"
+import { getBrandLifecycleLockKeys } from "../steps/helpers"
+import { restoreBrandsStep } from "../steps/restore-brands"
 import type { RestoreBrandsWorkflowInput } from "../types"
 
 export const restoreBrandsWorkflow = createWorkflow(

@@ -12,17 +12,25 @@ interface BulkCancelOrdersWorkflowInput {
 
 type CancelOrderWorkflowContainer = Parameters<typeof cancelOrderWorkflow>[0]
 
-export async function cancelOrdersWithCancelOrderWorkflow(
+export const cancelOrdersWithCancelOrderWorkflow = async (
   input: BulkCancelOrdersWorkflowInput,
   container: CancelOrderWorkflowContainer,
-) {
-  for (const orderId of input.order_ids) {
+) => {
+  const cancelOrderAtIndex = async (index: number): Promise<void> => {
+    const orderId = input.order_ids[index]
+    if (orderId === undefined) {
+      return
+    }
+
     await cancelOrderWorkflow(container).run({
       input: {
         order_id: orderId,
       },
     })
+    await cancelOrderAtIndex(index + 1)
   }
+
+  await cancelOrderAtIndex(0)
 
   return {
     order_ids: input.order_ids,

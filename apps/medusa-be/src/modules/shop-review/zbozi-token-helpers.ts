@@ -3,7 +3,7 @@ import { toValidDate } from "./zbozi-token-normalizers"
 export const ZBOZI_ACCESS_TOKEN_REFRESH_WINDOW_MS = 2 * 60 * 1000
 export const ZBOZI_ACCESS_TOKEN_RETRY_DELAY_MS = 5 * 60 * 1000
 
-export function shouldRefreshZboziAccessToken({
+export const shouldRefreshZboziAccessToken = ({
   expiresAt,
   now = new Date(),
   refreshWindowMs = ZBOZI_ACCESS_TOKEN_REFRESH_WINDOW_MS,
@@ -11,7 +11,7 @@ export function shouldRefreshZboziAccessToken({
   expiresAt?: Date | string | null
   now?: Date
   refreshWindowMs?: number
-}): boolean {
+}): boolean => {
   const expiry = toValidDate(expiresAt)
 
   if (!expiry) {
@@ -21,7 +21,7 @@ export function shouldRefreshZboziAccessToken({
   return expiry.getTime() <= now.getTime() + refreshWindowMs
 }
 
-export function calculateNextRefreshDelayMs({
+export const calculateNextRefreshDelayMs = ({
   expiresAt,
   now = new Date(),
   refreshWindowMs = ZBOZI_ACCESS_TOKEN_REFRESH_WINDOW_MS,
@@ -31,11 +31,11 @@ export function calculateNextRefreshDelayMs({
   now?: Date
   refreshWindowMs?: number
   warn?: (message: string) => void
-}): number {
+}): number => {
   const expiry = toValidDate(expiresAt)
   if (!expiry) {
     warn?.(
-      "Zboží access token expiry is invalid; scheduling immediate refresh."
+      "Zboží access token expiry is invalid; scheduling immediate refresh.",
     )
     return 0
   }
@@ -43,7 +43,7 @@ export function calculateNextRefreshDelayMs({
   const delay = expiry.getTime() - refreshWindowMs - now.getTime()
   if (delay <= 0) {
     warn?.(
-      "Zboží access token refresh time is already due or in the past; scheduling immediate refresh."
+      "Zboží access token refresh time is already due or in the past; scheduling immediate refresh.",
     )
     return 0
   }

@@ -13,10 +13,10 @@ import {
 } from "./utils"
 import type { StoreGetProductListsSchemaType } from "./validators"
 
-export async function GET(
+const getRoute = async (
   req: AuthenticatedMedusaRequest<unknown, StoreGetProductListsSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const customerId = req.auth_context.actor_id
   const productListIds = await listCustomerProductListIds(req.scope, customerId)
   const { handle, limit, offset, type } = req.validatedQuery
@@ -30,11 +30,11 @@ export async function GET(
     id: { $in: productListIds },
   }
 
-  if (handle) {
+  if (handle !== undefined && handle !== "") {
     filters["handle"] = handle
   }
 
-  if (type) {
+  if (type !== undefined) {
     filters["type"] = type
   }
 
@@ -59,3 +59,5 @@ export async function GET(
     product_lists: productListsWithItems.map(toProductListResponse),
   })
 }
+
+export { getRoute as GET }

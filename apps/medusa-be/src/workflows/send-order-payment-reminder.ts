@@ -33,7 +33,7 @@ interface WorkflowInput {
 
 type QueryOrder = OrderReceiptOrder & PaymentReminderOrder
 
-function isQueryOrder(value: unknown): value is QueryOrder {
+const isQueryOrder = (value: unknown): value is QueryOrder => {
   if (typeof value !== "object" || value === null) {
     return false
   }

@@ -23,13 +23,14 @@ import type { MDXEditorMethods } from "@mdxeditor/editor"
 
 import "@mdxeditor/editor/style.css"
 import { marked } from "marked"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 
 import "./rich-html-editor.css"
 
-const HEADING_TAG_PATTERN = /^h[1-6]$/
-const TABLE_CELL_LINE_BREAK_PATTERN = /\s*\n+\s*/g
-const TABLE_CELL_PIPE_PATTERN = /\|/g
+const HEADING_TAG_PATTERN = /^h[1-6]$/u
+const TABLE_CELL_LINE_BREAK_PATTERN = /\s*\n+\s*/gu
+const TABLE_CELL_PIPE_PATTERN = /\|/gu
+const EXCESS_LINE_BREAK_PATTERN = /\n{3,}/gu
 
 interface RichHtmlEditorProps {
   ariaLabel: string
@@ -38,144 +39,186 @@ interface RichHtmlEditorProps {
   valueHtml: string
 }
 
-export const htmlToMarkdown = (html: string) => {
-  if (!html.trim()) {
+const renderTableLine = (cells: string[], columnTotal: number) =>
+  `| ${Array.from(
+    { length: columnTotal },
+    (_, index) => cells[index] ?? "",
+  ).join(" | ")} |`
+
+type NodeRenderer = (node: ChildNode) => string
+
+const renderTableNode = (
+  node: HTMLTableElement,
+  renderChild: NodeRenderer,
+): string => {
+  const renderTableCell = (cell: Element) =>
+    [...cell.childNodes]
+      .map(renderChild)
+      .join("")
+      .trim()
+      .replace(TABLE_CELL_LINE_BREAK_PATTERN, " ")
+      .replace(TABLE_CELL_PIPE_PATTERN, "\\|")
+  const renderedRows = (
+    node.tHead?.rows[0] === undefined
+      ? [...node.rows]
+      : [
+          node.tHead.rows[0],
+          ...[...node.tBodies].flatMap((body) => [...body.rows]),
+        ]
+  ).map((row) => [...row.children].map(renderTableCell))
+
+  if (renderedRows.length === 0) {
     return ""
   }
 
-  const document = new DOMParser().parseFromString(html, "text/html")
+  const columnCount = Math.max(...renderedRows.map((row) => row.length), 1)
+  const [headerCells, ...contentRows] = renderedRows
+  return `${[
+    renderTableLine(headerCells ?? [], columnCount),
+    renderTableLine(
+      Array.from({ length: columnCount }, () => "---"),
+      columnCount,
+    ),
+    ...contentRows.map((row) => renderTableLine(row, columnCount)),
+  ].join("\n")}\n\n`
+}
 
-  // Local HTML import keeps legacy Medusa descriptions editable in the WYSIWYG editor.
-  const renderNode = (node: ChildNode): string => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      return node.textContent ?? ""
+const renderListNode = (
+  node: HTMLElement,
+  ordered: boolean,
+  renderChild: NodeRenderer,
+): string =>
+  `${[...node.children]
+    .map((item, index) => {
+      const marker = ordered ? `${index + 1}.` : "-"
+      return `${marker} ${renderChild(item).trim()}`
+    })
+    .join("\n")}\n\n`
+
+const renderElementMarkup = (
+  node: HTMLElement,
+  tag: string,
+  children: string,
+  renderChild: NodeRenderer,
+): string => {
+  switch (tag) {
+    case "a": {
+      const href = node.getAttribute("href")
+      return href === null || href === "" ? children : `[${children}](${href})`
     }
-
-    if (!(node instanceof HTMLElement)) {
-      return ""
-    }
-
-    const tag = node.tagName.toLowerCase()
-
-    if (tag === "br") {
-      return "\n"
-    }
-
-    if (tag === "hr") {
-      return "---\n\n"
-    }
-
-    if (tag === "pre") {
-      return `${(node.textContent ?? "").trim()}\n\n`
-    }
-
-    if (tag === "table") {
-      const renderTableCell = (cell: Element) =>
-        [...cell.childNodes]
-          .map(renderNode)
-          .join("")
-          .trim()
-          .replace(TABLE_CELL_LINE_BREAK_PATTERN, " ")
-          .replace(TABLE_CELL_PIPE_PATTERN, "\\|")
-
-      const renderTableRow = (row: Element) =>
-        [...row.children].map(renderTableCell)
-
-      const renderTableLine = (cells: string[], columnTotal: number) =>
-        `| ${Array.from(
-          { length: columnTotal },
-          (_, index) => cells[index] ?? "",
-        ).join(" | ")} |`
-
-      if (!(node instanceof HTMLTableElement)) {
-        return ""
-      }
-
-      const headerRow = node.tHead?.rows[0]
-      const bodyRows = [...node.tBodies].flatMap((body) => [...body.rows])
-      const rows = headerRow ? [headerRow, ...bodyRows] : [...node.rows]
-
-      if (rows.length === 0) {
-        return ""
-      }
-
-      const renderedRows = rows.map(renderTableRow)
-      const columnCount = Math.max(...renderedRows.map((row) => row.length), 1)
-      const [headerCells, ...contentRows] = renderedRows
-
-      return `${[
-        renderTableLine(headerCells ?? [], columnCount),
-        renderTableLine(
-          Array.from({ length: columnCount }, () => "---"),
-          columnCount,
-        ),
-        ...contentRows.map((row) => renderTableLine(row, columnCount)),
-      ].join("\n")}\n\n`
-    }
-
-    const children = [...node.childNodes].map(renderNode).join("")
-
-    if (HEADING_TAG_PATTERN.test(tag)) {
-      return `${"#".repeat(Number(tag.slice(1)))} ${children.trim()}\n\n`
-    }
-
-    if (tag === "p" || tag === "div") {
-      return `${children.trim()}\n\n`
-    }
-
-    if (tag === "strong" || tag === "b") {
+    case "b":
+    case "strong": {
       return `**${children}**`
     }
-
-    if (tag === "em" || tag === "i") {
-      return `*${children}*`
-    }
-
-    if (tag === "del" || tag === "s" || tag === "strike") {
-      return `~~${children}~~`
-    }
-
-    if (tag === "a") {
-      const href = node.getAttribute("href")
-      return href ? `[${children}](${href})` : children
-    }
-
-    if (tag === "blockquote") {
+    case "blockquote": {
       return `${children
         .trim()
         .split("\n")
         .map((line) => `> ${line}`)
         .join("\n")}\n\n`
     }
-
-    if (tag === "ul") {
-      return `${[...node.children]
-        .map((item) => `- ${renderNode(item).trim()}`)
-        .join("\n")}\n\n`
+    case "del":
+    case "s":
+    case "strike": {
+      return `~~${children}~~`
     }
-
-    if (tag === "ol") {
-      return `${[...node.children]
-        .map((item, index) => `${index + 1}. ${renderNode(item).trim()}`)
-        .join("\n")}\n\n`
+    case "div":
+    case "p": {
+      return `${children.trim()}\n\n`
     }
-
-    if (tag === "li") {
+    case "em":
+    case "i": {
+      return `*${children}*`
+    }
+    case "li": {
       return children
     }
+    case "ol": {
+      return renderListNode(node, true, renderChild)
+    }
+    case "ul": {
+      return renderListNode(node, false, renderChild)
+    }
+    default: {
+      return HEADING_TAG_PATTERN.test(tag)
+        ? `${"#".repeat(Number(tag.slice(1)))} ${children.trim()}\n\n`
+        : children
+    }
+  }
+}
 
-    return children
+const renderNode: NodeRenderer = (node) => {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent ?? ""
+  }
+  if (!(node instanceof HTMLElement)) {
+    return ""
   }
 
+  const tag = node.tagName.toLowerCase()
+  if (tag === "br") {
+    return "\n"
+  }
+  if (tag === "hr") {
+    return "---\n\n"
+  }
+  if (tag === "pre") {
+    return `${(node.textContent ?? "").trim()}\n\n`
+  }
+  if (tag === "table") {
+    return node instanceof HTMLTableElement
+      ? renderTableNode(node, renderNode)
+      : ""
+  }
+
+  const children = [...node.childNodes].map(renderNode).join("")
+  return renderElementMarkup(node, tag, children, renderNode)
+}
+
+export const htmlToMarkdown = (html: string) => {
+  if (html.trim() === "") {
+    return ""
+  }
+
+  const document = new DOMParser().parseFromString(html, "text/html")
   return [...document.body.childNodes]
     .map(renderNode)
     .join("")
-    .replaceAll(/\n{3,}/g, "\n\n")
+    .replace(EXCESS_LINE_BREAK_PATTERN, "\n\n")
     .trim()
 }
 
 export const markdownToHtml = (markdown: string) =>
-  String(marked.parse(markdown, { async: false, gfm: true })).trim()
+  marked.parse(markdown, { async: false, gfm: true }).trim()
+
+const RichHtmlEditorToolbar = () => (
+  <>
+    <UndoRedo />
+    <Separator />
+    <BlockTypeSelect />
+    <Separator />
+    <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
+    <StrikeThroughSupSubToggles options={["Strikethrough"]} />
+    <Separator />
+    <ListsToggle />
+    <Separator />
+    <CreateLink />
+    <InsertTable />
+    <InsertThematicBreak />
+  </>
+)
+
+const richHtmlEditorPlugins = [
+  toolbarPlugin({ toolbarContents: RichHtmlEditorToolbar }),
+  headingsPlugin(),
+  listsPlugin(),
+  quotePlugin(),
+  thematicBreakPlugin(),
+  linkPlugin(),
+  linkDialogPlugin(),
+  tablePlugin(),
+  markdownShortcutPlugin(),
+]
 
 export const RichHtmlEditor = ({
   ariaLabel,
@@ -184,46 +227,11 @@ export const RichHtmlEditor = ({
   valueHtml,
 }: RichHtmlEditorProps) => {
   const editorRef = useRef<MDXEditorMethods>(null)
-  const [markdown, setMarkdown] = useState(() => htmlToMarkdown(valueHtml))
+  const markdown = htmlToMarkdown(valueHtml)
 
   useEffect(() => {
-    const nextMarkdown = htmlToMarkdown(valueHtml)
-
-    setMarkdown(nextMarkdown)
-    editorRef.current?.setMarkdown(nextMarkdown)
-  }, [valueHtml])
-
-  const plugins = useMemo(
-    () => [
-      toolbarPlugin({
-        toolbarContents: () => (
-          <>
-            <UndoRedo />
-            <Separator />
-            <BlockTypeSelect />
-            <Separator />
-            <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
-            <StrikeThroughSupSubToggles options={["Strikethrough"]} />
-            <Separator />
-            <ListsToggle />
-            <Separator />
-            <CreateLink />
-            <InsertTable />
-            <InsertThematicBreak />
-          </>
-        ),
-      }),
-      headingsPlugin(),
-      listsPlugin(),
-      quotePlugin(),
-      thematicBreakPlugin(),
-      linkPlugin(),
-      linkDialogPlugin(),
-      tablePlugin(),
-      markdownShortcutPlugin(),
-    ],
-    [],
-  )
+    editorRef.current?.setMarkdown(markdown)
+  }, [markdown])
 
   return (
     <MDXEditor
@@ -232,11 +240,12 @@ export const RichHtmlEditor = ({
       contentEditableClassName="rich-html-editor-content"
       markdown={markdown}
       onChange={(nextMarkdown) => {
-        setMarkdown(nextMarkdown)
         onChangeHtml?.(markdownToHtml(nextMarkdown))
       }}
-      onError={({ error }) => onError?.(String(error))}
-      plugins={plugins}
+      onError={({ error }) => {
+        onError?.(error)
+      }}
+      plugins={richHtmlEditorPlugins}
       ref={editorRef}
     />
   )

@@ -4,6 +4,8 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
+
 import { PRODUCT_REVIEW_MODULE } from "../../../../modules/product-review"
 import type ProductReviewModuleService from "../../../../modules/product-review/service"
 import { updateReviewWorkflow } from "../../../../workflows/product-review/workflows/update-review"
@@ -15,9 +17,9 @@ import { getProductsById } from "../helpers"
 import type { AdminUpdateReviewSchemaType } from "../validators"
 
 const getReviewRouteId = (req: MedusaRequest) =>
-  typeof req.params.id === "string" ? req.params.id : undefined
+  typeof req.params["id"] === "string" ? req.params["id"] : undefined
 
-async function getNormalizedReview(req: MedusaRequest, id: string) {
+const getNormalizedReview = async (req: MedusaRequest, id: string) => {
   const review = await req.scope
     .resolve<ProductReviewModuleService>(PRODUCT_REVIEW_MODULE)
     .retrieveReview(id)
@@ -31,42 +33,44 @@ async function getNormalizedReview(req: MedusaRequest, id: string) {
   return normalizeAdminReview(review, productsById)
 }
 
-export async function GET(
+const getRoute = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const id = getReviewRouteId(req)
 
-  if (!id) {
+  if (id === undefined || id === "") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Review id is required"
+      "Review id is required",
     )
   }
 
   res.json({ review: await getNormalizedReview(req, id) })
 }
 
-export async function PATCH(
+const patchRoute = async (
   req: AuthenticatedMedusaRequest<AdminUpdateReviewSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const id = getReviewRouteId(req)
 
-  if (!id) {
+  if (id === undefined || id === "") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Review id is required"
+      "Review id is required",
     )
   }
 
   const { result: review } = await updateReviewWorkflow(req.scope).run({
     input: {
       id,
-      review: req.validatedBody,
+      review: omitUndefined(req.validatedBody),
     },
   })
   const productsById = await getProductsById(req, [review.product_id])
 
   res.json({ review: normalizeAdminReview(review, productsById) })
 }
+
+export { getRoute as GET, patchRoute as PATCH }

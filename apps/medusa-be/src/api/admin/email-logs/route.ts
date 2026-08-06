@@ -38,7 +38,7 @@ const toEmailLogResponse = (emailLog: EmailLogDTO) => ({
   updated_at: emailLog.updated_at,
 })
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const getRoute = async (req: MedusaRequest, res: MedusaResponse) => {
   const emailLogService = req.scope.resolve<EmailLogService>(EMAIL_LOG_MODULE)
 
   const limit = Number(req.query["limit"] ?? 20)
@@ -60,3 +60,5 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     offset,
   })
 }
+
+export { getRoute as GET }

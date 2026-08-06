@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import type { Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { getMedusaStoreName } from "../utils/store-name"
 import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
@@ -16,16 +17,25 @@ interface OrderWithMetadata {
   metadata?: Record<string, unknown> | null
 }
 
-function getOrderNote(order: OrderWithMetadata) {
+const isOrderWithMetadata = (value: unknown): value is OrderWithMetadata => {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
+    return false
+  }
+
+  const { metadata } = value
+  return metadata === undefined || metadata === null || isRecord(metadata)
+}
+
+const getOrderNote = (order: OrderWithMetadata): string | undefined => {
   const note = order.metadata?.["order_note"]
 
   if (typeof note !== "string") {
-    return
+    return undefined
   }
 
   const trimmedNote = note.trim()
 
-  return trimmedNote.length ? trimmedNote : undefined
+  return trimmedNote.length > 0 ? trimmedNote : undefined
 }
 
 export default async function orderPlacedHandler({
@@ -35,24 +45,26 @@ export default async function orderPlacedHandler({
   await sendOrderReceiptWorkflow(container).run({
     input: {
       order_id: data.id,
-      store_name: await getMedusaStoreName(
-        container as Record<string, unknown>,
-      ),
+      store_name: isRecord(container)
+        ? await getMedusaStoreName(container)
+        : "N1 Shop",
     },
   })
 
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-  const {
-    data: [order],
-  } = await query.graph({
+  const orderGraphResult: unknown = await query.graph({
     entity: "order",
     fields: ["id", "metadata"],
     filters: { id: data.id },
   })
-  const note = order ? getOrderNote(order) : undefined
+  const order =
+    isRecord(orderGraphResult) && Array.isArray(orderGraphResult["data"])
+      ? orderGraphResult["data"].find(isOrderWithMetadata)
+      : undefined
+  const note = order === undefined ? undefined : getOrderNote(order)
 
-  if (note) {
+  if (note !== undefined && note !== "") {
     try {
       await syncOrderNoteWorkflow(container).run({
         input: {

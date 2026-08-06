@@ -1,7 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 import { createSelectParams } from "@medusajs/medusa/api/utils/validators"
 
-import { ApprovalStatusType } from "../../../types/approval"
+import { ApprovalStatusType } from "../../../types/approval/module"
 
 /* Company Validators */
 export type StoreGetCompanyParamsType = z.infer<typeof StoreGetCompanyParams>
@@ -96,7 +96,7 @@ export const StoreGetApprovalParams = createSelectParams()
 export type StoreUpdateApprovalType = z.infer<typeof StoreUpdateApproval>
 export const StoreUpdateApproval = z.object({
   handled_by: z.string(),
-  status: z.nativeEnum(ApprovalStatusType),
+  status: z.enum(ApprovalStatusType),
 })
 
 export type StoreDeleteApprovalType = z.infer<typeof StoreDeleteApproval>

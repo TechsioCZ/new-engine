@@ -1,3 +1,5 @@
+import type { MedusaRequest } from "@medusajs/framework/http"
+import { isRecord } from "@techsio/std/object"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -5,12 +7,21 @@ import {
   isValidWebhookSignature,
 } from "../../../../src/utils/webhooks"
 
+const assertMockRequest = (
+  candidate: unknown,
+): asserts candidate is MedusaRequest => {
+  if (!isRecord(candidate) || !isRecord(candidate["headers"])) {
+    throw new TypeError("Expected a request mock with headers")
+  }
+}
+
 const createMockRequest = (
   headers: Record<string, string | string[] | undefined>,
-) =>
-  ({
-    headers,
-  }) as any
+): MedusaRequest => {
+  const candidate: unknown = { headers }
+  assertMockRequest(candidate)
+  return candidate
+}
 
 describe(getHeaderValue, () => {
   it("returns string header value directly", () => {
@@ -29,7 +40,12 @@ describe(getHeaderValue, () => {
   })
 
   it("returns undefined when header value is undefined", () => {
-    const req = createMockRequest({ "x-signature": undefined })
+    const headers: Record<string, string | string[] | undefined> = {}
+    Object.defineProperty(headers, "x-signature", {
+      configurable: true,
+      enumerable: true,
+    })
+    const req = createMockRequest(headers)
     expect(getHeaderValue(req, "x-signature")).toBeUndefined()
   })
 

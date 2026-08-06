@@ -20,25 +20,28 @@ export const deleteBrandsStep = createStep(
     const foundIds = new Set(brands.map((brand) => brand.id))
     const missingIds = input.ids.filter((id) => !foundIds.has(id))
 
-    if (missingIds.length) {
+    if (missingIds.length > 0) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Brand ids were not found: ${missingIds.join(", ")}`,
       )
     }
 
-    const activeIds = brands
-      .filter((brand) => !brand.deleted_at)
-      .map((brand) => brand.id)
+    const activeIds: string[] = []
+    for (const brand of brands) {
+      if (brand.deleted_at === null || brand.deleted_at === undefined) {
+        activeIds.push(brand.id)
+      }
+    }
 
-    if (activeIds.length) {
+    if (activeIds.length > 0) {
       await service.softDeleteBrands(activeIds)
     }
 
     return new StepResponse(undefined, activeIds)
   },
   async (deletedIds, { container }) => {
-    if (!deletedIds?.length) {
+    if (deletedIds === undefined || deletedIds.length === 0) {
       return
     }
 

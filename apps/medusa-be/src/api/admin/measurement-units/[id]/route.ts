@@ -9,7 +9,7 @@ import {
 } from "../utils"
 import type { AdminUpdateMeasurementUnitSchemaType } from "../validators"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const getRoute = async (req: MedusaRequest, res: MedusaResponse) => {
   const unitId = req.params["id"] ?? ""
   const unit = await retrieveMeasurementUnitOrThrow(req.scope, unitId, {
     withDeleted: true,
@@ -20,10 +20,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   })
 }
 
-export async function POST(
+const postRoute = async (
   req: MedusaRequest<AdminUpdateMeasurementUnitSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const unitId = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, unitId)
@@ -45,7 +45,7 @@ export async function POST(
   })
 }
 
-export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
+const deleteRoute = async (req: MedusaRequest, res: MedusaResponse) => {
   const id = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, id)
@@ -61,3 +61,5 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
     object: "measurement_unit",
   })
 }
+
+export { deleteRoute as DELETE, getRoute as GET, postRoute as POST }

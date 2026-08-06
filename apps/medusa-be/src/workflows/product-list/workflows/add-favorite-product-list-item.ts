@@ -130,7 +130,10 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
           },
         ]
 
-        if (workflowInput.variant_id) {
+        if (
+          workflowInput.variant_id !== undefined &&
+          workflowInput.variant_id !== ""
+        ) {
           links.push({
             [PRODUCT_LIST_MODULE]: {
               product_list_item_id: createdItemResult.item.id,

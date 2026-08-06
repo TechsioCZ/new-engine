@@ -1,7 +1,11 @@
 import { MedusaError } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { PRODUCT_LIST_MODULE } from "../../../../../src/modules/product-list/constants"
+
+type GeneralMock = (...args: unknown[]) => unknown
+type GeneralVitestMock = ReturnType<typeof vi.fn<GeneralMock>>
 
 const {
   mockAssertProductSelectionExists,
@@ -10,11 +14,11 @@ const {
   mockFindProductListItemForSelection,
   mockGetProductListType,
 } = vi.hoisted(() => ({
-  mockAssertProductSelectionExists: vi.fn(),
-  mockFindCustomerCustomProductListByHandle: vi.fn(),
-  mockFindCustomerFavoriteProductList: vi.fn(),
-  mockFindProductListItemForSelection: vi.fn(),
-  mockGetProductListType: vi.fn(),
+  mockAssertProductSelectionExists: vi.fn<GeneralMock>(),
+  mockFindCustomerCustomProductListByHandle: vi.fn<GeneralMock>(),
+  mockFindCustomerFavoriteProductList: vi.fn<GeneralMock>(),
+  mockFindProductListItemForSelection: vi.fn<GeneralMock>(),
+  mockGetProductListType: vi.fn<GeneralMock>(),
 }))
 
 vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
@@ -30,9 +34,13 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.compensateInput = compensateInput
     }
   },
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate }),
-  ),
+  createStep: vi.fn<
+    (
+      name: string,
+      invoke: GeneralMock,
+      compensate: GeneralMock,
+    ) => GeneralMock & { compensate: GeneralMock }
+  >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
 }))
 
 vi.mock(
@@ -48,14 +56,14 @@ vi.mock(
 )
 
 interface MockService {
-  createCustomProductList: ReturnType<typeof vi.fn>
-  createFavoriteProductList: ReturnType<typeof vi.fn>
-  createProductListItemForList: ReturnType<typeof vi.fn>
-  deleteProductLists: ReturnType<typeof vi.fn>
-  deleteProductListItems: ReturnType<typeof vi.fn>
-  incrementProductListItemQuantity: ReturnType<typeof vi.fn>
-  retrieveProductList: ReturnType<typeof vi.fn>
-  updateProductListItems: ReturnType<typeof vi.fn>
+  createCustomProductList: GeneralVitestMock
+  createFavoriteProductList: GeneralVitestMock
+  createProductListItemForList: GeneralVitestMock
+  deleteProductLists: GeneralVitestMock
+  deleteProductListItems: GeneralVitestMock
+  incrementProductListItemQuantity: GeneralVitestMock
+  retrieveProductList: GeneralVitestMock
+  updateProductListItems: GeneralVitestMock
 }
 
 interface MockStep {
@@ -72,14 +80,9 @@ interface MockStep {
   ) => Promise<void>
 }
 
-const asMockStep = (candidate: unknown): MockStep => {
-  if (typeof candidate !== "function") {
-    throw new TypeError(
-      "Expected the imported workflow step to be a mocked function",
-    )
-  }
-
+const assertMockStep = (candidate: unknown): asserts candidate is MockStep => {
   if (
+    typeof candidate !== "function" ||
     !("compensate" in candidate) ||
     typeof candidate.compensate !== "function"
   ) {
@@ -87,30 +90,50 @@ const asMockStep = (candidate: unknown): MockStep => {
       "Expected the mocked workflow step to expose a compensate function",
     )
   }
+}
 
-  return candidate as MockStep
+const asMockStep = (candidate: unknown): MockStep => {
+  assertMockStep(candidate)
+  return candidate
 }
 
 const makeService = (): MockService => ({
-  createCustomProductList: vi.fn(),
-  createFavoriteProductList: vi.fn(),
-  createProductListItemForList: vi.fn(),
-  deleteProductListItems: vi.fn(),
-  deleteProductLists: vi.fn(),
-  incrementProductListItemQuantity: vi.fn(),
-  retrieveProductList: vi.fn(),
-  updateProductListItems: vi.fn(),
+  createCustomProductList: vi.fn<GeneralMock>(),
+  createFavoriteProductList: vi.fn<GeneralMock>(),
+  createProductListItemForList: vi.fn<GeneralMock>(),
+  deleteProductListItems: vi.fn<GeneralMock>(),
+  deleteProductLists: vi.fn<GeneralMock>(),
+  incrementProductListItemQuantity: vi.fn<GeneralMock>(),
+  retrieveProductList: vi.fn<GeneralMock>(),
+  updateProductListItems: vi.fn<GeneralMock>(),
 })
 
 const makeContainer = (service: MockService) => ({
-  resolve: vi.fn((key) => {
+  resolve: vi.fn<(key: string) => MockService>((key) => {
     if (key === PRODUCT_LIST_MODULE) {
       return service
     }
 
-    throw new Error(`Unexpected dependency: ${String(key)}`)
+    throw new Error(`Unexpected dependency: ${key}`)
   }),
 })
+
+const expectPropertiesToBeAbsent = (
+  record: Record<string, unknown>,
+  properties: string[],
+) => {
+  for (const property of properties) {
+    expect(record).not.toHaveProperty(property)
+  }
+}
+
+const expectStepResponse = (
+  response: { compensateInput: unknown; payload: unknown },
+  expected: { compensateInput: unknown; payload: unknown },
+) => {
+  expect(response.payload).toStrictEqual(expected.payload)
+  expect(response.compensateInput).toStrictEqual(expected.compensateInput)
+}
 
 const resetHelperMocks = () => {
   mockAssertProductSelectionExists.mockReset()
@@ -150,7 +173,7 @@ describe("createCustomerProductListStep", () => {
       "cus_1",
     )
     expect(service.createFavoriteProductList).not.toHaveBeenCalled()
-    expect(result).toStrictEqual({
+    expectStepResponse(result, {
       compensateInput: {
         created: false,
         list_id: "plist_favorite",
@@ -221,8 +244,9 @@ describe("createCustomerProductListStep", () => {
       { container },
     )
 
-    expect(service.deleteProductLists).toHaveBeenCalledOnce()
-    expect(service.deleteProductLists).toHaveBeenCalledWith("plist_new")
+    expect(service.deleteProductLists).toHaveBeenCalledExactlyOnceWith(
+      "plist_new",
+    )
   })
 })
 
@@ -261,15 +285,17 @@ describe("createProductListItemStep", () => {
       { container },
     )
 
-    expect(service.createProductListItemForList).toHaveBeenCalledWith({
+    const createInput = service.createProductListItemForList.mock.calls[0]?.[0]
+    if (!isRecord(createInput)) {
+      throw new TypeError("Expected a product list item create input")
+    }
+    expect(createInput).toMatchObject({
       list_id: "plist_favorite",
       list_type: "favorite",
-      metadata: undefined,
-      note: undefined,
       quantity: 2,
-      sort_order: undefined,
     })
-    expect(result).toStrictEqual({
+    expectPropertiesToBeAbsent(createInput, ["metadata", "note", "sort_order"])
+    expectStepResponse(result, {
       compensateInput: {
         created: true,
         item_id: "plitem_new",
@@ -324,15 +350,19 @@ describe("createProductListItemStep", () => {
       "prod_1",
       undefined,
     )
-    expect(service.createProductListItemForList).toHaveBeenCalledWith({
+    const createInput = service.createProductListItemForList.mock.calls[0]?.[0]
+    if (!isRecord(createInput)) {
+      throw new TypeError("Expected a product list item create input")
+    }
+    expect(createInput).toMatchObject({
       list_id: "plist_favorite",
       list_type: "favorite",
       metadata: { source: "test" },
       note: "Save for later",
-      quantity: undefined,
       sort_order: 4,
     })
-    expect(result).toStrictEqual({
+    expectPropertiesToBeAbsent(createInput, ["quantity"])
+    expectStepResponse(result, {
       compensateInput: {
         created: true,
         item_id: "plitem_new",
@@ -386,7 +416,7 @@ describe("createProductListItemStep", () => {
       "variant_1",
     )
     expect(service.createProductListItemForList).not.toHaveBeenCalled()
-    expect(result).toStrictEqual({
+    expectStepResponse(result, {
       compensateInput: {
         created: false,
         item_id: "plitem_existing",
@@ -420,8 +450,9 @@ describe("createProductListItemStep", () => {
       { container },
     )
 
-    expect(service.deleteProductListItems).toHaveBeenCalledOnce()
-    expect(service.deleteProductListItems).toHaveBeenCalledWith("plitem_new")
+    expect(service.deleteProductListItems).toHaveBeenCalledExactlyOnceWith(
+      "plitem_new",
+    )
   })
 })
 
@@ -456,7 +487,7 @@ describe("incrementProductListItemStep", () => {
       "plitem_1",
       2,
     )
-    expect(result).toStrictEqual({
+    expectStepResponse(result, {
       compensateInput: {
         item_id: "plitem_1",
         previous_quantity: 1,
@@ -495,7 +526,7 @@ describe("incrementProductListItemStep", () => {
       "plitem_1",
       2,
     )
-    expect(result).toStrictEqual({
+    expectStepResponse(result, {
       compensateInput: {
         item_id: "plitem_1",
         previous_quantity: 3,
@@ -520,8 +551,7 @@ describe("incrementProductListItemStep", () => {
     )
     await step.compensate(undefined, { container })
 
-    expect(service.updateProductListItems).toHaveBeenCalledOnce()
-    expect(service.updateProductListItems).toHaveBeenCalledWith({
+    expect(service.updateProductListItems).toHaveBeenCalledExactlyOnceWith({
       id: "plitem_1",
       quantity: 3,
     })

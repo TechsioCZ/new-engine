@@ -19,21 +19,20 @@ export type QueryEmployee = ModuleEmployee & {
  * Deliberately wide enough to accept generated graph rows, where dates may be
  * serialized strings and the customer relation may be absent.
  */
+type QueryGraphDate = Date | string
+
 export interface QueryGraphEmployee {
   id: string
   spending_limit: number
   is_admin: boolean
   company_id: string
-  created_at: Date | string
-  updated_at: Date | string
-  deleted_at?: Date | string | null | undefined
-  customer?:
-    | {
-        id: string
-        email: string | null
-        first_name?: string | null | undefined
-        last_name?: string | null | undefined
-      }
-    | null
-    | undefined
+  created_at: QueryGraphDate
+  updated_at: QueryGraphDate
+  deleted_at?: QueryGraphDate | null
+  customer?: {
+    id: string
+    email: string | null
+    first_name?: string | null | undefined
+    last_name?: string | null | undefined
+  } | null
 }

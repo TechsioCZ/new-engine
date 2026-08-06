@@ -1,1 +1,1 @@
-export * from "./filter-group"
+export { FilterGroup } from "./filter-group"

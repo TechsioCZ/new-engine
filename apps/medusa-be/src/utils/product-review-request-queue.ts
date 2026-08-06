@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
@@ -63,26 +64,18 @@ type WorkflowQueueService = WorkflowQueueModuleService & {
   ) => Promise<WorkflowQueueItemDTO[]>
 }
 
-function getProductReviewRequestDedupeKey(orderId: string) {
-  return `${PRODUCT_REVIEW_REQUEST_DEDUPE_KEY_PREFIX}-${orderId}`
-}
+const getProductReviewRequestDedupeKey = (orderId: string) =>
+  `${PRODUCT_REVIEW_REQUEST_DEDUPE_KEY_PREFIX}-${orderId}`
 
-function isReviewRequestOrder(value: unknown): value is ReviewRequestOrder {
-  if (typeof value !== "object" || value === null) {
-    return false
-  }
+const isReviewRequestOrder = (value: unknown): value is ReviewRequestOrder =>
+  isRecord(value) &&
+  typeof value["id"] === "string" &&
+  typeof value["display_id"] === "number"
 
-  const record = value as Record<string, unknown>
-
-  return (
-    typeof record["id"] === "string" && typeof record["display_id"] === "number"
-  )
-}
-
-async function retrieveOrderForReviewRequest(
+const retrieveOrderForReviewRequest = async (
   container: MedusaContainer,
   orderId: string,
-) {
+): Promise<ReviewRequestOrder | undefined> => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "order",
@@ -91,16 +84,16 @@ async function retrieveOrderForReviewRequest(
   })
 
   if (!(Array.isArray(data) && isReviewRequestOrder(data[0]))) {
-    return
+    return undefined
   }
 
   return data[0]
 }
 
-async function hasReviewRequestEmailLog(
+const hasReviewRequestEmailLog = async (
   container: MedusaContainer,
   orderId: string,
-) {
+) => {
   const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
   const logs = await emailLogService.listEmailLogs(
     {
@@ -116,10 +109,10 @@ async function hasReviewRequestEmailLog(
   return logs.length > 0
 }
 
-async function hasQueuedReviewRequest(
+const hasQueuedReviewRequest = async (
   container: MedusaContainer,
   dedupeKey: string,
-) {
+) => {
   const workflowQueueService = container.resolve<WorkflowQueueService>(
     WORKFLOW_QUEUE_MODULE,
   )
@@ -137,7 +130,7 @@ async function hasQueuedReviewRequest(
   return items.length > 0
 }
 
-export async function scheduleProductReviewRequestForOrder({
+export const scheduleProductReviewRequestForOrder = async ({
   container,
   logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER),
   orderId,
@@ -145,10 +138,10 @@ export async function scheduleProductReviewRequestForOrder({
   container: MedusaContainer
   logger?: Logger
   orderId: string
-}) {
+}) => {
   const order = await retrieveOrderForReviewRequest(container, orderId)
 
-  if (!order) {
+  if (order === undefined) {
     logger.warn(
       `Skipping product review request queueing: order ${orderId} not found`,
     )
@@ -178,7 +171,7 @@ export async function scheduleProductReviewRequestForOrder({
   const paidAt = getOrderPaidAt(order)
   const runAt = getReviewRequestRunAt(order)
 
-  if (!(paidAt && runAt)) {
+  if (paidAt === undefined || runAt === undefined) {
     logger.warn(
       `Skipping product review request queueing for order ${getOrderDisplayId(order)}: paid date could not be resolved`,
     )

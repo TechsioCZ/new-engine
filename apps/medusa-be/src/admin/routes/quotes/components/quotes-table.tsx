@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 
 import { DataTable } from "../../../components/common/table/data-table/data-table"
-import { useQuotes } from "../../../hooks/api"
+import { useQuotes } from "../../../hooks/api/quotes"
 import { useDataTable } from "../../../hooks/use-data-table"
 import { useQuotesTableColumns } from "./table/columns"
 import { useQuotesTableFilters } from "./table/filters"

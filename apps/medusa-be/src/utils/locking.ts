@@ -1,10 +1,14 @@
+import { setTimeout as delay } from "node:timers/promises"
+
 import type { ILockingModule } from "@medusajs/framework/types"
 
 type LockExecutionResult<T> =
   | { status: "executed"; value: T }
   | { status: "timed_out" }
 
-class LockAcquisitionTimeoutError extends Error {}
+class LockAcquisitionTimeoutError extends Error {
+  override readonly name = "LockAcquisitionTimeoutError"
+}
 
 const MILLISECONDS_PER_SECOND = 1000
 
@@ -13,27 +17,15 @@ const MILLISECONDS_PER_SECOND = 1000
 // result (same pattern as the PPL rate-limit wrapper's provider deadline).
 const PROVIDER_TIMEOUT_BUFFER_SECONDS = 5
 
-export async function executeWithLockTimeout<T>(
+export const executeWithLockTimeout = async <T>(
   lockingModule: Pick<ILockingModule, "execute">,
   key: string,
   timeoutSeconds: number,
   job: () => Promise<T>,
-): Promise<LockExecutionResult<T>> {
+): Promise<LockExecutionResult<T>> => {
   const timeoutError = new LockAcquisitionTimeoutError()
   let callbackStarted = false
   let timedOut = false
-  let timeoutHandle: NodeJS.Timeout | undefined
-
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutHandle = setTimeout(() => {
-      if (!callbackStarted) {
-        timedOut = true
-        reject(timeoutError)
-      }
-    }, timeoutSeconds * MILLISECONDS_PER_SECOND)
-    timeoutHandle.unref()
-  })
-
   const execution = lockingModule.execute(
     key,
     async () => {
@@ -46,6 +38,18 @@ export async function executeWithLockTimeout<T>(
     },
     { timeout: timeoutSeconds + PROVIDER_TIMEOUT_BUFFER_SECONDS },
   )
+  const waitForTimeout = async (): Promise<T> => {
+    await delay(timeoutSeconds * MILLISECONDS_PER_SECOND, undefined, {
+      ref: false,
+    })
+    if (!callbackStarted) {
+      timedOut = true
+      throw timeoutError
+    }
+
+    return await execution
+  }
+  const timeout = waitForTimeout()
 
   try {
     const value = await Promise.race([execution, timeout])
@@ -56,7 +60,5 @@ export async function executeWithLockTimeout<T>(
     }
 
     throw error
-  } finally {
-    clearTimeout(timeoutHandle)
   }
 }

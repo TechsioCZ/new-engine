@@ -1,7 +1,6 @@
-const { register } = require("ts-node")
+import { MetadataStorage } from "@medusajs/framework/mikro-orm/core"
+import { register } from "ts-node"
 
 register({ transpileOnly: true })
-
-const { MetadataStorage } = require("@medusajs/framework/mikro-orm/core")
 
 MetadataStorage.clear()
