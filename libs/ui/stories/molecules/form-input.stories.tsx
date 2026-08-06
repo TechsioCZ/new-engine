@@ -7,7 +7,15 @@ import { FormInput } from "../../src/molecules/form-input"
 
 const meta: Meta<typeof FormInput> = {
   argTypes: {
-    // Text inputs
+    disabled: {
+      control: "boolean",
+      description: "Disable the input",
+      table: { defaultValue: { summary: "false" } },
+    },
+    helpText: {
+      control: "text",
+      description: "Helper text or validation message below input",
+    },
     label: {
       control: "text",
       description: "Input label",
@@ -16,40 +24,9 @@ const meta: Meta<typeof FormInput> = {
       control: "text",
       description: "Placeholder text",
     },
-    helpText: {
-      control: "text",
-      description: "Helper text or validation message below input",
-    },
-
-    // Appearance
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size of input and label",
-      table: { defaultValue: { summary: "md" } },
-    },
-    validateStatus: {
-      control: "select",
-      options: ["default", "error", "success", "warning"],
-      description: "Validation state",
-      table: { defaultValue: { summary: "default" } },
-    },
-    showHelpTextIcon: {
+    readOnly: {
       control: "boolean",
-      description: "Show icon with help text",
-      table: { defaultValue: { summary: "false" } },
-    },
-    type: {
-      control: "select",
-      options: ["text", "email", "password", "tel", "number", "url"],
-      description: "HTML input type",
-      table: { defaultValue: { summary: "text" } },
-    },
-
-    // States
-    disabled: {
-      control: "boolean",
-      description: "Disable the input",
+      description: "Make input read-only",
       table: { defaultValue: { summary: "false" } },
     },
     required: {
@@ -57,10 +34,28 @@ const meta: Meta<typeof FormInput> = {
       description: "Mark as required field",
       table: { defaultValue: { summary: "false" } },
     },
-    readOnly: {
+    showHelpTextIcon: {
       control: "boolean",
-      description: "Make input read-only",
+      description: "Show icon with help text",
       table: { defaultValue: { summary: "false" } },
+    },
+    size: {
+      control: "select",
+      description: "Size of input and label",
+      options: ["sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
+    },
+    type: {
+      control: "select",
+      description: "HTML input type",
+      options: ["text", "email", "password", "tel", "number", "url"],
+      table: { defaultValue: { summary: "text" } },
+    },
+    validateStatus: {
+      control: "select",
+      description: "Validation state",
+      options: ["default", "error", "success", "warning"],
+      table: { defaultValue: { summary: "default" } },
     },
   },
   args: {
@@ -301,24 +296,37 @@ export const Sizes: Story = {
 }
 
 // Interactive validation example
-export const InteractiveValidation: Story = {
-  render: () => <EmailValidationExample />,
+const getEmailValidateStatus = (
+  showError: boolean,
+  showSuccess: boolean,
+): "default" | "error" | "success" => {
+  if (showError) {
+    return "error"
+  }
+  if (showSuccess) {
+    return "success"
+  }
+  return "default"
 }
 
-function EmailValidationExample() {
+const getEmailStatusLabel = (isTouched: boolean, valid: boolean) => {
+  if (!isTouched) {
+    return "Untouched"
+  }
+  return valid ? "Valid email" : "Invalid email"
+}
+
+const EmailValidationExample = () => {
   const [email, setEmail] = useState("")
   const [touched, setTouched] = useState(false)
 
-  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-  const showError = touched && email && !isValid
-  const showSuccess = touched && email && isValid
+  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email.trim())
+  const isEmailFilled = email.length > 0
+  const showError = touched && isEmailFilled && !isValid
+  const showSuccess = touched && isEmailFilled && isValid
 
   // Determine validation status
-  const validateStatus = showError
-    ? "error"
-    : showSuccess
-      ? "success"
-      : "default"
+  const validateStatus = getEmailValidateStatus(showError, showSuccess)
 
   return (
     <div className="w-xs">
@@ -343,36 +351,36 @@ function EmailValidationExample() {
         }
       />
       <div className="mt-300 text-sm">
-        <p>
-          Status:{" "}
-          {touched ? (isValid ? "Valid email" : "Invalid email") : "Untouched"}
-        </p>
+        <p>Status: {getEmailStatusLabel(touched, isValid)}</p>
       </div>
     </div>
   )
 }
 
-// Form usage example
-export const RegistrationForm: Story = {
-  render: () => <RegistrationFormExample />,
+export const InteractiveValidation: Story = {
+  render: () => <EmailValidationExample />,
 }
 
-function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
-  return (
-    <li
-      className={`flex items-center gap-100 ${passed ? "text-success" : "text-fg-secondary"}`}
-    >
-      <span
-        className={
-          passed ? "icon-[mdi--check-circle]" : "icon-[mdi--circle-outline]"
-        }
-      />
-      {label}
-    </li>
-  )
-}
+const PasswordCheck = ({
+  passed,
+  label,
+}: {
+  passed: boolean
+  label: string
+}) => (
+  <li
+    className={`flex items-center gap-100 ${passed ? "text-success" : "text-fg-secondary"}`}
+  >
+    <span
+      className={
+        passed ? "icon-[mdi--check-circle]" : "icon-[mdi--circle-outline]"
+      }
+    />
+    {label}
+  </li>
+)
 
-function RegistrationFormExample() {
+const RegistrationFormExample = () => {
   const [form, setForm] = useState({
     email: "",
     fullName: "",
@@ -401,7 +409,7 @@ function RegistrationFormExample() {
   const validations = {
     email: {
       error: "Please enter a valid email address",
-      isValid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()),
+      isValid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(form.email.trim()),
       success: "Email is correct",
     },
     fullName: {
@@ -412,8 +420,8 @@ function RegistrationFormExample() {
     password: {
       checks: {
         length: form.password.length >= 8,
-        number: /\d/.test(form.password),
-        uppercase: /[A-Z]/.test(form.password),
+        number: /\d/u.test(form.password),
+        uppercase: /[A-Z]/u.test(form.password),
       },
       error: "Weak password",
       get isValid() {
@@ -423,12 +431,12 @@ function RegistrationFormExample() {
     },
     phone: {
       error: "Please enter a valid phone number",
-      isValid: form.phone === "" || /^\+?[\d\s()-]{7,}$/.test(form.phone),
+      isValid: form.phone === "" || /^\+?[\d\s()-]{7,}$/u.test(form.phone),
       success: "Valid phone number",
     },
     username: {
       error: "Min 3 characters, only letters, numbers, underscore",
-      isValid: /^[a-zA-Z0-9_]{3,}$/.test(form.username),
+      isValid: /^[a-zA-Z0-9_]{3,}$/u.test(form.username),
       success: "Username is available",
     },
   }
@@ -523,20 +531,8 @@ function RegistrationFormExample() {
             onBlur={() => {
               touchField("password")
             }}
-            validateStatus={
-              !touched.password || !form.password
-                ? "default"
-                : validations.password.isValid
-                  ? "success"
-                  : "error"
-            }
-            helpText={
-              touched.password && form.password && !validations.password.isValid
-                ? "Weak password"
-                : touched.password && validations.password.isValid
-                  ? "Strong password!"
-                  : undefined
-            }
+            validateStatus={getStatus("password")}
+            helpText={getHelpText("password", "")}
           />
           <ul className="mt-150 space-y-100 text-sm">
             <PasswordCheck
@@ -587,4 +583,9 @@ function RegistrationFormExample() {
       </div>
     </div>
   )
+}
+
+// Form usage example
+export const RegistrationForm: Story = {
+  render: () => <RegistrationFormExample />,
 }
