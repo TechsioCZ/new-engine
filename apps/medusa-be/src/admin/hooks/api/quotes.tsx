@@ -1,11 +1,8 @@
 import type { HttpTypes } from "@medusajs/framework/types"
 import type { ClientHeaders, FetchError } from "@medusajs/js-sdk"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type {
-  QueryKey,
-  UseMutationOptions,
-  UseQueryOptions,
-} from "@tanstack/react-query"
+import type { UseMutationOptions, UseQueryOptions } from "@tanstack/react-query"
+import { omitKeys } from "@techsio/std/object"
 
 import type {
   AdminCreateQuoteMessage,
@@ -29,50 +26,50 @@ type QueryOptions<TData> = Omit<
   "queryFn" | "queryKey"
 >
 
+const fetchQuotes = async (
+  filters: QuoteFilterParams,
+  headers?: ClientHeaders,
+) =>
+  await sdk.client.fetch<StoreQuotesResponse>("/admin/quotes", {
+    query: filters,
+    ...(headers ? { headers } : {}),
+  })
+
 export const useQuotes = (
   quoteQuery: QuoteFilterParams,
   options?: QueryOptions<StoreQuotesResponse>,
 ) => {
-  const fetchQuotes = async (
-    filters: QuoteFilterParams,
-    headers?: ClientHeaders,
-  ) =>
-    sdk.client.fetch<StoreQuotesResponse>("/admin/quotes", {
-      query: filters,
-      ...(headers ? { headers } : {}),
-    })
-
-  const { data, ...rest } = useQuery({
+  const query = useQuery({
     ...options,
-    queryFn: async () => fetchQuotes(quoteQuery),
+    queryFn: async () => await fetchQuotes(quoteQuery),
     queryKey: quoteQueryKey.list(quoteQuery),
   })
 
-  return { ...data, ...rest }
+  return { ...query.data, ...omitKeys(query, ["data"]) }
 }
+
+const fetchQuote = async (
+  quoteId: string,
+  filters?: QuoteFilterParams,
+  headers?: ClientHeaders,
+) =>
+  await sdk.client.fetch<StoreQuoteResponse>(`/admin/quotes/${quoteId}`, {
+    ...(filters ? { query: filters } : {}),
+    ...(headers ? { headers } : {}),
+  })
 
 export const useQuote = (
   id: string,
   quoteQuery?: QuoteFilterParams,
   options?: QueryOptions<StoreQuoteResponse>,
 ) => {
-  const fetchQuote = async (
-    quoteId: string,
-    filters?: QuoteFilterParams,
-    headers?: ClientHeaders,
-  ) =>
-    sdk.client.fetch<StoreQuoteResponse>(`/admin/quotes/${quoteId}`, {
-      ...(filters ? { query: filters } : {}),
-      ...(headers ? { headers } : {}),
-    })
-
-  const { data, ...rest } = useQuery({
-    queryFn: async () => fetchQuote(id, quoteQuery),
+  const query = useQuery({
+    queryFn: async () => await fetchQuote(id, quoteQuery),
     queryKey: quoteQueryKey.detail(id, quoteQuery),
     ...options,
   })
 
-  return { ...data, ...rest }
+  return { ...query.data, ...omitKeys(query, ["data"]) }
 }
 
 export const useAddItemsToQuote = (
@@ -87,7 +84,7 @@ export const useAddItemsToQuote = (
 
   return useMutation({
     mutationFn: async (payload: HttpTypes.AdminAddOrderEditItems) =>
-      sdk.admin.orderEdit.addItems(id, payload),
+      await sdk.admin.orderEdit.addItems(id, payload),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.detail(id),
@@ -114,7 +111,7 @@ export const useUpdateQuoteItem = (
       itemId,
       ...payload
     }: UpdateQuoteItemPayload & { itemId: string }) =>
-      sdk.admin.orderEdit.updateOriginalItem(id, itemId, payload),
+      await sdk.admin.orderEdit.updateOriginalItem(id, itemId, payload),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.detail(id),
@@ -138,7 +135,7 @@ export const useRemoveQuoteItem = (
 
   return useMutation({
     mutationFn: async (actionId: string) =>
-      sdk.admin.orderEdit.removeAddedItem(id, actionId),
+      await sdk.admin.orderEdit.removeAddedItem(id, actionId),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.detail(id),
@@ -164,7 +161,7 @@ export const useUpdateAddedQuoteItem = (
       actionId,
       ...payload
     }: UpdateQuoteItemPayload & { actionId: string }) =>
-      sdk.admin.orderEdit.updateAddedItem(id, actionId, payload),
+      await sdk.admin.orderEdit.updateAddedItem(id, actionId, payload),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.detail(id),
@@ -186,7 +183,7 @@ export const useConfirmQuote = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async () => sdk.admin.orderEdit.request(id),
+    mutationFn: async () => await sdk.admin.orderEdit.request(id),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.details(),
@@ -197,6 +194,11 @@ export const useConfirmQuote = (
     ...options,
   })
 }
+
+const sendQuote = async (quoteId: string) =>
+  await sdk.client.fetch<AdminQuoteResponse>(`/admin/quotes/${quoteId}/send`, {
+    method: "POST",
+  })
 
 export const useSendQuote = (
   id: string,
@@ -204,16 +206,8 @@ export const useSendQuote = (
 ) => {
   const queryClient = useQueryClient()
 
-  const sendQuote = async (quoteId: string) =>
-    await sdk.client.fetch<AdminQuoteResponse>(
-      `/admin/quotes/${quoteId}/send`,
-      {
-        method: "POST",
-      },
-    )
-
   return useMutation({
-    mutationFn: async () => sendQuote(id),
+    mutationFn: async () => await sendQuote(id),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.details(),
@@ -232,6 +226,14 @@ export const useSendQuote = (
     ...options,
   })
 }
+
+const rejectQuote = async (quoteId: string) =>
+  await sdk.client.fetch<AdminQuoteResponse>(
+    `/admin/quotes/${quoteId}/reject`,
+    {
+      method: "POST",
+    },
+  )
 
 export const useRejectQuote = (
   id: string,
@@ -239,16 +241,8 @@ export const useRejectQuote = (
 ) => {
   const queryClient = useQueryClient()
 
-  const rejectQuote = async (quoteId: string) =>
-    await sdk.client.fetch<AdminQuoteResponse>(
-      `/admin/quotes/${quoteId}/reject`,
-      {
-        method: "POST",
-      },
-    )
-
   return useMutation({
-    mutationFn: async () => rejectQuote(id),
+    mutationFn: async () => await rejectQuote(id),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.details(),
@@ -267,6 +261,18 @@ export const useRejectQuote = (
     ...options,
   })
 }
+
+const createQuoteMessage = async (
+  quoteId: string,
+  body: AdminCreateQuoteMessage,
+) =>
+  await sdk.client.fetch<AdminQuoteResponse>(
+    `/admin/quotes/${quoteId}/messages`,
+    {
+      body,
+      method: "POST",
+    },
+  )
 
 export const useCreateQuoteMessage = (
   id: string,
@@ -278,17 +284,8 @@ export const useCreateQuoteMessage = (
 ) => {
   const queryClient = useQueryClient()
 
-  const sendQuote = async (quoteId: string, body: AdminCreateQuoteMessage) =>
-    await sdk.client.fetch<AdminQuoteResponse>(
-      `/admin/quotes/${quoteId}/messages`,
-      {
-        body,
-        method: "POST",
-      },
-    )
-
   return useMutation({
-    mutationFn: async (body) => sendQuote(id, body),
+    mutationFn: async (body) => await createQuoteMessage(id, body),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: quoteQueryKey.details(),
