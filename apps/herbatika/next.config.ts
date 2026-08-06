@@ -70,7 +70,7 @@ const nextConfig: NextConfig = {
   ],
   reactCompiler: true,
   cacheComponents: true,
-  async redirects() {
+  redirects() {
     return [
       {
         source: "/homepage-promo",

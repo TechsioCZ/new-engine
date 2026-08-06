@@ -9,9 +9,7 @@ import {
   fetchCmsHeroBanners as fetchCmsHeroBannersValue,
   mapCmsHeroCarouselToHeroBanner as mapCmsHeroCarouselToHeroBannerValue,
 } from "./cms-hero-carousels"
-import {
-  fetchCmsHomepagePromo as fetchCmsHomepagePromoValue,
-} from "./cms-homepage-promo"
+import { fetchCmsHomepagePromo as fetchCmsHomepagePromoValue } from "./cms-homepage-promo"
 import { fetchCmsPageBySlug as fetchCmsPageBySlugValue } from "./cms-pages"
 import type {
   CmsArticleCategory as CmsArticleCategoryValue,

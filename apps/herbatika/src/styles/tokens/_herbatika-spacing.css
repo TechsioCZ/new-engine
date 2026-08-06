@@ -37,9 +37,9 @@
   --spacing-homepage-lg: var(--spacing-page);
   --spacing-homepage-gap: var(--spacing-page-gap);
   --spacing-homepage-promo-scroll-offset: calc(
-    var(--height-header-mobile)
-    + var(--height-search-form)
-    + var(--spacing-300)
+    var(--height-header-mobile) +
+    var(--height-search-form) +
+    var(--spacing-300)
   );
 
   --spacing-category-page: var(--spacing-page-default);
