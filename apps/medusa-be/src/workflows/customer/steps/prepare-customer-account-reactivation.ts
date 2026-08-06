@@ -5,17 +5,16 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { hasArrayData } from "../../../utils/guards"
+import { normalizeEmail } from "../../../utils/email"
 import {
   buildReactivatedCustomerUpdateInput,
-  normalizeEmail,
   verifyAuthIdentityEmail,
 } from "../helpers"
-import { isInactiveCustomerFirstName } from "../normalizers"
 
-export type CreateOrReactivateCustomerAccountInput = {
+export type ReactivateCustomerAccountInput = {
   auth_identity_id: string
   company_name?: string | null
+  customer: CustomerRecord
   email: string
   first_name?: string | null
   last_name?: string | null
@@ -47,12 +46,21 @@ type PrepareCustomerAccountReactivationOutput = {
   update: ReactivateCustomerAccountUpdateInput
 }
 
+type PrepareCustomerAccountReactivationCompensation = {
+  restored_customer_id?: string
+}
+
 export const prepareCustomerAccountReactivationStep = createStep(
   "prepare-customer-account-reactivation",
   async (
-    input: CreateOrReactivateCustomerAccountInput,
+    input: ReactivateCustomerAccountInput,
     { container }
-  ): Promise<StepResponse<PrepareCustomerAccountReactivationOutput>> => {
+  ): Promise<
+    StepResponse<
+      PrepareCustomerAccountReactivationOutput,
+      PrepareCustomerAccountReactivationCompensation
+    >
+  > => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const customerModuleService = container.resolve<ICustomerModuleService>(
       Modules.CUSTOMER
@@ -65,38 +73,14 @@ export const prepareCustomerAccountReactivationStep = createStep(
       query,
     })
 
-    const customerResult: unknown = await query.graph({
-      entity: "customer",
-      fields: [
-        "id",
-        "email",
-        "company_name",
-        "first_name",
-        "last_name",
-        "phone",
-        "metadata",
-        "has_account",
-        "deleted_at",
-      ],
-      filters: { email },
-      withDeleted: true,
-    })
+    const deactivatedCustomer = input.customer
 
-    if (!hasArrayData<CustomerRecord>(customerResult)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Unexpected response shape while loading customer account."
+    if (
+      !(
+        deactivatedCustomer.deleted_at ||
+        deactivatedCustomer.has_account === false
       )
-    }
-
-    const deactivatedCustomer = customerResult.data.find(
-      (customer) =>
-        customer.deleted_at ||
-        customer.has_account === false ||
-        isInactiveCustomerFirstName(customer.first_name)
-    )
-
-    if (!deactivatedCustomer) {
+    ) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         "Deactivated customer account was not found."
@@ -107,13 +91,33 @@ export const prepareCustomerAccountReactivationStep = createStep(
       await customerModuleService.restoreCustomers([deactivatedCustomer.id])
     }
 
-    return new StepResponse({
-      auth_identity_id: input.auth_identity_id,
-      customer_id: deactivatedCustomer.id,
-      update: buildReactivatedCustomerUpdateInput(
-        { ...input, email },
-        deactivatedCustomer
-      ),
-    })
+    return new StepResponse(
+      {
+        auth_identity_id: input.auth_identity_id,
+        customer_id: deactivatedCustomer.id,
+        update: buildReactivatedCustomerUpdateInput(
+          { ...input, email },
+          deactivatedCustomer
+        ),
+      },
+      {
+        restored_customer_id: deactivatedCustomer.deleted_at
+          ? deactivatedCustomer.id
+          : undefined,
+      }
+    )
+  },
+  async (input, { container }) => {
+    if (!input?.restored_customer_id) {
+      return
+    }
+
+    const customerModuleService = container.resolve<ICustomerModuleService>(
+      Modules.CUSTOMER
+    )
+
+    await customerModuleService.softDeleteCustomers([
+      input.restored_customer_id,
+    ])
   }
 )

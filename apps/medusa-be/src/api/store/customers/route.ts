@@ -8,12 +8,9 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { createOrReactivateCustomerAccountWorkflow } from "../../../workflows/customer/workflows/create-or-reactivate-customer-account"
-import {
-  hasInactiveCustomerWithEmail,
-  normalizeEmail,
-  refetchCustomer,
-} from "./helpers"
+import { normalizeEmail } from "../../../utils/email"
+import { reactivateCustomerAccountWorkflow } from "../../../workflows/customer/workflows/reactivate-customer-account"
+import { findInactiveCustomerWithEmail, refetchCustomer } from "./helpers"
 import type { StoreCreateCustomerAccountSchemaType } from "./validators"
 
 export async function POST(
@@ -32,18 +29,18 @@ export async function POST(
     ...req.validatedBody,
     email: normalizeEmail(req.validatedBody.email),
   }
+  const inactiveCustomer = await findInactiveCustomerWithEmail({
+    email: customerData.email,
+    query,
+  })
 
-  if (
-    await hasInactiveCustomerWithEmail({
-      email: customerData.email,
-      query,
-    })
-  ) {
+  if (inactiveCustomer) {
     const { result: reactivatedResult } =
-      await createOrReactivateCustomerAccountWorkflow(req.scope).run({
+      await reactivateCustomerAccountWorkflow(req.scope).run({
         input: {
           auth_identity_id: req.auth_context.auth_identity_id,
           company_name: customerData.company_name,
+          customer: inactiveCustomer,
           email: customerData.email,
           first_name: customerData.first_name,
           last_name: customerData.last_name,
@@ -52,9 +49,13 @@ export async function POST(
         },
       })
 
-    res.status(200).json({
-      customer: reactivatedResult.customer,
-    })
+    const customer = await refetchCustomer(
+      reactivatedResult.customer.id,
+      query,
+      req.queryConfig.fields
+    )
+
+    res.status(200).json({ customer })
     return
   }
 
@@ -67,7 +68,7 @@ export async function POST(
 
   const customer = await refetchCustomer(
     result.id,
-    req.scope,
+    query,
     req.queryConfig.fields
   )
 

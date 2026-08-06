@@ -1,12 +1,13 @@
 import type { Query } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { normalizeEmail } from "../../utils/email"
 import { hasArrayData } from "../../utils/guards"
 import { normalizeReactivatedCustomerFirstName } from "./normalizers"
 import type {
-  CreateOrReactivateCustomerAccountInput,
   CustomerRecord,
+  ReactivateCustomerAccountInput,
   ReactivateCustomerAccountUpdateInput,
-} from "./steps/create-or-reactivate-customer-account"
+} from "./steps/prepare-customer-account-reactivation"
 
 type ProviderIdentityRecord = {
   auth_identity_id?: string | null
@@ -14,8 +15,18 @@ type ProviderIdentityRecord = {
   id: string
 }
 
-export function normalizeEmail(email: string) {
-  return email.trim().toLowerCase()
+function mergeCustomerMetadata(
+  existingMetadata?: Record<string, unknown> | null,
+  inputMetadata?: Record<string, unknown> | null
+) {
+  if (!inputMetadata) {
+    return existingMetadata ?? null
+  }
+
+  return {
+    ...(existingMetadata ?? {}),
+    ...inputMetadata,
+  }
 }
 
 export async function verifyAuthIdentityEmail({
@@ -56,7 +67,7 @@ export async function verifyAuthIdentityEmail({
 }
 
 export function buildReactivatedCustomerUpdateInput(
-  input: CreateOrReactivateCustomerAccountInput,
+  input: ReactivateCustomerAccountInput,
   customer: CustomerRecord
 ): ReactivateCustomerAccountUpdateInput {
   return {
@@ -66,7 +77,7 @@ export function buildReactivatedCustomerUpdateInput(
     ),
     has_account: true,
     last_name: input.last_name ?? customer.last_name ?? null,
-    metadata: input.metadata ?? customer.metadata ?? null,
+    metadata: mergeCustomerMetadata(customer.metadata, input.metadata),
     phone: input.phone ?? customer.phone ?? null,
   }
 }

@@ -7,11 +7,16 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { prepareCustomerAccountReactivationStep } from "../steps/create-or-reactivate-customer-account"
+import { ensureReactivatedCustomerStep } from "../steps/ensure-reactivated-customer"
+import {
+  type CustomerRecord,
+  prepareCustomerAccountReactivationStep,
+} from "../steps/prepare-customer-account-reactivation"
 
-type CreateOrReactivateCustomerAccountWorkflowInput = {
+type ReactivateCustomerAccountWorkflowInput = {
   auth_identity_id: string
   company_name?: string | null
+  customer: CustomerRecord
   email: string
   first_name?: string | null
   last_name?: string | null
@@ -19,9 +24,9 @@ type CreateOrReactivateCustomerAccountWorkflowInput = {
   phone?: string | null
 }
 
-export const createOrReactivateCustomerAccountWorkflow = createWorkflow(
-  "create-or-reactivate-customer-account",
-  (input: CreateOrReactivateCustomerAccountWorkflowInput) => {
+export const reactivateCustomerAccountWorkflow = createWorkflow(
+  "reactivate-customer-account",
+  (input: ReactivateCustomerAccountWorkflowInput) => {
     const prepared = prepareCustomerAccountReactivationStep(input)
 
     const updatedCustomers = updateCustomersWorkflow.runAsStep({
@@ -41,10 +46,7 @@ export const createOrReactivateCustomerAccountWorkflow = createWorkflow(
       }))
     )
 
-    const reactivatedCustomer = transform(
-      { updatedCustomers },
-      ({ updatedCustomers: customers }) => customers.at(0)
-    )
+    const reactivatedCustomer = ensureReactivatedCustomerStep(updatedCustomers)
 
     return new WorkflowResponse(
       transform(

@@ -5,7 +5,6 @@ import {
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { hasArrayData } from "../../../utils/guards"
-import { isInactiveCustomerFirstName } from "../normalizers"
 
 type PrepareCustomerAccountDeactivationInput = {
   customer_id: string
@@ -66,11 +65,7 @@ export const prepareCustomerAccountDeactivationStep = createStep(
       )
     }
 
-    if (
-      customer.deleted_at ||
-      customer.has_account === false ||
-      isInactiveCustomerFirstName(customer.first_name)
-    ) {
+    if (customer.deleted_at || customer.has_account === false) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         "Customer account is already deactivated."

@@ -1,25 +1,9 @@
-import type { AuthenticatedMedusaRequest } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
-import {
-  ContainerRegistrationKeys,
-  MedusaError,
-  remoteQueryObjectFromString,
-} from "@medusajs/framework/utils"
+import { MedusaError } from "@medusajs/framework/utils"
 import { hasArrayData } from "../../../utils/guards"
-import { isInactiveCustomerFirstName } from "../../../workflows/customer/normalizers"
+import type { CustomerRecord } from "../../../workflows/customer/steps/prepare-customer-account-reactivation"
 
-type CustomerRecord = {
-  deleted_at?: Date | string | null
-  first_name?: string | null
-  has_account?: boolean | null
-  id: string
-}
-
-export function normalizeEmail(email: string) {
-  return email.trim().toLowerCase()
-}
-
-export async function hasInactiveCustomerWithEmail({
+export async function findInactiveCustomerWithEmail({
   email,
   query,
 }: {
@@ -28,7 +12,17 @@ export async function hasInactiveCustomerWithEmail({
 }) {
   const customerResult: unknown = await query.graph({
     entity: "customer",
-    fields: ["id", "first_name", "has_account", "deleted_at"],
+    fields: [
+      "id",
+      "email",
+      "company_name",
+      "first_name",
+      "last_name",
+      "phone",
+      "metadata",
+      "has_account",
+      "deleted_at",
+    ],
     filters: { email },
     withDeleted: true,
   })
@@ -40,28 +34,30 @@ export async function hasInactiveCustomerWithEmail({
     )
   }
 
-  return customerResult.data.some(
-    (customer) =>
-      customer.deleted_at ||
-      customer.has_account === false ||
-      isInactiveCustomerFirstName(customer.first_name)
+  return (
+    customerResult.data.find(
+      (customer) => customer.deleted_at || customer.has_account === false
+    ) ?? null
   )
 }
 
 export async function refetchCustomer(
   customerId: string,
-  scope: AuthenticatedMedusaRequest["scope"],
+  query: Query,
   fields: string[]
 ) {
-  const remoteQuery = scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-  const queryObject = remoteQueryObjectFromString({
-    entryPoint: "customer",
-    variables: {
-      filters: { id: customerId },
-    },
+  const customerResult: unknown = await query.graph({
+    entity: "customer",
     fields,
+    filters: { id: customerId },
   })
-  const customers = await remoteQuery(queryObject)
 
-  return customers[0]
+  if (!hasArrayData<CustomerRecord>(customerResult)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Unexpected response shape while refetching customer account."
+    )
+  }
+
+  return customerResult.data[0]
 }
