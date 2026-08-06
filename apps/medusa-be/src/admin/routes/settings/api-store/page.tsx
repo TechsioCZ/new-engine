@@ -14,13 +14,15 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { FormEvent } from "react"
-import { useEffect, useState } from "react"
+import { isRecord, omitKeys } from "@techsio/std/object"
+import type { SubmitEvent } from "react"
+import { useState } from "react"
+
 import { sdk } from "../../../lib/sdk"
 
 const PAGE_SIZE = 20
 
-type ApiStoreConfig = {
+interface ApiStoreConfig {
   id: string
   name: string
   api_url: string | null
@@ -31,18 +33,18 @@ type ApiStoreConfig = {
   updated_at?: string
 }
 
-type ApiStoreListResponse = {
+interface ApiStoreListResponse {
   api_stores: ApiStoreConfig[]
   count: number
   limit: number
   offset: number
 }
 
-type ApiStoreResponse = {
+interface ApiStoreResponse {
   api_store: ApiStoreConfig
 }
 
-type ApiStoreCreatePayload = {
+interface ApiStoreCreatePayload {
   name: string
   api_url?: string | null
   api_key?: string | null
@@ -52,7 +54,7 @@ type ApiStoreCreatePayload = {
 
 type ApiStoreUpdatePayload = Partial<ApiStoreCreatePayload>
 
-type ApiStoreFormState = {
+interface ApiStoreFormState {
   name: string
   api_url: string
   api_key: string
@@ -60,41 +62,78 @@ type ApiStoreFormState = {
   enabled: boolean
 }
 
-type FormErrors = Partial<Record<keyof ApiStoreFormState, string>>
+type ApiStoreFormField = keyof ApiStoreFormState
+
+type ApiStoreFormMode = "create" | "edit"
+
+type FormErrors = Partial<Record<ApiStoreFormField, string>>
+
+type FieldChangeHandler = <K extends ApiStoreFormField>(
+  field: K,
+  value: ApiStoreFormState[K],
+) => void
 
 export const handle = {
   breadcrumb: () => "API Store",
 }
 
 const EMPTY_FORM: ApiStoreFormState = {
-  name: "",
-  api_url: "",
   api_key: "",
+  api_url: "",
   credentials: "",
   enabled: true,
+  name: "",
 }
 
 const parseCredentials = (value: string): Record<string, unknown> | null => {
   const trimmed = value.trim()
-  if (!trimmed) {
+  if (trimmed === "") {
     return null
   }
 
-  const parsed = JSON.parse(trimmed) as unknown
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+  const parsed: unknown = JSON.parse(trimmed)
+  if (!isRecord(parsed)) {
     throw new Error("Credentials must be a JSON object")
   }
 
-  return parsed as Record<string, unknown>
+  return parsed
 }
 
 const toOptionalString = (value: string): string | null => {
   const trimmed = value.trim()
-  return trimmed ? trimmed : null
+  return trimmed === "" ? null : trimmed
 }
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
+
+const parseOptionalCredentials = (
+  value: string,
+  errors: FormErrors,
+): Record<string, unknown> | null => {
+  if (value.trim() === "") {
+    return null
+  }
+
+  try {
+    return parseCredentials(value)
+  } catch (error) {
+    errors.credentials = getErrorMessage(error, "Invalid credentials JSON")
+    return null
+  }
+}
+
+const FieldError = ({ message }: { message: string | undefined }) => {
+  if (message === undefined || message === "") {
+    return null
+  }
+
+  return (
+    <Text className="text-ui-fg-error" size="small">
+      {message}
+    </Text>
+  )
+}
 
 const SecretState = ({ isSet }: { isSet: boolean }) => (
   <Text
@@ -105,6 +144,120 @@ const SecretState = ({ isSet }: { isSet: boolean }) => (
   </Text>
 )
 
+const ApiKeyField = ({
+  error,
+  isSet,
+  mode,
+  onChange,
+  onClear,
+  value,
+  willClear,
+}: {
+  error: string | undefined
+  isSet: boolean
+  mode: ApiStoreFormMode
+  onChange: (next: string) => void
+  onClear: (() => void) | undefined
+  value: string
+  willClear: boolean
+}) => {
+  const inputId = `api-store-${mode}-api-key`
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={inputId}>
+          API key {isSet && <span className="text-ui-fg-subtle">(set)</span>}
+          {willClear && (
+            <span className="text-ui-fg-error"> (will be cleared)</span>
+          )}
+        </Label>
+        {mode === "edit" && isSet && !willClear && (
+          <button
+            className="text-sm text-ui-fg-subtle hover:text-ui-fg-error"
+            onClick={onClear}
+            type="button"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <Input
+        disabled={willClear}
+        id={inputId}
+        onChange={(event) => {
+          onChange(event.target.value)
+        }}
+        placeholder={isSet ? "Leave empty to keep" : "API key"}
+        type="password"
+        value={willClear ? "" : value}
+      />
+      <FieldError message={error} />
+    </div>
+  )
+}
+
+const CredentialsField = ({
+  error,
+  isSet,
+  mode,
+  onChange,
+  onClear,
+  value,
+  willClear,
+}: {
+  error: string | undefined
+  isSet: boolean
+  mode: ApiStoreFormMode
+  onChange: (next: string) => void
+  onClear: (() => void) | undefined
+  value: string
+  willClear: boolean
+}) => {
+  const inputId = `api-store-${mode}-credentials`
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={inputId}>
+          Credentials JSON{" "}
+          {isSet && <span className="text-ui-fg-subtle">(set)</span>}
+          {willClear && (
+            <span className="text-ui-fg-error"> (will be cleared)</span>
+          )}
+        </Label>
+        {mode === "edit" && isSet && !willClear && (
+          <button
+            className="text-sm text-ui-fg-subtle hover:text-ui-fg-error"
+            onClick={onClear}
+            type="button"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <Textarea
+        disabled={willClear}
+        id={inputId}
+        onChange={(event) => {
+          onChange(event.target.value)
+        }}
+        placeholder={
+          isSet
+            ? "Leave empty to keep"
+            : '{"client_id":"...","client_secret":"..."}'
+        }
+        rows={6}
+        value={willClear ? "" : value}
+      />
+      <FieldError message={error} />
+      <Text className="text-ui-fg-subtle" size="small">
+        API key and credentials are encrypted at rest and never displayed back.
+      </Text>
+    </div>
+  )
+}
+
 const ApiStoreFormFields = ({
   apiStoreConfig,
   errors,
@@ -113,21 +266,18 @@ const ApiStoreFormFields = ({
   onChange,
   onClearApiKey,
   onClearCredentials,
-  willClearApiKey,
-  willClearCredentials,
+  willClearApiKey = false,
+  willClearCredentials = false,
 }: {
-  apiStoreConfig?: ApiStoreConfig | null
+  apiStoreConfig?: ApiStoreConfig | undefined
   errors: FormErrors
   form: ApiStoreFormState
-  mode: "create" | "edit"
-  onChange: <K extends keyof ApiStoreFormState>(
-    field: K,
-    value: ApiStoreFormState[K]
-  ) => void
-  onClearApiKey?: () => void
-  onClearCredentials?: () => void
-  willClearApiKey?: boolean
-  willClearCredentials?: boolean
+  mode: ApiStoreFormMode
+  onChange: FieldChangeHandler
+  onClearApiKey?: (() => void) | undefined
+  onClearCredentials?: (() => void) | undefined
+  willClearApiKey?: boolean | undefined
+  willClearCredentials?: boolean | undefined
 }) => (
   <div className="flex flex-col gap-4">
     <div className="flex items-center justify-between gap-4 rounded-rounded border border-ui-border-base px-4 py-3">
@@ -140,7 +290,9 @@ const ApiStoreFormFields = ({
       <Switch
         checked={form.enabled}
         id={`api-store-${mode}-enabled`}
-        onCheckedChange={(checked) => onChange("enabled", checked)}
+        onCheckedChange={(checked) => {
+          onChange("enabled", checked)
+        }}
       />
     </div>
 
@@ -148,114 +300,51 @@ const ApiStoreFormFields = ({
       <Label htmlFor={`api-store-${mode}-name`}>Name *</Label>
       <Input
         id={`api-store-${mode}-name`}
-        onChange={(event) => onChange("name", event.target.value)}
+        onChange={(event) => {
+          onChange("name", event.target.value)
+        }}
         placeholder="heureka"
         value={form.name}
       />
-      {errors.name && (
-        <Text className="text-ui-fg-error" size="small">
-          {errors.name}
-        </Text>
-      )}
+      <FieldError message={errors.name} />
     </div>
 
     <div className="flex flex-col gap-2">
       <Label htmlFor={`api-store-${mode}-api-url`}>API URL</Label>
       <Input
         id={`api-store-${mode}-api-url`}
-        onChange={(event) => onChange("api_url", event.target.value)}
+        onChange={(event) => {
+          onChange("api_url", event.target.value)
+        }}
         placeholder="https://example.com/export.xml"
         value={form.api_url}
       />
-      {errors.api_url && (
-        <Text className="text-ui-fg-error" size="small">
-          {errors.api_url}
-        </Text>
-      )}
+      <FieldError message={errors.api_url} />
     </div>
 
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <Label htmlFor={`api-store-${mode}-api-key`}>
-          API key{" "}
-          {apiStoreConfig?.has_api_key && (
-            <span className="text-ui-fg-subtle">(set)</span>
-          )}
-          {willClearApiKey && (
-            <span className="text-ui-fg-error"> (will be cleared)</span>
-          )}
-        </Label>
-        {mode === "edit" && apiStoreConfig?.has_api_key && !willClearApiKey && (
-          <button
-            className="text-sm text-ui-fg-subtle hover:text-ui-fg-error"
-            onClick={onClearApiKey}
-            type="button"
-          >
-            Clear
-          </button>
-        )}
-      </div>
-      <Input
-        disabled={willClearApiKey}
-        id={`api-store-${mode}-api-key`}
-        onChange={(event) => onChange("api_key", event.target.value)}
-        placeholder={
-          apiStoreConfig?.has_api_key ? "Leave empty to keep" : "API key"
-        }
-        type="password"
-        value={willClearApiKey ? "" : form.api_key}
-      />
-      {errors.api_key && (
-        <Text className="text-ui-fg-error" size="small">
-          {errors.api_key}
-        </Text>
-      )}
-    </div>
+    <ApiKeyField
+      error={errors.api_key}
+      isSet={apiStoreConfig?.has_api_key === true}
+      mode={mode}
+      onChange={(next) => {
+        onChange("api_key", next)
+      }}
+      onClear={onClearApiKey}
+      value={form.api_key}
+      willClear={willClearApiKey}
+    />
 
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <Label htmlFor={`api-store-${mode}-credentials`}>
-          Credentials JSON{" "}
-          {apiStoreConfig?.has_credentials && (
-            <span className="text-ui-fg-subtle">(set)</span>
-          )}
-          {willClearCredentials && (
-            <span className="text-ui-fg-error"> (will be cleared)</span>
-          )}
-        </Label>
-        {mode === "edit" &&
-          apiStoreConfig?.has_credentials &&
-          !willClearCredentials && (
-            <button
-              className="text-sm text-ui-fg-subtle hover:text-ui-fg-error"
-              onClick={onClearCredentials}
-              type="button"
-            >
-              Clear
-            </button>
-          )}
-      </div>
-      <Textarea
-        disabled={willClearCredentials}
-        id={`api-store-${mode}-credentials`}
-        onChange={(event) => onChange("credentials", event.target.value)}
-        placeholder={
-          apiStoreConfig?.has_credentials
-            ? "Leave empty to keep"
-            : '{"client_id":"...","client_secret":"..."}'
-        }
-        rows={6}
-        value={willClearCredentials ? "" : form.credentials}
-      />
-      {errors.credentials && (
-        <Text className="text-ui-fg-error" size="small">
-          {errors.credentials}
-        </Text>
-      )}
-      <Text className="text-ui-fg-subtle" size="small">
-        API key and credentials are encrypted at rest and never displayed back.
-      </Text>
-    </div>
+    <CredentialsField
+      error={errors.credentials}
+      isSet={apiStoreConfig?.has_credentials === true}
+      mode={mode}
+      onChange={(next) => {
+        onChange("credentials", next)
+      }}
+      onClear={onClearCredentials}
+      value={form.credentials}
+      willClear={willClearCredentials}
+    />
   </div>
 )
 
@@ -266,39 +355,41 @@ const CreateApiStoreModal = () => {
   const [errors, setErrors] = useState<FormErrors>({})
 
   const createMutation = useMutation({
-    mutationFn: (payload: ApiStoreCreatePayload) =>
-      sdk.client.fetch<ApiStoreResponse>("/admin/api-store", {
-        method: "POST",
+    mutationFn: async (payload: ApiStoreCreatePayload) =>
+      await sdk.client.fetch<ApiStoreResponse>("/admin/api-store", {
         body: payload,
+        method: "POST",
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["api-store"] })
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Failed to create API store config"))
+    },
+    // The visible effects stay ahead of the awaited invalidation so the modal
+    // closes in the same tick as before.
+    onSuccess: async () => {
       toast.success("API store config created")
       setOpen(false)
       setForm(EMPTY_FORM)
       setErrors({})
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, "Failed to create API store config"))
+      await queryClient.invalidateQueries({ queryKey: ["api-store"] })
     },
   })
 
-  const updateField = <K extends keyof ApiStoreFormState>(
+  const updateField = <K extends ApiStoreFormField>(
     field: K,
-    value: ApiStoreFormState[K]
+    value: ApiStoreFormState[K],
   ) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
-    setErrors((prev) => ({ ...prev, [field]: undefined }))
+    setForm((previous) => ({ ...previous, [field]: value }))
+    setErrors((previous) => omitKeys(previous, [field]))
   }
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     const nextErrors: FormErrors = {}
     const name = form.name.trim()
     const apiKey = toOptionalString(form.api_key)
     let credentials: Record<string, unknown> | null = null
 
-    if (!name) {
+    if (name === "") {
       nextErrors.name = "Name is required"
     }
 
@@ -307,11 +398,11 @@ const CreateApiStoreModal = () => {
     } catch (error) {
       nextErrors.credentials = getErrorMessage(
         error,
-        "Invalid credentials JSON"
+        "Invalid credentials JSON",
       )
     }
 
-    if (!(apiKey || credentials)) {
+    if (apiKey === null && credentials === null) {
       nextErrors.api_key = "Fill API key or credentials"
       nextErrors.credentials = "Fill credentials or API key"
     }
@@ -322,11 +413,11 @@ const CreateApiStoreModal = () => {
     }
 
     createMutation.mutate({
-      name,
-      api_url: toOptionalString(form.api_url),
       api_key: apiKey,
+      api_url: toOptionalString(form.api_url),
       credentials,
       enabled: form.enabled,
+      name,
     })
   }
 
@@ -398,16 +489,16 @@ const buildUpdatePayload = ({
   const apiKey = toOptionalString(form.api_key)
   const credentials = parseOptionalCredentials(form.credentials, errors)
 
-  if (!name) {
+  if (name === "") {
     errors.name = "Name is required"
   }
 
   const willHaveApiKey = clearApiKey
     ? false
-    : !!apiKey || apiStoreConfig.has_api_key
+    : apiKey !== null || apiStoreConfig.has_api_key
   const willHaveCredentials = clearCredentials
     ? false
-    : !!credentials || apiStoreConfig.has_credentials
+    : credentials !== null || apiStoreConfig.has_credentials
 
   if (!(willHaveApiKey || willHaveCredentials)) {
     errors.api_key = "At least one secret must remain set"
@@ -419,18 +510,18 @@ const buildUpdatePayload = ({
   }
 
   const payload: ApiStoreUpdatePayload = {
-    name,
     api_url: toOptionalString(form.api_url),
     enabled: form.enabled,
+    name,
   }
 
-  if (apiKey) {
+  if (apiKey !== null) {
     payload.api_key = apiKey
   } else if (clearApiKey) {
     payload.api_key = null
   }
 
-  if (credentials) {
+  if (credentials !== null) {
     payload.credentials = credentials
   } else if (clearCredentials) {
     payload.credentials = null
@@ -439,81 +530,54 @@ const buildUpdatePayload = ({
   return { errors, payload }
 }
 
-const parseOptionalCredentials = (
-  value: string,
-  errors: FormErrors
-): Record<string, unknown> | null | undefined => {
-  if (!value.trim()) {
-    return
-  }
-
-  try {
-    return parseCredentials(value)
-  } catch (error) {
-    errors.credentials = getErrorMessage(error, "Invalid credentials JSON")
-    return
-  }
-}
-
-const EditApiStoreDrawer = ({
+const EditApiStoreForm = ({
   apiStoreConfig,
   onOpenChange,
   open,
 }: {
-  apiStoreConfig: ApiStoreConfig | null
-  onOpenChange: (open: boolean) => void
+  apiStoreConfig: ApiStoreConfig
+  onOpenChange: (next: boolean) => void
   open: boolean
 }) => {
   const queryClient = useQueryClient()
-  const [form, setForm] = useState<ApiStoreFormState>(EMPTY_FORM)
+  const [form, setForm] = useState<ApiStoreFormState>(() => ({
+    api_key: "",
+    api_url: apiStoreConfig.api_url ?? "",
+    credentials: "",
+    enabled: apiStoreConfig.enabled,
+    name: apiStoreConfig.name,
+  }))
   const [errors, setErrors] = useState<FormErrors>({})
   const [clearApiKey, setClearApiKey] = useState(false)
   const [clearCredentials, setClearCredentials] = useState(false)
 
-  useEffect(() => {
-    if (apiStoreConfig) {
-      setForm({
-        name: apiStoreConfig.name,
-        api_url: apiStoreConfig.api_url ?? "",
-        api_key: "",
-        credentials: "",
-        enabled: apiStoreConfig.enabled,
-      })
-      setErrors({})
-      setClearApiKey(false)
-      setClearCredentials(false)
-    }
-  }, [apiStoreConfig])
-
   const updateMutation = useMutation({
-    mutationFn: (payload: ApiStoreUpdatePayload) =>
-      sdk.client.fetch<ApiStoreResponse>(
-        `/admin/api-store/${apiStoreConfig?.id}`,
+    mutationFn: async (payload: ApiStoreUpdatePayload) =>
+      await sdk.client.fetch<ApiStoreResponse>(
+        `/admin/api-store/${apiStoreConfig.id}`,
         {
-          method: "POST",
           body: payload,
-        }
+          method: "POST",
+        },
       ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["api-store"] })
-      toast.success("API store config saved")
-      onOpenChange(false)
-    },
     onError: (error) => {
       toast.error(getErrorMessage(error, "Failed to save API store config"))
     },
+    // The visible effects stay ahead of the awaited invalidation so the drawer
+    // closes in the same tick as before.
+    onSuccess: async () => {
+      toast.success("API store config saved")
+      onOpenChange(false)
+      await queryClient.invalidateQueries({ queryKey: ["api-store"] })
+    },
   })
 
-  if (!apiStoreConfig) {
-    return null
-  }
-
-  const updateField = <K extends keyof ApiStoreFormState>(
+  const updateField = <K extends ApiStoreFormField>(
     field: K,
-    value: ApiStoreFormState[K]
+    value: ApiStoreFormState[K],
   ) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
-    setErrors((prev) => ({ ...prev, [field]: undefined }))
+    setForm((previous) => ({ ...previous, [field]: value }))
+    setErrors((previous) => omitKeys(previous, [field]))
     if (field === "api_key") {
       setClearApiKey(false)
     }
@@ -522,7 +586,7 @@ const EditApiStoreDrawer = ({
     }
   }
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const { errors: nextErrors, payload } = buildUpdatePayload({
@@ -532,7 +596,7 @@ const EditApiStoreDrawer = ({
       form,
     })
 
-    if (!payload) {
+    if (payload === undefined) {
       setErrors(nextErrors)
       return
     }
@@ -554,8 +618,12 @@ const EditApiStoreDrawer = ({
               form={form}
               mode="edit"
               onChange={updateField}
-              onClearApiKey={() => setClearApiKey(true)}
-              onClearCredentials={() => setClearCredentials(true)}
+              onClearApiKey={() => {
+                setClearApiKey(true)
+              }}
+              onClearCredentials={() => {
+                setClearCredentials(true)
+              }}
               willClearApiKey={clearApiKey}
               willClearCredentials={clearCredentials}
             />
@@ -654,7 +722,9 @@ const ApiStoreTableRows = ({
       <Table.Cell>
         <div className="flex justify-end gap-2">
           <Button
-            onClick={() => onEdit(apiStoreConfig)}
+            onClick={() => {
+              onEdit(apiStoreConfig)
+            }}
             size="small"
             variant="secondary"
           >
@@ -662,7 +732,9 @@ const ApiStoreTableRows = ({
           </Button>
           <Button
             disabled={isDeleting}
-            onClick={() => onDelete(apiStoreConfig.id)}
+            onClick={() => {
+              onDelete(apiStoreConfig.id)
+            }}
             size="small"
             variant="danger"
           >
@@ -674,35 +746,44 @@ const ApiStoreTableRows = ({
   ))
 }
 
+/**
+ * The edit form seeds its state on mount, so it is remounted through `token`
+ * whenever a different config object is selected. Re-selecting the very same
+ * object keeps the pending draft, while any refreshed object discards it
+ * together with the secrets typed into the form.
+ */
+interface EditSelection {
+  config: ApiStoreConfig
+  token: number
+}
+
 const ApiStoreSettingsPage = () => {
   const queryClient = useQueryClient()
   const [offset, setOffset] = useState(0)
-  const [selectedConfig, setSelectedConfig] = useState<ApiStoreConfig | null>(
-    null
-  )
+  const [selection, setSelection] = useState<EditSelection | null>(null)
   const [editOpen, setEditOpen] = useState(false)
 
   const { data, error, isLoading } = useQuery({
-    queryFn: () =>
-      sdk.client.fetch<ApiStoreListResponse>(
-        `/admin/api-store?limit=${PAGE_SIZE}&offset=${offset}`
+    queryFn: async () =>
+      await sdk.client.fetch<ApiStoreListResponse>(
+        `/admin/api-store?limit=${PAGE_SIZE}&offset=${offset}`,
       ),
     queryKey: ["api-store", PAGE_SIZE, offset],
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      sdk.client.fetch(`/admin/api-store/${id}`, {
+    mutationFn: async (id: string) =>
+      await sdk.client.fetch(`/admin/api-store/${id}`, {
         method: "DELETE",
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["api-store"] })
-      toast.success("API store config deleted")
-    },
     onError: (deleteError) => {
       toast.error(
-        getErrorMessage(deleteError, "Failed to delete API store config")
+        getErrorMessage(deleteError, "Failed to delete API store config"),
       )
+    },
+    onSuccess: async () => {
+      toast.success("API store config deleted")
+      await queryClient.invalidateQueries({ queryKey: ["api-store"] })
     },
   })
 
@@ -712,7 +793,11 @@ const ApiStoreSettingsPage = () => {
   const canGoNext = offset + PAGE_SIZE < count
 
   const openEdit = (apiStoreConfig: ApiStoreConfig) => {
-    setSelectedConfig(apiStoreConfig)
+    setSelection((previous) =>
+      previous !== null && previous.config === apiStoreConfig
+        ? previous
+        : { config: apiStoreConfig, token: (previous?.token ?? 0) + 1 },
+    )
     setEditOpen(true)
   }
 
@@ -754,7 +839,9 @@ const ApiStoreSettingsPage = () => {
                 configs={configs}
                 isDeleting={deleteMutation.isPending}
                 isLoading={isLoading}
-                onDelete={(id) => deleteMutation.mutate(id)}
+                onDelete={(id) => {
+                  deleteMutation.mutate(id)
+                }}
                 onEdit={openEdit}
               />
             </Table.Body>
@@ -768,7 +855,9 @@ const ApiStoreSettingsPage = () => {
             <div className="flex gap-2">
               <Button
                 disabled={!canGoBack || isLoading}
-                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+                onClick={() => {
+                  setOffset(Math.max(0, offset - PAGE_SIZE))
+                }}
                 size="small"
                 variant="secondary"
               >
@@ -776,7 +865,9 @@ const ApiStoreSettingsPage = () => {
               </Button>
               <Button
                 disabled={!canGoNext || isLoading}
-                onClick={() => setOffset(offset + PAGE_SIZE)}
+                onClick={() => {
+                  setOffset(offset + PAGE_SIZE)
+                }}
                 size="small"
                 variant="secondary"
               >
@@ -787,11 +878,14 @@ const ApiStoreSettingsPage = () => {
         </>
       )}
 
-      <EditApiStoreDrawer
-        apiStoreConfig={selectedConfig}
-        onOpenChange={setEditOpen}
-        open={editOpen}
-      />
+      {selection !== null && (
+        <EditApiStoreForm
+          apiStoreConfig={selection.config}
+          key={selection.token}
+          onOpenChange={setEditOpen}
+          open={editOpen}
+        />
+      )}
     </Container>
   )
 }
