@@ -18,16 +18,6 @@ import { StatusText } from "../atoms/status-text"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
-const falsyReactNodes = new Set<ReactNode>([
-  null,
-  undefined,
-  false,
-  "",
-  0,
-  BigInt(false),
-  Number.NaN,
-])
-
 interface FormNumericInputProps extends Omit<NumericInputProps, "children"> {
   id: string
   label: ReactNode
@@ -49,7 +39,7 @@ export const FormNumericInput = ({
   children,
   ...numericInputProps
 }: FormNumericInputProps) => {
-  const hasHelpText = !falsyReactNodes.has(helpText)
+  const hasHelpText = Boolean(helpText)
 
   return (
     <div className="flex flex-col gap-form-field-gap">
