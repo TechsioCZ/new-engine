@@ -120,61 +120,65 @@ type PplLockingService = NonNullable<
 
 const mockCacheService = {
   clear: vi.fn<PplCachingService["clear"]>(),
-  computeKey: vi.fn<PplCachingService["computeKey"]>(),
-  computeTags: vi.fn<PplCachingService["computeTags"]>(),
   get: vi.fn<PplCachingService["get"]>(),
   set: vi.fn<PplCachingService["set"]>(),
 }
 
-const mockLockingService = {
-  acquire: vi.fn<PplLockingService["acquire"]>(),
-  execute: vi
-    .fn<PplLockingService["execute"]>()
-    .mockImplementation(async (_key, fn) => await fn()),
-  release: vi.fn<PplLockingService["release"]>(),
-  releaseAll: vi.fn<PplLockingService["releaseAll"]>(),
+type LockExecutionBehavior =
+  | { readonly kind: "never-settles" }
+  | { readonly error: unknown; readonly kind: "rejects" }
+
+const queuedLockExecutionBehaviors: LockExecutionBehavior[] = []
+
+/** Tracked calls stay separate from the generic fake implementation. */
+const mockLockingSpies = {
+  execute: vi.fn<(...args: Parameters<PplLockingService["execute"]>) => void>(),
+}
+
+const mockLockingController = {
+  neverSettleNext: (): void => {
+    queuedLockExecutionBehaviors.push({ kind: "never-settles" })
+  },
+  rejectNext: (error: unknown): void => {
+    queuedLockExecutionBehaviors.push({ error, kind: "rejects" })
+  },
+  reset: (): void => {
+    queuedLockExecutionBehaviors.length = 0
+  },
 }
 
 /**
- * `vi.fn<T>()` erases a generic method's type parameter, so
- * `mockLockingService.execute` resolves as `Promise<unknown>` rather than
- * the real `execute<T>(...): Promise<T>`'s `Promise<T>`. `T` no longer
- * exists at runtime once the mock resolves (there is nothing left to
- * check), so this assertion signature documents that erasure instead of
- * using an `as` cast to bridge the two. `T` is inferred from `witness`
- * (the caller's own `job`) rather than passed explicitly, so it is not a
- * redundant type parameter.
+ * A real generic locking fake: ordinary calls execute the supplied job as a
+ * `Promise<T>`, while the controller can queue provider rejection or a lock
+ * acquisition that never settles. The spies only observe calls.
  */
-const assertResolvesTo: <T>(
-  value: unknown,
-  witness: () => Promise<T>,
-) => asserts value is T = () => {
-  // Intentionally empty: `T` is a type-only bridge over an erased mock
-  // return value, not a runtime-checkable invariant.
+const neverSettlingJobResult = async <T>(job: () => Promise<T>): Promise<T> => {
+  void job
+  return await Promise.withResolvers<T>().promise
 }
 
-/**
- * Satisfies the real generic `ILockingModule` shape by delegating every
- * call to the tracked `mockLockingService`, so test assertions on
- * `mockLockingService` keep working unchanged.
- */
-const toLockingModule = (
-  locking: typeof mockLockingService,
-): PplLockingService => ({
-  acquire: async (keys, args, sharedContext) => {
-    await locking.acquire(keys, args, sharedContext)
-  },
-  execute: async (keys, job, args, sharedContext) => {
-    const result = await locking.execute(keys, job, args, sharedContext)
-    assertResolvesTo(result, job)
-    return result
-  },
-  release: async (keys, args, sharedContext) =>
-    await locking.release(keys, args, sharedContext),
-  releaseAll: async (args, sharedContext) => {
-    await locking.releaseAll(args, sharedContext)
-  },
-})
+const executeWithLock: PplLockingService["execute"] = async (
+  keys,
+  job,
+  args,
+  sharedContext,
+) => {
+  mockLockingSpies.execute(keys, job, args, sharedContext)
+
+  const behavior = queuedLockExecutionBehaviors.shift()
+  if (behavior?.kind === "never-settles") {
+    return await neverSettlingJobResult(job)
+  }
+  if (behavior?.kind === "rejects") {
+    throw behavior.error
+  }
+
+  return await job()
+}
+
+const mockLockingService: PplLockingService = {
+  execute: executeWithLock,
+}
 
 const mockLogger = {
   activity: vi.fn<PplLogger["activity"]>(),
@@ -260,7 +264,7 @@ const createContainer = (
     container[Modules.CACHING] = cacheService
   }
   if (lockingService) {
-    container[Modules.LOCKING] = toLockingModule(lockingService)
+    container[Modules.LOCKING] = lockingService
   }
   return container
 }
@@ -285,10 +289,7 @@ describe(PplClientModuleService, () => {
     vi.clearAllMocks()
     // Clear mockResolvedValueOnce queue (clearAllMocks doesn't do this)
     mockCacheService.get.mockReset()
-    mockLockingService.execute.mockReset()
-    mockLockingService.execute.mockImplementation(
-      async (_key, fn) => await fn(),
-    )
+    mockLockingController.reset()
     vi.useFakeTimers()
   })
 
@@ -443,8 +444,7 @@ describe(PplClientModuleService, () => {
     it("uses local fallback when lock acquisition stalls past the timeout", async () => {
       // A provider that never grants the lock within the service's own
       // acquisition timeout (LOCK_ACQUIRE_TIMEOUT_MS = 5000 in service.ts).
-      const { promise: neverSettles } = Promise.withResolvers<unknown>()
-      mockLockingService.execute.mockReturnValueOnce(neverSettles)
+      mockLockingController.neverSettleNext()
       mockCacheService.get.mockResolvedValueOnce({
         accessToken: "cached-token",
         expiresAt: Date.now() + 120_000,
@@ -473,7 +473,7 @@ describe(PplClientModuleService, () => {
         new MedusaError(MedusaError.Types.CONFLICT, "resource conflict"),
       ],
     ])("rethrows %s", async (_, error) => {
-      mockLockingService.execute.mockRejectedValueOnce(error)
+      mockLockingController.rejectNext(error)
 
       const service = createService()
 
