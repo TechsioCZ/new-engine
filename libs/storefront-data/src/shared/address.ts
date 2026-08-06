@@ -21,8 +21,9 @@ export type StorefrontAddressValidationResult =
 const formatValidationIssue = (
   issue: StorefrontAddressValidationIssue,
 ): string => {
-  if (issue.message !== undefined && issue.message !== "") {
-    return issue.message
+  const { message } = issue
+  if (message !== undefined && message !== "") {
+    return message
   }
 
   const field = issue.field === "" ? "" : `${issue.field}: `
