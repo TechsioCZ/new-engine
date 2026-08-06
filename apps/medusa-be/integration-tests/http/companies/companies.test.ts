@@ -42,13 +42,24 @@ const isHttpClient = (value: unknown): value is HttpClient =>
   typeof value["get"] === "function" &&
   typeof value["delete"] === "function"
 
-const toHttpClient = (value: unknown): HttpClient => {
+const requireHttpClient = (value: unknown): HttpClient => {
   if (!isHttpClient(value)) {
     throw new TypeError("Expected an HTTP client with post/get/delete methods")
   }
 
   return value
 }
+
+// The runner registers this suite before its beforeAll hook populates the API
+// proxy, so validate the proxy when each request executes.
+const createLazyHttpClient = (value: unknown): HttpClient => ({
+  delete: async (path, headers) =>
+    await requireHttpClient(value).delete(path, headers),
+  get: async (path, headers) =>
+    await requireHttpClient(value).get(path, headers),
+  post: async (path, body, headers) =>
+    await requireHttpClient(value).post(path, body, headers),
+})
 
 const isHttpResponse = (value: unknown): value is HttpResponse =>
   isRecord(value) && "data" in value && typeof value["status"] === "number"
@@ -139,7 +150,7 @@ medusaIntegrationTestRunner({
   },
   inApp: true,
   testSuite: ({ api, getContainer }) => {
-    const httpClient = toHttpClient(api)
+    const httpClient = createLazyHttpClient(api)
 
     let storeHeaders: StoreHeaders
     let product: SeedRecord
