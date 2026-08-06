@@ -2,14 +2,16 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
-import { ApprovalType } from "../../../types/approval"
+import { ApprovalType } from "../../../types/approval/module"
 import type { StoreGetApprovalsType } from "./validators"
 
-interface CartWithApprovals {
+interface CartWithApprovals extends Record<string, unknown> {
+  approvals?: Record<string, unknown>[]
   id: string
-  approvals?: { id?: string }[]
 }
 
 interface ApprovalStatusFilters {
@@ -17,32 +19,72 @@ interface ApprovalStatusFilters {
   status?: StoreGetApprovalsType["status"]
 }
 
-export const GET = async (
+const getDataRecords = (response: unknown): Record<string, unknown>[] => {
+  if (!isRecord(response)) {
+    return []
+  }
+  const { data } = response
+  return Array.isArray(data) ? data.filter(isRecord) : []
+}
+
+const getNestedRecord = (
+  record: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | undefined => {
+  const { [key]: value } = record
+  return isRecord(value) ? value : undefined
+}
+
+const toCart = (value: unknown): CartWithApprovals | undefined => {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
+    return undefined
+  }
+  const { approvals, id } = value
+  return {
+    ...value,
+    ...(Array.isArray(approvals)
+      ? {
+          approvals: approvals.flatMap((approval) =>
+            isRecord(approval) && typeof approval["id"] === "string"
+              ? [{ id: approval["id"] }]
+              : [],
+          ),
+        }
+      : {}),
+    id,
+  }
+}
+
+const get = async (
   req: AuthenticatedMedusaRequest<StoreGetApprovalsType>,
   res: MedusaResponse,
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { customer_id } = req.auth_context.app_metadata as {
-    customer_id: string
-  }
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const authMetadata: unknown = req.auth_context.app_metadata
+  const customerId =
+    isRecord(authMetadata) && typeof authMetadata["customer_id"] === "string"
+      ? authMetadata["customer_id"]
+      : undefined
 
-  const {
-    data: [customer],
-  } = await query.graph({
-    entity: "customer",
-    fields: ["employee.company.id"],
-    filters: { id: customer_id },
-  })
-
-  const companyId = customer?.employee?.company?.id as string
-
-  if (!companyId) {
+  if (customerId === undefined || customerId === "") {
     return res.json({ carts_with_approvals: [], count: 0 })
   }
 
-  const {
-    data: [company],
-  } = await query.graph({
+  const customerResponse: unknown = await query.graph({
+    entity: "customer",
+    fields: ["employee.company.id"],
+    filters: { id: customerId },
+  })
+  const [customer] = getDataRecords(customerResponse)
+  const employee = customer && getNestedRecord(customer, "employee")
+  const company = employee && getNestedRecord(employee, "company")
+  const companyId = company?.["id"]
+
+  if (typeof companyId !== "string" || companyId === "") {
+    return res.json({ carts_with_approvals: [], count: 0 })
+  }
+
+  const companyResponse: unknown = await query.graph({
     entity: "company",
     fields: [
       "carts.*",
@@ -54,42 +96,47 @@ export const GET = async (
     ],
     filters: { id: companyId },
   })
+  const [companyRecord] = getDataRecords(companyResponse)
+  const companyCarts = companyRecord?.["carts"]
+  const carts = Array.isArray(companyCarts)
+    ? companyCarts.flatMap((cart) => {
+        const parsed = toCart(cart)
+        return parsed === undefined ? [] : [parsed]
+      })
+    : []
 
-  if (!company?.carts) {
+  if (carts.length === 0) {
     return res.json({ carts_with_approvals: [], count: 0 })
   }
 
-  const { status } = req.validatedQuery || {}
-
-  const carts = company.carts as CartWithApprovals[]
-  const cartIds = carts
-    .filter((cart) => cart !== undefined && cart !== null)
-    .map((cart) => cart.id)
-
+  const { status } = req.validatedQuery
   const approvalStatusFilters: ApprovalStatusFilters = {
-    cart_id: cartIds,
+    cart_id: carts.map((cart) => cart.id),
   }
-
-  if (status) {
+  if (status !== undefined) {
     approvalStatusFilters.status = status
   }
 
-  const { data: approvalStatuses, metadata } = await query.graph({
+  const approvalStatusResponse: unknown = await query.graph({
     entity: "approval_status",
     ...req.queryConfig,
     fields: ["*", "cart.approvals.id"],
     filters: approvalStatusFilters,
   })
+  const approvalStatusRecords = getDataRecords(approvalStatusResponse)
+  const approvalIds = approvalStatusRecords.flatMap((approvalStatus) => {
+    const cart = getNestedRecord(approvalStatus, "cart")
+    const approvals = cart?.["approvals"]
+    return Array.isArray(approvals)
+      ? approvals.flatMap((approval) =>
+          isRecord(approval) && typeof approval["id"] === "string"
+            ? [approval["id"]]
+            : [],
+        )
+      : []
+  })
 
-  const approvalIds = approvalStatuses
-    .flatMap((approvalStatus) =>
-      (approvalStatus.cart as CartWithApprovals | undefined)?.approvals?.map(
-        (approval) => approval?.id,
-      ),
-    )
-    .filter(Boolean) as string[]
-
-  const { data: approvals } = await query.graph({
+  const approvalsResponse: unknown = await query.graph({
     entity: "approval",
     fields: ["*"],
     filters: {
@@ -97,26 +144,30 @@ export const GET = async (
       type: ApprovalType.ADMIN,
     },
   })
+  const approvals = getDataRecords(approvalsResponse)
+  const cartsWithAdminApprovals = carts.flatMap((cart) => {
+    const cartApprovals = approvals.filter(
+      (approval) => approval["cart_id"] === cart.id,
+    )
+    if (cartApprovals.length === 0) {
+      return []
+    }
+    return [{ ...cart, approvals: cartApprovals }]
+  })
 
-  const cartsWithAdminApprovals = carts
-    .map((cart) => {
-      const cartApprovals = approvals.filter(
-        (approval) => approval.cart_id === cart?.id,
-      )
-      if (cartApprovals.length > 0) {
-        cart.approvals = cartApprovals
-        return cart
-      }
-      return null
-    })
-    .filter(Boolean)
-
-  if (!cartsWithAdminApprovals.length) {
+  if (cartsWithAdminApprovals.length === 0) {
     return res.json({ carts_with_approvals: [], count: 0 })
   }
 
+  const metadata =
+    isRecord(approvalStatusResponse) &&
+    isRecord(approvalStatusResponse["metadata"])
+      ? approvalStatusResponse["metadata"]
+      : {}
   return res.json({
     carts_with_approvals: cartsWithAdminApprovals,
     ...metadata,
   })
 }
+
+export { get as GET }

@@ -127,7 +127,8 @@ const ReviewRows = ({
         <Table.Cell>
           <div className="flex flex-col">
             <Text>{review.product?.title ?? review.product_id}</Text>
-            {review.product?.handle ? (
+            {review.product?.handle !== undefined &&
+            review.product.handle !== "" ? (
               <Text className="text-ui-fg-subtle" size="small">
                 {review.product.handle}
               </Text>

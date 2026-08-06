@@ -9,9 +9,7 @@ import {
   buildTaxRateSeedTargets,
 } from "../../../src/workflows/seed/steps/create-tax-rates"
 
-function mapEntries<Value>(map: Map<string, Value>) {
-  return [...map.entries()]
-}
+const mapEntries = <Value>(map: Map<string, Value>) => [...map.entries()]
 
 describe("Herbatica tax-rate seed policy", () => {
   it("uses explicit approved default rates only", () => {

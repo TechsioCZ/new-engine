@@ -79,11 +79,15 @@ moduleIntegrationTestRunner<ProductListModuleService>({
       })
 
       it("rejects invalid access values", async () => {
+        const createCustomProductList =
+          service.createCustomProductList.bind(service)
         await expect(
-          service.createCustomProductList({
-            access_type: "shared" as never,
-            title: "Shared Shelf",
-          }),
+          Reflect.apply(createCustomProductList, undefined, [
+            {
+              access_type: "shared",
+              title: "Shared Shelf",
+            },
+          ]),
         ).rejects.toMatchObject({
           message: "Unsupported product list access type: shared",
           type: MedusaError.Types.INVALID_DATA,

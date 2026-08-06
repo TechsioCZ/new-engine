@@ -1,16 +1,49 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import type {
+  pickCanonicalRecord,
+  normalizeUnitCode,
+  normalizeDescription,
+  productMeasurementLink,
+  productVariantMeasurementLink,
+  ensureProductExists,
+  ensureProductVariantBelongsToProduct,
+  retrieveActiveUnitOrThrow,
+  ensureUnitCodeAvailable,
+  getCurrentProductMeasurement,
+  listProductMeasurementsForProduct,
+  getCanonicalProductMeasurement,
+  getCanonicalProductVariantMeasurement,
+} from "../../../../../src/workflows/measurement-unit/steps/helpers"
+
+interface MeasurementStepHelpers {
+  pickCanonicalRecord: typeof pickCanonicalRecord
+  normalizeUnitCode: typeof normalizeUnitCode
+  normalizeDescription: typeof normalizeDescription
+  productMeasurementLink: typeof productMeasurementLink
+  productVariantMeasurementLink: typeof productVariantMeasurementLink
+  ensureProductExists: typeof ensureProductExists
+  ensureProductVariantBelongsToProduct: typeof ensureProductVariantBelongsToProduct
+  retrieveActiveUnitOrThrow: typeof retrieveActiveUnitOrThrow
+  ensureUnitCodeAvailable: typeof ensureUnitCodeAvailable
+  getCurrentProductMeasurement: typeof getCurrentProductMeasurement
+  listProductMeasurementsForProduct: typeof listProductMeasurementsForProduct
+  getCanonicalProductMeasurement: typeof getCanonicalProductMeasurement
+  getCanonicalProductVariantMeasurement: typeof getCanonicalProductVariantMeasurement
+}
+
 const { helpers, service } = vi.hoisted(() => ({
   helpers: {
-    ensureUnitCodeAvailable: vi.fn(),
+    ensureUnitCodeAvailable: vi.fn<typeof ensureUnitCodeAvailable>(),
   },
   service: {
-    createMeasurementUnits: vi.fn(),
-    listMeasurementUnits: vi.fn(),
-    restoreMeasurementUnits: vi.fn(),
-    softDeleteMeasurementUnits: vi.fn(),
-    updateMeasurementUnits: vi.fn(),
+    createMeasurementUnits: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+    listMeasurementUnits: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+    restoreMeasurementUnits: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+    softDeleteMeasurementUnits:
+      vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+    updateMeasurementUnits: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   },
 }))
 
@@ -27,21 +60,25 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.compensateInput = compensateInput
     }
   },
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate }),
-  ),
+  createStep: vi.fn<
+    (
+      name: string,
+      invoke: MockStep,
+      compensate: MockStep["compensate"],
+    ) => MockStep
+  >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
 }))
 
 vi.mock(import("../../../../../src/utils/measurement-units"), () => ({
-  getMeasurementUnitService: vi.fn(() => service),
+  getMeasurementUnitService: vi.fn<() => typeof service>(() => service),
 }))
 
 vi.mock(
   import("../../../../../src/workflows/measurement-unit/steps/helpers"),
   async () => {
-    const actual = await vi.importActual<
-      typeof import("../../../../../src/workflows/measurement-unit/steps/helpers")
-    >("../../../../../src/workflows/measurement-unit/steps/helpers")
+    const actual = await vi.importActual<MeasurementStepHelpers>(
+      "../../../../../src/workflows/measurement-unit/steps/helpers",
+    )
 
     return {
       ...actual,
@@ -71,7 +108,38 @@ const asMockStep = (candidate: unknown): MockStep => {
     )
   }
 
-  return candidate as MockStep
+  const compensation: unknown = Reflect.get(candidate, "compensate")
+  if (typeof compensation !== "function") {
+    throw new TypeError("Expected the mocked workflow step to compensate")
+  }
+
+  const invoke = async (
+    input: unknown,
+    stepContext: { container: Record<string, never> },
+  ) => {
+    const result: unknown = await Reflect.apply(candidate, undefined, [
+      input,
+      stepContext,
+    ])
+    if (typeof result !== "object" || result === null) {
+      throw new TypeError(
+        "Expected the mocked workflow step to return a response",
+      )
+    }
+
+    const compensateInput: unknown = Reflect.get(result, "compensateInput")
+    const payload: unknown = Reflect.get(result, "payload")
+    return { compensateInput, payload }
+  }
+
+  return Object.assign(invoke, {
+    compensate: async (
+      input: unknown,
+      stepContext: { container: Record<string, never> },
+    ) => {
+      await Reflect.apply(compensation, undefined, [input, stepContext])
+    },
+  })
 }
 
 const context = { container: {} }
@@ -115,8 +183,7 @@ describe("measurement unit lifecycle steps", () => {
       context,
     )
 
-    expect(service.listMeasurementUnits).toHaveBeenCalledOnce()
-    expect(service.listMeasurementUnits).toHaveBeenCalledWith(
+    expect(service.listMeasurementUnits).toHaveBeenCalledExactlyOnceWith(
       { code: { $in: ["kg", "piece"] } },
       {
         select: ["code"],

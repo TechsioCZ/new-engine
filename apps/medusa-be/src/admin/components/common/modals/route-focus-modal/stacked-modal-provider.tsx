@@ -7,10 +7,7 @@ type StackedModalProviderProps = PropsWithChildren<{
   onOpenChange: (open: boolean) => void
 }>
 
-export const StackedModalProvider = ({
-  children,
-  onOpenChange,
-}: StackedModalProviderProps) => {
+const useStackedModalValue = (onOpenChange: (open: boolean) => void) => {
   const [state, setState] = useState<Record<string, boolean>>({})
 
   const getIsOpen = (id: string) => state[id] ?? false
@@ -32,22 +29,24 @@ export const StackedModalProvider = ({
   }
 
   const unregister = (id: string) => {
-    setState((prevState) => {
-      const newState = { ...prevState }
-      delete newState[id]
-      return newState
-    })
+    setState((prevState) =>
+      Object.fromEntries(
+        Object.entries(prevState).filter(([key]) => key !== id),
+      ),
+    )
   }
 
+  return { getIsOpen, register, setIsOpen, unregister }
+}
+
+export const StackedModalProvider = ({
+  children,
+  onOpenChange,
+}: StackedModalProviderProps) => {
+  const contextValue = useStackedModalValue(onOpenChange)
+
   return (
-    <StackedModalContext.Provider
-      value={{
-        getIsOpen,
-        register,
-        setIsOpen,
-        unregister,
-      }}
-    >
+    <StackedModalContext.Provider value={contextValue}>
       {children}
     </StackedModalContext.Provider>
   )

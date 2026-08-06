@@ -14,7 +14,7 @@ export const deleteMeasurementUnitsWorkflow = createWorkflow(
     const lockInput = transform(input, (current) => ({
       key: [...new Set(current.ids)]
         .filter(Boolean)
-        .sort()
+        .toSorted()
         .map((id) => `measurement-unit:${id}`),
       timeout: 5,
       ttl: 30,

@@ -1,32 +1,21 @@
+import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
 const workflowSdkMock = vi.hoisted(() => {
-  class StepResponse<TOutput> {
-    output: TOutput
-
-    constructor(output: TOutput) {
-      this.output = output
-    }
-  }
-
-  class WorkflowResponse<TOutput> {
-    output: TOutput
-
-    constructor(output: TOutput) {
-      this.output = output
-    }
-  }
-
+  const Response = vi.fn<(output: unknown) => { output: unknown }>(
+    (output) => ({
+      output,
+    }),
+  )
   return {
-    StepResponse,
-    WorkflowResponse,
+    Response,
     steps: new Map<string, (...args: unknown[]) => unknown>(),
   }
 })
 
 vi.mock(import("@medusajs/framework/utils"), () => {
   class MedusaError extends Error {
-    static Types = {
+    static readonly Types = {
       NOT_FOUND: "not_found",
     }
 
@@ -34,6 +23,7 @@ vi.mock(import("@medusajs/framework/utils"), () => {
 
     constructor(type: string, message: string) {
       super(message)
+      this.name = "MedusaError"
       this.type = type
     }
   }
@@ -48,15 +38,20 @@ vi.mock(import("@medusajs/framework/utils"), () => {
 })
 
 vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
-  StepResponse: workflowSdkMock.StepResponse,
-  WorkflowResponse: workflowSdkMock.WorkflowResponse,
-  createStep: vi.fn(
-    (name: string, handler: (...args: unknown[]) => unknown) => {
-      workflowSdkMock.steps.set(name, handler)
-      return handler
-    },
+  StepResponse: workflowSdkMock.Response,
+  WorkflowResponse: workflowSdkMock.Response,
+  createStep: vi.fn<
+    (
+      name: string,
+      handler: (...args: unknown[]) => unknown,
+    ) => (...args: unknown[]) => unknown
+  >((name, handler) => {
+    workflowSdkMock.steps.set(name, handler)
+    return handler
+  }),
+  createWorkflow: vi.fn<(name: string, handler: unknown) => unknown>(
+    (_name, handler) => handler,
   ),
-  createWorkflow: vi.fn((_name: string, handler: unknown) => handler),
 }))
 
 vi.mock(import("../../modules/order-receipt"), () => ({
@@ -64,46 +59,69 @@ vi.mock(import("../../modules/order-receipt"), () => ({
 }))
 
 vi.mock(import("../steps/send-notification"), () => ({
-  sendNotificationStep: vi.fn(),
+  sendNotificationStep: vi.fn<() => void>(),
 }))
 
 interface Notification {
   data?: Record<string, unknown>
 }
 
+const getNotifications = (result: unknown): Notification[] => {
+  if (!isRecord(result)) {
+    throw new TypeError("Expected a workflow step response")
+  }
+  const { output } = result
+  if (!Array.isArray(output)) {
+    throw new TypeError("Expected workflow notifications")
+  }
+  return output.filter(isRecord)
+}
+
+type OrderSummaryFixture = {
+  current_order_total?: number | string | null
+  original_order_total?: number | string | null
+} | null
+
 interface OrderTotalFixture {
-  summary: {
-    current_order_total?: number | string | null
-    original_order_total?: number | string | null
-  } | null
+  summary: OrderSummaryFixture
   total: number | string | null
 }
 
-function createPaymentReminderNotificationContext(order: OrderTotalFixture) {
-  const graph = vi.fn().mockResolvedValue({
-    data: [
-      {
-        currency_code: "czk",
-        customer_id: "cus_123",
-        display_id: 1001,
-        id: "order_123",
-        ...order,
-      },
-    ],
-  })
-  const generateOrderReceiptAttachment = vi.fn().mockResolvedValue({
-    content: Buffer.from("pdf"),
-    content_type: "application/pdf",
-    filename: "receipt.pdf",
-  })
+const createPaymentReminderNotificationContext = (order: OrderTotalFixture) => {
+  const graph = vi
+    .fn<
+      (input: Record<string, unknown>) => Promise<{
+        data: Record<string, unknown>[]
+      }>
+    >()
+    .mockResolvedValue({
+      data: [
+        {
+          currency_code: "czk",
+          customer_id: "cus_123",
+          display_id: 1001,
+          id: "order_123",
+          ...order,
+        },
+      ],
+    })
+  const generateOrderReceiptAttachment = vi
+    .fn<
+      () => Promise<{ content: Buffer; content_type: string; filename: string }>
+    >()
+    .mockResolvedValue({
+      content: Buffer.from("pdf"),
+      content_type: "application/pdf",
+      filename: "receipt.pdf",
+    })
   const container = {
-    resolve: vi.fn((key: string) => {
+    resolve: vi.fn<(key: string) => unknown>((key) => {
       if (key === "query") {
         return { graph }
       }
 
       if (key === "logger") {
-        return { warn: vi.fn() }
+        return { warn: vi.fn<() => void>() }
       }
 
       if (key === "order_receipt") {
@@ -125,7 +143,9 @@ describe("send order payment reminder workflow", () => {
       "build-order-payment-reminder-notification",
     )
 
-    expect(step).toBeDefined()
+    if (step === undefined) {
+      throw new TypeError("Expected the payment reminder workflow step")
+    }
 
     const { container, graph } = createPaymentReminderNotificationContext({
       summary: {
@@ -135,7 +155,7 @@ describe("send order payment reminder workflow", () => {
       total: 1999,
     })
 
-    const result = (await step?.(
+    const result: unknown = await step(
       {
         customer_id: "cus_123",
         email: "customer@example.com",
@@ -146,22 +166,24 @@ describe("send order payment reminder workflow", () => {
         total: "stale input total",
       },
       { container },
-    )) as { output: Notification[] }
+    )
+    const notifications = getNotifications(result)
 
-    expect(result.output[0]?.data?.["total"]).toBe(
+    expect(notifications[0]?.data?.["total"]).toBe(
       new Intl.NumberFormat("cs-CZ", {
         currency: "CZK",
         style: "currency",
       }).format(1234.56),
     )
-    expect(result.output[0]?.data?.["total"]).not.toBe("stale input total")
-    expect(result.output[0]?.data?.["total"]).not.toBe(1999)
-    expect(graph).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entity: "order",
-        fields: expect.arrayContaining(["summary.*", "total", "currency_code"]),
-        filters: { id: "order_123" },
-      }),
+    expect(notifications[0]?.data?.["total"]).not.toBe("stale input total")
+    expect(notifications[0]?.data?.["total"]).not.toBe(1999)
+    const graphInput = graph.mock.calls[0]?.[0]
+    expect(graphInput).toMatchObject({
+      entity: "order",
+      filters: { id: "order_123" },
+    })
+    expect(graphInput?.["fields"]).toStrictEqual(
+      expect.arrayContaining(["summary.*", "total", "currency_code"]),
     )
   })
 
@@ -210,11 +232,13 @@ describe("send order payment reminder workflow", () => {
       const step = workflowSdkMock.steps.get(
         "build-order-payment-reminder-notification",
       )
-      expect(step).toBeDefined()
+      if (step === undefined) {
+        throw new TypeError("Expected the payment reminder workflow step")
+      }
 
       const { container } = createPaymentReminderNotificationContext(order)
 
-      const result = (await step?.(
+      const result: unknown = await step(
         {
           customer_id: "cus_123",
           email: "customer@example.com",
@@ -225,9 +249,10 @@ describe("send order payment reminder workflow", () => {
           total: inputTotal,
         },
         { container },
-      )) as { output: Notification[] }
+      )
+      const notifications = getNotifications(result)
 
-      expect(result.output[0]?.data?.["total"]).toBe(expectedTotal)
+      expect(notifications[0]?.data?.["total"]).toBe(expectedTotal)
     },
   )
 })

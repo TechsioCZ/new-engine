@@ -11,29 +11,31 @@ import type { PaykitAdapterOptions, PaykitPaymentClient } from "../types"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 class TestPaykitPaymentProvider extends PaykitPaymentProviderBase {
-  static override identifier = "paykit_test"
+  static override readonly identifier = "paykit_test"
 
-  // the base constructor is protected.
-  constructor(
+  static create(
     container: PaykitInjectedDependencies,
     options: PaykitAdapterOptions,
   ) {
-    super(container, options)
+    return new TestPaykitPaymentProvider(container, options)
   }
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
-    throw new Error("Unexpected default client")
+    await Promise.reject(
+      new Error(`Unexpected default client for ${this.constructor.name}`),
+    )
+    throw new Error("Unreachable default client state")
   }
 }
 
 const createProvider = (client = createMockPaykitClient()) =>
-  new TestPaykitPaymentProvider(createMockContainer(), { client })
+  TestPaykitPaymentProvider.create(createMockContainer(), { client })
 
 const createProviderWithoutClient = () =>
-  new TestPaykitPaymentProvider(createMockContainer(), {})
+  TestPaykitPaymentProvider.create(createMockContainer(), {})
 
-const unsupportedRefundMessage = /PayKit provider does not support refunds/
-const refundMissingIdMessage = /PayKit refund response did not include an id/
+const unsupportedRefundMessage = /PayKit provider does not support refunds/u
+const refundMissingIdMessage = /PayKit refund response did not include an id/u
 
 describe(PaykitPaymentProviderBase, () => {
   it("persists provider payment id inside data.id on initiatePayment", async () => {
@@ -234,21 +236,18 @@ describe(PaykitPaymentProviderBase, () => {
       },
     })
 
-    expect(client.payments.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        billing: {
-          address: expect.objectContaining({
-            city: "London",
-            country: "GB",
-            line1: "1 Engine Way",
-            line2: "",
-            name: "Ada Lovelace",
-            postal_code: "NW1",
-          }),
-          currency: "czk",
-        },
-      }),
-    )
+    const createInput = vi.mocked(client.payments.create).mock.calls[0]?.[0]
+    expect(createInput?.billing).toMatchObject({
+      address: {
+        city: "London",
+        country: "GB",
+        line1: "1 Engine Way",
+        line2: "",
+        name: "Ada Lovelace",
+        postal_code: "NW1",
+      },
+      currency: "czk",
+    })
   })
 
   it("prefers explicit payment session billing data over customer context billing", async () => {
@@ -288,20 +287,17 @@ describe(PaykitPaymentProviderBase, () => {
       },
     })
 
-    expect(client.payments.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        billing: {
-          address: expect.objectContaining({
-            city: "Prague",
-            country: "CZ",
-            line1: "99 Checkout Street",
-            name: "Checkout Buyer",
-            postal_code: "11000",
-          }),
-          currency: "czk",
-        },
-      }),
-    )
+    const createInput = vi.mocked(client.payments.create).mock.calls[0]?.[0]
+    expect(createInput?.billing).toMatchObject({
+      address: {
+        city: "Prague",
+        country: "CZ",
+        line1: "99 Checkout Street",
+        name: "Checkout Buyer",
+        postal_code: "11000",
+      },
+      currency: "czk",
+    })
   })
 
   it("maps legacy string customers to PayKit payee objects", async () => {
@@ -373,15 +369,18 @@ describe(PaykitPaymentProviderBase, () => {
     const client = createMockPaykitClient()
     const provider = createProvider(client)
 
-    await provider.capturePayment({
-      amount: 400,
-      context: {
-        idempotency_key: "capture_123",
+    const capturePayment = provider.capturePayment.bind(provider)
+    await Reflect.apply(capturePayment, undefined, [
+      {
+        amount: 400,
+        context: {
+          idempotency_key: "capture_123",
+        },
+        data: {
+          id: "provider-payment-1",
+        },
       },
-      data: {
-        id: "provider-payment-1",
-      },
-    } as any)
+    ])
 
     expect(client.payments.capture).toHaveBeenCalledWith("provider-payment-1", {
       amount: 400,
@@ -434,20 +433,19 @@ describe(PaykitPaymentProviderBase, () => {
     }
     const provider = createProvider(client)
 
-    await expect(
-      provider.refundPayment({
-        amount: 250,
-        context: {
-          idempotency_key: "refund_123",
-        },
-        data: {
-          amount: 1000,
-          currency: "czk",
-          id: "provider-payment-1",
-        },
-      }),
-    ).rejects.toMatchObject({
-      message: expect.stringMatching(unsupportedRefundMessage),
+    const refundPromise = provider.refundPayment({
+      amount: 250,
+      context: {
+        idempotency_key: "refund_123",
+      },
+      data: {
+        amount: 1000,
+        currency: "czk",
+        id: "provider-payment-1",
+      },
+    })
+    await expect(refundPromise).rejects.toThrow(unsupportedRefundMessage)
+    await expect(refundPromise).rejects.toMatchObject({
       type: MedusaError.Types.NOT_ALLOWED,
     })
   })
@@ -455,28 +453,29 @@ describe(PaykitPaymentProviderBase, () => {
   it("rejects refund responses without a provider refund id", async () => {
     const client = createMockPaykitClient({
       refunds: {
-        create: vi.fn().mockResolvedValue({
-          amount: 250,
-          payment_id: "provider-payment-1",
-        }),
+        create: vi
+          .fn<NonNullable<PaykitPaymentClient["refunds"]>["create"]>()
+          .mockResolvedValue({
+            amount: 250,
+            payment_id: "provider-payment-1",
+          }),
       },
     })
     const provider = createProvider(client)
 
-    await expect(
-      provider.refundPayment({
-        amount: 250,
-        context: {
-          idempotency_key: "refund_123",
-        },
-        data: {
-          amount: 1000,
-          currency: "czk",
-          id: "provider-payment-1",
-        },
-      }),
-    ).rejects.toMatchObject({
-      message: expect.stringMatching(refundMissingIdMessage),
+    const refundPromise = provider.refundPayment({
+      amount: 250,
+      context: {
+        idempotency_key: "refund_123",
+      },
+      data: {
+        amount: 1000,
+        currency: "czk",
+        id: "provider-payment-1",
+      },
+    })
+    await expect(refundPromise).rejects.toThrow(refundMissingIdMessage)
+    await expect(refundPromise).rejects.toMatchObject({
       type: MedusaError.Types.INVALID_DATA,
     })
   })
@@ -614,21 +613,22 @@ describe(PaykitPaymentProviderBase, () => {
     unsupported.name = "ProviderNotSupportedError"
     const client = createMockPaykitClient({
       customers: {
-        create: vi.fn().mockRejectedValue(unsupported),
+        create: vi
+          .fn<NonNullable<PaykitPaymentClient["customers"]>["create"]>()
+          .mockRejectedValue(unsupported),
       },
     })
     const provider = createProvider(client)
 
-    await expect(
-      provider.createAccountHolder({
-        context: {
-          customer: {
-            email: "customer@example.com",
-            id: "cus_123",
-          },
+    const result = await provider.createAccountHolder({
+      context: {
+        customer: {
+          email: "customer@example.com",
+          id: "cus_123",
         },
-      }),
-    ).resolves.toStrictEqual({})
+      },
+    })
+    expect(Object.keys(result)).toStrictEqual([])
   })
 
   it("falls back to account holder id when PayKit customer retrieval is unsupported", async () => {
@@ -636,7 +636,9 @@ describe(PaykitPaymentProviderBase, () => {
     unsupported.name = "ProviderNotSupportedError"
     const client = createMockPaykitClient({
       customers: {
-        retrieve: vi.fn().mockRejectedValue(unsupported),
+        retrieve: vi
+          .fn<NonNullable<PaykitPaymentClient["customers"]>["retrieve"]>()
+          .mockRejectedValue(unsupported),
       },
     })
     const provider = createProvider(client)
@@ -651,26 +653,28 @@ describe(PaykitPaymentProviderBase, () => {
   })
 
   it("selects the first actionable payment webhook event", async () => {
-    const client = createMockPaykitClient()
-    client.handleWebhook = vi.fn().mockResolvedValue([
-      {
-        data: {
-          id: "invoice-1",
-        },
-        type: "invoice.generated",
-      },
-      {
-        data: {
-          amount: 1000,
-          id: "provider-payment-1",
-          metadata: {
-            session_id: "payses_123",
+    const handleWebhook = vi
+      .fn<NonNullable<PaykitPaymentClient["handleWebhook"]>>()
+      .mockResolvedValue([
+        {
+          data: {
+            id: "invoice-1",
           },
-          status: "succeeded",
+          type: "invoice.generated",
         },
-        type: "payment.created",
-      },
-    ])
+        {
+          data: {
+            amount: 1000,
+            id: "provider-payment-1",
+            metadata: {
+              session_id: "payses_123",
+            },
+            status: "succeeded",
+          },
+          type: "payment.created",
+        },
+      ])
+    const client = createMockPaykitClient({ handleWebhook })
     const provider = createProvider(client)
 
     await expect(
@@ -689,8 +693,10 @@ describe(PaykitPaymentProviderBase, () => {
   })
 
   it("returns not supported when PayKit does not return webhook events", async () => {
-    const client = createMockPaykitClient()
-    client.handleWebhook = vi.fn().mockResolvedValue()
+    const handleWebhook = vi
+      .fn<NonNullable<PaykitPaymentClient["handleWebhook"]>>()
+      .mockResolvedValue()
+    const client = createMockPaykitClient({ handleWebhook })
     const provider = createProvider(client)
 
     await expect(
@@ -705,20 +711,22 @@ describe(PaykitPaymentProviderBase, () => {
   })
 
   it("does not return webhook data for pending payment events", async () => {
-    const client = createMockPaykitClient()
-    client.handleWebhook = vi.fn().mockResolvedValue([
-      {
-        data: {
-          amount: 1000,
-          id: "provider-payment-1",
-          metadata: {
-            session_id: "payses_123",
+    const handleWebhook = vi
+      .fn<NonNullable<PaykitPaymentClient["handleWebhook"]>>()
+      .mockResolvedValue([
+        {
+          data: {
+            amount: 1000,
+            id: "provider-payment-1",
+            metadata: {
+              session_id: "payses_123",
+            },
+            status: "pending",
           },
-          status: "pending",
+          type: "payment.created",
         },
-        type: "payment.created",
-      },
-    ])
+      ])
+    const client = createMockPaykitClient({ handleWebhook })
     const provider = createProvider(client)
 
     await expect(
@@ -733,20 +741,22 @@ describe(PaykitPaymentProviderBase, () => {
   })
 
   it("maps standard failed payment webhook events without Medusa workflow data", async () => {
-    const client = createMockPaykitClient()
-    client.handleWebhook = vi.fn().mockResolvedValue([
-      {
-        data: {
-          amount: 1000,
-          id: "provider-payment-1",
-          metadata: {
-            session_id: "payses_123",
+    const handleWebhook = vi
+      .fn<NonNullable<PaykitPaymentClient["handleWebhook"]>>()
+      .mockResolvedValue([
+        {
+          data: {
+            amount: 1000,
+            id: "provider-payment-1",
+            metadata: {
+              session_id: "payses_123",
+            },
+            status: "failed",
           },
-          status: "failed",
+          type: "payment.failed",
         },
-        type: "payment.failed",
-      },
-    ])
+      ])
+    const client = createMockPaykitClient({ handleWebhook })
     const provider = createProvider(client)
 
     await expect(

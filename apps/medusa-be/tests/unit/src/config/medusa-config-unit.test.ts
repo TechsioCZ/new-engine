@@ -1,3 +1,6 @@
+import { tmpdir } from "node:os"
+import path from "node:path"
+
 import { afterEach, describe, expect, it } from "vitest"
 
 import {
@@ -15,10 +18,12 @@ import {
 } from "../../../../src/config/providers"
 import { INTEGRATION_CONFIG_NAMES } from "../../../../src/modules/api-store/integration-config"
 
+const uploadDir = path.join(tmpdir(), "medusa-uploads")
+
 const baseEnv = {
   CACHE_PROVIDER: "inmemory",
   EVENT_BUS_PROVIDER: "local",
-  FILE_LOCAL_UPLOAD_DIR: "/tmp/medusa-uploads",
+  FILE_LOCAL_UPLOAD_DIR: uploadDir,
   FILE_PROVIDER: "local",
   LOCKING_PROVIDER: "postgres",
   MEILISEARCH_ENABLED: "0",
@@ -31,22 +36,22 @@ const originalMikroOrmSchema = process.env["MIKRO_ORM_SCHEMA"]
 const originalMikroOrmMigrationsTableName =
   process.env["MIKRO_ORM_MIGRATIONS_TABLE_NAME"]
 
-afterEach(() => {
-  if (originalMikroOrmSchema === undefined) {
-    Reflect.deleteProperty(process.env, "MIKRO_ORM_SCHEMA")
-  } else {
-    process.env["MIKRO_ORM_SCHEMA"] = originalMikroOrmSchema
-  }
-
-  if (originalMikroOrmMigrationsTableName === undefined) {
-    Reflect.deleteProperty(process.env, "MIKRO_ORM_MIGRATIONS_TABLE_NAME")
-  } else {
-    process.env["MIKRO_ORM_MIGRATIONS_TABLE_NAME"] =
-      originalMikroOrmMigrationsTableName
-  }
-})
-
 describe(readMedusaConfigEnv, () => {
+  afterEach(() => {
+    if (originalMikroOrmSchema === undefined) {
+      Reflect.deleteProperty(process.env, "MIKRO_ORM_SCHEMA")
+    } else {
+      process.env["MIKRO_ORM_SCHEMA"] = originalMikroOrmSchema
+    }
+
+    if (originalMikroOrmMigrationsTableName === undefined) {
+      Reflect.deleteProperty(process.env, "MIKRO_ORM_MIGRATIONS_TABLE_NAME")
+    } else {
+      process.env["MIKRO_ORM_MIGRATIONS_TABLE_NAME"] =
+        originalMikroOrmMigrationsTableName
+    }
+  })
+
   it("parses local provider defaults without requiring Redis", () => {
     const env = readMedusaConfigEnv(baseEnv)
 
@@ -81,13 +86,13 @@ describe(readMedusaConfigEnv, () => {
       options: {
         providers: [
           {
-            resolve: "./src/modules/local-providers/file-local",
             id: "local",
             options: {
               backend_url: "http://localhost:9000/static",
-              private_upload_dir: "/tmp/medusa-uploads",
-              upload_dir: "/tmp/medusa-uploads",
+              private_upload_dir: uploadDir,
+              upload_dir: uploadDir,
             },
+            resolve: "./src/modules/local-providers/file-local",
           },
         ],
       },
@@ -125,12 +130,12 @@ describe(readMedusaConfigEnv, () => {
       options: {
         providers: [
           {
-            resolve: "@medusajs/caching-redis",
             id: "caching-redis",
             is_default: true,
             options: {
               redisUrl: "redis://localhost:6379",
             },
+            resolve: "@medusajs/caching-redis",
           },
         ],
       },
@@ -202,8 +207,8 @@ describe(readMedusaConfigEnv, () => {
       {
         id: "resend",
         options: {
-          api_key: "re_test",
           apiStoreName: INTEGRATION_CONFIG_NAMES.RESEND,
+          api_key: "re_test",
           channels: ["email"],
           from: "store@example.com",
         },
@@ -244,13 +249,14 @@ describe(readMedusaConfigEnv, () => {
       STORE_CORS: "https://store.example",
     })
 
-    expect(buildProjectConfig(env).http).toStrictEqual({
+    const httpConfig = buildProjectConfig(env).http
+    expect(httpConfig).toMatchObject({
       adminCors: "https://admin.example",
       authCors: "https://auth.example",
-      cookieSecret: undefined,
-      jwtSecret: undefined,
       storeCors: "https://store.example",
     })
+    expect(httpConfig.cookieSecret).toBeUndefined()
+    expect(httpConfig.jwtSecret).toBeUndefined()
   })
 
   it("includes master-added dashboard plugin and product list module", () => {

@@ -14,17 +14,42 @@ import { useTranslation } from "react-i18next"
 import type { QueryCompany } from "../../../../types"
 import {
   useAddCompanyToCustomerGroup,
+  useRemoveCompanyFromCustomerGroup,
+} from "../../../hooks/api/companies"
+import {
   useAdminCustomerGroups,
   useCustomerGroupCompanyOwners,
-  useRemoveCompanyFromCustomerGroup,
-} from "../../../hooks/api"
+} from "../../../hooks/api/customers"
 import { getPaginationTranslations } from "../../../lib/table"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
 
+interface LinkedCompany {
+  deleted_at?: string | null
+  id: string
+  name: string
+}
+
 const getActiveEmployeeCount = (company: QueryCompany) =>
   company.employees?.filter((employee) => !employee.deleted_at).length ?? 0
+
+const getLoadErrorMessage = (
+  customerGroupsError: Error | null,
+  ownersError: Error | null,
+  fallback: string,
+) => {
+  if (
+    customerGroupsError?.message !== undefined &&
+    customerGroupsError.message !== ""
+  ) {
+    return customerGroupsError.message
+  }
+  if (ownersError?.message !== undefined && ownersError.message !== "") {
+    return ownersError.message
+  }
+  return fallback
+}
 
 export const CompanyCustomerGroupDrawer = ({
   company,
@@ -65,7 +90,7 @@ export const CompanyCustomerGroupDrawer = ({
       onError: (_error) => {
         toast.error(t("errors.updateCustomerGroupFailed"))
       },
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("toasts.companyAddedToCustomerGroup"))
       },
     })
@@ -76,7 +101,7 @@ export const CompanyCustomerGroupDrawer = ({
       onError: () => {
         toast.error(t("errors.removeCustomerGroupFailed"))
       },
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("toasts.companyRemovedFromCustomerGroup"))
       },
     })
@@ -95,18 +120,21 @@ export const CompanyCustomerGroupDrawer = ({
     enabled: open && customerGroupIds.length > 0,
     placeholderData: (previousData) => previousData,
   })
-  const ownersByGroupId = new Map<string, QueryCompany[]>()
+  const ownersByGroupId = new Map<string, LinkedCompany[]>()
 
   for (const link of ownerData?.customer_group_links ?? []) {
     const owners = ownersByGroupId.get(link.customer_group_id) ?? []
-    owners.push(link.company as QueryCompany)
+    owners.push(link.company)
     ownersByGroupId.set(link.customer_group_id, owners)
   }
 
   const getActiveLinkedCompany = (group: HttpTypes.AdminCustomerGroup) =>
     (ownersByGroupId.get(group.id) ?? []).find(
       (linkedCompany) =>
-        linkedCompany.id !== company.id && !linkedCompany.deleted_at,
+        linkedCompany.id !== company.id &&
+        (linkedCompany.deleted_at === undefined ||
+          linkedCompany.deleted_at === null ||
+          linkedCompany.deleted_at === ""),
     )
 
   const renderGroupName = (group: HttpTypes.AdminCustomerGroup) => {
@@ -137,7 +165,9 @@ export const CompanyCustomerGroupDrawer = ({
       return (
         <Button
           isLoading={removeLoading}
-          onClick={async () => await handleRemove(group.id)}
+          onClick={() => {
+            void handleRemove(group.id)
+          }}
           variant="danger"
         >
           {t("customerGroup.remove")}
@@ -150,7 +180,9 @@ export const CompanyCustomerGroupDrawer = ({
       <Button
         disabled={addDisabled}
         isLoading={addLoading}
-        onClick={async () => await handleAdd(group.id)}
+        onClick={() => {
+          void handleAdd(group.id)
+        }}
       >
         {t("customerGroup.set")}
       </Button>
@@ -171,8 +203,11 @@ export const CompanyCustomerGroupDrawer = ({
       return (
         <Table.Row>
           <Table.Cell className="text-ui-fg-error">
-            {(customerGroupsError?.message ?? ownersError?.message) ||
-              t("errors.loadCustomerGroupsFailed")}
+            {getLoadErrorMessage(
+              customerGroupsError,
+              ownersError,
+              t("errors.loadCustomerGroupsFailed"),
+            )}
           </Table.Cell>
           <Table.Cell />
         </Table.Row>
@@ -218,9 +253,9 @@ export const CompanyCustomerGroupDrawer = ({
       >
         <Drawer.Header>
           <Drawer.Title>
-            {company.name
-              ? t("customerGroup.title", { name: company.name })
-              : t("customerGroup.titleFallback")}
+            {company.name === undefined || company.name === ""
+              ? t("customerGroup.titleFallback")
+              : t("customerGroup.title", { name: company.name })}
           </Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="h-full space-y-4 overflow-y-hidden">

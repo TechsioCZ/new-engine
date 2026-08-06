@@ -28,9 +28,12 @@ if (isIntegration) {
 const unitTestPatterns = [
   "tests/unit/**/*.{spec,test}.ts",
   "src/api/**/__tests__/**/*.{unit.spec,test}.ts",
-  "src/migration-scripts/**/__tests__/**/*.unit.{spec,test}.ts",
-  "src/modules/**/__tests__/**/*.unit.{spec,test}.ts",
-  "src/workflows/**/__tests__/**/*.unit.{spec,test}.ts",
+  "src/migration-scripts/**/__tests__/**/*.unit.spec.ts",
+  "src/migration-scripts/**/__tests__/**/*-unit.test.ts",
+  "src/modules/**/__tests__/**/*.unit.spec.ts",
+  "src/modules/**/__tests__/**/*-unit.test.ts",
+  "src/workflows/**/__tests__/**/*.unit.spec.ts",
+  "src/workflows/**/__tests__/**/*-unit.test.ts",
 ]
 const httpIntegrationTestPatterns = [
   "integration-tests/http/**/*.{spec,test}.ts",
@@ -58,7 +61,9 @@ export default defineConfig({
       "node_modules",
       "dist",
       ".medusa",
-      ...(isModuleIntegration ? ["**/*.unit.{spec,test}.ts"] : []),
+      ...(isModuleIntegration
+        ? ["**/*.unit.spec.ts", "**/*-unit.test.ts"]
+        : []),
     ],
     fileParallelism: !isIntegration,
     globals: isIntegration,

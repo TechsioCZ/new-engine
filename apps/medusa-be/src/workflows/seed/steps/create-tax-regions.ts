@@ -23,13 +23,17 @@ export const createTaxRegionsStep = createStep(
 
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const taxService = container.resolve<ITaxModuleService>(Modules.TAX)
+    const taxProviderId =
+      input.taxProviderId === undefined || input.taxProviderId === ""
+        ? "tp_system"
+        : input.taxProviderId
 
     const existingTaxRegions = await taxService.listTaxRegions({
       country_code: { $in: input.countries },
     })
 
     const missingTaxRegions = input.countries.filter(
-      (i) => !existingTaxRegions.find((j) => j.country_code === i),
+      (i) => !existingTaxRegions.some((region) => region.country_code === i),
     )
 
     if (missingTaxRegions.length !== 0) {
@@ -38,9 +42,9 @@ export const createTaxRegionsStep = createStep(
       const { result: createTaxRegionsResult } = await createTaxRegionsWorkflow(
         container,
       ).run({
-        input: missingTaxRegions.map((country_code) => ({
-          country_code,
-          provider_id: input.taxProviderId || "tp_system",
+        input: missingTaxRegions.map((countryCode) => ({
+          country_code: countryCode,
+          provider_id: taxProviderId,
         })),
       })
 
@@ -52,7 +56,7 @@ export const createTaxRegionsStep = createStep(
 
       const toUpdate = existingTaxRegions.map((i) => ({
         id: i.id,
-        provider_id: input.taxProviderId || "tp_system",
+        provider_id: taxProviderId,
       }))
 
       const { result: updateTaxRegionResult } = await updateTaxRegionsWorkflow(

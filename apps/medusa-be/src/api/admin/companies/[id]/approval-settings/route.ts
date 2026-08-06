@@ -2,27 +2,34 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { requirePathParam } from "../../../../../utils/path-params"
-import {
-  ensureApprovalSettingsWorkflow,
-  updateApprovalSettingsWorkflow,
-} from "../../../../../workflows/approval/workflows"
+import { ensureApprovalSettingsWorkflow } from "../../../../../workflows/approval/workflows/ensure-approval-settings"
+import { updateApprovalSettingsWorkflow } from "../../../../../workflows/approval/workflows/update-approval-settings"
 import { adminApprovalSettingsFields } from "../../query-config"
 import type { AdminUpdateApprovalSettingsType } from "../../validators"
 
-export const GET = async (
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse,
-) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const id = requirePathParam(req.params["id"], "Company id")
+const getDataRecords = (response: unknown): Record<string, unknown>[] => {
+  if (!isRecord(response)) {
+    return []
+  }
+  const { data } = response
+  return Array.isArray(data) ? data.filter(isRecord) : []
+}
 
-  const { data: approvalSettings, metadata } = await query.graph({
+const getWorkflowResult = (response: unknown): unknown =>
+  isRecord(response) ? response["result"] : undefined
+
+const get = async (req: AuthenticatedMedusaRequest, res: MedusaResponse) => {
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const id = requirePathParam(req.params["id"], "Company id")
+  const response: unknown = await query.graph({
     entity: "approval_settings",
     fields: adminApprovalSettingsFields,
     filters: {
@@ -33,77 +40,89 @@ export const GET = async (
       ...req.queryConfig.pagination,
     },
   })
+  const approvalSettings = getDataRecords(response)
+  const metadata = isRecord(response) ? response["metadata"] : undefined
+  const count =
+    isRecord(metadata) && typeof metadata["count"] === "number"
+      ? metadata["count"]
+      : approvalSettings.length
+  const limit =
+    isRecord(metadata) && typeof metadata["take"] === "number"
+      ? metadata["take"]
+      : approvalSettings.length
+  const offset =
+    isRecord(metadata) && typeof metadata["skip"] === "number"
+      ? metadata["skip"]
+      : 0
 
-  res.json({
-    approvalSettings,
-    count: metadata?.count ?? approvalSettings.length,
-    limit: metadata?.take ?? approvalSettings.length,
-    offset: metadata?.skip ?? 0,
-  })
+  res.json({ approvalSettings, count, limit, offset })
 }
 
-export const POST = async (
+const post = async (
   req: AuthenticatedMedusaRequest<AdminUpdateApprovalSettingsType>,
   res: MedusaResponse,
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const id = requirePathParam(req.params["id"], "Company id")
   const { requires_admin_approval, requires_sales_manager_approval } =
     req.validatedBody
-
-  const {
-    data: [currentApprovalSettings],
-  } = await query.graph({
+  const currentResponse: unknown = await query.graph({
     entity: "approval_settings",
     fields: ["id"],
     filters: { company_id: id },
   })
+  const currentId = getDataRecords(currentResponse)[0]?.["id"]
+  let currentApprovalSettingsId =
+    typeof currentId === "string" && currentId !== "" ? currentId : undefined
 
-  let currentApprovalSettingsId = currentApprovalSettings?.id
-
-  if (!currentApprovalSettings) {
-    const { result: createdApprovalSettings } =
-      await ensureApprovalSettingsWorkflow(req.scope).run({
-        input: [id],
-      })
-
-    currentApprovalSettingsId = createdApprovalSettings[0]?.id
-
-    if (!currentApprovalSettingsId) {
-      throw new MedusaError(
-        MedusaError.Types.NOT_FOUND,
-        `Approval settings for company ${id} were not found`,
-      )
-    }
+  if (currentApprovalSettingsId === undefined) {
+    const creationResponse: unknown = await ensureApprovalSettingsWorkflow(
+      req.scope,
+    ).run({ input: [id] })
+    const createdResult = getWorkflowResult(creationResponse)
+    const createdId =
+      Array.isArray(createdResult) && isRecord(createdResult[0])
+        ? createdResult[0]["id"]
+        : undefined
+    currentApprovalSettingsId =
+      typeof createdId === "string" && createdId !== "" ? createdId : undefined
   }
 
-  if (!currentApprovalSettingsId) {
+  if (currentApprovalSettingsId === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Approval settings for company ${id} were not found`,
     )
   }
 
-  const { result: updatedApprovalSettings } =
-    await updateApprovalSettingsWorkflow(req.scope).run({
-      input: {
-        company_id: id,
-        id: currentApprovalSettingsId,
-        requires_admin_approval,
-        requires_sales_manager_approval,
-      },
-    })
+  const updateResponse: unknown = await updateApprovalSettingsWorkflow(
+    req.scope,
+  ).run({
+    input: {
+      company_id: id,
+      id: currentApprovalSettingsId,
+      requires_admin_approval,
+      requires_sales_manager_approval,
+    },
+  })
+  const updatedResult = getWorkflowResult(updateResponse)
+  const updatedId = isRecord(updatedResult) ? updatedResult["id"] : undefined
+  if (typeof updatedId !== "string" || updatedId === "") {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Approval settings update for company ${id} returned no id`,
+    )
+  }
 
-  const { data: approvalSettings } = await query.graph(
+  const response: unknown = await query.graph(
     {
       entity: "approval_settings",
       fields: adminApprovalSettingsFields,
-      filters: {
-        id: updatedApprovalSettings.id,
-      },
+      filters: { id: updatedId },
     },
     { throwIfKeyNotFound: true },
   )
-
-  res.json({ approvalSettings })
+  res.json({ approvalSettings: getDataRecords(response) })
 }
+
+export { get as GET, post as POST }

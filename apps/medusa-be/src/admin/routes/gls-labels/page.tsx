@@ -46,8 +46,9 @@ interface OrdersResponse {
 }
 
 const PAGE_SIZE = 50
-const CONTENT_DISPOSITION_FILENAME_STAR_REGEX = /filename\*=UTF-8''([^;]+)/i
-const CONTENT_DISPOSITION_FILENAME_REGEX = /filename="?([^";]+)"?/i
+const CONTENT_DISPOSITION_FILENAME_STAR_REGEX =
+  /filename\*=UTF-8''(?<filename>[^;]+)/iu
+const CONTENT_DISPOSITION_FILENAME_REGEX = /filename="?(?<filename>[^";]+)"?/iu
 
 export const handle = {
   breadcrumb: () => "GLS Labels",
@@ -66,41 +67,47 @@ const ORDER_FIELDS = [
   "fulfillments.data",
 ].join(",")
 
-function getGLSLabels(order: AdminOrder): OrderFulfillment[] {
-  return (order.fulfillments ?? []).filter(
-    (fulfillment) =>
-      fulfillment.provider_id === GLS_PROVIDER_ID &&
-      !fulfillment.canceled_at &&
-      (typeof fulfillment.data?.packet_id === "number" ||
-        typeof fulfillment.data?.packet_id === "string"),
-  )
+const isPrintableGLSFulfillment = (fulfillment: OrderFulfillment) => {
+  const packetId = fulfillment.data?.packet_id
+  const hasPacketId =
+    typeof packetId === "number" || typeof packetId === "string"
+  const isActive =
+    fulfillment.canceled_at === null || fulfillment.canceled_at === ""
+  return fulfillment.provider_id === GLS_PROVIDER_ID && isActive && hasPacketId
 }
 
-function getOrderNumber(order: AdminOrder): string {
+const getGLSLabels = (order: AdminOrder): OrderFulfillment[] =>
+  (order.fulfillments ?? []).filter(isPrintableGLSFulfillment)
+
+const getOrderNumber = (order: AdminOrder): string => {
   const customDisplayId = order.custom_display_id?.trim()
-  return customDisplayId ? customDisplayId : `#${order.display_id}`
+  return customDisplayId === undefined || customDisplayId === ""
+    ? `#${order.display_id}`
+    : customDisplayId
 }
 
-function getFilenameFromContentDisposition(header: string | null): string {
+const getFilenameFromContentDisposition = (header: string | null): string => {
   const fallback = `gls-labels-${new Date().toISOString().slice(0, 10)}.pdf`
-  if (!header) {
+  if (header === null || header === "") {
     return fallback
   }
 
-  const encodedMatch = CONTENT_DISPOSITION_FILENAME_STAR_REGEX.exec(header)
-  if (encodedMatch?.[1]) {
+  const encodedFilename =
+    CONTENT_DISPOSITION_FILENAME_STAR_REGEX.exec(header)?.groups?.["filename"]
+  if (encodedFilename !== undefined && encodedFilename !== "") {
     try {
-      return decodeURIComponent(encodedMatch[1])
+      return decodeURIComponent(encodedFilename)
     } catch {
       return fallback
     }
   }
 
-  const filenameMatch = CONTENT_DISPOSITION_FILENAME_REGEX.exec(header)
-  return filenameMatch?.[1] ?? fallback
+  const filename =
+    CONTENT_DISPOSITION_FILENAME_REGEX.exec(header)?.groups?.["filename"]
+  return filename === undefined || filename === "" ? fallback : filename
 }
 
-async function downloadLabels(orderIds: string[]) {
+const downloadLabels = async (orderIds: string[]) => {
   const response = await fetch("/admin/gls-labels", {
     body: JSON.stringify({
       order_ids: orderIds,
@@ -113,7 +120,12 @@ async function downloadLabels(orderIds: string[]) {
   })
 
   if (!response.ok) {
-    const payload: unknown = await response.json().catch(() => null)
+    let payload: unknown = null
+    try {
+      payload = await response.json()
+    } catch {
+      payload = null
+    }
     if (
       typeof payload === "object" &&
       payload !== null &&
@@ -157,7 +169,7 @@ const GLSLabelsPage = () => {
         offset: String(offset),
         order: "-created_at",
       })
-      return sdk.client.fetch<OrdersResponse>(`/admin/orders?${search}`)
+      return await sdk.client.fetch<OrdersResponse>(`/admin/orders?${search}`)
     },
     queryKey: ["gls-label-orders", offset],
   })
@@ -166,9 +178,9 @@ const GLSLabelsPage = () => {
   const printableOrders = orders.filter(
     (order) => getGLSLabels(order).length > 0,
   )
-  const selectedPrintableOrderIds = printableOrders
-    .map((order) => order.id)
-    .filter((id) => selectedOrderIds.has(id))
+  const selectedPrintableOrderIds = printableOrders.flatMap((order) =>
+    selectedOrderIds.has(order.id) ? [order.id] : [],
+  )
 
   const allPrintableSelected =
     printableOrders.length > 0 &&
@@ -222,16 +234,18 @@ const GLSLabelsPage = () => {
     try {
       await downloadLabels(selectedPrintableOrderIds)
       toast.success("GLS labels generated")
-    } catch (error) {
+    } catch (caughtError) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to print labels",
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Failed to print labels",
       )
     } finally {
       setIsPrinting(false)
     }
   }
 
-  if (error) {
+  if (error !== null) {
     throw error
   }
 
@@ -247,7 +261,9 @@ const GLSLabelsPage = () => {
         <Button
           disabled={selectedPrintableOrderIds.length === 0}
           isLoading={isPrinting}
-          onClick={handlePrint}
+          onClick={() => {
+            void handlePrint()
+          }}
           size="small"
         >
           <DocumentSeries />

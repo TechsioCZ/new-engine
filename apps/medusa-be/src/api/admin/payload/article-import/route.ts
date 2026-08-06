@@ -1,8 +1,10 @@
+import { format as formatUrl } from "node:url"
+
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
-const TRAILING_SLASH_PATTERN = /\/$/
+const TRAILING_SLASH_PATTERN = /\/$/u
 const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 30_000
 
@@ -85,14 +87,18 @@ const resolvePayloadBaseUrl = () => {
     process.env["PAYLOAD_BASE_URL"] ??
     process.env["PAYLOAD_IFRAME_URL"]
 
-  if (!configuredUrl) {
-    return "http://payload:8083"
+  if (configuredUrl === undefined || configuredUrl === "") {
+    return formatUrl({ hostname: "payload", port: "8083", protocol: "http:" })
   }
 
   try {
     const url = new URL(configuredUrl)
     if (LOCAL_HOSTS.has(url.hostname)) {
-      return `http://payload:${url.port || "8083"}`
+      return formatUrl({
+        hostname: "payload",
+        port: url.port === "" ? "8083" : url.port,
+        protocol: "http:",
+      })
     }
 
     return url.origin
@@ -101,9 +107,9 @@ const resolvePayloadBaseUrl = () => {
   }
 }
 
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
+const post = async (req: MedusaRequest, res: MedusaResponse) => {
   const payloadApiKey = process.env["PAYLOAD_API_KEY"]
-  if (!payloadApiKey) {
+  if (payloadApiKey === undefined || payloadApiKey === "") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "PAYLOAD_API_KEY is not configured",
@@ -174,3 +180,5 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     clearTimeout(timeout)
   }
 }
+
+export { post as POST }

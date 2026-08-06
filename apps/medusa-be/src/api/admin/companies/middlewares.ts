@@ -25,7 +25,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   /* Companies Middlewares */
   {
     matcher: "/admin/companies",
-    method: ["GET"],
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetCompanyParams,
@@ -35,7 +35,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/admin/companies",
-    method: ["POST"],
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminCreateCompany),
       validateAndTransformQuery(
@@ -46,7 +46,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/admin/companies/:id",
-    method: ["GET"],
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetCompanyParams,
@@ -56,7 +56,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/admin/companies/:id",
-    method: ["POST"],
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminUpdateCompany),
       validateAndTransformQuery(
@@ -67,7 +67,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/admin/companies/:id/customer-group",
-    method: ["POST"],
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminAddCompanyToCustomerGroup),
       validateAndTransformQuery(
@@ -78,7 +78,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/admin/companies/:id/restore",
-    method: ["POST"],
+    methods: ["POST"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetCompanyParams,
@@ -90,7 +90,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   /* Employees Middlewares */
   {
     matcher: "/admin/companies/:id/employees",
-    method: ["GET"],
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetEmployeeParams,
@@ -100,7 +100,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/admin/companies/:id/employees",
-    method: ["POST"],
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminCreateEmployee),
       validateAndTransformQuery(
@@ -111,7 +111,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/admin/companies/:id/employees/:employee_id",
-    method: ["GET"],
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetEmployeeParams,
@@ -121,7 +121,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/admin/companies/:id/employees/:employee_id",
-    method: ["POST"],
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminUpdateEmployee),
       validateAndTransformQuery(
@@ -133,7 +133,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   /* Approval Settings Middlewares */
   {
     matcher: "/admin/companies/:id/approval-settings",
-    method: ["GET"],
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetApprovalSettingsParams,
@@ -143,7 +143,7 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   {
     matcher: "/admin/companies/:id/approval-settings",
-    method: ["POST"],
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminUpdateApprovalSettings),
       validateAndTransformQuery(

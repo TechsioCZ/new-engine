@@ -324,7 +324,7 @@ const mapDynamicFacets = (
     })),
   )
 
-export const GET = async (
+const get = async (
   req: RequestWithContext<unknown, StoreCatalogProductsSchemaType>,
   res: MedusaResponse,
 ): Promise<void> => {
@@ -501,3 +501,5 @@ export const GET = async (
     totalPages,
   })
 }
+
+export { get as GET }

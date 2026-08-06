@@ -29,21 +29,24 @@ export interface AdminRegionWithCountries {
 
 const REGION_PRIORITY = ["sk", "cz"]
 
-export function formatPercent(rate: number, locale: string) {
-  return `${new Intl.NumberFormat(locale, {
+export const formatPercent = (rate: number, locale: string) =>
+  `${new Intl.NumberFormat(locale, {
     maximumFractionDigits: 2,
     minimumFractionDigits: Number.isInteger(rate) ? 0 : 2,
   }).format(rate)}%`
-}
 
-export function getCountryName(
+export const getCountryName = (
   country: RegionCountry | undefined,
   countryCode: string,
   locale: string,
-) {
+) => {
   const explicitName = country?.display_name ?? country?.name
 
-  if (explicitName) {
+  if (
+    explicitName !== undefined &&
+    explicitName !== null &&
+    explicitName !== ""
+  ) {
     return explicitName
   }
 
@@ -58,14 +61,16 @@ export function getCountryName(
   }
 }
 
-export function getCountriesByCode(regions: AdminRegionWithCountries[] = []) {
+export const getCountriesByCode = (
+  regions: AdminRegionWithCountries[] = [],
+) => {
   const countriesByCode = new Map<string, RegionCountry>()
 
   for (const region of regions) {
     for (const country of region.countries ?? []) {
       const countryCode = normalizeCountryCode(country.iso_2)
 
-      if (countryCode) {
+      if (typeof countryCode === "string") {
         countriesByCode.set(countryCode, country)
       }
     }
@@ -74,9 +79,16 @@ export function getCountriesByCode(regions: AdminRegionWithCountries[] = []) {
   return countriesByCode
 }
 
-export function sortSalesRegionRows<
+type SalesRegionRow = ProductSalesRegionsResponse["country_rates"][number] & {
+  countryName: string
+}
+
+export const sortSalesRegionRows = <
   TRow extends { country_code: string; countryName: string },
->(first: TRow, second: TRow) {
+>(
+  first: TRow,
+  second: TRow,
+) => {
   const firstPriority = REGION_PRIORITY.indexOf(first.country_code)
   const secondPriority = REGION_PRIORITY.indexOf(second.country_code)
 
@@ -90,26 +102,40 @@ export function sortSalesRegionRows<
   return first.countryName.localeCompare(second.countryName)
 }
 
-export function getSalesRegionRows(
+export const getSalesRegionRows = (
   data: ProductSalesRegionsResponse | undefined,
   countriesByCode: Map<string, RegionCountry>,
   locale: string,
-) {
+): SalesRegionRow[] => {
   const availableCountryCodes = new Set(countriesByCode.keys())
 
-  return (data?.country_rates ?? [])
-    .filter(
-      ({ country_code }) =>
-        availableCountryCodes.size === 0 ||
-        availableCountryCodes.has(country_code),
+  const rows: SalesRegionRow[] = (data?.country_rates ?? []).flatMap(
+    (countryRate) =>
+      availableCountryCodes.size === 0 ||
+      availableCountryCodes.has(countryRate.country_code)
+        ? [
+            {
+              ...countryRate,
+              countryName: getCountryName(
+                countriesByCode.get(countryRate.country_code),
+                countryRate.country_code,
+                locale,
+              ),
+            },
+          ]
+        : [],
+  )
+
+  const sortedRows: SalesRegionRow[] = []
+  for (const row of rows) {
+    const insertionIndex = sortedRows.findIndex(
+      (sortedRow) => sortSalesRegionRows(row, sortedRow) < 0,
     )
-    .map((countryRate) => ({
-      ...countryRate,
-      countryName: getCountryName(
-        countriesByCode.get(countryRate.country_code),
-        countryRate.country_code,
-        locale,
-      ),
-    }))
-    .toSorted(sortSalesRegionRows)
+    if (insertionIndex === -1) {
+      sortedRows.push(row)
+    } else {
+      sortedRows.splice(insertionIndex, 0, row)
+    }
+  }
+  return sortedRows
 }

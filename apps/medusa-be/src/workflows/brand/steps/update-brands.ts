@@ -12,6 +12,9 @@ import {
 } from "./helpers"
 import { normalizeBrandWriteInput, validateBrandGpsrState } from "./validation"
 
+const hasStringValue = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value !== ""
+
 export const updateBrandsStep = createStep(
   "update-brands",
   async (input: UpdateBrandsWorkflowInput, { container }) => {
@@ -23,7 +26,10 @@ export const updateBrandsStep = createStep(
       ...normalizedUpdate,
     }
 
-    if (!(effectiveState.title && effectiveState.handle)) {
+    if (
+      !hasStringValue(effectiveState.title) ||
+      !hasStringValue(effectiveState.handle)
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Brand title and handle must not be empty",

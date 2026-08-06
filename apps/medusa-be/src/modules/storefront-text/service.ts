@@ -26,13 +26,13 @@ interface StorefrontTextModuleDependencies {
 class StorefrontTextModuleService extends MedusaService({
   StorefrontText,
 }) {
-  private readonly transactionRepository_: TransactionRepository
+  private readonly transactionRepository: TransactionRepository
 
   constructor(
     dependencies: StorefrontTextModuleDependencies & Record<string, unknown>,
   ) {
     super(dependencies)
-    this.transactionRepository_ = dependencies.baseRepository
+    this.transactionRepository = dependencies.baseRepository
   }
 
   @InjectManager()
@@ -40,11 +40,14 @@ class StorefrontTextModuleService extends MedusaService({
     taskWithContext: (context: Context) => Promise<Result>,
     @MedusaContext() sharedContext: Context = {},
   ): Promise<Result> {
-    if (sharedContext.transactionManager) {
+    if (
+      typeof sharedContext.transactionManager === "object" &&
+      sharedContext.transactionManager !== null
+    ) {
       return await taskWithContext(sharedContext)
     }
 
-    return await this.transactionRepository_.transaction(
+    return await this.transactionRepository.transaction(
       async (transactionManager) =>
         await taskWithContext({
           ...sharedContext,

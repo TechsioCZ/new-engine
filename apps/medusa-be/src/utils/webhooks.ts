@@ -2,10 +2,10 @@ import { timingSafeEqual } from "node:crypto"
 
 import type { MedusaRequest } from "@medusajs/framework/http"
 
-export function getHeaderValue(
+export const getHeaderValue = (
   req: MedusaRequest,
   name: string,
-): string | undefined {
+): string | undefined => {
   const value = req.headers[name]
   if (Array.isArray(value)) {
     return value[0]
@@ -24,11 +24,16 @@ export function getHeaderValue(
  * @param expectedSignature - The signature computed from the payload and shared secret
  * @returns true if the signatures match, false otherwise
  */
-export function isValidWebhookSignature(
+export const isValidWebhookSignature = (
   signature: string | undefined,
   expectedSignature: string | undefined,
-): boolean {
-  if (!(expectedSignature && signature)) {
+): boolean => {
+  if (
+    expectedSignature === undefined ||
+    expectedSignature === "" ||
+    signature === undefined ||
+    signature === ""
+  ) {
     return false
   }
   // Both are hex-encoded SHA-256 digests (64 chars); length mismatch means no match

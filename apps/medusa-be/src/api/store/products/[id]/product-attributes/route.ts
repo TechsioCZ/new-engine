@@ -13,7 +13,7 @@ import type { StoreProductAttributesQuery } from "./middlewares"
 import { listPublicStoreProductAttributes } from "./utils"
 import type { StoreProductAttributeResponse } from "./utils"
 
-export async function GET(
+const get = async (
   req: MedusaStoreRequest<unknown, StoreProductAttributesQuery>,
   res: MedusaResponse<{
     count: number
@@ -21,9 +21,9 @@ export async function GET(
     offset: number
     product_attributes: StoreProductAttributeResponse[]
   }>,
-) {
+) => {
   const productId = req.params["id"]
-  if (!productId) {
+  if (productId === undefined || productId === "") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "A Product id is required.",
@@ -46,7 +46,7 @@ export async function GET(
     pagination: { take: 1 },
   })
 
-  if (!products[0]) {
+  if (products.length === 0) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product with id "${productId}" was not found`,
@@ -69,3 +69,5 @@ export async function GET(
     product_attributes: page.product_attributes,
   })
 }
+
+export { get as GET }

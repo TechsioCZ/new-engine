@@ -39,7 +39,9 @@ export const DeletePrompt = ({
         <Prompt.Footer>
           <Button
             isLoading={loading}
-            onClick={handleConfirmDelete}
+            onClick={() => {
+              void handleConfirmDelete()
+            }}
             variant="danger"
           >
             <Trash />

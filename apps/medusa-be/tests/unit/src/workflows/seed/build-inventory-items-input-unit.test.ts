@@ -3,20 +3,18 @@ import { describe, expect, it } from "vitest"
 import { buildInventoryItemsInput } from "../../../../../src/workflows/seed/helpers/build-inventory-items-input"
 import type { CreateProductsStepInput } from "../../../../../src/workflows/seed/steps"
 
-function buildProduct(
+const buildProduct = (
   variants: NonNullable<CreateProductsStepInput[number]["variants"]>,
-): CreateProductsStepInput[number] {
-  return {
-    categories: [],
-    description: "",
-    handle: "seed-product",
-    images: [],
-    salesChannelNames: [],
-    shippingProfileName: "Default Shipping Profile",
-    title: "Seed product",
-    variants,
-  }
-}
+): CreateProductsStepInput[number] => ({
+  categories: [],
+  description: "",
+  handle: "seed-product",
+  images: [],
+  salesChannelNames: [],
+  shippingProfileName: "Default Shipping Profile",
+  title: "Seed product",
+  variants,
+})
 
 describe(buildInventoryItemsInput, () => {
   it("skips variants without a SKU", () => {
@@ -43,8 +41,8 @@ describe(buildInventoryItemsInput, () => {
             quantities: {
               locations: [
                 {
-                  stockLocationName: "Main",
                   quantity: 3,
+                  stockLocationName: "Main",
                 },
               ],
               quantity: 10,
@@ -58,8 +56,8 @@ describe(buildInventoryItemsInput, () => {
       {
         locations: [
           {
-            stockLocationName: "Main",
             quantity: 3,
+            stockLocationName: "Main",
           },
         ],
         sku: "located-sku",

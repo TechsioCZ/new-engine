@@ -30,14 +30,14 @@ export const deleteApprovalSettingsStep = createStep(
     const approvalSettings = await approvalModule.listApprovalSettings(filters)
     const approvalSettingsIds = approvalSettings.map((setting) => setting.id)
 
-    if (approvalSettingsIds.length) {
+    if (approvalSettingsIds.length > 0) {
       await approvalModule.softDeleteApprovalSettings(approvalSettingsIds)
     }
 
     return new StepResponse(undefined, approvalSettingsIds)
   },
   async (approvalSettingsIds: string[] | undefined, { container }) => {
-    if (!approvalSettingsIds?.length) {
+    if (approvalSettingsIds === undefined || approvalSettingsIds.length === 0) {
       return
     }
 

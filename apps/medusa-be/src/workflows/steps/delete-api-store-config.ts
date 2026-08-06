@@ -1,8 +1,9 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import type { ApiStoreModuleService } from "../../modules/api-store"
 import { API_STORE_MODULE } from "../../modules/api-store"
 
-export type DeleteApiStoreConfigStepInput = {
+export interface DeleteApiStoreConfigStepInput {
   id: string
 }
 
@@ -15,5 +16,5 @@ export const deleteApiStoreConfigStep = createStep(
     const result = await apiStoreService.deleteApiStoreConfig(input.id)
 
     return new StepResponse(result)
-  }
+  },
 )

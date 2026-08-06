@@ -49,7 +49,7 @@ export const deleteProductAttributeDefinitionsWorkflow = createWorkflow(
   "delete-product-attribute-definitions",
   (input: ProductAttributeDefinitionIdsInput) => {
     const lockKey = transform({ input }, ({ input: current }) =>
-      current.ids.map((id) => `product-attribute-definition:${id}`).sort(),
+      current.ids.map((id) => `product-attribute-definition:${id}`).toSorted(),
     )
     acquireLockStep({ key: lockKey, timeout: 5, ttl: 30 })
     const result = deleteProductAttributeDefinitionsStep(input)
@@ -62,7 +62,7 @@ export const restoreProductAttributeDefinitionsWorkflow = createWorkflow(
   "restore-product-attribute-definitions",
   (input: ProductAttributeDefinitionIdsInput) => {
     const lockKey = transform({ input }, ({ input: current }) =>
-      current.ids.map((id) => `product-attribute-definition:${id}`).sort(),
+      current.ids.map((id) => `product-attribute-definition:${id}`).toSorted(),
     )
     acquireLockStep({ key: lockKey, timeout: 5, ttl: 30 })
     const result = restoreProductAttributeDefinitionsStep(input)
@@ -76,7 +76,9 @@ export const permanentlyDeleteProductAttributeDefinitionsWorkflow =
     "permanently-delete-product-attribute-definitions",
     (input: ProductAttributeDefinitionIdsInput) => {
       const lockKey = transform({ input }, ({ input: current }) =>
-        current.ids.map((id) => `product-attribute-definition:${id}`).sort(),
+        current.ids
+          .map((id) => `product-attribute-definition:${id}`)
+          .toSorted(),
       )
       acquireLockStep({ key: lockKey, timeout: 5, ttl: 30 })
       const result = permanentlyDeleteProductAttributeDefinitionsStep(input)

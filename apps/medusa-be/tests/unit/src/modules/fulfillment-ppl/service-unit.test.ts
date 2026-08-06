@@ -48,7 +48,7 @@ const pplClientModuleOptions: PplClientModuleOptions = {
  * it nominally: a plain object literal can never satisfy its type, even with
  * every public method implemented (the private fields would always be
  * "missing"). A real instance is constructed here - the same technique the
- * module's own spec (ppl-client/service.unit.spec.ts) uses for itself - and
+ * module's own spec (ppl-client/service-unit.test.ts) uses for itself - and
  * its public methods are replaced with `vi.spyOn`, so the fulfillment
  * provider under test receives a genuinely typed `PplClientModuleService`
  * with fully mocked behavior, without any cast.

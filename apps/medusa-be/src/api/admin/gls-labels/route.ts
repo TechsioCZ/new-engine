@@ -3,10 +3,10 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { generateGLSLabelsWorkflow } from "../../../workflows/gls-labels"
 import type { PostAdminGLSLabelsSchemaType } from "./validators"
 
-export async function POST(
+const post = async (
   req: MedusaRequest<PostAdminGLSLabelsSchemaType>,
   res: MedusaResponse,
-): Promise<void> {
+): Promise<void> => {
   const { order_ids: orderIds } = req.validatedBody
 
   const { result } = await generateGLSLabelsWorkflow(req.scope).run({
@@ -24,3 +24,5 @@ export async function POST(
   })
   res.send(buffer)
 }
+
+export { post as POST }

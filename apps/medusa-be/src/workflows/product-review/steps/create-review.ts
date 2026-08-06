@@ -18,7 +18,7 @@ export const createReviewStep = createStep(
     return new StepResponse(review, review.id)
   },
   async (reviewId, { container }) => {
-    if (!reviewId) {
+    if (reviewId === undefined || reviewId === "") {
       return
     }
 

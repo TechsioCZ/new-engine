@@ -1,10 +1,14 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { MedusaError } from "@medusajs/framework/utils"
 
 import { ORDER_NOTE_MODULE } from "../../../../../modules/order-note"
 import type OrderNoteModuleService from "../../../../../modules/order-note/service"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const { id: orderId } = req.params as { id: string }
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
+  const orderId = req.params["id"]
+  if (orderId === undefined || orderId === "") {
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, "Order id is missing")
+  }
   const orderNoteService =
     req.scope.resolve<OrderNoteModuleService>(ORDER_NOTE_MODULE)
   const orderNote = await orderNoteService.getOrderNoteByOrderId(orderId)
@@ -26,3 +30,5 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       : null,
   })
 }
+
+export { get as GET }

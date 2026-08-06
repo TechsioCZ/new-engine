@@ -1,6 +1,10 @@
 import type { Logger } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { chunk } from "@techsio/std/array"
 
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
@@ -16,10 +20,12 @@ type BrandAttributeTypeRecord = Awaited<
   ReturnType<BrandModuleService["listBrandAttributeTypes"]>
 >[number]
 
+type DeletionTimestamp = Date | string | null | undefined
+
 interface ScopedBrandAttribute {
-  attributeType?: { id: string } | null | undefined
+  attributeType?: { id: string } | null
   brand_id: string
-  deleted_at?: Date | string | null | undefined
+  deleted_at?: DeletionTimestamp
   id: string
 }
 
@@ -35,12 +41,20 @@ export interface CleanupProductBrandAttributesCompensation {
 
 const normalizeLegacyName = (value: string) => value.trim().toLowerCase()
 const LEGACY_ATTRIBUTE_BATCH_SIZE = 100
+const MAX_LEGACY_ATTRIBUTE_PAGES = 1000
+const ATTRIBUTE_TYPE_DELETE_CONCURRENCY = 20
 
 const listAllBrandAttributeTypes = async (service: BrandModuleService) => {
-  const records: BrandAttributeTypeRecord[] = []
-  let count = Number.POSITIVE_INFINITY
-
-  while (records.length < count) {
+  const listPage = async (
+    records: BrandAttributeTypeRecord[],
+    pageNumber: number,
+  ): Promise<BrandAttributeTypeRecord[]> => {
+    if (pageNumber >= MAX_LEGACY_ATTRIBUTE_PAGES) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Legacy Brand attribute type pagination exceeded its safety limit",
+      )
+    }
     const [page, total] = await service.listAndCountBrandAttributeTypes(
       {},
       {
@@ -50,15 +64,14 @@ const listAllBrandAttributeTypes = async (service: BrandModuleService) => {
         withDeleted: true,
       },
     )
-    records.push(...page)
-    count = total
-
-    if (page.length === 0) {
-      break
+    const nextRecords = [...records, ...page]
+    if (page.length === 0 || nextRecords.length >= total) {
+      return nextRecords
     }
+    return await listPage(nextRecords, pageNumber + 1)
   }
 
-  return records
+  return await listPage([], 0)
 }
 
 const listScopedBrandAttributes = async (
@@ -66,10 +79,16 @@ const listScopedBrandAttributes = async (
   brandIds: string[],
   attributeTypeIds: string[],
 ) => {
-  const records: BrandAttributeRecord[] = []
-  let count = Number.POSITIVE_INFINITY
-
-  while (records.length < count) {
+  const listPage = async (
+    records: BrandAttributeRecord[],
+    pageNumber: number,
+  ): Promise<BrandAttributeRecord[]> => {
+    if (pageNumber >= MAX_LEGACY_ATTRIBUTE_PAGES) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Scoped Brand attribute pagination exceeded its safety limit",
+      )
+    }
     const [page, total] = await service.listAndCountBrandAttributes(
       {
         attribute_type_id: { $in: attributeTypeIds },
@@ -82,18 +101,17 @@ const listScopedBrandAttributes = async (
         take: LEGACY_ATTRIBUTE_BATCH_SIZE,
       },
     )
-    records.push(...page)
-    count = total
-
-    if (page.length === 0) {
-      break
+    const nextRecords = [...records, ...page]
+    if (page.length === 0 || nextRecords.length >= total) {
+      return nextRecords
     }
+    return await listPage(nextRecords, pageNumber + 1)
   }
 
-  return records
+  return await listPage([], 0)
 }
 
-export function selectScopedLegacyBrandAttributeIds({
+export const selectScopedLegacyBrandAttributeIds = ({
   attributes,
   attributeTypeIds,
   brandIds,
@@ -101,24 +119,23 @@ export function selectScopedLegacyBrandAttributeIds({
   attributes: ScopedBrandAttribute[]
   attributeTypeIds: Set<string>
   brandIds: Set<string>
-}) {
-  return attributes
+}) =>
+  attributes
     .filter(
       (attribute) =>
-        !attribute.deleted_at &&
+        (attribute.deleted_at === undefined || attribute.deleted_at === null) &&
         brandIds.has(attribute.brand_id) &&
         attributeTypeIds.has(attribute.attributeType?.id ?? ""),
     )
     .map(({ id }) => id)
-}
 
-export function selectExclusivelyScopedBrandIds({
+export const selectExclusivelyScopedBrandIds = ({
   links,
   productIds,
 }: {
   links: { brand_id: string; product_id: string }[]
   productIds: Set<string>
-}) {
+}) => {
   const productIdsByBrandId = new Map<string, Set<string>>()
 
   for (const link of links) {
@@ -130,7 +147,7 @@ export function selectExclusivelyScopedBrandIds({
 
   return new Set(
     [...productIdsByBrandId].flatMap(([brandId, linkedProductIds]) =>
-      linkedProductIds.size &&
+      linkedProductIds.size > 0 &&
       [...linkedProductIds].every((productId) => productIds.has(productId))
         ? [brandId]
         : [],
@@ -144,7 +161,7 @@ export const cleanupProductBrandAttributesStep = createStep(
     const names = new Set(
       (input.attributeNames ?? []).map(normalizeLegacyName).filter(Boolean),
     )
-    if (!(names.size && input.productIds.length)) {
+    if (names.size === 0 || input.productIds.length === 0) {
       return new StepResponse(
         { assignments: 0, attributeTypes: 0 },
         { attributeIds: [], attributeTypeIds: [] },
@@ -182,7 +199,8 @@ export const cleanupProductBrandAttributesStep = createStep(
     const attributeTypes = await listAllBrandAttributeTypes(service)
     const matchingTypes = attributeTypes.filter(
       (attributeType) =>
-        !attributeType.deleted_at &&
+        (attributeType.deleted_at === undefined ||
+          attributeType.deleted_at === null) &&
         names.has(normalizeLegacyName(attributeType.name)),
     )
     const attributeTypeIds = new Set(matchingTypes.map(({ id }) => id))
@@ -204,27 +222,48 @@ export const cleanupProductBrandAttributesStep = createStep(
       brandIds,
     })
 
-    const deletedTypeIds: string[] = []
+    let deletedTypeIds: string[] = []
     await service.runInTransaction(async (context) => {
-      if (attributeIds.length) {
+      if (attributeIds.length > 0) {
         await service.softDeleteBrandAttributes(attributeIds, {}, context)
       }
 
-      for (const attributeType of matchingTypes) {
-        const remaining = await service.listBrandAttributes(
-          { attribute_type_id: attributeType.id },
-          { select: ["id"], take: 1 },
-          context,
-        )
-        if (remaining.length === 0) {
-          await service.softDeleteBrandAttributeTypes(
-            [attributeType.id],
-            {},
-            context,
-          )
-          deletedTypeIds.push(attributeType.id)
+      const attributeTypeBatches = chunk(
+        matchingTypes,
+        ATTRIBUTE_TYPE_DELETE_CONCURRENCY,
+      )
+      const deleteBatch = async (
+        batchIndex: number,
+        accumulated: string[],
+      ): Promise<string[]> => {
+        const attributeTypeBatch = attributeTypeBatches[batchIndex]
+        if (attributeTypeBatch === undefined) {
+          return accumulated
         }
+        const deletedInBatch = await Promise.all(
+          attributeTypeBatch.map(async (attributeType) => {
+            const remaining = await service.listBrandAttributes(
+              { attribute_type_id: attributeType.id },
+              { select: ["id"], take: 1 },
+              context,
+            )
+            if (remaining.length > 0) {
+              return null
+            }
+            await service.softDeleteBrandAttributeTypes(
+              [attributeType.id],
+              {},
+              context,
+            )
+            return attributeType.id
+          }),
+        )
+        return await deleteBatch(batchIndex + 1, [
+          ...accumulated,
+          ...deletedInBatch.filter((id) => id !== null),
+        ])
       }
+      deletedTypeIds = await deleteBatch(0, [])
     })
 
     logger.info(
@@ -242,19 +281,19 @@ export const cleanupProductBrandAttributesStep = createStep(
     compensation: CleanupProductBrandAttributesCompensation | undefined,
     { container },
   ) => {
-    if (!compensation) {
+    if (compensation === undefined) {
       return
     }
     const service = container.resolve<BrandModuleService>(BRAND_MODULE)
     await service.runInTransaction(async (context) => {
-      if (compensation.attributeTypeIds.length) {
+      if (compensation.attributeTypeIds.length > 0) {
         await service.restoreBrandAttributeTypes(
           compensation.attributeTypeIds,
           {},
           context,
         )
       }
-      if (compensation.attributeIds.length) {
+      if (compensation.attributeIds.length > 0) {
         await service.restoreBrandAttributes(
           compensation.attributeIds,
           {},

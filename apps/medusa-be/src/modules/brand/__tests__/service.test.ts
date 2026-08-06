@@ -30,21 +30,15 @@ moduleIntegrationTestRunner<BrandModuleService>({
 
         const persisted = await service.retrieveBrand(brand.id)
 
-        expect(persisted.gpsr_contact_email).toBe("contact@example.com")
-        expect(persisted.gpsr_european_reseller_contact_email).toBe(
-          "reseller@example.com",
-        )
-        expect(
-          persisted.gpsr_european_reseller_manufacturing_company_name,
-        ).toBe("Reseller Co")
-        expect(persisted.gpsr_european_reseller_postal_address).toBe(
-          "Reseller Street 1",
-        )
-        expect(persisted.gpsr_manufactured_outside_eu).toBeTruthy()
-        expect(persisted.gpsr_manufacturing_company_name).toBe(
-          "Manufacturer Co",
-        )
-        expect(persisted.gpsr_postal_address).toBe("Main Street 1")
+        expect(persisted).toMatchObject({
+          gpsr_contact_email: "contact@example.com",
+          gpsr_european_reseller_contact_email: "reseller@example.com",
+          gpsr_european_reseller_manufacturing_company_name: "Reseller Co",
+          gpsr_european_reseller_postal_address: "Reseller Street 1",
+          gpsr_manufactured_outside_eu: true,
+          gpsr_manufacturing_company_name: "Manufacturer Co",
+          gpsr_postal_address: "Main Street 1",
+        })
       })
 
       it("reconciles attributes inside the brand module", async () => {
@@ -94,8 +88,6 @@ moduleIntegrationTestRunner<BrandModuleService>({
           brand_id: brand.id,
         })
 
-        expect(original).toBeDefined()
-
         if (!original) {
           throw new Error("Expected the original Country attribute to exist")
         }
@@ -105,8 +97,6 @@ moduleIntegrationTestRunner<BrandModuleService>({
           { brand_id: brand.id },
           { withDeleted: true },
         )
-
-        expect(deleted).toBeDefined()
 
         if (!deleted) {
           throw new Error("Expected the removed Country attribute to exist")
@@ -124,14 +114,14 @@ moduleIntegrationTestRunner<BrandModuleService>({
           { relations: ["attributeType"] },
         )
 
-        expect(restored).toBeDefined()
-
         if (!restored) {
           throw new Error("Expected the restored Country attribute to exist")
         }
 
-        expect(restored.id).toBe(original.id)
-        expect(restored.value).toBe("SK")
+        expect(restored).toMatchObject({
+          id: original.id,
+          value: "SK",
+        })
       })
 
       it("preserves attributes whose type is soft-deleted during replacement", async () => {
@@ -179,8 +169,10 @@ moduleIntegrationTestRunner<BrandModuleService>({
           (attribute) => attribute.attributeType.name === "Country",
         )
 
-        expect(preservedLegacyAttribute?.deleted_at).toBeNull()
-        expect(preservedLegacyAttribute?.value).toBe("Keep me")
+        expect(preservedLegacyAttribute).toMatchObject({
+          deleted_at: null,
+          value: "Keep me",
+        })
         expect(preservedLegacyAttribute?.attributeType.deleted_at).toBeTruthy()
         expect(countryAttribute?.value).toBe("SK")
       })

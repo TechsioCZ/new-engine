@@ -17,8 +17,8 @@ import {
 import {
   getBrandAttributeTypeLockKeys,
   getBrandMutationLockKeys,
-  updateBrandsStep,
-} from "../steps"
+} from "../steps/helpers"
+import { updateBrandsStep } from "../steps/update-brands"
 import type { UpdateBrandsWorkflowInput } from "../types"
 
 export const updateBrandsWorkflow = createWorkflow(

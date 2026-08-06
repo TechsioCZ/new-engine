@@ -20,9 +20,9 @@ interface ReviewRatingRecord {
 const isReviewRatingRecord = (value: unknown): value is ReviewRatingRecord =>
   typeof value === "object" &&
   value !== null &&
-  typeof (value as Record<string, unknown>)["rating"] === "number"
+  typeof Reflect.get(value, "rating") === "number"
 
-async function getReviewSummary(req: MedusaRequest, productId: string) {
+const getReviewSummary = async (req: MedusaRequest, productId: string) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const filters = {
     product_id: productId,
@@ -39,7 +39,7 @@ async function getReviewSummary(req: MedusaRequest, productId: string) {
   const count =
     metadata?.count ?? (Array.isArray(firstPage) ? firstPage.length : 0)
 
-  if (!count) {
+  if (count === 0) {
     return {
       average_rating: 0,
       count: 0,
@@ -64,15 +64,15 @@ async function getReviewSummary(req: MedusaRequest, productId: string) {
   }
 }
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, StoreGetProductReviewsSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { limit, offset } = req.validatedQuery
   const productId =
     typeof req.params["id"] === "string" ? req.params["id"] : undefined
 
-  if (!productId) {
+  if (productId === undefined || productId === "") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Product id is required",
@@ -101,3 +101,5 @@ export async function GET(
     summary,
   })
 }
+
+export { get as GET }
