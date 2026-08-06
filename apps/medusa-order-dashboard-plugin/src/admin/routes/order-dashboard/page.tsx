@@ -299,35 +299,45 @@ const OrderDashboardPage = () => {
     }),
     columnHelper.accessor("customer", {
       cell: ({ row }) => (
-        <div className="flex min-w-0 flex-col gap-y-1">
-          <Text leading="compact" size="small" weight="plus">
-            {row.original.customer}
+        <>
+          <Text as="span" leading="compact" size="small" weight="plus">
+            {row.original.customer}{" "}
           </Text>
           {row.original.email ? (
-            <Text
-              className="max-w-[220px] truncate text-ui-fg-subtle"
-              leading="compact"
-              size="small"
-            >
-              {row.original.email}
-            </Text>
+            <>
+              <br />
+              <Text
+                as="span"
+                className="text-ui-fg-subtle"
+                leading="compact"
+                size="small"
+              >
+                {row.original.email}
+              </Text>
+            </>
           ) : null}
-        </div>
+        </>
       ),
       enableSorting: true,
       header: t("columns.customer"),
+      maxSize: 240,
+      minSize: 200,
+      size: 220,
       sortLabel: t("columns.customer"),
       ...sortableColumnLabels,
     }),
     columnHelper.accessor("carrier.value", {
       cell: ({ row }) => (
-        <Text leading="compact" size="small">
+        <Badge size="2xsmall">
           {getCarrierLabel(row.original, t)}
-        </Text>
+        </Badge>
       ),
       enableSorting: true,
       header: t("columns.carrier"),
       id: "carrier",
+      maxSize: 180,
+      minSize: 140,
+      size: 160,
       sortLabel: t("columns.carrier"),
       ...sortableColumnLabels,
     }),
@@ -339,16 +349,19 @@ const OrderDashboardPage = () => {
 
         return (
           <Text
-            className="max-w-[240px] truncate text-ui-fg-subtle"
+            as="span"
+            className="text-ui-fg-subtle"
             leading="compact"
             size="small"
-            title={address}
           >
             {address}
           </Text>
         )
       },
       header: t("columns.address"),
+      maxSize: 280,
+      minSize: 200,
+      size: 240,
     }),
     columnHelper.accessor("business_status.id", {
       cell: ({ row }) => (
@@ -389,29 +402,43 @@ const OrderDashboardPage = () => {
     }),
     columnHelper.accessor("payment_status", {
       cell: ({ row }) => (
-        <div className="flex flex-col gap-y-1">
-          <Text leading="compact" size="small">
-            {formatPaymentStatusLabel(row.original.payment_status, t)}
+        <>
+          <Text as="span" leading="compact" size="small">
+            {formatPaymentStatusLabel(row.original.payment_status, t)}{" "}
           </Text>
-          <Text className="text-ui-fg-subtle" leading="compact" size="small">
+          <br />
+          <Text
+            as="span"
+            className="text-ui-fg-subtle"
+            leading="compact"
+            size="small"
+          >
             {formatPaymentMethodLabel(row.original.payment_method, t)}
           </Text>
-        </div>
+        </>
       ),
       enableSorting: true,
       header: t("columns.payment"),
+      maxSize: 180,
+      minSize: 140,
+      size: 160,
       sortLabel: t("columns.payment"),
       ...sortableColumnLabels,
     }),
     columnHelper.accessor("total", {
+      align: "right",
       cell: ({ row }) => (
-        <Text leading="compact" size="small" weight="plus">
+        <Text
+          className="w-full text-end"
+          leading="compact"
+          size="small"
+          weight="plus"
+        >
           {formatOrderTotal(row.original, locale)}
         </Text>
       ),
       enableSorting: true,
       header: t("columns.total"),
-      headerAlign: "right",
       sortLabel: t("columns.total"),
       ...sortableColumnLabels,
     }),
