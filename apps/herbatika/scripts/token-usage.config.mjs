@@ -13,10 +13,10 @@ export default {
   rules: {
     noArbitraryValues: {
       allowClassPatterns: [
-        /^icon-\[[^\]]+\]$/,
-        /^token-icon-[\w-]+$/,
-        /^\[scrollbar-width:none\]$/,
-        /^\[&::-webkit-scrollbar\]:hidden$/,
+        /^icon-\[[^\]]+\]$/u,
+        /^token-icon-[\w-]+$/u,
+        /^\[scrollbar-width:none\]$/u,
+        /^\[&::-webkit-scrollbar\]:hidden$/u,
       ],
       enabled: true,
     },

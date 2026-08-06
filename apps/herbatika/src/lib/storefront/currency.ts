@@ -1,8 +1,8 @@
 export const DEFAULT_CURRENCY_CODE = "EUR"
 
-export type HerbatikaCurrencyCode = string
+export type HerbatikaCurrencyCode = string & Record<never, never>
 
-const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/
+const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/u
 
 export const normalizeSupportedCurrencyCode = (
   value: unknown,

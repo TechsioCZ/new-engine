@@ -2,7 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation"
 
-export function usePaginationUrlBuilder(pageParam = "page") {
+export const usePaginationUrlBuilder = (pageParam = "page") => {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 

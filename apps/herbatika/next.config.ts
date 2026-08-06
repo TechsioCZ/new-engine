@@ -1,5 +1,4 @@
-import { join } from "node:path"
-
+import { getRecordValue } from "@techsio/std/object"
 import type { NextConfig } from "next"
 import createNextIntlPlugin from "next-intl/plugin"
 
@@ -13,7 +12,7 @@ interface ImageRemotePattern {
 const LOOPBACK_IMAGE_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"])
 
 const resolveImageRemotePattern = (baseUrl: string | undefined) => {
-  if (!baseUrl) {
+  if (typeof baseUrl !== "string" || baseUrl.length === 0) {
     return []
   }
 
@@ -32,15 +31,25 @@ const resolveImageRemotePattern = (baseUrl: string | undefined) => {
   }
 }
 
+const readEnvironmentString = (key: string): string | undefined => {
+  const value = getRecordValue(process.env, key)
+  return typeof value === "string" ? value : undefined
+}
+
 const resolveMedusaImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL)
+  resolveImageRemotePattern(
+    readEnvironmentString("NEXT_PUBLIC_MEDUSA_BACKEND_URL"),
+  )
 
 const resolvePayloadImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
+  resolveImageRemotePattern(
+    readEnvironmentString("NEXT_PUBLIC_PAYLOAD_BASE_URL"),
+  )
 
 const imageRemotePatterns: ImageRemotePattern[] = [
   {
-    hostname: "cdn.myshoptet.com", // Herbatika CDN
+    // Herbatika CDN
+    hostname: "cdn.myshoptet.com",
     protocol: "https",
   },
   {
@@ -76,9 +85,9 @@ const nextConfig: NextConfig = {
   images: {
     // Browser-facing loopback URLs cannot be resolved correctly by the Next
     // image optimizer from inside Docker. Non-loopback deployments stay optimized.
-    unoptimized: shouldDisableImageOptimization,
-    remotePatterns: imageRemotePatterns,
     qualities: [40, 50, 60, 75, 90],
+    remotePatterns: imageRemotePatterns,
+    unoptimized: shouldDisableImageOptimization,
   },
   output: "standalone",
   outputFileTracingExcludes: {
@@ -98,10 +107,10 @@ const nextConfig: NextConfig = {
       "node_modules/@playwright",
     ],
   },
-  outputFileTracingRoot: join(__dirname, "../../"),
+  outputFileTracingRoot: `${import.meta.dirname}/../..`,
   reactCompiler: true,
   reactStrictMode: true,
-  async redirects() {
+  redirects() {
     return [
       {
         destination: "/#homepage-promo",

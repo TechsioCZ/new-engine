@@ -29,6 +29,30 @@ interface FormatCurrencyAmountOptions {
   fallbackPrecision?: number
 }
 
+const currencyFormatterCache = new Map<string, Intl.NumberFormat>()
+
+const getCurrencyFormatter = (
+  currencyCode: string,
+  maximumFractionDigits: number,
+  minimumFractionDigits: number,
+) => {
+  const locale = resolveLocaleFromCurrency(currencyCode)
+  const cacheKey = `${locale}:${currencyCode}:${minimumFractionDigits}:${maximumFractionDigits}`
+  const cachedFormatter = currencyFormatterCache.get(cacheKey)
+  if (cachedFormatter) {
+    return cachedFormatter
+  }
+
+  const formatter = Intl.NumberFormat(locale, {
+    currency: currencyCode,
+    maximumFractionDigits,
+    minimumFractionDigits,
+    style: "currency",
+  })
+  currencyFormatterCache.set(cacheKey, formatter)
+  return formatter
+}
+
 export const formatCurrencyAmount = (
   amount: number,
   currencyCode?: string | null,
@@ -50,12 +74,11 @@ export const formatCurrencyAmount = (
       : maximumFractionDigits
 
   try {
-    return new Intl.NumberFormat(resolveLocaleFromCurrency(safeCurrencyCode), {
-      currency: safeCurrencyCode,
+    return getCurrencyFormatter(
+      safeCurrencyCode,
       maximumFractionDigits,
       minimumFractionDigits,
-      style: "currency",
-    }).format(safeAmount)
+    ).format(safeAmount)
   } catch {
     return `${safeAmount.toFixed(fallbackPrecision)} ${safeCurrencyCode}`
   }

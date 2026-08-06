@@ -1,3 +1,4 @@
+import { isRecord, omitKeys, getRecordValue } from "@techsio/std/object"
 import type {
   MedusaCartAddItemParams,
   MedusaCartCreateParams,
@@ -9,31 +10,39 @@ import type {
   UpdateCartInputBase,
 } from "@techsio/storefront-data/cart/types"
 
-type CartPayloadInput = Record<string, unknown> & { salesChannelId?: string }
+type CartPayloadInput = (CartCreateInputBase | UpdateCartInputBase) & {
+  autoCreate?: unknown
+  autoUpdateRegion?: unknown
+  billingAddress?: unknown
+  cartId?: unknown
+  enabled?: unknown
+  quantity?: unknown
+  shippingAddress?: unknown
+  useSameAddress?: unknown
+  variantId?: unknown
+}
 
-const COUNTRY_CODE_PATTERN = /^[a-z]{2}$/
+const COUNTRY_CODE_PATTERN = /^[a-z]{2}$/u
 
 const normalizeCountryCode = (value: unknown): string | undefined => {
-  if (typeof value !== "string") {
-    return
+  let countryCode: string | undefined
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase()
+    countryCode = COUNTRY_CODE_PATTERN.test(normalized) ? normalized : undefined
   }
 
-  const normalized = value.trim().toLowerCase()
-  if (!COUNTRY_CODE_PATTERN.test(normalized)) {
-    return
-  }
-
-  return normalized
+  return countryCode
 }
 
 const normalizeAddressPayload = (
   value: unknown,
 ): Record<string, unknown> | undefined => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return
+  if (!isRecord(value)) {
+    return undefined
   }
 
-  const address = { ...(value as Record<string, unknown>) }
+  let address = { ...value }
   const fieldAliases: [camel: string, snake: string][] = [
     ["firstName", "first_name"],
     ["lastName", "last_name"],
@@ -44,70 +53,68 @@ const normalizeAddressPayload = (
   ]
 
   for (const [camel, snake] of fieldAliases) {
-    if (address[snake] !== undefined || address[camel] === undefined) {
-      continue
+    if (address[snake] === undefined && address[camel] !== undefined) {
+      address = {
+        ...omitKeys(address, [camel]),
+        [snake]: address[camel],
+      }
     }
-
-    address[snake] = address[camel]
-    delete address[camel]
   }
 
   return address
 }
 
+const NORMALIZED_CART_INPUT_KEYS = [
+  "cartId",
+  "autoCreate",
+  "autoUpdateRegion",
+  "enabled",
+  "variantId",
+  "quantity",
+  "useSameAddress",
+  "shippingAddress",
+  "billingAddress",
+  "country_code",
+  "salesChannelId",
+] as const
+
 const normalizeCartPayload = (input: CartPayloadInput) => {
   const {
-    cartId: _cartId,
-    autoCreate: _autoCreate,
-    autoUpdateRegion: _autoUpdateRegion,
-    enabled: _enabled,
-    variantId: _variantId,
-    quantity: _quantity,
-    useSameAddress: _useSameAddress,
-    shippingAddress: _shippingAddress,
-    billingAddress: _billingAddress,
-    country_code: _countryCode,
-    salesChannelId,
-    ...rest
+    billingAddress: billingAddressInput,
+    country_code: countryCode,
+    shippingAddress,
   } = input
+  const normalizedCountryCode = normalizeCountryCode(countryCode)
+  const normalizedShippingAddress = normalizeAddressPayload(shippingAddress)
+  const rawBillingAddress = normalizeAddressPayload(billingAddressInput)
+  const billingAddress = rawBillingAddress
+    ? omitKeys(rawBillingAddress, ["countryCode"])
+    : undefined
+  const hasShippingAddress =
+    normalizedShippingAddress !== undefined ||
+    (normalizedCountryCode ?? "").length > 0
+  let nextShippingAddress = normalizedShippingAddress
+    ? omitKeys(normalizedShippingAddress, ["countryCode"])
+    : {}
 
-  const normalizedCountryCode = normalizeCountryCode(_countryCode)
-  const shippingAddress = normalizeAddressPayload(_shippingAddress)
-  const billingAddress = normalizeAddressPayload(_billingAddress)
-
-  const resolvedShippingAddress = (() => {
-    if (!(shippingAddress || normalizedCountryCode)) {
-      return
+  if (
+    (normalizedCountryCode ?? "").length > 0 &&
+    getRecordValue(nextShippingAddress, "country_code") === undefined
+  ) {
+    nextShippingAddress = {
+      ...nextShippingAddress,
+      country_code: normalizedCountryCode,
     }
-
-    const nextShippingAddress = shippingAddress ?? {}
-    if (nextShippingAddress.countryCode !== undefined) {
-      nextShippingAddress.countryCode = undefined
-    }
-    if (
-      normalizedCountryCode &&
-      nextShippingAddress.country_code === undefined
-    ) {
-      nextShippingAddress.country_code = normalizedCountryCode
-    }
-
-    return nextShippingAddress
-  })()
-
-  if (billingAddress?.countryCode !== undefined) {
-    billingAddress.countryCode = undefined
   }
 
-  const payload = {
-    ...rest,
-    ...(salesChannelId ? { sales_channel_id: salesChannelId } : {}),
-    ...(resolvedShippingAddress
-      ? { shipping_address: resolvedShippingAddress }
+  return {
+    ...omitKeys(input, NORMALIZED_CART_INPUT_KEYS),
+    ...((input.salesChannelId ?? "").length > 0
+      ? { sales_channel_id: input.salesChannelId }
       : {}),
+    ...(hasShippingAddress ? { shipping_address: nextShippingAddress } : {}),
     ...(billingAddress ? { billing_address: billingAddress } : {}),
   }
-
-  return payload
 }
 
 export const buildCreateCartParams = (
@@ -120,26 +127,17 @@ export const buildUpdateCartParams = (
 
 export const buildCreateCartInputFromAddLineItemInput = (
   input: AddLineItemInputBase,
-): CartCreateInputBase => {
-  const { metadata: _lineItemMetadata, ...rest } = input
-  return rest
-}
+): CartCreateInputBase => omitKeys(input, ["metadata"])
 
 export const buildAddLineItemParams = (
   input: AddLineItemInputBase,
 ): MedusaCartAddItemParams => {
-  const {
-    cartId: _cartId,
-    autoCreate: _autoCreate,
-    region_id: _regionId,
-    country_code: _countryCode,
-    salesChannelId: _salesChannelId,
-    variantId,
-    ...rest
-  } = input
-
-  return {
-    ...(rest as Omit<MedusaCartAddItemParams, "variant_id">),
-    variant_id: variantId,
+  const params: MedusaCartAddItemParams = {
+    quantity: input.quantity ?? 1,
+    variant_id: input.variantId,
   }
+  if (input.metadata !== undefined) {
+    params.metadata = input.metadata
+  }
+  return params
 }

@@ -3,12 +3,13 @@
 import type { HttpTypes } from "@medusajs/types"
 
 import type { StorefrontProductListInput as BaseStorefrontProductListInput } from "./product-query-config"
-export {
-  PRODUCT_CARD_FIELDS as PRODUCT_CARD_FIELDS,
-  PRODUCT_DETAIL_FIELDS as PRODUCT_DETAIL_FIELDS,
-  RELATED_PRODUCT_FIELDS as RELATED_PRODUCT_FIELDS,
-} from "./product-query-config"
 import { storefront } from "./storefront"
+
+export {
+  PRODUCT_CARD_FIELDS,
+  PRODUCT_DETAIL_FIELDS,
+  RELATED_PRODUCT_FIELDS,
+} from "./product-query-config"
 
 type ProductHooks = typeof storefront.hooks.products
 type UseProductsOptions = Parameters<ProductHooks["useProducts"]>[1]

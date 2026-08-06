@@ -1,5 +1,5 @@
 const resolveObjectErrorMessage = (error: unknown) => {
-  if (!(error && typeof error === "object")) {
+  if (!(error !== null && error !== undefined && typeof error === "object")) {
     return null
   }
 
@@ -28,7 +28,7 @@ export const resolveErrorMessage = (
   }
 
   const objectMessage = resolveObjectErrorMessage(error)
-  if (objectMessage) {
+  if (objectMessage !== null) {
     return objectMessage
   }
 

@@ -60,13 +60,20 @@ const resolveNextMultiSelectValues = (
   }
 }
 
-export function useCatalogListingPageBounds({
+const synchronizeCatalogPageBounds = async (
+  setQueryState: SetValues<typeof plpQueryParsers>,
+  safeLastPage: number,
+) => {
+  await setQueryState({ page: safeLastPage })
+}
+
+export const useCatalogListingPageBounds = ({
   isLoading,
   isQueryEnabled,
   page,
   setQueryState,
   totalPages,
-}: UseCatalogListingPageBoundsInput) {
+}: UseCatalogListingPageBoundsInput) => {
   useEffect(() => {
     if (!isQueryEnabled || isLoading) {
       return
@@ -77,17 +84,19 @@ export function useCatalogListingPageBounds({
       return
     }
 
-    runDetachedPromise(setQueryState({ page: safeLastPage }))
+    runDetachedPromise(
+      synchronizeCatalogPageBounds(setQueryState, safeLastPage),
+    )
   }, [isLoading, isQueryEnabled, page, setQueryState, totalPages])
 }
 
-export function useCatalogListingInteractions({
+export const useCatalogListingInteractions = ({
   countryCode,
   productPrefetchKeyPrefix,
   queryState,
   regionId,
   setQueryState,
-}: UseCatalogListingInteractionsInput) {
+}: UseCatalogListingInteractionsInput) => {
   const addToCart = useAddProductToCartAction({
     ...(regionId === undefined ? {} : { regionId }),
     ...(countryCode === undefined ? {} : { countryCode }),

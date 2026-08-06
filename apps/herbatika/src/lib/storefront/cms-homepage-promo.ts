@@ -3,11 +3,11 @@ import type { HomepagePromoContent } from "@/components/homepage/homepage.data.t
 
 import { resolveCmsMediaUrl } from "./cms-client"
 import { fetchCmsPageBySlug } from "./cms-pages"
-import type { CmsMedia, CmsPage } from "./cms-types"
+import type { CmsMediaValue, CmsPage } from "./cms-types"
 
 const HOMEPAGE_PROMO_PAGE_SLUG = "homepage-promo"
 
-const getMediaAlt = (media: CmsMedia | string | null | undefined) =>
+const getMediaAlt = (media: CmsMediaValue) =>
   typeof media === "object" ? (media?.alt?.trim() ?? undefined) : undefined
 
 export const mapCmsPageToHomepagePromo = (
@@ -16,18 +16,24 @@ export const mapCmsPageToHomepagePromo = (
   const heading = page?.title?.trim()
   const contentHtml = page?.content?.trim()
 
-  if (!(heading && contentHtml)) {
+  if (
+    heading === undefined ||
+    heading.length === 0 ||
+    contentHtml === undefined ||
+    contentHtml.length === 0
+  ) {
     return null
   }
 
   const image = page?.meta?.image
   const imageSrc = resolveCmsMediaUrl(image) ?? undefined
 
+  const imageAlt = getMediaAlt(image)
   return {
     contentHtml,
     heading,
-    imageAlt: getMediaAlt(image),
-    imageSrc,
+    ...(imageAlt === undefined ? {} : { imageAlt }),
+    ...(imageSrc === undefined ? {} : { imageSrc }),
   }
 }
 

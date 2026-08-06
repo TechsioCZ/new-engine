@@ -1,6 +1,6 @@
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PASSWORD_NUMBER_REGEX = /\d/
-const PHONE_ALLOWED_REGEX = /^[0-9+\s()-]+$/
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u
+const PASSWORD_NUMBER_REGEX = /\d/u
+const PHONE_ALLOWED_REGEX = /^[0-9+\s()-]+$/u
 
 const validateCustomerNameWithMessage = (
   value: string,
@@ -19,24 +19,20 @@ interface EmailValidationMessages {
 export const createEmailAddressValidator =
   ({ invalid, required }: EmailValidationMessages) =>
   (value: string) => {
-    if (!value.trim()) {
-      return required
+    const normalized = value.trim()
+    let validationError: string | undefined
+
+    if (normalized.length === 0) {
+      validationError = required
+    } else if (!EMAIL_REGEX.test(normalized)) {
+      validationError = invalid
     }
 
-    if (!EMAIL_REGEX.test(value.trim())) {
-      return invalid
-    }
-
-    return
+    return validationError
   }
 
-export const validateRequiredAgreement = (value: boolean, message: string) => {
-  if (!value) {
-    return message
-  }
-
-  return
-}
+export const validateRequiredAgreement = (value: boolean, message: string) =>
+  value ? undefined : message
 
 interface PhoneValidationMessages {
   invalid: string
@@ -47,22 +43,17 @@ export const createOptionalPhoneNumberValidator =
   ({ invalid, minDigits }: PhoneValidationMessages) =>
   (value: string) => {
     const normalized = value.trim()
+    let validationError: string | undefined
 
-    if (!normalized) {
-      return
+    if (normalized.length > 0) {
+      if (!PHONE_ALLOWED_REGEX.test(normalized)) {
+        validationError = invalid
+      } else if (normalized.replaceAll(/\D/gu, "").length < 7) {
+        validationError = minDigits
+      }
     }
 
-    if (!PHONE_ALLOWED_REGEX.test(normalized)) {
-      return invalid
-    }
-
-    const digitCount = normalized.replaceAll(/\D/g, "").length
-
-    if (digitCount < 7) {
-      return minDigits
-    }
-
-    return
+    return validationError
   }
 
 export const passwordHasNumber = (password: string) =>

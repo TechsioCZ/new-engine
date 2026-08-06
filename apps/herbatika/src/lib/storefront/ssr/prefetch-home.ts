@@ -49,8 +49,8 @@ const prefetchHomepageCatalogProducts = async ({
   region,
   sort,
   status,
-}: HomepageCatalogPrefetchInput) =>
-  prefetchServerCatalogProducts(
+}: HomepageCatalogPrefetchInput) => {
+  await prefetchServerCatalogProducts(
     queryClient,
     buildCatalogProductsParams({
       queryState: buildHomepageCatalogQueryState(sort, status),
@@ -62,6 +62,7 @@ const prefetchHomepageCatalogProducts = async ({
         : { countryCode: region.country_code }),
     }),
   )
+}
 
 export const prefetchHomePageStorefrontData = async () => {
   const { queryClient, region } = await getRegionServerContext()
@@ -94,7 +95,7 @@ export const prefetchHomePageStorefrontData = async () => {
       }),
     ]
 
-    if (bestsellersCategory?.id) {
+    if (bestsellersCategory !== undefined && bestsellersCategory.id !== null) {
       prefetches.push(
         prefetchHomepageCatalogProducts({
           categoryIds: [bestsellersCategory.id],

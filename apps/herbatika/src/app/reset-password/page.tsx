@@ -12,21 +12,21 @@ const appendSearchParam = (
   value: string | string[] | undefined,
 ) => {
   if (Array.isArray(value)) {
-    const firstValue = value[0]
-    if (firstValue) {
+    const [firstValue] = value
+    if (firstValue !== undefined && firstValue.length > 0) {
       params.set(key, firstValue)
     }
     return
   }
 
-  if (value) {
+  if (typeof value === "string" && value.length > 0) {
     params.set(key, value)
   }
 }
 
-export default async function ResetPasswordRedirectPage({
+const resetPasswordRedirectPage = async ({
   searchParams,
-}: ResetPasswordRedirectPageProps) {
+}: ResetPasswordRedirectPageProps) => {
   const resolvedSearchParams = await searchParams
   const targetSearchParams = new URLSearchParams()
 
@@ -36,7 +36,12 @@ export default async function ResetPasswordRedirectPage({
 
   const queryString = targetSearchParams.toString()
 
-  redirect(
-    appHref(`/auth/reset-password${queryString ? `?${queryString}` : ""}`),
-  )
+  const targetPath =
+    queryString.length > 0
+      ? `/auth/reset-password?${queryString}`
+      : "/auth/reset-password"
+
+  redirect(appHref(targetPath))
 }
+
+export default resetPasswordRedirectPage

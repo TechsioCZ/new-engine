@@ -33,11 +33,11 @@ const clearToken = () => {
 }
 
 const fetchCustomer = async (signal?: AbortSignal) =>
-  authServiceBase.getCustomer(signal)
+  await authServiceBase.getCustomer(signal)
 
 const ensureSessionProxyToken = async (): Promise<string | null> => {
   const existingToken = getStoredToken()
-  if (existingToken) {
+  if ((existingToken ?? "").length > 0) {
     return existingToken
   }
 
@@ -47,7 +47,7 @@ const ensureSessionProxyToken = async (): Promise<string | null> => {
 
   sessionBootstrapPromise = (async () => {
     const response = await requestSessionProxy()
-    if (!response?.token) {
+    if (response === null) {
       clearToken()
       return null
     }
@@ -68,16 +68,16 @@ export const authService = {
     signal?: AbortSignal,
   ): Promise<HttpTypes.StoreCustomer | null> {
     if (!isSessionProxyAuthMode) {
-      if (!getStoredToken()) {
+      if ((getStoredToken() ?? "").length <= 0) {
         return null
       }
 
       return await fetchCustomer(signal)
     }
 
-    if (!getStoredToken()) {
+    if ((getStoredToken() ?? "").length <= 0) {
       const restoredToken = await ensureSessionProxyToken()
-      if (!restoredToken) {
+      if ((restoredToken ?? "").length <= 0) {
         return null
       }
     }
@@ -87,14 +87,14 @@ export const authService = {
       return customer
     }
 
-    if (!getStoredToken()) {
+    if ((getStoredToken() ?? "").length <= 0) {
       return null
     }
 
     clearToken()
 
     const restoredToken = await ensureSessionProxyToken()
-    if (!restoredToken) {
+    if ((restoredToken ?? "").length <= 0) {
       return null
     }
 
@@ -120,9 +120,9 @@ export const authService = {
   async register(input: AuthRegisterInput) {
     const { token } = await requestAuthProxy("register", {
       email: input.email,
-      password: input.password,
       first_name: input.first_name,
       last_name: input.last_name,
+      password: input.password,
       wholesale: input.wholesale,
     })
 
@@ -131,11 +131,9 @@ export const authService = {
   },
   async updateCustomer(input: AuthUpdateInput) {
     if (!authServiceBase.updateCustomer) {
-      return Promise.reject(
-        new Error("updateCustomer service is not configured"),
-      )
+      throw new Error("updateCustomer service is not configured")
     }
 
-    return authServiceBase.updateCustomer(input)
+    return await authServiceBase.updateCustomer(input)
   },
 }

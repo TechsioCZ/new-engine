@@ -12,14 +12,16 @@ const resolveStringParam = (value: string | string[] | undefined) => {
   return value ?? null
 }
 
-export default async function ResetPasswordPage({
-  searchParams,
-}: ResetPasswordPageProps) {
-  const resolvedSearchParams = await searchParams
-  const token = resolveStringParam(resolvedSearchParams.token)
-  const email = resolveStringParam(resolvedSearchParams.email)
+const ResetPasswordPage = async ({ searchParams }: ResetPasswordPageProps) => {
+  const {
+    email: emailParam,
+    flow: flowParam,
+    token: tokenParam,
+  } = await searchParams
+  const token = resolveStringParam(tokenParam)
+  const email = resolveStringParam(emailParam)
   const flow =
-    resolveStringParam(resolvedSearchParams.flow) === "account-setup"
+    resolveStringParam(flowParam) === "account-setup"
       ? "account-setup"
       : "reset-password"
 
@@ -29,3 +31,5 @@ export default async function ResetPasswordPage({
     </main>
   )
 }
+
+export default ResetPasswordPage

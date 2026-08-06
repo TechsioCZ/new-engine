@@ -85,17 +85,17 @@ const createWholesaleFieldValidators = <TFormValues>(
 
 const createPasswordValidator =
   (messages: PasswordValidationMessages) => (value: string) => {
-    if (!value) {
-      return messages.passwordRequired
+    let validationError: string | undefined
+
+    if (value.length === 0) {
+      validationError = messages.passwordRequired
+    } else if (value.length < 8) {
+      validationError = messages.passwordMinLength
+    } else if (!passwordHasNumber(value)) {
+      validationError = messages.passwordNumber
     }
 
-    if (value.length < 8) {
-      return messages.passwordMinLength
-    }
-
-    if (!passwordHasNumber(value)) {
-      return messages.passwordNumber
-    }
+    return validationError
   }
 
 const createPasswordConfirmationValidator =
@@ -175,9 +175,9 @@ export const createRegisterValidators = (messages: AuthValidationMessages) => {
           value: string
           fieldApi: ConfirmPasswordFieldApi
         }) => {
+          const passwordValue = fieldApi.form.getFieldValue("password")
           const password =
-            (fieldApi.form.getFieldValue("password") as string | undefined) ??
-            ""
+            typeof passwordValue === "string" ? passwordValue : ""
 
           return validatePasswordConfirmation(password, value)
         },
@@ -222,9 +222,9 @@ export const createResetPasswordValidators = (
           value: string
           fieldApi: ResetPasswordConfirmFieldApi
         }) => {
+          const passwordValue = fieldApi.form.getFieldValue("password")
           const password =
-            (fieldApi.form.getFieldValue("password") as string | undefined) ??
-            ""
+            typeof passwordValue === "string" ? passwordValue : ""
 
           return validatePasswordConfirmation(password, value)
         },

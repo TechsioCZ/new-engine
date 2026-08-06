@@ -5,6 +5,11 @@ export const toPlainRecord = (
   value: unknown,
 ): Record<string, unknown> | undefined => (isRecord(value) ? value : undefined)
 
+export const getRecordValue = (
+  record: Readonly<Record<string, unknown>>,
+  key: string,
+): unknown => record[key]
+
 export const compactRecord = (
   record: Readonly<Record<string, unknown>>,
 ): Record<string, unknown> =>
@@ -21,10 +26,15 @@ type OmitUndefined<T extends object> = {
   >
 }
 
-export const omitUndefined = <T extends object>(value: T): OmitUndefined<T> =>
-  Object.fromEntries(
-    Object.entries(value).filter(([, entry]) => entry !== undefined),
-  ) as OmitUndefined<T>
+export const omitUndefined = <T extends object>(value: T): OmitUndefined<T> => {
+  const result = { ...value }
+  for (const [key, entry] of Object.entries(result)) {
+    if (entry === undefined) {
+      Reflect.deleteProperty(result, key)
+    }
+  }
+  return result
+}
 
 export const omitKeys = <
   TObject extends object,
@@ -33,12 +43,11 @@ export const omitKeys = <
   object: TObject,
   keys: TKeys,
 ): Omit<TObject, TKeys[number]> => {
-  const keysToOmit = new Set<keyof TObject>(keys)
-  const entries = Object.entries(object).filter(
-    ([key]) => !keysToOmit.has(key as keyof TObject),
-  )
-
-  return Object.fromEntries(entries) as Omit<TObject, TKeys[number]>
+  const result = { ...object }
+  for (const key of keys) {
+    Reflect.deleteProperty(result, key)
+  }
+  return result
 }
 
 export const getErrorMessage = (error: unknown): string =>

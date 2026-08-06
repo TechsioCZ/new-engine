@@ -1,3 +1,4 @@
+import { getRecordValue } from "@techsio/std/object"
 import type { NextResponse } from "next/server"
 
 import { normalizeCountryCode } from "@/lib/forms/country-options"
@@ -8,7 +9,7 @@ import {
   buildMedusaUrl,
   getPublishableHeaders,
   isConflictStatus,
-} from "../_lib"
+} from "../auth-route-utils"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 
 export interface ParsedWholesaleRegistration {
@@ -29,6 +30,11 @@ interface WholesaleParseResult {
   value: ParsedWholesaleRegistration | null
 }
 
+const hasRequiredAddressFields = (
+  fields: (string | undefined)[],
+): fields is [string, string, string, string] =>
+  fields.every((field) => field !== undefined)
+
 export const parseWholesaleRegistration = (
   value: unknown,
 ): WholesaleParseResult => {
@@ -44,23 +50,29 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const companyName = asStringOrUndefined(wholesale.company_name)
-  if (!companyName) {
+  const companyName = asStringOrUndefined(
+    getRecordValue(wholesale, "company_name"),
+  )
+  if (companyName === undefined) {
     return {
       error: badRequest("Názov firmy je povinný."),
       value: null,
     }
   }
 
-  const companyIdentifier = asStringOrUndefined(wholesale.company_identifier)
-  if (!companyIdentifier) {
+  const companyIdentifier = asStringOrUndefined(
+    getRecordValue(wholesale, "company_identifier"),
+  )
+  if (companyIdentifier === undefined) {
     return {
       error: badRequest("IČO alebo firemný identifikátor je povinný."),
       value: null,
     }
   }
 
-  const billingAddress = asRecordOrUndefined(wholesale.billing_address)
+  const billingAddress = asRecordOrUndefined(
+    getRecordValue(wholesale, "billing_address"),
+  )
   if (!billingAddress) {
     return {
       error: badRequest("Fakturačná adresa je povinná."),
@@ -68,27 +80,31 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const address1 = asStringOrUndefined(billingAddress.address_1)
-  const city = asStringOrUndefined(billingAddress.city)
-  const postalCode = asStringOrUndefined(billingAddress.postal_code)
-  const rawCountryCode = asStringOrUndefined(billingAddress.country_code)
-
-  if (!(address1 && city && postalCode && rawCountryCode)) {
+  const requiredAddressFields = [
+    asStringOrUndefined(getRecordValue(billingAddress, "address_1")),
+    asStringOrUndefined(getRecordValue(billingAddress, "city")),
+    asStringOrUndefined(getRecordValue(billingAddress, "postal_code")),
+    asStringOrUndefined(getRecordValue(billingAddress, "country_code")),
+  ]
+  if (!hasRequiredAddressFields(requiredAddressFields)) {
     return {
       error: badRequest("Fakturačná adresa je povinná."),
       value: null,
     }
   }
 
+  const [address1, city, postalCode, rawCountryCode] = requiredAddressFields
   const countryCode = normalizeCountryCode(rawCountryCode)
-  if (!countryCode) {
+  if (countryCode === null) {
     return {
       error: badRequest("Vyberte platnú krajinu fakturačnej adresy."),
       value: null,
     }
   }
 
-  const address2 = asStringOrUndefined(billingAddress.address_2)
+  const address2 = asStringOrUndefined(
+    getRecordValue(billingAddress, "address_2"),
+  )
 
   return {
     error: null,
@@ -97,13 +113,15 @@ export const parseWholesaleRegistration = (
         address1,
         ...(address2 === undefined ? {} : { address2 }),
         city,
-        postalCode,
         countryCode: countryCode.toUpperCase(),
+        postalCode,
       },
       companyIdentifier,
       companyName,
       currencyCode:
-        asStringOrUndefined(wholesale.currency_code)?.toUpperCase() ?? "EUR",
+        asStringOrUndefined(
+          getRecordValue(wholesale, "currency_code"),
+        )?.toUpperCase() ?? "EUR",
     },
   }
 }
@@ -125,13 +143,13 @@ export const createWholesaleCompanyRequest = async ({
 }) => {
   const response = await fetch(buildMedusaUrl("/store/companies"), {
     body: JSON.stringify({
-      name: wholesale.companyName,
-      email,
-      currency_code: wholesale.currencyCode.toLowerCase(),
       address: createCompanyAddressLine(wholesale.billingAddress),
       city: wholesale.billingAddress.city,
-      zip: wholesale.billingAddress.postalCode,
       country: wholesale.billingAddress.countryCode.toLowerCase(),
+      currency_code: wholesale.currencyCode.toLowerCase(),
+      email,
+      name: wholesale.companyName,
+      zip: wholesale.billingAddress.postalCode,
     }),
     cache: "no-store",
     headers: {

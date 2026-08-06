@@ -8,15 +8,13 @@ export const normalizeMultiValueInput = (values: string[]): string[] => {
 
   for (const value of values) {
     const normalizedValue = value.trim()
-    if (!normalizedValue || seenValues.has(normalizedValue)) {
-      continue
-    }
+    if (normalizedValue && !seenValues.has(normalizedValue)) {
+      seenValues.add(normalizedValue)
+      normalizedValues.push(normalizedValue)
 
-    seenValues.add(normalizedValue)
-    normalizedValues.push(normalizedValue)
-
-    if (normalizedValues.length >= MAX_MULTI_VALUE_ITEMS) {
-      break
+      if (normalizedValues.length >= MAX_MULTI_VALUE_ITEMS) {
+        break
+      }
     }
   }
 
@@ -39,18 +37,10 @@ export const areStringArraysEqual = (left: string[], right: string[]) => {
 
 const normalizeNonNegativeNumber = (
   value: number | null,
-): number | undefined => {
-  if (
-    typeof value !== "number" ||
-    Number.isNaN(value) ||
-    !Number.isFinite(value) ||
-    value < 0
-  ) {
-    return
-  }
-
-  return value
-}
+): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : undefined
 
 export const normalizePriceRange = (
   minValue: number | null,
@@ -77,11 +67,7 @@ export const normalizePriceRange = (
 
 export const toNonEmptyArray = (values: string[]): string[] | undefined => {
   const normalizedValues = normalizeMultiValueInput(values)
-  if (normalizedValues.length === 0) {
-    return
-  }
-
-  return normalizedValues
+  return normalizedValues.length > 0 ? normalizedValues : undefined
 }
 
 export const hasOwnKey = <T extends object>(

@@ -26,10 +26,10 @@ export const buildAuthRegisterInput = (
               ? { address_2: trimValue(values.billing_address_2) }
               : {}),
             city: trimValue(values.billing_city),
-            postal_code: trimValue(values.billing_postal_code),
             country_code:
               normalizeCountryCode(values.billing_country_code) ??
               trimValue(values.billing_country_code),
+            postal_code: trimValue(values.billing_postal_code),
           },
           company_identifier: trimValue(values.company_identifier),
           company_name: trimValue(values.company_name),

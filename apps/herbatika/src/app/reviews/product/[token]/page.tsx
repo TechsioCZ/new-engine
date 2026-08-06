@@ -15,7 +15,7 @@ interface ProductReviewTokenRouteProps {
 const resolveSearchParam = (value?: string | string[]) =>
   Array.isArray(value) ? value[0] : value
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = async (): Promise<Metadata> => {
   const tCatalog = await getTranslations("catalog")
 
   return {
@@ -23,10 +23,10 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function ProductReviewTokenRoute({
+const ProductReviewTokenRoute = async ({
   params,
   searchParams,
-}: ProductReviewTokenRouteProps) {
+}: ProductReviewTokenRouteProps) => {
   const [{ token }, resolvedSearchParams] = await Promise.all([
     params,
     searchParams,
@@ -41,3 +41,5 @@ export default async function ProductReviewTokenRoute({
     />
   )
 }
+
+export default ProductReviewTokenRoute

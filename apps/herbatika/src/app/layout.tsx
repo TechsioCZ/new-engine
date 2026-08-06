@@ -28,13 +28,13 @@ const verdana = localFont({
   src: [
     {
       path: "./fonts/Verdana-Regular.woff2",
-      weight: "400",
       style: "normal",
+      weight: "400",
     },
     {
       path: "./fonts/Verdana-Bold.woff2",
-      weight: "700",
       style: "normal",
+      weight: "700",
     },
   ],
   variable: "--font-verdana",
@@ -65,7 +65,7 @@ const roboto = Roboto({
   weight: ["400", "700"],
 })
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = async (): Promise<Metadata> => {
   const marketContext = await getMarketServerContext()
 
   return {
@@ -82,36 +82,34 @@ type LayoutShellProps = Readonly<{
   messages: AbstractIntlMessages
 }>
 
-function LayoutShell({
+const LayoutShell = ({
   children,
   dehydratedState,
   initialRegion = null,
   marketContext,
   messages,
-}: LayoutShellProps) {
-  return (
-    <NextIntlClientProvider messages={messages}>
-      <Providers
-        initialMarketContext={marketContext}
-        initialRegion={initialRegion}
-      >
-        <HydrationBoundary state={dehydratedState}>
-          <Suspense fallback={<div className="min-h-dvh bg-base" />}>
-            <AppShell>{children}</AppShell>
-          </Suspense>
-        </HydrationBoundary>
-      </Providers>
-    </NextIntlClientProvider>
-  )
-}
+}: LayoutShellProps) => (
+  <NextIntlClientProvider messages={messages}>
+    <Providers
+      initialMarketContext={marketContext}
+      initialRegion={initialRegion}
+    >
+      <HydrationBoundary state={dehydratedState}>
+        <Suspense fallback={<div className="min-h-dvh bg-base" />}>
+          <AppShell>{children}</AppShell>
+        </Suspense>
+      </HydrationBoundary>
+    </Providers>
+  </NextIntlClientProvider>
+)
 
-async function ResolvedLayoutShell({
+const ResolvedLayoutShell = async ({
   children,
   marketContext,
 }: Readonly<{
   children: React.ReactNode
   marketContext: HerbatikaMarketContext
-}>) {
+}>) => {
   const [{ queryClient, region }, messages] = await Promise.all([
     getRegionServerContext(),
     getMessages(),
@@ -142,11 +140,11 @@ async function ResolvedLayoutShell({
   )
 }
 
-async function ResolvedRootLayout({
+const ResolvedRootLayout = async ({
   children,
 }: Readonly<{
   children: React.ReactNode
-}>) {
+}>) => {
   const marketContext = await getMarketServerContext()
 
   return (
@@ -169,14 +167,14 @@ async function ResolvedRootLayout({
   )
 }
 
-export default function RootLayout({
+const RootLayout = ({
   children,
 }: Readonly<{
   children: React.ReactNode
-}>) {
-  return (
-    <Suspense fallback={null}>
-      <ResolvedRootLayout>{children}</ResolvedRootLayout>
-    </Suspense>
-  )
-}
+}>) => (
+  <Suspense fallback={null}>
+    <ResolvedRootLayout>{children}</ResolvedRootLayout>
+  </Suspense>
+)
+
+export default RootLayout

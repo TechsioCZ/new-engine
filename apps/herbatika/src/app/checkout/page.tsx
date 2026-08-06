@@ -4,6 +4,8 @@ import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.ut
 import { DEFAULT_CHECKOUT_STEP_SLUG } from "@/components/checkout/checkout.constants"
 import { appHref } from "@/lib/routing"
 
-export default function CheckoutPage() {
+const checkoutPage = () => {
   redirect(appHref(resolveCheckoutStepHref(DEFAULT_CHECKOUT_STEP_SLUG)))
 }
+
+export default checkoutPage

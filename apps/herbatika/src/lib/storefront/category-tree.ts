@@ -7,7 +7,7 @@ export const collectDescendantCategoryIds = (
   const childrenByParentId = new Map<string, string[]>()
 
   for (const category of categories) {
-    if (!category.parent_category_id) {
+    if (category.parent_category_id === null) {
       continue
     }
 
@@ -22,7 +22,7 @@ export const collectDescendantCategoryIds = (
 
   while (stack.length > 0) {
     const currentId = stack.pop()
-    if (!currentId) {
+    if (currentId === undefined) {
       continue
     }
 
@@ -53,11 +53,11 @@ export const resolveRelatedCategoryIds = (
   const allCategoryIds = new Set<string>()
 
   for (const category of productCategories) {
-    if (category.id) {
+    if (category.id !== null) {
       allCategoryIds.add(category.id)
     }
 
-    if (category.parent_category_id) {
+    if (category.parent_category_id !== null) {
       parentCategoryIds.add(category.parent_category_id)
     }
   }

@@ -23,7 +23,7 @@ export const resolveProductWarranty = (
   )
   const value = warranty?.option?.label.trim()
 
-  return value || null
+  return value ?? null
 }
 
 export const mergeWarrantyIntoProductContentSections = (
@@ -31,7 +31,7 @@ export const mergeWarrantyIntoProductContentSections = (
   warranty: string | null,
   otherSectionTitle: string,
 ): ProductDetailContentSection[] => {
-  if (!warranty) {
+  if (warranty === null || warranty.length === 0) {
     return sections
   }
 

@@ -7,6 +7,7 @@ import { clamp } from "../src/number.js"
 import {
   compactRecord,
   getErrorMessage,
+  getRecordValue,
   isRecord,
   omitKeys,
   omitUndefined,
@@ -18,6 +19,9 @@ import {
   normalizeTrimmedString,
   slugify,
 } from "../src/string.js"
+
+const createUndefined = (): unknown => undefined
+const undefinedValue = createUndefined()
 
 describe("array utilities", () => {
   it("deduplicates while preserving order", () => {
@@ -38,13 +42,26 @@ describe("object utilities", () => {
     expect(toPlainRecord("value")).toBeUndefined()
   })
 
+  it("reads record values without changing bracket-access semantics", () => {
+    const record = {
+      nullValue: null,
+      undefinedValue,
+      value: 42,
+    }
+
+    expect(getRecordValue(record, "value")).toBe(42)
+    expect(getRecordValue(record, "nullValue")).toBeNull()
+    expect(getRecordValue(record, "undefinedValue")).toBeUndefined()
+    expect(getRecordValue(record, "absent")).toBeUndefined()
+  })
+
   it("compacts undefined values and omits selected keys", () => {
-    expect(compactRecord({ a: 1, b: undefined, c: null })).toStrictEqual({
+    expect(compactRecord({ a: 1, b: undefinedValue, c: null })).toStrictEqual({
       a: 1,
       c: null,
     })
     expect(omitKeys({ a: 1, b: 2 }, ["b"])).toStrictEqual({ a: 1 })
-    expect(omitUndefined({ a: 1, b: undefined, c: null })).toStrictEqual({
+    expect(omitUndefined({ a: 1, b: undefinedValue, c: null })).toStrictEqual({
       a: 1,
       c: null,
     })
@@ -77,13 +94,12 @@ describe("control utilities", () => {
 
   it("debounces callbacks", () => {
     vi.useFakeTimers()
-    const callback = vi.fn()
+    const callback = vi.fn<(value: number) => void>()
     const debounced = debounce(callback, 10)
     debounced(1)
     debounced(2)
-    vi.advanceTimersByTime(10)
-    expect(callback).toHaveBeenCalledOnce()
-    expect(callback).toHaveBeenCalledWith(2)
+    void vi.advanceTimersByTime(10)
+    expect(callback).toHaveBeenCalledExactlyOnceWith(2)
     vi.useRealTimers()
   })
 
@@ -97,6 +113,8 @@ describe("control utilities", () => {
   })
 
   it("throws for impossible values", () => {
-    expect(() => assertNever("bad" as never)).toThrow("Unexpected value: bad")
+    expect(() => {
+      Reflect.apply(assertNever, null, ["bad"])
+    }).toThrow("Unexpected value: bad")
   })
 })

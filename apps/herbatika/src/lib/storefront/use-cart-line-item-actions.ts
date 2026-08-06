@@ -10,16 +10,16 @@ interface UseCartLineItemActionsProps {
   cartId?: string
 }
 
-export function useCartLineItemActions({
+export const useCartLineItemActions = ({
   cartId,
-}: UseCartLineItemActionsProps) {
+}: UseCartLineItemActionsProps) => {
   const t = useTranslations("cart")
   const toast = useAppToast()
   const updateLineItemMutation = useUpdateLineItem()
   const removeLineItemMutation = useRemoveLineItem()
 
   const updateQuantity = (lineItemId: string, quantity: number) => {
-    if (!cartId) {
+    if (cartId === undefined || cartId.length === 0) {
       return
     }
 
@@ -34,7 +34,7 @@ export function useCartLineItemActions({
   }
 
   const removeItem = (lineItemId: string) => {
-    if (!cartId) {
+    if (cartId === undefined || cartId.length === 0) {
       return
     }
 

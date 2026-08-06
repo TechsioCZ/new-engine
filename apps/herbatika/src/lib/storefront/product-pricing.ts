@@ -1,3 +1,5 @@
+import { getRecordValue } from "@techsio/std/object"
+
 import { normalizeSupportedCurrencyCode } from "./currency"
 import type { HerbatikaCurrencyCode as BaseHerbatikaCurrencyCode } from "./currency"
 import {
@@ -24,21 +26,21 @@ export const resolveProductTopOffer = (
   product?: StorefrontMetadataSource | null,
 ) => {
   const metadata = asStorefrontRecord(product?.metadata)
-  return asStorefrontRecord(metadata?.top_offer)
+  return asStorefrontRecord(getRecordValue(metadata ?? {}, "top_offer"))
 }
 
 const resolveTopOfferCurrentAmount = (
   topOffer: Record<string, unknown> | null,
 ) =>
-  asStorefrontNumber(topOffer?.current_price) ??
-  asStorefrontNumber(topOffer?.action_price) ??
-  asStorefrontNumber(topOffer?.price_vat)
+  asStorefrontNumber(getRecordValue(topOffer ?? {}, "current_price")) ??
+  asStorefrontNumber(getRecordValue(topOffer ?? {}, "action_price")) ??
+  asStorefrontNumber(getRecordValue(topOffer ?? {}, "price_vat"))
 
 const resolveTopOfferStockAmount = (
   topOffer: Record<string, unknown> | null,
 ): number | null => {
-  const stock = asStorefrontRecord(topOffer?.stock)
-  return asStorefrontNumber(stock?.amount)
+  const stock = asStorefrontRecord(getRecordValue(topOffer ?? {}, "stock"))
+  return asStorefrontNumber(getRecordValue(stock ?? {}, "amount"))
 }
 
 export const resolveTopOfferInStock = (
@@ -62,17 +64,21 @@ export const resolveTopOfferOriginalAmount = (params: {
   const hasExplicitOriginalAmount = explicitCandidate !== null
   const candidate =
     explicitCandidate ??
-    asStorefrontNumber(topOffer?.compare_at_price) ??
-    asStorefrontNumber(topOffer?.standard_price) ??
-    asStorefrontNumber(topOffer?.price_vat)
+    asStorefrontNumber(getRecordValue(topOffer ?? {}, "compare_at_price")) ??
+    asStorefrontNumber(getRecordValue(topOffer ?? {}, "standard_price")) ??
+    asStorefrontNumber(getRecordValue(topOffer ?? {}, "price_vat"))
 
   if (typeof currentAmount !== "number" || typeof candidate !== "number") {
     return null
   }
 
   const hasActiveDiscount =
-    asStorefrontBoolean(topOffer?.has_active_discount) === true
-  const actionAmount = asStorefrontNumber(topOffer?.action_price)
+    asStorefrontBoolean(
+      getRecordValue(topOffer ?? {}, "has_active_discount"),
+    ) === true
+  const actionAmount = asStorefrontNumber(
+    getRecordValue(topOffer ?? {}, "action_price"),
+  )
   const hasActionPriceDiscount =
     typeof actionAmount === "number" && candidate > actionAmount
 
@@ -125,7 +131,7 @@ const resolveMatchingTopOfferOriginalAmount = ({
   topOffer: Record<string, unknown> | null
 }) => {
   const topOfferCurrencyCode = normalizeSupportedCurrencyCode(
-    topOffer?.currency,
+    getRecordValue(topOffer ?? {}, "currency"),
   )
 
   if (topOfferCurrencyCode !== currencyCode) {
@@ -136,6 +142,19 @@ const resolveMatchingTopOfferOriginalAmount = ({
     currentAmount,
     topOffer,
   })
+}
+
+const matchesExpectedCurrency = (
+  resolvedCurrency: HerbatikaCurrencyCode | null,
+  expectedCurrency: HerbatikaCurrencyCode | null,
+): resolvedCurrency is HerbatikaCurrencyCode => {
+  if (resolvedCurrency === null) {
+    return false
+  }
+  if (expectedCurrency === null) {
+    return true
+  }
+  return resolvedCurrency === expectedCurrency
 }
 
 export const resolveStorefrontPrice = ({
@@ -153,8 +172,7 @@ export const resolveStorefrontPrice = ({
 
   if (
     typeof resolvedCalculatedAmount === "number" &&
-    resolvedCalculatedCurrency &&
-    (!expectedCurrency || resolvedCalculatedCurrency === expectedCurrency)
+    matchesExpectedCurrency(resolvedCalculatedCurrency, expectedCurrency)
   ) {
     return {
       currencyCode: resolvedCalculatedCurrency,
@@ -175,13 +193,12 @@ export const resolveStorefrontPrice = ({
 
   const resolvedTopOfferAmount = resolveTopOfferCurrentAmount(topOffer)
   const resolvedTopOfferCurrency = normalizeSupportedCurrencyCode(
-    topOffer?.currency,
+    getRecordValue(topOffer ?? {}, "currency"),
   )
 
   if (
     typeof resolvedTopOfferAmount === "number" &&
-    resolvedTopOfferCurrency &&
-    (!expectedCurrency || resolvedTopOfferCurrency === expectedCurrency)
+    matchesExpectedCurrency(resolvedTopOfferCurrency, expectedCurrency)
   ) {
     return {
       currencyCode: resolvedTopOfferCurrency,

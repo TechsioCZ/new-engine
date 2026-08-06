@@ -23,18 +23,18 @@ const STATIC_PATHS = new Set([
 ])
 
 const DYNAMIC_PATH_PATTERNS = [
-  /^\/[^/]+$/,
-  /^\/account\/orders\/[^/]+$/,
-  /^\/blog\/[^/]+$/,
-  /^\/c\/[^/]+$/,
-  /^\/checkout\/[^/]+$/,
-  /^\/p\/[^/]+$/,
-  /^\/reviews\/product\/[^/]+$/,
-  /^\/znacka\/[^/]+$/,
+  /^\/[^/]+$/u,
+  /^\/account\/orders\/[^/]+$/u,
+  /^\/blog\/[^/]+$/u,
+  /^\/c\/[^/]+$/u,
+  /^\/checkout\/[^/]+$/u,
+  /^\/p\/[^/]+$/u,
+  /^\/reviews\/product\/[^/]+$/u,
+  /^\/znacka\/[^/]+$/u,
 ]
 
 const hasSupportedProtocol = (href: string) =>
-  /^(?:https?|mailto|tel):/i.test(href)
+  /^(?:https?|mailto|tel):/iu.test(href)
 
 const isAppHref = (href: string): href is AppHref => {
   if (
@@ -51,7 +51,7 @@ const isAppHref = (href: string): href is AppHref => {
 
   const { pathname } = new URL(href, "https://herbatica.invalid")
   const normalizedPathname =
-    pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname
+    pathname.length > 1 ? pathname.replace(/\/$/u, "") : pathname
 
   return (
     STATIC_PATHS.has(normalizedPathname) ||

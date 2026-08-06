@@ -20,7 +20,7 @@ const showToast = (
     type,
   })
 
-export function useAppToast() {
+export const useAppToast = () => {
   const toaster = useToast()
 
   return {

@@ -1,5 +1,5 @@
 import "server-only"
-import type { CmsMedia } from "./cms-types"
+import type { CmsMediaValue } from "./cms-types"
 import {
   resolveMedusaBackendUrl,
   resolvePublicPayloadBaseUrl,
@@ -11,7 +11,7 @@ const CMS_REVALIDATE_SECONDS = 600
 const CMS_MEDUSA_BASE_URL = resolveMedusaBackendUrl()
 const CMS_MEDIA_BASE_URL = resolvePublicPayloadBaseUrl()
 
-const trimSlashes = (value: string) => value.replaceAll(/^\/+|\/+$/g, "")
+const trimSlashes = (value: string) => value.replaceAll(/^\/+|\/+$/gu, "")
 
 const buildCmsUrl = (
   path: string,
@@ -28,10 +28,10 @@ const buildCmsUrl = (
   return url
 }
 
-export const fetchCmsJson = async <TResponse>(
+export const fetchCmsJson = async (
   path: string,
   params?: Record<string, string | number>,
-): Promise<TResponse | null> => {
+): Promise<unknown> => {
   let response: Response
 
   try {
@@ -52,12 +52,11 @@ export const fetchCmsJson = async <TResponse>(
     return null
   }
 
-  return (await response.json()) as TResponse
+  const payload: unknown = await response.json()
+  return payload
 }
 
-const resolveCmsMediaPath = (
-  media: CmsMedia | string | null | undefined,
-): string | null => {
+const resolveCmsMediaPath = (media: CmsMediaValue): string | null => {
   if (typeof media === "string") {
     return media
   }
@@ -65,19 +64,17 @@ const resolveCmsMediaPath = (
   return media?.url ?? null
 }
 
-export const resolveCmsMediaUrl = (
-  media: CmsMedia | string | null | undefined,
-): string | null => {
+export const resolveCmsMediaUrl = (media: CmsMediaValue): string | null => {
   const mediaPath = resolveCmsMediaPath(media)
 
-  if (!mediaPath) {
+  if (mediaPath === null || mediaPath.length === 0) {
     return null
   }
 
   try {
-    return CMS_MEDIA_BASE_URL
-      ? new URL(mediaPath, CMS_MEDIA_BASE_URL).toString()
-      : new URL(mediaPath).toString()
+    return CMS_MEDIA_BASE_URL === null
+      ? new URL(mediaPath).toString()
+      : new URL(mediaPath, CMS_MEDIA_BASE_URL).toString()
   } catch {
     return null
   }
@@ -88,27 +85,31 @@ export const rewriteCmsHtmlMediaUrls = (html: string) => {
     return ""
   }
 
-  if (!CMS_MEDIA_BASE_URL) {
+  if (CMS_MEDIA_BASE_URL === null || CMS_MEDIA_BASE_URL.length === 0) {
     return html
   }
 
   return html.replaceAll(
-    /\b(src|href)=["'](\/api\/media\/file\/[^"']+)["']/g,
-    (_match, attribute: string, url: string) =>
-      `${attribute}="${new URL(url, CMS_MEDIA_BASE_URL).toString()}"`,
+    /\b(?:src|href)=["']\/api\/media\/file\/[^"']+["']/gu,
+    (match) => {
+      const separatorIndex = match.indexOf("=")
+      const attribute = match.slice(0, separatorIndex)
+      const url = match.slice(separatorIndex + 2, -1)
+      return `${attribute}="${new URL(url, CMS_MEDIA_BASE_URL).toString()}"`
+    },
   )
 }
 
 export const stripCmsHtml = (value: string | null | undefined) => {
-  if (!value) {
+  if (value === null || value === undefined || value.length === 0) {
     return ""
   }
 
   return value
-    .replaceAll(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replaceAll(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
-    .replaceAll(/<[^>]+>/g, " ")
-    .replaceAll(/&nbsp;/gi, " ")
-    .replaceAll(/\s+/g, " ")
+    .replaceAll(/<style[^>]*>[\s\S]*?<\/style>/giu, " ")
+    .replaceAll(/<script[^>]*>[\s\S]*?<\/script>/giu, " ")
+    .replaceAll(/<[^>]+>/gu, " ")
+    .replaceAll(/&nbsp;/giu, " ")
+    .replaceAll(/\s+/gu, " ")
     .trim()
 }

@@ -1,3 +1,4 @@
+import { getRecordValue } from "@techsio/std/object"
 import {
   getLocalStorageItem,
   removeLocalStorageItem,
@@ -14,14 +15,24 @@ type StorefrontAuthMode = "jwt_localstorage" | "session_proxy"
 const DEFAULT_AUTH_MODE: StorefrontAuthMode = "session_proxy"
 
 const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
+const publishableKey = getRecordValue(
+  process.env,
+  "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+)
 const MEDUSA_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
+  typeof publishableKey === "string" ? publishableKey : ""
 
 const resolveAuthMode = (): StorefrontAuthMode => {
-  const rawMode =
-    process.env.NEXT_PUBLIC_STOREFRONT_AUTH_MODE?.trim().toLowerCase()
+  const rawModeValue = getRecordValue(
+    process.env,
+    "NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
+  )
+  if (typeof rawModeValue !== "string") {
+    return DEFAULT_AUTH_MODE
+  }
+  const rawMode = rawModeValue.trim().toLowerCase()
 
-  if (!rawMode) {
+  if (rawMode.length === 0) {
     return DEFAULT_AUTH_MODE
   }
 
@@ -41,7 +52,7 @@ const resolveAuthMode = (): StorefrontAuthMode => {
 const STOREFRONT_AUTH_MODE = resolveAuthMode()
 export const isSessionProxyAuthMode = STOREFRONT_AUTH_MODE === "session_proxy"
 
-if (!MEDUSA_PUBLISHABLE_KEY && process.env.NODE_ENV !== "test") {
+if (MEDUSA_PUBLISHABLE_KEY.length === 0 && process.env.NODE_ENV !== "test") {
   console.warn(
     "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set. Storefront requests may be rejected by Medusa.",
   )

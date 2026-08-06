@@ -5,6 +5,9 @@ export interface CmsMedia {
   url?: string | null
 }
 
+type Nullish<T> = T | null | undefined
+export type CmsMediaValue = Nullish<CmsMedia | string>
+
 export interface CmsCategory {
   id: number | string
   slug?: string | null
@@ -13,7 +16,7 @@ export interface CmsCategory {
 
 interface CmsArticleSummary {
   excerpt?: string | null
-  featuredImage?: CmsMedia | string | null
+  featuredImage?: CmsMediaValue
   slug?: string | null
   title?: string | null
 }
@@ -30,7 +33,7 @@ export interface CmsArticle {
   category?: CmsCategory | null
   content?: string | null
   excerpt?: string | null
-  featuredImage?: CmsMedia | string | null
+  featuredImage?: CmsMediaValue
   id: number | string
   publishedDate?: string | null
   readingTime?: number | null
@@ -45,7 +48,7 @@ export interface CmsPage {
   id: number | string
   meta?: {
     description?: string | null
-    image?: CmsMedia | string | null
+    image?: CmsMediaValue
     title?: string | null
   } | null
   publishedDate?: string | null
@@ -58,7 +61,7 @@ export interface CmsHeroCarousel {
   buttonHref?: string | null
   heading?: string | null
   id: number | string
-  image?: CmsMedia | string | null
+  image?: CmsMediaValue
   subheading?: string | null
 }
 

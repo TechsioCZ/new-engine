@@ -52,7 +52,11 @@ const mergeProductInventorySnapshot = (
   product: HttpTypes.StoreProduct,
   inventoryProduct?: HttpTypes.StoreProduct,
 ): HttpTypes.StoreProduct => {
-  if (!inventoryProduct?.variants?.length) {
+  if (
+    inventoryProduct === undefined ||
+    !Array.isArray(inventoryProduct.variants) ||
+    inventoryProduct.variants.length === 0
+  ) {
     return product
   }
 
@@ -96,11 +100,12 @@ export const useCatalogProducts = (
     handle: inventorySnapshotHandles,
     limit: Math.max(1, inventorySnapshotHandles.length),
   })
-  const inventoryProductByHandle = new Map(
-    inventorySnapshotsQuery.products
-      .filter((product) => product.handle)
-      .map((product) => [product.handle, product]),
-  )
+  const inventoryProductByHandle = new Map<string, HttpTypes.StoreProduct>()
+  for (const product of inventorySnapshotsQuery.products) {
+    if ((product.handle ?? "").length > 0) {
+      inventoryProductByHandle.set(product.handle, product)
+    }
+  }
   const products =
     shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading
       ? []

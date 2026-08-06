@@ -6,7 +6,7 @@ import {
 } from "@/lib/search-autocomplete/search-autocomplete-types"
 import { fetchSearchAutocomplete } from "@/lib/search-autocomplete/search-autocomplete.server"
 
-export async function GET(request: Request) {
+const get = async (request: Request) => {
   const { searchParams } = new URL(request.url)
   const query = (searchParams.get("q") ?? "")
     .trim()
@@ -31,3 +31,5 @@ export async function GET(request: Request) {
     })
   }
 }
+
+export { get as GET }

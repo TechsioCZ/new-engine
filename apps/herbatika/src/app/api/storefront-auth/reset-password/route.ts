@@ -1,3 +1,4 @@
+import { isRecord, getRecordValue } from "@techsio/std/object"
 import { NextResponse } from "next/server"
 
 import {
@@ -5,34 +6,35 @@ import {
   buildErrorResponse,
   buildMedusaUrl,
   serverError,
-} from "../_lib"
-
-interface ResetPasswordBody {
-  password?: string
-  token?: string
-}
+} from "../auth-route-utils"
 
 interface ResetPasswordResponse {
   success: true
 }
 
-export async function POST(request: Request) {
-  let body: ResetPasswordBody
+const post = async (request: Request) => {
+  let body: unknown
 
   try {
-    body = (await request.json()) as ResetPasswordBody
+    body = await request.json()
   } catch {
     return badRequest("Telo požiadavky musí byť platné JSON.")
   }
 
-  const { password } = body
-  const token = body.token?.trim()
+  if (!isRecord(body)) {
+    return badRequest("Telo požiadavky musí byť objekt JSON.")
+  }
 
-  if (!token) {
+  const passwordValue = getRecordValue(body, "password")
+  const password = typeof passwordValue === "string" ? passwordValue : undefined
+  const tokenValue = getRecordValue(body, "token")
+  const token = typeof tokenValue === "string" ? tokenValue.trim() : undefined
+
+  if ((token ?? "").length <= 0) {
     return badRequest("Token obnovy hesla je povinný.")
   }
 
-  if (!password) {
+  if ((password ?? "").length <= 0) {
     return badRequest("Nové heslo je povinné.")
   }
 
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
     )
 
     if (!medusaResponse.ok) {
-      return buildErrorResponse(medusaResponse)
+      return await buildErrorResponse(medusaResponse)
     }
 
     return NextResponse.json<ResetPasswordResponse>(
@@ -67,3 +69,5 @@ export async function POST(request: Request) {
     })
   }
 }
+
+export { post as POST }

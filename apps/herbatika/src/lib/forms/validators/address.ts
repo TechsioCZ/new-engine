@@ -10,7 +10,7 @@ type AddressFieldValidator = (value: string) => string | undefined
 
 export type { AddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 
-const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/
+const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/u
 
 const createRequiredTextValidator =
   (
@@ -61,7 +61,7 @@ const createPostalCodeValidator =
       return messages.postalCodeInvalid
     }
 
-    return normalized.replaceAll(/\D/g, "").length < 4
+    return normalized.replaceAll(/\D/gu, "").length < 4
       ? messages.postalCodeMinDigits
       : undefined
   }
@@ -78,7 +78,9 @@ const createCountryCodeValidator =
       return messages.countryRequired
     }
 
-    return normalizeCountryCode(value) ? undefined : messages.countryInvalid
+    return (normalizeCountryCode(value) ?? "").length > 0
+      ? undefined
+      : messages.countryInvalid
   }
 
 export const createAddressFieldValidators = (

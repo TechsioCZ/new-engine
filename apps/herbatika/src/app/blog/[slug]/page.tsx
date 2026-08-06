@@ -32,13 +32,13 @@ interface BlogDetailRouteProps {
   }>
 }
 
-const BlogDetailPageFallback = () => {
-  return <main className="mx-auto min-h-dvh w-full max-w-max-w" />
-}
+const BlogDetailPageFallback = () => (
+  <main className="mx-auto min-h-dvh w-full max-w-max-w" />
+)
 
-async function resolveRecommendedProductsForBlogPost(
+const resolveRecommendedProductsForBlogPost = async (
   slug: string,
-): Promise<HttpTypes.StoreProduct[]> {
+): Promise<HttpTypes.StoreProduct[]> => {
   const recommendationConfig = resolveBlogRecommendedProductsConfig(slug)
   if (!recommendationConfig) {
     return []
@@ -132,10 +132,10 @@ const BlogDetailPageContent = async ({ params }: BlogDetailRouteProps) => {
   )
 }
 
-export default function BlogDetailPageRoute(props: BlogDetailRouteProps) {
-  return (
-    <Suspense fallback={<BlogDetailPageFallback />}>
-      <BlogDetailPageContent {...props} />
-    </Suspense>
-  )
-}
+const BlogDetailPageRoute = (props: BlogDetailRouteProps) => (
+  <Suspense fallback={<BlogDetailPageFallback />}>
+    <BlogDetailPageContent {...props} />
+  </Suspense>
+)
+
+export default BlogDetailPageRoute

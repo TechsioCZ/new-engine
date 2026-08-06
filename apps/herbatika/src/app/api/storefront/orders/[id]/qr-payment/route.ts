@@ -10,13 +10,13 @@ import {
   buildMedusaUrl,
   getPublishableHeaders,
   parseResponseJson,
-} from "../../../../storefront-auth/_lib"
+} from "../../../../storefront-auth/auth-route-utils"
 
 interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+const get = async (_request: Request, context: RouteContext) => {
   const { id } = await context.params
 
   if (!id) {
@@ -63,3 +63,5 @@ export async function GET(_request: Request, context: RouteContext) {
     )
   }
 }
+
+export { get as GET }

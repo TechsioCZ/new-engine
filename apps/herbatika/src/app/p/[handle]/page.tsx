@@ -9,9 +9,7 @@ interface ProductDetailPageProps {
   }>
 }
 
-export default async function ProductDetailPage({
-  params,
-}: ProductDetailPageProps) {
+const ProductDetailPage = async ({ params }: ProductDetailPageProps) => {
   const { handle } = await params
   const { dehydratedState } =
     await prefetchProductDetailPageStorefrontData(handle)
@@ -22,3 +20,5 @@ export default async function ProductDetailPage({
     </HydrationBoundary>
   )
 }
+
+export default ProductDetailPage

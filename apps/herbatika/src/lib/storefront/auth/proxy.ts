@@ -1,10 +1,15 @@
+import { isRecord, getRecordValue } from "@techsio/std/object"
+
 import type { AuthProxyResponse } from "./types"
 
 const parseProxyError = async (response: Response) => {
   try {
-    const payload = (await response.json()) as { message?: string }
-    if (payload?.message) {
-      return payload.message
+    const payload: unknown = await response.json()
+    if (isRecord(payload)) {
+      const message = getRecordValue(payload, "message")
+      if (typeof message === "string") {
+        return message
+      }
     }
   } catch {
     // noop
@@ -29,14 +34,13 @@ export const requestAuthProxy = async (
     throw new Error(await parseProxyError(response))
   }
 
-  const payload = (await response.json()) as Partial<AuthProxyResponse>
-  if (typeof payload.token !== "string" || payload.token.length === 0) {
+  const payload: unknown = await response.json()
+  const token = isRecord(payload) ? getRecordValue(payload, "token") : null
+  if (typeof token !== "string" || token.length === 0) {
     throw new Error("Autentifikačné rozhranie nevrátilo token.")
   }
 
-  return {
-    token: payload.token,
-  }
+  return { token }
 }
 
 export const requestPasswordResetProxy = async (email: string) => {
@@ -88,14 +92,13 @@ export const requestSessionProxy =
       throw new Error(await parseProxyError(response))
     }
 
-    const payload = (await response.json()) as Partial<AuthProxyResponse>
-    if (typeof payload.token !== "string" || payload.token.length === 0) {
+    const payload: unknown = await response.json()
+    const token = isRecord(payload) ? getRecordValue(payload, "token") : null
+    if (typeof token !== "string" || token.length === 0) {
       return null
     }
 
-    return {
-      token: payload.token,
-    }
+    return { token }
   }
 
 export const requestLogoutProxy = async () => {

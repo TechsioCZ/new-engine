@@ -8,6 +8,6 @@ export const metadata: Metadata = {
   title: "Často kladené otázky | Herbatika",
 }
 
-export default function FaqPageRoute() {
-  return <FaqPage />
-}
+const FaqPageRoute = () => <FaqPage />
+
+export default FaqPageRoute

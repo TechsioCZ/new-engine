@@ -31,8 +31,14 @@ export const asStorefrontBoolean = (value: unknown): boolean | null => {
   if (typeof value === "boolean") {
     return value
   }
+  if (value === 1) {
+    return true
+  }
+  if (value === 0) {
+    return false
+  }
   if (typeof value === "number") {
-    return value === 1 ? true : value === 0 ? false : null
+    return null
   }
   if (typeof value !== "string") {
     return null

@@ -21,6 +21,19 @@ const matchesQuery = (values: unknown[], query: string) => {
   )
 }
 
+const pushUniqueSuggestion = (
+  suggestions: SearchAutocompleteSuggestion[],
+  seen: Set<string>,
+  suggestion: SearchAutocompleteSuggestion | null,
+) => {
+  if (!suggestion || seen.has(suggestion.href)) {
+    return
+  }
+
+  seen.add(suggestion.href)
+  suggestions.push(suggestion)
+}
+
 const categoryMatchesQuery = (
   category: RawSearchAutocompleteCategoryRef,
   query: string,
@@ -57,19 +70,14 @@ export const createCategorySuggestions = ({
   const suggestions: SearchAutocompleteSuggestion[] = []
   const seen = new Set<string>()
 
-  const pushSuggestion = (suggestion: SearchAutocompleteSuggestion | null) => {
-    if (!suggestion || seen.has(suggestion.href)) {
-      return
-    }
-
-    seen.add(suggestion.href)
-    suggestions.push(suggestion)
-  }
-
   for (const product of productHits) {
     for (const category of product.categories ?? []) {
       if (categoryMatchesQuery(category, query)) {
-        pushSuggestion(createCategorySuggestion(category))
+        pushUniqueSuggestion(
+          suggestions,
+          seen,
+          createCategorySuggestion(category),
+        )
       }
     }
   }
@@ -121,19 +129,6 @@ const createBrandSuggestionFromFacet = (
     title,
     type: "brand",
   }
-}
-
-const pushUniqueSuggestion = (
-  suggestions: SearchAutocompleteSuggestion[],
-  seen: Set<string>,
-  suggestion: SearchAutocompleteSuggestion | null,
-) => {
-  if (!suggestion || seen.has(suggestion.href)) {
-    return
-  }
-
-  seen.add(suggestion.href)
-  suggestions.push(suggestion)
 }
 
 export const createBrandSuggestions = ({

@@ -24,29 +24,21 @@ interface UseRegionBootstrapOptions {
   initialRegion?: RegionInfo | null
 }
 
-export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
+export const useRegionBootstrap = (options: UseRegionBootstrapOptions = {}) => {
   const initialRegion = options.initialRegion ?? null
   const marketContext = useMarketContext()
 
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(
-    initialRegion?.region_id ?? null,
+    () =>
+      initialRegion?.region_id ??
+      getStoredRegionPreference()?.region_id ??
+      null,
   )
 
   const { regions, isLoading, isFetching, error } = useRegions({
     fields: REGION_LIST_FIELDS,
     limit: REGION_LIST_LIMIT,
   })
-
-  useEffect(() => {
-    const storedRegion = getStoredRegionPreference()
-    const storedRegionId = storedRegion?.region_id ?? null
-
-    if (!storedRegionId) {
-      return
-    }
-
-    setSelectedRegionId((currentRegionId) => currentRegionId ?? storedRegionId)
-  }, [])
 
   useEffect(() => {
     if (regions.length === 0) {
@@ -61,10 +53,6 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
 
     if (!resolvedRegion) {
       return
-    }
-
-    if (resolvedRegion.id !== selectedRegionId) {
-      setSelectedRegionId(resolvedRegion.id)
     }
 
     persistRegionPreference(
@@ -100,7 +88,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     region,
     regions,
     selectedRegion,
-    selectedRegionId,
+    selectedRegionId: selectedRegion?.id ?? selectedRegionId,
     setRegionById,
   }
 }

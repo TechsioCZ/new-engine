@@ -24,13 +24,14 @@ export const ResetPasswordPanel = ({
 }: ResetPasswordPanelProps) => {
   const tAuth = useTranslations("auth")
   const [isBusy, setIsBusy] = useState(false)
-  const hasToken = Boolean(token)
+  const hasToken = token !== null && token.length > 0
   const copy =
     flow === "account-setup"
       ? {
-          description: email
-            ? tAuth("account_setup.description_with_email", { email })
-            : tAuth("account_setup.description"),
+          description:
+            email !== null && email.length > 0
+              ? tAuth("account_setup.description_with_email", { email })
+              : tAuth("account_setup.description"),
           expiredHelp: tAuth("account_setup.expired_help"),
           expiredLinkLabel: tAuth("account_setup.expired_link"),
           expiredMessage: tAuth("account_setup.expired_message"),
@@ -40,9 +41,10 @@ export const ResetPasswordPanel = ({
           title: tAuth("account_setup.title"),
         }
       : {
-          description: email
-            ? tAuth("reset.description_with_email", { email })
-            : tAuth("reset.description"),
+          description:
+            email !== null && email.length > 0
+              ? tAuth("reset.description_with_email", { email })
+              : tAuth("reset.description"),
           expiredHelp: tAuth("reset.expired_help"),
           expiredLinkLabel: tAuth("reset.expired_link"),
           expiredMessage: tAuth("reset.expired_message"),
@@ -56,7 +58,7 @@ export const ResetPasswordPanel = ({
     password: string
     confirm_password: string
   }) => {
-    if (!token) {
+    if (token === null || token.length === 0) {
       return copy.expiredMessage
     }
 

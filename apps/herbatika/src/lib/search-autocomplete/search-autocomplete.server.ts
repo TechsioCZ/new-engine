@@ -1,4 +1,6 @@
 import "server-only"
+import { isRecord, getRecordValue } from "@techsio/std/object"
+
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import {
   MEDUSA_BACKEND_URL,
@@ -41,6 +43,61 @@ const CATEGORY_LIMIT = 5
 const BRAND_LIMIT = 4
 const CANDIDATE_LIMIT = 12
 const CATALOG_FETCH_TIMEOUT_MS = 3000
+
+const isRawVariant = (value: unknown): value is Record<string, unknown> => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const calculatedPrice = getRecordValue(value, "calculated_price")
+  return calculatedPrice === undefined || isRecord(calculatedPrice)
+}
+
+const isRawProductHit = (
+  value: unknown,
+): value is RawSearchAutocompleteProductHit => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const brand = getRecordValue(value, "brand")
+  if (brand !== undefined && !isRecord(brand)) {
+    return false
+  }
+  const categories = getRecordValue(value, "categories")
+  if (
+    categories !== undefined &&
+    (!Array.isArray(categories) || !categories.every(isRecord))
+  ) {
+    return false
+  }
+  const variants = getRecordValue(value, "variants")
+  return (
+    variants === undefined ||
+    (Array.isArray(variants) && variants.every(isRawVariant))
+  )
+}
+
+const parseCatalogAutocompleteResponse = (
+  value: unknown,
+): CatalogAutocompleteResponse => {
+  if (!isRecord(value)) {
+    return {}
+  }
+
+  const productsValue = getRecordValue(value, "products")
+  const products = Array.isArray(productsValue)
+    ? productsValue.filter(isRawProductHit)
+    : []
+  const facetsValue = getRecordValue(value, "facets")
+  const facets = isRecord(facetsValue) ? facetsValue : null
+  const brandsValue =
+    facets === null ? undefined : getRecordValue(facets, "brand")
+  const brands = Array.isArray(brandsValue) ? brandsValue.filter(isRecord) : []
+
+  return {
+    facets: { brand: brands },
+    products,
+  }
+}
 
 const normalizeSearchAutocompleteQuery = (query: string) =>
   query.trim().slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
@@ -119,7 +176,8 @@ const fetchCatalogCandidates = async ({
       throw new Error(`Catalog autocomplete failed: ${response.status}`)
     }
 
-    return (await response.json()) as CatalogAutocompleteResponse
+    const payload: unknown = await response.json()
+    return parseCatalogAutocompleteResponse(payload)
   } catch (error) {
     if (abortController.signal.aborted) {
       throw new Error(
@@ -157,14 +215,14 @@ export const fetchSearchAutocomplete = async ({
   return {
     brands: createBrandSuggestions({
       brandFacets: catalogResponse.facets?.brand ?? [],
+      limit: BRAND_LIMIT,
       productHits,
       query: normalizedQuery,
-      limit: BRAND_LIMIT,
     }),
     categories: createCategorySuggestions({
+      limit: CATEGORY_LIMIT,
       productHits,
       query: normalizedQuery,
-      limit: CATEGORY_LIMIT,
     }),
     products: createProductSuggestions(
       productHits,

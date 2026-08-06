@@ -1,6 +1,11 @@
+import { getRecordValue } from "@techsio/std/object"
 import { NextResponse } from "next/server"
 
-import { badRequest, serverError, setSessionTokenCookie } from "../_lib"
+import {
+  badRequest,
+  serverError,
+  setSessionTokenCookie,
+} from "../auth-route-utils"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 import {
   createCustomerIdentity,
@@ -11,14 +16,6 @@ import {
 } from "./register-flow"
 import type { ParsedRegisterPayload } from "./register-flow"
 import { parseWholesaleRegistration } from "./wholesale"
-
-interface RegisterBody {
-  email?: string
-  password?: string
-  first_name?: string
-  last_name?: string
-  wholesale?: unknown
-}
 
 interface RegisterResponse {
   token: string
@@ -49,9 +46,7 @@ const createRegisterResponse = (token: string) => {
 const parseRegisterBody = async (
   request: Request,
 ): Promise<ParseRegisterBodyResult> => {
-  const body = asRecordOrUndefined(await request.json()) as
-    | RegisterBody
-    | undefined
+  const body = asRecordOrUndefined(await request.json())
 
   if (!body) {
     return {
@@ -60,17 +55,19 @@ const parseRegisterBody = async (
     }
   }
 
-  const email = asStringOrUndefined(body.email)
-  const password = asStringOrUndefined(body.password)
+  const email = asStringOrUndefined(getRecordValue(body, "email"))
+  const password = asStringOrUndefined(getRecordValue(body, "password"))
 
-  if (!(email && password)) {
+  if (email === undefined || password === undefined) {
     return {
       error: badRequest("E-mail aj heslo sú povinné."),
       value: null,
     }
   }
 
-  const wholesale = parseWholesaleRegistration(body.wholesale)
+  const wholesale = parseWholesaleRegistration(
+    getRecordValue(body, "wholesale"),
+  )
   if (wholesale.error) {
     return {
       error: wholesale.error,
@@ -78,8 +75,8 @@ const parseRegisterBody = async (
     }
   }
 
-  const firstName = asStringOrUndefined(body.first_name)
-  const lastName = asStringOrUndefined(body.last_name)
+  const firstName = asStringOrUndefined(getRecordValue(body, "first_name"))
+  const lastName = asStringOrUndefined(getRecordValue(body, "last_name"))
 
   return {
     error: null,
@@ -93,10 +90,10 @@ const parseRegisterBody = async (
   }
 }
 
-export async function POST(request: Request) {
+const post = async (request: Request) => {
   try {
     const parsedBody = await parseRegisterBody(request)
-    if (parsedBody.error) {
+    if (parsedBody.error !== null) {
       return parsedBody.error
     }
 
@@ -111,7 +108,7 @@ export async function POST(request: Request) {
     }
 
     const loginResult = await loginCustomerIdentity({ email, password })
-    if (loginResult.error) {
+    if (loginResult.error !== null) {
       return loginResult.error
     }
 
@@ -149,3 +146,5 @@ export async function POST(request: Request) {
     })
   }
 }
+
+export { post as POST }

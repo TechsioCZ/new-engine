@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
 
 import {
   asStorefrontNumber,
@@ -14,7 +15,7 @@ interface RecommendedProductCandidate {
   product: HttpTypes.StoreProduct
 }
 
-const TOP_OFFER_SET_MULTIPLIER_PATTERN = /\/(\d+)$/
+const TOP_OFFER_SET_MULTIPLIER_PATTERN = /\/\d+$/u
 
 const asString = (value: unknown): string | null => {
   if (typeof value === "string" && value.trim().length > 0) {
@@ -51,28 +52,26 @@ const resolveTopOffer = (product: HttpTypes.StoreProduct) =>
 
 const resolvePrimarySetItem = (product: HttpTypes.StoreProduct) => {
   const metadata = resolveProductMetadata(product)
-  const setItems = Array.isArray(metadata?.set_items) ? metadata.set_items : []
+  const setItemsValue =
+    metadata === null ? undefined : getRecordValue(metadata, "set_items")
+  const setItems = Array.isArray(setItemsValue) ? setItemsValue : []
 
   for (const item of setItems) {
     const record = asStorefrontRecord(item)
-    if (!record) {
-      continue
+    if (record) {
+      const code = asString(getRecordValue(record, "code"))
+      const amount = asPositiveInteger(getRecordValue(record, "amount"))
+      if (code !== null) {
+        return { amount, code }
+      }
     }
-
-    const code = asString(record.code)
-    const amount = asPositiveInteger(record.amount)
-    if (!code) {
-      continue
-    }
-
-    return { amount, code }
   }
 
   return null
 }
 
 const normalizeFamilyCode = (code: string | null) => {
-  if (!code) {
+  if (code === null) {
     return null
   }
 
@@ -81,25 +80,27 @@ const normalizeFamilyCode = (code: string | null) => {
 
 const resolveTopOfferCode = (product: HttpTypes.StoreProduct) => {
   const topOffer = resolveTopOffer(product)
-  return asString(topOffer?.code)
+  return asString(getRecordValue(topOffer ?? {}, "code"))
 }
 
 export const resolveRecommendedProductFamilyKey = (
   product: HttpTypes.StoreProduct,
 ) => {
   const primarySetItem = resolvePrimarySetItem(product)
-  if (primarySetItem?.code) {
+  if (primarySetItem !== null && primarySetItem.code !== null) {
     return primarySetItem.code
   }
 
   const topOfferCode = normalizeFamilyCode(resolveTopOfferCode(product))
-  if (topOfferCode) {
+  if (topOfferCode !== null) {
     return topOfferCode
   }
 
   const metadata = resolveProductMetadata(product)
-  const sourceShopitemId = asString(metadata?.source_shopitem_id)
-  if (sourceShopitemId) {
+  const sourceShopitemId = asString(
+    getRecordValue(metadata ?? {}, "source_shopitem_id"),
+  )
+  if (sourceShopitemId !== null) {
     return sourceShopitemId
   }
 
@@ -110,16 +111,16 @@ const resolveRecommendedProductPackageMultiplier = (
   product: HttpTypes.StoreProduct,
 ) => {
   const primarySetItem = resolvePrimarySetItem(product)
-  if (primarySetItem?.amount) {
+  if (primarySetItem !== null && primarySetItem.amount !== null) {
     return primarySetItem.amount
   }
 
   const topOfferCode = resolveTopOfferCode(product)
-  if (topOfferCode) {
+  if (topOfferCode !== null) {
     const setMultiplier =
-      TOP_OFFER_SET_MULTIPLIER_PATTERN.exec(topOfferCode)?.[1]
+      TOP_OFFER_SET_MULTIPLIER_PATTERN.exec(topOfferCode)?.[0].slice(1)
     const parsedMultiplier = asPositiveInteger(setMultiplier)
-    if (parsedMultiplier) {
+    if (parsedMultiplier !== null) {
       return parsedMultiplier
     }
   }
@@ -129,8 +130,8 @@ const resolveRecommendedProductPackageMultiplier = (
 
 const resolveRecommendedProductInStock = (product: HttpTypes.StoreProduct) => {
   const topOffer = resolveTopOffer(product)
-  const stock = asStorefrontRecord(topOffer?.stock)
-  const amount = asStorefrontNumber(stock?.amount)
+  const stock = asStorefrontRecord(getRecordValue(topOffer ?? {}, "stock"))
+  const amount = asStorefrontNumber(getRecordValue(stock ?? {}, "amount"))
 
   return amount === null ? true : amount > 0
 }
@@ -162,32 +163,30 @@ export const selectRecommendedProductRepresentatives = (
   const seenProducts = new Set<string>()
   const familyCandidates = new Map<string, RecommendedProductCandidate>()
 
-  products.forEach((product, index) => {
+  for (const [index, product] of products.entries()) {
     const productKey =
       product.id ?? product.handle ?? `${product.title ?? "product"}-${index}`
-    if (seenProducts.has(productKey)) {
-      return
-    }
+    if (!seenProducts.has(productKey)) {
+      seenProducts.add(productKey)
 
-    seenProducts.add(productKey)
+      const familyKey = resolveRecommendedProductFamilyKey(product)
+      const currentCandidate = familyCandidates.get(familyKey)
+      const nextCandidate: RecommendedProductCandidate = {
+        familyKey,
+        firstSeenIndex: currentCandidate?.firstSeenIndex ?? index,
+        isInStock: resolveRecommendedProductInStock(product),
+        packageMultiplier: resolveRecommendedProductPackageMultiplier(product),
+        product,
+      }
 
-    const familyKey = resolveRecommendedProductFamilyKey(product)
-    const currentCandidate = familyCandidates.get(familyKey)
-    const nextCandidate: RecommendedProductCandidate = {
-      familyKey,
-      firstSeenIndex: currentCandidate?.firstSeenIndex ?? index,
-      isInStock: resolveRecommendedProductInStock(product),
-      packageMultiplier: resolveRecommendedProductPackageMultiplier(product),
-      product,
+      if (
+        !currentCandidate ||
+        isBetterRecommendedProductCandidate(nextCandidate, currentCandidate)
+      ) {
+        familyCandidates.set(familyKey, nextCandidate)
+      }
     }
-
-    if (
-      !currentCandidate ||
-      isBetterRecommendedProductCandidate(nextCandidate, currentCandidate)
-    ) {
-      familyCandidates.set(familyKey, nextCandidate)
-    }
-  })
+  }
 
   return [...familyCandidates.values()]
     .toSorted((left, right) => left.firstSeenIndex - right.firstSeenIndex)

@@ -5,11 +5,9 @@ interface RegisterPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function RegisterPage({
-  searchParams,
-}: RegisterPageProps) {
-  const resolvedSearchParams = await searchParams
-  const afterAuthHref = resolveAfterAuthHref(resolvedSearchParams.next)
+const RegisterPage = async ({ searchParams }: RegisterPageProps) => {
+  const { next } = await searchParams
+  const afterAuthHref = resolveAfterAuthHref(next)
 
   return (
     <main className="mx-auto w-full max-w-auth-content p-auth-page 2xl:p-auth-page-lg">
@@ -17,3 +15,5 @@ export default async function RegisterPage({
     </main>
   )
 }
+
+export default RegisterPage

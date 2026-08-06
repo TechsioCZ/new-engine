@@ -16,11 +16,11 @@ interface CheckoutStepPageProps {
   }>
 }
 
-function CheckoutStepPageFallback() {
-  return <main className="mx-auto min-h-dvh w-full max-w-max-w" />
-}
+const CheckoutStepPageFallback = () => (
+  <main className="mx-auto min-h-dvh w-full max-w-max-w" />
+)
 
-async function CheckoutStepPageContent({ params }: CheckoutStepPageProps) {
+const CheckoutStepPageContent = async ({ params }: CheckoutStepPageProps) => {
   await connection()
   const { step } = await params
 
@@ -37,10 +37,10 @@ async function CheckoutStepPageContent({ params }: CheckoutStepPageProps) {
   )
 }
 
-export default function CheckoutStepPage(props: CheckoutStepPageProps) {
-  return (
-    <Suspense fallback={<CheckoutStepPageFallback />}>
-      <CheckoutStepPageContent {...props} />
-    </Suspense>
-  )
-}
+const CheckoutStepPage = (props: CheckoutStepPageProps) => (
+  <Suspense fallback={<CheckoutStepPageFallback />}>
+    <CheckoutStepPageContent {...props} />
+  </Suspense>
+)
+
+export default CheckoutStepPage

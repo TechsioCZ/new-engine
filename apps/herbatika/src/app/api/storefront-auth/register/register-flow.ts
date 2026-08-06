@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
 
 import {
   buildErrorResponse,
@@ -8,7 +9,7 @@ import {
   isConflictStatus,
   parseResponseJson,
   serverError,
-} from "../_lib"
+} from "../auth-route-utils"
 import { createWholesaleCompanyRequest } from "./wholesale"
 import type { ParsedWholesaleRegistration } from "./wholesale"
 
@@ -34,9 +35,11 @@ export const refreshCustomerToken = async (loginToken: string) => {
   }
 
   const refreshPayload = await parseResponseJson(refreshResponse)
-  return refreshPayload && typeof refreshPayload.token === "string"
-    ? refreshPayload.token
-    : loginToken
+  const tokenValue =
+    refreshPayload === null
+      ? undefined
+      : getRecordValue(refreshPayload, "token")
+  return typeof tokenValue === "string" ? tokenValue : loginToken
 }
 
 export const createCustomerIdentity = async ({
@@ -100,12 +103,11 @@ export const loginCustomerIdentity = async ({
   }
 
   const loginPayload = await parseResponseJson(loginResponse)
-  const loginToken =
-    loginPayload && typeof loginPayload.token === "string"
-      ? loginPayload.token
-      : null
+  const tokenValue =
+    loginPayload === null ? undefined : getRecordValue(loginPayload, "token")
+  const loginToken = typeof tokenValue === "string" ? tokenValue : null
 
-  if (!loginToken) {
+  if (loginToken === null) {
     return {
       error: serverError(
         "Prihlásenie zákazníka prebehlo úspešne, ale token nebol vrátený.",

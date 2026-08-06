@@ -1,4 +1,6 @@
 import "server-only"
+import { isRecord, getRecordValue } from "@techsio/std/object"
+
 import {
   MEDUSA_BACKEND_URL,
   MEDUSA_PUBLISHABLE_KEY,
@@ -7,14 +9,6 @@ import {
 
 import { normalizeStorefrontBrand } from "./brands"
 import type { StorefrontBrand } from "./brands"
-
-interface StoreBrandsResponse {
-  brands?: Array<{
-    id?: string | null
-    title?: string | null
-    handle?: string | null
-  }>
-}
 
 const STORE_BRANDS_INDEX_LIMIT = 500
 
@@ -36,10 +30,28 @@ export const fetchStorefrontBrands = async (): Promise<StorefrontBrand[]> => {
     throw new Error(`Failed to load storefront brands: ${response.status}`)
   }
 
-  const data = (await response.json()) as StoreBrandsResponse
-  const brands = (data.brands ?? [])
-    .map((brand) => normalizeStorefrontBrand(brand))
-    .filter((brand): brand is StorefrontBrand => Boolean(brand))
+  const data: unknown = await response.json()
+  const brandsValue = isRecord(data) ? getRecordValue(data, "brands") : null
+  const rawBrands = Array.isArray(brandsValue) ? brandsValue : []
+  const brands: StorefrontBrand[] = []
+
+  for (const rawBrand of rawBrands) {
+    if (!isRecord(rawBrand)) {
+      continue
+    }
+
+    const handle = getRecordValue(rawBrand, "handle")
+    const id = getRecordValue(rawBrand, "id")
+    const title = getRecordValue(rawBrand, "title")
+    const brand = normalizeStorefrontBrand({
+      handle: typeof handle === "string" ? handle : null,
+      id: typeof id === "string" ? id : null,
+      title: typeof title === "string" ? title : null,
+    })
+    if (brand !== null) {
+      brands.push(brand)
+    }
+  }
 
   const brandsBySlug = new Map<string, StorefrontBrand>()
   for (const brand of brands) {

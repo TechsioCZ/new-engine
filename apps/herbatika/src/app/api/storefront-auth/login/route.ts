@@ -1,3 +1,4 @@
+import { isRecord, getRecordValue } from "@techsio/std/object"
 import { NextResponse } from "next/server"
 
 import {
@@ -7,30 +8,31 @@ import {
   parseResponseJson,
   serverError,
   setSessionTokenCookie,
-} from "../_lib"
-
-interface LoginBody {
-  email?: string
-  password?: string
-}
+} from "../auth-route-utils"
 
 interface LoginResponse {
   token: string
 }
 
-export async function POST(request: Request) {
-  let body: LoginBody
+const post = async (request: Request) => {
+  let body: unknown
 
   try {
-    body = (await request.json()) as LoginBody
+    body = await request.json()
   } catch {
     return badRequest("Telo požiadavky musí byť platné JSON.")
   }
 
-  const email = body.email?.trim()
-  const { password } = body
+  if (!isRecord(body)) {
+    return badRequest("Telo požiadavky musí byť objekt JSON.")
+  }
 
-  if (!(email && password)) {
+  const emailValue = getRecordValue(body, "email")
+  const email = typeof emailValue === "string" ? emailValue.trim() : undefined
+  const passwordValue = getRecordValue(body, "password")
+  const password = typeof passwordValue === "string" ? passwordValue : undefined
+
+  if (email === undefined || password === undefined) {
     return badRequest("E-mail aj heslo sú povinné.")
   }
 
@@ -51,14 +53,15 @@ export async function POST(request: Request) {
     )
 
     if (!medusaResponse.ok) {
-      return buildErrorResponse(medusaResponse)
+      return await buildErrorResponse(medusaResponse)
     }
 
     const payload = await parseResponseJson(medusaResponse)
-    const token =
-      payload && typeof payload.token === "string" ? payload.token : null
+    const tokenValue =
+      payload === null ? undefined : getRecordValue(payload, "token")
+    const token = typeof tokenValue === "string" ? tokenValue : null
 
-    if (!token) {
+    if (token === null) {
       return serverError(
         "Prihlásenie prebehlo úspešne, ale autentifikačný token nebol vrátený.",
       )
@@ -82,3 +85,5 @@ export async function POST(request: Request) {
     )
   }
 }
+
+export { post as POST }

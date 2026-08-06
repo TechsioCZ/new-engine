@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue, omitKeys } from "@techsio/std/object"
 
 export const DEFAULT_PRODUCT_PAGE_SIZE = 12
 
@@ -38,24 +39,28 @@ export const buildProductListParams = (
     typeof limit === "number" && limit > 0 ? limit : DEFAULT_PRODUCT_PAGE_SIZE
   const resolvedPage = typeof page === "number" && page > 0 ? page : 1
 
-  const params: Record<string, unknown> = {
+  let params: Record<string, unknown> = {
     ...rest,
     limit: resolvedLimit,
     offset:
       typeof offset === "number" ? offset : (resolvedPage - 1) * resolvedLimit,
   }
 
-  const categoryIds = params.category_id
+  const categoryIds = getRecordValue(params, "category_id")
   if (Array.isArray(categoryIds) && categoryIds.length > 0) {
     // Medusa Store parser accepts multi-value `category_id[]` as CSV.
-    params["category_id[]"] = categoryIds.join(",")
-    params.category_id = undefined
+    params = {
+      ...omitKeys(params, ["category_id"]),
+      "category_id[]": categoryIds.join(","),
+    }
   }
 
-  const handles = params.handle
+  const handles = getRecordValue(params, "handle")
   if (Array.isArray(handles) && handles.length > 0) {
-    params["handle[]"] = handles.join(",")
-    params.handle = undefined
+    params = {
+      ...omitKeys(params, ["handle"]),
+      "handle[]": handles.join(","),
+    }
   }
 
   return params

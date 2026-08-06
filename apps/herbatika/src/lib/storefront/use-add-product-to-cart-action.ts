@@ -13,7 +13,7 @@ import type {
   UseAddProductToCartProps,
 } from "./use-add-product-to-cart"
 
-export function useAddProductToCartAction(props: UseAddProductToCartProps) {
+export const useAddProductToCartAction = (props: UseAddProductToCartProps) => {
   const t = useTranslations("cart")
   const toast = useAppToast()
   const { addProductToCart: mutateAddProductToCart, ...addToCartState } =

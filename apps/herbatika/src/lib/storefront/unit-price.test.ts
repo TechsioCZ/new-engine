@@ -1,4 +1,3 @@
-import type { StoreProductVariantWithPricePerUnit } from "@techsio/storefront-data/products/types"
 import { describe, expect, it } from "vitest"
 
 import { formatUnitPriceLabel, resolveVariantPricePerUnit } from "./unit-price"
@@ -84,7 +83,7 @@ describe(resolveVariantPricePerUnit, () => {
     }
     const variant = {
       calculated_price: { price_per_unit: pricePerUnit },
-    } as StoreProductVariantWithPricePerUnit
+    }
 
     expect(
       resolveVariantPricePerUnit(variant, {
@@ -117,7 +116,7 @@ describe(resolveVariantPricePerUnit, () => {
           unit_symbol: "ml",
         },
       },
-    } as StoreProductVariantWithPricePerUnit
+    }
 
     expect(
       resolveVariantPricePerUnit(variant, {
@@ -141,7 +140,7 @@ describe(resolveVariantPricePerUnit, () => {
           unit_symbol: "ml",
         },
       },
-    } as StoreProductVariantWithPricePerUnit
+    }
 
     expect(
       resolveVariantPricePerUnit(variant, {

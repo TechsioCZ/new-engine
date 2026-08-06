@@ -14,13 +14,11 @@ type MarketProviderProps = PropsWithChildren<{
   value?: HerbatikaMarketContext
 }>
 
-export function MarketProvider({
+export const MarketProvider = ({
   children,
   value = DEFAULT_MARKET_CONTEXT,
-}: MarketProviderProps) {
-  return (
-    <MarketContext.Provider value={value}>{children}</MarketContext.Provider>
-  )
-}
+}: MarketProviderProps) => (
+  <MarketContext.Provider value={value}>{children}</MarketContext.Provider>
+)
 
 export const useMarketContext = () => useContext(MarketContext)

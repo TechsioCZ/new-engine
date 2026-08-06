@@ -1,5 +1,5 @@
 import { AccountSettings } from "@/components/account-settings"
 
-export default function AccountSettingsPage() {
-  return <AccountSettings />
-}
+const AccountSettingsPage = () => <AccountSettings />
+
+export default AccountSettingsPage

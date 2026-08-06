@@ -8,10 +8,6 @@ import {
 import type { HerbatikaCurrencyCode } from "./currency"
 import type { HerbatikaMarketContext } from "./market-context"
 
-type RegionCurrencySource = RegionInfo & {
-  currency_code?: unknown
-}
-
 export type HerbatikaRegionInfo = RegionInfo & {
   currency_code?: HerbatikaCurrencyCode
 }
@@ -19,7 +15,9 @@ export type HerbatikaRegionInfo = RegionInfo & {
 const resolveRegionCountryCodes = (region: HttpTypes.StoreRegion): string[] =>
   region.countries
     ?.map((country) => country.iso_2?.toLowerCase())
-    .filter((countryCode): countryCode is string => Boolean(countryCode)) ?? []
+    .filter(
+      (countryCode): countryCode is string => countryCode !== undefined,
+    ) ?? []
 
 export const regionMatchesMarket = (
   region: HttpTypes.StoreRegion,
@@ -35,10 +33,13 @@ const resolveCountryCode = (
     ?.trim()
     .toLowerCase()
 
-  return normalizedExpectedCountryCode &&
+  if (
+    normalizedExpectedCountryCode !== undefined &&
     countryCodes.includes(normalizedExpectedCountryCode)
-    ? normalizedExpectedCountryCode
-    : (countryCodes[0] ?? "")
+  ) {
+    return normalizedExpectedCountryCode
+  }
+  return countryCodes[0] ?? ""
 }
 
 export const toRegionInfo = (
@@ -50,18 +51,18 @@ export const toRegionInfo = (
   return {
     country_code: resolveCountryCode(region, expectedCountryCode),
     region_id: region.id,
-    ...(currencyCode ? { currency_code: currencyCode } : {}),
+    ...(currencyCode === null ? {} : { currency_code: currencyCode }),
   }
 }
 
 export const resolveRegionCurrency = (
-  region?: RegionInfo | null,
+  region?: HerbatikaRegionInfo | null,
 ): HerbatikaCurrencyCode => {
   const explicitCurrencyCode = normalizeSupportedCurrencyCode(
     region?.currency_code,
   )
 
-  if (explicitCurrencyCode) {
+  if (explicitCurrencyCode !== null) {
     return explicitCurrencyCode
   }
 
@@ -73,7 +74,7 @@ export const resolveRegionForMarket = (
   marketContext: HerbatikaMarketContext,
   regionId: string | null | undefined,
 ): HttpTypes.StoreRegion | null => {
-  if (regionId) {
+  if (regionId !== null && regionId !== undefined && regionId.length > 0) {
     const selectedRegion = regions.find((region) => region.id === regionId)
     if (selectedRegion && regionMatchesMarket(selectedRegion, marketContext)) {
       return selectedRegion

@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 type OrderRecord = Record<string, unknown>
 
@@ -21,7 +21,7 @@ const readString = (value: unknown) => {
 const readFromRecord = (record: OrderRecord, keys: string[]) => {
   for (const key of keys) {
     const value = readString(record[key])
-    if (value) {
+    if (value !== null) {
       return value
     }
   }
@@ -30,7 +30,7 @@ const readFromRecord = (record: OrderRecord, keys: string[]) => {
 }
 
 const formatCountry = (value: string | null) => {
-  if (!value) {
+  if (value === null) {
     return null
   }
 
@@ -68,7 +68,8 @@ const toAddressSummary = (value: unknown): OrderAddressSummary | null => {
     phone,
   ].filter((line): line is string => Boolean(line))
 
-  if (!(fullName || company) && lines.length === 0) {
+  const hasRecipient = (fullName ?? "").length > 0 || (company ?? "").length > 0
+  if (!hasRecipient && lines.length === 0) {
     return null
   }
 
@@ -91,17 +92,17 @@ const readMethodLabel = (candidate: unknown) => {
     "providerId",
     "id",
   ])
-  if (directLabel) {
+  if ((directLabel ?? "").length > 0) {
     return directLabel
   }
 
   const nestedCandidates = [
-    candidate.option,
-    candidate.shipping_option,
-    candidate.shippingOption,
-    candidate.provider,
-    candidate.payment_provider,
-    candidate.paymentProvider,
+    getRecordValue(candidate, "option"),
+    getRecordValue(candidate, "shipping_option"),
+    getRecordValue(candidate, "shippingOption"),
+    getRecordValue(candidate, "provider"),
+    getRecordValue(candidate, "payment_provider"),
+    getRecordValue(candidate, "paymentProvider"),
   ]
 
   for (const nestedCandidate of nestedCandidates) {
@@ -117,7 +118,7 @@ const readMethodLabel = (candidate: unknown) => {
       "id",
     ])
 
-    if (nestedLabel) {
+    if ((nestedLabel ?? "").length > 0) {
       return nestedLabel
     }
   }
@@ -163,7 +164,7 @@ export const resolveOrderPaymentMethodLabel = (order: HttpTypes.StoreOrder) => {
   const { transactions } = order as { transactions?: unknown }
   if (Array.isArray(transactions) && transactions.length > 0) {
     const transactionLabel = readMethodLabel(transactions[0])
-    if (transactionLabel) {
+    if ((transactionLabel ?? "").length > 0) {
       return transactionLabel
     }
   }
@@ -172,7 +173,7 @@ export const resolveOrderPaymentMethodLabel = (order: HttpTypes.StoreOrder) => {
     .payment_collections
   if (Array.isArray(paymentCollections) && paymentCollections.length > 0) {
     const paymentCollectionLabel = readMethodLabel(paymentCollections[0])
-    if (paymentCollectionLabel) {
+    if ((paymentCollectionLabel ?? "").length > 0) {
       return paymentCollectionLabel
     }
   }

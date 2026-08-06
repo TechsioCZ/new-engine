@@ -1,7 +1,6 @@
 import "server-only"
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
-import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
 import { createMedusaStorefrontServerReadPreset } from "@techsio/storefront-data/medusa/server-read"
 import type { MedusaProductAttributesInput } from "@techsio/storefront-data/product-attributes/medusa-service"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
@@ -71,23 +70,24 @@ export const fetchServerRegions = async (
   queryClient: QueryClient,
   listParams: RegionListParams,
 ) =>
-  queryClient.fetchQuery(
+  await queryClient.fetchQuery(
     storefrontServerRead.queries.regions.getListQueryOptions(listParams),
   )
 
 export const prefetchServerProducts = async (
   queryClient: QueryClient,
   listParams: ProductListParams,
-) =>
-  queryClient.prefetchQuery(
+) => {
+  await queryClient.prefetchQuery(
     storefrontServerRead.queries.products.getListQueryOptions(listParams),
   )
+}
 
 export const fetchServerProducts = async (
   queryClient: QueryClient,
   listParams: ProductListParams,
 ) =>
-  queryClient.fetchQuery(
+  await queryClient.fetchQuery(
     storefrontServerRead.queries.products.getListQueryOptions(listParams),
   )
 
@@ -95,40 +95,43 @@ export const fetchServerProduct = async (
   queryClient: QueryClient,
   detailParams: ProductDetailParams,
 ) =>
-  queryClient.fetchQuery(
+  await queryClient.fetchQuery(
     storefrontServerRead.queries.products.getDetailQueryOptions(detailParams),
   )
 
 export const prefetchServerProductReviews = async (
   queryClient: QueryClient,
   listParams: MedusaProductReviewListInput,
-) =>
-  queryClient.prefetchQuery(
+) => {
+  await queryClient.prefetchQuery(
     storefrontServerRead.queries.reviews.getProductReviewsQueryOptions(
       listParams,
     ),
   )
+}
 
 export const prefetchServerProductAttributes = async (
   queryClient: QueryClient,
   input: MedusaProductAttributesInput,
-) =>
-  queryClient.prefetchQuery(
+) => {
+  await queryClient.prefetchQuery(
     storefrontServerRead.queries.productAttributes.getDetailQueryOptions(input),
   )
+}
 
 export const fetchServerCategories = async (
   queryClient: QueryClient,
   listParams: CategoryListParams,
 ) =>
-  queryClient.fetchQuery(
+  await queryClient.fetchQuery(
     storefrontServerRead.queries.categories.getListQueryOptions(listParams),
   )
 
 export const prefetchServerCatalogProducts = async (
   queryClient: QueryClient,
   listParams: CatalogListParams,
-) =>
-  queryClient.prefetchQuery(
+) => {
+  await queryClient.prefetchQuery(
     storefrontServerRead.queries.catalog.getListQueryOptions(listParams),
   )
+}

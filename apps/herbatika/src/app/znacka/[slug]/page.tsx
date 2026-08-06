@@ -44,9 +44,9 @@ const createSearchParamsSuffix = (
   return queryString ? `?${queryString}` : ""
 }
 
-export async function generateMetadata({
+export const generateMetadata = async ({
   params,
-}: Pick<BrandPageProps, "params">): Promise<Metadata> {
+}: Pick<BrandPageProps, "params">): Promise<Metadata> => {
   const { slug } = await params
   const [brand, tCatalog] = await Promise.all([
     resolveBrandPageData(slug),
@@ -67,10 +67,7 @@ export async function generateMetadata({
   }
 }
 
-export default async function BrandPage({
-  params,
-  searchParams,
-}: BrandPageProps) {
+const BrandPage = async ({ params, searchParams }: BrandPageProps) => {
   const [{ slug }, resolvedSearchParams] = await Promise.all([
     params,
     searchParams,
@@ -101,3 +98,5 @@ export default async function BrandPage({
     </HydrationBoundary>
   )
 }
+
+export default BrandPage

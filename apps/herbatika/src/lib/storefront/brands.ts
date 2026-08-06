@@ -19,8 +19,8 @@ interface RawStorefrontBrandInput {
 
 const BRAND_FACET_PREFIX = "brand-"
 const NUMERIC_BRAND_GROUP = "0-9"
-const DIGIT_CHARACTER_PATTERN = /^\d$/
-const LATIN_UPPERCASE_CHARACTER_PATTERN = /^[A-Z]$/
+const DIGIT_CHARACTER_PATTERN = /^\d$/u
+const LATIN_UPPERCASE_CHARACTER_PATTERN = /^[A-Z]$/u
 const BRAND_GROUP_ORDER = [
   "A",
   "B",
@@ -61,9 +61,9 @@ export const createBrandSlug = (value: string): string =>
     .toLowerCase()
     .normalize("NFD")
     .replaceAll(/\p{Diacritic}/gu, "")
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/-+/g, "-")
-    .replaceAll(/^-+|-+$/g, "")
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/-+/gu, "-")
+    .replaceAll(/^-+|-+$/gu, "")
 
 export const createBrandHref = (brand: Pick<StorefrontBrand, "slug">) =>
   `/znacka/${brand.slug}`
@@ -76,14 +76,20 @@ export const normalizeStorefrontBrand = (
 ): StorefrontBrand | null => {
   const title = input.title?.trim()
 
-  if (!(input.id && title)) {
+  if (input.id === null || input.id === undefined) {
+    return null
+  }
+  if (input.id.length === 0) {
+    return null
+  }
+  if (title === undefined || title.length === 0) {
     return null
   }
 
-  const handle = input.handle?.trim() || title
+  const handle = input.handle?.trim() ?? title
   const slug = createBrandSlug(handle)
 
-  if (!slug) {
+  if (slug.length === 0) {
     return null
   }
 
@@ -144,7 +150,7 @@ export const groupStorefrontBrands = (
 
     return [
       {
-        brands: [...groupBrands].sort((left, right) =>
+        brands: [...groupBrands].toSorted((left, right) =>
           brandCollator.compare(left.title, right.title),
         ),
         letter,

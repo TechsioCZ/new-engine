@@ -1,10 +1,15 @@
+import { isRecord, getRecordValue } from "@techsio/std/object"
 import { NextResponse } from "next/server"
 
 import { resolveMedusaBackendUrl } from "@/lib/storefront/runtime-env"
 
 const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
+const publishableKey = getRecordValue(
+  process.env,
+  "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+)
 const MEDUSA_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
+  typeof publishableKey === "string" ? publishableKey : ""
 const AUTH_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14
 
 interface ErrorPayload {
@@ -19,7 +24,8 @@ export const buildMedusaUrl = (path: string) =>
 
 export const parseResponseJson = async (response: Response) => {
   try {
-    return (await response.json()) as Record<string, unknown>
+    const payload: unknown = await response.json()
+    return isRecord(payload) ? payload : null
   } catch {
     return null
   }
@@ -39,8 +45,10 @@ const fallbackErrorMessage = (status: number) => {
 
 export const buildErrorResponse = async (response: Response) => {
   const payload = await parseResponseJson(response)
+  const messageValue =
+    payload === null ? undefined : getRecordValue(payload, "message")
   const messageFromPayload =
-    payload && typeof payload.message === "string" ? payload.message : null
+    typeof messageValue === "string" ? messageValue : null
 
   return NextResponse.json<ErrorPayload>(
     {
@@ -69,7 +77,7 @@ export const serverError = (message: string, details?: unknown) =>
   )
 
 export const getPublishableHeaders = (): Record<string, string> => {
-  if (!MEDUSA_PUBLISHABLE_KEY) {
+  if (MEDUSA_PUBLISHABLE_KEY.length === 0) {
     return {}
   }
 
@@ -108,7 +116,7 @@ export const clearSessionTokenCookie = (response: NextResponse) => {
 export const getSessionTokenFromCookieHeader = (
   cookieHeader: string | null,
 ) => {
-  if (!cookieHeader) {
+  if (cookieHeader === null || cookieHeader.length === 0) {
     return null
   }
 

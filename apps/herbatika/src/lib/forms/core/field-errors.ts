@@ -26,20 +26,20 @@ interface VisibleFieldFeedback {
 }
 
 interface ResolvedFieldValidationResult {
-  errorText: string | undefined
+  errorText?: string
   matchedSource: boolean
 }
 
 const toFieldErrorText = (error: unknown): string | undefined => {
+  let errorText: string | undefined
+
   if (typeof error === "string" || typeof error === "number") {
-    return String(error)
+    errorText = String(error)
+  } else if (Array.isArray(error) && error.length > 0) {
+    errorText = toFieldErrorText(error[0])
   }
 
-  if (Array.isArray(error) && error.length > 0) {
-    return toFieldErrorText(error[0])
-  }
-
-  return
+  return errorText
 }
 
 const hasValidationResult = (
@@ -58,17 +58,14 @@ const resolveErrorFromValidationSources = (
 ): ResolvedFieldValidationResult => {
   for (const source of sources) {
     if (hasValidationResult(meta, source)) {
-      return {
-        errorText: toFieldErrorText(meta.errorMap[source]),
-        matchedSource: true,
-      }
+      const errorText = toFieldErrorText(meta.errorMap[source])
+      return errorText === undefined
+        ? { matchedSource: true }
+        : { errorText, matchedSource: true }
     }
   }
 
-  return {
-    errorText: undefined,
-    matchedSource: false,
-  }
+  return { matchedSource: false }
 }
 
 const resolveFallbackFieldError = (meta: FieldErrorMeta) =>
@@ -169,19 +166,17 @@ const resolveVisibleFieldError = ({
   submissionAttempts,
   validationMode = "blur",
 }: ResolveVisibleFieldErrorOptions) => {
-  if (validationMode === "none") {
-    return
+  let errorText: string | undefined
+
+  if (validationMode !== "none") {
+    if (submissionAttempts > 0) {
+      errorText = resolveSubmittedFieldError(meta, hasChangedSinceBlur)
+    } else if (meta.isBlurred) {
+      errorText = resolveBlurredFieldError(meta, hasChangedSinceBlur)
+    }
   }
 
-  if (submissionAttempts > 0) {
-    return resolveSubmittedFieldError(meta, hasChangedSinceBlur)
-  }
-
-  if (!meta.isBlurred) {
-    return
-  }
-
-  return resolveBlurredFieldError(meta, hasChangedSinceBlur)
+  return errorText
 }
 
 export const resolveVisibleFieldFeedback = (
@@ -191,6 +186,6 @@ export const resolveVisibleFieldFeedback = (
 
   return {
     errorText,
-    validateStatus: errorText ? "error" : "default",
+    validateStatus: (errorText ?? "").length > 0 ? "error" : "default",
   }
 }

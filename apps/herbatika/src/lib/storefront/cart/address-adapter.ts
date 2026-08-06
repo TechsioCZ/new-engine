@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { isRecord, omitKeys } from "@techsio/std/object"
 import {
   createCheckoutCartAddressAdapter,
   mapMedusaAddressToCheckoutAddress,
@@ -35,12 +35,14 @@ const baseAddressAdapter =
   createCheckoutCartAddressAdapter<HerbatikaCheckoutAddressInput>()
 
 const normalizeOptionalString = (value: unknown) => {
-  if (typeof value !== "string") {
-    return
+  let normalizedValue: string | undefined
+
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    normalizedValue = trimmed.length > 0 ? trimmed : undefined
   }
 
-  const normalized = value.trim()
-  return normalized.length > 0 ? normalized : undefined
+  return normalizedValue
 }
 
 const buildHerbatikaAddressMetadata = (
@@ -49,17 +51,17 @@ const buildHerbatikaAddressMetadata = (
     "companyId" | "customerNote" | "metadata" | "taxId" | "vatId"
   >,
 ) => {
-  const metadata = {
+  let metadata = {
     ...(isRecord(input.metadata) ? input.metadata : {}),
   }
 
   for (const [sourceField, metadataKey] of HERBATIKA_ADDRESS_METADATA_FIELDS) {
     const normalizedValue = normalizeOptionalString(input[sourceField])
 
-    if (normalizedValue) {
+    if ((normalizedValue ?? "").length > 0) {
       metadata[metadataKey] = normalizedValue
     } else {
-      delete metadata[metadataKey]
+      metadata = omitKeys(metadata, [metadataKey])
     }
   }
 
@@ -92,8 +94,7 @@ export const buildHerbatikaCheckoutAddressInput = (
 export const mapHerbatikaAddressFormStateFromMedusaAddress = (
   address?: MedusaAddressLike | null,
 ): Partial<CheckoutAddressValues> => {
-  const baseAddress =
-    mapMedusaAddressToCheckoutAddress<HerbatikaCheckoutAddressInput>(address)
+  const baseAddress = mapMedusaAddressToCheckoutAddress(address)
   const metadata = isRecord(address?.metadata) ? address.metadata : undefined
 
   const values = {

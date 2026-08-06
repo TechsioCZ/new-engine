@@ -33,9 +33,9 @@ const createEmptyCartResetSuccessHandler =
     onSuccess?.(cart)
   }
 
-export function useUpdateLineItem(
+export const useUpdateLineItem = (
   options?: Parameters<typeof useBaseUpdateLineItem>[0],
-) {
+) => {
   const queryClient = useQueryClient()
 
   return useBaseUpdateLineItem({
@@ -47,9 +47,9 @@ export function useUpdateLineItem(
   })
 }
 
-export function useRemoveLineItem(
+export const useRemoveLineItem = (
   options?: Parameters<typeof useBaseRemoveLineItem>[0],
-) {
+) => {
   const queryClient = useQueryClient()
 
   return useBaseRemoveLineItem({

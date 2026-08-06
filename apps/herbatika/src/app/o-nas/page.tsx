@@ -8,6 +8,6 @@ export const metadata: Metadata = {
   title: "O našom tíme | Herbatika",
 }
 
-export default function AboutPageRoute() {
-  return <AboutPage />
-}
+const AboutPageRoute = () => <AboutPage />
+
+export default AboutPageRoute

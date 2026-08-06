@@ -8,7 +8,7 @@ interface SearchPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function SearchPage({ searchParams }: SearchPageProps) {
+const SearchPage = async ({ searchParams }: SearchPageProps) => {
   const resolvedSearchParams = await searchParams
 
   const queryState = parsePlpQueryStateFromSearchParams(resolvedSearchParams)
@@ -20,3 +20,5 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     </HydrationBoundary>
   )
 }
+
+export default SearchPage

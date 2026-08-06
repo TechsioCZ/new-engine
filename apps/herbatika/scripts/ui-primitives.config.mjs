@@ -12,14 +12,14 @@ export default {
       message:
         "Nepouzivej primo icon knihovny, pouzij @techsio/ui-kit/atoms/icon.",
       modulePatterns: [
-        /^react-icons(?:\/|$)/,
-        /^lucide-react$/,
-        /^@heroicons\/react(?:\/|$)/,
-        /^@tabler\/icons-react$/,
-        /^@iconify\/react$/,
-        /^@fortawesome\//,
-        /^phosphor-react$/,
-        /^@phosphor-icons\/react$/,
+        /^react-icons(?:\/|$)/u,
+        /^lucide-react$/u,
+        /^@heroicons\/react(?:\/|$)/u,
+        /^@tabler\/icons-react$/u,
+        /^@iconify\/react$/u,
+        /^@fortawesome\//u,
+        /^phosphor-react$/u,
+        /^@phosphor-icons\/react$/u,
       ],
     },
     bannedJsxTags: {

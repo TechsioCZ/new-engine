@@ -6,10 +6,12 @@ interface AccountOrderDetailPageProps {
   }>
 }
 
-export default async function AccountOrderDetailPage({
+const AccountOrderDetailPage = async ({
   params,
-}: AccountOrderDetailPageProps) {
+}: AccountOrderDetailPageProps) => {
   const { id } = await params
 
   return <AccountOrderDetail orderId={id} />
 }
+
+export default AccountOrderDetailPage

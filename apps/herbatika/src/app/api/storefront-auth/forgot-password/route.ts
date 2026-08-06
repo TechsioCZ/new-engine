@@ -1,3 +1,4 @@
+import { isRecord, getRecordValue } from "@techsio/std/object"
 import { NextResponse } from "next/server"
 
 import {
@@ -5,28 +6,29 @@ import {
   buildErrorResponse,
   buildMedusaUrl,
   serverError,
-} from "../_lib"
-
-interface ForgotPasswordBody {
-  email?: string
-}
+} from "../auth-route-utils"
 
 interface ForgotPasswordResponse {
   success: true
 }
 
-export async function POST(request: Request) {
-  let body: ForgotPasswordBody
+const post = async (request: Request) => {
+  let body: unknown
 
   try {
-    body = (await request.json()) as ForgotPasswordBody
+    body = await request.json()
   } catch {
     return badRequest("Telo požiadavky musí byť platné JSON.")
   }
 
-  const email = body.email?.trim()
+  if (!isRecord(body)) {
+    return badRequest("Telo požiadavky musí byť objekt JSON.")
+  }
 
-  if (!email) {
+  const emailValue = getRecordValue(body, "email")
+  const email = typeof emailValue === "string" ? emailValue.trim() : undefined
+
+  if ((email ?? "").length <= 0) {
     return badRequest("E-mail je povinný.")
   }
 
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
     )
 
     if (!medusaResponse.ok) {
-      return buildErrorResponse(medusaResponse)
+      return await buildErrorResponse(medusaResponse)
     }
 
     return NextResponse.json<ForgotPasswordResponse>(
@@ -60,3 +62,5 @@ export async function POST(request: Request) {
     })
   }
 }
+
+export { post as POST }

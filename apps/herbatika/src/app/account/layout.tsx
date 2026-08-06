@@ -6,6 +6,8 @@ interface AccountLayoutProps {
   children: ReactNode
 }
 
-export default function AccountLayout({ children }: AccountLayoutProps) {
-  return <AccountShell>{children}</AccountShell>
-}
+const AccountLayout = ({ children }: AccountLayoutProps) => (
+  <AccountShell>{children}</AccountShell>
+)
+
+export default AccountLayout

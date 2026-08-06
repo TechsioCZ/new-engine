@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server"
 import { BrandIndexPage } from "@/components/brands/brand-index-page"
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server"
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = async (): Promise<Metadata> => {
   const tCatalog = await getTranslations("catalog")
 
   return {
@@ -13,8 +13,10 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function BrandsPage() {
+const BrandsPage = async () => {
   const brands = await fetchStorefrontBrands()
 
   return <BrandIndexPage brands={brands} />
 }
+
+export default BrandsPage

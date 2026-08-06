@@ -16,10 +16,7 @@ const CATEGORY_SLUG_ALIASES: Record<string, string> = {
   akcie: "vypredaj-zlavy-a-akcie",
 }
 
-export default async function CategoryPage({
-  params,
-  searchParams,
-}: CategoryPageProps) {
+const CategoryPage = async ({ params, searchParams }: CategoryPageProps) => {
   const [{ slug }, resolvedSearchParams] = await Promise.all([
     params,
     searchParams,
@@ -44,3 +41,5 @@ export default async function CategoryPage({
     </HydrationBoundary>
   )
 }
+
+export default CategoryPage

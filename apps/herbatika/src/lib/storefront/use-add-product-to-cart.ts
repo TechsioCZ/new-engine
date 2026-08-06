@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
@@ -34,7 +35,7 @@ class AddProductToCartError extends Error {
 type CartTranslator = ReturnType<typeof useTranslations<"cart">>
 
 const INSUFFICIENT_INVENTORY_ERROR_PATTERN =
-  /insufficient_inventory|required inventory|does not have the required inventory/i
+  /insufficient_inventory|required inventory|does not have the required inventory/iu
 
 const isInsufficientInventoryError = (message: string) =>
   INSUFFICIENT_INVENTORY_ERROR_PATTERN.test(message)
@@ -73,7 +74,7 @@ const resolveProductVariantId = (
   product: AddProductToCartInput["product"],
   variantId?: string | null,
 ) => {
-  if (variantId) {
+  if (typeof variantId === "string" && variantId.length > 0) {
     return variantId
   }
 
@@ -85,7 +86,7 @@ const resolveProductVariant = (
   variantId?: string | null,
 ) => {
   const resolvedVariantId = resolveProductVariantId(product, variantId)
-  if (!resolvedVariantId) {
+  if (resolvedVariantId === null) {
     return null
   }
 
@@ -106,29 +107,37 @@ const resolveLineItemVariantId = (
 ): string | null => {
   const itemRecord = asStorefrontRecord(item)
 
-  if (typeof itemRecord?.variant_id === "string") {
-    return itemRecord.variant_id
+  const variantId =
+    itemRecord === null ? undefined : getRecordValue(itemRecord, "variant_id")
+  if (typeof variantId === "string") {
+    return variantId
   }
 
-  const variant = asStorefrontRecord(itemRecord?.variant)
-  return typeof variant?.id === "string" ? variant.id : null
+  const variantValue =
+    itemRecord === null ? undefined : getRecordValue(itemRecord, "variant")
+  const variant = asStorefrontRecord(variantValue)
+  const id = variant === null ? undefined : getRecordValue(variant, "id")
+  return typeof id === "string" ? id : null
 }
 
 const resolveExistingCartVariantQuantity = (
   cart: HttpTypes.StoreCart | null,
   variantId: string | null,
 ) => {
-  if (!variantId) {
+  if (variantId === null) {
     return 0
   }
 
-  return (cart?.items ?? []).reduce((sum, item) => {
-    if (resolveLineItemVariantId(item) !== variantId) {
-      return sum
+  let quantity = 0
+  for (const item of cart?.items ?? []) {
+    if (resolveLineItemVariantId(item) === variantId) {
+      quantity += Math.max(
+        0,
+        Math.floor(asStorefrontNumber(item.quantity) ?? 0),
+      )
     }
-
-    return sum + Math.max(0, Math.floor(asStorefrontNumber(item.quantity) ?? 0))
-  }, 0)
+  }
+  return quantity
 }
 
 const assertAddProductToCartVariant = ({
@@ -147,7 +156,7 @@ const assertAddProductToCartVariant = ({
   const resolvedVariant = resolveProductVariant(product, variantId)
   const resolvedVariantId = resolvedVariant?.id ?? null
 
-  if (!(resolvedVariantId && resolvedVariant)) {
+  if (resolvedVariant === null || resolvedVariantId === null) {
     throw new AddProductToCartError(translateCart("missing_variant"))
   }
 
@@ -178,10 +187,10 @@ const assertAddProductToCartVariant = ({
   return resolvedVariantId
 }
 
-export function useAddProductToCart({
+export const useAddProductToCart = ({
   regionId,
   countryCode,
-}: UseAddProductToCartProps) {
+}: UseAddProductToCartProps) => {
   const translateCart = useTranslations("cart")
   const [activeProductId, setActiveProductId] = useState<string | null>(null)
 
@@ -190,7 +199,7 @@ export function useAddProductToCart({
     {
       autoCreate: false,
       autoUpdateRegion: false,
-      ...(countryCode === undefined ? {} : { country_code: countryCode }),
+      ...(typeof countryCode === "string" ? { country_code: countryCode } : {}),
       ...(regionId === undefined ? {} : { region_id: regionId }),
     },
     {
@@ -203,7 +212,7 @@ export function useAddProductToCart({
     quantity = 1,
     variantId,
   }: AddProductToCartInput) => {
-    if (!regionId) {
+    if (typeof regionId !== "string" || regionId.length === 0) {
       throw new AddProductToCartError(translateCart("missing_region"))
     }
 
@@ -225,14 +234,16 @@ export function useAddProductToCart({
       const lineItemMetadata = resolveLineItemMetadata(product)
 
       await addLineItemMutation.mutateAsync({
-        variantId: resolvedVariantId,
-        quantity,
+        autoCreate: true,
+        ...(typeof countryCode === "string"
+          ? { country_code: countryCode }
+          : {}),
         ...(lineItemMetadata === undefined
           ? {}
           : { metadata: lineItemMetadata }),
-        autoCreate: true,
+        quantity,
         region_id: regionId,
-        ...(countryCode === undefined ? {} : { country_code: countryCode }),
+        variantId: resolvedVariantId,
       })
     } catch (error) {
       const errorMessage = resolveErrorMessage(error, translateCart("failed"))

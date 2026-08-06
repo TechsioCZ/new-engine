@@ -21,22 +21,24 @@ const buildHerbatikaPaymentReturnUrl = ({
   paymentCancelled?: boolean
 }) => {
   const origin = resolveBrowserOrigin()
-  if (!origin) {
-    return
+  let returnUrl: string | undefined
+
+  if (origin !== null && origin.length > 0) {
+    const url = new URL(HERBATIKA_PAYMENT_RETURN_PATH, origin)
+    url.searchParams.set("cart_id", cartId)
+    url.searchParams.set("provider_id", providerId)
+    if (paymentCancelled) {
+      url.searchParams.set("payment_cancelled", "true")
+    }
+    returnUrl = url.toString()
   }
 
-  const url = new URL(HERBATIKA_PAYMENT_RETURN_PATH, origin)
-  url.searchParams.set("cart_id", cartId)
-  url.searchParams.set("provider_id", providerId)
-  if (paymentCancelled) {
-    url.searchParams.set("payment_cancelled", "true")
-  }
-  return url.toString()
+  return returnUrl
 }
 
 const resolveCartEmail = (cart: HttpTypes.StoreCart) => {
   const email = cart.email?.trim()
-  return email && email.length > 0 ? email : undefined
+  return typeof email === "string" && email.length > 0 ? email : undefined
 }
 
 export const buildHerbatikaPaymentSessionData = ({
@@ -61,15 +63,16 @@ export const buildHerbatikaPaymentSessionData = ({
     item_id: cartId,
     metadata,
     session_id: cartId,
-    ...(email
-      ? {
+    ...(email === undefined
+      ? {}
+      : {
           customer: { email },
           customer_email: email,
           email,
-        }
-      : {}),
-    ...(returnUrl
-      ? {
+        }),
+    ...(returnUrl === undefined
+      ? {}
+      : {
           cancel_url: cancelUrl ?? returnUrl,
           provider_metadata: {
             cancel_url: cancelUrl ?? returnUrl,
@@ -78,7 +81,6 @@ export const buildHerbatikaPaymentSessionData = ({
           },
           return_url: returnUrl,
           success_url: returnUrl,
-        }
-      : {}),
+        }),
   }
 }

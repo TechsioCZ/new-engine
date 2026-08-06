@@ -397,14 +397,14 @@ const loadConfig = async (configPath) => {
 const main = async () => {
   const args = parseGuardrailArgs(process.argv.slice(2), DEFAULT_CONFIG_PATH)
   const rootDir = process.cwd()
-  const configPath = path.resolve(rootDir, String(args.configPath))
+  const configPath = path.resolve(rootDir, args.configPath)
   if (!fs.existsSync(configPath)) {
     console.error(`Config file not found: ${configPath}`)
     process.exit(2)
   }
   /** @type {UiPrimitivesConfig} */
   let config = defaultConfig
-  if (String(args.configPath) !== DEFAULT_CONFIG_PATH) {
+  if (args.configPath !== DEFAULT_CONFIG_PATH) {
     config = await loadConfig(configPath)
   }
   const sourceFiles = listSourceFiles(rootDir, config)

@@ -82,15 +82,15 @@ export const buildCatalogProductsParams = ({
       : { price_max: normalizedPriceRange.max }),
   }
 
-  if (regionId) {
+  if (typeof regionId === "string" && regionId.length > 0) {
     params.region_id = regionId
   }
 
-  if (countryCode) {
+  if (typeof countryCode === "string" && countryCode.length > 0) {
     params.country_code = countryCode
   }
 
-  if (currencyCode) {
+  if (typeof currencyCode === "string" && currencyCode.length > 0) {
     params.currency_code = currencyCode
   }
 

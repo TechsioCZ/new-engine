@@ -1,3 +1,4 @@
+import { getRecordValue } from "@techsio/std/object"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
@@ -9,7 +10,7 @@ import {
   parseResponseJson,
   serverError,
   setSessionTokenCookie,
-} from "../_lib"
+} from "../auth-route-utils"
 
 interface SessionResponse {
   token: string | null
@@ -21,21 +22,20 @@ const resolveToken = (
   payload: Record<string, unknown> | null,
   fallbackToken: string,
 ) => {
-  if (
-    payload &&
-    typeof payload.token === "string" &&
-    payload.token.length > 0
-  ) {
-    return payload.token
+  if (payload !== null) {
+    const token = getRecordValue(payload, "token")
+    if (typeof token === "string" && token.length > 0) {
+      return token
+    }
   }
 
   return fallbackToken
 }
 
-export async function GET(request: NextRequest) {
+const get = async (request: NextRequest) => {
   const token = getSessionTokenFromCookieHeader(request.headers.get("cookie"))
 
-  if (!token) {
+  if (token === null) {
     return NextResponse.json<SessionResponse>(
       {
         authenticated: false,
@@ -103,3 +103,5 @@ export async function GET(request: NextRequest) {
     })
   }
 }
+
+export { get as GET }

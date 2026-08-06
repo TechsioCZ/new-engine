@@ -37,19 +37,24 @@ export const prefetchProductDetailPageStorefrontData = async (
 
     const product = await prefetchProductDetail(queryClient, detailParams)
     const relatedCategoryIds = resolveRelatedCategoryIds(product)
+    const productId = product?.id
 
-    if (product?.id) {
+    if (typeof productId === "string" && productId.length > 0) {
       await Promise.all([
-        prefetchProductAttributes(queryClient, product.id),
+        prefetchProductAttributes(queryClient, productId),
         prefetchProductReviews(queryClient, {
           limit: PRODUCT_REVIEWS_PAGE_SIZE,
           offset: 0,
-          productId: product.id,
+          productId,
         }),
       ])
     }
 
-    if (relatedCategoryIds.length > 0 && product?.id) {
+    if (
+      relatedCategoryIds.length > 0 &&
+      typeof productId === "string" &&
+      productId.length > 0
+    ) {
       const relatedProductsListParams = buildProductListParams({
         category_id: relatedCategoryIds,
         fields: PRODUCT_CARD_FIELDS,

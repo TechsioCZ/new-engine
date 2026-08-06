@@ -1,4 +1,9 @@
+import { isRecord } from "@techsio/std/object"
+
 import { formatCurrencyAmount } from "./price-format"
+
+type Nullish<T> = T | null | undefined
+type OrderDateValue = Nullish<Date | string>
 
 type OrderStatusBadgeVariant = "danger" | "info" | "success" | "warning"
 type OrderStatusGroup = "fulfillment" | "lifecycle" | "payment"
@@ -17,7 +22,10 @@ export const resolveOrderPaymentStatusLabel = (
   order: StorefrontOrderStatusInput,
   translateStatus: OrderStatusTranslator,
 ) => {
-  if (!order.payment_status) {
+  if (
+    typeof order.payment_status !== "string" ||
+    order.payment_status.length === 0
+  ) {
     return null
   }
 
@@ -28,7 +36,10 @@ export const resolveOrderFulfillmentStatusLabel = (
   order: StorefrontOrderStatusInput,
   translateStatus: OrderStatusTranslator,
 ) => {
-  if (!order.fulfillment_status) {
+  if (
+    typeof order.fulfillment_status !== "string" ||
+    order.fulfillment_status.length === 0
+  ) {
     return null
   }
 
@@ -139,18 +150,15 @@ export const resolveOrderDisplayId = (order: {
   display_id?: number | null
   id: string
 }) => {
-  if (order.display_id) {
+  if ((order.display_id ?? 0) !== 0) {
     return `#${order.display_id}`
   }
 
   return order.id
 }
 
-export const formatOrderDate = (
-  value: Date | string | null | undefined,
-  locale: string,
-) => {
-  if (!value) {
+export const formatOrderDate = (value: OrderDateValue, locale: string) => {
+  if (value === null || value === undefined || value === "") {
     return "-"
   }
 
@@ -213,14 +221,15 @@ export const resolveOrderItemQuantity = (item: {
 export const resolveOrderItemCount = (
   items?: { quantity?: number | null }[] | null,
 ) => {
-  if (!items?.length) {
+  if (!Array.isArray(items) || items.length === 0) {
     return 0
   }
 
-  return items.reduce((count, item) => {
-    const quantity = resolveOrderItemQuantity(item)
-    return count + quantity
-  }, 0)
+  let itemCount = 0
+  for (const item of items) {
+    itemCount += resolveOrderItemQuantity(item)
+  }
+  return itemCount
 }
 
 const resolveRecordValue = (
@@ -239,11 +248,18 @@ const resolveRecordValue = (
 export const resolveOrderInvoiceUrl = (
   order: { metadata?: unknown } | null | undefined,
 ) => {
-  if (!(order?.metadata && typeof order.metadata === "object")) {
+  if (
+    !(
+      order?.metadata !== null &&
+      order?.metadata !== undefined &&
+      typeof order.metadata === "object"
+    )
+  ) {
     return null
   }
 
-  const metadata = order.metadata as Record<string, unknown>
+  const rawMetadata: unknown = order.metadata
+  const metadata = isRecord(rawMetadata) ? rawMetadata : {}
 
   return (
     resolveRecordValue(metadata, "invoice_url") ??

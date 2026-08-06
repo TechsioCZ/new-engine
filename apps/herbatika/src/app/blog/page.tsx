@@ -1,3 +1,4 @@
+import { getRecordValue } from "@techsio/std/object"
 import { connection } from "next/server"
 import { Suspense } from "react"
 
@@ -10,6 +11,9 @@ interface BlogPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === "string")
+
 const parseTopic = (value: string | undefined): BlogTopicKey => {
   if (value === "fitness" || value === "krasa" || value === "zdravie") {
     return value
@@ -19,11 +23,11 @@ const parseTopic = (value: string | undefined): BlogTopicKey => {
 }
 
 const parsePage = (value: string | undefined) => {
-  if (!value) {
+  if ((value ?? "").length <= 0) {
     return 1
   }
 
-  const parsed = Number.parseInt(value, 10)
+  const parsed = Math.trunc(Number(value))
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 1
   }
@@ -31,18 +35,22 @@ const parsePage = (value: string | undefined) => {
   return parsed
 }
 
-function BlogPageFallback() {
-  return <main className="mx-auto min-h-dvh w-full max-w-max-w" />
-}
+const BlogPageFallback = () => (
+  <main className="mx-auto min-h-dvh w-full max-w-max-w" />
+)
 
-async function BlogPageContent({ searchParams }: BlogPageProps) {
+const BlogPageContent = async ({ searchParams }: BlogPageProps) => {
   await connection()
   const resolvedSearchParams = await searchParams
-  const rawTopic = resolvedSearchParams.topic
-  const rawPage = resolvedSearchParams.page
+  const rawTopic = getRecordValue(resolvedSearchParams, "topic")
+  const rawPage = getRecordValue(resolvedSearchParams, "page")
 
-  const topic = parseTopic(Array.isArray(rawTopic) ? rawTopic[0] : rawTopic)
-  const page = parsePage(Array.isArray(rawPage) ? rawPage[0] : rawPage)
+  const topicValue = isStringArray(rawTopic) ? rawTopic[0] : rawTopic
+  const pageValue = isStringArray(rawPage) ? rawPage[0] : rawPage
+  const topic = parseTopic(
+    typeof topicValue === "string" ? topicValue : undefined,
+  )
+  const page = parsePage(typeof pageValue === "string" ? pageValue : undefined)
   const cmsPosts = await fetchCmsBlogPosts()
 
   const listing = resolveBlogListing({
@@ -54,10 +62,10 @@ async function BlogPageContent({ searchParams }: BlogPageProps) {
   return <BlogListingPage listing={listing} />
 }
 
-export default function BlogPageRoute(props: BlogPageProps) {
-  return (
-    <Suspense fallback={<BlogPageFallback />}>
-      <BlogPageContent {...props} />
-    </Suspense>
-  )
-}
+const BlogPageRoute = (props: BlogPageProps) => (
+  <Suspense fallback={<BlogPageFallback />}>
+    <BlogPageContent {...props} />
+  </Suspense>
+)
+
+export default BlogPageRoute

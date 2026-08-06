@@ -48,6 +48,19 @@ export interface ResolveBlogListingInput {
 
 const BLOG_PAGE_SIZE = 12
 
+const BLOG_AUTHOR_ROLE = "Článok pre vás pripravila"
+const EDITORIAL_AUTHOR = "Herbatika redakcia"
+const EDITORIAL_AUTHOR_BIO =
+  "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti."
+const EDITORIAL_AUTHOR_IMAGE =
+  "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80"
+const MONIKA_AUTHOR = "Monika Kováčová"
+const MONIKA_AUTHOR_BIO =
+  "Špecializujem sa na prírodnú kozmetiku, citlivú pokožku a funkčné zloženia bez kompromisov."
+const MONIKA_AUTHOR_IMAGE =
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=320&q=80"
+const HERBAL_EXTRACTS_CATEGORY_HANDLE = "doplnky-vyzivy-bylinne-extrakty"
+
 const BLOG_TOPIC_ONLY_FILTERS: {
   key: Exclude<BlogTopicKey, "all">
   label: string
@@ -72,7 +85,7 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
       "Vyštudovala som žurnalistiku a popri redakčnej práci sa venujem aj copywritingu. Pochádzam spod Tatier a milujem cestovanie, hudbu, dobré knihy a beh.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "hydratačný režim a dopĺňanie minerálov plánujte počas celého dňa",
       "kombinujte horčík, draslík a sodík podľa záťaže, nie nárazovo",
@@ -88,42 +101,42 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "9 min",
     sections: [
       {
-        title: "Čo sú elektrolyty a prečo sú nevyhnutné",
         paragraphs: [
           "Elektrolyty pomáhajú regulovať svalové kontrakcie, nervové impulzy aj hydratáciu buniek. Pri ich poklese telo funguje menej efektívne a to sa prejaví na výkone aj regenerácii.",
           "V bežnom živote k stratám dochádza najmä počas stresu, fyzickej záťaže alebo pri nedostatočnom pitnom režime.",
         ],
+        title: "Čo sú elektrolyty a prečo sú nevyhnutné",
       },
       {
-        title: "Najdôležitejšie elektrolyty a ich úlohy",
-        paragraphs: [
-          "Sodík a draslík ovplyvňujú rovnováhu tekutín, horčík podporuje svalovú a nervovú sústavu a vápnik je dôležitý pre kontrakciu svalov.",
-          "Pri dlhšej fyzickej aktivite má význam dopĺňať elektrolyty priebežne, nie až po výkone.",
-        ],
         bulletPoints: [
           "sodík: udržiavanie hydratácie a krvného tlaku",
           "draslík: funkcia svalov a nervových impulzov",
           "horčík: regenerácia, únava a svalové kŕče",
         ],
+        paragraphs: [
+          "Sodík a draslík ovplyvňujú rovnováhu tekutín, horčík podporuje svalovú a nervovú sústavu a vápnik je dôležitý pre kontrakciu svalov.",
+          "Pri dlhšej fyzickej aktivite má význam dopĺňať elektrolyty priebežne, nie až po výkone.",
+        ],
+        title: "Najdôležitejšie elektrolyty a ich úlohy",
       },
       {
-        title: "Mechanizmus regulácie elektrolytov v tele",
         paragraphs: [
           "Organizmus priebežne reguluje hladiny elektrolytov cez obličky, hormóny a príjem tekutín. Dlhodobý deficit sa prejaví poklesom energie aj výkonnosti.",
         ],
+        title: "Mechanizmus regulácie elektrolytov v tele",
       },
       {
-        title: "Dôsledky nerovnováhy elektrolytov",
         paragraphs: [
           "Nerovnováha môže viesť k únave, svalovým kŕčom, bolestiam hlavy alebo zníženej tolerancii záťaže. Včasné doplnenie je jednoduchý krok s veľkým efektom.",
         ],
+        title: "Dôsledky nerovnováhy elektrolytov",
       },
       {
-        title: "Ako nastaviť praktický režim",
         paragraphs: [
           "Základ je konzistentnosť: pravidelný príjem tekutín, minerálov a kvalitná strava bohatá na zeleninu, bielkoviny a zdravé tuky.",
           "Pri zvýšenej záťaži má význam zaradiť cielene výživové doplnky s overeným zložením a jasným dávkovaním.",
         ],
+        title: "Ako nastaviť praktický režim",
       },
     ],
     slug: "elektrolyty-klucove-mineraly-pre-spravne-fungovanie-tela",
@@ -132,12 +145,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     topic: "zdravie",
   },
   {
-    author: "Herbatika redakcia",
-    authorBio:
-      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
-    authorImageSrc:
-      "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    author: EDITORIAL_AUTHOR,
+    authorBio: EDITORIAL_AUTHOR_BIO,
+    authorImageSrc: EDITORIAL_AUTHOR_IMAGE,
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "ashwagandha je vhodná pri napätí a zhoršenom spánku",
       "podporuje regeneráciu po záťaži",
@@ -153,10 +164,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "9 min",
     sections: [
       {
-        title: "Kedy ashwagandhu zaradiť",
         paragraphs: [
           "Pri dlhodobom strese, horšej kvalite spánku alebo psychickom vyčerpaní môže byť ashwagandha vhodnou súčasťou denného režimu.",
         ],
+        title: "Kedy ashwagandhu zaradiť",
       },
     ],
     slug: "ashwagandha-adaptogen-pre-rovnovahu-tela-a-mysle",
@@ -165,12 +176,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     topic: "fitness",
   },
   {
-    author: "Herbatika redakcia",
-    authorBio:
-      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
-    authorImageSrc:
-      "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    author: EDITORIAL_AUTHOR,
+    authorBio: EDITORIAL_AUTHOR_BIO,
+    authorImageSrc: EDITORIAL_AUTHOR_IMAGE,
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "rhodiola podporuje energiu a koncentráciu",
       "ženšen pomáha pri únave",
@@ -186,10 +195,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "6 min",
     sections: [
       {
-        title: "Ako vyberať adaptogény",
         paragraphs: [
           "Vyberajte produkty so štandardizovaným extraktom a transparentným zložením.",
         ],
+        title: "Ako vyberať adaptogény",
       },
     ],
     slug: "adaptogeny-kedy-ich-zaradit-do-svojho-rezimu",
@@ -198,12 +207,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     topic: "fitness",
   },
   {
-    author: "Monika Kováčová",
-    authorBio:
-      "Špecializujem sa na prírodnú kozmetiku, citlivú pokožku a funkčné zloženia bez kompromisov.",
-    authorImageSrc:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    author: MONIKA_AUTHOR,
+    authorBio: MONIKA_AUTHOR_BIO,
+    authorImageSrc: MONIKA_AUTHOR_IMAGE,
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "uprednostnite krátke zloženie bez dráždivých parfumov",
       "testujte nové produkty postupne",
@@ -219,10 +226,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "4 min",
     sections: [
       {
-        title: "Základná rutina",
         paragraphs: [
           "Jemné čistenie, hydratačné sérum a ochranný krém s upokojujúcimi zložkami tvoria dobrý základ.",
         ],
+        title: "Základná rutina",
       },
     ],
     slug: "prirodna-kozmetika-a-citliva-pokozka",
@@ -231,12 +238,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     topic: "krasa",
   },
   {
-    author: "Herbatika redakcia",
-    authorBio:
-      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
-    authorImageSrc:
-      "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    author: EDITORIAL_AUTHOR,
+    authorBio: EDITORIAL_AUTHOR_BIO,
+    authorImageSrc: EDITORIAL_AUTHOR_IMAGE,
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "raňajky a večeru plánujte v pravidelných časoch",
       "do jedálnička zaraďte fermentované potraviny",
@@ -252,10 +257,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "5 min",
     sections: [
       {
-        title: "Podpora čriev",
         paragraphs: [
           "Probiotiká a prebiotiká majú najlepší efekt pri dlhodobejšom užívaní.",
         ],
+        title: "Podpora čriev",
       },
     ],
     slug: "travenie-a-metabolizmus-ako-zacat-od-zakladu",
@@ -269,7 +274,7 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
       "Venujem sa výžive, vitality managementu a funkčným doplnkom pre aktívny život.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1542382257-80dedb725088?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "krátka chôdza po jedle zlepšuje cirkuláciu",
       "zaraďte rastlinné steroly a omega-3",
@@ -285,10 +290,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "6 min",
     sections: [
       {
-        title: "Dlhodobá prevencia",
         paragraphs: [
           "Najväčší efekt má dlhodobá, konzistentná starostlivosť. Krátkodobé zmeny pomôžu len čiastočne.",
         ],
+        title: "Dlhodobá prevencia",
       },
     ],
     slug: "srdce-a-cievy-ako-podporit-obeh-prirodzene",
@@ -297,12 +302,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     topic: "zdravie",
   },
   {
-    author: "Monika Kováčová",
-    authorBio:
-      "Špecializujem sa na prírodnú kozmetiku, citlivú pokožku a funkčné zloženia bez kompromisov.",
-    authorImageSrc:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    author: MONIKA_AUTHOR,
+    authorBio: MONIKA_AUTHOR_BIO,
+    authorImageSrc: MONIKA_AUTHOR_IMAGE,
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "stabilný spánok znižuje hormonálne výkyvy",
       "dôležitý je pravidelný príjem bielkovín",
@@ -318,10 +321,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "7 min",
     sections: [
       {
-        title: "Ako začať",
         paragraphs: [
           "Vyberte si 2 až 3 návyky, ktoré viete reálne dlhodobo udržať, a postupne pridávajte ďalšie.",
         ],
+        title: "Ako začať",
       },
     ],
     slug: "hormonalna-rovnovaha-a-kazdodenny-rezim",
@@ -330,12 +333,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     topic: "zdravie",
   },
   {
-    author: "Herbatika redakcia",
-    authorBio:
-      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
-    authorImageSrc:
-      "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    author: EDITORIAL_AUTHOR,
+    authorBio: EDITORIAL_AUTHOR_BIO,
+    authorImageSrc: EDITORIAL_AUTHOR_IMAGE,
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "krátke prechádzky viackrát denne sú účinnejšie než nárazová záťaž",
       "dbajte na pitný režim počas celého dňa",
@@ -351,10 +352,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "4 min",
     sections: [
       {
-        title: "Regeneračný režim",
         paragraphs: [
           "Po fyzickej aktivite pomáha kombinácia ľahkého pohybu, hydratácie a kvalitného spánku.",
         ],
+        title: "Regeneračný režim",
       },
     ],
     slug: "lymfaticky-system-a-regeneracia",
@@ -368,7 +369,7 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
       "Vyštudovala som žurnalistiku a popri redakčnej práci sa venujem aj copywritingu. Pochádzam spod Tatier a milujem cestovanie, hudbu, dobré knihy a beh.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "magnézium večer, elektrolyty počas dňa",
       "záťaž bez hydratácie znižuje výkon",
@@ -384,10 +385,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "7 min",
     sections: [
       {
-        title: "Praktické dávkovanie",
         paragraphs: [
           "Rozdeľte suplementáciu do menších dávok počas dňa a sledujte reakciu organizmu.",
         ],
+        title: "Praktické dávkovanie",
       },
     ],
     slug: "mineraly-pre-aktivny-zivot-a-sport",
@@ -396,12 +397,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     topic: "fitness",
   },
   {
-    author: "Monika Kováčová",
-    authorBio:
-      "Špecializujem sa na prírodnú kozmetiku, citlivú pokožku a funkčné zloženia bez kompromisov.",
-    authorImageSrc:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    author: MONIKA_AUTHOR,
+    authorBio: MONIKA_AUTHOR_BIO,
+    authorImageSrc: MONIKA_AUTHOR_IMAGE,
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "znížte alkohol a ultraprocesované jedlá",
       "podporte pečeň ostropestrecom",
@@ -417,10 +416,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "5 min",
     sections: [
       {
-        title: "Bylinky pre podporu pečene",
         paragraphs: [
           "Ostropestrec, púpava a artičok patria medzi najčastejšie používané rastliny pri podpore pečene.",
         ],
+        title: "Bylinky pre podporu pečene",
       },
     ],
     slug: "detox-pecene-bez-extremov",
@@ -434,7 +433,7 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
       "Venujem sa výžive, vitality managementu a funkčným doplnkom pre aktívny život.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1542382257-80dedb725088?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "kombinujte s vitamínom C",
       "zaradiť aj bielkoviny v strave",
@@ -450,10 +449,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "6 min",
     sections: [
       {
-        title: "Typy kolagénu",
         paragraphs: [
           "Najčastejšie sa používajú typ I, II a III, pričom každý má mierne odlišné využitie.",
         ],
+        title: "Typy kolagénu",
       },
     ],
     slug: "kolagen-pre-klby-a-vaziva",
@@ -462,12 +461,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     topic: "fitness",
   },
   {
-    author: "Herbatika redakcia",
-    authorBio:
-      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
-    authorImageSrc:
-      "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80",
-    authorRole: "Článok pre vás pripravila",
+    author: EDITORIAL_AUTHOR,
+    authorBio: EDITORIAL_AUTHOR_BIO,
+    authorImageSrc: EDITORIAL_AUTHOR_IMAGE,
+    authorRole: BLOG_AUTHOR_ROLE,
     bulletPoints: [
       "zaraďte vlákninu a fermentované potraviny",
       "probiotiká užívajte dlhodobo",
@@ -483,10 +480,10 @@ const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     readingTime: "5 min",
     sections: [
       {
-        title: "Kedy probiotiká pomáhajú",
         paragraphs: [
           "Po antibiotikách, pri dlhodobejšom strese alebo pri nepravidelnom trávení vie cielená probiotická kúra pomôcť stabilizovať stav.",
         ],
+        title: "Kedy probiotiká pomáhajú",
       },
     ],
     slug: "probiotika-a-travenie-kazdy-den",
@@ -564,28 +561,27 @@ export const resolveBlogListing = ({
   }
 }
 
-const BLOG_RECOMMENDED_PRODUCTS_BY_SLUG: Record<
-  string,
-  BlogRecommendedProductsConfig
+const BLOG_RECOMMENDED_PRODUCTS_BY_SLUG: Partial<
+  Record<string, BlogRecommendedProductsConfig>
 > = {
   "adaptogeny-kedy-ich-zaradit-do-svojho-rezimu": {
     categoryHandles: [
       "doplnky-vyzivy-adaptogeny",
-      "doplnky-vyzivy-bylinne-extrakty",
+      HERBAL_EXTRACTS_CATEGORY_HANDLE,
     ],
     limit: 10,
   },
   "ashwagandha-adaptogen-pre-rovnovahu-tela-a-mysle": {
     categoryHandles: [
       "doplnky-vyzivy-adaptogeny",
-      "doplnky-vyzivy-bylinne-extrakty",
+      HERBAL_EXTRACTS_CATEGORY_HANDLE,
     ],
     limit: 10,
   },
   "detox-pecene-bez-extremov": {
     categoryHandles: [
       "trapi-ma-travenie-a-metabolizmus-pecen-a-zlcnik",
-      "doplnky-vyzivy-bylinne-extrakty",
+      HERBAL_EXTRACTS_CATEGORY_HANDLE,
     ],
     limit: 10,
   },

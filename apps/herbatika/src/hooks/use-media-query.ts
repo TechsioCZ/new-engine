@@ -1,7 +1,7 @@
 "use client"
 
 import { noop } from "@techsio/std/function"
-import { useCallback, useSyncExternalStore } from "react"
+import { useSyncExternalStore } from "react"
 
 const mediaQueryBreakpoints = {
   "2xl": "(min-width: 88.75rem)",
@@ -18,43 +18,40 @@ interface UseMediaQueryOptions {
   defaultMatches?: boolean
 }
 
-function resolveMediaQuery(query: string) {
-  return Object.hasOwn(mediaQueryBreakpoints, query)
-    ? mediaQueryBreakpoints[query as MediaQueryBreakpoint]
-    : query
-}
+const isMediaQueryBreakpoint = (query: string): query is MediaQueryBreakpoint =>
+  Object.hasOwn(mediaQueryBreakpoints, query)
 
-export function useMediaQuery(
+const resolveMediaQuery = (query: string) =>
+  isMediaQueryBreakpoint(query) ? mediaQueryBreakpoints[query] : query
+
+export const useMediaQuery = (
   query: string,
   { defaultMatches = false }: UseMediaQueryOptions = {},
-) {
+) => {
   const mediaQuery = resolveMediaQuery(query)
 
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (typeof window === "undefined") {
-        return noop
-      }
+  const subscribe = (onStoreChange: () => void) => {
+    if (typeof window === "undefined") {
+      return noop
+    }
 
-      const mediaQueryList = window.matchMedia(mediaQuery)
-      mediaQueryList.addEventListener("change", onStoreChange)
+    const mediaQueryList = window.matchMedia(mediaQuery)
+    mediaQueryList.addEventListener("change", onStoreChange)
 
-      return () => {
-        mediaQueryList.removeEventListener("change", onStoreChange)
-      }
-    },
-    [mediaQuery],
-  )
+    return () => {
+      mediaQueryList.removeEventListener("change", onStoreChange)
+    }
+  }
 
-  const getSnapshot = useCallback(() => {
+  const getSnapshot = () => {
     if (typeof window === "undefined") {
       return defaultMatches
     }
 
     return window.matchMedia(mediaQuery).matches
-  }, [defaultMatches, mediaQuery])
+  }
 
-  const getServerSnapshot = useCallback(() => defaultMatches, [defaultMatches])
+  const getServerSnapshot = () => defaultMatches
 
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }

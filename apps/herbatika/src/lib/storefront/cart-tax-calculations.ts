@@ -26,12 +26,12 @@ export const resolveCartItemsTaxAmount = (
     return Math.max(itemTaxTotal, 0)
   }
 
-  return (
-    cart.items?.reduce((sum, item) => {
-      const itemRecord = isRecord(item) ? item : null
-      return sum + (asFiniteNumber(itemRecord?.tax_total) ?? 0)
-    }, 0) ?? 0
-  )
+  let taxAmount = 0
+  for (const item of cart.items ?? []) {
+    const itemRecord = isRecord(item) ? item : null
+    taxAmount += asFiniteNumber(itemRecord?.tax_total) ?? 0
+  }
+  return taxAmount
 }
 
 export const resolveCartShippingTaxAmount = (
@@ -48,12 +48,12 @@ export const resolveCartShippingTaxAmount = (
     return Math.max(shippingTaxTotal, 0)
   }
 
-  return (
-    cart.shipping_methods?.reduce((sum, shippingMethod) => {
-      const methodRecord = isRecord(shippingMethod) ? shippingMethod : null
-      return sum + (asFiniteNumber(methodRecord?.tax_total) ?? 0)
-    }, 0) ?? 0
-  )
+  let taxAmount = 0
+  for (const shippingMethod of cart.shipping_methods ?? []) {
+    const methodRecord = isRecord(shippingMethod) ? shippingMethod : null
+    taxAmount += asFiniteNumber(methodRecord?.tax_total) ?? 0
+  }
+  return taxAmount
 }
 
 export const resolveCartShippingSubtotalAmount = (

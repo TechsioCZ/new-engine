@@ -59,7 +59,7 @@ export const getProductListTitle = (
     return labels.favorite
   }
 
-  return list?.title?.trim() || labels.untitled
+  return list?.title?.trim() ?? labels.untitled
 }
 
 interface ProductListDetailOptions {
@@ -67,10 +67,10 @@ interface ProductListDetailOptions {
   enabled?: boolean
 }
 
-export function useProductLists(
+export const useProductLists = (
   input: ProductListListInput = {},
   options?: Parameters<typeof productListHooks.useProductLists>[1],
-) {
+) => {
   const tAuth = useTranslations("auth")
   const result = productListHooks.useProductLists(input, options)
 
@@ -85,10 +85,10 @@ export function useProductLists(
   }
 }
 
-export function useProductList(
+export const useProductList = (
   id?: string | null,
   options?: ProductListDetailOptions,
-) {
+) => {
   const tAuth = useTranslations("auth")
   const result = productListHooks.useProductList({
     ...(options?.customerId === undefined
@@ -109,11 +109,11 @@ export function useProductList(
   }
 }
 
-export function useProductListDetails(
+export const useProductListDetails = (
   ids: string[],
   options?: ProductListDetailOptions,
-) {
-  return productListHooks.useProductListDetails(
+) =>
+  productListHooks.useProductListDetails(
     ids.map((id) => ({
       ...(options?.customerId === undefined
         ? {}
@@ -122,7 +122,6 @@ export function useProductListDetails(
     })),
     options?.enabled === undefined ? {} : { enabled: options.enabled },
   )
-}
 
 export const { useCreateCustomProductList } = productListHooks
 export const { useCreateProductListCart } = productListHooks
