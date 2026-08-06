@@ -92,7 +92,7 @@
     "address_update_failed": "Uložení adresy selhalo.",
     "registration_update_failed": "Uložení registrace selhalo.",
     "secure_purchase": "Bezpečný nákup",
-    "login_prompt_title": "Už máte účet Herbatika?",
+    "login_prompt_title": "Už máte účet Herbatica?",
     "login_prompt_description": "<signIn>Přihlaste se</signIn> pro rychlý nákup a slevu na další nákupy.",
     "empty_cart_title": "Košík je prázdný",
     "empty_cart_description": "Vyberte si z novinek nebo pokračujte na domovskou stránku. Objednávku dokončíte hned po přidání produktu.",
@@ -412,7 +412,7 @@
         "thumbnail_aria": "Zobrazit obrázek {index} v galerii"
       },
       "advisor": {
-        "image_alt": "Poradce Herbatika",
+        "image_alt": "Poradce Herbatica",
         "title": "Potřebujete poradit?",
         "description": "Kontaktujte nás, rádi vám pomůžeme"
       },

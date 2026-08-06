@@ -1,0 +1,44 @@
+import { useTranslations } from "next-intl"
+import {
+  HerbaticaBreadcrumb,
+  type HerbaticaBreadcrumbItem,
+} from "@/components/herbatica-breadcrumb"
+import { FaqAccordion } from "./faq-accordion"
+import { faqItemCount, faqItems } from "./faq-page.data"
+
+export function FaqPage() {
+  const tContent = useTranslations("content")
+  const tNavigation = useTranslations("navigation")
+  const breadcrumbItems: HerbaticaBreadcrumbItem[] = [
+    {
+      label: tNavigation("breadcrumbs.home"),
+      href: "/",
+      icon: "token-icon-home",
+    },
+    { label: tContent("pages.faq") },
+  ]
+
+  return (
+    <main className="w-full bg-base font-rubik">
+      <div className="mx-auto flex w-full max-w-max-w flex-col gap-faq-page-gap p-faq-page 2xl:p-faq-page-lg">
+        <HerbaticaBreadcrumb items={breadcrumbItems} />
+
+        <section className="mx-auto w-full max-w-7xl space-y-500">
+          <div className="space-y-400">
+            <h1 className="font-bold text-4xl text-fg-primary leading-tight">
+              Často kladené otázky
+            </h1>
+            <p className="font-verdana text-fg-secondary text-md leading-relaxed">
+              Prehľad odpovedí z pôvodného Herbatica FAQ.
+            </p>
+          </div>
+          <p className="font-verdana text-fg-secondary text-sm leading-normal">
+            {tContent("faq.item_count", { count: faqItemCount })}
+          </p>
+
+          <FaqAccordion items={faqItems} />
+        </section>
+      </div>
+    </main>
+  )
+}

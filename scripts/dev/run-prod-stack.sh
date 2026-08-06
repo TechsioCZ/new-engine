@@ -75,7 +75,7 @@ wait_for_health() {
 
 cd "$REPO_ROOT"
 "${compose_prod[@]}" down || true
-docker rmi "${PROJECT_NAME}-medusa-be" "${PROJECT_NAME}-payload" "${PROJECT_NAME}-herbatika" || true
+docker rmi "${PROJECT_NAME}-medusa-be" "${PROJECT_NAME}-payload" "${PROJECT_NAME}-herbatica" || true
 
 "${compose_prod[@]}" up -d medusa-db
 wait_for_health medusa-db
@@ -92,7 +92,7 @@ wait_for_health payload
 "${compose_prod[@]}" up -d medusa-be
 wait_for_health medusa-be
 
-# N1 production build is disabled while the local prod flow is pointed at Herbatika.
+# N1 production build is disabled while the local prod flow is pointed at Herbatica.
 # "${compose_dev[@]}" run --rm --no-deps \
 #   -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
 #   -e CI=1 \
@@ -100,5 +100,5 @@ wait_for_health medusa-be
 #   n1 sh -lc '[ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; pnpm --filter n1 run generate:categories'
 # "${compose_prod[@]}" build "${build_flags[@]}" n1
 
-"${compose_prod[@]}" build "${build_flags[@]}" herbatika
-"${compose_prod[@]}" up -d herbatika
+"${compose_prod[@]}" build "${build_flags[@]}" herbatica
+"${compose_prod[@]}" up -d herbatica

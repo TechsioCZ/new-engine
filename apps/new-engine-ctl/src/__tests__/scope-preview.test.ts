@@ -75,7 +75,7 @@ test("Zane service lookup preserves its less restrictive deployability guard", (
 test("preview scope prepares DB credentials for first baseline replay", async () => {
   const result = await executeScope({
     lane: "preview",
-    servicesCsv: "herbatika",
+    servicesCsv: "herbatica",
     headSha: "HEAD",
     previewBaselineComplete: false,
     stackManifestPath,
@@ -83,7 +83,7 @@ test("preview scope prepares DB credentials for first baseline replay", async ()
     nxIsolatePlugins: true,
   })
 
-  expect(result.services_csv).toBe("herbatika")
+  expect(result.services_csv).toBe("herbatica")
   expect(result.should_prepare).toBe(true)
   expect(result.requires_preview_db).toBe(true)
   expect(result.preview_db_service_ids).toBe("medusa-be,payload")
@@ -92,7 +92,7 @@ test("preview scope prepares DB credentials for first baseline replay", async ()
 test("preview scope skips prepare for non-DB services after baseline is complete", async () => {
   const result = await executeScope({
     lane: "preview",
-    servicesCsv: "herbatika",
+    servicesCsv: "herbatica",
     headSha: "HEAD",
     previewBaselineComplete: true,
     stackManifestPath,
@@ -100,7 +100,7 @@ test("preview scope skips prepare for non-DB services after baseline is complete
     nxIsolatePlugins: true,
   })
 
-  expect(result.services_csv).toBe("herbatika")
+  expect(result.services_csv).toBe("herbatica")
   expect(result.should_prepare).toBe(false)
   expect(result.requires_preview_db).toBe(false)
   expect(result.preview_db_service_ids).toBe("")

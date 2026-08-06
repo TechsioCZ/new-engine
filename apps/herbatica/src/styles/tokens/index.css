@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "@techsio/ui-kit/tokens";
+
+@import "./_herbatica-base.css";
+@import "./_herbatica-icons.css";
+@import "./_herbatica-layout.css";
+@import "./_herbatica-semantic.css";
+@import "./_herbatica-spacing.css";
+@import "./_herbatica-typography.css";
+
+@import "./components/components.css";
+
+@plugin "tailwindcss-animate";
+@source "../../../../../libs/ui/src/**/*.{js,ts,jsx,tsx}";
+@source "../../**/*.{js,ts,jsx,tsx,mdx}";

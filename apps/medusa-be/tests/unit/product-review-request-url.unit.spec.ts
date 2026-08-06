@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { buildProductReviewRequestUrl } from "../../src/utils/order-review-requests"
 
 describe("product review request URL", () => {
-  it("targets the Herbatika review-token route with the product ID", () => {
+  it("targets the Herbatica review-token route with the product ID", () => {
     expect(
       buildProductReviewRequestUrl({
         productId: "prod_123",

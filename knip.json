@@ -94,7 +94,7 @@
         ".netlify/**"
       ]
     },
-    "apps/herbatika": {
+    "apps/herbatica": {
       "entry": [
         "src/**/*.{ts,tsx}!"
       ]

@@ -287,17 +287,17 @@ const sharedEnvCleanupKeys = [
   "DC_N1_NEXT_PUBLIC_MEILISEARCH_URL",
   "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY",
   "DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
-  "DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
-  "DC_HERBATIKA_MEDUSA_BACKEND_URL_INTERNAL",
-  "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
-  "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
-  "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
-  "DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY",
-  "DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
-  "DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL",
-  "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
-  "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
-  "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
+  "DC_HERBATICA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
+  "DC_HERBATICA_MEDUSA_BACKEND_URL_INTERNAL",
+  "DC_HERBATICA_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
+  "DC_HERBATICA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
+  "DC_HERBATICA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
+  "DC_HERBATICA_NEXT_PUBLIC_PPL_WIDGET_API_KEY",
+  "DC_HERBATICA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
+  "DC_HERBATICA_PAYLOAD_BASE_URL_INTERNAL",
+  "DC_HERBATICA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+  "DC_HERBATICA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
+  "DC_HERBATICA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
   "DC_N1_NEXT_PUBLIC_META_PIXEL_ID",
   "DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID",
   "DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY",
@@ -543,7 +543,7 @@ function buildZaneProjectServices(
     : `${protectedNamesBase},template_medusa`
   const medusaBeSlug = requiredServiceSlug(serviceSlugs, "medusa-be")
   const payloadSlug = requiredServiceSlug(serviceSlugs, "payload")
-  const herbatikaSlug = requiredServiceSlug(serviceSlugs, "herbatika")
+  const herbaticaSlug = requiredServiceSlug(serviceSlugs, "herbatica")
   const n1Slug = serviceSlugs.n1
   const meilisearchSlug = requiredServiceSlug(
     serviceSlugs,
@@ -569,7 +569,7 @@ function buildZaneProjectServices(
   const servicePublicOrigins = {
     medusaBe: servicePublicOriginSource(medusaBeSlug),
     payload: servicePublicOriginSource(payloadSlug),
-    herbatika: servicePublicOriginSource(herbatikaSlug),
+    herbatica: servicePublicOriginSource(herbaticaSlug),
     meilisearch: servicePublicOriginSource(meilisearchSlug),
   }
   const minioFileSource = context.minioFileUrlOverride
@@ -941,11 +941,11 @@ function buildZaneProjectServices(
           envVar: "STOREFRONT_URL",
           source: process.env.DC_STOREFRONT_URL?.trim()
             ? literalSource(process.env.DC_STOREFRONT_URL.trim())
-            : servicePublicOrigins.herbatika,
+            : servicePublicOrigins.herbatica,
         },
         {
           envVar: "STORE_NAME",
-          source: literalSource(process.env.DC_STORE_NAME ?? "Herbatika"),
+          source: literalSource(process.env.DC_STORE_NAME ?? "Herbatica"),
         },
         {
           envVar: "PRODUCT_REVIEW_REQUEST_MESSAGE",
@@ -1330,8 +1330,8 @@ function buildZaneProjectServices(
         },
       ],
     },
-    herbatika: {
-      dockerfilePath: "./docker/development/herbatika/Dockerfile",
+    herbatica: {
+      dockerfilePath: "./docker/development/herbatica/Dockerfile",
       buildContextDir: "./",
       command: null,
       volumes: [],
@@ -1340,7 +1340,7 @@ function buildZaneProjectServices(
           domain:
             publicServiceDomain({
               projectSlug: context.projectSlug,
-              serviceSlug: herbatikaSlug,
+              serviceSlug: herbaticaSlug,
               publicUrlAffix: context.publicUrlAffix,
               publicDomain: context.publicDomain,
             }) ?? "",
@@ -1366,18 +1366,18 @@ function buildZaneProjectServices(
         "MEILISEARCH_PRODUCTS_INDEX",
         "MEILISEARCH_CATEGORIES_INDEX",
         "MEILISEARCH_PRODUCERS_INDEX",
-        "DC_HERBATIKA_PUBLIC_PORT",
-        "DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
-        "DC_HERBATIKA_MEDUSA_BACKEND_URL_INTERNAL",
-        "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
-        "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
-        "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
-        "DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY",
-        "DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
-        "DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL",
-        "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
-        "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
-        "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
+        "DC_HERBATICA_PUBLIC_PORT",
+        "DC_HERBATICA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
+        "DC_HERBATICA_MEDUSA_BACKEND_URL_INTERNAL",
+        "DC_HERBATICA_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
+        "DC_HERBATICA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
+        "DC_HERBATICA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
+        "DC_HERBATICA_NEXT_PUBLIC_PPL_WIDGET_API_KEY",
+        "DC_HERBATICA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
+        "DC_HERBATICA_PAYLOAD_BASE_URL_INTERNAL",
+        "DC_HERBATICA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+        "DC_HERBATICA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
+        "DC_HERBATICA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
       ],
       env: [
         {
@@ -1394,27 +1394,27 @@ function buildZaneProjectServices(
         {
           envVar: "NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE ??
+            process.env.DC_HERBATICA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE ??
               "session_proxy"
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES ??
+            process.env.DC_HERBATICA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES ??
               "sk"
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
+            process.env.DC_HERBATICA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PPL_WIDGET_API_KEY",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY ?? ""
+            process.env.DC_HERBATICA_NEXT_PUBLIC_PPL_WIDGET_API_KEY ?? ""
           ),
         },
         {
@@ -1423,9 +1423,9 @@ function buildZaneProjectServices(
         },
         {
           envVar: "PAYLOAD_BASE_URL_INTERNAL",
-          source: process.env.DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL?.trim()
+          source: process.env.DC_HERBATICA_PAYLOAD_BASE_URL_INTERNAL?.trim()
             ? literalSource(
-                process.env.DC_HERBATIKA_PAYLOAD_BASE_URL_INTERNAL.trim()
+                process.env.DC_HERBATICA_PAYLOAD_BASE_URL_INTERNAL.trim()
               )
             : serviceInternalOriginSource({
                 serviceSlug: payloadSlug,
@@ -1435,7 +1435,7 @@ function buildZaneProjectServices(
         {
           envVar: "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED ??
+            process.env.DC_HERBATICA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED ??
               process.env.DC_CLOUDFLARE_TURNSTILE_ENABLED ??
               "0"
           ),
@@ -1444,7 +1444,7 @@ function buildZaneProjectServices(
           envVar: "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
           source: literalSource(
             process.env
-              .DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY ?? ""
+              .DC_HERBATICA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY ?? ""
           ),
         },
       ],
@@ -1773,7 +1773,7 @@ function buildContext(input: {
       explicitValue: input.planInput.storeCorsOverride,
       envValue: process.env.DC_STORE_CORS,
       fallbackValue: publicDomain
-        ? `https://${input.planInput.projectSlug}-${"herbatika"}${input.planInput.publicUrlAffix}.${publicDomain}`
+        ? `https://${input.planInput.projectSlug}-${"herbatica"}${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
     adminCors: preferExplicitOrMergeCsv({

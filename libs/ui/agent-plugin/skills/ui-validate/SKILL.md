@@ -47,5 +47,5 @@ SHAs, so no form of `git push` (aliases, `--all`, `--mirror`, refspecs, config) 
 
 ## Known CI trap
 
-`herbatica:lint` is red on master (9 pre-existing errors) and any UI diff makes herbatika
-"affected" — that failure is not caused by UI work. Never modify apps/herbatika from a UI task.
+`herbatica:lint` is red on master (9 pre-existing errors) and any UI diff makes herbatica
+"affected" — that failure is not caused by UI work. Never modify apps/herbatica from a UI task.

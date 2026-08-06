@@ -92,7 +92,7 @@
     "address_update_failed": "Salvarea adresei a eșuat.",
     "registration_update_failed": "Salvarea înregistrării a eșuat.",
     "secure_purchase": "Cumpărături sigure",
-    "login_prompt_title": "Aveți deja un cont Herbatika?",
+    "login_prompt_title": "Aveți deja un cont Herbatica?",
     "login_prompt_description": "<signIn>Autentificați-vă</signIn> pentru cumpărături rapide și reduceri la achizițiile viitoare.",
     "empty_cart_title": "Coșul este gol",
     "empty_cart_description": "Alegeți dintre produsele noi sau reveniți la pagina principală. Puteți finaliza comanda imediat după adăugarea unui produs.",
@@ -412,7 +412,7 @@
         "thumbnail_aria": "Afișează imaginea {index} în galerie"
       },
       "advisor": {
-        "image_alt": "Consilier Herbatika",
+        "image_alt": "Consilier Herbatica",
         "title": "Ai nevoie de ajutor?",
         "description": "Contactează-ne, te ajutăm cu plăcere"
       },

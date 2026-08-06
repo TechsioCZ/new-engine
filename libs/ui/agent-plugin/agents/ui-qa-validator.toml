@@ -29,6 +29,6 @@ until it matches the pushed ref's tip):
 Validate LAST — any new commit invalidates the marker.
 
 ## Known CI trap
-apps/herbatika has 9 pre-existing lint errors on master; any UI diff makes it "affected", so a
-red `herbatica:lint` is NOT caused by the UI change. Never "fix" herbatika from UI work.
+apps/herbatica has 9 pre-existing lint errors on master; any UI diff makes it "affected", so a
+red `herbatica:lint` is NOT caused by the UI change. Never "fix" herbatica from UI work.
 """

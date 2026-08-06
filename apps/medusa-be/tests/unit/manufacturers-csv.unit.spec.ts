@@ -19,9 +19,9 @@ const HEADERS = [
   "description",
 ].join(";")
 const PARTIAL_RESPONSIBLE_PERSON_ERROR =
-  /Herbatika.*all European responsible-person fields/
-const INVALID_EMAIL_ERROR = /Herbatika \(manufacturer-1\).*invalid email/
-const INVALID_BOOLEAN_ERROR = /Herbatika \(manufacturer-1\).*invalid boolean/
+  /Herbatica.*all European responsible-person fields/
+const INVALID_EMAIL_ERROR = /Herbatica \(manufacturer-1\).*invalid email/
+const INVALID_BOOLEAN_ERROR = /Herbatica \(manufacturer-1\).*invalid boolean/
 const NO_USABLE_CSV_ERROR = /no usable headers or rows/
 const MISSING_NAME_HEADER_ERROR = /missing required header.*name/
 const DUPLICATE_HEADER_ERROR = /duplicate header/
@@ -30,19 +30,19 @@ const NO_DATA_ROWS_ERROR = /no usable data rows/
 const COLUMN_COUNT_ERROR = /expected 12 columns/
 const UNCLOSED_QUOTE_ERROR = /unclosed quoted field/
 const MISPLACED_QUOTE_ERROR = /quote must start/
-const NORMALIZED_ALIAS_COLLISION_ERROR = /alias collision.*Herbatika.*Hérbatika/
+const NORMALIZED_ALIAS_COLLISION_ERROR = /alias collision.*Herbatica.*Hérbatika/
 const ALIAS_COLLISION_ERROR = /alias collision/
 
 function csvRow(overrides: Partial<Record<string, string>> = {}) {
   const values: Record<string, string> = {
     id: "manufacturer-1",
-    name: "Herbatika",
+    name: "Herbatica",
     indexName: "",
     contactEmail: "manufacturer@example.com",
     europeanResellerContactEmail: "",
     europeanResellerManufacturingCompanyName: "",
     europeanResellerPostalAddress: "",
-    manufacturingCompanyName: "Herbatika s.r.o.",
+    manufacturingCompanyName: "Herbatica s.r.o.",
     postalAddress: "Bratislava",
     inList: "true",
     inMenu: "false",
@@ -82,7 +82,7 @@ describe("parseManufacturersCsv", () => {
       id: "manufacturer-1",
       inList: true,
       inMenu: false,
-      name: "Herbatika",
+      name: "Herbatica",
     })
   })
 
@@ -192,8 +192,8 @@ describe("buildManufacturersLookup", () => {
     )
     const lookup = buildManufacturersLookup(rows)
 
-    expect(lookup.get("herbatika")).toBe(rows[0])
-    expect(lookup.get("herbatika-labs")).toBe(rows[0])
+    expect(lookup.get("herbatica")).toBe(rows[0])
+    expect(lookup.get("herbatica-labs")).toBe(rows[0])
   })
 
   it("rejects duplicate normalized names", () => {
@@ -213,7 +213,7 @@ describe("buildManufacturersLookup", () => {
     const rows = parseManufacturersCsv(
       `${HEADERS}\n${csvRow()}\n${csvRow({
         id: "manufacturer-2",
-        indexName: "Herbatika",
+        indexName: "Herbatica",
         name: "Other",
       })}`
     )

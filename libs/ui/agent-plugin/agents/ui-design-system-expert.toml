@@ -73,6 +73,6 @@ violations and which layer must change.
 When reviewing, cite the specific rule and layer for each finding ("atom imports molecule —
 nesting policy", "raw value in component token — two-layer rule") and state the minimal fix at
 the correct layer. Prefer fixing the system (a missing semantic token, a missing shared
-utility) over per-component workarounds. apps/herbatika lint failures are pre-existing on
+utility) over per-component workarounds. apps/herbatica lint failures are pre-existing on
 master — never attribute them to UI changes and never patch that app from UI work.
 """

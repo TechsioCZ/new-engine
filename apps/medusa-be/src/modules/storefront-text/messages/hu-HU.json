@@ -92,7 +92,7 @@
     "address_update_failed": "A cím mentése sikertelen.",
     "registration_update_failed": "A regisztráció mentése sikertelen.",
     "secure_purchase": "Biztonságos vásárlás",
-    "login_prompt_title": "Már van Herbatika-fiókja?",
+    "login_prompt_title": "Már van Herbatica-fiókja?",
     "login_prompt_description": "<signIn>Jelentkezzen be</signIn> a gyorsabb vásárlásért és a további vásárlásokra járó kedvezményért.",
     "empty_cart_title": "A kosár üres",
     "empty_cart_description": "Válasszon az újdonságok közül, vagy térjen vissza a főoldalra. A rendelést a termék kosárba helyezése után azonnal befejezheti.",
@@ -412,7 +412,7 @@
         "thumbnail_aria": "{index}. kép megjelenítése a galériában"
       },
       "advisor": {
-        "image_alt": "Herbatika tanácsadó",
+        "image_alt": "Herbatica tanácsadó",
         "title": "Segítségre van szükséged?",
         "description": "Lépj kapcsolatba velünk, szívesen segítünk"
       },

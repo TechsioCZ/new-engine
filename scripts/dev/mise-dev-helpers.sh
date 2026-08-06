@@ -418,7 +418,7 @@ Commands:
   sync-meili-env [frontend-service...]
                               Provision Meili keys and sync .env values.
                               Defaults to manifest default frontend services.
-                              Pass n1 herbatika, or set MISE_DEV_FRONTEND_SERVICES,
+                              Pass n1 herbatica, or set MISE_DEV_FRONTEND_SERVICES,
                               to sync the frontend key to multiple local targets.
   ensure-operator-db-convergence
                               Ensure medusa-db has converged zane-operator bootstrap state for current local envs

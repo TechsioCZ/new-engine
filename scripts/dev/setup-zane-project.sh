@@ -81,7 +81,7 @@ Options:
   --help                         Show this help
 
 Notes:
-  - Herbatika is in the default service list. Include n1 in --services-csv when N1 should also be synced.
+  - Herbatica is in the default service list. Include n1 in --services-csv when N1 should also be synced.
   - The default branch is the current checked-out branch. Use --branch to target a different branch explicitly.
 EOF
 }
@@ -1377,7 +1377,7 @@ setup::main() {
     medusa-meilisearch
     medusa-be
     payload
-    herbatika
+    herbatica
     zane-operator
   )
   local services=("${baseline_services[@]}")

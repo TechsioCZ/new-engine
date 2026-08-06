@@ -1,0 +1,117 @@
+"use client"
+
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import NextLink from "next/link"
+import { useTranslations } from "next-intl"
+import { useMemo, useState } from "react"
+import {
+  createForgotPasswordValidators,
+  type ForgotPasswordFormValues,
+} from "@/lib/auth/auth-form-validators"
+import { useHerbaticaForm } from "@/lib/forms/core/herbatica-form"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { AuthFooter } from "./auth-footer"
+
+type ForgotPasswordFormProps = {
+  isBusy: boolean
+  defaultValues: ForgotPasswordFormValues
+  loginHref: string
+  onSubmit: (values: ForgotPasswordFormValues) => Promise<string | null>
+}
+
+export const ForgotPasswordForm = ({
+  isBusy,
+  defaultValues,
+  loginHref,
+  onSubmit,
+}: ForgotPasswordFormProps) => {
+  const tAuth = useTranslations("auth")
+  const tForm = useTranslations("form")
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
+  const forgotPasswordValidators = useMemo(
+    () =>
+      createForgotPasswordValidators({
+        emailInvalid: tForm("validation.email_invalid"),
+        emailRequired: tForm("validation.email_required"),
+      }),
+    [tForm]
+  )
+
+  const form = useHerbaticaForm({
+    defaultValues,
+    onSubmit: async ({ value }) => {
+      setSubmitError(null)
+      const error = await onSubmit(value)
+      if (error) {
+        setSubmitError(error)
+        return
+      }
+      setSubmittedEmail(value.email)
+    },
+  })
+
+  if (submittedEmail) {
+    return (
+      <div className="flex flex-col gap-300">
+        <StatusText showIcon={false} status="success">
+          {tAuth("forgot.sent", { email: submittedEmail })}
+        </StatusText>
+        <p className="text-fg-secondary text-sm">
+          {tAuth("forgot.delivery_help")}
+        </p>
+        <div className="flex flex-wrap gap-200">
+          <LinkButton
+            as={NextLink}
+            block
+            href={loginHref}
+            size="sm"
+            variant="primary"
+          >
+            {tAuth("back_to_login")}
+          </LinkButton>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <form
+      className="flex flex-col gap-300"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault()
+        runDetachedPromise(form.handleSubmit())
+      }}
+    >
+      {submitError && (
+        <StatusText showIcon status="error">
+          {submitError}
+        </StatusText>
+      )}
+
+      <form.AppField name="email" validators={forgotPasswordValidators.email}>
+        {(field) => (
+          <field.TextField
+            autoComplete="email"
+            id="auth-forgot-password-email"
+            label={tForm("email")}
+            onValueChange={() => setSubmitError(null)}
+            required
+            type="email"
+            validationMode="blur"
+          />
+        )}
+      </form.AppField>
+
+      <div className="flex flex-wrap gap-200">
+        <Button block isLoading={isBusy} size="sm" type="submit">
+          {tAuth("forgot.submit")}
+        </Button>
+      </div>
+      <AuthFooter href={loginHref} linkText={tAuth("back_to_login")} text="" />
+    </form>
+  )
+}

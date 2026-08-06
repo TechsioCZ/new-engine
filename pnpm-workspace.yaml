@@ -74,7 +74,7 @@ overrides:
 # will surface as peer errors again and require explicit re-verification.
 peerDependencyRules:
   allowedVersions:
-    # Herbatika imports Medusa DTOs only as TypeScript types and owns its Vite
+    # Herbatica imports Medusa DTOs only as TypeScript types and owns its Vite
     # 8 test runtime independently from Medusa Admin's Vite 5 toolchain.
     '@medusajs/types@2.18.0>vite': 8.1.3
     'fdir@6.1.1>picomatch': 4.0.5

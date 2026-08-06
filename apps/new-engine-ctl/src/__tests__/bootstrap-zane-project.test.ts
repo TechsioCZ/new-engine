@@ -20,7 +20,7 @@ const projectSlug = "example-project"
 const publicDomain = "example.test"
 const publicUrlAffix = "-deploy"
 const medusaBePublicOrigin = `https://${projectSlug}-medusa-be${publicUrlAffix}.${publicDomain}`
-const herbatikaPublicOrigin = `https://${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`
+const herbaticaPublicOrigin = `https://${projectSlug}-herbatica${publicUrlAffix}.${publicDomain}`
 
 const serviceSlugs = [
   "medusa-db",
@@ -29,14 +29,14 @@ const serviceSlugs = [
   "medusa-meilisearch",
   "medusa-be",
   "payload",
-  "herbatika",
+  "herbatica",
   "zane-operator",
 ]
 afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-test("project sync manages Herbatika and current Medusa runtime envs", async () => {
+test("project sync manages Herbatica and current Medusa runtime envs", async () => {
   vi.stubEnv("DC_ZANE_OPERATOR_ZANE_USERNAME", "admin")
   vi.stubEnv("DC_ZANE_OPERATOR_ZANE_PASSWORD", "password")
   vi.stubEnv("DC_ZANE_OPERATOR_API_AUTH_TOKEN", "operator-token")
@@ -46,7 +46,7 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     "preview-password-secret"
   )
   vi.stubEnv("DC_STOREFRONT_URL", "https://storefront.example.test")
-  vi.stubEnv("DC_STORE_NAME", "Herbatika")
+  vi.stubEnv("DC_STORE_NAME", "Herbatica")
   vi.stubEnv(
     "DC_STORE_CORS",
     "http://localhost:3001,https://storefront.example.test/"
@@ -62,7 +62,7 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     "DC_HERBATICA_REVIEWS_XML_PATH",
     "https://assets.example.test/reviews.xml"
   )
-  vi.stubEnv("DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY", "")
+  vi.stubEnv("DC_HERBATICA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY", "")
   vi.stubEnv("DC_MEDUSA_BE_RESEND_FROM_EMAIL", "")
   vi.stubEnv("DC_RESEND_FROM_EMAIL", "noreply@example.test")
 
@@ -186,8 +186,8 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     )
     expect(medusa?.desired_env).toMatchObject({
       STOREFRONT_URL: "https://storefront.example.test",
-      STORE_NAME: "Herbatika",
-      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin}`,
+      STORE_NAME: "Herbatica",
+      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbaticaPublicOrigin}`,
       ADMIN_CORS: `http://localhost:5173,${medusaBePublicOrigin}`,
       AUTH_CORS: `http://127.0.0.1:3001,${medusaBePublicOrigin}`,
       FEATURE_PAYMENT_QR_ENABLED: "1",
@@ -201,20 +201,20 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     expect(medusa?.desired_env).toHaveProperty("SENTRY_TRACES_SAMPLE_RATE")
     expect(medusa?.desired_env).not.toHaveProperty("MEILISEARCH_API_KEY")
 
-    const herbatika = plan.services.find(
-      (service) => service.service_id === "herbatika"
+    const herbatica = plan.services.find(
+      (service) => service.service_id === "herbatica"
     )
-    expect(herbatika?.desired_env).toMatchObject({
+    expect(herbatica?.desired_env).toMatchObject({
       NEXT_PUBLIC_PPL_WIDGET_API_KEY: "",
     })
-    expect(herbatika?.desired_env).not.toHaveProperty(
+    expect(herbatica?.desired_env).not.toHaveProperty(
       "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"
     )
-    expect(herbatika?.desired_env).not.toHaveProperty("MEILISEARCH_HOST")
-    expect(herbatika?.desired_env).not.toHaveProperty(
+    expect(herbatica?.desired_env).not.toHaveProperty("MEILISEARCH_HOST")
+    expect(herbatica?.desired_env).not.toHaveProperty(
       "MEILISEARCH_SEARCH_API_KEY"
     )
-    expect(herbatika?.cleanup_env_keys).toEqual(
+    expect(herbatica?.cleanup_env_keys).toEqual(
       expect.arrayContaining([
         "MEILISEARCH_HOST",
         "MEILISEARCH_SEARCH_API_KEY",
@@ -231,8 +231,8 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       services: Record<string, { environment: Record<string, unknown> }>
     }
     const composeMedusaEnv = compose.services["medusa-be"]?.environment
-    const composeHerbatikaEnv = compose.services.herbatika?.environment
-    if (!(composeMedusaEnv && composeHerbatikaEnv)) {
+    const composeHerbaticaEnv = compose.services.herbatica?.environment
+    if (!(composeMedusaEnv && composeHerbaticaEnv)) {
       throw new Error("Compose storefront/backend environments are missing.")
     }
 
@@ -244,16 +244,16 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
           ) || key in (medusa?.desired_env ?? {})
         )
     )
-    const missingHerbatikaEnvKeys = Object.keys(composeHerbatikaEnv).filter(
+    const missingHerbaticaEnvKeys = Object.keys(composeHerbaticaEnv).filter(
       (key) =>
         !(
           ["NODE_ENV", "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"].includes(key) ||
-          key in (herbatika?.desired_env ?? {})
+          key in (herbatica?.desired_env ?? {})
         )
     )
 
     expect(missingMedusaEnvKeys).toEqual([])
-    expect(missingHerbatikaEnvKeys).toEqual([])
+    expect(missingHerbaticaEnvKeys).toEqual([])
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true })
   }

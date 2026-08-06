@@ -136,7 +136,7 @@ Phase intent:
 - preview route identity is repo-owned. When a preview environment is cloned or reused, authenticated URL reconciliation, stale cloned/default URL removal, preview-excluded service cleanup, and preview service-spec convergence belong in `zane-operator`, while deploy/baseline policy stays in `apps/new-engine-ctl`.
 - preview shared-env reconciliation is also repo-owned and typed: preview deploy syncs the existing shared host/DB keys from the preview environment topology plus prepared DB credentials before service deploy stages consume them.
 - `service_reconciliation` should stay lean: source-sync behavior is the default for preview-cloned services, and the YAML should only encode non-default policy such as lane-specific build-stage targets.
-- Current lane-specific builder-stage policy in `service_reconciliation`: `medusa-be`, `payload`, `herbatika`, and optional `n1` use `ci-dev` for preview and `prod` for main.
+- Current lane-specific builder-stage policy in `service_reconciliation`: `medusa-be`, `payload`, `herbatica`, and optional `n1` use `ci-dev` for preview and `prod` for main.
 - `ci.enabled_by_default: false` keeps optional deployable services such as
   `n1` out of affected-service scope and ordinary preview baselines while
   preserving explicit `--services-csv n1` deployment and provider

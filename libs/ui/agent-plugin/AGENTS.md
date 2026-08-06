@@ -24,4 +24,4 @@ only routes.
 - Styling only via `tv()` + component token classes; two-layer tokens in `@theme static`.
 - State via data attributes; interactive components via Zag.js compound pattern.
 - Every component change ends with the `ui-validate` gate; never lint with `biome check .`.
-- Never touch `apps/herbatika` from UI-kit work (pre-existing red lint on master).
+- Never touch `apps/herbatica` from UI-kit work (pre-existing red lint on master).

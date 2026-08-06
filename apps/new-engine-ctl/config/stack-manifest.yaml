@@ -23,15 +23,15 @@
 #         deploy_lanes: [preview, main]
 #         deploy_stage: 20
 #         service_dependencies: [medusa-db, medusa-valkey, medusa-minio, medusa-meilisearch]
-#   - id: herbatika
-#     compose_service: herbatika
+#   - id: herbatica
+#     compose_service: herbatica
 #     local:
 #       phase: frontend
 #     ci:
 #       deployable: true
-#       affected_path_globs: ["docker/development/herbatika/**"]
+#       affected_path_globs: ["docker/development/herbatica/**"]
 #       zane:
-#         service_slug: herbatika
+#         service_slug: herbatica
 #         deploy_lanes: [preview, main]
 #         deploy_stage: 25
 #         service_dependencies: [medusa-be]
@@ -49,7 +49,7 @@ ci:
         - ".dockerignore"
       service_ids:
         - "medusa-be"
-        - "herbatika"
+        - "herbatica"
         - "payload"
         - "zane-operator"
         - "medusa-db"
@@ -65,7 +65,7 @@ ci:
         - "tsconfig.json"
       service_ids:
         - "medusa-be"
-        - "herbatika"
+        - "herbatica"
         - "payload"
 
 services:
@@ -178,12 +178,12 @@ services:
       - "n1"
     local:
       phase: "frontend"
-      # Temporarily keep N1 out of the default local dev stack while Herbatika
+      # Temporarily keep N1 out of the default local dev stack while Herbatica
       # is the active storefront target.
       enabled_by_default: false
     ci:
       # N1 remains explicitly deployable for compatibility checks, but normal
-      # affected-service scoping and preview baselines follow Herbatika.
+      # affected-service scoping and preview baselines follow Herbatica.
       deployable: true
       enabled_by_default: false
       affected_path_globs:
@@ -194,22 +194,22 @@ services:
         deploy_stage: 25
         service_dependencies: ["medusa-be"]
 
-  - id: "herbatika"
-    compose_service: "herbatika"
+  - id: "herbatica"
+    compose_service: "herbatica"
     kind: "frontend"
     nx_projects:
-      - "herbatika"
+      - "herbatica"
     local:
       phase: "frontend"
     ci:
       deployable: true
       affected_path_globs:
-        - "apps/herbatika/**"
-        - "docker/development/herbatika/**"
+        - "apps/herbatica/**"
+        - "docker/development/herbatica/**"
         - "libs/storefront-data/**"
         - "libs/ui/**"
       zane:
-        service_slug: "herbatika"
+        service_slug: "herbatica"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 25
         service_dependencies: ["medusa-be"]

@@ -20,7 +20,7 @@ test("local provider aliases include only selected configured consumers", async 
   const result = await executeLocalEnvRuntimeProviderOutputTargets({
     providerId: "meili_api_credentials",
     outputId: "frontend_key",
-    serviceIdsCsv: "herbatika,n1",
+    serviceIdsCsv: "herbatica,n1",
     format: "json",
     stackInputsPath,
   })
@@ -38,7 +38,7 @@ test("local provider aliases are empty for selected non-consumers", async () => 
   const result = await executeLocalEnvRuntimeProviderOutputTargets({
     providerId: "meili_api_credentials",
     outputId: "frontend_key",
-    serviceIdsCsv: "herbatika",
+    serviceIdsCsv: "herbatica",
     format: "json",
     stackInputsPath,
   })

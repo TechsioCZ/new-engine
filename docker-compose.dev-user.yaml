@@ -13,7 +13,7 @@ services:
     <<: *dev-user
   n1:
     <<: *dev-user
-  herbatika:
+  herbatica:
     <<: *dev-user
   zane-operator:
     <<: *dev-user

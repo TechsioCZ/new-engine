@@ -1,0 +1,43 @@
+import { useTranslations } from "next-intl"
+import {
+  HerbaticaBreadcrumb,
+  type HerbaticaBreadcrumbItem,
+} from "@/components/herbatica-breadcrumb"
+import {
+  AboutArticleSections,
+  AboutClosingStatement,
+  AboutCommunityAndReviews,
+  AboutContact,
+  AboutMilestones,
+  AboutPrinciples,
+} from "./about-page-sections"
+import { AboutHero } from "./about-page-top"
+
+export function AboutPage() {
+  const tContent = useTranslations("content")
+  const tNavigation = useTranslations("navigation")
+  const breadcrumbItems: HerbaticaBreadcrumbItem[] = [
+    {
+      label: tNavigation("breadcrumbs.home"),
+      href: "/",
+      icon: "token-icon-home",
+    },
+    { label: tContent("pages.about") },
+  ]
+
+  return (
+    <main className="w-full bg-base font-rubik">
+      <div className="mx-auto flex w-full max-w-max-w flex-col gap-about-page-gap p-about-page 2xl:p-about-page-lg">
+        <HerbaticaBreadcrumb items={breadcrumbItems} />
+        <AboutHero />
+        <AboutArticleSections group="beforeMilestones" />
+        <AboutMilestones />
+        <AboutArticleSections group="afterMilestones" />
+        <AboutClosingStatement />
+        <AboutPrinciples />
+        <AboutCommunityAndReviews />
+        <AboutContact />
+      </div>
+    </main>
+  )
+}

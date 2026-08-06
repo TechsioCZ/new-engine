@@ -1,0 +1,13 @@
+@theme static {
+  --spacing-rating-md: var(--spacing-0);
+  --spacing-rating-lg: var(--spacing-0);
+
+  --text-rating-md: var(--text-icon-sm);
+  --text-rating-lg: var(--text-icon-md);
+
+  --color-rating-fg-base: var(--color-herbatica-slate);
+}
+
+@utility rating-star-fill {
+  inline-size: var(--star-fill);
+}

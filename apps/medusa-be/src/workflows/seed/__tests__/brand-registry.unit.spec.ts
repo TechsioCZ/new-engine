@@ -53,7 +53,7 @@ describe("buildBrandRegistry", () => {
       {
         handle: "product-2",
         brand: {
-          title: "herbatika-labs",
+          title: "herbatica-labs",
           attributes: [{ name: "supplier", value: "Supplier A" }],
           gpsr_contact_email: "contact@example.com",
           gpsr_manufactured_outside_eu: false,
@@ -62,14 +62,14 @@ describe("buildBrandRegistry", () => {
     ])
 
     expect(registry.size).toBe(1)
-    expect(registry.get("herbatika-labs")).toMatchObject({
+    expect(registry.get("herbatica-labs")).toMatchObject({
       gpsr_contact_email: "contact@example.com",
       gpsr_manufactured_outside_eu: false,
-      handle: "herbatika-labs",
+      handle: "herbatica-labs",
       products: ["product-1", "product-2"],
       title: "Hérbatika Labs",
     })
-    expect(registry.get("herbatika-labs")?.attributes.get("supplier")).toBe(
+    expect(registry.get("herbatica-labs")?.attributes.get("supplier")).toBe(
       "Supplier A"
     )
   })

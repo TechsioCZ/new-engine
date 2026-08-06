@@ -1,0 +1,17 @@
+:where([data-herbatica-mobile-menu-dialog-root]) {
+  --herbatica-mobile-menu-top: var(--height-header-mobile);
+  --color-dialog-backdrop-bg-modal: transparent;
+  --color-dialog-content-bg: var(--color-primary);
+  --color-dialog-content-border: transparent;
+  --padding-dialog-content: 0;
+  --spacing-dialog-content: 0;
+  --border-width-dialog: 0;
+  --shadow-dialog-content: none;
+}
+
+:where([data-herbatica-mobile-menu-dialog-root])
+  [data-scope="dialog"][data-part="backdrop"],
+:where([data-herbatica-mobile-menu-dialog-root])
+  [data-scope="dialog"][data-part="positioner"] {
+  top: var(--herbatica-mobile-menu-top, 0px);
+}

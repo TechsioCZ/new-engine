@@ -45,6 +45,6 @@ Before writing any code, read `libs/ui/AGENTS.md` (canonical rules) and the matc
 - Tokens: `pnpm --dir libs/ui validate:tokens`
 - Lint: `bunx biome check --write <changed files>` (NEVER `.`)
 
-Never touch apps/herbatika from UI-kit work — its lint is red on master and any UI diff makes it
+Never touch apps/herbatica from UI-kit work — its lint is red on master and any UI diff makes it
 "affected" in CI; that failure is pre-existing, not yours.
 """

@@ -1,0 +1,129 @@
+FROM node:24-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN apt-get update && apt-get install -y curl --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm i -g corepack@0.34.5 && \
+    corepack enable
+
+WORKDIR /var/www
+
+FROM base AS dev
+ENV NODE_ENV=development
+WORKDIR /tmp/corepack
+COPY package.json /tmp/corepack/package.json
+RUN corepack install && rm -rf /tmp/corepack
+WORKDIR /var/www
+CMD ["sh", "-lc", "\
+    [ -x apps/herbatica/node_modules/.bin/next ] || CI=true pnpm install --frozen-lockfile --prefer-offline --filter=herbatica...; \
+    pnpm --filter=@techsio/storefront-i18n build; \
+    pnpm --filter=@techsio/storefront-data build; \
+    pnpm --filter=@techsio/ui-kit build; \
+    pnpm --filter=herbatica exec next dev --turbopack --hostname 0.0.0.0 --port 3000 \
+"]
+
+# ============================================
+# CI DEV TARGET - non-interactive preview runtime
+# ============================================
+FROM base AS ci-dev
+ENV NODE_ENV=development
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+ENV CI=true
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
+RUN corepack install
+
+COPY tsconfig.base.json tsconfig.json nx.json ./
+COPY apps/herbatica ./apps/herbatica
+COPY libs/ui ./libs/ui
+COPY libs/storefront-data ./libs/storefront-data
+COPY libs/storefront-i18n ./libs/storefront-i18n
+
+RUN --mount=type=cache,id=pnpm-store-herbatica,target=/pnpm/store \
+    pnpm_config_store_dir=/pnpm/store \
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=herbatica... && \
+    pnpm --filter=@techsio/storefront-i18n build && \
+    pnpm --filter=@techsio/storefront-data build && \
+    pnpm --filter=@techsio/ui-kit build && \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=herbatica...
+
+RUN mkdir -p /var/www/apps/herbatica/.next && \
+    chown node:node /var/www/apps/herbatica /var/www/apps/herbatica/.next
+
+USER node
+
+WORKDIR /var/www/apps/herbatica
+
+CMD ["npm", "run", "start:ci-dev"]
+
+FROM base AS build
+ENV CI=true
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
+
+RUN corepack install
+
+COPY tsconfig.base.json tsconfig.json nx.json ./
+COPY apps/herbatica ./apps/herbatica
+COPY libs/ui ./libs/ui
+COPY libs/storefront-data ./libs/storefront-data
+COPY libs/storefront-i18n ./libs/storefront-i18n
+
+ARG NEXT_PUBLIC_MEDUSA_BACKEND_URL
+ARG NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_STOREFRONT_AUTH_MODE
+ARG NEXT_PUBLIC_PACKETA_WIDGET_API_KEY
+ARG NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES
+ARG NEXT_PUBLIC_PPL_WIDGET_API_KEY
+ARG NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED
+ARG NEXT_PUBLIC_PAYLOAD_BASE_URL
+
+ENV NEXT_PUBLIC_MEDUSA_BACKEND_URL=${NEXT_PUBLIC_MEDUSA_BACKEND_URL}
+ENV NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
+ENV NEXT_PUBLIC_STOREFRONT_AUTH_MODE=${NEXT_PUBLIC_STOREFRONT_AUTH_MODE}
+ENV NEXT_PUBLIC_PACKETA_WIDGET_API_KEY=${NEXT_PUBLIC_PACKETA_WIDGET_API_KEY}
+ENV NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES=${NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES}
+ENV NEXT_PUBLIC_PPL_WIDGET_API_KEY=${NEXT_PUBLIC_PPL_WIDGET_API_KEY}
+ENV NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED=${NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED}
+ENV NEXT_PUBLIC_PAYLOAD_BASE_URL=${NEXT_PUBLIC_PAYLOAD_BASE_URL}
+
+RUN --mount=type=cache,id=pnpm-store-herbatica,target=/pnpm/store \
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --filter=herbatica...
+
+RUN pnpm --filter=@techsio/storefront-i18n build
+RUN pnpm --filter=@techsio/storefront-data build
+RUN pnpm --filter=@techsio/ui-kit build
+
+RUN --mount=type=cache,id=next-cache-herbatica,target=/var/www/apps/herbatica/.next/cache \
+    pnpm --filter=herbatica exec next build --turbopack && \
+    test -f apps/herbatica/.next/BUILD_ID
+
+FROM node:24-slim AS prod
+
+RUN apt-get update && apt-get install -y curl --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+WORKDIR /app
+
+COPY --from=build --chown=node:node /var/www/apps/herbatica/.next/standalone ./
+COPY --from=build --chown=node:node /var/www/apps/herbatica/public ./apps/herbatica/public
+COPY --from=build --chown=node:node /var/www/apps/herbatica/.next/static ./apps/herbatica/.next/static
+
+USER node
+
+EXPOSE 3000
+
+WORKDIR /app/apps/herbatica
+
+CMD ["node", "server.js"]
