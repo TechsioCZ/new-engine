@@ -1,6 +1,11 @@
 import { CommandBar, clx, Table } from "@medusajs/ui"
 import { flexRender } from "@tanstack/react-table"
-import type { Cell, Table as ReactTable, Row } from "@tanstack/react-table"
+import type {
+  Cell,
+  CellContext,
+  Table as ReactTable,
+  Row,
+} from "@tanstack/react-table"
 import { Fragment, useEffect, useRef, useState } from "react"
 import type { ComponentPropsWithoutRef, UIEvent } from "react"
 import { useTranslation } from "react-i18next"
@@ -105,7 +110,6 @@ const BodyCell = <TData,>({
   const isStickyCell = isSelectCell || isFirstCell
   const depthOffset = getDepthOffset(rowDepth, isFirstCell)
   const hasLeftOffset = isStickyCell && hasSelect && !isSelectCell
-  const inner = flexRender(cell.column.columnDef.cell, cell.getContext())
   const hasLink = to !== undefined && to.length > 0
   const isTabableLink = isFirstCell && hasLink
   const shouldRenderAsLink = hasLink && !isSelectCell
@@ -139,11 +143,17 @@ const BodyCell = <TData,>({
               "pl-6": isTabableLink && !hasLeftOffset,
             })}
           >
-            {inner}
+            {flexRender<CellContext<TData, unknown>>(
+              cell.column.columnDef.cell,
+              cell.getContext(),
+            )}
           </div>
         </Link>
       ) : (
-        inner
+        flexRender<CellContext<TData, unknown>>(
+          cell.column.columnDef.cell,
+          cell.getContext(),
+        )
       )}
     </Table.Cell>
   )
