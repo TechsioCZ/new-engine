@@ -1,3 +1,7 @@
+const ENGLISH_MANUAL_STATUS = "Manual status"
+const CZECH_MANUAL_STATUS = "Ruční stav"
+const CZECH_REQUIRES_ACTION = "Vyžaduje akci"
+
 export interface OrderDashboardAdminI18nNamespace {
   actions: Record<
     | "apply"
@@ -198,7 +202,7 @@ const englishOrderDashboardAdminI18n = {
   actions: {
     apply: "Apply",
     applyManualStatus: "Apply manual status",
-    businessStatusPlaceholder: "Manual status",
+    businessStatusPlaceholder: ENGLISH_MANUAL_STATUS,
     cancel: "Cancel",
     clearManualStatus: "Clear manual status",
     closeDetails: "Close",
@@ -220,7 +224,7 @@ const englishOrderDashboardAdminI18n = {
     customer: "Customer",
     details: "Details",
     fulfillment: "Fulfillment",
-    manualStatus: "Manual status",
+    manualStatus: ENGLISH_MANUAL_STATUS,
     order: "Order",
     payment: "Payment",
     total: "Total",
@@ -232,7 +236,7 @@ const englishOrderDashboardAdminI18n = {
     carrier: "Carrier",
     fulfillment: "Fulfillment",
     items: "Items",
-    manualStatus: "Manual status",
+    manualStatus: ENGLISH_MANUAL_STATUS,
     noActiveFulfillment: "No active fulfillment",
     noItems: "No items available.",
     orderStatus: "Medusa status",
@@ -419,7 +423,7 @@ const czechOrderDashboardAdminI18n = {
   actions: {
     apply: "Použít",
     applyManualStatus: "Použít ruční stav",
-    businessStatusPlaceholder: "Ruční stav",
+    businessStatusPlaceholder: CZECH_MANUAL_STATUS,
     cancel: "Zrušit",
     clearManualStatus: "Vymazat ruční stav",
     closeDetails: "Zavřít",
@@ -441,7 +445,7 @@ const czechOrderDashboardAdminI18n = {
     customer: "Zákazník",
     details: "Detail",
     fulfillment: "Vyřízení",
-    manualStatus: "Ruční stav",
+    manualStatus: CZECH_MANUAL_STATUS,
     order: "Objednávka",
     payment: "Platba",
     total: "Celkem",
@@ -453,7 +457,7 @@ const czechOrderDashboardAdminI18n = {
     carrier: "Dopravce",
     fulfillment: "Vyřízení",
     items: "Položky",
-    manualStatus: "Ruční stav",
+    manualStatus: CZECH_MANUAL_STATUS,
     noActiveFulfillment: "Žádné aktivní vyřízení",
     noItems: "Žádné položky nejsou dostupné.",
     orderStatus: "Stav v Meduse",
@@ -511,7 +515,7 @@ const czechOrderDashboardAdminI18n = {
     partially_fulfilled: "Částečně vyřízeno",
     partially_returned: "Částečně vráceno",
     partially_shipped: "Částečně expedováno",
-    requires_action: "Vyžaduje akci",
+    requires_action: CZECH_REQUIRES_ACTION,
     returned: "Vráceno",
     shipped: "Expedováno",
   },
@@ -558,7 +562,7 @@ const czechOrderDashboardAdminI18n = {
     unchecked: "Stav štítku Packeta se nepodařilo ověřit",
   },
   queues: {
-    action_required: "Vyžaduje akci",
+    action_required: CZECH_REQUIRES_ACTION,
     all: "Vše",
   },
   sidebar: {
@@ -593,7 +597,7 @@ const czechOrderDashboardAdminI18n = {
     completed: "Dokončeno",
     draft: "Koncept",
     pending: "Čeká",
-    requires_action: "Vyžaduje akci",
+    requires_action: CZECH_REQUIRES_ACTION,
   },
   targetStatusBlocker: {
     activeFulfillmentCannotCanceled:

@@ -72,11 +72,14 @@ describe("order dashboard formatting", () => {
     ).toBeUndefined()
   })
 
-  it("narrows supported dashboard values", () => {
+  it("narrows supported carrier and business status values", () => {
     expect(isOrderDashboardCarrierKey("packeta")).toBeTruthy()
     expect(isOrderDashboardCarrierKey("unknown")).toBeFalsy()
     expect(isOrderDashboardBusinessStatusId("processing")).toBeTruthy()
     expect(isOrderDashboardBusinessStatusId(null)).toBeFalsy()
+  })
+
+  it("narrows supported target statuses", () => {
     expect(isOrderDashboardTargetStatus("archived")).toBeTruthy()
     expect(isOrderDashboardTargetStatus("delivered")).toBeFalsy()
   })

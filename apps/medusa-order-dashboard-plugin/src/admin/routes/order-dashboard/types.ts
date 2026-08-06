@@ -217,25 +217,25 @@ export interface OrderDashboardSummaryResponse {
 export interface OrderDashboardStatusResponse {
   count: number
   target_status: OrderDashboardTargetStatus
-  orders: Array<{
+  orders: {
     id: string
     order_display_id: string
     status: string | null
-  }>
+  }[]
 }
 
 export interface OrderDashboardManualStatusResponse {
   count: number
   skipped_count: number
   status: OrderDashboardManualStatusId | null
-  orders: Array<{
+  orders: {
     id: string
     business_status: OrderDashboardBusinessStatus
     manual_status?: OrderDashboardManualStatusId | null
-  }>
-  skipped: Array<{
+  }[]
+  skipped: {
     id: string
     order_display_id: string
     reason: string
-  }>
+  }[]
 }
