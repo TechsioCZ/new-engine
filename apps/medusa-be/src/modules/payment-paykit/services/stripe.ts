@@ -36,21 +36,54 @@ import {
 import { toPaykitPaymentData, toPaykitRefundData } from "../utils/mappers"
 import { requirePaykitOptions } from "../utils/validation"
 
+const isNonEmptyString = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value.length > 0
+
+const isBigNumberLike = (value: Record<string, unknown>): boolean => {
+  const numericValue = value["value"]
+
+  if (typeof numericValue === "number" || typeof numericValue === "string") {
+    return true
+  }
+
+  return "toJSON" in value && "valueOf" in value
+}
+
 const isPaymentAmount = (
   value: unknown,
-): value is InitiatePaymentInput["amount"] =>
-  typeof value === "number" ||
-  typeof value === "string" ||
-  (isRecord(value) &&
-    (("value" in value &&
-      (typeof value["value"] === "number" ||
-        typeof value["value"] === "string")) ||
-      ("toJSON" in value && "valueOf" in value)))
+): value is InitiatePaymentInput["amount"] => {
+  if (typeof value === "number" || typeof value === "string") {
+    return true
+  }
+
+  return isRecord(value) && isBigNumberLike(value)
+}
+
+// Mirrors the historical truthiness check on provider data, so non-string ids
+// still reach the typed provider id validation instead of silently skipping it.
+const hasProviderPaymentId = (data?: Record<string, unknown>): boolean =>
+  Boolean(data?.["id"])
 
 const isStripeCheckoutSessionId = (id: string): boolean => id.startsWith("cs_")
 
 const isStripeResourceMissingError = (error: unknown): boolean =>
   isRecord(error) && error["code"] === "resource_missing"
+
+/**
+ * `provider._native.checkout.sessions` is untyped on the PayKit Stripe
+ * provider, so its `retrieve` and `expire` handles are narrowed to a callable
+ * Checkout Session method before they are wrapped in the typed client. Only
+ * callability is checked, exactly as the previous `typeof === "function"`
+ * guards did; the returned payload keeps flowing through unvalidated.
+ */
+type StripeCheckoutSessionMethod = (
+  id: string,
+  options?: Record<string, unknown>,
+) => Promise<PaykitStripeCheckoutSession>
+
+const isStripeCheckoutSessionMethod = (
+  value: unknown,
+): value is StripeCheckoutSessionMethod => typeof value === "function"
 
 const getStripeCheckoutSessionRetriever = (
   provider: unknown,
@@ -61,22 +94,14 @@ const getStripeCheckoutSessionRetriever = (
   const retrieve = isRecord(sessions) ? sessions["retrieve"] : undefined
   const expire = isRecord(sessions) ? sessions["expire"] : undefined
 
-  if (typeof retrieve !== "function") {
-    return
+  if (!isStripeCheckoutSessionMethod(retrieve)) {
+    return undefined
   }
 
   return {
-    retrieve: async (id, options) =>
-      retrieve.call(
-        sessions,
-        id,
-        options,
-      ) as Promise<PaykitStripeCheckoutSession>,
-    ...(typeof expire === "function"
-      ? {
-          expire: async (id) =>
-            expire.call(sessions, id) as Promise<PaykitStripeCheckoutSession>,
-        }
+    retrieve: async (id, options) => await retrieve.call(sessions, id, options),
+    ...(isStripeCheckoutSessionMethod(expire)
+      ? { expire: async (id) => await expire.call(sessions, id) }
       : {}),
   }
 }
@@ -181,34 +206,25 @@ const getStripeCheckoutItemId = (
   }
 }
 
+const STRIPE_PAYMENT_INTENT_STATUS_MAP = new Map<
+  string,
+  NonNullable<PaykitPayment["status"]>
+>([
+  ["canceled", "canceled"],
+  ["processing", "processing"],
+  ["requires_action", "requires_action"],
+  ["requires_capture", "requires_capture"],
+  ["requires_confirmation", "pending"],
+  ["requires_payment_method", "pending"],
+  ["succeeded", "succeeded"],
+])
+
 const mapStripePaymentIntentStatus = (
   status: string | null | undefined,
-): PaykitPayment["status"] | undefined => {
-  switch (status) {
-    case "requires_payment_method":
-    case "requires_confirmation": {
-      return "pending"
-    }
-    case "requires_action": {
-      return "requires_action"
-    }
-    case "requires_capture": {
-      return "requires_capture"
-    }
-    case "succeeded": {
-      return "succeeded"
-    }
-    case "canceled": {
-      return "canceled"
-    }
-    case "processing": {
-      return "processing"
-    }
-    default: {
-      return
-    }
-  }
-}
+): PaykitPayment["status"] | undefined =>
+  isNonEmptyString(status)
+    ? STRIPE_PAYMENT_INTENT_STATUS_MAP.get(status)
+    : undefined
 
 const getStripeCheckoutStatus = (
   session: PaykitStripeCheckoutSession,
@@ -218,7 +234,7 @@ const getStripeCheckoutStatus = (
     paymentIntent?.status,
   )
 
-  if (paymentIntentStatus) {
+  if (paymentIntentStatus !== undefined) {
     return paymentIntentStatus
   }
 
@@ -235,6 +251,31 @@ const getStripeCheckoutStatus = (
 
   return "pending"
 }
+
+const STRIPE_REQUIRES_ACTION_PAYMENT_INTENT_STATUSES = new Set([
+  "requires_action",
+  "requires_confirmation",
+  "requires_payment_method",
+])
+
+/**
+ * A Checkout Session without an expanded PaymentIntent status still requires
+ * customer action while it is open and unpaid.
+ */
+const isStripeCheckoutAwaitingPayment = (
+  session: PaykitStripeCheckoutSession,
+): boolean =>
+  session.status === "open" &&
+  session.payment_status !== "paid" &&
+  session.payment_status !== "no_payment_required"
+
+const getStripeCheckoutRequiresAction = (
+  session: PaykitStripeCheckoutSession,
+  paymentIntentStatus: string | null | undefined,
+): boolean =>
+  isNonEmptyString(paymentIntentStatus)
+    ? STRIPE_REQUIRES_ACTION_PAYMENT_INTENT_STATUSES.has(paymentIntentStatus)
+    : isStripeCheckoutAwaitingPayment(session)
 
 const toPaykitPaymentFromStripeCheckoutSession = (
   session: PaykitStripeCheckoutSession,
@@ -260,16 +301,12 @@ const toPaykitPaymentFromStripeCheckoutSession = (
     item_id: getStripeCheckoutItemId(metadata),
     metadata: omitInternalMetadata(metadata),
     payment_intent_id: getStripeCheckoutPaymentIntentId(session, paymentIntent),
-    requires_action:
-      paymentIntentStatus === "requires_action" ||
-      paymentIntentStatus === "requires_confirmation" ||
-      paymentIntentStatus === "requires_payment_method" ||
-      (!paymentIntentStatus &&
-        session.status === "open" &&
-        session.payment_status !== "paid" &&
-        session.payment_status !== "no_payment_required"),
+    requires_action: getStripeCheckoutRequiresAction(
+      session,
+      paymentIntentStatus,
+    ),
     status: getStripeCheckoutStatus(session, paymentIntent),
-    ...(paymentUrl ? { payment_url: paymentUrl } : {}),
+    ...(isNonEmptyString(paymentUrl) ? { payment_url: paymentUrl } : {}),
   }
 }
 
@@ -337,7 +374,7 @@ const getExplicitCaptureAmount = (
   input: CapturePaymentInput,
 ): RefundPaymentInput["amount"] | undefined => {
   if (!("amount" in input)) {
-    return
+    return undefined
   }
 
   const amount = Reflect.get(input, "amount")
@@ -358,7 +395,7 @@ const getStoredCaptureAmount = (
   const amount = data?.["amount"]
 
   if (amount === undefined) {
-    return
+    return undefined
   }
 
   if (!isPaymentAmount(amount)) {
@@ -385,12 +422,86 @@ const withPreservedStripePaymentData = (
     : { payment_intent_id: operationPaymentId }),
 })
 
+/**
+ * Cancels a Stripe payment addressed by a Checkout Session id. Open sessions
+ * are expired, completed sessions fall back to canceling their capturable
+ * PaymentIntent, and anything else is reported from the session itself.
+ * Returns `undefined` when the session cannot be retrieved so the caller can
+ * fall back to PayKit's own cancel path.
+ */
+const cancelOrExpireStripeCheckoutSessionPayment = async (
+  data: Record<string, unknown> | undefined,
+  providerPaymentId: string,
+  client: PaykitPaymentClient,
+): Promise<CancelPaymentOutput | undefined> => {
+  const session = await client.stripeCheckoutSessions?.retrieve(
+    providerPaymentId,
+    { expand: ["payment_intent"] },
+  )
+
+  if (!session) {
+    return undefined
+  }
+
+  if (session.status === "open" && client.stripeCheckoutSessions?.expire) {
+    // Expiring the Checkout Session is the only cancel path Stripe accepts for
+    // the cs_ ids createPayment's Checkout flow returns; drop this branch once
+    // PayKit's delete/cancel accepts those ids directly.
+    const expiredSession =
+      await client.stripeCheckoutSessions.expire(providerPaymentId)
+    const payment = expiredSession
+      ? toPaykitPaymentFromStripeCheckoutSession(expiredSession)
+      : ({
+          id: providerPaymentId,
+          status: "canceled",
+        } satisfies PaykitPayment)
+
+    return {
+      data: withPreservedStripePaymentData(
+        data,
+        providerPaymentId,
+        providerPaymentId,
+        payment,
+      ),
+    }
+  }
+
+  const payment = toPaykitPaymentFromStripeCheckoutSession(session)
+  const operationPaymentId = payment.payment_intent_id
+
+  if (
+    payment.status === "requires_capture" &&
+    isNonEmptyString(operationPaymentId) &&
+    client.payments.cancel
+  ) {
+    const canceledPayment = await client.payments.cancel(operationPaymentId)
+
+    return {
+      data: withPreservedStripePaymentData(
+        data,
+        providerPaymentId,
+        operationPaymentId,
+        canceledPayment,
+      ),
+    }
+  }
+
+  return {
+    data: withPreservedStripePaymentData(
+      data,
+      providerPaymentId,
+      operationPaymentId ?? providerPaymentId,
+      payment,
+    ),
+  }
+}
+
 export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<PaykitStripeOptions> {
-  static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
+  static override readonly identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
 
   // Medusa's provider loader instantiates provider classes directly.
   // the base constructor is protected; this keeps the provider constructor public.
-  constructor(
+  public constructor(
     container: PaykitInjectedDependencies,
     options: PaykitStripeOptions,
   ) {
@@ -435,12 +546,13 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
 
     const existingPaymentIntentId = getPaymentIntentIdFromData(data)
 
-    if (existingPaymentIntentId) {
+    if (existingPaymentIntentId !== undefined) {
       return existingPaymentIntentId
     }
 
-    // TODO(paykit-sdk): remove this once Stripe createPayment/retrievePayment
-    // expose a stable PaymentIntent id for Checkout Session payments.
+    // Resolving the PaymentIntent id from the Checkout Session is required
+    // while PayKit's Stripe createPayment/retrievePayment do not expose a
+    // stable PaymentIntent id for Checkout Session payments.
     const session = await client.stripeCheckoutSessions?.retrieve(
       providerPaymentId,
       { expand: ["payment_intent"] },
@@ -452,7 +564,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
         )
       : null
 
-    if (!paymentIntentId) {
+    if (paymentIntentId === null) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         `PayKit Stripe payment ${providerPaymentId} did not include a PaymentIntent id`,
@@ -537,7 +649,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       reason: null,
     })
 
-    if (!refund.id) {
+    if (!isNonEmptyString(refund.id)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "PayKit refund response did not include an id",
@@ -566,7 +678,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   override async deletePayment(
     input: DeletePaymentInput,
   ): Promise<DeletePaymentOutput> {
-    if (!input.data?.["id"]) {
+    if (!hasProviderPaymentId(input.data)) {
       return input.data === undefined ? {} : { data: input.data }
     }
 
@@ -583,7 +695,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       isStripeCheckoutSessionId(providerPaymentId) &&
       client.stripeCheckoutSessions
     ) {
-      const output = await this.cancelOrExpireCheckoutSessionPayment(
+      const output = await cancelOrExpireStripeCheckoutSessionPayment(
         data,
         providerPaymentId,
         client,
@@ -609,72 +721,6 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
         data,
         providerPaymentId,
         operationPaymentId,
-        payment,
-      ),
-    }
-  }
-
-  private async cancelOrExpireCheckoutSessionPayment(
-    data: Record<string, unknown> | undefined,
-    providerPaymentId: string,
-    client: PaykitPaymentClient,
-  ): Promise<CancelPaymentOutput | undefined> {
-    const session = await client.stripeCheckoutSessions?.retrieve(
-      providerPaymentId,
-      { expand: ["payment_intent"] },
-    )
-
-    if (!session) {
-      return
-    }
-
-    if (session.status === "open" && client.stripeCheckoutSessions?.expire) {
-      // TODO(paykit-sdk): remove this once Stripe delete/cancel supports
-      // Checkout Session ids returned by createPayment's Checkout path.
-      const expiredSession =
-        await client.stripeCheckoutSessions.expire(providerPaymentId)
-      const payment = expiredSession
-        ? toPaykitPaymentFromStripeCheckoutSession(expiredSession)
-        : ({
-            id: providerPaymentId,
-            status: "canceled",
-          } satisfies PaykitPayment)
-
-      return {
-        data: withPreservedStripePaymentData(
-          data,
-          providerPaymentId,
-          providerPaymentId,
-          payment,
-        ),
-      }
-    }
-
-    const payment = toPaykitPaymentFromStripeCheckoutSession(session)
-    const operationPaymentId = payment.payment_intent_id
-
-    if (
-      payment.status === "requires_capture" &&
-      operationPaymentId &&
-      client.payments.cancel
-    ) {
-      const canceledPayment = await client.payments.cancel(operationPaymentId)
-
-      return {
-        data: withPreservedStripePaymentData(
-          data,
-          providerPaymentId,
-          operationPaymentId,
-          canceledPayment,
-        ),
-      }
-    }
-
-    return {
-      data: withPreservedStripePaymentData(
-        data,
-        providerPaymentId,
-        operationPaymentId ?? providerPaymentId,
         payment,
       ),
     }
