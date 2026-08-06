@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { AdminPayloadSsoSchemaType } from "../../../../../../../src/api/admin/payload/sso/route"
 
 const { mockImportPKCS8, mockSignJWTConstructor } = vi.hoisted(() => ({
-  mockImportPKCS8: vi.fn(),
-  mockSignJWTConstructor: vi.fn(),
+  mockImportPKCS8: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  mockSignJWTConstructor: vi.fn<(payload: unknown) => void>(),
 }))
 
 vi.mock(import("jose"), () => ({
@@ -14,15 +14,19 @@ vi.mock(import("jose"), () => ({
       mockSignJWTConstructor(payload)
     }
 
-    setProtectedHeader = vi.fn().mockReturnThis()
-    setIssuedAt = vi.fn().mockReturnThis()
-    setExpirationTime = vi.fn().mockReturnThis()
-    setIssuer = vi.fn().mockReturnThis()
-    setAudience = vi.fn().mockReturnThis()
-    setSubject = vi.fn().mockReturnThis()
-    sign = vi.fn().mockResolvedValue("signed-sso-token")
+    setProtectedHeader = vi
+      .fn<(header: Record<string, unknown>) => unknown>()
+      .mockReturnThis()
+    setIssuedAt = vi.fn<(iat: number) => unknown>().mockReturnThis()
+    setExpirationTime = vi.fn<(exp: number) => unknown>().mockReturnThis()
+    setIssuer = vi.fn<(issuer: string) => unknown>().mockReturnThis()
+    setAudience = vi.fn<(audience: string) => unknown>().mockReturnThis()
+    setSubject = vi.fn<(subject: string) => unknown>().mockReturnThis()
+    sign = vi
+      .fn<(key: unknown) => Promise<string>>()
+      .mockResolvedValue("signed-sso-token")
   },
-  importPKCS8: (...args: unknown[]) => mockImportPKCS8(...args),
+  importPKCS8: async (...args: unknown[]) => await mockImportPKCS8(...args),
 }))
 
 const ORIGINAL_ENV = { ...process.env }
@@ -30,7 +34,7 @@ const ORIGINAL_ENV = { ...process.env }
 const restoreEnv = () => {
   for (const key of Object.keys(process.env)) {
     if (!(key in ORIGINAL_ENV)) {
-      delete process.env[key]
+      Reflect.deleteProperty(process.env, key)
     }
   }
   for (const [key, value] of Object.entries(ORIGINAL_ENV)) {
@@ -47,26 +51,26 @@ const restoreEnv = () => {
  * request/response interfaces while still validating the shape the route
  * handler actually reads from at runtime.
  */
-function assertMockShape(
+const assertMockShape: <T>(
   candidate: unknown,
-  requiredKeys: readonly string[],
-): asserts candidate is unknown {
+  requiredKeys: readonly (keyof T)[],
+) => asserts candidate is T = (candidate, requiredKeys) => {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
   }
 
   for (const key of requiredKeys) {
     if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
+      throw new TypeError(`Mock object missing required key: ${String(key)}`)
     }
   }
 }
 
 type MockResponse = MedusaResponse & {
-  json: ReturnType<typeof vi.fn>
-  send: ReturnType<typeof vi.fn>
-  setHeader: ReturnType<typeof vi.fn>
-  status: ReturnType<typeof vi.fn>
+  json: ReturnType<typeof vi.fn<(body: Record<string, unknown>) => unknown>>
+  send: ReturnType<typeof vi.fn<(body: string) => unknown>>
+  setHeader: ReturnType<typeof vi.fn<(name: string, value: string) => void>>
+  status: ReturnType<typeof vi.fn<(code: number) => MockResponse>>
 }
 
 type MockRequest = MedusaRequest<unknown, AdminPayloadSsoSchemaType> & {
@@ -79,10 +83,10 @@ type MockRequest = MedusaRequest<unknown, AdminPayloadSsoSchemaType> & {
 
 const createMockResponse = (): MockResponse => {
   const candidate: unknown = {
-    json: vi.fn().mockReturnThis(),
-    send: vi.fn().mockReturnThis(),
-    setHeader: vi.fn(),
-    status: vi.fn().mockReturnThis(),
+    json: vi.fn<(body: Record<string, unknown>) => unknown>().mockReturnThis(),
+    send: vi.fn<(body: string) => unknown>().mockReturnThis(),
+    setHeader: vi.fn<(name: string, value: string) => void>(),
+    status: vi.fn<(code: number) => MockResponse>().mockReturnThis(),
   }
   assertMockShape<MockResponse>(candidate, [
     "json",
@@ -128,7 +132,7 @@ describe("GET /admin/payload/sso", () => {
   it("rejects direct handler access without an authenticated admin user context", async () => {
     const { GET } =
       await import("../../../../../../../src/api/admin/payload/sso/route")
-    const req = createMockRequest({ auth_context: undefined })
+    const req = createMockRequest({ auth_context: null })
     const res = createMockResponse()
 
     await GET(req, res)
@@ -160,38 +164,54 @@ describe("GET /admin/payload/sso", () => {
     expect(mockImportPKCS8).not.toHaveBeenCalled()
   })
 
-  it("returns an auto-post form that preserves the Medusa origin for Payload origin checks", async () => {
-    const { GET } =
-      await import("../../../../../../../src/api/admin/payload/sso/route")
-    const req = createMockRequest()
-    const res = createMockResponse()
+  describe("returns an auto-post form that preserves the Medusa origin for Payload origin checks", () => {
+    let html: string
+    let res: MockResponse
 
-    await GET(req, res)
+    beforeEach(async () => {
+      const { GET } =
+        await import("../../../../../../../src/api/admin/payload/sso/route")
+      const req = createMockRequest()
+      res = createMockResponse()
 
-    expect(res.setHeader).toHaveBeenCalledWith(
-      "Content-Type",
-      "text/html; charset=utf-8",
-    )
-    expect(res.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store")
-    expect(res.setHeader).toHaveBeenCalledWith("Referrer-Policy", "origin")
-    expect(res.status).toHaveBeenCalledWith(200)
+      await GET(req, res)
 
-    const html = res.send.mock.calls[0]?.[0]
-    expect(html).toContain('<meta name="referrer" content="origin" />')
-    expect(html).toContain('<meta name="color-scheme" content="dark" />')
-    expect(html).toContain("background: rgb(20, 20, 20)")
-    expect(html).toContain("form {\n        display: none;")
-    expect(html).toContain(
-      '<form method="POST" action="http://localhost:8083/api/medusa-sso">',
-    )
-    expect(html).toContain('name="token" value="signed-sso-token"')
-    expect(html).toContain('name="returnTo" value="/admin"')
-    expect(html).not.toContain("no-referrer")
-    expect(mockSignJWTConstructor).toHaveBeenCalledWith({
-      email: "admin@example.com",
-      medusa_actor_id: "user_123",
-      medusa_actor_type: "user",
-      payload_sso_mode: "shared-configured-user",
+      html = res.send.mock.calls[0]?.[0]
+    })
+
+    it("sets the response headers and status for the auto-post form", () => {
+      expect(res.setHeader).toHaveBeenCalledWith(
+        "Content-Type",
+        "text/html; charset=utf-8",
+      )
+      expect(res.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store")
+      expect(res.setHeader).toHaveBeenCalledWith("Referrer-Policy", "origin")
+      expect(res.status).toHaveBeenCalledWith(200)
+    })
+
+    it("renders the referrer and color-scheme meta tags with a hidden form", () => {
+      expect(html).toContain('<meta name="referrer" content="origin" />')
+      expect(html).toContain('<meta name="color-scheme" content="dark" />')
+      expect(html).toContain("background: rgb(20, 20, 20)")
+      expect(html).toContain("form {\n        display: none;")
+    })
+
+    it("posts the signed token and returnTo to the Payload origin", () => {
+      expect(html).toContain(
+        '<form method="POST" action="http://localhost:8083/api/medusa-sso">',
+      )
+      expect(html).toContain('name="token" value="signed-sso-token"')
+      expect(html).toContain('name="returnTo" value="/admin"')
+      expect(html).not.toContain("no-referrer")
+    })
+
+    it("signs the JWT with the configured admin email and actor context", () => {
+      expect(mockSignJWTConstructor).toHaveBeenCalledWith({
+        email: "admin@example.com",
+        medusa_actor_id: "user_123",
+        medusa_actor_type: "user",
+        payload_sso_mode: "shared-configured-user",
+      })
     })
   })
 
@@ -235,7 +255,7 @@ describe("GET /admin/payload/sso", () => {
   it("rejects non-http Payload iframe URLs", async () => {
     const { GET } =
       await import("../../../../../../../src/api/admin/payload/sso/route")
-    process.env["PAYLOAD_IFRAME_URL"] = "javascript:alert(1)"
+    process.env["PAYLOAD_IFRAME_URL"] = "ftp://evil.example"
     const req = createMockRequest()
     const res = createMockResponse()
 
