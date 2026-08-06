@@ -2,6 +2,7 @@
 import { BENEFITS } from "@/assets/benefits"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
 import { BLOG_POSTS, HERO_BANNERS } from "@/components/homepage/homepage.data"
+import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
 import { HomepageBlogSection } from "@/components/homepage/sections/homepage-blog-section"
 import { HomepageHeroCarouselSection } from "@/components/homepage/sections/homepage-hero-carousel-section"
 import { HomepageProductCollectionSection } from "@/components/homepage/sections/homepage-product-collection-section"
@@ -14,9 +15,13 @@ import { PurposeCarousel } from "./homepage/sections/purpose-carousel"
 
 type HerbatikaHomepageProps = {
   heroBanners?: HeroBannerItem[]
+  homepagePromo?: HomepagePromoContent | null
 }
 
-export function HerbatikaHomepage({ heroBanners }: HerbatikaHomepageProps) {
+export function HerbatikaHomepage({
+  heroBanners,
+  homepagePromo,
+}: HerbatikaHomepageProps) {
   const controller = useHomepageController()
   const banners = heroBanners?.length ? heroBanners : HERO_BANNERS
 
@@ -49,7 +54,7 @@ export function HerbatikaHomepage({ heroBanners }: HerbatikaHomepageProps) {
       ))}
 
       <HomepageBlogSection posts={BLOG_POSTS} />
-      <HomepagePromoSection />
+      <HomepagePromoSection promo={homepagePromo} />
       <RecentlyVisitedProductsSection />
     </main>
   )

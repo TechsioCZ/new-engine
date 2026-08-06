@@ -70,6 +70,15 @@ const nextConfig: NextConfig = {
   ],
   reactCompiler: true,
   cacheComponents: true,
+  async redirects() {
+    return [
+      {
+        source: "/homepage-promo",
+        destination: "/#homepage-promo",
+        permanent: false,
+      },
+    ]
+  },
   outputFileTracingRoot: join(__dirname, "../../"),
   outputFileTracingExcludes: {
     "*": [
