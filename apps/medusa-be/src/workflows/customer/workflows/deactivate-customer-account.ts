@@ -4,6 +4,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { deleteAuthIdentityStep } from "../steps/delete-auth-identity"
+import { markCustomerAccountInactiveStep } from "../steps/mark-customer-account-inactive"
 import { prepareCustomerAccountDeactivationStep } from "../steps/prepare-customer-account-deactivation"
 import { softDeleteCustomerStep } from "../steps/soft-delete-customer"
 
@@ -16,8 +17,15 @@ export const deactivateCustomerAccountWorkflow = createWorkflow(
   (input: DeactivateCustomerAccountWorkflowInput) => {
     const prepared = prepareCustomerAccountDeactivationStep(input)
 
-    softDeleteCustomerStep(
+    const inactiveMarker = markCustomerAccountInactiveStep(
       transform({ prepared }, ({ prepared: payload }) => ({
+        customer_id: payload.customer_id,
+        first_name: payload.first_name,
+      }))
+    )
+
+    softDeleteCustomerStep(
+      transform({ inactiveMarker, prepared }, ({ prepared: payload }) => ({
         customer_id: payload.customer_id,
       }))
     )

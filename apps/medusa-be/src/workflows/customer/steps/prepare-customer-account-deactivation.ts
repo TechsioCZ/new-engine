@@ -13,6 +13,7 @@ type PrepareCustomerAccountDeactivationInput = {
 type CustomerRecord = {
   deleted_at?: Date | string | null
   email?: string | null
+  first_name?: string | null
   id: string
 }
 
@@ -29,6 +30,7 @@ type ProviderIdentityRecord = {
 type PrepareCustomerAccountDeactivationOutput = {
   auth_identity_id?: string
   customer_id: string
+  first_name?: string | null
 }
 
 export const prepareCustomerAccountDeactivationStep = createStep(
@@ -41,7 +43,7 @@ export const prepareCustomerAccountDeactivationStep = createStep(
 
     const customerResult: unknown = await query.graph({
       entity: "customer",
-      fields: ["id", "email", "deleted_at"],
+      fields: ["id", "email", "first_name", "deleted_at"],
       filters: { id: input.customer_id },
       withDeleted: true,
     })
@@ -101,6 +103,7 @@ export const prepareCustomerAccountDeactivationStep = createStep(
     return new StepResponse({
       auth_identity_id: authIdentityId,
       customer_id: customer.id,
+      first_name: customer.first_name,
     })
   }
 )
