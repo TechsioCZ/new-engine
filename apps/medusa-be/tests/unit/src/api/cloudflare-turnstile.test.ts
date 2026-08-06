@@ -89,8 +89,8 @@ const createRes = () => {
 }
 
 type FetchMock = (...args: Parameters<typeof fetch>) => {
-  json: () => unknown
   ok: boolean
+  text: () => string
 }
 
 const isURLSearchParams = (value: unknown): value is URLSearchParams =>
@@ -146,12 +146,13 @@ describe("cloudflare turnstile verification middleware", () => {
     process.env["CLOUDFLARE_TURNSTILE_ENABLED"] = "true"
     process.env["CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES"] = "localhost"
     const fetchMock = vi.fn<FetchMock>(() => ({
-      json: () => ({
-        "error-codes": [],
-        hostname: "localhost",
-        success: true,
-      }),
       ok: true,
+      text: () =>
+        JSON.stringify({
+          "error-codes": [],
+          hostname: "localhost",
+          success: true,
+        }),
     }))
     vi.stubGlobal("fetch", fetchMock)
     const req = createReq({
@@ -222,14 +223,57 @@ describe("cloudflare turnstile verification middleware", () => {
     })
   })
 
+  it.each([
+    ["malformed JSON", "{"],
+    ["a scalar JSON payload", "true"],
+    ["a non-boolean success field", JSON.stringify({ success: "true" })],
+    [
+      "invalid optional response fields",
+      JSON.stringify({
+        "error-codes": ["invalid-input-response", 42],
+        hostname: 42,
+        success: true,
+      }),
+    ],
+    [
+      "an oversized response body",
+      `${" ".repeat(65_536)}${JSON.stringify({ success: true })}`,
+    ],
+  ])("rejects %s from Cloudflare", async (_description, responseText) => {
+    process.env["CLOUDFLARE_TURNSTILE_ENABLED"] = "true"
+    process.env["CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES"] = ""
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<FetchMock>(() => ({
+        ok: true,
+        text: () => responseText,
+      })),
+    )
+    const req = createReq({
+      body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" },
+    })
+    const res = createRes()
+    const next = vi.fn<() => void>()
+
+    await verifyCloudflareTurnstile()(req, res, next)
+
+    expect(next).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({
+      code: "captcha_verification_failed",
+      message: "Captcha verification failed",
+      type: "invalid_data",
+    })
+  })
+
   it("rejects valid Cloudflare responses from disallowed hostnames", async () => {
     process.env["CLOUDFLARE_TURNSTILE_ENABLED"] = "true"
     process.env["CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES"] = "localhost"
     vi.stubGlobal(
       "fetch",
       vi.fn<FetchMock>(() => ({
-        json: () => ({ hostname: "example.com", success: true }),
         ok: true,
+        text: () => JSON.stringify({ hostname: "example.com", success: true }),
       })),
     )
     const req = createReq({
