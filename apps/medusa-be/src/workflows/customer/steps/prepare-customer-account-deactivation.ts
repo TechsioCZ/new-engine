@@ -43,6 +43,7 @@ export const prepareCustomerAccountDeactivationStep = createStep(
       entity: "customer",
       fields: ["id", "email", "deleted_at"],
       filters: { id: input.customer_id },
+      withDeleted: true,
     })
 
     if (!hasArrayData<CustomerRecord>(customerResult)) {

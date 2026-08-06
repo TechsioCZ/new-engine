@@ -99,11 +99,11 @@ export function AccountDeactivationSection() {
             </Button>
           </>
         }
+        behavior="modal"
+        className="shadow-md"
         closeOnEscape={!deactivateAccountMutation.isPending}
         closeOnInteractOutside={!deactivateAccountMutation.isPending}
         customTrigger
-        className="shadow-md"
-        behavior="modal"
         description={
           <div className="space-y-200">
             <p>Táto akcia sa z pohľadu používateľa nedá vrátiť späť.</p>
