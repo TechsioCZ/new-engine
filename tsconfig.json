@@ -68,6 +68,9 @@
     },
     {
       "path": "./scripts/typescript/projects/libs/ui/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/tooling/ast-grep/tsconfig.json"
     }
   ]
 }

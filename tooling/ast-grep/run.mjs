@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process"
 import { createRequire } from "node:module"
-import { dirname, join, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
+import path from "node:path"
 
 const PLATFORM_PACKAGES = new Map([
   ["darwin-arm64", "@ast-grep/cli-darwin-arm64"],
@@ -14,11 +13,11 @@ const PLATFORM_PACKAGES = new Map([
 ])
 
 const scriptDirectory = import.meta.dirname
-const repositoryRoot = resolve(scriptDirectory, "../..")
+const repositoryRoot = path.resolve(scriptDirectory, "../..")
 const platformKey = `${process.platform}-${process.arch}`
 const packageName = PLATFORM_PACKAGES.get(platformKey)
 
-if (!packageName) {
+if (packageName === undefined) {
   throw new Error(`ast-grep does not publish a binary for ${platformKey}`)
 }
 
@@ -27,7 +26,7 @@ const cliPackageJson = require.resolve("@ast-grep/cli/package.json")
 const cliRequire = createRequire(cliPackageJson)
 const packageJson = cliRequire.resolve(`${packageName}/package.json`)
 const binaryName = process.platform === "win32" ? "ast-grep.exe" : "ast-grep"
-const binaryPath = join(dirname(packageJson), binaryName)
+const binaryPath = path.join(path.dirname(packageJson), binaryName)
 const result = spawnSync(binaryPath, process.argv.slice(2), {
   cwd: repositoryRoot,
   stdio: "inherit",
