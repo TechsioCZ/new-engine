@@ -1,66 +1,102 @@
 import { randomUUID } from "node:crypto"
 
+import { z } from "zod"
+
 import type { ApiClient } from "./client"
 import { assertOk, authenticateAdmin, createClient } from "./client"
 
-interface ApiKey {
-  id: string
-  token: string
-}
+const apiKeySchema = z.object({
+  id: z.string(),
+  token: z.string(),
+})
+const brandSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+})
+const regionSchema = z.object({
+  countries: z
+    .array(
+      z.object({
+        iso_2: z.string().optional(),
+      }),
+    )
+    .optional(),
+  currency_code: z.string().optional(),
+  id: z.string(),
+})
+const productVariantSchema = z.object({
+  id: z.string(),
+  sku: z.string().optional(),
+  title: z.string(),
+})
+const productSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  variants: z.tuple([productVariantSchema], productVariantSchema),
+})
+const promotionSchema = z.object({
+  code: z.string(),
+  id: z.string(),
+  is_automatic: z.boolean().optional(),
+})
+const cartItemSchema = z.object({
+  adjustments: z
+    .array(
+      z.object({
+        code: z.string().optional(),
+        promotion_id: z.string().optional(),
+      }),
+    )
+    .optional(),
+  discount_total: z.number().optional(),
+  variant_id: z.string(),
+})
+const cartSchema = z.object({
+  discount_total: z.number().optional(),
+  id: z.string(),
+  items: z.array(cartItemSchema),
+})
+const draftOrderPreviewSchema = z.object({
+  discount_total: z.number().optional(),
+  items: z.array(cartItemSchema),
+})
+const promotionsResponseSchema = z.object({
+  promotions: z.array(
+    z.object({
+      id: z.string(),
+      is_automatic: z.boolean().optional(),
+    }),
+  ),
+})
+const regionResponseSchema = z.object({ region: regionSchema })
+const regionsResponseSchema = z.object({ regions: z.array(regionSchema) })
+const salesChannelResponseSchema = z.object({
+  sales_channel: z.object({ id: z.string() }),
+})
+const apiKeyResponseSchema = z.object({ api_key: apiKeySchema })
+const brandResponseSchema = z.object({ brand: brandSchema })
+const productResponseSchema = z.object({ product: productSchema })
+const promotionResponseSchema = z.object({ promotion: promotionSchema })
+const cartResponseSchema = z.object({ cart: cartSchema })
+const draftOrderResponseSchema = z.object({
+  draft_order: z.object({ id: z.string() }),
+})
+export const draftOrderPreviewResponseSchema = z.object({
+  draft_order_preview: draftOrderPreviewSchema,
+})
 
-export interface Brand {
-  id: string
-  title: string
-}
-
-interface Region {
-  countries?: { iso_2?: string }[]
-  currency_code?: string
-  id: string
-  name?: string
-}
-
-export interface Product {
-  id: string
-  title: string
-  variants: [ProductVariant, ...ProductVariant[]]
-}
-
-export interface ProductVariant {
-  id: string
-  sku?: string
-  title: string
-}
-
-export interface Promotion {
-  code: string
-  id: string
-  is_automatic?: boolean
-}
+export type Brand = z.infer<typeof brandSchema>
+export type Product = z.infer<typeof productSchema>
+export type ProductVariant = z.infer<typeof productVariantSchema>
+export type Promotion = z.infer<typeof promotionSchema>
+export type CartItem = z.infer<typeof cartItemSchema>
+export type Cart = z.infer<typeof cartSchema>
+export type DraftOrderPreview = z.infer<typeof draftOrderPreviewSchema>
 
 export interface PromotionRule {
   attribute: string
   operator: string
   values: string[]
-}
-
-export interface CartItem {
-  adjustments?: { code?: string; promotion_id?: string }[]
-  discount_total?: number
-  id: string
-  variant_id: string
-}
-
-export interface Cart {
-  discount_total?: number
-  id: string
-  items: CartItem[]
-}
-
-export interface DraftOrderPreview {
-  discount_total?: number
-  id: string
-  items: (CartItem & { product_id?: string })[]
 }
 
 export interface TestContext {
@@ -86,8 +122,9 @@ const shippingAddress = {
 export const suffix = () => `${Date.now()}-${randomUUID().slice(0, 8)}`
 
 const deleteAutomaticPromotions = async (admin: ApiClient) => {
-  const { promotions } = await admin.get<{ promotions: Promotion[] }>(
+  const { promotions } = await admin.get(
     "/admin/promotions?limit=100&fields=id,is_automatic",
+    promotionsResponseSchema,
   )
   const automaticPromotions = promotions.filter(
     (promotion) => promotion.is_automatic === true,
@@ -105,7 +142,7 @@ const deleteAutomaticPromotions = async (admin: ApiClient) => {
 }
 
 const getOrCreateE2eRegion = async (admin: ApiClient) => {
-  const created = await admin.request<{ region: Region }>("/admin/regions", {
+  const created = await admin.request("/admin/regions", {
     body: {
       countries: ["us"],
       currency_code: "usd",
@@ -115,11 +152,12 @@ const getOrCreateE2eRegion = async (admin: ApiClient) => {
   })
 
   if (created.status === 200) {
-    return created.data.region
+    return regionResponseSchema.parse(created.data).region
   }
 
-  const { regions } = await admin.get<{ regions: Region[] }>(
+  const { regions } = await admin.get(
     "/admin/regions?limit=100&fields=id,name,currency_code,*countries",
+    regionsResponseSchema,
   )
   const existing = regions.find(
     (region) =>
@@ -147,16 +185,22 @@ export const createTestContext = async (
   await deleteAutomaticPromotions(admin)
 
   const region = await getOrCreateE2eRegion(admin)
-  const { sales_channel } = await admin.post<{
-    sales_channel: { id: string }
-  }>("/admin/sales-channels", {
-    description: "Promotion custom rule E2E channel",
-    name: `Promotions E2E ${id}`,
-  })
-  const { api_key } = await admin.post<{ api_key: ApiKey }>("/admin/api-keys", {
-    title: `Promotions E2E ${id}`,
-    type: "publishable",
-  })
+  const { sales_channel } = await admin.post(
+    "/admin/sales-channels",
+    {
+      description: "Promotion custom rule E2E channel",
+      name: `Promotions E2E ${id}`,
+    },
+    salesChannelResponseSchema,
+  )
+  const { api_key } = await admin.post(
+    "/admin/api-keys",
+    {
+      title: `Promotions E2E ${id}`,
+      type: "publishable",
+    },
+    apiKeyResponseSchema,
+  )
 
   await admin.post(`/admin/api-keys/${api_key.id}/sales-channels`, {
     add: [sales_channel.id],
@@ -175,10 +219,14 @@ export const createBrand = async (
   title = `Brand ${suffix()}`,
 ) => {
   const handle = title.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-")
-  const { brand } = await admin.post<{ brand: Brand }>("/admin/brands", {
-    handle,
-    title,
-  })
+  const { brand } = await admin.post(
+    "/admin/brands",
+    {
+      handle,
+      title,
+    },
+    brandResponseSchema,
+  )
 
   return brand
 }
@@ -194,7 +242,7 @@ export const createProduct = async (
 ) => {
   const id = suffix()
   const title = options.title ?? `Promo Product ${id}`
-  const { product } = await admin.post<{ product: Product }>(
+  const { product } = await admin.post(
     "/admin/products",
     {
       handle: title.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-"),
@@ -212,6 +260,7 @@ export const createProduct = async (
         },
       ],
     },
+    productResponseSchema,
   )
 
   if (options.brandId !== undefined && options.brandId !== "") {
@@ -233,7 +282,7 @@ export const createPromotion = async (
   },
 ) => {
   const code = options.code ?? `PROMO-${suffix()}`
-  const { promotion } = await admin.post<{ promotion: Promotion }>(
+  const { promotion } = await admin.post(
     "/admin/promotions",
     {
       application_method: {
@@ -251,13 +300,14 @@ export const createPromotion = async (
       status: "active",
       type: "standard",
     },
+    promotionResponseSchema,
   )
 
-  const { promotion: manualPromotion } = await admin.post<{
-    promotion: Promotion
-  }>(`/admin/promotions/${promotion.id}?fields=id,code,is_automatic`, {
-    is_automatic: false,
-  })
+  const { promotion: manualPromotion } = await admin.post(
+    `/admin/promotions/${promotion.id}?fields=id,code,is_automatic`,
+    { is_automatic: false },
+    promotionResponseSchema,
+  )
 
   return manualPromotion
 }
@@ -272,7 +322,7 @@ export const createBuyGetPromotion = async (
   },
 ) => {
   const code = options.code ?? `BUYGET-${suffix()}`
-  const { promotion } = await admin.post<{ promotion: Promotion }>(
+  const { promotion } = await admin.post(
     "/admin/promotions",
     {
       application_method: {
@@ -292,13 +342,14 @@ export const createBuyGetPromotion = async (
       status: "active",
       type: "buyget",
     },
+    promotionResponseSchema,
   )
 
-  const { promotion: manualPromotion } = await admin.post<{
-    promotion: Promotion
-  }>(`/admin/promotions/${promotion.id}?fields=id,code,is_automatic`, {
-    is_automatic: false,
-  })
+  const { promotion: manualPromotion } = await admin.post(
+    `/admin/promotions/${promotion.id}?fields=id,code,is_automatic`,
+    { is_automatic: false },
+    promotionResponseSchema,
+  )
 
   return manualPromotion
 }
@@ -307,7 +358,7 @@ export const createCart = async (
   context: TestContext,
   items: { quantity: number; variantId: string }[],
 ) => {
-  const { cart } = await context.store.post<{ cart: Cart }>(
+  const { cart } = await context.store.post(
     `/store/carts?fields=${cartFields}`,
     {
       currency_code: "usd",
@@ -319,6 +370,7 @@ export const createCart = async (
       sales_channel_id: context.salesChannelId,
       shipping_address: shippingAddress,
     },
+    cartResponseSchema,
   )
 
   return cart
@@ -329,9 +381,10 @@ export const applyPromotion = async (
   cartId: string,
   code: string,
 ) => {
-  const { cart } = await context.store.post<{ cart: Cart }>(
+  const { cart } = await context.store.post(
     `/store/carts/${cartId}/promotions?fields=${cartFields}`,
     { promo_codes: [code] },
+    cartResponseSchema,
   )
 
   return cart
@@ -391,14 +444,16 @@ export const createDraftOrderWithItem = async (
   context: TestContext,
   variantId: string,
 ) => {
-  const { draft_order } = await context.admin.post<{
-    draft_order: { id: string }
-  }>("/admin/draft-orders", {
-    email: `promotions-${suffix()}@example.com`,
-    region_id: context.regionId,
-    sales_channel_id: context.salesChannelId,
-    shipping_address: shippingAddress,
-  })
+  const { draft_order } = await context.admin.post(
+    "/admin/draft-orders",
+    {
+      email: `promotions-${suffix()}@example.com`,
+      region_id: context.regionId,
+      sales_channel_id: context.salesChannelId,
+      shipping_address: shippingAddress,
+    },
+    draftOrderResponseSchema,
+  )
 
   await context.admin.post(`/admin/draft-orders/${draft_order.id}/edit`, {})
   await context.admin.post(`/admin/draft-orders/${draft_order.id}/edit/items`, {

@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
 import { resolveRequiredEnv } from "./helpers/client"
-import type { DraftOrderPreview } from "./helpers/promotions"
 import {
   applyPromotion,
   createBrand,
@@ -12,6 +11,7 @@ import {
   createProduct,
   createPromotion,
   createTestContext,
+  draftOrderPreviewResponseSchema,
   expectAdjusted,
   expectCartDiscounted,
   expectUnadjusted,
@@ -323,11 +323,11 @@ describe("Custom promotion rules HTTP E2E", () => {
     const draftOrder = await createDraftOrderWithItem(context, variant.id)
 
     await context.admin.post(`/admin/draft-orders/${draftOrder.id}/edit`, {})
-    const { draft_order_preview } = await context.admin.post<{
-      draft_order_preview: DraftOrderPreview
-    }>(`/admin/draft-orders/${draftOrder.id}/edit/promotions`, {
-      promo_codes: [promotion.code],
-    })
+    const { draft_order_preview } = await context.admin.post(
+      `/admin/draft-orders/${draftOrder.id}/edit/promotions`,
+      { promo_codes: [promotion.code] },
+      draftOrderPreviewResponseSchema,
+    )
 
     const adjustedItem = getItem(draft_order_preview, variant.id)
 
@@ -335,11 +335,11 @@ describe("Custom promotion rules HTTP E2E", () => {
     expect(draft_order_preview.discount_total ?? 0).toBeGreaterThan(0)
 
     const { draft_order_preview: updatedDraftOrderPreview } =
-      await context.admin.post<{
-        draft_order_preview: DraftOrderPreview
-      }>(`/admin/draft-orders/${draftOrder.id}/edit/items`, {
-        items: [{ quantity: 1, variant_id: otherVariant.id }],
-      })
+      await context.admin.post(
+        `/admin/draft-orders/${draftOrder.id}/edit/items`,
+        { items: [{ quantity: 1, variant_id: otherVariant.id }] },
+        draftOrderPreviewResponseSchema,
+      )
 
     expectAdjusted(getItem(updatedDraftOrderPreview, variant.id), promotion)
     expectUnadjusted(getItem(updatedDraftOrderPreview, otherVariant.id))

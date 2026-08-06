@@ -25,10 +25,11 @@ describe("Admin publishable key endpoint", () => {
         email: adminEmail,
         password: adminPassword,
       },
+      decoder: authResponseSchema,
       method: "POST",
     })
 
-    const authData = authResponseSchema.parse(authResponse.data)
+    const authData = authResponse.data
     const title = `CI Publishable Key ${Date.now()}`
     const { token } = authData
 
@@ -37,34 +38,34 @@ describe("Admin publishable key endpoint", () => {
       "/admin/provisioning/publishable-key",
       {
         body: { title },
+        decoder: publishableKeyResponseSchema,
         method: "POST",
         token,
       },
     )
 
-    const createData = publishableKeyResponseSchema.parse(createResponse.data)
+    const createData = createResponse.data
 
     const secondCreateResponse = await requestJson(
       backendUrl,
       "/admin/provisioning/publishable-key",
       {
         body: { title },
+        decoder: publishableKeyResponseSchema,
         method: "POST",
         token,
       },
     )
 
-    const secondCreateData = publishableKeyResponseSchema.parse(
-      secondCreateResponse.data,
-    )
+    const secondCreateData = secondCreateResponse.data
 
     const getResponse = await requestJson(
       backendUrl,
       `/admin/provisioning/publishable-key?title=${encodeURIComponent(title)}`,
-      { token },
+      { decoder: publishableKeyResponseSchema, token },
     )
 
-    const getData = publishableKeyResponseSchema.parse(getResponse.data)
+    const getData = getResponse.data
 
     expect({
       created: createData.created,
