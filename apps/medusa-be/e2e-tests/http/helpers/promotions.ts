@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto"
+
 import type { ApiClient } from "./client"
 import { assertOk, authenticateAdmin, createClient } from "./client"
 
@@ -12,7 +14,7 @@ export interface Brand {
 }
 
 interface Region {
-  countries?: Array<{ iso_2?: string }>
+  countries?: { iso_2?: string }[]
   currency_code?: string
   id: string
   name?: string
@@ -43,7 +45,7 @@ export interface PromotionRule {
 }
 
 export interface CartItem {
-  adjustments?: Array<{ code?: string; promotion_id?: string }>
+  adjustments?: { code?: string; promotion_id?: string }[]
   discount_total?: number
   id: string
   variant_id: string
@@ -58,7 +60,7 @@ export interface Cart {
 export interface DraftOrderPreview {
   discount_total?: number
   id: string
-  items: Array<CartItem & { product_id?: string }>
+  items: (CartItem & { product_id?: string })[]
 }
 
 export interface TestContext {
@@ -81,11 +83,64 @@ const shippingAddress = {
   postal_code: "10001",
 }
 
-export function suffix() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+export const suffix = () => `${Date.now()}-${randomUUID().slice(0, 8)}`
+
+const deleteAutomaticPromotions = async (admin: ApiClient) => {
+  const { promotions } = await admin.get<{ promotions: Promotion[] }>(
+    "/admin/promotions?limit=100&fields=id,is_automatic",
+  )
+  const automaticPromotions = promotions.filter(
+    (promotion) => promotion.is_automatic === true,
+  )
+
+  await Promise.all(
+    automaticPromotions.map(async (promotion) => {
+      assertOk(
+        await admin.request(`/admin/promotions/${promotion.id}`, {
+          method: "DELETE",
+        }),
+      )
+    }),
+  )
 }
 
-export async function createTestContext(baseUrl: string): Promise<TestContext> {
+const getOrCreateE2eRegion = async (admin: ApiClient) => {
+  const created = await admin.request<{ region: Region }>("/admin/regions", {
+    body: {
+      countries: ["us"],
+      currency_code: "usd",
+      name: e2eRegionName,
+    },
+    method: "POST",
+  })
+
+  if (created.status === 200) {
+    return created.data.region
+  }
+
+  const { regions } = await admin.get<{ regions: Region[] }>(
+    "/admin/regions?limit=100&fields=id,name,currency_code,*countries",
+  )
+  const existing = regions.find(
+    (region) =>
+      region.currency_code === "usd" &&
+      (region.countries?.some((country) => country.iso_2 === "us") ?? false),
+  )
+
+  if (!existing) {
+    throw new Error(
+      `Unable to create or locate USD/US region: ${JSON.stringify(
+        created.data,
+      )}`,
+    )
+  }
+
+  return existing
+}
+
+export const createTestContext = async (
+  baseUrl: string,
+): Promise<TestContext> => {
   const admin = await authenticateAdmin(baseUrl)
   const id = suffix()
 
@@ -115,64 +170,11 @@ export async function createTestContext(baseUrl: string): Promise<TestContext> {
   }
 }
 
-async function deleteAutomaticPromotions(admin: ApiClient) {
-  const { promotions } = await admin.get<{ promotions: Promotion[] }>(
-    "/admin/promotions?limit=100&fields=id,is_automatic",
-  )
-  const automaticPromotions = promotions.filter(
-    (promotion) => promotion.is_automatic,
-  )
-
-  await Promise.all(
-    automaticPromotions.map(async (promotion) => {
-      assertOk(
-        await admin.request(`/admin/promotions/${promotion.id}`, {
-          method: "DELETE",
-        }),
-      )
-    }),
-  )
-}
-
-async function getOrCreateE2eRegion(admin: ApiClient) {
-  const created = await admin.request<{ region: Region }>("/admin/regions", {
-    body: {
-      countries: ["us"],
-      currency_code: "usd",
-      name: e2eRegionName,
-    },
-    method: "POST",
-  })
-
-  if (created.status === 200) {
-    return created.data.region
-  }
-
-  const { regions } = await admin.get<{ regions: Region[] }>(
-    "/admin/regions?limit=100&fields=id,name,currency_code,*countries",
-  )
-  const existing = regions.find(
-    (region) =>
-      region.currency_code === "usd" &&
-      region.countries?.some((country) => country.iso_2 === "us"),
-  )
-
-  if (!existing) {
-    throw new Error(
-      `Unable to create or locate USD/US region: ${JSON.stringify(
-        created.data,
-      )}`,
-    )
-  }
-
-  return existing
-}
-
-export async function createBrand(
+export const createBrand = async (
   admin: ApiClient,
   title = `Brand ${suffix()}`,
-) {
-  const handle = title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")
+) => {
+  const handle = title.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-")
   const { brand } = await admin.post<{ brand: Brand }>("/admin/brands", {
     handle,
     title,
@@ -181,7 +183,7 @@ export async function createBrand(
   return brand
 }
 
-export async function createProduct(
+export const createProduct = async (
   admin: ApiClient,
   salesChannelId: string,
   options: {
@@ -189,13 +191,13 @@ export async function createProduct(
     brandId?: string
     title?: string
   } = {},
-) {
+) => {
   const id = suffix()
   const title = options.title ?? `Promo Product ${id}`
   const { product } = await admin.post<{ product: Product }>(
     "/admin/products",
     {
-      handle: title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-"),
+      handle: title.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-"),
       options: [{ title: "Size", values: ["One Size"] }],
       sales_channels: [{ id: salesChannelId }],
       status: "published",
@@ -212,7 +214,7 @@ export async function createProduct(
     },
   )
 
-  if (options.brandId) {
+  if (options.brandId !== undefined && options.brandId !== "") {
     await admin.post(`/admin/products/${product.id}/brands`, {
       brand_ids: [options.brandId],
     })
@@ -221,7 +223,7 @@ export async function createProduct(
   return product
 }
 
-export async function createPromotion(
+export const createPromotion = async (
   admin: ApiClient,
   options: {
     code?: string
@@ -229,7 +231,7 @@ export async function createPromotion(
     targetRules?: PromotionRule[]
     value?: number
   },
-) {
+) => {
   const code = options.code ?? `PROMO-${suffix()}`
   const { promotion } = await admin.post<{ promotion: Promotion }>(
     "/admin/promotions",
@@ -260,7 +262,7 @@ export async function createPromotion(
   return manualPromotion
 }
 
-export async function createBuyGetPromotion(
+export const createBuyGetPromotion = async (
   admin: ApiClient,
   options: {
     buyRules: PromotionRule[]
@@ -268,7 +270,7 @@ export async function createBuyGetPromotion(
     targetRules: PromotionRule[]
     value?: number
   },
-) {
+) => {
   const code = options.code ?? `BUYGET-${suffix()}`
   const { promotion } = await admin.post<{ promotion: Promotion }>(
     "/admin/promotions",
@@ -301,10 +303,10 @@ export async function createBuyGetPromotion(
   return manualPromotion
 }
 
-export async function createCart(
+export const createCart = async (
   context: TestContext,
   items: { quantity: number; variantId: string }[],
-) {
+) => {
   const { cart } = await context.store.post<{ cart: Cart }>(
     `/store/carts?fields=${cartFields}`,
     {
@@ -322,11 +324,11 @@ export async function createCart(
   return cart
 }
 
-export async function applyPromotion(
+export const applyPromotion = async (
   context: TestContext,
   cartId: string,
   code: string,
-) {
+) => {
   const { cart } = await context.store.post<{ cart: Cart }>(
     `/store/carts/${cartId}/promotions?fields=${cartFields}`,
     { promo_codes: [code] },
@@ -335,17 +337,17 @@ export async function applyPromotion(
   return cart
 }
 
-export async function createCartAndApplyPromotion(
+export const createCartAndApplyPromotion = async (
   context: TestContext,
   items: { quantity: number; variantId: string }[],
   promotionCode: string,
-) {
+) => {
   const cart = await createCart(context, items)
 
   return await applyPromotion(context, cart.id, promotionCode)
 }
 
-export function getItem(cart: Cart | DraftOrderPreview, variantId: string) {
+export const getItem = (cart: Cart | DraftOrderPreview, variantId: string) => {
   const item = cart.items.find(
     (candidate) => candidate.variant_id === variantId,
   )
@@ -357,7 +359,7 @@ export function getItem(cart: Cart | DraftOrderPreview, variantId: string) {
   return item
 }
 
-export function expectAdjusted(item: CartItem, promotion: Promotion) {
+export const expectAdjusted = (item: CartItem, promotion: Promotion) => {
   const hasPromotionAdjustment = (item.adjustments ?? []).some(
     (adjustment) =>
       adjustment.code === promotion.code &&
@@ -370,13 +372,13 @@ export function expectAdjusted(item: CartItem, promotion: Promotion) {
   }
 }
 
-export function expectCartDiscounted(cart: Cart) {
+export const expectCartDiscounted = (cart: Cart) => {
   if ((cart.discount_total ?? 0) <= 0) {
     throw new Error("Expected cart to have a promotion discount")
   }
 }
 
-export function expectUnadjusted(item: CartItem) {
+export const expectUnadjusted = (item: CartItem) => {
   const adjustmentCount = item.adjustments?.length ?? 0
   const discountTotal = item.discount_total ?? 0
 
@@ -385,10 +387,10 @@ export function expectUnadjusted(item: CartItem) {
   }
 }
 
-export async function createDraftOrderWithItem(
+export const createDraftOrderWithItem = async (
   context: TestContext,
   variantId: string,
-) {
+) => {
   const { draft_order } = await context.admin.post<{
     draft_order: { id: string }
   }>("/admin/draft-orders", {
