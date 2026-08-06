@@ -70,6 +70,11 @@ const assertIsQuoteCustomerQueryResult: (
   }
 }
 
+const queryCustomerStep: (
+  input: Parameters<typeof useRemoteQueryStep>[0],
+) => WorkflowData<QuoteCustomerQueryResult> &
+  StepFunctionReturnConfig<QuoteCustomerQueryResult> = useRemoteQueryStep
+
 export const createRequestForQuoteWorkflow = createWorkflow(
   "create-request-for-quote",
   (input: { cart_id: string; customer_id: string }) => {
@@ -94,15 +99,15 @@ export const createRequestForQuoteWorkflow = createWorkflow(
     })
     assertIsQuoteCartQueryResult(cart)
 
-    const customerQueryResult: unknown = useRemoteQueryStep({
+    const customerQueryResult: unknown = queryCustomerStep({
       entry_point: "customer",
       fields: ["id", "email"],
       list: false,
       throw_if_key_not_found: true,
       variables: { id: input.customer_id },
-    })
+    }).config({ name: "customer-query" })
     assertIsQuoteCustomerQueryResult(customerQueryResult)
-    const customer = customerQueryResult.config({ name: "customer-query" })
+    const customer = customerQueryResult
 
     const orderInput = transform(
       { cart, customer },

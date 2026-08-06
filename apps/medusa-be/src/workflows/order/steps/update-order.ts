@@ -30,22 +30,22 @@ export const updateOrderStep = createStep(
 
     const updateAfterSnapshot = async (
       dataBeforeUpdate: Awaited<ReturnType<IOrderModuleService["listOrders"]>>,
-    ) => {
-      const updatedQuotes = await orderModule.updateOrders(id, update)
-
-      return new StepResponse(updatedQuotes, {
-        dataBeforeUpdate,
-        relations,
-        selects,
-      })
-    }
+    ) => ({
+      dataBeforeUpdate,
+      updatedQuotes: await orderModule.updateOrders(id, update),
+    })
 
     const dataBeforeUpdate = await orderModule.listOrders(
       { id: data.id },
       { relations, select: selects },
     )
+    const updateResult = await updateAfterSnapshot(dataBeforeUpdate)
 
-    return await updateAfterSnapshot(dataBeforeUpdate)
+    return new StepResponse(updateResult.updatedQuotes, {
+      dataBeforeUpdate: updateResult.dataBeforeUpdate,
+      relations,
+      selects,
+    })
   },
   async (revertInput, { container }) => {
     if (!revertInput) {
