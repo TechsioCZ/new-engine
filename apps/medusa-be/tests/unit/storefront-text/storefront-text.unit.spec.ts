@@ -1,3 +1,4 @@
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { describe, expect, it, vi } from "vitest"
 
 import { GET as getAdminStorefrontTextCatalog } from "../../../src/api/admin/storefront-texts/catalog/route"
@@ -8,7 +9,12 @@ import {
   AdminImportStorefrontTextCatalogSchema,
   AdminUpdateStorefrontTextSchema,
 } from "../../../src/api/admin/storefront-texts/validators"
+import type {
+  AdminGetStorefrontTextCatalogSchemaType,
+  AdminGetStorefrontTextsSchemaType,
+} from "../../../src/api/admin/storefront-texts/validators"
 import { GET } from "../../../src/api/store/storefront-texts/route"
+import type { StoreGetStorefrontTextsSchemaType } from "../../../src/api/store/storefront-texts/validators"
 import {
   flattenStorefrontTextCatalog,
   getPublishedStorefrontTextMessages,
@@ -28,6 +34,107 @@ import {
 import { getEffectiveStorefrontTextValue } from "../../../src/modules/storefront-text/value"
 import { STOREFRONT_TEXT_LOCK_KEY } from "../../../src/workflows/storefront-text/lock"
 
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock as `unknown` first (instead of
+ * the target type) avoids requiring every property of the huge Node
+ * request/response interfaces while still validating the shape the route
+ * handler actually reads from at runtime.
+ */
+const assertMockShape: <T>(
+  candidate: unknown,
+  requiredKeys: readonly (keyof T)[],
+) => asserts candidate is T = (candidate, requiredKeys) => {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${String(key)}`)
+    }
+  }
+}
+
+/**
+ * Wraps `expect.objectContaining`/`expect.arrayContaining` with an explicit
+ * `unknown` return type. Vitest leaves these matcher factories untyped, so
+ * using them directly as a nested object-literal property value trips
+ * `no-unsafe-assignment`.
+ */
+const objectContaining = (value: Record<string, unknown>): unknown =>
+  expect.objectContaining(value)
+
+const arrayContaining = (value: unknown[]): unknown =>
+  expect.arrayContaining(value)
+
+const ADMIN_REQUEST_KEYS = ["scope", "validatedQuery"] as const
+const STORE_REQUEST_KEYS = ["locale", "scope", "validatedQuery"] as const
+
+const createMockRequest = <T>(
+  options: {
+    locale?: string
+    resolve: ReturnType<typeof vi.fn<(key: string) => unknown>>
+    validatedQuery: Record<string, unknown>
+  },
+  requiredKeys: readonly (keyof T)[],
+): T => {
+  const { locale, resolve, validatedQuery } = options
+  const candidate: unknown = {
+    ...(locale === undefined ? {} : { locale }),
+    scope: { resolve },
+    validatedQuery,
+  }
+
+  assertMockShape<T>(candidate, requiredKeys)
+  return candidate
+}
+
+type MockMedusaResponse<Body = unknown> = MedusaResponse & {
+  json: ReturnType<typeof vi.fn<(body: Body) => unknown>>
+}
+
+const createResponse = <Body = unknown>(): MockMedusaResponse<Body> => {
+  const candidate: unknown = {
+    json: vi.fn<(body: Body) => unknown>(),
+  }
+
+  assertMockShape<MockMedusaResponse<Body>>(candidate, ["json"])
+  return candidate
+}
+
+/**
+ * Minimal shape of a `storefront_text` row as read by the admin/store route
+ * handlers under test. The real generated module-service DTO carries many
+ * more persistence columns that these routes never touch.
+ */
+interface MockStorefrontTextRecord {
+  default_value: string
+  key: string
+  locale?: string
+  market?: string
+  override_value: null | string
+  status: string
+}
+
+type ListStorefrontTextsMock = (
+  filters: Record<string, unknown>,
+) => Promise<MockStorefrontTextRecord[]>
+
+type ListAndCountStorefrontTextsMock = (
+  filters: Record<string, unknown>,
+  config: Record<string, unknown>,
+) => Promise<[MockStorefrontTextRecord[], number]>
+
+interface AdminStorefrontTextCatalogResponseBody {
+  locale: string
+  market: string
+  messages: {
+    cart?: Record<string, string | undefined>
+  }
+  schema_version: number
+}
+
 describe("storefront text registry", () => {
   it("accepts only configured market and locale pairs", () => {
     expect(isStorefrontTextMarketLocalePair("cz", "cs-CZ")).toBeTruthy()
@@ -35,7 +142,7 @@ describe("storefront text registry", () => {
   })
 
   it("creates seed rows with a default and no override", () => {
-    const seedRow = getStorefrontTextSeedRows()[0]
+    const [seedRow] = getStorefrontTextSeedRows()
 
     expect(seedRow?.default_value).toBeTruthy()
     expect(seedRow?.override_value).toBeNull()
@@ -138,7 +245,7 @@ describe("storefront text registry", () => {
   })
 
   it("rejects reserved object-path segments in catalogs", () => {
-    const catalog = JSON.parse(
+    const catalog: unknown = JSON.parse(
       '{"__proto__":"ignored","cart":{"add_to_cart":"Do košíku"}}',
     )
 
@@ -154,7 +261,7 @@ describe("storefront text registry", () => {
 
   it("keeps definition keys unique and aligned with their namespace", () => {
     const keys = STOREFRONT_TEXT_DEFINITIONS.map((definition) => definition.key)
-    const sortedKeys = [...keys].sort()
+    const sortedKeys = keys.toSorted()
 
     expect(new Set(keys).size).toBe(keys.length)
     for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
@@ -545,7 +652,7 @@ describe("storefront text admin validation", () => {
   })
 
   it("preserves reserved message keys for workflow validation", () => {
-    const messages = JSON.parse('{"__proto__":"blocked"}')
+    const messages: unknown = JSON.parse('{"__proto__":"blocked"}')
     const result = AdminImportStorefrontTextCatalogSchema.safeParse({
       catalog: {
         locale: "cs-CZ",
@@ -575,46 +682,55 @@ describe("storefront text admin validation", () => {
 describe("storefront text admin catalog", () => {
   it("exports current defaults with active overrides only", async () => {
     const defaultMessages = getStorefrontTextDefaultMessages({ market: "cz" })
-    const listStorefrontTexts = vi.fn().mockResolvedValue([
+    const listStorefrontTexts = vi
+      .fn<ListStorefrontTextsMock>()
+      .mockResolvedValue([
+        {
+          default_value: "Do košíku",
+          key: "cart.add_to_cart",
+          override_value: "Přidat",
+          status: "active",
+        },
+        {
+          default_value: "Starý výchozí text",
+          key: "cart.adding_to_cart",
+          override_value: null,
+          status: "active",
+        },
+        {
+          default_value: "Starý výchozí text",
+          key: "cart.added_to_cart",
+          override_value: "Rozepsaný koncept",
+          status: "draft",
+        },
+        {
+          default_value: "Retired",
+          key: "cart.retired_key",
+          override_value: null,
+          status: "active",
+        },
+      ])
+    const request = createMockRequest<
+      MedusaRequest<unknown, AdminGetStorefrontTextCatalogSchemaType>
+    >(
       {
-        default_value: "Do košíku",
-        key: "cart.add_to_cart",
-        override_value: "Přidat",
-        status: "active",
+        resolve: vi.fn<(key: string) => unknown>(() => ({
+          listStorefrontTexts,
+        })),
+        validatedQuery: { market: "cz" },
       },
-      {
-        default_value: "Starý výchozí text",
-        key: "cart.adding_to_cart",
-        override_value: null,
-        status: "active",
-      },
-      {
-        default_value: "Starý výchozí text",
-        key: "cart.added_to_cart",
-        override_value: "Rozepsaný koncept",
-        status: "draft",
-      },
-      {
-        default_value: "Retired",
-        key: "cart.retired_key",
-        override_value: null,
-        status: "active",
-      },
-    ])
-    const request = {
-      scope: { resolve: vi.fn(() => ({ listStorefrontTexts })) },
-      validatedQuery: { market: "cz" },
-    }
-    const response = { json: vi.fn() }
+      ADMIN_REQUEST_KEYS,
+    )
+    const response = createResponse<AdminStorefrontTextCatalogResponseBody>()
 
-    await getAdminStorefrontTextCatalog(request as never, response as never)
+    await getAdminStorefrontTextCatalog(request, response)
 
     expect(response.json).toHaveBeenCalledWith(
       expect.objectContaining({
         locale: "cs-CZ",
         market: "cz",
-        messages: expect.objectContaining({
-          cart: expect.objectContaining({
+        messages: objectContaining({
+          cart: objectContaining({
             add_to_cart: "Přidat",
             added_to_cart: defaultMessages["cart.added_to_cart"],
             adding_to_cart: defaultMessages["cart.adding_to_cart"],
@@ -623,30 +739,38 @@ describe("storefront text admin catalog", () => {
         schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
       }),
     )
-    expect(
-      response.json.mock.calls[0]?.[0]?.messages?.cart?.retired_key,
-    ).toBeUndefined()
+
+    const catalogBody = response.json.mock.calls[0]?.[0]
+    if (catalogBody === undefined) {
+      throw new Error("Expected the route to send a JSON response")
+    }
+    expect(catalogBody.messages.cart?.retired_key).toBeUndefined()
   })
 })
 
 describe("storefront text admin search", () => {
-  const createResponse = () => ({ json: vi.fn() })
-
   const search = async (searchScope: "all" | "value") => {
-    const listAndCountStorefrontTexts = vi.fn().mockResolvedValue([[], 0])
-    const request = {
-      scope: {
-        resolve: vi.fn(() => ({ listAndCountStorefrontTexts })),
+    const listAndCountStorefrontTexts = vi
+      .fn<ListAndCountStorefrontTextsMock>()
+      .mockResolvedValue([[], 0])
+    const request = createMockRequest<
+      MedusaRequest<unknown, AdminGetStorefrontTextsSchemaType>
+    >(
+      {
+        resolve: vi.fn<(key: string) => unknown>(() => ({
+          listAndCountStorefrontTexts,
+        })),
+        validatedQuery: {
+          limit: 20,
+          offset: 0,
+          q: "partner",
+          search_scope: searchScope,
+        },
       },
-      validatedQuery: {
-        limit: 20,
-        offset: 0,
-        q: "partner",
-        search_scope: searchScope,
-      },
-    }
+      ADMIN_REQUEST_KEYS,
+    )
 
-    await getAdminStorefrontTexts(request as never, createResponse() as never)
+    await getAdminStorefrontTexts(request, createResponse())
 
     return listAndCountStorefrontTexts
   }
@@ -666,7 +790,7 @@ describe("storefront text admin search", () => {
             default_value: { $ilike: "%partner%" },
           },
         ],
-        key: expect.arrayContaining(["cart.add_to_cart"]),
+        key: arrayContaining(["cart.add_to_cart"]),
       }),
       expect.objectContaining({ skip: 0, take: 20 }),
     )
@@ -677,12 +801,12 @@ describe("storefront text admin search", () => {
 
     expect(listAndCountStorefrontTexts).toHaveBeenCalledWith(
       expect.objectContaining({
-        $or: expect.arrayContaining([
+        $or: arrayContaining([
           { default_value: { $ilike: "%partner%" } },
           { key: { $ilike: "%partner%" } },
           { override_value: { $ilike: "%partner%" } },
         ]),
-        key: expect.arrayContaining(["cart.add_to_cart"]),
+        key: arrayContaining(["cart.add_to_cart"]),
       }),
       expect.objectContaining({ skip: 0, take: 20 }),
     )
@@ -692,34 +816,39 @@ describe("storefront text admin search", () => {
     const currentDefault = getStorefrontTextDefaultMessages({ market: "cz" })[
       "cart.low_stock"
     ]
-    const listAndCountStorefrontTexts = vi.fn().mockResolvedValue([
-      [
-        {
-          default_value: "Zbývá už jen {count} ks",
-          key: "cart.low_stock",
-          locale: "cs-CZ",
-          market: "cz",
-          override_value: "Posledních {count} ks",
-          status: "active",
-        },
-      ],
-      1,
-    ])
-    const response = createResponse()
-
-    await getAdminStorefrontTexts(
+    const listAndCountStorefrontTexts = vi
+      .fn<ListAndCountStorefrontTextsMock>()
+      .mockResolvedValue([
+        [
+          {
+            default_value: "Zbývá už jen {count} ks",
+            key: "cart.low_stock",
+            locale: "cs-CZ",
+            market: "cz",
+            override_value: "Posledních {count} ks",
+            status: "active",
+          },
+        ],
+        1,
+      ])
+    const request = createMockRequest<
+      MedusaRequest<unknown, AdminGetStorefrontTextsSchemaType>
+    >(
       {
-        scope: {
-          resolve: vi.fn(() => ({ listAndCountStorefrontTexts })),
-        },
+        resolve: vi.fn<(key: string) => unknown>(() => ({
+          listAndCountStorefrontTexts,
+        })),
         validatedQuery: {
           limit: 20,
           offset: 0,
           search_scope: "all",
         },
-      } as never,
-      response as never,
+      },
+      ADMIN_REQUEST_KEYS,
     )
+    const response = createResponse()
+
+    await getAdminStorefrontTexts(request, response)
 
     expect(response.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -736,46 +865,58 @@ describe("storefront text admin search", () => {
 })
 
 describe("storefront text store route", () => {
-  const createResponse = () => ({ json: vi.fn() })
-
   it("rejects mismatched market and locale before querying the module", async () => {
-    const resolve = vi.fn()
-    const request = {
-      locale: "sk-SK",
-      scope: { resolve },
-      validatedQuery: { market: "cz" },
-    }
+    const resolve = vi.fn<(key: string) => unknown>()
+    const request = createMockRequest<
+      MedusaRequest<unknown, StoreGetStorefrontTextsSchemaType>
+    >(
+      {
+        locale: "sk-SK",
+        resolve,
+        validatedQuery: { market: "cz" },
+      },
+      STORE_REQUEST_KEYS,
+    )
 
-    await expect(
-      GET(request as never, createResponse() as never),
-    ).rejects.toThrow('Locale "sk-SK" does not belong to market "cz"')
+    await expect(GET(request, createResponse())).rejects.toThrow(
+      'Locale "sk-SK" does not belong to market "cz"',
+    )
     expect(resolve).not.toHaveBeenCalled()
   })
 
   it("overlays active database values on registry defaults", async () => {
     const defaultMessages = getStorefrontTextDefaultMessages({ market: "cz" })
-    const listStorefrontTexts = vi.fn().mockResolvedValue([
+    const listStorefrontTexts = vi
+      .fn<ListStorefrontTextsMock>()
+      .mockResolvedValue([
+        {
+          default_value: "Do košíku",
+          key: "cart.add_to_cart",
+          override_value: "Přidat",
+          status: "active",
+        },
+        {
+          default_value: "Starý výchozí text",
+          key: "cart.adding_to_cart",
+          override_value: null,
+          status: "active",
+        },
+      ])
+    const request = createMockRequest<
+      MedusaRequest<unknown, StoreGetStorefrontTextsSchemaType>
+    >(
       {
-        default_value: "Do košíku",
-        key: "cart.add_to_cart",
-        override_value: "Přidat",
-        status: "active",
+        locale: "cs-CZ",
+        resolve: vi.fn<(key: string) => unknown>(() => ({
+          listStorefrontTexts,
+        })),
+        validatedQuery: { market: "cz" },
       },
-      {
-        default_value: "Starý výchozí text",
-        key: "cart.adding_to_cart",
-        override_value: null,
-        status: "active",
-      },
-    ])
-    const request = {
-      locale: "cs-CZ",
-      scope: { resolve: vi.fn(() => ({ listStorefrontTexts })) },
-      validatedQuery: { market: "cz" },
-    }
+      STORE_REQUEST_KEYS,
+    )
     const response = createResponse()
 
-    await GET(request as never, response as never)
+    await GET(request, response)
 
     expect(listStorefrontTexts).toHaveBeenCalledWith({
       locale: "cs-CZ",
@@ -786,7 +927,7 @@ describe("storefront text store route", () => {
       expect.objectContaining({
         locale: "cs-CZ",
         market: "cz",
-        messages: expect.objectContaining({
+        messages: objectContaining({
           "cart.add_to_cart": "Přidat",
           "cart.adding_to_cart": defaultMessages["cart.adding_to_cart"],
         }),
