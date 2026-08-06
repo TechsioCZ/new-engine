@@ -1,8 +1,8 @@
-const WHITESPACE_REGEX = /\s+/g
-const NON_WORD_REGEX = /[^\w-]+/g
-const MULTIPLE_DASHES_REGEX = /--+/g
-const LEADING_DASHES_REGEX = /^-/
-const TRAILING_DASHES_REGEX = /-$/
+const WHITESPACE_REGEX = /\s+/gu
+const NON_WORD_REGEX = /[^\w-]+/gu
+const MULTIPLE_DASHES_REGEX = /--+/gu
+const LEADING_DASHES_REGEX = /^-/u
+const TRAILING_DASHES_REGEX = /-$/u
 
 export const hasTrimmedString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0

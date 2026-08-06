@@ -2,8 +2,8 @@ import { defineConfig } from "@rslib/core"
 
 export default defineConfig({
   lib: [
-    { id: "esm", bundle: false, dts: true, format: "esm" },
-    { id: "cjs", bundle: false, dts: false, format: "cjs" },
+    { bundle: false, dts: true, format: "esm", id: "esm" },
+    { bundle: false, dts: false, format: "cjs", id: "cjs" },
   ],
   output: { target: "web" },
   source: {

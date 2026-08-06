@@ -8,7 +8,7 @@ export const assertNever = (
 }
 
 export const debounce = <TArgs extends unknown[]>(
-  callback: (...args: TArgs) => void,
+  fn: (...args: TArgs) => void,
   milliseconds: number,
 ): ((...args: TArgs) => void) => {
   let timeout: ReturnType<typeof setTimeout> | undefined
@@ -18,7 +18,7 @@ export const debounce = <TArgs extends unknown[]>(
       clearTimeout(timeout)
     }
     timeout = setTimeout(() => {
-      callback(...args)
+      fn(...args)
     }, milliseconds)
   }
 }
