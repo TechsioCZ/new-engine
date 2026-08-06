@@ -1,7 +1,6 @@
-import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
+import { isRecord } from "@techsio/std/object"
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
+import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
 
 const readString = (value: unknown) => {
   if (typeof value === "string" && value.trim().length > 0) {

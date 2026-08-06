@@ -1,5 +1,6 @@
 "use client"
 
+import { isRecord } from "@techsio/std/object"
 import {
   createElement,
   useEffect,
@@ -33,9 +34,6 @@ interface PplAccessPointWidgetProps {
 }
 
 const EMPTY_CONFIG: PplWidgetConfig = {}
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const readNullableString = (value: unknown) =>
   typeof value === "string" || value === null ? value : undefined

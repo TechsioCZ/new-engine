@@ -161,6 +161,9 @@ importers:
       '@tanstack/react-store':
         specifier: ^0.11.0
         version: 0.11.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@techsio/std':
+        specifier: workspace:*
+        version: link:../../libs/std
       '@techsio/ui-kit':
         specifier: workspace:*
         version: link:../../libs/ui

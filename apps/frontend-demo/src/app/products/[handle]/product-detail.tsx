@@ -1,5 +1,6 @@
 "use client"
 
+import { isRecord } from "@techsio/std/object"
 import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
@@ -21,9 +22,6 @@ import { formatPrice } from "@/utils/price-utils"
 interface ProductDetailProps {
   handle: string
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const getProductBadges = (metadata: unknown): BadgeProps[] => {
   const badges: BadgeProps[] = []

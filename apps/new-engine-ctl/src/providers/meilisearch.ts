@@ -1,4 +1,5 @@
 import { sleep } from "@techsio/std/async"
+import { isRecord } from "@techsio/std/object"
 
 import type {
   MeiliProvisionResponse,
@@ -148,9 +149,6 @@ const parseResponseBody = (text: string, status: number): unknown => {
 
 const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
-
-const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
-  isNonNullObject(value) && !Array.isArray(value)
 
 const parseErrorMessage = (payload: unknown, fallback: string): string => {
   if (!isNonNullObject(payload)) {
@@ -309,7 +307,7 @@ const getKeyByUid = async (
         return null
       }
 
-      if (!isPlainRecord(value)) {
+      if (!isRecord(value)) {
         throw new Error(`Failed to read key uid=${input.uid}.`)
       }
 
@@ -355,7 +353,7 @@ const createKey = async (
       method: "POST",
     },
     parse: (value) => {
-      if (!isPlainRecord(value)) {
+      if (!isRecord(value)) {
         throw new Error(`Failed to create key uid=${input.uid}.`)
       }
 
@@ -382,7 +380,7 @@ const updateKeyDescription = async (
       method: "PATCH",
     },
     parse: (value) => {
-      if (!isPlainRecord(value)) {
+      if (!isRecord(value)) {
         throw new Error(`Failed to update key uid=${input.uid}.`)
       }
 

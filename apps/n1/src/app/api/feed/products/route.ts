@@ -6,7 +6,7 @@ import {
   getMedusaPublishableKey,
 } from "@/lib/medusa-backend-url"
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isUnknownArray = (value: unknown): value is unknown[] =>
@@ -95,7 +95,7 @@ interface MedusaProductPage {
 }
 
 const parseAttribute = (value: unknown): MedusaAttribute | undefined => {
-  if (!isRecord(value)) {
+  if (!isNonNullObject(value)) {
     return undefined
   }
 
@@ -117,7 +117,7 @@ const parseAttributes = (value: unknown): MedusaAttribute[] =>
 const parseCalculatedPrice = (
   value: unknown,
 ): MedusaCalculatedPrice | undefined =>
-  isRecord(value)
+  isNonNullObject(value)
     ? {
         calculated_amount: readNumber(value, "calculated_amount"),
         currency_code: readString(value, "currency_code"),
@@ -125,7 +125,7 @@ const parseCalculatedPrice = (
     : undefined
 
 const parseVariant = (value: unknown): MedusaVariant => {
-  if (!isRecord(value)) {
+  if (!isNonNullObject(value)) {
     throw new Error(INVALID_PAYLOAD_MESSAGE)
   }
 
@@ -139,7 +139,9 @@ const parseVariant = (value: unknown): MedusaVariant => {
 
   return {
     attributes: parseAttributes(
-      isRecord(metadata) ? readUnknown(metadata, "attributes") : undefined,
+      isNonNullObject(metadata)
+        ? readUnknown(metadata, "attributes")
+        : undefined,
     ),
     calculated_price: parseCalculatedPrice(
       readUnknown(value, "calculated_price"),
@@ -156,12 +158,12 @@ const parseVariant = (value: unknown): MedusaVariant => {
 const parseCategoryNames = (value: unknown): string[] =>
   isUnknownArray(value)
     ? value.map((entry) =>
-        isRecord(entry) ? (readString(entry, "name") ?? "") : "",
+        isNonNullObject(entry) ? (readString(entry, "name") ?? "") : "",
       )
     : []
 
 const parseProduct = (value: unknown): MedusaProduct => {
-  if (!isRecord(value)) {
+  if (!isNonNullObject(value)) {
     throw new Error(INVALID_PAYLOAD_MESSAGE)
   }
 
@@ -189,7 +191,7 @@ const parseProduct = (value: unknown): MedusaProduct => {
 }
 
 const parseProductPage = (value: unknown): MedusaProductPage => {
-  if (!isRecord(value)) {
+  if (!isNonNullObject(value)) {
     throw new Error(INVALID_PAYLOAD_MESSAGE)
   }
 

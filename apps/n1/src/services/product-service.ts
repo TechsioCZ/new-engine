@@ -31,7 +31,9 @@ interface GetProductsErrorContext {
   signal?: AbortSignal | undefined
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isProductListPayloadObject = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isStoreProductArray = (value: unknown): value is StoreProduct[] =>
@@ -40,7 +42,7 @@ const isStoreProductArray = (value: unknown): value is StoreProduct[] =>
 const readProductListPayload = (
   value: unknown,
 ): { count: number; products: StoreProduct[] } => {
-  if (!isRecord(value)) {
+  if (!isProductListPayloadObject(value)) {
     return { count: 0, products: [] }
   }
 

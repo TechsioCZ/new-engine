@@ -1,4 +1,5 @@
 import { sleep } from "@techsio/std/async"
+import { isRecord } from "@techsio/std/object"
 
 import type { PacketaWidgetGlobal } from "./packeta-widget.types"
 
@@ -7,9 +8,6 @@ const READINESS_POLL_INTERVAL_MS = 50
 const READINESS_POLL_LIMIT = 300
 
 let loaderPromise: Promise<PacketaWidgetGlobal> | null = null
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const isPacketaWidgetGlobal = (
   value: unknown,

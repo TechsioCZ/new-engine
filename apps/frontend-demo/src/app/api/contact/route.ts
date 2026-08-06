@@ -1,14 +1,10 @@
+import { isRecord } from "@techsio/std/object"
+import { hasTrimmedString } from "@techsio/std/string"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { Resend } from "resend"
 
 import { ContactFormEmail } from "@/components/emails/contact-form-email"
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-const hasTrimmedString = (value: unknown): value is string =>
-  typeof value === "string" && value.trim().length > 0
 
 const readOptionalString = (value: unknown): string | undefined =>
   typeof value === "string" ? value : undefined

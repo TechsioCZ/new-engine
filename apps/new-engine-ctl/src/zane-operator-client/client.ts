@@ -44,7 +44,7 @@ import { verifyResponseSchema } from "../contracts/verify.js"
 
 const trailingSlashesPattern = /\/+$/u
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const normalizeMessage = (value: unknown): string | undefined => {
@@ -57,7 +57,7 @@ const normalizeMessage = (value: unknown): string | undefined => {
 }
 
 const extractOperatorMessage = (body: unknown): string | undefined => {
-  if (!isRecord(body)) {
+  if (!isNonNullObject(body)) {
     return undefined
   }
 
@@ -72,7 +72,7 @@ const extractOperatorMessage = (body: unknown): string | undefined => {
     return errorMessage
   }
 
-  if (isRecord(errorField)) {
+  if (isNonNullObject(errorField)) {
     return normalizeMessage(errorField["message"])
   }
 

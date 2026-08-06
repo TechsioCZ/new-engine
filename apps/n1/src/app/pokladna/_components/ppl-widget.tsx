@@ -45,7 +45,9 @@ const readFilledString = (
   return isFilledString(value) ? value : undefined
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isPplSelectionObject = (
+  value: unknown,
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 /**
@@ -120,7 +122,7 @@ const readEventDetail = (event: Event): unknown =>
  * and the flat address fields (`street`, `city`, `zipCode`, `country`).
  */
 const parsePplSelection = (detail: unknown): PplAccessPointData | undefined => {
-  if (!isRecord(detail)) {
+  if (!isPplSelectionObject(detail)) {
     return undefined
   }
 
