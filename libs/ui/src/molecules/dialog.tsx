@@ -1,4 +1,4 @@
-/**
+/*
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
@@ -9,7 +9,7 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the dialog-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as dialog from "@zag-js/dialog"
+import { connect, machine } from "@zag-js/dialog"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { useId } from "react"
 import type { ReactNode } from "react"
@@ -23,66 +23,66 @@ const dialogVariants = tv({
   compoundVariants: [
     // Width for left/right drawers
     {
+      class: { content: "w-dialog-xs" },
       placement: ["left", "right"],
       size: "xs",
-      class: { content: "w-dialog-xs" },
     },
     {
+      class: { content: "w-dialog-sm" },
       placement: ["left", "right"],
       size: "sm",
-      class: { content: "w-dialog-sm" },
     },
     {
+      class: { content: "w-dialog-md" },
       placement: ["left", "right"],
       size: "md",
-      class: { content: "w-dialog-md" },
     },
     {
+      class: { content: "w-dialog-lg" },
       placement: ["left", "right"],
       size: "lg",
-      class: { content: "w-dialog-lg" },
     },
     {
+      class: { content: "w-dialog-xl" },
       placement: ["left", "right"],
       size: "xl",
-      class: { content: "w-dialog-xl" },
     },
     {
+      class: { content: "w-full" },
       placement: ["left", "right"],
       size: "full",
-      class: { content: "w-full" },
     },
 
     // Height for top/bottom drawers
     {
+      class: { content: "h-dialog-xs" },
       placement: ["top", "bottom"],
       size: "xs",
-      class: { content: "h-dialog-xs" },
     },
     {
+      class: { content: "h-dialog-sm" },
       placement: ["top", "bottom"],
       size: "sm",
-      class: { content: "h-dialog-sm" },
     },
     {
+      class: { content: "h-dialog-md" },
       placement: ["top", "bottom"],
       size: "md",
-      class: { content: "h-dialog-md" },
     },
     {
+      class: { content: "h-dialog-lg" },
       placement: ["top", "bottom"],
       size: "lg",
-      class: { content: "h-dialog-lg" },
     },
     {
+      class: { content: "h-dialog-xl" },
       placement: ["top", "bottom"],
       size: "xl",
-      class: { content: "h-dialog-xl" },
     },
     {
+      class: { content: "h-full" },
       placement: ["top", "bottom"],
       size: "full",
-      class: { content: "h-full" },
     },
   ],
   defaultVariants: {
@@ -92,8 +92,14 @@ const dialogVariants = tv({
     size: "md",
   },
   slots: {
+    actions:
+      "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions-top",
     backdrop: ["inset-0 z-(--z-dialog-backdrop)"],
-    positioner: ["inset-0 z-(--z-dialog-positioner) flex"],
+    // Positioning only — the close button is an ActionIcon that owns its size,
+    // glyph and neutral hover pill.
+    closeTrigger: [
+      "absolute top-dialog-close-trigger-offset right-dialog-close-trigger-offset",
+    ],
     content: [
       "relative flex flex-col gap-dialog-content p-dialog-content",
       "bg-dialog-content-bg text-dialog-content-fg",
@@ -104,16 +110,10 @@ const dialogVariants = tv({
       "focus-visible:outline-dialog-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
-    title: ["font-dialog-title text-dialog-title text-dialog-title-fg"],
     description: ["text-dialog-description text-dialog-description-fg"],
+    positioner: ["inset-0 z-(--z-dialog-positioner) flex"],
+    title: ["font-dialog-title text-dialog-title text-dialog-title-fg"],
     trigger: [],
-    // Positioning only — the close button is an ActionIcon that owns its size,
-    // glyph and neutral hover pill.
-    closeTrigger: [
-      "absolute top-dialog-close-trigger-offset right-dialog-close-trigger-offset",
-    ],
-    actions:
-      "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions-top",
   },
   variants: {
     behavior: {
@@ -201,7 +201,59 @@ export interface DialogProps extends VariantProps<typeof dialogVariants> {
   portal?: boolean | undefined
 }
 
-export function Dialog({
+interface DialogMachineOptions {
+  closeOnEscape: boolean
+  closeOnInteractOutside: boolean
+  finalFocusEl: (() => HTMLElement | null) | undefined
+  id: string | undefined
+  initialFocusEl: (() => HTMLElement | null) | undefined
+  modal: boolean
+  onOpenChange: ((details: { open: boolean }) => void) | undefined
+  open: boolean | undefined
+  preventScroll: boolean
+  role: "dialog" | "alertdialog"
+  trapFocus: boolean
+}
+
+// Builds the Zag dialog machine and returns its connected API. Optional machine props are spread
+// conditionally so an explicit `undefined` is never handed to the machine under
+// `exactOptionalPropertyTypes`.
+const useDialogApi = ({
+  closeOnEscape,
+  closeOnInteractOutside,
+  finalFocusEl,
+  id,
+  initialFocusEl,
+  modal,
+  onOpenChange,
+  open,
+  preventScroll,
+  role,
+  trapFocus,
+}: DialogMachineOptions) => {
+  const generatedId = useId()
+  // A caller-supplied id wins only when it is a usable string; a missing or empty id falls back to
+  // the generated one so the machine always has a stable, non-empty id.
+  const uniqueId = id === undefined || id === "" ? generatedId : id
+
+  const service = useMachine(machine, {
+    id: uniqueId,
+    ...(onOpenChange !== undefined && { onOpenChange }),
+    closeOnEscape,
+    closeOnInteractOutside,
+    modal,
+    preventScroll,
+    role,
+    trapFocus,
+    ...(initialFocusEl !== undefined && { initialFocusEl }),
+    ...(finalFocusEl !== undefined && { finalFocusEl }),
+    ...(open !== undefined && { open }),
+  })
+
+  return connect(service, normalizeProps)
+}
+
+export const Dialog = ({
   id,
   open,
   onOpenChange,
@@ -226,25 +278,20 @@ export function Dialog({
   className,
   modal = true,
   portal = true,
-}: DialogProps) {
-  const generatedId = useId()
-  const uniqueId = id || generatedId
-
-  const service = useMachine(dialog.machine, {
-    id: uniqueId,
-    ...(onOpenChange !== undefined && { onOpenChange }),
-    role,
+}: DialogProps) => {
+  const api = useDialogApi({
     closeOnEscape,
     closeOnInteractOutside,
-    preventScroll,
-    trapFocus,
-    ...(initialFocusEl !== undefined && { initialFocusEl }),
-    ...(finalFocusEl !== undefined && { finalFocusEl }),
+    finalFocusEl,
+    id,
+    initialFocusEl,
     modal,
-    ...(open !== undefined && { open }),
+    onOpenChange,
+    open,
+    preventScroll,
+    role,
+    trapFocus,
   })
-
-  const api = dialog.connect(service, normalizeProps)
 
   const {
     backdrop,
@@ -256,6 +303,12 @@ export function Dialog({
     closeTrigger,
     actions: actionsSlot,
   } = dialogVariants({ behavior, placement, position, size })
+
+  // `ReactNode` has mixed truthiness, so the render guards are narrowed to booleans while keeping
+  // the original truthy-only rendering decision.
+  const hasTitle = Boolean(title)
+  const hasDescription = Boolean(description)
+  const hasActions = Boolean(actions)
 
   const dialogContent = () => (
     <>
@@ -272,18 +325,18 @@ export function Dialog({
               aria-label="Close dialog"
             />
           )}
-          {title && (
+          {hasTitle && (
             <h2 className={titleSlot()} {...api.getTitleProps()}>
               {title}
             </h2>
           )}
-          {description && (
+          {hasDescription && (
             <div className={descriptionSlot()} {...api.getDescriptionProps()}>
               {description}
             </div>
           )}
           {children}
-          {actions && <div className={actionsSlot()}>{actions}</div>}
+          {hasActions && <div className={actionsSlot()}>{actions}</div>}
         </div>
       </div>
     </>
