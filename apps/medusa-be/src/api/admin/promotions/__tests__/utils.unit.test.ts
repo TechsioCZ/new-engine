@@ -1,5 +1,10 @@
+import type {
+  MedusaContainer,
+  PromotionRuleDTO,
+} from "@medusajs/framework/types"
 import { ApplicationMethodTargetType } from "@medusajs/framework/utils"
 import { areRulesValidForContext } from "@medusajs/promotion/dist/utils/validations/promotion-rule"
+import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
 import { BRAND_MODULE } from "../../../../modules/brand"
@@ -18,7 +23,7 @@ interface VariantFixture {
   id: string
   title: string
   sku: string | null
-  product?: { title: string } | undefined
+  product?: { title: string } | null | undefined
 }
 
 const createVariant = (
@@ -65,7 +70,7 @@ describe(mapVariantToRuleValueOption, () => {
       name: "omits product title when product is undefined",
       variant: createVariant({
         id: "variant_456",
-        product: undefined,
+        product: null,
         sku: "SM-001",
         title: "Small",
       }),
@@ -88,7 +93,7 @@ describe(mapVariantToRuleValueOption, () => {
       name: "falls back to variant ID when no title or product available",
       variant: createVariant({
         id: "variant_fallback",
-        product: undefined,
+        product: null,
         sku: null,
         title: "",
       }),
@@ -101,7 +106,7 @@ describe(mapVariantToRuleValueOption, () => {
       name: "falls back to variant ID with SKU when no titles available",
       variant: createVariant({
         id: "variant_only_sku",
-        product: undefined,
+        product: null,
         sku: "SKU-ONLY",
         title: "",
       }),
@@ -199,7 +204,7 @@ describe(validateRuleType, () => {
   })
 
   it("narrows type after assertion", () => {
-    const ruleType: string = "target-rules"
+    const [ruleType] = ["target-rules"]
     validateRuleType(ruleType)
     // TypeScript should narrow ruleType to RuleType after validateRuleType
     const narrowed: "rules" | "target-rules" | "buy-rules" = ruleType
@@ -243,24 +248,32 @@ describe(getExtendedRuleAttributesMap, () => {
   })
 
   describe("target-rules attributes", () => {
-    it("includes item attributes for non-shipping targets", () => {
-      const map = getExtendedRuleAttributesMap({})
-      const targetRules = map["target-rules"]
+    describe("includes item attributes for non-shipping targets", () => {
+      it("includes product, category, collection, and type rule ids", () => {
+        const map = getExtendedRuleAttributesMap({})
+        const targetRules = map["target-rules"]
+        const ruleIds = targetRules.map((r) => r.id)
 
-      const ruleIds = targetRules.map((r) => r.id)
-      expect(ruleIds).toContain("product")
-      expect(ruleIds).toContain("product_variant")
-      expect(ruleIds).toContain("product_category")
-      expect(ruleIds).toContain("product_collection")
-      expect(ruleIds).toContain("product_type")
-      expect(ruleIds).toContain("product_tag")
-      expect(ruleIds).toContain("item_price")
-      expect(ruleIds).toContain("item_quantity")
-      expect(ruleIds).toContain("brand")
+        expect(ruleIds).toContain("product")
+        expect(ruleIds).toContain("product_variant")
+        expect(ruleIds).toContain("product_category")
+        expect(ruleIds).toContain("product_collection")
+        expect(ruleIds).toContain("product_type")
+      })
 
-      expect(targetRules.find((r) => r.id === "brand")).toMatchObject({
-        field_type: "multiselect",
-        value: "items.brand_ids",
+      it("includes tag, price, quantity, and brand rule ids", () => {
+        const map = getExtendedRuleAttributesMap({})
+        const targetRules = map["target-rules"]
+        const ruleIds = targetRules.map((r) => r.id)
+
+        expect(ruleIds).toContain("product_tag")
+        expect(ruleIds).toContain("item_price")
+        expect(ruleIds).toContain("item_quantity")
+        expect(ruleIds).toContain("brand")
+        expect(targetRules.find((r) => r.id === "brand")).toMatchObject({
+          field_type: "multiselect",
+          value: "items.brand_ids",
+        })
       })
     })
 
@@ -334,19 +347,30 @@ describe(getExtendedRuleAttributesMap, () => {
   })
 
   describe("attribute structure", () => {
-    it("all attributes have required fields", () => {
-      const map = getExtendedRuleAttributesMap({})
+    describe("all attributes have required fields", () => {
+      it("have id, value, label, field_type, and operators properties", () => {
+        const map = getExtendedRuleAttributesMap({})
 
-      for (const ruleType of validRuleTypes) {
-        for (const attr of map[ruleType]) {
-          expect(attr).toHaveProperty("id")
-          expect(attr).toHaveProperty("value")
-          expect(attr).toHaveProperty("label")
-          expect(attr).toHaveProperty("field_type")
-          expect(attr).toHaveProperty("operators")
-          expect(Array.isArray(attr.operators)).toBeTruthy()
+        for (const ruleType of validRuleTypes) {
+          for (const attr of map[ruleType]) {
+            expect(attr).toHaveProperty("id")
+            expect(attr).toHaveProperty("value")
+            expect(attr).toHaveProperty("label")
+            expect(attr).toHaveProperty("field_type")
+            expect(attr).toHaveProperty("operators")
+          }
         }
-      }
+      })
+
+      it("have operators as an array", () => {
+        const map = getExtendedRuleAttributesMap({})
+
+        for (const ruleType of validRuleTypes) {
+          for (const attr of map[ruleType]) {
+            expect(Array.isArray(attr.operators)).toBeTruthy()
+          }
+        }
+      })
     })
   })
 
@@ -375,22 +399,23 @@ describe("custom rule operator compatibility", () => {
     expect(operatorValues).toContain("ne")
     expect(operatorValues).not.toContain("nin")
 
-    const rule = {
+    const rule: PromotionRuleDTO = {
       attribute: "items.brand_ids",
+      id: "rule_1",
       operator: "ne",
-      values: [{ value: "brand_blocked" }],
+      values: [{ id: "rule_value_1", value: "brand_blocked" }],
     }
 
     expect(
       areRulesValidForContext(
-        [rule] as never,
+        [rule],
         { brand_ids: ["brand_allowed"] },
         ApplicationMethodTargetType.ITEMS,
       ),
     ).toBeTruthy()
     expect(
       areRulesValidForContext(
-        [rule] as never,
+        [rule],
         { brand_ids: ["brand_blocked"] },
         ApplicationMethodTargetType.ITEMS,
       ),
@@ -398,27 +423,58 @@ describe("custom rule operator compatibility", () => {
   })
 })
 
+/**
+ * Asserts that a plain mock object contains a `resolve` method before
+ * narrowing it to `MedusaContainer`. Building the mock this way avoids
+ * requiring every property of the huge container interface while still
+ * validating the shape the code under test actually reads from at runtime.
+ */
+const assertContainerShape = (
+  candidate: unknown,
+): asserts candidate is MedusaContainer => {
+  if (!isRecord(candidate) || !("resolve" in candidate)) {
+    throw new TypeError("Expected a mock container with a resolve method")
+  }
+}
+
+const createContainer = (
+  resolve: ReturnType<typeof vi.fn>,
+): MedusaContainer => {
+  const candidate: unknown = { resolve }
+  assertContainerShape(candidate)
+  return candidate
+}
+
 describe(buildBrandPromotionContext, () => {
   it("adds brand ids to items without dropping existing item context", async () => {
-    const graph = vi.fn().mockResolvedValue({
-      data: [
-        { brand_id: "brand_a", product_id: "prod_1" },
-        { brand_id: "brand_b", product_id: "prod_1" },
-        { brand_id: "brand_c", product_id: "prod_2" },
-      ],
-    })
+    const graph = vi
+      .fn<
+        (query: {
+          entity: string
+          fields: string[]
+          filters: Record<string, unknown>
+        }) => Promise<{ data: { brand_id: string; product_id: string }[] }>
+      >()
+      .mockResolvedValue({
+        data: [
+          { brand_id: "brand_a", product_id: "prod_1" },
+          { brand_id: "brand_b", product_id: "prod_1" },
+          { brand_id: "brand_c", product_id: "prod_2" },
+        ],
+      })
     const listBrands = vi
-      .fn()
+      .fn<() => Promise<{ id: string }[]>>()
       .mockResolvedValue([
         { id: "brand_a" },
         { id: "brand_b" },
         { id: "brand_c" },
       ])
-    const container = {
-      resolve: vi.fn((key) =>
-        key === BRAND_MODULE ? { listBrands } : { graph },
-      ),
-    }
+    const resolve = vi.fn<
+      (
+        key: string,
+      ) => { listBrands: typeof listBrands } | { graph: typeof graph }
+    >((key) => (key === BRAND_MODULE ? { listBrands } : { graph }))
+    const container = createContainer(resolve)
 
     const result = await buildBrandPromotionContext(
       {
@@ -436,12 +492,12 @@ describe(buildBrandPromotionContext, () => {
           },
         ],
       },
-      container as never,
+      container,
       "product_brand",
     )
 
     expect(graph).toHaveBeenCalledWith({
-      entity: expect.any(String),
+      entity: "product_brand",
       fields: ["product_id", "brand_id"],
       filters: {
         product_id: { $in: ["prod_1", "prod_2"] },
@@ -464,26 +520,39 @@ describe(buildBrandPromotionContext, () => {
   })
 
   it("resolves brand ids from variant ids when cart items omit product ids", async () => {
-    const graph = vi.fn().mockImplementation(({ entity }) => {
-      if (entity === "variant") {
-        return {
-          data: [
-            { id: "variant_1", product_id: "prod_1" },
-            { id: "variant_2", product_id: "prod_2" },
-          ],
+    const graph = vi
+      .fn<
+        (query: {
+          entity: string
+          fields: string[]
+          filters: Record<string, unknown>
+        }) =>
+          | { data: { id: string; product_id: string }[] }
+          | { data: { brand_id: string; product_id: string }[] }
+      >()
+      .mockImplementation(({ entity }) => {
+        if (entity === "variant") {
+          return {
+            data: [
+              { id: "variant_1", product_id: "prod_1" },
+              { id: "variant_2", product_id: "prod_2" },
+            ],
+          }
         }
-      }
 
-      return {
-        data: [{ brand_id: "brand_a", product_id: "prod_1" }],
-      }
-    })
-    const listBrands = vi.fn().mockResolvedValue([{ id: "brand_a" }])
-    const container = {
-      resolve: vi.fn((key) =>
-        key === BRAND_MODULE ? { listBrands } : { graph },
-      ),
-    }
+        return {
+          data: [{ brand_id: "brand_a", product_id: "prod_1" }],
+        }
+      })
+    const listBrands = vi
+      .fn<() => Promise<{ id: string }[]>>()
+      .mockResolvedValue([{ id: "brand_a" }])
+    const resolve = vi.fn<
+      (
+        key: string,
+      ) => { listBrands: typeof listBrands } | { graph: typeof graph }
+    >((key) => (key === BRAND_MODULE ? { listBrands } : { graph }))
+    const container = createContainer(resolve)
 
     const result = await buildBrandPromotionContext(
       {
@@ -492,7 +561,7 @@ describe(buildBrandPromotionContext, () => {
           { id: "item_2", quantity: 1, variant_id: "variant_2" },
         ],
       },
-      container as never,
+      container,
       "product_brand",
     )
 
@@ -521,25 +590,44 @@ describe(buildBrandPromotionContext, () => {
         }),
       ],
     })
-    expect(
-      (result["items"] as Record<string, unknown>[])[1],
-    ).not.toHaveProperty("brand_ids")
+
+    const { items } = result
+    if (!Array.isArray(items)) {
+      throw new TypeError("expected items to be an array")
+    }
+    expect(items[1]).not.toHaveProperty("brand_ids")
   })
 
   it("excludes links to deleted brands from promotion context", async () => {
-    const graph = vi.fn().mockResolvedValue({
-      data: [
-        { brand_id: "brand_active", product_id: "prod_1" },
-        { brand_id: "brand_deleted", product_id: "prod_1" },
-        { brand_id: "brand_deleted", product_id: "prod_2" },
-      ],
-    })
-    const listBrands = vi.fn().mockResolvedValue([{ id: "brand_active" }])
-    const container = {
-      resolve: vi.fn((key) =>
-        key === BRAND_MODULE ? { listBrands } : { graph },
-      ),
-    }
+    const graph = vi
+      .fn<
+        (query: {
+          entity: string
+          fields: string[]
+          filters: Record<string, unknown>
+        }) => Promise<{ data: { brand_id: string; product_id: string }[] }>
+      >()
+      .mockResolvedValue({
+        data: [
+          { brand_id: "brand_active", product_id: "prod_1" },
+          { brand_id: "brand_deleted", product_id: "prod_1" },
+          { brand_id: "brand_deleted", product_id: "prod_2" },
+        ],
+      })
+    const listBrands = vi
+      .fn<
+        (
+          filter: { id: { $in: string[] } },
+          options: { select: string[]; withDeleted: boolean },
+        ) => Promise<{ id: string }[]>
+      >()
+      .mockResolvedValue([{ id: "brand_active" }])
+    const resolve = vi.fn<
+      (
+        key: string,
+      ) => { listBrands: typeof listBrands } | { graph: typeof graph }
+    >((key) => (key === BRAND_MODULE ? { listBrands } : { graph }))
+    const container = createContainer(resolve)
 
     const result = await buildBrandPromotionContext(
       {
@@ -548,7 +636,7 @@ describe(buildBrandPromotionContext, () => {
           { id: "item_2", product_id: "prod_2" },
         ],
       },
-      container as never,
+      container,
       "product_brand",
     )
 
