@@ -386,6 +386,44 @@ export default class PayloadModuleService extends MedusaService({}) {
   }
 
   /**
+   * Fetch a published page by stable Payload document ID and optional locale.
+   */
+  async getPublishedPageById(
+    id: string,
+    locale?: string
+  ): Promise<CmsPageDTO | null> {
+    const cacheKey = `${CMS}:${PAGES}:id:${id}:${locale ?? DEFAULT_LOCALE}`
+    return this.getCached(
+      cacheKey,
+      async () => {
+        const queryString = this.buildQuery({
+          where: {
+            id: { equals: id },
+            status: { equals: STATUS_PUBLISHED },
+          },
+          limit: 1,
+          locale,
+        })
+        const result = await this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
+          "GET",
+          `/${PAGES}${queryString}`,
+          undefined,
+          {
+            schema: CmsPagesBulkResultSchema,
+            headers: {
+              [RETURN_HTML_HEADER]: "true",
+            },
+          }
+        )
+
+        return result.docs[0] || null
+      },
+      this.contentCacheTtl_,
+      [CACHE_TAGS.ALL, CACHE_TAGS.PAGES]
+    )
+  }
+
+  /**
    * List page categories and their pages, optionally filtered by locale/slug.
    */
   async listPageCategoriesWithPages(
@@ -454,6 +492,44 @@ export default class PayloadModuleService extends MedusaService({}) {
           return null
         }
         return post
+      },
+      this.contentCacheTtl_,
+      [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLES]
+    )
+  }
+
+  /**
+   * Fetch a published article by stable Payload document ID and optional locale.
+   */
+  async getPublishedArticleById(
+    id: string,
+    locale?: string
+  ): Promise<CmsArticleDTO | null> {
+    const cacheKey = `${CMS}:${ARTICLES}:id:${id}:${locale ?? DEFAULT_LOCALE}`
+    return this.getCached(
+      cacheKey,
+      async () => {
+        const queryString = this.buildQuery({
+          where: {
+            id: { equals: id },
+            status: { equals: STATUS_PUBLISHED },
+          },
+          limit: 1,
+          locale,
+        })
+        const result = await this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(
+          "GET",
+          `/${ARTICLES}${queryString}`,
+          undefined,
+          {
+            schema: CmsArticlesBulkResultSchema,
+            headers: {
+              [RETURN_HTML_HEADER]: "true",
+            },
+          }
+        )
+
+        return result.docs[0] || null
       },
       this.contentCacheTtl_,
       [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLES]

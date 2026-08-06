@@ -3,7 +3,9 @@ import { PAYLOAD_MODULE } from "../../../../../../src/modules/payload"
 
 const mockCmsService = {
   getPublishedPage: vi.fn(),
+  getPublishedPageById: vi.fn(),
   getPublishedArticle: vi.fn(),
+  getPublishedArticleById: vi.fn(),
   listPageCategoriesWithPages: vi.fn(),
   listArticleCategoriesWithArticles: vi.fn(),
   listHeroCarousels: vi.fn(),
@@ -70,6 +72,25 @@ describe("Store CMS routes", () => {
     expect(res.json).toHaveBeenCalledWith({ page })
   })
 
+  it("loads a published page by stable Payload document ID", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/store/cms/pages/by-id/[id]/route"
+    )
+    const req = createMockRequest({
+      locale: "hu",
+      params: { id: "42" },
+    })
+    const res = createMockResponse()
+    const page = { id: 42, slug: "renamed-page" }
+
+    mockCmsService.getPublishedPageById.mockResolvedValue(page)
+
+    await GET(req, res)
+
+    expect(mockCmsService.getPublishedPageById).toHaveBeenCalledWith("42", "hu")
+    expect(res.json).toHaveBeenCalledWith({ page })
+  })
+
   it("passes request locale to published article lookup", async () => {
     const { GET } = await import(
       "../../../../../../src/api/store/cms/articles/[slug]/route"
@@ -89,6 +110,28 @@ describe("Store CMS routes", () => {
     expect(mockCmsService.getPublishedArticle).toHaveBeenCalledWith(
       "news",
       "sk"
+    )
+    expect(res.json).toHaveBeenCalledWith({ article })
+  })
+
+  it("loads a published article by stable Payload document ID", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/store/cms/articles/by-id/[id]/route"
+    )
+    const req = createMockRequest({
+      locale: "ro",
+      params: { id: "77" },
+    })
+    const res = createMockResponse()
+    const article = { id: 77, slug: "renamed-article" }
+
+    mockCmsService.getPublishedArticleById.mockResolvedValue(article)
+
+    await GET(req, res)
+
+    expect(mockCmsService.getPublishedArticleById).toHaveBeenCalledWith(
+      "77",
+      "ro"
     )
     expect(res.json).toHaveBeenCalledWith({ article })
   })

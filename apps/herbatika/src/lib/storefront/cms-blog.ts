@@ -11,6 +11,8 @@ import type {
   CmsBlogTopic,
   CmsCategory,
 } from "./cms-types"
+import type { HerbatikaLocale } from "./market-context"
+import { getMarketServerContext } from "./market-context.server"
 
 const DEFAULT_CMS_TOPIC: CmsBlogTopic = "zdravie"
 const DEFAULT_AUTHOR_IMAGE =
@@ -96,18 +98,49 @@ export const mapCmsArticleToBlogPost = (
 }
 
 export const fetchCmsArticleCategories = async () => {
-  const response =
-    await fetchCmsJson<CmsArticleCategoriesResponse>("article-categories")
+  const marketContext = await getMarketServerContext()
+  const response = await fetchCmsJson<CmsArticleCategoriesResponse>(
+    "article-categories",
+    marketContext.locale
+  )
 
   return response?.articleCategories ?? []
 }
 
+/**
+ * Seed/sync-only slug reader. Public routing resolves URLR.entityId and must
+ * use fetchCmsArticleById so Payload slug renames cannot break content loading.
+ */
 export const fetchCmsArticleBySlug = async (slug: string) => {
+  const marketContext = await getMarketServerContext()
   const response = await fetchCmsJson<CmsArticleResponse>(
-    `articles/${encodeURIComponent(slug)}`
+    `articles/${encodeURIComponent(slug)}`,
+    marketContext.locale
   )
 
   return response?.article ?? null
+}
+
+/** Load a published article by stable Payload document ID and market locale. */
+export const fetchCmsArticleById = async (
+  id: string | number,
+  locale: HerbatikaLocale
+) => {
+  const response = await fetchCmsJson<CmsArticleResponse>(
+    `articles/by-id/${encodeURIComponent(String(id))}`,
+    locale
+  )
+
+  return response?.article ?? null
+}
+
+export const fetchCmsBlogPostById = async (
+  id: string | number,
+  locale: HerbatikaLocale
+) => {
+  const article = await fetchCmsArticleById(id, locale)
+
+  return article ? mapCmsArticleToBlogPost(article) : null
 }
 
 export const fetchCmsBlogPost = async (slug: string) => {

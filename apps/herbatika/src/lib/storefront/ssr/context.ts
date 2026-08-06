@@ -1,5 +1,6 @@
 import "server-only"
 
+import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
@@ -47,7 +48,10 @@ export const getRegionServerContext = async () => {
     limit: REGION_LIST_LIMIT,
   }
 
-  const regionListResponse = await fetchServerRegions(queryClient, listParams)
+  const regionListResponse = (await fetchServerRegions(
+    queryClient,
+    listParams
+  )) as { regions: HttpTypes.StoreRegion[] }
 
   const resolvedRegionRecord = resolveRegionForMarket(
     regionListResponse.regions,
@@ -55,7 +59,7 @@ export const getRegionServerContext = async () => {
     cookieRegionPreference?.region_id
   )
   const region = resolvedRegionRecord
-    ? toRegionInfo(resolvedRegionRecord, marketContext.countryCode)
+    ? toRegionInfo(resolvedRegionRecord, marketContext)
     : null
 
   return {

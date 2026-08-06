@@ -1,6 +1,5 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
 import type { StorefrontProductListInput as BaseStorefrontProductListInput } from "./product-query-config"
 import {
   buildProductListParams as buildStorefrontProductListParams,
@@ -27,8 +26,8 @@ export type ProductListInput = BaseStorefrontProductListInput & {
 const productHooks = storefront.hooks.products
 const toProductListParams = (
   input: ProductListInput
-): HttpTypes.StoreProductListParams =>
-  input as unknown as HttpTypes.StoreProductListParams
+): Parameters<ProductHooks["useProducts"]>[0] =>
+  input as Parameters<ProductHooks["useProducts"]>[0]
 
 export const useProducts = (
   input: ProductListInput,

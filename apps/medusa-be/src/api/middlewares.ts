@@ -23,6 +23,7 @@ import { adminPacketaLabelsRoutesMiddlewares } from "./admin/packeta-labels/midd
 import { adminPayloadSsoRoutesMiddlewares } from "./admin/payload/sso/middlewares"
 import { adminPplConfigRoutesMiddlewares } from "./admin/ppl-config/middlewares"
 import { adminProductAttributeRoutesMiddlewares } from "./admin/product-attributes/middlewares"
+import { adminProductPrimaryCategoryMiddlewares } from "./admin/products/middlewares"
 import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewares"
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
@@ -84,6 +85,7 @@ export default defineMiddlewares({
     ...adminPromotionsExtensionMiddlewares,
     ...adminPublishableKeyRoutesMiddlewares,
     ...adminProductAttributeRoutesMiddlewares,
+    ...adminProductPrimaryCategoryMiddlewares,
     ...adminQrPaymentConfigRoutesMiddlewares,
     ...adminReviewRoutesMiddlewares,
     ...adminStorefrontTextRoutesMiddlewares,

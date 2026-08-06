@@ -22,6 +22,7 @@ export type CatalogListInputBase = RegionInfo & {
   price_min?: number
   price_max?: number
   currency_code?: string
+  sales_channel_id?: string | string[]
   enabled?: boolean
 }
 

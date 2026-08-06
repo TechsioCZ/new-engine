@@ -247,6 +247,7 @@ const buildDefaultListQuery = (
     region_id: params.region_id,
     country_code: params.country_code?.toLowerCase(),
     currency_code: params.currency_code?.toLowerCase(),
+    sales_channel_id: params.sales_channel_id,
   })
 }
 

@@ -42,13 +42,16 @@ export const resolveCountryCode = (
 
 export const toRegionInfo = (
   region: HttpTypes.StoreRegion,
-  expectedCountryCode?: string
+  marketContext: HerbatikaMarketContext
 ): HerbatikaRegionInfo => {
   const currencyCode = normalizeSupportedCurrencyCode(region.currency_code)
 
   return {
     region_id: region.id,
-    country_code: resolveCountryCode(region, expectedCountryCode),
+    country_code: resolveCountryCode(region, marketContext.countryCode),
+    ...(marketContext.salesChannelId
+      ? { sales_channel_id: marketContext.salesChannelId }
+      : {}),
     ...(currencyCode ? { currency_code: currencyCode } : {}),
   }
 }

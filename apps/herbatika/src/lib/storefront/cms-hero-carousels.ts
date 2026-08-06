@@ -3,6 +3,7 @@ import "server-only"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data.types"
 import { fetchCmsJson, resolveCmsMediaUrl } from "./cms-client"
 import type { CmsHeroCarousel } from "./cms-types"
+import { getMarketServerContext } from "./market-context.server"
 
 const CMS_HERO_CAROUSEL_LIMIT = 8
 const SAFE_ABSOLUTE_HREF_PROTOCOLS = new Set(["http:", "https:"])
@@ -63,8 +64,10 @@ export const mapCmsHeroCarouselToHeroBanner = (
 }
 
 export const fetchCmsHeroBanners = async () => {
+  const marketContext = await getMarketServerContext()
   const response = await fetchCmsJson<CmsHeroCarouselsResponse>(
     "hero-carousels",
+    marketContext.locale,
     {
       limit: CMS_HERO_CAROUSEL_LIMIT,
       sort: "-createdAt",

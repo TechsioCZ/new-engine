@@ -10,6 +10,7 @@ export type HerbatikaMarketContext = {
   htmlLang: HerbatikaLocale
   countryCode: HerbatikaCountryCode
   domain: string
+  salesChannelId: string | null
   metadata: {
     title: string
     description: string
@@ -28,6 +29,7 @@ const MARKET_CONFIG = {
     htmlLang: "sk-SK",
     countryCode: "sk",
     domain: "herbatica.sk",
+    salesChannelId: null,
     metadata: {
       title: "Herbatica",
       description: "Herbatica e-shop - prírodné produkty",
@@ -39,6 +41,7 @@ const MARKET_CONFIG = {
     htmlLang: "cs-CZ",
     countryCode: "cz",
     domain: "herbatica.cz",
+    salesChannelId: null,
     metadata: {
       title: "Herbatica",
       description: "Herbatica e-shop - přírodní produkty",
@@ -50,6 +53,7 @@ const MARKET_CONFIG = {
     htmlLang: "hu-HU",
     countryCode: "hu",
     domain: "herbatica.hu",
+    salesChannelId: null,
     metadata: {
       title: "Herbatica",
       description: "Herbatica webáruház - természetes termékek",
@@ -61,6 +65,7 @@ const MARKET_CONFIG = {
     htmlLang: "ro-RO",
     countryCode: "ro",
     domain: "herbatica.ro",
+    salesChannelId: null,
     metadata: {
       title: "Herbatica",
       description: "Herbatica magazin online - produse naturale",

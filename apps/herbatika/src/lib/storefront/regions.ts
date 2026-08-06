@@ -73,9 +73,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
       setSelectedRegionId(resolvedRegion.id)
     }
 
-    persistRegionPreference(
-      toRegionInfo(resolvedRegion, marketContext.countryCode)
-    )
+    persistRegionPreference(toRegionInfo(resolvedRegion, marketContext))
   }, [marketContext, regions, selectedRegionId])
 
   const selectedRegion = resolveRegionForMarket(
@@ -84,7 +82,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     selectedRegionId
   )
   const region = selectedRegion
-    ? toRegionInfo(selectedRegion, marketContext.countryCode)
+    ? toRegionInfo(selectedRegion, marketContext)
     : initialRegion
 
   const setRegionById = (regionId: string) => {
@@ -96,7 +94,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     }
 
     setSelectedRegionId(nextRegion.id)
-    persistRegionPreference(toRegionInfo(nextRegion, marketContext.countryCode))
+    persistRegionPreference(toRegionInfo(nextRegion, marketContext))
   }
 
   return {

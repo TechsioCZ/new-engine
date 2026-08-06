@@ -92,6 +92,7 @@ const cartPayloadOmitKeys = [
   "shippingAddress",
   "billingAddress",
   "salesChannelId",
+  "sales_channel_id",
 ] as const
 
 const addLineItemPayloadOmitKeys = [
@@ -102,6 +103,7 @@ const addLineItemPayloadOmitKeys = [
   "region_id",
   "country_code",
   "salesChannelId",
+  "sales_channel_id",
 ] as const
 
 const updateLineItemPayloadOmitKeys = [
@@ -156,7 +158,12 @@ const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
 ): NormalizedCartCreatePayload<TInput> => {
   const normalizedInput = input as TInput & CartCreateTransientInput
   const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
-  const salesChannelId = normalizedInput.salesChannelId
+  const snakeCaseSalesChannelId = normalizedInput.sales_channel_id
+  const salesChannelId =
+    normalizedInput.salesChannelId ??
+    (typeof snakeCaseSalesChannelId === "string"
+      ? snakeCaseSalesChannelId
+      : undefined)
 
   if (!salesChannelId) {
     return payload
@@ -173,7 +180,12 @@ const normalizeCartUpdatePayload = <TInput extends UpdateCartInputBase>(
 ): NormalizedCartUpdatePayload<TInput> => {
   const normalizedInput = input as TInput & CartUpdateTransientInput
   const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
-  const salesChannelId = normalizedInput.salesChannelId
+  const snakeCaseSalesChannelId = normalizedInput.sales_channel_id
+  const salesChannelId =
+    normalizedInput.salesChannelId ??
+    (typeof snakeCaseSalesChannelId === "string"
+      ? snakeCaseSalesChannelId
+      : undefined)
 
   if (!salesChannelId) {
     return payload

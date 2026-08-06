@@ -22,6 +22,7 @@ export type ProductDetailParams = {
   cart_id?: string
   locale?: string
   fields?: string
+  sales_channel_id?: string
 }
 
 type QueryParamPrimitive = string | number | boolean

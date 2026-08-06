@@ -14,6 +14,7 @@ import type {
   MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
+import { getMarketServerContext } from "./market-context.server"
 import { storefrontSdk } from "./sdk"
 import type {
   CatalogListParams,
@@ -23,6 +24,22 @@ import type {
   RegionListParams,
 } from "./ssr/types"
 import { storefrontCoreDefinition } from "./storefront-core-definition"
+
+const withMarketSalesChannel = async <
+  TParams extends { sales_channel_id?: string | string[] },
+>(
+  params: TParams
+): Promise<TParams> => {
+  if (params.sales_channel_id) {
+    return params
+  }
+
+  const marketContext = await getMarketServerContext()
+  return {
+    ...params,
+    sales_channel_id: marketContext.salesChannelId,
+  }
+}
 
 const storefrontServerRead = createMedusaStorefrontServerReadPreset<
   HttpTypes.StoreProduct,
@@ -93,28 +110,34 @@ export const fetchServerRegions = (
     storefrontServerRead.queries.regions.getListQueryOptions(listParams)
   )
 
-export const prefetchServerProducts = (
+export const prefetchServerProducts = async (
   queryClient: QueryClient,
   listParams: ProductListParams
 ) =>
   queryClient.prefetchQuery(
-    storefrontServerRead.queries.products.getListQueryOptions(listParams)
+    storefrontServerRead.queries.products.getListQueryOptions(
+      await withMarketSalesChannel(listParams)
+    )
   )
 
-export const fetchServerProducts = (
+export const fetchServerProducts = async (
   queryClient: QueryClient,
   listParams: ProductListParams
 ) =>
   queryClient.fetchQuery(
-    storefrontServerRead.queries.products.getListQueryOptions(listParams)
+    storefrontServerRead.queries.products.getListQueryOptions(
+      await withMarketSalesChannel(listParams)
+    )
   )
 
-export const fetchServerProduct = (
+export const fetchServerProduct = async (
   queryClient: QueryClient,
   detailParams: ProductDetailParams
 ) =>
   queryClient.fetchQuery(
-    storefrontServerRead.queries.products.getDetailQueryOptions(detailParams)
+    storefrontServerRead.queries.products.getDetailQueryOptions(
+      await withMarketSalesChannel(detailParams)
+    )
   )
 
 export const prefetchServerProductReviews = (
@@ -143,10 +166,12 @@ export const fetchServerCategories = (
     storefrontServerRead.queries.categories.getListQueryOptions(listParams)
   )
 
-export const prefetchServerCatalogProducts = (
+export const prefetchServerCatalogProducts = async (
   queryClient: QueryClient,
   listParams: CatalogListParams
 ) =>
   queryClient.prefetchQuery(
-    storefrontServerRead.queries.catalog.getListQueryOptions(listParams)
+    storefrontServerRead.queries.catalog.getListQueryOptions(
+      await withMarketSalesChannel(listParams)
+    )
   )

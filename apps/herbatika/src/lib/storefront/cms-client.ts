@@ -1,13 +1,14 @@
 import "server-only"
 
+import { resolveCmsLocale } from "./cms-locale"
 import type { CmsMedia } from "./cms-types"
+import type { HerbatikaLocale } from "./market-context"
 import {
   resolveMedusaBackendUrl,
   resolvePublicPayloadBaseUrl,
 } from "./runtime-env"
 import { storefrontConfig } from "./sdk"
 
-const CMS_LOCALE = "sk"
 const CMS_REVALIDATE_SECONDS = 600
 const CMS_MEDUSA_BASE_URL = resolveMedusaBackendUrl()
 const CMS_MEDIA_BASE_URL = resolvePublicPayloadBaseUrl()
@@ -16,11 +17,12 @@ const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, "")
 
 const buildCmsUrl = (
   path: string,
+  locale: HerbatikaLocale,
   params?: Record<string, string | number>
 ) => {
   const url = new URL(`/store/cms/${trimSlashes(path)}`, CMS_MEDUSA_BASE_URL)
 
-  url.searchParams.set("locale", CMS_LOCALE)
+  url.searchParams.set("locale", resolveCmsLocale(locale))
 
   for (const [key, value] of Object.entries(params ?? {})) {
     url.searchParams.set(key, String(value))
@@ -31,12 +33,13 @@ const buildCmsUrl = (
 
 export const fetchCmsJson = async <TResponse>(
   path: string,
+  locale: HerbatikaLocale,
   params?: Record<string, string | number>
 ): Promise<TResponse | null> => {
   let response: Response
 
   try {
-    response = await fetch(buildCmsUrl(path, params), {
+    response = await fetch(buildCmsUrl(path, locale, params), {
       headers: {
         accept: "application/json",
         "x-publishable-api-key": storefrontConfig.publishableKey,

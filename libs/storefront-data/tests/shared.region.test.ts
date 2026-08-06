@@ -1,22 +1,26 @@
+import { describe, expect, it } from "vitest"
 import { applyRegion } from "../src/shared/region"
 
 type RegionAwareInput = {
   q?: string
   region_id?: string
   country_code?: string
+  sales_channel_id?: string
 }
 
 describe("applyRegion", () => {
   it("applies context region when input omits region fields", () => {
-    const result = applyRegion(
-      { q: "kretin" } as RegionAwareInput,
-      { region_id: "reg_sk", country_code: "sk" }
-    )
+    const result = applyRegion({ q: "kretin" } as RegionAwareInput, {
+      region_id: "reg_sk",
+      country_code: "sk",
+      sales_channel_id: "sc_sk",
+    })
 
     expect(result).toEqual({
       q: "kretin",
       region_id: "reg_sk",
       country_code: "sk",
+      sales_channel_id: "sc_sk",
     })
   })
 

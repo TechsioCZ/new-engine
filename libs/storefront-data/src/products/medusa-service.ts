@@ -15,6 +15,7 @@ export type MedusaProductDetailInput = {
   cart_id?: string
   locale?: string
   fields?: string
+  sales_channel_id?: string
 }
 
 export type MedusaProductTransformListContext<
@@ -183,6 +184,7 @@ export function createMedusaProductService<
           province: params.province,
           cart_id: params.cart_id,
           locale: params.locale,
+          sales_channel_id: params.sales_channel_id,
           ...(params.fields || defaultDetailFields
             ? { fields: params.fields ?? defaultDetailFields }
             : {}),

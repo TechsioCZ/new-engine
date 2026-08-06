@@ -27,6 +27,7 @@ export type CatalogProductsParams = {
   region_id?: string
   country_code?: string
   currency_code?: string
+  sales_channel_id?: string | string[]
 }
 
 export const resolveCatalogPriceBounds = (priceFacet: {
