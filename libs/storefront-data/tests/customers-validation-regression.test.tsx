@@ -100,9 +100,11 @@ describe("customer validation regression", () => {
       UpdateCustomerParams
     >({
       addressAdapter: {
+        toCreateParams: (input) => input,
         toUpdateParams,
       },
       buildListParams: () => ({}),
+      buildUpdateCustomerParams: (input) => input,
       queryKeyNamespace: "customers-update-address-id",
       service,
     })
@@ -154,6 +156,9 @@ describe("customer validation regression", () => {
       UpdateCustomerParams
     >({
       addressAdapter: {
+        toCreateParams: (input) => input,
+        toUpdateParams: (input) =>
+          input.city === undefined ? {} : { city: input.city },
         validateCreate: (input) => {
           const issues: StorefrontAddressValidationIssue[] = []
           if (input.address_1 === undefined || input.address_1.length === 0) {
@@ -176,6 +181,7 @@ describe("customer validation regression", () => {
         },
       },
       buildListParams: () => ({}),
+      buildUpdateCustomerParams: (input) => input,
       queryKeyNamespace: "customers-validation-errors",
       service,
     })
@@ -215,9 +221,13 @@ describe("customer validation regression", () => {
       UpdateCustomerParams
     >({
       addressAdapter: {
+        toCreateParams: (input) => input,
+        toUpdateParams: (input) =>
+          input.city === undefined ? {} : { city: input.city },
         validateCreate: () => null,
       },
       buildListParams: () => ({}),
+      buildUpdateCustomerParams: (input) => input,
       queryKeyNamespace: "customers-validation-ok",
       service,
     })
@@ -290,6 +300,7 @@ describe("customer validation regression", () => {
         defaultCountryCode: "CZ",
       }),
       buildListParams: () => ({}),
+      buildUpdateCustomerParams: (input) => input,
       queryKeyNamespace: "customers-validation-partial-update",
       service: {
         ...service,

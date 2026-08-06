@@ -18,9 +18,9 @@ import type {
 
 export interface CreateRegionQueryOptionsFactoryConfig<
   TRegion,
-  TListInput extends RegionListInputBase,
+  TListInput extends RegionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends RegionDetailInputBase,
+  TDetailInput extends RegionDetailInputBase & TDetailParams,
   TDetailParams,
 > {
   service: RegionService<TRegion, TListParams, TDetailParams>
@@ -54,9 +54,9 @@ export interface RegionQueryOptionsFactory<
 
 export const createRegionQueryOptionsFactory = <
   TRegion,
-  TListInput extends RegionListInputBase,
+  TListInput extends RegionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends RegionDetailInputBase,
+  TDetailInput extends RegionDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -72,14 +72,16 @@ export const createRegionQueryOptionsFactory = <
   TDetailInput,
   TDetailParams
 >): RegionQueryOptionsFactory<TRegion, TListInput, TDetailInput> => {
+  const buildList = buildListParams ?? ((input: TListInput) => input)
+  const buildDetail = buildDetailParams ?? ((input: TDetailInput) => input)
   const resolvedQueryKeys =
     queryKeys ??
     createRegionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
   return createSimpleListDetailQueryOptionsFactory(
     omitUndefined({
-      buildDetailParams,
-      buildListParams,
+      buildDetailParams: buildDetail,
+      buildListParams: buildList,
       cacheConfig,
       defaultCacheStrategy: "static" as const,
       getDetail: service.getRegion,

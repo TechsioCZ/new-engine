@@ -18,9 +18,9 @@ import type {
 
 export interface CreateCategoryQueryOptionsFactoryConfig<
   TCategory,
-  TListInput extends CategoryListInputBase,
+  TListInput extends CategoryListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CategoryDetailInputBase,
+  TDetailInput extends CategoryDetailInputBase & TDetailParams,
   TDetailParams,
 > {
   service: CategoryService<TCategory, TListParams, TDetailParams>
@@ -54,9 +54,9 @@ export interface CategoryQueryOptionsFactory<
 
 export const createCategoryQueryOptionsFactory = <
   TCategory,
-  TListInput extends CategoryListInputBase,
+  TListInput extends CategoryListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CategoryDetailInputBase,
+  TDetailInput extends CategoryDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -72,14 +72,16 @@ export const createCategoryQueryOptionsFactory = <
   TDetailInput,
   TDetailParams
 >): CategoryQueryOptionsFactory<TCategory, TListInput, TDetailInput> => {
+  const buildList = buildListParams ?? ((input: TListInput) => input)
+  const buildDetail = buildDetailParams ?? ((input: TDetailInput) => input)
   const resolvedQueryKeys =
     queryKeys ??
     createCategoryQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
   return createSimpleListDetailQueryOptionsFactory(
     omitUndefined({
-      buildDetailParams,
-      buildListParams,
+      buildDetailParams: buildDetail,
+      buildListParams: buildList,
       cacheConfig,
       defaultCacheStrategy: "static" as const,
       getDetail: service.getCategory,

@@ -468,6 +468,12 @@ describe("phase 3 regressions", () => {
       Address,
       { enabled?: boolean }
     >({
+      addressAdapter: {
+        toCreateParams: (input) => input,
+        toUpdateParams: (input) => input,
+      },
+      buildListParams: (input) => input,
+      buildUpdateCustomerParams: (input) => input,
       queryKeyNamespace: "phase3-customers",
       service,
     })

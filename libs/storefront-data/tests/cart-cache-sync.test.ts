@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
+import { isRecord } from "@techsio/std/object"
 import { expect, describe, it } from "vitest"
 
 import { createCartQueryKeys } from "../src/cart/query-keys"
@@ -16,6 +17,34 @@ interface Cart {
   id: string
   region_id?: string | null
   item_count?: number
+}
+
+const decodeCart = (value: unknown): Cart | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+  const { id, item_count: itemCount, region_id: regionId } = value
+  if (typeof id !== "string") {
+    return null
+  }
+  if (
+    regionId !== undefined &&
+    regionId !== null &&
+    typeof regionId !== "string"
+  ) {
+    return null
+  }
+  if (itemCount !== undefined && typeof itemCount !== "number") {
+    return null
+  }
+  const cart: Cart = { id }
+  if (regionId !== undefined) {
+    cart.region_id = regionId
+  }
+  if (itemCount !== undefined) {
+    cart.item_count = itemCount
+  }
+  return cart
 }
 
 describe("cart cache sync helpers", () => {
@@ -76,8 +105,15 @@ describe("cart cache sync helpers", () => {
       item_count: 1,
       region_id: "reg_1",
     } satisfies Cart)
+    const malformedKey = queryKeys.active({
+      cartId: "cart_2",
+      regionId: "reg_malformed",
+    })
+    const malformedCart = { id: "cart_2", item_count: "invalid" }
+    queryClient.setQueryData(malformedKey, malformedCart)
 
-    patchCartCaches<Cart>(queryClient, queryKeys, "cart_2", {
+    patchCartCaches(queryClient, queryKeys, "cart_2", {
+      decodeCart,
       patch: (existing) => ({
         ...existing,
         item_count: (existing.item_count ?? 0) + 2,
@@ -86,6 +122,7 @@ describe("cart cache sync helpers", () => {
 
     expect(queryClient.getQueryData<Cart>(activeKey)?.item_count).toBe(3)
     expect(queryClient.getQueryData<Cart>(detailKey)?.item_count).toBe(3)
+    expect(queryClient.getQueryData(malformedKey)).toStrictEqual(malformedCart)
   })
 
   it("invalidates active and detail caches", async () => {
@@ -130,6 +167,7 @@ describe("cart cache sync helpers", () => {
       queryClient,
       queryKeys,
       "cart_custom",
+      decodeCart,
       {
         isActiveCartQueryKey: (queryKey, cartId) =>
           queryKey[0] === "custom" &&
@@ -139,6 +177,20 @@ describe("cart cache sync helpers", () => {
       },
     )
     expect(cached).toStrictEqual({ id: "cart_custom" })
+
+    queryClient.setQueryData(activeKey, {
+      id: "cart_custom",
+      item_count: "invalid",
+    })
+    expect(
+      getCachedCartById(queryClient, queryKeys, "cart_custom", decodeCart, {
+        isActiveCartQueryKey: (queryKey, cartId) =>
+          queryKey[0] === "custom" &&
+          queryKey[1] === "cart" &&
+          queryKey[2] === "active" &&
+          queryKey[3] === cartId,
+      }),
+    ).toBeNull()
   })
 
   it("derives the default active cart matcher from custom query key factories", () => {

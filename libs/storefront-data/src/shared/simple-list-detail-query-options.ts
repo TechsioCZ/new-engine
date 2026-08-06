@@ -50,8 +50,8 @@ export interface CreateSimpleListDetailQueryOptionsFactoryConfig<
     params: TDetailParams,
     signal?: AbortSignal,
   ) => Promise<TDetailResult>
-  buildListParams?: (input: TListInput) => TListParams
-  buildDetailParams?: (input: TDetailInput) => TDetailParams
+  buildListParams: (input: TListInput) => TListParams
+  buildDetailParams: (input: TDetailInput) => TDetailParams
   queryKeys: SimpleQueryKeys<TListParams, TDetailParams>
   cacheConfig?: CacheConfig
   defaultCacheStrategy?: CacheStrategy
@@ -59,12 +59,7 @@ export interface CreateSimpleListDetailQueryOptionsFactoryConfig<
   missingDetailErrorMessage: string
 }
 
-const stripEnabled = <TInput extends EnabledInput>(input: TInput): TInput => {
-  const { enabled: _inputEnabled, ...rest } = input
-  return rest as TInput
-}
-
-export function createSimpleListDetailQueryOptionsFactory<
+export const createSimpleListDetailQueryOptionsFactory = <
   TListResponse,
   TDetailResult,
   TListInput extends EnabledInput,
@@ -93,32 +88,26 @@ export function createSimpleListDetailQueryOptionsFactory<
   TDetailResult,
   TListInput,
   TDetailInput
-> {
+> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
-  const buildList =
-    buildListParams ??
-    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
-  const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => ({ ...input }) as TDetailInput & TDetailParams)
 
   return {
     getDetailQueryOptions: (
       input,
       options,
     ): QueryFactoryOptions<TDetailResult> => {
-      const detailParams = buildDetail(stripEnabled(input))
+      const detailParams = buildDetailParams(input)
       const cacheStrategy = options?.cacheStrategy ?? defaultCacheStrategy
 
       return {
-        queryKey: queryKeys.detail(detailParams),
         queryFn: async ({ signal }: { signal?: AbortSignal }) => {
           if (!isDetailInputReady(input)) {
             throw new Error(missingDetailErrorMessage)
           }
 
-          return getDetail(detailParams, signal)
+          return await getDetail(detailParams, signal)
         },
+        queryKey: queryKeys.detail(detailParams),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }
@@ -127,13 +116,13 @@ export function createSimpleListDetailQueryOptionsFactory<
       input,
       options,
     ): QueryFactoryOptions<TListResponse> => {
-      const listParams = buildList(stripEnabled(input))
+      const listParams = buildListParams(input)
       const cacheStrategy = options?.cacheStrategy ?? defaultCacheStrategy
 
       return {
-        queryKey: queryKeys.list(listParams),
         queryFn: async ({ signal }: { signal?: AbortSignal }) =>
-          getList(listParams, signal),
+          await getList(listParams, signal),
+        queryKey: queryKeys.list(listParams),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }

@@ -1,7 +1,12 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { omitUndefined, toPlainRecord } from "@techsio/std/object"
+import {
+  getRecordValue,
+  isRecord,
+  omitUndefined,
+  toPlainRecord,
+} from "@techsio/std/object"
 
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
 import { getCachedCartById } from "../shared/cart-cache-sync"
@@ -20,6 +25,146 @@ import { getSortedRecordKeys } from "../shared/query-key-match-utils"
 import type { StorageValueStore } from "../shared/storage-value-store"
 import { createMedusaCartFlow } from "./cart-flow"
 import type { MedusaCartFlowStorefront } from "./cart-flow"
+
+const decodePaymentSession = (
+  value: unknown,
+): HttpTypes.StorePaymentSession | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+  const providerId = getRecordValue(value, "provider_id")
+  if (typeof providerId !== "string") {
+    return null
+  }
+  const amount = getRecordValue(value, "amount")
+  const currencyCode = getRecordValue(value, "currency_code")
+  const data = getRecordValue(value, "data")
+  const id = getRecordValue(value, "id")
+  const isSelected = getRecordValue(value, "is_selected")
+  return {
+    amount: typeof amount === "number" ? amount : 0,
+    currency_code: typeof currencyCode === "string" ? currencyCode : "",
+    data: isRecord(data) ? data : {},
+    id: typeof id === "string" ? id : providerId,
+    provider_id: providerId,
+    status: "pending",
+    ...(typeof isSelected === "boolean" ? { is_selected: isSelected } : {}),
+  }
+}
+
+const decodePaymentCollection = (
+  value: unknown,
+): HttpTypes.StorePaymentCollection | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+  const sessionsValue = getRecordValue(value, "payment_sessions")
+  const rawSessions: unknown[] = Array.isArray(sessionsValue)
+    ? sessionsValue
+    : []
+  const paymentSessions = rawSessions
+    .map(decodePaymentSession)
+    .filter(
+      (session): session is HttpTypes.StorePaymentSession => session !== null,
+    )
+  const amount = getRecordValue(value, "amount")
+  const currencyCode = getRecordValue(value, "currency_code")
+  const id = getRecordValue(value, "id")
+  return {
+    amount: typeof amount === "number" ? amount : 0,
+    currency_code: typeof currencyCode === "string" ? currencyCode : "",
+    id: typeof id === "string" ? id : "cached-payment-collection",
+    payment_providers: [],
+    payment_sessions: paymentSessions,
+    status: "not_paid",
+  }
+}
+
+const decodeShippingMethods = (
+  value: unknown,
+  cartId: string,
+): HttpTypes.StoreCartShippingMethod[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+  return value.flatMap<HttpTypes.StoreCartShippingMethod>((method, index) => {
+    if (!isRecord(method)) {
+      return []
+    }
+    const amount = getRecordValue(method, "amount")
+    const id = getRecordValue(method, "id")
+    const name = getRecordValue(method, "name")
+    const shippingOptionId = getRecordValue(method, "shipping_option_id")
+    return [
+      omitUndefined({
+        amount: typeof amount === "number" ? amount : 0,
+        cart_id: cartId,
+        created_at: "",
+        id: typeof id === "string" ? id : `cached-${index}`,
+        is_tax_inclusive: false,
+        name: typeof name === "string" ? name : "",
+        shipping_option_id:
+          typeof shippingOptionId === "string" ? shippingOptionId : undefined,
+        updated_at: "",
+      }),
+    ]
+  })
+}
+
+const zeroCartTotals = {
+  discount_tax_total: 0,
+  discount_total: 0,
+  gift_card_tax_total: 0,
+  gift_card_total: 0,
+  item_subtotal: 0,
+  item_tax_total: 0,
+  item_total: 0,
+  original_item_subtotal: 0,
+  original_item_tax_total: 0,
+  original_item_total: 0,
+  original_shipping_subtotal: 0,
+  original_shipping_tax_total: 0,
+  original_shipping_total: 0,
+  original_subtotal: 0,
+  original_tax_total: 0,
+  original_total: 0,
+  shipping_subtotal: 0,
+  shipping_tax_total: 0,
+  shipping_total: 0,
+  subtotal: 0,
+  tax_total: 0,
+  total: 0,
+}
+
+export const decodeMedusaStoreCart = (
+  value: unknown,
+): HttpTypes.StoreCart | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+  const id = getRecordValue(value, "id")
+  if (typeof id !== "string") {
+    return null
+  }
+  const regionIdValue = getRecordValue(value, "region_id")
+  const currencyCode = getRecordValue(value, "currency_code")
+  const paymentCollection = decodePaymentCollection(
+    getRecordValue(value, "payment_collection"),
+  )
+  const shippingMethods = decodeShippingMethods(
+    getRecordValue(value, "shipping_methods"),
+    id,
+  )
+  return omitUndefined({
+    ...zeroCartTotals,
+    currency_code: typeof currencyCode === "string" ? currencyCode : "",
+    id,
+    payment_collection: paymentCollection,
+    promotions: [],
+    region_id: typeof regionIdValue === "string" ? regionIdValue : undefined,
+    shipping_methods: shippingMethods,
+  })
+}
 
 type MedusaCheckoutShippingHook = (
   input: {
@@ -556,6 +701,7 @@ export const createMedusaCheckoutFlow = ({
                 queryClient,
                 storefront.queryKeys.cart,
                 effectiveCartId,
+                decodeMedusaStoreCart,
                 { isActiveCartQueryKey },
               ) ?? null,
           }),

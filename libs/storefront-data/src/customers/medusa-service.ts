@@ -1,9 +1,19 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import {
+  getRecordValue,
+  isRecord,
+  omitKeys,
+  omitUndefined,
+} from "@techsio/std/object"
 
 import { toComparableTimestamp } from "../shared/date-utils"
 import { isAuthError } from "../shared/medusa-errors"
-import type { CustomerAddressListResponse, CustomerService } from "./types"
+import type {
+  CustomerAddressAdapter,
+  CustomerAddressListResponse,
+  CustomerService,
+} from "./types"
 
 const normalizeComparableString = (
   value: unknown,
@@ -180,6 +190,73 @@ export interface MedusaCustomerAddressCreateInput {
 }
 
 export type MedusaCustomerAddressUpdateInput = MedusaCustomerAddressCreateInput
+
+const decodeOptionalCustomerAddressString = (
+  value: Record<string, unknown>,
+  field: string,
+): string | undefined => {
+  const entry = getRecordValue(value, field)
+  if (entry !== undefined && typeof entry !== "string") {
+    throw new TypeError(`Customer address ${field} must be a string`)
+  }
+  return entry
+}
+
+const decodeOptionalCustomerAddressBoolean = (
+  value: Record<string, unknown>,
+  field: string,
+): boolean | undefined => {
+  const entry = getRecordValue(value, field)
+  if (entry !== undefined && typeof entry !== "boolean") {
+    throw new TypeError(`Customer address ${field} must be boolean`)
+  }
+  return entry
+}
+
+export const decodeMedusaCustomerAddressInput = (
+  value: unknown,
+): MedusaCustomerAddressCreateInput => {
+  if (!isRecord(value)) {
+    throw new TypeError("Customer address input must be an object")
+  }
+  const metadata = getRecordValue(value, "metadata")
+  if (metadata !== undefined && !isRecord(metadata)) {
+    throw new TypeError("Customer address metadata must be an object")
+  }
+
+  return omitUndefined({
+    address_1: decodeOptionalCustomerAddressString(value, "address_1"),
+    address_2: decodeOptionalCustomerAddressString(value, "address_2"),
+    city: decodeOptionalCustomerAddressString(value, "city"),
+    company: decodeOptionalCustomerAddressString(value, "company"),
+    country_code: decodeOptionalCustomerAddressString(value, "country_code"),
+    first_name: decodeOptionalCustomerAddressString(value, "first_name"),
+    is_default_billing: decodeOptionalCustomerAddressBoolean(
+      value,
+      "is_default_billing",
+    ),
+    is_default_shipping: decodeOptionalCustomerAddressBoolean(
+      value,
+      "is_default_shipping",
+    ),
+    last_name: decodeOptionalCustomerAddressString(value, "last_name"),
+    metadata,
+    phone: decodeOptionalCustomerAddressString(value, "phone"),
+    postal_code: decodeOptionalCustomerAddressString(value, "postal_code"),
+    province: decodeOptionalCustomerAddressString(value, "province"),
+  })
+}
+
+export const medusaCustomerAddressAdapter: CustomerAddressAdapter<
+  MedusaCustomerAddressCreateInput,
+  MedusaCustomerAddressCreateInput,
+  MedusaCustomerAddressCreateInput & { addressId?: string },
+  MedusaCustomerAddressUpdateInput
+> = {
+  toCreateParams: (input) => decodeMedusaCustomerAddressInput(input),
+  toUpdateParams: (input) =>
+    decodeMedusaCustomerAddressInput(omitKeys(input, ["addressId"])),
+}
 
 export interface MedusaCustomerProfileUpdateInput {
   first_name?: string

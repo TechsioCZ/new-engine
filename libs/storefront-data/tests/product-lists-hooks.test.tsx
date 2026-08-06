@@ -55,6 +55,14 @@ const buildListParams = (input: ProductListListInputBase): ListParams => {
 
 const buildDetailParams = (input: ProductListDetailInputBase): DetailParams =>
   input.id === undefined ? {} : { id: input.id }
+const buildListKeyParams = (
+  input: ProductListListInputBase,
+  params: ListParams,
+): ListKeyParams => ({ ...params, customerId: input.customerId ?? null })
+const buildDetailKeyParams = (
+  input: ProductListDetailInputBase,
+  params: DetailParams,
+): DetailKeyParams => ({ ...params, customerId: input.customerId ?? null })
 
 const createService = (overrides: Partial<Service> = {}): Service => ({
   addFavoriteProductListItem: vi
@@ -127,7 +135,9 @@ describe("product-list prefetch hooks", () => {
       ListKeyParams,
       DetailKeyParams
     >({
+      buildDetailKeyParams,
       buildDetailParams,
+      buildListKeyParams,
       buildListParams,
       cacheConfig: createCacheConfig({
         userData: { staleTime: 0 },
@@ -217,7 +227,9 @@ describe("product-list prefetch hooks", () => {
       ListKeyParams,
       DetailKeyParams
     >({
+      buildDetailKeyParams,
       buildDetailParams,
+      buildListKeyParams,
       buildListParams,
       queryKeys,
       service,

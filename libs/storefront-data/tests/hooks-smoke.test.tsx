@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, omitKeys } from "@techsio/std/object"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
@@ -895,7 +895,12 @@ describe("storefront-data hook smoke tests", () => {
         useDeleteCustomerAddress,
         useUpdateCustomer,
       } = createCustomerHooks({
+        addressAdapter: {
+          toCreateParams: (input) => input,
+          toUpdateParams: (input) => omitKeys(input, ["addressId"]),
+        },
         buildListParams: () => ({}),
+        buildUpdateCustomerParams: (input) => input,
         queryKeyNamespace: "smoke-customers",
         service,
       })

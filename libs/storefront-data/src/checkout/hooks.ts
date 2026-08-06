@@ -20,7 +20,10 @@ import {
   patchCartCaches,
   syncCartCaches,
 } from "../shared/cart-cache-sync"
-import type { ActiveCartQueryKeyMatcher } from "../shared/cart-cache-sync"
+import type {
+  ActiveCartQueryKeyMatcher,
+  CartDecoder,
+} from "../shared/cart-cache-sync"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createCheckoutQueryKeys } from "./query-keys"
 import type {
@@ -84,6 +87,7 @@ export interface CreateCheckoutHooksConfig<
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
   cartQueryKeys?: CartQueryKeys
+  decodeCart: CartDecoder<TCart>
   isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
@@ -140,6 +144,7 @@ export const createCheckoutHooks = <
   queryKeyNamespace = "storefront-data",
   cacheConfig,
   cartQueryKeys,
+  decodeCart,
   isActiveCartQueryKey,
 }: CreateCheckoutHooksConfig<
   TCart,
@@ -262,7 +267,8 @@ export const createCheckoutHooks = <
       },
       onSuccess: async (data, variables, context) => {
         if (cartQueryKeys && cartId !== undefined && cartId.length > 0) {
-          patchCartCaches<TCart>(queryClient, cartQueryKeys, cartId, {
+          patchCartCaches(queryClient, cartQueryKeys, cartId, {
+            decodeCart,
             patch: (cached) => patchPaymentCollection(cached, data),
           })
           await queryClient.invalidateQueries({
@@ -293,6 +299,7 @@ export const createCheckoutHooks = <
             queryClient,
             cartQueryKeys,
             cartId,
+            decodeCart,
             cartCacheOptions,
           )
         : null

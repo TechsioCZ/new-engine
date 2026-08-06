@@ -55,14 +55,25 @@ export interface CreateCustomerHooksConfig<
     TUpdateParams,
     TUpdateCustomerParams
   >
-  buildListParams?: (input: TListInput) => TListParams
-  addressAdapter?: CustomerAddressAdapter<
+  buildListParams: (input: TListInput) => TListParams
+  addressAdapter: CustomerAddressAdapter<
     TCreateInput,
     TCreateParams,
     TUpdateInput,
     TUpdateParams
-  >
-  buildUpdateCustomerParams?: (
+  > &
+    Required<
+      Pick<
+        CustomerAddressAdapter<
+          TCreateInput,
+          TCreateParams,
+          TUpdateInput,
+          TUpdateParams
+        >,
+        "toCreateParams" | "toUpdateParams"
+      >
+    >
+  buildUpdateCustomerParams: (
     input: TUpdateCustomerInput,
   ) => TUpdateCustomerParams
   queryKeys?: CustomerQueryKeys<TListParams>
@@ -80,7 +91,7 @@ export interface CreateCustomerHooksConfig<
  *   buildListParams: (input) => ({ ...input }),
  * })
  */
-export function createCustomerHooks<
+export const createCustomerHooks = <
   TCustomer,
   TAddress,
   TListInput extends CustomerAddressListInputBase,
@@ -114,51 +125,33 @@ export function createCustomerHooks<
   TUpdateParams,
   TUpdateCustomerInput,
   TUpdateCustomerParams
->) {
+>) => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createCustomerQueryKeys<TListParams>(queryKeyNamespace)
   const resolvedAuthQueryKeys = authQueryKeys ?? {
     customer: () => createQueryKey(queryKeyNamespace, "auth", "customer"),
   }
-  const buildList =
-    buildListParams ??
-    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
+  const buildList = buildListParams
   const buildCreate: (
     input: TCreateInput,
     context: StorefrontCustomerCreateAddressContext,
-  ) => TCreateParams =
-    addressAdapter?.toCreateParams ??
-    ((input: TCreateInput) => ({ ...input }) as TCreateInput & TCreateParams)
+  ) => TCreateParams = addressAdapter.toCreateParams
   const buildUpdate: (
     input: TUpdateInput,
     context: StorefrontCustomerUpdateAddressContext,
-  ) => TUpdateParams =
-    addressAdapter?.toUpdateParams ??
-    ((input: TUpdateInput) => {
-      const { addressId: _addressId, ...restUpdateInput } =
-        input as TUpdateInput & {
-          addressId?: string
-        }
-      return { ...restUpdateInput } as typeof restUpdateInput & TUpdateParams
-    })
-  const buildUpdateCustomer =
-    buildUpdateCustomerParams ??
-    ((input: TUpdateCustomerInput) =>
-      ({ ...input }) as TUpdateCustomerInput & TUpdateCustomerParams)
+  ) => TUpdateParams = addressAdapter.toUpdateParams
+  const buildUpdateCustomer = buildUpdateCustomerParams
 
-  function useCustomerAddresses(
+  const useCustomerAddresses = (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<CustomerAddressListResponse<TAddress>>
     },
-  ): UseCustomerAddressesResult<TAddress> {
-    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
+  ): UseCustomerAddressesResult<TAddress> => {
+    const listParams = buildList(input)
     const queryKey = resolvedQueryKeys.addresses(listParams)
-    const enabled = inputEnabled ?? true
+    const enabled = input.enabled ?? true
 
     const query = useQuery({
       enabled,
@@ -180,16 +173,13 @@ export function createCustomerHooks<
     }
   }
 
-  function useSuspenseCustomerAddresses(
+  const useSuspenseCustomerAddresses = (
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<CustomerAddressListResponse<TAddress>>
     },
-  ): UseSuspenseCustomerAddressesResult<TAddress> {
-    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
+  ): UseSuspenseCustomerAddressesResult<TAddress> => {
+    const listParams = buildList(input)
     const query = useSuspenseQuery({
       queryFn: async ({ signal }) =>
         await service.getAddresses(listParams, signal),
@@ -209,9 +199,9 @@ export function createCustomerHooks<
     }
   }
 
-  function useCreateCustomerAddress<TContext = unknown>(
+  const useCreateCustomerAddress = <TContext = unknown>(
     options?: CustomerMutationOptions<TAddress, TCreateInput, TContext>,
-  ) {
+  ) => {
     const queryClient = useQueryClient()
     return useMutation<TAddress, unknown, TCreateInput, TContext>({
       mutationFn: async (input: TCreateInput) => {
@@ -226,6 +216,12 @@ export function createCustomerHooks<
         )
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
       onSuccess: async (address, variables, context) => {
         await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
@@ -235,23 +231,17 @@ export function createCustomerHooks<
         })
         options?.onSuccess?.(address, variables, context)
       },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
-      },
     })
   }
 
-  function useUpdateCustomerAddress<TContext = unknown>(
+  const useUpdateCustomerAddress = <TContext = unknown>(
     options?: CustomerMutationOptions<TAddress, TUpdateInput, TContext>,
-  ) {
+  ) => {
     const queryClient = useQueryClient()
     return useMutation<TAddress, unknown, TUpdateInput, TContext>({
       mutationFn: async (input: TUpdateInput) => {
         const { addressId } = input
-        if (!addressId) {
+        if (addressId === undefined || addressId.length === 0) {
           throw new Error("Address id is required")
         }
         const normalized = addressAdapter?.normalizeUpdate
@@ -272,6 +262,12 @@ export function createCustomerHooks<
         )
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
       onSuccess: async (address, variables, context) => {
         await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
@@ -281,27 +277,28 @@ export function createCustomerHooks<
         })
         options?.onSuccess?.(address, variables, context)
       },
+    })
+  }
+
+  const useDeleteCustomerAddress = <TContext = unknown>(
+    options?: CustomerMutationOptions<null, { addressId: string }, TContext>,
+  ) => {
+    const queryClient = useQueryClient()
+    return useMutation<null, unknown, { addressId: string }, TContext>({
+      mutationFn: async ({ addressId }) => {
+        if (addressId === undefined || addressId.length === 0) {
+          throw new Error("Address id is required")
+        }
+        await service.deleteAddress(addressId)
+        return null
+      },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
       },
-    })
-  }
-
-  function useDeleteCustomerAddress<TContext = unknown>(
-    options?: CustomerMutationOptions<void, { addressId: string }, TContext>,
-  ) {
-    const queryClient = useQueryClient()
-    return useMutation<void, unknown, { addressId: string }, TContext>({
-      mutationFn: async ({ addressId }) => {
-        if (!addressId) {
-          throw new Error("Address id is required")
-        }
-        return await service.deleteAddress(addressId)
-      },
-      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: async (data, variables, context) => {
         await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
@@ -311,22 +308,16 @@ export function createCustomerHooks<
         })
         options?.onSuccess?.(data, variables, context)
       },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
-      },
     })
   }
 
-  function useUpdateCustomer<TContext = unknown>(
+  const useUpdateCustomer = <TContext = unknown>(
     options?: CustomerMutationOptions<
       TCustomer,
       TUpdateCustomerInput,
       TContext
     >,
-  ) {
+  ) => {
     const queryClient = useQueryClient()
     return useMutation<TCustomer, unknown, TUpdateCustomerInput, TContext>({
       mutationFn: async (input: TUpdateCustomerInput) => {
@@ -336,6 +327,12 @@ export function createCustomerHooks<
         return await service.updateCustomer(buildUpdateCustomer(input))
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
       onSuccess: async (customer, variables, context) => {
         await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.profile(),
@@ -344,12 +341,6 @@ export function createCustomerHooks<
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(customer, variables, context)
-      },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
       },
     })
   }

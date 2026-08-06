@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url"
 
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
+import { isRecord } from "@techsio/std/object"
 import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { vi, describe, expect, it } from "vitest"
@@ -19,6 +20,94 @@ import {
   createStoreShippingOptionWithServiceZone,
   createTestMedusaSdk,
 } from "./medusa-fixtures"
+
+interface DecodedCheckoutCart {
+  id: string
+  region_id?: string | null
+  shipping_methods?: { shipping_option_id?: string }[]
+  payment_collection?: { id?: string; payment_sessions?: unknown[] }
+}
+
+const decodeShippingMethods = (
+  value: unknown,
+): { shipping_option_id?: string }[] | null | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+  if (!Array.isArray(value)) {
+    return null
+  }
+  const methods: { shipping_option_id?: string }[] = []
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      return null
+    }
+    const { shipping_option_id } = entry
+    if (
+      shipping_option_id !== undefined &&
+      typeof shipping_option_id !== "string"
+    ) {
+      return null
+    }
+    methods.push(shipping_option_id === undefined ? {} : { shipping_option_id })
+  }
+  return methods
+}
+
+const decodePaymentCollection = (
+  value: unknown,
+): DecodedCheckoutCart["payment_collection"] | null | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+  if (!isRecord(value)) {
+    return null
+  }
+  const { id, payment_sessions } = value
+  if (id !== undefined && typeof id !== "string") {
+    return null
+  }
+  if (payment_sessions !== undefined && !Array.isArray(payment_sessions)) {
+    return null
+  }
+  return {
+    ...(id === undefined ? {} : { id }),
+    ...(payment_sessions === undefined ? {} : { payment_sessions }),
+  }
+}
+
+const decodeCheckoutCart = (value: unknown): DecodedCheckoutCart | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+  const { id, payment_collection, region_id, shipping_methods } = value
+  if (typeof id !== "string") {
+    return null
+  }
+  if (
+    region_id !== undefined &&
+    region_id !== null &&
+    typeof region_id !== "string"
+  ) {
+    return null
+  }
+  const decodedShippingMethods = decodeShippingMethods(shipping_methods)
+  const decodedPaymentCollection = decodePaymentCollection(payment_collection)
+  if (decodedShippingMethods === null || decodedPaymentCollection === null) {
+    return null
+  }
+
+  return {
+    id,
+    ...(region_id === undefined ? {} : { region_id }),
+    ...(decodedShippingMethods === undefined
+      ? {}
+      : { shipping_methods: decodedShippingMethods }),
+    ...(decodedPaymentCollection === undefined
+      ? {}
+      : { payment_collection: decodedPaymentCollection }),
+  }
+}
 
 const createWrapper = (client: QueryClient) => {
   const Wrapper = ({ children }: { children: ReactNode }) => (
@@ -297,6 +386,7 @@ describe("phase 2 regressions", () => {
       PaymentCollection,
       unknown
     >({
+      decodeCart: decodeCheckoutCart,
       queryKeyNamespace: "phase2-checkout",
       service,
     })

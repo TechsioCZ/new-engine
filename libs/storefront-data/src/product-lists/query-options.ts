@@ -5,11 +5,6 @@ import type {
   ReadQueryOptions,
 } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
-import {
-  createDefaultListParams,
-  stripDetailInput,
-  withCustomerScope,
-} from "./input-utils"
 import { createProductListQueryKeys } from "./query-keys"
 import type {
   ProductListCartLike,
@@ -38,20 +33,16 @@ export interface CreateProductListQueryOptionsFactoryConfig<
     TListParams,
     TDetailParams
   >
-  buildListParams?: (input: TListInput) => TListParams
-  buildDetailParams?: (input: TDetailInput) => TDetailParams
-  buildListKeyParams?: (
-    input: TListInput,
-    params: TListParams,
-  ) => TListKeyParams
-  buildDetailKeyParams?: (
+  buildListParams: (input: TListInput) => TListParams
+  buildDetailParams: (input: TDetailInput) => TDetailParams
+  buildListKeyParams: (input: TListInput, params: TListParams) => TListKeyParams
+  buildDetailKeyParams: (
     input: TDetailInput,
     params: TDetailParams,
   ) => TDetailKeyParams
   queryKeys?: ProductListQueryKeys<TListKeyParams, TDetailKeyParams>
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
-  defaultPageSize?: number
 }
 
 export interface ProductListQueryOptionsFactory<
@@ -75,7 +66,7 @@ export interface ProductListQueryOptionsFactory<
   ) => QueryFactoryOptions<TProductList | null>
 }
 
-export function createProductListQueryOptionsFactory<
+export const createProductListQueryOptionsFactory = <
   TProductList,
   TProductListItem,
   TCart extends ProductListCartLike,
@@ -94,7 +85,6 @@ export function createProductListQueryOptionsFactory<
   queryKeys,
   queryKeyNamespace = "storefront-data",
   cacheConfig,
-  defaultPageSize = 20,
 }: CreateProductListQueryOptionsFactoryConfig<
   TProductList,
   TProductListItem,
@@ -105,28 +95,17 @@ export function createProductListQueryOptionsFactory<
   TDetailParams,
   TListKeyParams,
   TDetailKeyParams
->): ProductListQueryOptionsFactory<TProductList, TListInput, TDetailInput> {
+>): ProductListQueryOptionsFactory<TProductList, TListInput, TDetailInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
     createProductListQueryKeys<TListKeyParams, TDetailKeyParams>(
       queryKeyNamespace,
     )
-  const buildList =
-    buildListParams ??
-    ((input: TListInput) =>
-      createDefaultListParams(input, defaultPageSize) as TListParams)
-  const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => stripDetailInput(input) as TDetailParams)
-  const buildListKey =
-    buildListKeyParams ??
-    ((input: TListInput, params: TListParams) =>
-      withCustomerScope(params, input) as TListKeyParams)
-  const buildDetailKey =
-    buildDetailKeyParams ??
-    ((input: TDetailInput, params: TDetailParams) =>
-      withCustomerScope(params, input) as TDetailKeyParams)
+  const buildList = buildListParams
+  const buildDetail = buildDetailParams
+  const buildListKey = buildListKeyParams
+  const buildDetailKey = buildDetailKeyParams
 
   return {
     getDetailQueryOptions: (input, options) => {
@@ -134,14 +113,18 @@ export function createProductListQueryOptionsFactory<
       const cacheStrategy = options?.cacheStrategy ?? "userData"
 
       return {
-        queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
         queryFn: async ({ signal }) => {
-          if (!input.id) {
+          if (
+            input.id === undefined ||
+            input.id === null ||
+            input.id.length === 0
+          ) {
             throw new Error("Product list id is required")
           }
 
-          return service.getProductList(detailParams, signal)
+          return await service.getProductList(detailParams, signal)
         },
+        queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }
@@ -151,9 +134,9 @@ export function createProductListQueryOptionsFactory<
       const cacheStrategy = options?.cacheStrategy ?? "userData"
 
       return {
-        queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
         queryFn: async ({ signal }) =>
-          service.listProductLists(listParams, signal),
+          await service.listProductLists(listParams, signal),
+        queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }

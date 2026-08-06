@@ -18,9 +18,9 @@ import type {
 
 export interface CreateCollectionQueryOptionsFactoryConfig<
   TCollection,
-  TListInput extends CollectionListInputBase,
+  TListInput extends CollectionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CollectionDetailInputBase,
+  TDetailInput extends CollectionDetailInputBase & TDetailParams,
   TDetailParams,
 > {
   service: CollectionService<TCollection, TListParams, TDetailParams>
@@ -54,9 +54,9 @@ export interface CollectionQueryOptionsFactory<
 
 export const createCollectionQueryOptionsFactory = <
   TCollection,
-  TListInput extends CollectionListInputBase,
+  TListInput extends CollectionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CollectionDetailInputBase,
+  TDetailInput extends CollectionDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -72,14 +72,16 @@ export const createCollectionQueryOptionsFactory = <
   TDetailInput,
   TDetailParams
 >): CollectionQueryOptionsFactory<TCollection, TListInput, TDetailInput> => {
+  const buildList = buildListParams ?? ((input: TListInput) => input)
+  const buildDetail = buildDetailParams ?? ((input: TDetailInput) => input)
   const resolvedQueryKeys =
     queryKeys ??
     createCollectionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
   return createSimpleListDetailQueryOptionsFactory(
     omitUndefined({
-      buildDetailParams,
-      buildListParams,
+      buildDetailParams: buildDetail,
+      buildListParams: buildList,
       cacheConfig,
       defaultCacheStrategy: "static" as const,
       getDetail: service.getCollection,

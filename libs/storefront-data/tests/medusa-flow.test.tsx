@@ -1,6 +1,7 @@
 import Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import type { Mock } from "vitest"
@@ -20,6 +21,16 @@ import {
   createStorePaymentSession,
   createStoreShippingOption,
 } from "./medusa-fixtures"
+
+const expectCartMutationFailure = (error: unknown) => {
+  expect(error).toBeInstanceOf(Error)
+  expect(isRecord(error)).toBeTruthy()
+  if (!(error instanceof Error) || !isRecord(error)) {
+    throw new TypeError("Expected a typed cart mutation failure")
+  }
+  expect(error.name).toBe("MedusaCartMutationFailureError")
+  expect(getRecordValue(error, "code")).toBe("out_of_stock")
+}
 
 const createWrapper = (client: QueryClient) => {
   const Wrapper = ({ children }: { children: ReactNode }) => (
@@ -316,22 +327,22 @@ describe("Medusa flow helpers", () => {
     })
 
     await waitFor(() => {
-      expect(onError).toHaveBeenCalledWith({
-        code: "out_of_stock",
-        message: "Out of stock",
-      })
+      expect(onError).toHaveBeenCalledOnce()
     })
+    expectCartMutationFailure(onError.mock.calls[0]?.[0])
 
-    await expect(
-      result.current.mutateAsync({
+    let didReject = false
+    try {
+      await result.current.mutateAsync({
         cartId: "cart_1",
         quantity: 1,
         variantId: "variant_1",
-      }),
-    ).rejects.toMatchObject({
-      code: "out_of_stock",
-      message: "Out of stock",
-    })
+      })
+    } catch (error) {
+      didReject = true
+      expectCartMutationFailure(error)
+    }
+    expect(didReject).toBeTruthy()
   })
 
   it("passes cart query input through to low-level hooks for region auto-create flows", async () => {

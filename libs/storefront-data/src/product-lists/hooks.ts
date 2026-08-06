@@ -28,11 +28,6 @@ import type { PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { StorageValueStore } from "../shared/storage-value-store"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
-import {
-  createDefaultListParams,
-  stripDetailInput,
-  withCustomerScope,
-} from "./input-utils"
 import { createProductListQueryKeys } from "./query-keys"
 import type {
   AddFavoriteProductListItemInput,
@@ -70,30 +65,15 @@ type SuspenseDetailInput<TInput extends ProductListDetailInputBase> = Omit<
 > & {
   id: NonNullable<TInput["id"]>
 }
+type ProductListListReadInput<TInput extends ProductListListInputBase> =
+  | TInput
+  | SuspenseListInput<TInput>
+type ProductListDetailReadInput<TInput extends ProductListDetailInputBase> =
+  | TInput
+  | SuspenseDetailInput<TInput>
 
 const hasText = (value: string | null | undefined): value is string =>
   typeof value === "string" && value.length > 0
-
-/**
- * Carries a value across the factory's free type parameters. The caller picks
- * `TListParams`, `TDetailParams`, and the key-param shapes, so the built-in
- * fallback builders cannot prove they produce them. The relationship is
- * declared once here instead of at every call site.
- */
-class GenericParameterBridge {
-  private readonly passThrough: (value: object) => object
-
-  constructor(passThrough: (value: object) => object) {
-    this.passThrough = passThrough
-  }
-
-  resolve<TOutput>(value: object, output?: TOutput): TOutput
-  resolve(value: object): unknown {
-    return this.passThrough(value)
-  }
-}
-
-const genericParameters = new GenericParameterBridge((value) => value)
 
 export interface ProductListPrefetchHookOptions {
   cacheStrategy?: CacheStrategy
@@ -127,14 +107,16 @@ export interface CreateProductListHooksConfig<
     TListParams,
     TDetailParams
   >
-  buildListParams?: (input: TListInput) => TListParams
-  buildDetailParams?: (input: TDetailInput) => TDetailParams
-  buildListKeyParams?: (
-    input: TListInput,
+  buildListParams: (input: ProductListListReadInput<TListInput>) => TListParams
+  buildDetailParams: (
+    input: ProductListDetailReadInput<TDetailInput>,
+  ) => TDetailParams
+  buildListKeyParams: (
+    input: ProductListListReadInput<TListInput>,
     params: TListParams,
   ) => TListKeyParams
-  buildDetailKeyParams?: (
-    input: TDetailInput,
+  buildDetailKeyParams: (
+    input: ProductListDetailReadInput<TDetailInput>,
     params: TDetailParams,
   ) => TDetailKeyParams
   queryKeys?: ProductListQueryKeys<TListKeyParams, TDetailKeyParams>
@@ -166,13 +148,13 @@ export interface ProductListHooks<
     },
   ) => QueryFactoryOptions<TProductList | null>
   useProductLists: (
-    input?: TListInput,
+    input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
     },
   ) => UseProductListsResult<TProductList>
   useSuspenseProductLists: (
-    input?: SuspenseListInput<TListInput>,
+    input: SuspenseListInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductListListResult<TProductList>>
     },
@@ -198,11 +180,11 @@ export interface ProductListHooks<
   ) => QueryResult<TProductList | null>[]
   usePrefetchProductLists: (options?: ProductListPrefetchHookOptions) => {
     prefetchProductLists: (
-      input?: TListInput,
+      input: TListInput,
       prefetchOptions?: ProductListPrefetchOptions,
     ) => Promise<void>
     delayedPrefetch: (
-      input?: TListInput,
+      input: TListInput,
       delay?: number,
       prefetchId?: string,
     ) => string
@@ -395,31 +377,13 @@ export const createProductListHooks = function createProductListHooks<
     createProductListQueryKeys<TListKeyParams, TDetailKeyParams>(
       queryKeyNamespace,
     )
-  const buildList =
-    buildListParams ??
-    ((input: TListInput) =>
-      genericParameters.resolve<TListParams>(
-        createDefaultListParams(input, defaultPageSize),
-      ))
-  const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) =>
-      genericParameters.resolve<TDetailParams>(stripDetailInput(input)))
-  const buildListKey =
-    buildListKeyParams ??
-    ((input: TListInput, params: TListParams) =>
-      genericParameters.resolve<TListKeyParams>(
-        withCustomerScope(params, input),
-      ))
-  const buildDetailKey =
-    buildDetailKeyParams ??
-    ((input: TDetailInput, params: TDetailParams) =>
-      genericParameters.resolve<TDetailKeyParams>(
-        withCustomerScope(params, input),
-      ))
+  const buildList = buildListParams
+  const buildDetail = buildDetailParams
+  const buildListKey = buildListKeyParams
+  const buildDetailKey = buildDetailKeyParams
 
   const getListQueryOptions = (
-    input: TListInput,
+    input: ProductListListReadInput<TListInput>,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
     },
@@ -436,7 +400,7 @@ export const createProductListHooks = function createProductListHooks<
   }
 
   const getDetailQueryOptions = (
-    input: TDetailInput,
+    input: ProductListDetailReadInput<TDetailInput>,
     options?: {
       queryOptions?: ReadQueryOptions<TProductList | null>
     },
@@ -458,7 +422,7 @@ export const createProductListHooks = function createProductListHooks<
   }
 
   const createProductListsPrefetchQueryOptions = (
-    input: TListInput,
+    input: ProductListListReadInput<TListInput>,
     options?: {
       cacheStrategy?: CacheStrategy
       prefetchedBy?: string
@@ -481,7 +445,7 @@ export const createProductListHooks = function createProductListHooks<
   }
 
   const createProductListPrefetchQueryOptions = (
-    input: TDetailInput,
+    input: ProductListDetailReadInput<TDetailInput>,
     options?: {
       cacheStrategy?: CacheStrategy
       prefetchedBy?: string
@@ -512,7 +476,7 @@ export const createProductListHooks = function createProductListHooks<
   }
 
   const useProductLists = (
-    input = genericParameters.resolve<TListInput>({}),
+    input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
     },
@@ -538,17 +502,16 @@ export const createProductListHooks = function createProductListHooks<
   }
 
   const useSuspenseProductLists = (
-    input = genericParameters.resolve<SuspenseListInput<TListInput>>({}),
+    input: SuspenseListInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductListListResult<TProductList>>
     },
   ): UseSuspenseProductListsResult<TProductList> => {
     const query = useSuspenseQuery({
-      ...getListQueryOptions(genericParameters.resolve<TListInput>(input), {
-        queryOptions: genericParameters.resolve<
-          ReadQueryOptions<ProductListListResult<TProductList>>
-        >(options?.queryOptions ?? {}),
-      }),
+      ...getListQueryOptions(
+        input,
+        omitUndefined({ queryOptions: options?.queryOptions }),
+      ),
     })
     const { data, isFetching } = query
 
@@ -599,11 +562,10 @@ export const createProductListHooks = function createProductListHooks<
     }
 
     const query = useSuspenseQuery({
-      ...getDetailQueryOptions(genericParameters.resolve<TDetailInput>(input), {
-        queryOptions: genericParameters.resolve<
-          ReadQueryOptions<TProductList | null>
-        >(options?.queryOptions ?? {}),
-      }),
+      ...getDetailQueryOptions(
+        input,
+        omitUndefined({ queryOptions: options?.queryOptions }),
+      ),
     })
     const { data, isFetching } = query
 
@@ -648,7 +610,7 @@ export const createProductListHooks = function createProductListHooks<
     const skipMode = options?.skipMode ?? "fresh"
 
     const prefetchProductLists = async (
-      input = genericParameters.resolve<TListInput>({}),
+      input: TListInput,
       prefetchOptions?: ProductListPrefetchOptions,
     ) => {
       const cacheStrategyResolved =
@@ -683,7 +645,7 @@ export const createProductListHooks = function createProductListHooks<
     }
 
     const delayedPrefetch = (
-      input = genericParameters.resolve<TListInput>({}),
+      input: TListInput,
       delay = defaultDelay,
       prefetchId?: string,
     ) => {

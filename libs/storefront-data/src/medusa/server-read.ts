@@ -57,6 +57,11 @@ import type {
   ProductAttributeQueryKeys,
   ProductAttributeService,
 } from "../product-attributes/types"
+import {
+  createDefaultListParams,
+  stripDetailInput,
+  withCustomerScope,
+} from "../product-lists/input-utils"
 import { createMedusaProductListService } from "../product-lists/medusa-service"
 import type {
   MedusaProductListDetailHookInput,
@@ -159,26 +164,27 @@ type MedusaOrderServerReadHooksConfig = Pick<
   "buildListParams" | "buildDetailParams"
 >
 
-type MedusaProductListServerReadHooksConfig = Pick<
-  OmitFactoryConfig<
-    CreateProductListQueryOptionsFactoryConfig<
-      ProductListBase,
-      ProductListItemBase,
-      HttpTypes.StoreCart,
-      MedusaProductListListHookInput,
-      MedusaProductListListInput,
-      MedusaProductListDetailHookInput,
-      MedusaProductListDetailInput,
-      MedusaProductListListKeyInput,
-      MedusaProductListDetailKeyInput
-    >
-  >,
-  | "buildListParams"
-  | "buildDetailParams"
-  | "buildListKeyParams"
-  | "buildDetailKeyParams"
-  | "defaultPageSize"
->
+type MedusaProductListServerReadHooksConfig = Partial<
+  Pick<
+    OmitFactoryConfig<
+      CreateProductListQueryOptionsFactoryConfig<
+        ProductListBase,
+        ProductListItemBase,
+        HttpTypes.StoreCart,
+        MedusaProductListListHookInput,
+        MedusaProductListListInput,
+        MedusaProductListDetailHookInput,
+        MedusaProductListDetailInput,
+        MedusaProductListListKeyInput,
+        MedusaProductListDetailKeyInput
+      >
+    >,
+    | "buildListParams"
+    | "buildDetailParams"
+    | "buildListKeyParams"
+    | "buildDetailKeyParams"
+  >
+> & { defaultPageSize?: number }
 
 type MedusaProductReviewServerReadHooksConfig = Pick<
   OmitFactoryConfig<
@@ -724,78 +730,97 @@ const createServerReadQueries = <
   TCollection,
   TCatalogProduct,
   TCatalogFacets
->["queries"] => ({
-  catalog: createCatalogQueryOptionsFactory({
-    cacheConfig,
-    queryKeyNamespace: namespace,
-    queryKeys: queryKeys.catalog,
-    service: services.catalog,
-    ...config.catalog?.hooks,
-  }),
-  categories: createCategoryQueryOptionsFactory({
-    cacheConfig,
-    queryKeyNamespace: namespace,
-    queryKeys: queryKeys.categories,
-    service: services.categories,
-    ...config.categories?.hooks,
-  }),
-  collections: createCollectionQueryOptionsFactory({
-    cacheConfig,
-    queryKeyNamespace: namespace,
-    queryKeys: queryKeys.collections,
-    service: services.collections,
-    ...config.collections?.hooks,
-  }),
-  orders: createOrderQueryOptionsFactory({
-    cacheConfig,
-    queryKeyNamespace: namespace,
-    queryKeys: queryKeys.orders,
-    service: services.orders,
-    ...config.orders?.hooks,
-  }),
-  productAttributes: createProductAttributeQueryOptionsFactory({
-    cacheConfig,
-    queryKeyNamespace: namespace,
-    queryKeys: queryKeys.productAttributes,
-    service: services.productAttributes,
-    ...config.productAttributes?.hooks,
-  }),
-  productLists: createProductListQueryOptionsFactory({
-    cacheConfig,
-    queryKeyNamespace: namespace,
-    queryKeys: queryKeys.productLists,
-    service: services.productLists,
-    ...config.productLists?.hooks,
-  }),
-  productLocationAvailability:
-    createProductLocationAvailabilityQueryOptionsFactory({
+>["queries"] => {
+  const createProductListQueries = () =>
+    createProductListQueryOptionsFactory({
+      buildDetailKeyParams:
+        config.productLists?.hooks?.buildDetailKeyParams ??
+        ((input, params) => withCustomerScope(params, input)),
+      buildDetailParams:
+        config.productLists?.hooks?.buildDetailParams ?? stripDetailInput,
+      buildListKeyParams:
+        config.productLists?.hooks?.buildListKeyParams ??
+        ((input, params) => withCustomerScope(params, input)),
+      buildListParams:
+        config.productLists?.hooks?.buildListParams ??
+        ((input) =>
+          createDefaultListParams(
+            input,
+            config.productLists?.hooks?.defaultPageSize ?? 20,
+          )),
       cacheConfig,
       queryKeyNamespace: namespace,
-      queryKeys: queryKeys.productLocationAvailability,
-      service: services.productLocationAvailability,
+      queryKeys: queryKeys.productLists,
+      service: services.productLists,
+    })
+
+  return {
+    catalog: createCatalogQueryOptionsFactory({
+      cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.catalog,
+      service: services.catalog,
+      ...config.catalog?.hooks,
     }),
-  products: createProductQueryOptionsFactory({
-    cacheConfig,
-    queryKeyNamespace: namespace,
-    queryKeys: queryKeys.products,
-    service: services.products,
-    ...config.products?.hooks,
-  }),
-  regions: createRegionQueryOptionsFactory({
-    cacheConfig,
-    queryKeyNamespace: namespace,
-    queryKeys: queryKeys.regions,
-    service: services.regions,
-    ...config.regions?.hooks,
-  }),
-  reviews: createProductReviewQueryOptionsFactory({
-    cacheConfig,
-    queryKeyNamespace: namespace,
-    queryKeys: queryKeys.reviews,
-    service: services.reviews,
-    ...config.reviews?.hooks,
-  }),
-})
+    categories: createCategoryQueryOptionsFactory({
+      cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.categories,
+      service: services.categories,
+      ...config.categories?.hooks,
+    }),
+    collections: createCollectionQueryOptionsFactory({
+      cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.collections,
+      service: services.collections,
+      ...config.collections?.hooks,
+    }),
+    orders: createOrderQueryOptionsFactory({
+      cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.orders,
+      service: services.orders,
+      ...config.orders?.hooks,
+    }),
+    productAttributes: createProductAttributeQueryOptionsFactory({
+      cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.productAttributes,
+      service: services.productAttributes,
+      ...config.productAttributes?.hooks,
+    }),
+    productLists: createProductListQueries(),
+    productLocationAvailability:
+      createProductLocationAvailabilityQueryOptionsFactory({
+        cacheConfig,
+        queryKeyNamespace: namespace,
+        queryKeys: queryKeys.productLocationAvailability,
+        service: services.productLocationAvailability,
+      }),
+    products: createProductQueryOptionsFactory({
+      cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.products,
+      service: services.products,
+      ...config.products?.hooks,
+    }),
+    regions: createRegionQueryOptionsFactory({
+      cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.regions,
+      service: services.regions,
+      ...config.regions?.hooks,
+    }),
+    reviews: createProductReviewQueryOptionsFactory({
+      cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.reviews,
+      service: services.reviews,
+      ...config.reviews?.hooks,
+    }),
+  }
+}
 
 // flat declarative preset assembly — the score comes from per-section config `??` fallbacks, not branching logic.
 export const createMedusaStorefrontServerReadPreset = <

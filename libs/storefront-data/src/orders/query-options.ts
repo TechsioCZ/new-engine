@@ -18,9 +18,9 @@ import type {
 
 export interface CreateOrderQueryOptionsFactoryConfig<
   TOrder,
-  TListInput extends OrderListInputBase,
+  TListInput extends OrderListInputBase & TListParams,
   TListParams,
-  TDetailInput extends OrderDetailInputBase,
+  TDetailInput extends OrderDetailInputBase & TDetailParams,
   TDetailParams,
 > {
   service: OrderService<TOrder, TListParams, TDetailParams>
@@ -54,9 +54,9 @@ export interface OrderQueryOptionsFactory<
 
 export const createOrderQueryOptionsFactory = <
   TOrder,
-  TListInput extends OrderListInputBase,
+  TListInput extends OrderListInputBase & TListParams,
   TListParams,
-  TDetailInput extends OrderDetailInputBase,
+  TDetailInput extends OrderDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -72,14 +72,16 @@ export const createOrderQueryOptionsFactory = <
   TDetailInput,
   TDetailParams
 >): OrderQueryOptionsFactory<TOrder, TListInput, TDetailInput> => {
+  const buildList = buildListParams ?? ((input: TListInput) => input)
+  const buildDetail = buildDetailParams ?? ((input: TDetailInput) => input)
   const resolvedQueryKeys =
     queryKeys ??
     createOrderQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
   return createSimpleListDetailQueryOptionsFactory(
     omitUndefined({
-      buildDetailParams,
-      buildListParams,
+      buildDetailParams: buildDetail,
+      buildListParams: buildList,
       cacheConfig,
       defaultCacheStrategy: "userData" as const,
       getDetail: service.getOrder,
