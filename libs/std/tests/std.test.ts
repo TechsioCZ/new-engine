@@ -140,6 +140,22 @@ describe("control utilities", () => {
     vi.useRealTimers()
   })
 
+  it("clears a zero-valued timer ID when rescheduling", () => {
+    const clearTimeoutSpy = vi.spyOn(globalThis, "clearTimeout")
+    vi.stubGlobal(
+      "setTimeout",
+      vi.fn<(...arguments_: Parameters<typeof setTimeout>) => number>(() => 0),
+    )
+    const debounced = debounce(vi.fn<(...arguments_: string[]) => void>(), 10)
+
+    debounced("first")
+    debounced("second")
+
+    expect(clearTimeoutSpy).toHaveBeenCalledWith(0)
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
   it("cancels pending calls idempotently before and after firing", () => {
     vi.useFakeTimers()
     const callback = vi.fn<(value: number) => void>()
