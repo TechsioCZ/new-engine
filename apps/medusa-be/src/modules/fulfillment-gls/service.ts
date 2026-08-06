@@ -28,44 +28,113 @@ import type {
 import { buildGLSPacketAttributes } from "./helpers/packet-attributes"
 import type { QueryService } from "./helpers/packet-attributes"
 
+/**
+ * The gls_client registration is declared optional so the defensive
+ * `getClient()` guard below stays type-checkable: a misconfigured
+ * `medusa-config` leaves the slot unresolved at runtime.
+ */
 type InjectedDependencies = {
   logger: Logger
   [Modules.FILE]: IFileModuleService
   [ContainerRegistrationKeys.QUERY]?: QueryService
-} & Record<typeof GLS_CLIENT_MODULE, GLSClientModuleService>
+} & Partial<Record<typeof GLS_CLIENT_MODULE, GLSClientModuleService>>
+
+const isNonEmptyString = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value.length > 0
+
+const isOptionalString = (value: unknown): value is string | undefined =>
+  value === undefined || typeof value === "string"
+
+const isParcelShopCode = (
+  value: unknown,
+): value is GLSShippingOptionData["code"] =>
+  value === "parcelshop" || value === "parcelshop_cod"
+
+const isGLSFulfillmentStatus = (
+  value: unknown,
+): value is GLSFulfillmentData["status"] =>
+  value === "completed" || value === "error"
+
+const isPacketId = (value: unknown): value is string | number =>
+  typeof value === "string" || typeof value === "number"
+
+/**
+ * Mirrors the truthiness guard that used to be applied directly to the
+ * `string | number` packet id: empty strings, `0` and `NaN` count as missing.
+ */
+const hasPacketId = (value: string | number): boolean => {
+  if (typeof value === "string") {
+    return value.length > 0
+  }
+
+  return value !== 0 && !Number.isNaN(value)
+}
+
+/**
+ * The MyGLS ParcelShop id arrives as a string from the checkout widget;
+ * numeric ids are still accepted defensively. Other shapes are rejected by the
+ * caller instead of being stringified into `"[object Object]"`.
+ */
+const toAccessPointId = (value: unknown): string => {
+  if (typeof value === "string") {
+    return value.trim()
+  }
+
+  return typeof value === "number" ? String(value) : ""
+}
 
 const isGLSShippingOptionData = (
   value: Record<string, unknown>,
-): value is GLSShippingOptionData => {
-  const code: unknown = value.code
-  const requiresAccessPoint: unknown = value.requires_access_point
-  const supportsCod: unknown = value.supports_cod
-  const accessPointId: unknown = value.access_point_id
+): value is Record<string, unknown> & GLSShippingOptionData =>
+  isParcelShopCode(value["code"]) &&
+  value["requires_access_point"] === true &&
+  typeof value["supports_cod"] === "boolean" &&
+  isOptionalString(value["access_point_id"])
 
-  return (
-    (code === "parcelshop" || code === "parcelshop_cod") &&
-    requiresAccessPoint === true &&
-    typeof supportsCod === "boolean" &&
-    (accessPointId === undefined || typeof accessPointId === "string")
-  )
-}
+const hasGLSParcelIdentity = (value: Record<string, unknown>): boolean =>
+  isPacketId(value["packet_id"]) && typeof value["barcode"] === "string"
+
+const hasGLSDeliveryFields = (value: Record<string, unknown>): boolean =>
+  typeof value["access_point_id"] === "string" &&
+  typeof value["supports_cod"] === "boolean" &&
+  isGLSFulfillmentStatus(value["status"])
 
 const isGLSFulfillmentData = (
   value: Record<string, unknown>,
-): value is GLSFulfillmentData => {
-  const packetId: unknown = value.packet_id
-  const barcode: unknown = value.barcode
-  const accessPointId: unknown = value.access_point_id
-  const supportsCod: unknown = value.supports_cod
-  const status: unknown = value.status
+): value is GLSFulfillmentData =>
+  hasGLSParcelIdentity(value) && hasGLSDeliveryFields(value)
 
-  return (
-    (typeof packetId === "string" || typeof packetId === "number") &&
-    typeof barcode === "string" &&
-    typeof accessPointId === "string" &&
-    typeof supportsCod === "boolean" &&
-    (status === "completed" || status === "error")
-  )
+type OptionalShippingStringField =
+  | "access_point_city"
+  | "access_point_name"
+  | "access_point_zip"
+  | "email"
+
+const OPTIONAL_SHIPPING_STRING_FIELDS = [
+  "access_point_city",
+  "access_point_name",
+  "access_point_zip",
+  "email",
+] as const satisfies readonly OptionalShippingStringField[]
+
+/**
+ * Copies the optional pickup-point and contact strings out of the untrusted
+ * checkout payload. Non-string values are dropped rather than asserted into
+ * `string`, so only validated data is persisted on the shipping method.
+ */
+const pickOptionalShippingStrings = (
+  data: Record<string, unknown>,
+): Partial<Record<OptionalShippingStringField, string>> => {
+  const picked: Partial<Record<OptionalShippingStringField, string>> = {}
+
+  for (const field of OPTIONAL_SHIPPING_STRING_FIELDS) {
+    const value = data[field]
+    if (typeof value === "string") {
+      picked[field] = value
+    }
+  }
+
+  return picked
 }
 
 /**
@@ -81,29 +150,30 @@ const isGLSFulfillmentData = (
 export const GLS_PROVIDER_IDENTIFIER = "gls"
 
 class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
-  static override identifier = GLS_PROVIDER_IDENTIFIER
+  static override readonly identifier = GLS_PROVIDER_IDENTIFIER
 
-  protected readonly logger_: Logger
-  protected readonly glsClient_: GLSClientModuleService
-  protected readonly fileService_: IFileModuleService
-  protected readonly query_?: QueryService
+  protected readonly logger: Logger
+  protected readonly glsClient: GLSClientModuleService | undefined
+  protected readonly fileService: IFileModuleService
+  protected readonly query: QueryService | undefined
 
   constructor(container: InjectedDependencies, _options: GLSOptions) {
     super()
-    this.logger_ = container.logger
-    this.glsClient_ = container[GLS_CLIENT_MODULE]
-    this.fileService_ = container[Modules.FILE]
-    this.query_ = container[ContainerRegistrationKeys.QUERY]
+    this.logger = container.logger
+    this.glsClient = container[GLS_CLIENT_MODULE]
+    this.fileService = container[Modules.FILE]
+    this.query = container[ContainerRegistrationKeys.QUERY]
   }
 
   private getClient(): GLSClientModuleService {
-    if (!this.glsClient_) {
+    const client = this.glsClient
+    if (!client) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         "GLS: gls_client module not available. Check medusa-config dependencies.",
       )
     }
-    return this.glsClient_
+    return client
   }
 
   // ============================================
@@ -117,7 +187,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
         return []
       }
     } catch (error) {
-      this.logger_.warn(
+      this.logger.warn(
         `GLS: Could not check config status, returning no options: ${error instanceof Error ? error.message : String(error)}`,
       )
       return []
@@ -144,7 +214,8 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
   override async validateOption(
     data: Record<string, unknown>,
   ): Promise<boolean> {
-    return data.code === "parcelshop" || data.code === "parcelshop_cod"
+    await Promise.resolve(this)
+    return isParcelShopCode(data["code"])
   }
 
   /**
@@ -164,17 +235,16 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
       )
     }
 
-    const accessPointId = data.access_point_id
-    const parsedAccessPointId = String(accessPointId ?? "").trim()
-    if (!parsedAccessPointId) {
+    const parsedAccessPointId = toAccessPointId(data["access_point_id"])
+    if (!isNonEmptyString(parsedAccessPointId)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "GLS: Pickup point (ParcelShop) selection is required for this shipping method",
       )
     }
 
-    const optionCode = optionData.code
-    if (optionCode !== "parcelshop" && optionCode !== "parcelshop_cod") {
+    const optionCode = optionData["code"]
+    if (!isParcelShopCode(optionCode)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "GLS: Invalid shipping option code",
@@ -182,12 +252,9 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     }
 
     return {
-      access_point_city: data.access_point_city as string | undefined,
+      ...pickOptionalShippingStrings(data),
       access_point_id: parsedAccessPointId,
-      access_point_name: data.access_point_name as string | undefined,
-      access_point_zip: data.access_point_zip as string | undefined,
       code: optionCode,
-      email: data.email as string | undefined,
       requires_access_point: true,
       supports_cod: optionCode === "parcelshop_cod",
     } satisfies GLSShippingOptionData
@@ -221,7 +288,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
         "GLS: Shipping address is required",
       )
     }
-    if (!shippingData.access_point_id) {
+    if (!isNonEmptyString(shippingData.access_point_id)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "GLS: access_point_id is required",
@@ -240,15 +307,15 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
       accessPointId: shippingData.access_point_id,
       config,
       items: _items,
-      logger: this.logger_,
+      logger: this.logger,
       order,
-      query: this.query_,
       shippingAddress: order.shipping_address,
       shippingData,
+      ...(this.query === undefined ? {} : { query: this.query }),
     })
 
     const fulfillmentId = fulfillment.id ?? `temp-${Date.now()}`
-    this.logger_.info(
+    this.logger.info(
       `GLS: Creating packet for ${fulfillmentId}, access point ${shippingData.access_point_id}`,
     )
 
@@ -261,7 +328,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
         result.label_pdf && result.label_pdf.length > 0
           ? result.label_pdf
           : await this.getClient().downloadLabelPdf(result.id)
-      const uploaded = await this.fileService_.createFiles([
+      const uploaded = await this.fileService.createFiles([
         {
           content: pdfBuffer.toString("base64"),
           filename: `gls-label-${result.barcode}.pdf`,
@@ -270,25 +337,25 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
       ])
       labelUrl = uploaded[0]?.url
     } catch (error) {
-      this.logger_.warn(
+      this.logger.warn(
         `GLS: Packet ${result.id} created (parcel number ${result.barcode}) but label upload failed: ${error instanceof Error ? error.message : String(error)}. The label can be retrieved later from MyGLS.`,
       )
     }
 
     const fulfillmentData: GLSFulfillmentData = {
-      status: "completed",
-      packet_id: result.id,
-      barcode: result.barcode,
-      parcel_number: result.parcel_number,
       access_point_id: shippingData.access_point_id,
+      barcode: result.barcode,
+      packet_id: result.id,
+      parcel_number: result.parcel_number,
+      status: "completed",
       supports_cod: shippingData.supports_cod,
-      ...(labelUrl && { label_url: labelUrl }),
+      ...(isNonEmptyString(labelUrl) ? { label_url: labelUrl } : {}),
       tracking_url: trackingUrl,
     }
 
     return {
       data: fulfillmentData,
-      labels: labelUrl
+      labels: isNonEmptyString(labelUrl)
         ? [
             {
               label_url: labelUrl,
@@ -304,14 +371,14 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     if (!isGLSFulfillmentData(data)) {
-      this.logger_.warn("GLS: Cannot cancel - invalid fulfillment data")
+      this.logger.warn("GLS: Cannot cancel - invalid fulfillment data")
       return { cancelled: false, note: "Invalid fulfillment data" }
     }
     const fulfillmentData = data
     const packetId = fulfillmentData.packet_id
 
-    if (!packetId) {
-      this.logger_.warn("GLS: Cannot cancel - no packet_id in fulfillment data")
+    if (!hasPacketId(packetId)) {
+      this.logger.warn("GLS: Cannot cancel - no packet_id in fulfillment data")
       return { cancelled: false, note: "No packet_id on fulfillment" }
     }
 
@@ -329,6 +396,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
   override async createReturnFulfillment(
     _fulfillment: Record<string, unknown>,
   ): Promise<CreateFulfillmentResult> {
+    await Promise.resolve(this)
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
       "GLS: Return fulfillment not yet implemented.",
@@ -338,6 +406,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
   override async canCalculate(
     _data: CreateShippingOptionDTO,
   ): Promise<boolean> {
+    await Promise.resolve(this)
     return false
   }
 
@@ -346,6 +415,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     _data: CalculateShippingOptionPriceDTO["data"],
     _context: CalculateShippingOptionPriceDTO["context"],
   ): Promise<CalculatedShippingOptionPrice> {
+    await Promise.resolve(this)
     return {
       calculated_amount: 0,
       is_calculated_price_tax_inclusive: false,
@@ -356,20 +426,21 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
   override async getFulfillmentDocuments(
     data: Record<string, unknown>,
   ): Promise<{ type: string; url: string; format?: string }[]> {
+    await Promise.resolve(this)
     const documents: { type: string; url: string; format?: string }[] = []
     if (!isGLSFulfillmentData(data)) {
       return documents
     }
     const fulfillmentData = data
 
-    if (fulfillmentData.label_url) {
+    if (isNonEmptyString(fulfillmentData.label_url)) {
       documents.push({
         format: "pdf",
         type: "label",
         url: fulfillmentData.label_url,
       })
     }
-    if (fulfillmentData.tracking_url) {
+    if (isNonEmptyString(fulfillmentData.tracking_url)) {
       documents.push({
         type: "tracking",
         url: fulfillmentData.tracking_url,
@@ -384,6 +455,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     fulfillmentData: Record<string, unknown>,
     documentType: string,
   ): Promise<{ type: string; url: string; format?: string } | null> {
+    await Promise.resolve(this)
     if (!isGLSFulfillmentData(fulfillmentData)) {
       return null
     }
@@ -391,12 +463,12 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
 
     switch (documentType) {
       case "label": {
-        return data.label_url
+        return isNonEmptyString(data.label_url)
           ? { format: "pdf", type: "label", url: data.label_url }
           : null
       }
       case "tracking": {
-        return data.tracking_url
+        return isNonEmptyString(data.tracking_url)
           ? { type: "tracking", url: data.tracking_url }
           : null
       }
@@ -409,12 +481,14 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
   override async getReturnDocuments(
     _data: Record<string, unknown>,
   ): Promise<never[]> {
+    await Promise.resolve(this)
     return []
   }
 
   override async getShipmentDocuments(
     _data: Record<string, unknown>,
   ): Promise<never[]> {
+    await Promise.resolve(this)
     return []
   }
 }
