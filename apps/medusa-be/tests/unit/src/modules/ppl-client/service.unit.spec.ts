@@ -2,8 +2,8 @@ import { MedusaError, Modules } from "@medusajs/framework/utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 // Import after mocks
+import type { PplClient } from "../../../../../src/modules/ppl-client/client"
 import { PplClientModuleService } from "../../../../../src/modules/ppl-client/service"
-import { encryptFields } from "../../../../../src/utils/encryption"
 
 type FirstOverload<T> = T extends {
   (...args: infer A1): infer R1
@@ -27,51 +27,172 @@ const asSingleUpdatePplConfigs = (
 
 const { mockPplClient } = vi.hoisted(() => ({
   mockPplClient: {
-    cancelShipment: vi.fn(),
-    createShipmentBatch: vi.fn(),
-    downloadLabel: vi.fn(),
-    fetchNewToken: vi.fn(),
-    getAccessPoints: vi.fn(),
-    getBatchStatus: vi.fn(),
-    getCodelistCountries: vi.fn(),
-    getCodelistCurrencies: vi.fn(),
-    getCodelistProducts: vi.fn(),
-    getCodelistServices: vi.fn(),
-    getCodelistStatuses: vi.fn(),
-    getCustomerAddresses: vi.fn(),
-    getCustomerInfo: vi.fn(),
-    getShipmentInfo: vi.fn(),
+    cancelShipment: vi.fn<PplClient["cancelShipment"]>(),
+    createShipmentBatch: vi.fn<PplClient["createShipmentBatch"]>(),
+    downloadLabel: vi.fn<PplClient["downloadLabel"]>(),
+    fetchNewToken: vi.fn<PplClient["fetchNewToken"]>(),
+    getAccessPoints: vi.fn<PplClient["getAccessPoints"]>(),
+    getBatchStatus: vi.fn<PplClient["getBatchStatus"]>(),
+    getCodelistCountries: vi.fn<PplClient["getCodelistCountries"]>(),
+    getCodelistCurrencies: vi.fn<PplClient["getCodelistCurrencies"]>(),
+    getCodelistProducts: vi.fn<PplClient["getCodelistProducts"]>(),
+    getCodelistServices: vi.fn<PplClient["getCodelistServices"]>(),
+    getCodelistStatuses: vi.fn<PplClient["getCodelistStatuses"]>(),
+    getCustomerAddresses: vi.fn<PplClient["getCustomerAddresses"]>(),
+    getCustomerInfo: vi.fn<PplClient["getCustomerInfo"]>(),
+    getShipmentInfo: vi.fn<PplClient["getShipmentInfo"]>(),
   },
 }))
 
 // Mock the client before importing service
 vi.mock(import("../../../../../src/modules/ppl-client/client"), () => ({
-  PplClient: vi.fn(() => {
-    return mockPplClient
-  }),
+  PplClient: vi.fn<() => typeof mockPplClient>(() => mockPplClient),
 }))
+
+type FieldsCodecImpl = (
+  data: Record<string, unknown>,
+  fields: readonly PropertyKey[],
+) => Record<string, unknown>
+
+/**
+ * `vi.fn<T>()` collapses `encryptFields`/`decryptFields`'s generic
+ * `<T extends Record<string, unknown>>(data: T, fields: (keyof T)[]) => T`
+ * signature to one concrete call signature, which TypeScript then rejects
+ * as a module-factory replacement (the real export must return exactly the
+ * caller's own `T`, not a widened `Record<string, unknown>`). These
+ * adapters satisfy the real generic export by keeping `data` (already
+ * statically typed `T`) as the returned value and using the tracked mock
+ * only as a call-recording side effect, so no cast back to `T` is needed.
+ * Test code asserts on the tracked mock (`mockEncryptFields`) directly
+ * instead of on the re-exported generic function. `decryptFields` has no
+ * assertions in this suite, so only its adapter (not its inner mock) is
+ * exported.
+ */
+const { decryptFields, encryptFields, mockEncryptFields } = vi.hoisted(() => {
+  const hoistedMockEncryptFields = vi.fn<FieldsCodecImpl>((data) => ({
+    ...data,
+    _encrypted: true,
+  }))
+  const hoistedMockDecryptFields = vi.fn<FieldsCodecImpl>((data) => ({
+    ...data,
+    _decrypted: true,
+  }))
+  const encryptFieldsAdapter = <T extends Record<string, unknown>>(
+    data: T,
+    fields: (keyof T)[],
+  ): T => {
+    // `data` is already statically typed `T`; the mock call below is a
+    // tracked side effect only, so its widened `Record<string, unknown>`
+    // return value is discarded instead of cast back to `T`.
+    hoistedMockEncryptFields(data, fields)
+    return data
+  }
+  const decryptFieldsAdapter = <T extends Record<string, unknown>>(
+    data: T,
+    fields: (keyof T)[],
+  ): T => {
+    hoistedMockDecryptFields(data, fields)
+    return data
+  }
+  return {
+    decryptFields: decryptFieldsAdapter,
+    encryptFields: encryptFieldsAdapter,
+    mockEncryptFields: hoistedMockEncryptFields,
+  }
+})
 
 // Mock encryption utilities
 vi.mock(import("../../../../../src/utils/encryption"), () => ({
-  decryptFields: vi.fn((data) => ({ ...data, _decrypted: true })),
-  encryptFields: vi.fn((data) => ({ ...data, _encrypted: true })),
+  decryptFields,
+  encryptFields,
 }))
 
+type InjectedDependencies = ConstructorParameters<
+  typeof PplClientModuleService
+>[0]
+type PplLogger = InjectedDependencies["logger"]
+type PplCachingService = NonNullable<
+  InjectedDependencies[typeof Modules.CACHING]
+>
+type PplLockingService = NonNullable<
+  InjectedDependencies[typeof Modules.LOCKING]
+>
+
 const mockCacheService = {
-  clear: vi.fn(),
-  get: vi.fn(),
-  set: vi.fn(),
+  clear: vi.fn<PplCachingService["clear"]>(),
+  computeKey: vi.fn<PplCachingService["computeKey"]>(),
+  computeTags: vi.fn<PplCachingService["computeTags"]>(),
+  get: vi.fn<PplCachingService["get"]>(),
+  set: vi.fn<PplCachingService["set"]>(),
 }
 
 const mockLockingService = {
-  execute: vi.fn().mockImplementation(async (_key, fn) => fn()),
+  acquire: vi.fn<PplLockingService["acquire"]>(),
+  execute: vi
+    .fn<PplLockingService["execute"]>()
+    .mockImplementation(async (_key, fn) => await fn()),
+  release: vi.fn<PplLockingService["release"]>(),
+  releaseAll: vi.fn<PplLockingService["releaseAll"]>(),
 }
 
+/**
+ * `vi.fn<T>()` erases a generic method's type parameter, so
+ * `mockLockingService.execute` resolves as `Promise<unknown>` rather than
+ * the real `execute<T>(...): Promise<T>`'s `Promise<T>`. `T` no longer
+ * exists at runtime once the mock resolves (there is nothing left to
+ * check), so this assertion signature documents that erasure instead of
+ * using an `as` cast to bridge the two. `T` is inferred from `witness`
+ * (the caller's own `job`) rather than passed explicitly, so it is not a
+ * redundant type parameter.
+ */
+const assertResolvesTo: <T>(
+  value: unknown,
+  witness: () => Promise<T>,
+) => asserts value is T = () => {
+  // Intentionally empty: `T` is a type-only bridge over an erased mock
+  // return value, not a runtime-checkable invariant.
+}
+
+/**
+ * Satisfies the real generic `ILockingModule` shape by delegating every
+ * call to the tracked `mockLockingService`, so test assertions on
+ * `mockLockingService` keep working unchanged.
+ */
+const toLockingModule = (
+  locking: typeof mockLockingService,
+): PplLockingService => ({
+  acquire: async (keys, args, sharedContext) => {
+    await locking.acquire(keys, args, sharedContext)
+  },
+  execute: async (keys, job, args, sharedContext) => {
+    const result = await locking.execute(keys, job, args, sharedContext)
+    assertResolvesTo(result, job)
+    return result
+  },
+  release: async (keys, args, sharedContext) =>
+    await locking.release(keys, args, sharedContext),
+  releaseAll: async (args, sharedContext) => {
+    await locking.releaseAll(args, sharedContext)
+  },
+})
+
 const mockLogger = {
-  debug: vi.fn(),
-  error: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
+  activity: vi.fn<PplLogger["activity"]>(),
+  debug: vi.fn<PplLogger["debug"]>(),
+  error: vi.fn<PplLogger["error"]>(),
+  failure: vi.fn<PplLogger["failure"]>(),
+  http: vi.fn<PplLogger["http"]>(),
+  info: vi.fn<PplLogger["info"]>(),
+  log: vi.fn<PplLogger["log"]>(),
+  panic: vi.fn<PplLogger["panic"]>(),
+  progress: vi.fn<PplLogger["progress"]>(),
+  setLogLevel: vi.fn<PplLogger["setLogLevel"]>(),
+  shouldLog: vi.fn<PplLogger["shouldLog"]>(),
+  silly: vi.fn<PplLogger["silly"]>(),
+  success: vi.fn<PplLogger["success"]>(),
+  unsetLogLevel: vi.fn<PplLogger["unsetLogLevel"]>(),
+  verbose: vi.fn<PplLogger["verbose"]>(),
+  warn: vi.fn<PplLogger["warn"]>(),
 }
 
 const validOptions = {
@@ -130,21 +251,31 @@ const createMockConfig = (
   ...overrides,
 })
 
+const createContainer = (
+  cacheService: typeof mockCacheService | null = mockCacheService,
+  lockingService: typeof mockLockingService | null = mockLockingService,
+): InjectedDependencies => {
+  const container: InjectedDependencies = { logger: mockLogger }
+  if (cacheService) {
+    container[Modules.CACHING] = cacheService
+  }
+  if (lockingService) {
+    container[Modules.LOCKING] = toLockingModule(lockingService)
+  }
+  return container
+}
+
 const createService = (
   options = validOptions,
   cacheService: typeof mockCacheService | null = mockCacheService,
   lockingService: typeof mockLockingService | null = mockLockingService,
 ) => {
   const service = new PplClientModuleService(
-    {
-      logger: mockLogger,
-      [Modules.CACHING]: cacheService,
-      [Modules.LOCKING]: lockingService,
-    } as any,
+    createContainer(cacheService, lockingService),
     options,
   )
-  // Mock getEffectiveConfig by default to bypass DB dependency
-  // Tests that need to test config behavior should override this
+  // Mock getEffectiveConfig by default to bypass DB dependency.
+  // Tests that need to test config behavior should override this.
   vi.spyOn(service, "getEffectiveConfig").mockResolvedValue(mockEffectiveConfig)
   return service
 }
@@ -155,7 +286,9 @@ describe(PplClientModuleService, () => {
     // Clear mockResolvedValueOnce queue (clearAllMocks doesn't do this)
     mockCacheService.get.mockReset()
     mockLockingService.execute.mockReset()
-    mockLockingService.execute.mockImplementation(async (_key, fn) => fn())
+    mockLockingService.execute.mockImplementation(
+      async (_key, fn) => await fn(),
+    )
     vi.useFakeTimers()
   })
 
@@ -165,7 +298,9 @@ describe(PplClientModuleService, () => {
 
   describe("constructor", () => {
     it("handles optional dependency resolution errors gracefully", () => {
-      const container: Record<string, unknown> = { logger: mockLogger }
+      const container: InjectedDependencies = {
+        logger: mockLogger,
+      }
       Object.defineProperty(container, Modules.CACHING, {
         get() {
           throw new Error("cache resolution failed")
@@ -177,7 +312,7 @@ describe(PplClientModuleService, () => {
         },
       })
 
-      const service = new PplClientModuleService(container as any, validOptions)
+      const service = new PplClientModuleService(container, validOptions)
 
       expect(service).toBeInstanceOf(PplClientModuleService)
       expect(mockLogger.warn).toHaveBeenCalledWith(
@@ -188,13 +323,16 @@ describe(PplClientModuleService, () => {
 
   describe("token management", () => {
     it("returns cached token when valid and not expired", async () => {
-      const futureExpiry = Date.now() + 120_000 // 2 minutes from now
+      const futureExpiry = Date.now() + 120_000
+      // 2 minutes from now
       mockCacheService.get
-        .mockResolvedValueOnce(null) // rate limit - acquireRateLimitSlot first
+        .mockResolvedValueOnce(null)
+        // rate limit - acquireRateLimitSlot first
         .mockResolvedValueOnce({
           accessToken: "cached-token",
           expiresAt: futureExpiry,
-        }) // token
+        })
+      // token
 
       const service = createService()
       await service.createShipmentBatch([])
@@ -210,12 +348,15 @@ describe(PplClientModuleService, () => {
     it("fetches new token when cached token expired", async () => {
       const pastExpiry = Date.now() - 1000
       mockCacheService.get
-        .mockResolvedValueOnce(null) // rate limit for shipment
+        .mockResolvedValueOnce(null)
+        // rate limit for shipment
         .mockResolvedValueOnce({
           accessToken: "old-token",
           expiresAt: pastExpiry,
-        }) // expired token
-        .mockResolvedValueOnce(null) // rate limit for token fetch
+        })
+        // expired token
+        .mockResolvedValueOnce(null)
+      // rate limit for token fetch
 
       mockPplClient.fetchNewToken.mockResolvedValue({
         accessToken: "new-token",
@@ -278,11 +419,13 @@ describe(PplClientModuleService, () => {
 
       // Call order: acquireRateLimitSlot() -> getToken()
       mockCacheService.get
-        .mockResolvedValueOnce({ timestamp: recentTimestamp }) // rate limit - triggers wait
+        .mockResolvedValueOnce({ timestamp: recentTimestamp })
+        // rate limit - triggers wait
         .mockResolvedValueOnce({
           accessToken: "token",
           expiresAt: Date.now() + 120_000,
-        }) // token - valid, no refetch needed
+        })
+      // token - valid, no refetch needed
 
       const service = createService()
       const promise = service.createShipmentBatch([])
@@ -300,9 +443,8 @@ describe(PplClientModuleService, () => {
     it("uses local fallback when lock acquisition stalls past the timeout", async () => {
       // A provider that never grants the lock within the service's own
       // acquisition timeout (LOCK_ACQUIRE_TIMEOUT_MS = 5000 in service.ts).
-      mockLockingService.execute.mockImplementationOnce(
-        async () => new Promise<void>(() => {}),
-      )
+      const { promise: neverSettles } = Promise.withResolvers<unknown>()
+      mockLockingService.execute.mockReturnValueOnce(neverSettles)
       mockCacheService.get.mockResolvedValueOnce({
         accessToken: "cached-token",
         expiresAt: Date.now() + 120_000,
@@ -342,7 +484,8 @@ describe(PplClientModuleService, () => {
   describe("caching - codelists", () => {
     it("returns cached countries on cache hit", async () => {
       const cachedCountries = [{ code: "CZ" }, { code: "SK" }]
-      mockCacheService.get.mockResolvedValueOnce(cachedCountries) // cache hit for countries
+      mockCacheService.get.mockResolvedValueOnce(cachedCountries)
+      // cache hit for countries
 
       const service = createService()
       const result = await service.getCachedCountries()
@@ -352,14 +495,17 @@ describe(PplClientModuleService, () => {
     })
 
     it("fetches and caches countries on cache miss", async () => {
-      const freshCountries = [{ code: "CZ" }]
+      const freshCountries = [{ code: "CZ", name: "Czech Republic" }]
       mockCacheService.get
-        .mockResolvedValueOnce(null) // cache miss for countries
-        .mockResolvedValueOnce(null) // rate limit
+        .mockResolvedValueOnce(null)
+        // cache miss for countries
+        .mockResolvedValueOnce(null)
+        // rate limit
         .mockResolvedValueOnce({
           accessToken: "token",
           expiresAt: Date.now() + 120_000,
-        }) // token
+        })
+      // token
 
       mockPplClient.getCodelistCountries.mockResolvedValue(freshCountries)
 
@@ -431,7 +577,7 @@ describe(PplClientModuleService, () => {
 
   describe("config management", () => {
     beforeEach(() => {
-      vi.mocked(encryptFields).mockClear()
+      mockEncryptFields.mockClear()
     })
 
     describe("updateConfig - sensitive field handling", () => {
@@ -457,18 +603,19 @@ describe(PplClientModuleService, () => {
 
         await service.updateConfig({
           client_id: "new-id",
-          client_secret: "", // Empty string = keep existing
+          client_secret: "",
+          // Empty string = keep existing
         })
 
         // encryptFields should NOT receive client_secret (it was filtered out)
-        const encryptCall = vi.mocked(encryptFields).mock.calls[0]
+        const [encryptCall] = mockEncryptFields.mock.calls
         expect(encryptCall).toBeDefined()
         if (encryptCall === undefined) {
           throw new Error("Expected encryptFields call")
         }
         const [encryptCallArgs] = encryptCall
         expect(encryptCallArgs).not.toHaveProperty("client_secret")
-        expect(encryptFields).toHaveBeenCalledWith(
+        expect(mockEncryptFields).toHaveBeenCalledWith(
           expect.any(Object),
           expect.any(Array),
         )
@@ -488,11 +635,12 @@ describe(PplClientModuleService, () => {
         ).mockResolvedValue(createMockConfig({ client_secret: null }))
 
         await service.updateConfig({
-          client_secret: null, // null = clear the value
+          client_secret: null,
+          // null = clear the value
         })
 
         // encryptFields should receive null (to clear the value)
-        expect(encryptFields).toHaveBeenCalledWith(
+        expect(mockEncryptFields).toHaveBeenCalledWith(
           expect.objectContaining({ client_secret: null }),
           expect.any(Array),
         )
@@ -502,14 +650,7 @@ describe(PplClientModuleService, () => {
     describe("getEffectiveConfig", () => {
       // Helper to create service without the default mock
       const createServiceForConfigTests = () =>
-        new PplClientModuleService(
-          {
-            logger: mockLogger,
-            [Modules.CACHING]: mockCacheService,
-            [Modules.LOCKING]: mockLockingService,
-          } as any,
-          validOptions,
-        )
+        new PplClientModuleService(createContainer(), validOptions)
 
       it("returns cached config on cache hit", async () => {
         const cachedConfig = {
@@ -526,7 +667,8 @@ describe(PplClientModuleService, () => {
       })
 
       it("returns null when PPL is disabled", async () => {
-        mockCacheService.get.mockResolvedValueOnce(null) // cache miss
+        mockCacheService.get.mockResolvedValueOnce(null)
+        // cache miss
 
         const service = createServiceForConfigTests()
         vi.spyOn(service, "getConfig").mockResolvedValue(
