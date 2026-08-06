@@ -26,7 +26,7 @@ export interface InvoiceOrderLookupKeys {
   erpIds: Set<string>
 }
 
-export const InvoicesBatchClientMapperHelper = {
+export const invoicesBatchClientMapperHelper = {
   buildInvoiceUrl(invoice: InvoiceInput, uploaded?: UploadedInvoice | null) {
     return invoice.url ?? uploaded?.url
   },
@@ -173,5 +173,3 @@ export const InvoicesBatchClientMapperHelper = {
     return typeof value === "string" && value.length > 0 ? value : null
   },
 }
-
-export const invoicesBatchClientMapperHelper = InvoicesBatchClientMapperHelper

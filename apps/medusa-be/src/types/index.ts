@@ -3,27 +3,16 @@ export type {
   AdminApprovalSettings,
   AdminApprovalSettingsResponse,
   AdminApprovalsResponse,
-  AdminCartWithApprovals,
   AdminUpdateApproval,
   AdminUpdateApprovalSettings,
 } from "./approval/http"
-export { ApprovalStatusType, ApprovalType } from "./approval/module"
 export type {
-  ModuleApproval,
   ModuleApprovalSettings,
-  ModuleApprovalStatus,
   ModuleCreateApproval,
   ModuleCreateApprovalSettings,
-  ModuleCreateApprovalStatus,
   ModuleUpdateApproval,
   ModuleUpdateApprovalSettings,
-  ModuleUpdateApprovalStatus,
 } from "./approval/module"
-export type {
-  QueryApproval,
-  QueryApprovalSettings,
-  QueryApprovalStatus,
-} from "./approval/query"
 export type {
   IApprovalModuleService,
   ModuleApprovalSettingsFilters,
@@ -39,13 +28,11 @@ export type {
   AdminUpdateCompany,
   AdminUpdateEmployee,
 } from "./company/http"
-export { ModuleCompanySpendingLimitResetFrequency } from "./company/module"
 export type {
   ModuleCompany,
   ModuleCreateCompany,
   ModuleCreateEmployee,
   ModuleDeleteCompany,
-  ModuleEmployee,
   ModuleUpdateCompany,
   ModuleUpdateEmployee,
 } from "./company/module"
@@ -70,4 +57,4 @@ export type {
   ModuleUpdateQuote,
 } from "./quote/module"
 export type { QueryQuote } from "./quote/query"
-export type { IQuoteModuleService, ModuleQuoteFilters } from "./quote/service"
+export type { IQuoteModuleService } from "./quote/service"

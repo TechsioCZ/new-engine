@@ -16,7 +16,7 @@ export interface TrackingOrderLookupKeys {
   erpIds: Set<string>
 }
 
-export const TrackingBatchClientMapperHelper = {
+export const trackingBatchClientMapperHelper = {
   buildItemsBySku(items: OrderLineItem[]) {
     const itemsBySku = new Map<string, OrderLineItem[]>()
     for (const item of items) {
@@ -170,5 +170,3 @@ export const TrackingBatchClientMapperHelper = {
     return typeof value === "string" && value.length > 0 ? value : null
   },
 }
-
-export const trackingBatchClientMapperHelper = TrackingBatchClientMapperHelper

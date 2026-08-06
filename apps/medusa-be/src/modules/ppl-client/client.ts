@@ -330,7 +330,6 @@ const parseArrayOrItems = <T>(schema: z.ZodType<T>) => {
   }
 }
 
-const oauthClientModulePath = "@badgateway/oauth2-client"
 const isOAuthClientConstructor = (
   value: unknown,
 ): value is OAuthClientConstructor => typeof value === "function"
@@ -341,7 +340,7 @@ const getOAuthClientExport = (value: unknown): unknown =>
 
 const loadOAuthClientConstructor =
   async (): Promise<OAuthClientConstructor> => {
-    const moduleValue: unknown = await import(oauthClientModulePath)
+    const moduleValue: unknown = await import("@badgateway/oauth2-client")
     const oauthClientValue = getOAuthClientExport(moduleValue)
     if (!isOAuthClientConstructor(oauthClientValue)) {
       throw new MedusaError(

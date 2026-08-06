@@ -19,7 +19,7 @@ export interface CustomerLookupKeys {
   metadataIdentifiers: Record<CustomerMetadataIdentifier, Set<string>>
 }
 
-export const CustomerBatchClientMapperHelper = {
+export const customerBatchClientMapperHelper = {
   addCreatedCustomerToIndex(
     index: ExistingCustomerIndex,
     customer: CustomerInput,
@@ -266,5 +266,3 @@ export const CustomerBatchClientMapperHelper = {
     return typeof value === "string" && value.length > 0 ? value : null
   },
 }
-
-export const customerBatchClientMapperHelper = CustomerBatchClientMapperHelper

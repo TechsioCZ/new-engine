@@ -1,6 +1,6 @@
 import type { HttpTypes } from "@medusajs/framework/types"
 
-import type { QueryCompany } from "../company"
+import type { QueryCompany } from "../company/query"
 import type { ApprovalStatusType } from "./module"
 import type {
   QueryApproval,

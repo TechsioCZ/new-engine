@@ -2,7 +2,7 @@
 
 import type { CustomerDTO, CustomerGroupDTO } from "@medusajs/framework/types"
 
-import type { ModuleApprovalSettings } from "../approval"
+import type { ModuleApprovalSettings } from "../approval/module"
 
 export const ModuleCompanySpendingLimitResetFrequency = {
   DAILY: "daily",

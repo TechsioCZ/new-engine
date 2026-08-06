@@ -5,7 +5,7 @@ import type {
   StoreCart,
 } from "@medusajs/framework/types"
 
-import type { QueryEmployee } from "../company/index"
+import type { QueryEmployee } from "../company/query"
 import type { ModuleQuote, ModuleQuoteMessage } from "./module"
 
 export type QueryQuote = ModuleQuote & {

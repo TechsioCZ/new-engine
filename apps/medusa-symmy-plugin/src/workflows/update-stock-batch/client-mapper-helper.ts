@@ -143,7 +143,7 @@ const decodeVariantInventoryItem = (
   return { id: inventory.id, key }
 }
 
-export const StockBatchClientMapperHelper = {
+export const stockBatchClientMapperHelper = {
   buildBatchPayload(
     resolved: ResolvedUpdate[],
     existingLevels: Map<string, ExistingLevel>,
@@ -379,5 +379,3 @@ export const StockBatchClientMapperHelper = {
     return resolved
   },
 }
-
-export const stockBatchClientMapperHelper = StockBatchClientMapperHelper

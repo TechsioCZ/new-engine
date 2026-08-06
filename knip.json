@@ -85,7 +85,7 @@
         "instrumentation.ts!",
         "medusa-config.ts!",
         "src/config/project.ts!",
-        "playwright.*.config.ts"
+        "playwright-admin.config.ts!"
       ],
       "project": [
         "src/**/*.{ts,tsx}",
@@ -106,7 +106,7 @@
         "^tslib$"
       ],
       "includeEntryExports": false,
-      "ignoreBinaries": ["^mount$", "^umount$"]
+      "ignoreUnresolved": ["^/usr/bin/mount$", "^/usr/bin/umount$"]
     },
     "apps/medusa-order-dashboard-plugin": {
       "entry": ["src/admin/**/*.{ts,tsx}!"],

@@ -13,7 +13,7 @@ export interface CustomerGroupLookupKeys {
   erpCodes: Set<string>
 }
 
-export const CustomerGroupsBatchClientMapperHelper = {
+export const customerGroupsBatchClientMapperHelper = {
   addCreatedCustomerGroupToIndex(
     index: ExistingCustomerGroupIndex,
     input: CustomerGroupInput,
@@ -174,6 +174,3 @@ export const CustomerGroupsBatchClientMapperHelper = {
     return null
   },
 }
-
-export const customerGroupsBatchClientMapperHelper =
-  CustomerGroupsBatchClientMapperHelper
