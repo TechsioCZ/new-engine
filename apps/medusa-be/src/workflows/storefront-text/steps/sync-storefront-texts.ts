@@ -88,6 +88,20 @@ const validateSeedRow = (
   return normalizedOverrideValue
 }
 
+const needsStorefrontTextUpdate = (
+  existing: StorefrontTextRecord,
+  seedRow: StorefrontTextSeedRow,
+  normalizedOverrideValue: null | string,
+): boolean =>
+  [
+    existing.country !== seedRow.country,
+    existing.default_value !== seedRow.default_value,
+    existing.description !== seedRow.description,
+    existing.domain !== seedRow.domain,
+    existing.namespace !== seedRow.namespace,
+    existing.override_value !== normalizedOverrideValue,
+  ].some(Boolean)
+
 export const synchronizeStorefrontTexts = async (
   service: SynchronizeStorefrontTextsService,
   input: SyncStorefrontTextsWorkflowInput,
@@ -115,41 +129,30 @@ export const synchronizeStorefrontTexts = async (
     const existing = existingByIdentity.get(getRecordIdentity(seedRow))
     const normalizedOverrideValue = validateSeedRow(seedRow, existing)
 
-    if (!existing) {
+    if (existing === undefined) {
       createInputs.push(seedRow)
-      continue
+    } else if (
+      needsStorefrontTextUpdate(existing, seedRow, normalizedOverrideValue)
+    ) {
+      previousRecords.push({
+        country: existing.country,
+        default_value: existing.default_value,
+        description: existing.description,
+        domain: existing.domain,
+        id: existing.id,
+        namespace: existing.namespace,
+        override_value: existing.override_value,
+      })
+      updateInputs.push({
+        country: seedRow.country,
+        default_value: seedRow.default_value,
+        description: seedRow.description,
+        domain: seedRow.domain,
+        id: existing.id,
+        namespace: seedRow.namespace,
+        override_value: normalizedOverrideValue,
+      })
     }
-
-    const needsUpdate =
-      existing.country !== seedRow.country ||
-      existing.default_value !== seedRow.default_value ||
-      existing.description !== seedRow.description ||
-      existing.domain !== seedRow.domain ||
-      existing.namespace !== seedRow.namespace ||
-      existing.override_value !== normalizedOverrideValue
-
-    if (!needsUpdate) {
-      continue
-    }
-
-    previousRecords.push({
-      country: existing.country,
-      default_value: existing.default_value,
-      description: existing.description,
-      domain: existing.domain,
-      id: existing.id,
-      namespace: existing.namespace,
-      override_value: existing.override_value,
-    })
-    updateInputs.push({
-      country: seedRow.country,
-      default_value: seedRow.default_value,
-      description: seedRow.description,
-      domain: seedRow.domain,
-      id: existing.id,
-      namespace: seedRow.namespace,
-      override_value: normalizedOverrideValue,
-    })
   }
 
   const createdRecords = createInputs.length
@@ -193,7 +196,7 @@ export const syncStorefrontTextsStep = createStep(
     )
     const { compensation, result } = await service.runInTransaction(
       async (sharedContext) =>
-        synchronizeStorefrontTexts(service, input, sharedContext),
+        await synchronizeStorefrontTexts(service, input, sharedContext),
     )
 
     return new StepResponse(result, compensation)
@@ -207,8 +210,12 @@ export const syncStorefrontTextsStep = createStep(
       STOREFRONT_TEXT_MODULE,
     )
 
-    await service.runInTransaction(async (sharedContext) =>
-      restoreSynchronizedStorefrontTexts(service, compensation, sharedContext),
-    )
+    await service.runInTransaction(async (sharedContext) => {
+      await restoreSynchronizedStorefrontTexts(
+        service,
+        compensation,
+        sharedContext,
+      )
+    })
   },
 )

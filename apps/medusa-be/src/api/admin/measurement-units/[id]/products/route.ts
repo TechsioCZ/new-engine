@@ -6,10 +6,10 @@ import {
 } from "../../utils"
 import type { AdminGetMeasurementUnitProductsSchemaType } from "../../validators"
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, AdminGetMeasurementUnitProductsSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const unitId = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, unitId, { withDeleted: true })
@@ -31,3 +31,5 @@ export async function GET(
     products,
   })
 }
+
+export { get as GET }

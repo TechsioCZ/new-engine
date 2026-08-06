@@ -10,7 +10,7 @@ import {
 } from "../../../measurement-units/utils"
 import type { AdminSetProductMeasurementSchemaType } from "../../../measurement-units/validators"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const productId = req.params["id"] ?? ""
 
   await retrieveProductOrThrow(req.scope, productId)
@@ -25,10 +25,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     .json(toProductMeasurementDetailResponse({ measurement, variants }))
 }
 
-export async function POST(
+const post = async (
   req: MedusaRequest<AdminSetProductMeasurementSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const productId = req.params["id"] ?? ""
 
   await setProductMeasurementWorkflow(req.scope).run({
@@ -48,7 +48,7 @@ export async function POST(
     .json(toProductMeasurementDetailResponse({ measurement, variants }))
 }
 
-export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
+const remove = async (req: MedusaRequest, res: MedusaResponse) => {
   const productId = req.params["id"] ?? ""
 
   await retrieveProductOrThrow(req.scope, productId)
@@ -64,3 +64,5 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
     object: "product_measurement",
   })
 }
+
+export { remove as DELETE, get as GET, post as POST }

@@ -1,24 +1,34 @@
+import { asValue } from "@medusajs/framework/awilix"
+import { createMedusaContainer } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 
+import { MEASUREMENT_UNIT_MODULE } from "../../../../src/modules/measurement-unit"
 import { listProductMeasurementsByProductIds } from "../../../../src/utils/measurement-units"
 
 describe("measurement unit utilities", () => {
   it("loads product measurements in bounded ID chunks", async () => {
-    const listProductMeasurements = vi.fn(
-      async (filters: { product_id: { $in: string[] } }) =>
-        filters.product_id.$in.map((productId) => ({
-          id: `pm_${productId}`,
-          product_id: productId,
-        })),
+    const listProductMeasurements = vi.fn<
+      (filters: {
+        product_id: { $in: string[] }
+      }) => Promise<{ id: string; product_id: string }[]>
+    >(
+      async (filters) =>
+        await Promise.resolve(
+          filters.product_id.$in.map((productId) => ({
+            id: `pm_${productId}`,
+            product_id: productId,
+          })),
+        ),
     )
-    const scope = {
-      resolve: vi.fn(() => ({ listProductMeasurements })),
-    }
+    const scope = createMedusaContainer()
+    scope.register({
+      [MEASUREMENT_UNIT_MODULE]: asValue({ listProductMeasurements }),
+    })
     const productIds = Array.from(
       { length: 501 },
       (_, index) => `prod_${index}`,
     )
-    const result = await listProductMeasurementsByProductIds(scope as never, [
+    const result = await listProductMeasurementsByProductIds(scope, [
       ...productIds,
       "",
       "prod_0",
@@ -49,10 +59,11 @@ describe("measurement unit utilities", () => {
   })
 
   it("does not query for an empty product ID set", async () => {
-    const resolve = vi.fn()
+    const scope = createMedusaContainer()
+    const resolve = vi.spyOn(scope, "resolve")
 
     await expect(
-      listProductMeasurementsByProductIds({ resolve } as never, ["", ""]),
+      listProductMeasurementsByProductIds(scope, ["", ""]),
     ).resolves.toStrictEqual([])
     expect(resolve).not.toHaveBeenCalled()
   })

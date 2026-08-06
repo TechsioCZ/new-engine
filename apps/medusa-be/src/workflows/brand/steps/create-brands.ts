@@ -19,9 +19,13 @@ export const createBrandsStep = createStep(
     const service = getBrandService(container)
     const normalizedBrands = input.brands.map((brand) => {
       const title = brand.title.trim()
-      const handle = brand.handle?.trim() || kebabCase(title)
+      const explicitHandle = brand.handle?.trim()
+      const handle =
+        explicitHandle === undefined || explicitHandle === ""
+          ? kebabCase(title)
+          : explicitHandle
 
-      if (!(title && handle)) {
+      if (title === "" || handle === "") {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           "Brand title and handle must not be empty",
@@ -61,8 +65,8 @@ export const createBrandsStep = createStep(
       },
     )
 
-    if (existingBrands.length) {
-      const existing = existingBrands[0]
+    if (existingBrands.length > 0) {
+      const [existing] = existingBrands
       if (!existing) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
@@ -76,7 +80,7 @@ export const createBrandsStep = createStep(
     }
 
     const brands = await withBrandTransaction(service, async (context) => {
-      const createdBrands = (await service.createBrands(
+      const createdBrands = await service.createBrands(
         normalizedBrands.map((brand) =>
           buildBrandWriteInput({
             gpsr_contact_email: brand.gpsr_contact_email,
@@ -95,7 +99,7 @@ export const createBrandsStep = createStep(
           }),
         ),
         context,
-      )) as { id: string; handle: string }[]
+      )
 
       const createdBrandsByHandle = new Map(
         createdBrands.map((brand) => [brand.handle, brand]),
@@ -105,7 +109,7 @@ export const createBrandsStep = createStep(
         normalizedBrands.map(async (brand) => {
           const createdBrand = createdBrandsByHandle.get(brand.handle)
 
-          if (!createdBrand) {
+          if (createdBrand === undefined) {
             throw new MedusaError(
               MedusaError.Types.UNEXPECTED_STATE,
               `Created brand "${brand.handle}" was not found`,
@@ -128,7 +132,7 @@ export const createBrandsStep = createStep(
     return new StepResponse(brands, createdIds)
   },
   async (createdIds, { container }) => {
-    if (!createdIds?.length) {
+    if (createdIds === undefined || createdIds.length === 0) {
       return
     }
 

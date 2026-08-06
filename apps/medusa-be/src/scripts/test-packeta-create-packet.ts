@@ -27,7 +27,7 @@ import type { PacketaClientModuleService } from "../modules/packeta-client"
  */
 export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   const addressIdRaw = process.env["PACKETA_ADDRESS_ID"]
-  if (!addressIdRaw) {
+  if (addressIdRaw === undefined || addressIdRaw === "") {
     throw new Error("Set PACKETA_ADDRESS_ID env var")
   }
   const addressId = Math.trunc(Number(addressIdRaw))
@@ -50,7 +50,7 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   if (!config.is_enabled) {
     throw new Error("Packeta is disabled in DB config (is_enabled=false).")
   }
-  if (!config.api_password) {
+  if (config.api_password === null || config.api_password === "") {
     throw new Error("Packeta config has no api_password set.")
   }
 

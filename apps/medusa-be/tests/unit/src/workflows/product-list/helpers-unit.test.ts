@@ -1,6 +1,7 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import { asValue } from "@medusajs/framework/awilix"
 import {
   ContainerRegistrationKeys,
+  createMedusaContainer,
   MedusaError,
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
@@ -39,41 +40,33 @@ vi.mock(import("../../../../../src/links/product-list-item-variant"), () => ({
   },
 }))
 
-const asMedusaContainer = (value: {
-  resolve: (key: string) => unknown
-}): MedusaContainer => {
-  if (typeof value.resolve !== "function") {
-    throw new TypeError("mock container requires a resolve function")
-  }
-
-  return value as MedusaContainer
-}
+type Graph = (input: unknown) => Promise<{ data: unknown[] }>
+type ListProductListItems = (
+  filters: { id?: { $in: string[] }; list_id?: string },
+  options?: { skip?: number; take?: number },
+) => Promise<unknown[]>
 
 const makeContainer = ({
   query,
   service,
 }: {
-  query: { graph: ReturnType<typeof vi.fn> }
-  service?: { listProductListItems: ReturnType<typeof vi.fn> }
-}) =>
-  asMedusaContainer({
-    resolve: vi.fn((key) => {
-      if (key === ContainerRegistrationKeys.QUERY) {
-        return query
-      }
-
-      if (key === PRODUCT_LIST_MODULE && service) {
-        return service
-      }
-
-      throw new Error(`Unexpected dependency: ${String(key)}`)
-    }),
+  query: { graph: Graph }
+  service?: { listProductListItems: ListProductListItems }
+}) => {
+  const container = createMedusaContainer()
+  container.register({
+    [ContainerRegistrationKeys.QUERY]: asValue(query),
+    ...(service === undefined
+      ? {}
+      : { [PRODUCT_LIST_MODULE]: asValue(service) }),
   })
+  return container
+}
 
 describe(assertProductSelectionExists, () => {
   it("accepts published products without requiring a variant", async () => {
     const query = {
-      graph: vi.fn().mockResolvedValue({
+      graph: vi.fn<Graph>().mockResolvedValue({
         data: [{ id: "prod_1", status: "published" }],
       }),
     }
@@ -85,7 +78,7 @@ describe(assertProductSelectionExists, () => {
 
   it("rejects missing or unpublished products", async () => {
     const query = {
-      graph: vi.fn().mockResolvedValue({ data: [] }),
+      graph: vi.fn<Graph>().mockResolvedValue({ data: [] }),
     }
 
     await expect(
@@ -99,7 +92,7 @@ describe(assertProductSelectionExists, () => {
   it("accepts variants that belong to the product", async () => {
     const query = {
       graph: vi
-        .fn()
+        .fn<Graph>()
         .mockResolvedValueOnce({
           data: [{ id: "prod_1", status: "published" }],
         })
@@ -116,7 +109,7 @@ describe(assertProductSelectionExists, () => {
   it("rejects variants that are missing or belong to another product", async () => {
     const query = {
       graph: vi
-        .fn()
+        .fn<Graph>()
         .mockResolvedValueOnce({
           data: [{ id: "prod_1", status: "published" }],
         })
@@ -138,7 +131,7 @@ describe(findProductListItemForSelection, () => {
   it("returns the product item that has no variant link for variantless selections", async () => {
     const query = {
       graph: vi
-        .fn()
+        .fn<Graph>()
         .mockResolvedValueOnce({
           data: [
             { product_list_item_id: "item_plain" },
@@ -151,7 +144,7 @@ describe(findProductListItemForSelection, () => {
     }
     const service = {
       listProductListItems: vi
-        .fn()
+        .fn<Graph>()
         .mockResolvedValueOnce([{ id: "item_plain" }, { id: "item_variant" }])
         .mockResolvedValueOnce([{ id: "item_plain", quantity: 1 }]),
     }
@@ -168,7 +161,7 @@ describe(findProductListItemForSelection, () => {
   it("returns the product item with the matching variant link for variant selections", async () => {
     const query = {
       graph: vi
-        .fn()
+        .fn<Graph>()
         .mockResolvedValueOnce({
           data: [
             { product_list_item_id: "item_plain" },
@@ -181,7 +174,7 @@ describe(findProductListItemForSelection, () => {
     }
     const service = {
       listProductListItems: vi
-        .fn()
+        .fn<Graph>()
         .mockResolvedValueOnce([{ id: "item_plain" }, { id: "item_variant" }])
         .mockResolvedValueOnce([{ id: "item_variant", quantity: 2 }]),
     }
@@ -202,7 +195,7 @@ describe(findProductListItemForSelection, () => {
     }))
     const query = {
       graph: vi
-        .fn()
+        .fn<Graph>()
         .mockResolvedValueOnce({ data: [] })
         .mockResolvedValueOnce({
           data: [{ product_list_item_id: "item_target" }],
@@ -210,20 +203,17 @@ describe(findProductListItemForSelection, () => {
         .mockResolvedValueOnce({ data: [] }),
     }
     const service = {
-      listProductListItems: vi.fn(
-        async (
-          filters: { id?: { $in: string[] }; list_id: string },
-          options?: { skip?: number; take?: number },
-        ) => {
-          if (filters.id) {
-            return [{ id: "item_target", quantity: 1 }]
+      listProductListItems: vi.fn<ListProductListItems>(
+        async (filters, options) => {
+          if (filters.id !== undefined) {
+            return await Promise.resolve([{ id: "item_target", quantity: 1 }])
           }
 
           if (options?.skip === 1000) {
-            return [{ id: "item_target" }]
+            return await Promise.resolve([{ id: "item_target" }])
           }
 
-          return firstPageItems
+          return await Promise.resolve(firstPageItems)
         },
       ),
     }

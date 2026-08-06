@@ -1,5 +1,6 @@
 import type { Context } from "@medusajs/framework/types"
 import { MedusaError, MedusaService } from "@medusajs/framework/utils"
+
 import { encryptFields } from "../../utils/encryption"
 import {
   assertApiStoreHasSecret,
@@ -21,7 +22,7 @@ import type {
   ApiStoreUpdateInput,
 } from "./types"
 
-type ApiStoreWriteData = {
+interface ApiStoreWriteData {
   id?: string
   name?: string
   api_url?: string | null
@@ -38,16 +39,16 @@ class ApiStoreModuleService extends MedusaService({
   async listApiStoreConfigs(
     filters: { name?: string } = {},
     config: { take?: number; skip?: number } = {},
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<[ApiStoreAdminDTO[], number]> {
     const [records, count] = await this.listAndCountApiStores(
       { ...filters, is_internal: false },
       {
-        take: config.take ?? 20,
-        skip: config.skip ?? 0,
         order: { created_at: "DESC" },
+        skip: config.skip ?? 0,
+        take: config.take ?? 20,
       },
-      sharedContext
+      sharedContext,
     )
 
     return [records.map((record) => toApiStoreAdminDTO(record)), count]
@@ -55,7 +56,7 @@ class ApiStoreModuleService extends MedusaService({
 
   async retrieveApiStoreConfig(
     id: string,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ApiStoreAdminDTO> {
     const record = await this.retrieveApiStore(id, {}, sharedContext)
     return toApiStoreAdminDTO(record)
@@ -63,14 +64,14 @@ class ApiStoreModuleService extends MedusaService({
 
   async retrieveApiStoreSecretsByName(
     name: string,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ApiStoreSecretDTO | null> {
     const records = await this.listApiStores(
       { name: normalizeName(name) },
       { take: 1 },
-      sharedContext
+      sharedContext,
     )
-    const record = records[0]
+    const [record] = records
 
     if (!record) {
       return null
@@ -81,7 +82,7 @@ class ApiStoreModuleService extends MedusaService({
 
   async createApiStoreConfig(
     input: ApiStoreCreateInput,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ApiStoreAdminDTO> {
     const name = normalizeName(input.name)
     if (!name) {
@@ -91,14 +92,14 @@ class ApiStoreModuleService extends MedusaService({
     await this.assertNameAvailable(name, undefined, sharedContext)
 
     const data: ApiStoreWriteData = {
-      name,
-      api_url: normalizeApiUrl(input.api_url) ?? null,
+      access_token_expires_at:
+        normalizeAccessTokenExpiresAt(input.access_token_expires_at) ?? null,
       api_key: input.api_key ?? null,
+      api_url: normalizeApiUrl(input.api_url) ?? null,
       credentials: serializeCredentials(input.credentials) ?? null,
       enabled: input.enabled ?? true,
       is_internal: input.is_internal ?? false,
-      access_token_expires_at:
-        normalizeAccessTokenExpiresAt(input.access_token_expires_at) ?? null,
+      name,
     }
 
     assertApiStoreHasSecret(data, data.is_internal)
@@ -112,7 +113,7 @@ class ApiStoreModuleService extends MedusaService({
   async updateApiStoreConfig(
     id: string,
     input: ApiStoreUpdateInput,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ApiStoreAdminDTO> {
     const existing = await this.retrieveApiStore(id, {}, sharedContext)
     const data: ApiStoreWriteData = { id }
@@ -122,7 +123,7 @@ class ApiStoreModuleService extends MedusaService({
       if (!name) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          "Name is required"
+          "Name is required",
         )
       }
       await this.assertNameAvailable(name, id, sharedContext)
@@ -148,7 +149,7 @@ class ApiStoreModuleService extends MedusaService({
 
     if (input.access_token_expires_at !== undefined) {
       data.access_token_expires_at = normalizeAccessTokenExpiresAt(
-        input.access_token_expires_at
+        input.access_token_expires_at,
       )
     }
 
@@ -165,7 +166,7 @@ class ApiStoreModuleService extends MedusaService({
             ? existing.credentials
             : data.credentials,
       },
-      data.is_internal === undefined ? existing.is_internal : data.is_internal
+      data.is_internal ?? existing.is_internal,
     )
 
     const encrypted = encryptFields(data, [...SENSITIVE_FIELDS])
@@ -176,7 +177,7 @@ class ApiStoreModuleService extends MedusaService({
 
   async deleteApiStoreConfig(
     id: string,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<{ id: string }> {
     await this.retrieveApiStore(id, {}, sharedContext)
     await this.deleteApiStores(id, sharedContext)
@@ -186,37 +187,37 @@ class ApiStoreModuleService extends MedusaService({
 
   async upsertApiStoreConfigByName(
     input: ApiStoreCreateInput,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<ApiStoreAdminDTO> {
     const name = normalizeName(input.name)
     const existing = await this.retrieveApiStoreSecretsByName(
       name,
-      sharedContext
+      sharedContext,
     )
 
     if (!existing) {
-      return this.createApiStoreConfig({ ...input, name }, sharedContext)
+      return await this.createApiStoreConfig({ ...input, name }, sharedContext)
     }
 
-    return this.updateApiStoreConfig(existing.id, input, sharedContext)
+    return await this.updateApiStoreConfig(existing.id, input, sharedContext)
   }
 
   private async assertNameAvailable(
     name: string,
     currentId?: string,
-    sharedContext?: Context
+    sharedContext?: Context,
   ): Promise<void> {
     const existing = await this.listApiStores(
       { name },
       { take: 1 },
-      sharedContext
+      sharedContext,
     )
     const conflict = existing.find((record) => record.id !== currentId)
 
     if (conflict) {
       throw new MedusaError(
         MedusaError.Types.DUPLICATE_ERROR,
-        `API store config with name "${name}" already exists`
+        `API store config with name "${name}" already exists`,
       )
     }
   }

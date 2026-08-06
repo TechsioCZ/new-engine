@@ -2,29 +2,48 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { definedProperties } from "../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../utils/path-params"
-import {
-  deleteCompaniesWorkflow,
-  updateCompaniesWorkflow,
-} from "../../../../workflows/company/workflows/"
+import { deleteCompaniesWorkflow } from "../../../../workflows/company/workflows/delete-companies"
+import { updateCompaniesWorkflow } from "../../../../workflows/company/workflows/update-companies"
 import type {
   AdminGetCompanyParamsType,
   AdminUpdateCompanyType,
 } from "../validators"
 
-export const GET = async (
+const COMPANY_ID_LABEL = "Company id"
+
+const getCompanyFromGraphResult = (result: unknown, id: string) => {
+  if (!isRecord(result) || !Array.isArray(result["data"])) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Company query returned an invalid response",
+    )
+  }
+  const company: unknown = result["data"][0]
+  if (!isRecord(company)) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Company with id "${id}" was not found`,
+    )
+  }
+  return company
+}
+
+const get = async (
   req: AuthenticatedMedusaRequest<AdminGetCompanyParamsType>,
   res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const id = requirePathParam(req.params["id"], "Company id")
+  const id = requirePathParam(req.params["id"], COMPANY_ID_LABEL)
 
-  const {
-    data: [company],
-  } = await query.graph(
+  const graphResult: unknown = await query.graph(
     {
       entity: "companies",
       fields: req.queryConfig.fields,
@@ -35,16 +54,17 @@ export const GET = async (
     },
     { throwIfKeyNotFound: true },
   )
+  const company = getCompanyFromGraphResult(graphResult, id)
 
   res.json({ company })
 }
 
-export const POST = async (
+const post = async (
   req: AuthenticatedMedusaRequest<AdminUpdateCompanyType>,
   res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const id = requirePathParam(req.params["id"], "Company id")
+  const id = requirePathParam(req.params["id"], COMPANY_ID_LABEL)
   const workflowInput = {
     id,
     update: definedProperties(req.validatedBody),
@@ -54,9 +74,7 @@ export const POST = async (
     input: workflowInput,
   })
 
-  const {
-    data: [company],
-  } = await query.graph(
+  const graphResult: unknown = await query.graph(
     {
       entity: "companies",
       fields: req.queryConfig.fields,
@@ -64,15 +82,13 @@ export const POST = async (
     },
     { throwIfKeyNotFound: true },
   )
+  const company = getCompanyFromGraphResult(graphResult, id)
 
   res.json({ company })
 }
 
-export const DELETE = async (
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse,
-) => {
-  const id = requirePathParam(req.params["id"], "Company id")
+const remove = async (req: AuthenticatedMedusaRequest, res: MedusaResponse) => {
+  const id = requirePathParam(req.params["id"], COMPANY_ID_LABEL)
 
   await deleteCompaniesWorkflow(req.scope).run({
     input: {
@@ -86,3 +102,5 @@ export const DELETE = async (
     object: "company",
   })
 }
+
+export { remove as DELETE, get as GET, post as POST }

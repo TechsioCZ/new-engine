@@ -3,6 +3,7 @@ import type {
   MedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+
 import {
   getAllowedTurnstileHostnames,
   isTurnstileHostnameAllowed,
@@ -17,12 +18,12 @@ import {
   normalizeTurnstileToken,
 } from "./normalizers"
 
-type CloudflareTurnstileOptions = {
+interface CloudflareTurnstileOptions {
   secretApiStoreName?: string
   tokenFields?: readonly string[]
 }
 
-type CaptchaErrorOptions = {
+interface CaptchaErrorOptions {
   message: string
   status: number
 }
@@ -37,16 +38,16 @@ class CaptchaError extends Error {
   }
 }
 
-export function verifyCloudflareTurnstile(
-  options: CloudflareTurnstileOptions = {}
-) {
-  const secretApiStoreName = options.secretApiStoreName
+export const verifyCloudflareTurnstile = (
+  options: CloudflareTurnstileOptions = {},
+) => {
+  const { secretApiStoreName } = options
   const tokenFields = options.tokenFields ?? DEFAULT_TURNSTILE_TOKEN_FIELDS
 
   return async function cloudflareTurnstileMiddleware(
     req: MedusaRequest,
     res: MedusaResponse,
-    next: MedusaNextFunction
+    next: MedusaNextFunction,
   ) {
     try {
       const token = normalizeTurnstileToken(req.body, tokenFields)
@@ -55,10 +56,11 @@ export function verifyCloudflareTurnstile(
       if (
         !normalizeTurnstileEnabled(process.env.CLOUDFLARE_TURNSTILE_ENABLED)
       ) {
-        return next()
+        next()
+        return
       }
 
-      if (!token) {
+      if (token === undefined) {
         throw new CaptchaError({
           message: "Captcha token is required",
           status: 400,
@@ -66,10 +68,10 @@ export function verifyCloudflareTurnstile(
       }
 
       const secretKey = normalizeTurnstileSecret(
-        await retrieveTurnstileSecretKey(req, secretApiStoreName)
+        await retrieveTurnstileSecretKey(req, secretApiStoreName),
       )
 
-      if (!secretKey) {
+      if (secretKey === undefined) {
         throw new CaptchaError({
           message: "Captcha verification is not configured",
           status: 500,
@@ -79,17 +81,18 @@ export function verifyCloudflareTurnstile(
       const verification = await verifyTurnstileToken(token, req, secretKey)
       const hostnameAllowed = isTurnstileHostnameAllowed(
         verification,
-        getAllowedTurnstileHostnames()
+        getAllowedTurnstileHostnames(),
       )
 
-      if (!(verification.success && hostnameAllowed)) {
-        throw new CaptchaError({
-          message: "Captcha verification failed",
-          status: 400,
-        })
+      if (verification.success && hostnameAllowed) {
+        next()
+        return
       }
 
-      return next()
+      throw new CaptchaError({
+        message: "Captcha verification failed",
+        status: 400,
+      })
     } catch (error) {
       const captchaError =
         error instanceof CaptchaError
@@ -99,7 +102,7 @@ export function verifyCloudflareTurnstile(
               status: 400,
             })
 
-      return res.status(captchaError.status).json({
+      res.status(captchaError.status).json({
         code: "captcha_verification_failed",
         message: captchaError.message,
         type: "invalid_data",

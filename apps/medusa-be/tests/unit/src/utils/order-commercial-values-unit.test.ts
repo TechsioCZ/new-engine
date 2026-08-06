@@ -12,7 +12,7 @@ import type {
   CommercialValuesItemInput,
 } from "../../../../src/utils/order-commercial-values"
 
-function getRequired<T>(values: readonly T[], index: number): T {
+const getRequired = <T>(values: readonly T[], index: number): T => {
   const value = values[index]
   expect(value).toBeDefined()
   if (value === undefined) {
@@ -21,21 +21,19 @@ function getRequired<T>(values: readonly T[], index: number): T {
   return value
 }
 
-function createItem(
+const createItem = (
   overrides: Partial<CommercialValuesItemInput> = {},
-): CommercialValuesItemInput {
-  return {
-    item_id: "item_1",
-    original_unit_price: 1000,
-    quantity: 1,
-    unit_price: 1000,
-    ...overrides,
-  }
-}
+): CommercialValuesItemInput => ({
+  item_id: "item_1",
+  original_unit_price: 1000,
+  quantity: 1,
+  unit_price: 1000,
+  ...overrides,
+})
 
-function createBaseInput(
+const createBaseInput = (
   overrides: Partial<CommercialValuesCalculationInput> = {},
-): CommercialValuesCalculationInput {
+): CommercialValuesCalculationInput => {
   const baseInput: CommercialValuesCalculationInput = {
     currency_code: "czk",
     expected_order_version: 1,
@@ -283,6 +281,7 @@ describe("order commercial values", () => {
   })
 
   it("maps validation failures to Medusa invalid-data errors", () => {
+    let thrownError: unknown
     try {
       calculateCommercialValuesPreview(
         createBaseInput({
@@ -290,16 +289,15 @@ describe("order commercial values", () => {
         }),
       )
     } catch (error) {
-      expect(error).toBeInstanceOf(CommercialValuesValidationError)
-      expect(error).toBeInstanceOf(MedusaError)
-      expect((error as CommercialValuesValidationError).code).toBe(
-        "unit_price_invalid",
-      )
-      expect((error as MedusaError).type).toBe(MedusaError.Types.INVALID_DATA)
-
-      return
+      thrownError = error
     }
 
-    throw new Error("Expected commercial values validation to fail")
+    expect(thrownError).toBeInstanceOf(CommercialValuesValidationError)
+    expect(thrownError).toBeInstanceOf(MedusaError)
+    if (!(thrownError instanceof CommercialValuesValidationError)) {
+      throw new TypeError("Expected a commercial-values validation error")
+    }
+    expect(thrownError.code).toBe("unit_price_invalid")
+    expect(thrownError.type).toBe(MedusaError.Types.INVALID_DATA)
   })
 })

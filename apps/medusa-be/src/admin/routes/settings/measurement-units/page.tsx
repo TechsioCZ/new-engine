@@ -18,8 +18,8 @@ import {
   usePrompt,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { Dispatch, FormEvent, SetStateAction } from "react"
-import { useMemo, useState } from "react"
+import type { Dispatch, SetStateAction, SyntheticEvent } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
@@ -41,6 +41,8 @@ import { getPaginationTranslations } from "../../../lib/table"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
+const CANCEL_ACTION_KEY = "actions.cancel"
+const DELETE_ACTION_KEY = "actions.delete"
 
 type MeasurementUnitFormState = Omit<MeasurementUnitInput, "base_quantity"> & {
   base_quantity: number | string
@@ -56,24 +58,28 @@ const toFormState = (unit?: MeasurementUnit): MeasurementUnitFormState => ({
 
 const normalizeInput = (
   input: MeasurementUnitFormState,
-): MeasurementUnitInput => ({
-  base_quantity: Number(input.base_quantity),
-  code: input.code.trim(),
-  description: input.description?.trim() || null,
-  name: input.name.trim(),
-  symbol: input.symbol.trim(),
-})
+): MeasurementUnitInput => {
+  const description = input.description?.trim()
+  return {
+    base_quantity: Number(input.base_quantity),
+    code: input.code.trim(),
+    description:
+      description === undefined || description === "" ? null : description,
+    name: input.name.trim(),
+    symbol: input.symbol.trim(),
+  }
+}
 
 const getFormIsValid = (form: MeasurementUnitFormState) => {
   const baseQuantity = Number(form.base_quantity)
 
-  return (
-    form.name.trim().length > 0 &&
-    form.code.trim().length > 0 &&
-    form.symbol.trim().length > 0 &&
-    Number.isFinite(baseQuantity) &&
-    baseQuantity > 0
-  )
+  return [
+    form.name.trim().length > 0,
+    form.code.trim().length > 0,
+    form.symbol.trim().length > 0,
+    Number.isFinite(baseQuantity),
+    baseQuantity > 0,
+  ].every(Boolean)
 }
 
 const MeasurementUnitFormFields = ({
@@ -206,7 +212,7 @@ const MeasurementUnitCreateModal = ({
     },
   })
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     mutation.mutate(normalizeInput(form))
   }
@@ -236,7 +242,7 @@ const MeasurementUnitCreateModal = ({
                 type="button"
                 variant="secondary"
               >
-                {t("actions.cancel")}
+                {t(CANCEL_ACTION_KEY)}
               </Button>
               <Button
                 disabled={!formIsValid}
@@ -290,7 +296,7 @@ const MeasurementUnitFormDrawer = ({
     },
   })
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     mutation.mutate(normalizeInput(form))
   }
@@ -315,7 +321,7 @@ const MeasurementUnitFormDrawer = ({
                 type="button"
                 variant="secondary"
               >
-                {t("actions.cancel")}
+                {t(CANCEL_ACTION_KEY)}
               </Button>
               <Button
                 disabled={!formIsValid}
@@ -333,6 +339,143 @@ const MeasurementUnitFormDrawer = ({
   )
 }
 
+interface MeasurementUnitTableRowsProps {
+  error: Error | null
+  isDeleting: (id: string) => boolean
+  isLoading: boolean
+  onDelete: (unit: MeasurementUnit) => void
+  onEdit: (unit: MeasurementUnit) => void
+  onRestore: (id: string) => void
+  units: MeasurementUnit[]
+}
+
+const MeasurementUnitTableRows = ({
+  error,
+  isDeleting,
+  isLoading,
+  onDelete,
+  onEdit,
+  onRestore,
+  units,
+}: MeasurementUnitTableRowsProps) => {
+  const { t } = useTranslation("measurementUnits")
+  if (isLoading) {
+    return (
+      <Table.Row>
+        <Table.Cell>{t("status.loading")}</Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+      </Table.Row>
+    )
+  }
+
+  if (error) {
+    return (
+      <Table.Row>
+        <Table.Cell className="text-ui-fg-error">
+          {t("errors.loadFailed")}
+        </Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+      </Table.Row>
+    )
+  }
+
+  if (!units.length) {
+    return (
+      <Table.Row>
+        <Table.Cell>{t("units.empty")}</Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+      </Table.Row>
+    )
+  }
+
+  return units.map((unit) => {
+    const isDeleted = unit.deleted_at !== undefined && unit.deleted_at !== null
+    return (
+      <Table.Row key={unit.id}>
+        <Table.Cell>{unit.name}</Table.Cell>
+        <Table.Cell className="text-ui-fg-subtle">{unit.code}</Table.Cell>
+        <Table.Cell>{unit.symbol}</Table.Cell>
+        <Table.Cell>{unit.base_quantity}</Table.Cell>
+        <Table.Cell>{unit.active_product_count ?? 0}</Table.Cell>
+        <Table.Cell>
+          <StatusBadge color={isDeleted ? "red" : "green"}>
+            {isDeleted ? t("status.deleted") : t("status.active")}
+          </StatusBadge>
+        </Table.Cell>
+        <Table.Cell>
+          <div className="flex justify-end gap-1">
+            {isDeleted ? (
+              <>
+                <Button asChild size="small" variant="secondary">
+                  <Link to={`/settings/measurement-units/${unit.id}`}>
+                    {t("actions.view")}
+                  </Link>
+                </Button>
+                <Button
+                  onClick={() => {
+                    onRestore(unit.id)
+                  }}
+                  size="small"
+                  type="button"
+                  variant="secondary"
+                >
+                  {t("actions.restore")}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild size="small" variant="secondary">
+                  <Link to={`/settings/measurement-units/${unit.id}`}>
+                    {t("actions.view")}
+                  </Link>
+                </Button>
+                <IconButton
+                  aria-label={t("actions.edit")}
+                  onClick={() => {
+                    onEdit(unit)
+                  }}
+                  size="small"
+                  type="button"
+                  variant="transparent"
+                >
+                  <PencilSquare />
+                </IconButton>
+                <IconButton
+                  aria-label={t(DELETE_ACTION_KEY)}
+                  disabled={isDeleting(unit.id)}
+                  onClick={() => {
+                    onDelete(unit)
+                  }}
+                  size="small"
+                  type="button"
+                  variant="transparent"
+                >
+                  <Trash />
+                </IconButton>
+              </>
+            )}
+          </div>
+        </Table.Cell>
+      </Table.Row>
+    )
+  })
+}
+
 const MeasurementUnitsSettingsPage = () => {
   const { t } = useTranslation("measurementUnits")
   const queryClient = useQueryClient()
@@ -344,16 +487,13 @@ const MeasurementUnitsSettingsPage = () => {
   const [status, setStatus] = useState<MeasurementUnitStatus>("active")
   const debouncedQ = useDebouncedValue(q)
 
-  const params = useMemo(
-    () => ({
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      order_by: "name",
-      q: debouncedQ,
-      status,
-    }),
-    [debouncedQ, pageIndex, status],
-  )
+  const params = {
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    order_by: "name",
+    q: debouncedQ,
+    status,
+  }
 
   const { data, error, isLoading } = useQuery({
     queryFn: async () => await listMeasurementUnits(params),
@@ -398,139 +538,26 @@ const MeasurementUnitsSettingsPage = () => {
   const count = data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
 
+  const handleRestore = (id: string) => {
+    restoreMutation.mutate(id)
+  }
+
   const handleDelete = async (unit: MeasurementUnit) => {
     const confirmed = await prompt({
-      cancelText: t("actions.cancel"),
-      confirmText: t("actions.delete"),
-      description: unit.active_product_count
-        ? t("deletePrompt.assignedDescription", {
-            count: unit.active_product_count,
-          })
-        : t("deletePrompt.description"),
-      title: t("actions.delete"),
+      cancelText: t(CANCEL_ACTION_KEY),
+      confirmText: t(DELETE_ACTION_KEY),
+      description:
+        unit.active_product_count !== undefined && unit.active_product_count > 0
+          ? t("deletePrompt.assignedDescription", {
+              count: unit.active_product_count,
+            })
+          : t("deletePrompt.description"),
+      title: t(DELETE_ACTION_KEY),
     })
 
     if (confirmed) {
       deleteMutation.mutate(unit.id)
     }
-  }
-
-  const renderRows = () => {
-    if (isLoading) {
-      return (
-        <Table.Row>
-          <Table.Cell>{t("status.loading")}</Table.Cell>
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-        </Table.Row>
-      )
-    }
-
-    if (error) {
-      return (
-        <Table.Row>
-          <Table.Cell className="text-ui-fg-error">
-            {t("errors.loadFailed")}
-          </Table.Cell>
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-        </Table.Row>
-      )
-    }
-
-    if (!units.length) {
-      return (
-        <Table.Row>
-          <Table.Cell>{t("units.empty")}</Table.Cell>
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-        </Table.Row>
-      )
-    }
-
-    return units.map((unit) => (
-      <Table.Row key={unit.id}>
-        <Table.Cell>{unit.name}</Table.Cell>
-        <Table.Cell className="text-ui-fg-subtle">{unit.code}</Table.Cell>
-        <Table.Cell>{unit.symbol}</Table.Cell>
-        <Table.Cell>{unit.base_quantity}</Table.Cell>
-        <Table.Cell>{unit.active_product_count ?? 0}</Table.Cell>
-        <Table.Cell>
-          <StatusBadge color={unit.deleted_at ? "red" : "green"}>
-            {unit.deleted_at ? t("status.deleted") : t("status.active")}
-          </StatusBadge>
-        </Table.Cell>
-        <Table.Cell>
-          <div className="flex justify-end gap-1">
-            {unit.deleted_at ? (
-              <>
-                <Button asChild size="small" variant="secondary">
-                  <Link to={`/settings/measurement-units/${unit.id}`}>
-                    {t("actions.view")}
-                  </Link>
-                </Button>
-                <Button
-                  onClick={() => {
-                    restoreMutation.mutate(unit.id)
-                  }}
-                  size="small"
-                  type="button"
-                  variant="secondary"
-                >
-                  {t("actions.restore")}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button asChild size="small" variant="secondary">
-                  <Link to={`/settings/measurement-units/${unit.id}`}>
-                    {t("actions.view")}
-                  </Link>
-                </Button>
-                <IconButton
-                  aria-label={t("actions.edit")}
-                  onClick={() => {
-                    setEditingUnit(unit)
-                  }}
-                  size="small"
-                  type="button"
-                  variant="transparent"
-                >
-                  <PencilSquare />
-                </IconButton>
-                <IconButton
-                  aria-label={t("actions.delete")}
-                  disabled={
-                    deleteMutation.isPending &&
-                    deleteMutation.variables === unit.id
-                  }
-                  onClick={async () => {
-                    await handleDelete(unit)
-                  }}
-                  size="small"
-                  type="button"
-                  variant="transparent"
-                >
-                  <Trash />
-                </IconButton>
-              </>
-            )}
-          </div>
-        </Table.Cell>
-      </Table.Row>
-    ))
   }
 
   return (
@@ -598,7 +625,21 @@ const MeasurementUnitsSettingsPage = () => {
               </Table.HeaderCell>
             </Table.Row>
           </Table.Header>
-          <Table.Body>{renderRows()}</Table.Body>
+          <Table.Body>
+            <MeasurementUnitTableRows
+              error={error}
+              isDeleting={(id) =>
+                deleteMutation.isPending && deleteMutation.variables === id
+              }
+              isLoading={isLoading}
+              onDelete={(unit) => {
+                void handleDelete(unit)
+              }}
+              onEdit={setEditingUnit}
+              onRestore={handleRestore}
+              units={units}
+            />
+          </Table.Body>
         </Table>
         <Table.Pagination
           canNextPage={pageIndex + 1 < pageCount}
@@ -622,17 +663,17 @@ const MeasurementUnitsSettingsPage = () => {
           open={createOpen}
         />
       ) : null}
-      {editingUnit ? (
+      {editingUnit === undefined ? null : (
         <MeasurementUnitFormDrawer
           onOpenChange={(open) => {
             if (!open) {
               setEditingUnit(undefined)
             }
           }}
-          open={!!editingUnit}
+          open
           unit={editingUnit}
         />
-      ) : null}
+      )}
     </>
   )
 }

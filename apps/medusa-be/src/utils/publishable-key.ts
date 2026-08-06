@@ -15,10 +15,8 @@ type ListedApiKey = Awaited<
   ReturnType<IApiKeyModuleService["listApiKeys"]>
 >[number]
 
-type PublishableApiKey = ListedApiKey
-
 export interface PublishableKeyResult {
-  apiKey: PublishableApiKey
+  apiKey: ListedApiKey
   created: boolean
   title: string
 }
@@ -42,34 +40,37 @@ type ProvisionPublishableKeyInput = PublishableKeyLookupInput & {
   lockingModule?: LockingModuleDependency | null
 }
 
-export function resolvePublishableKeyTitle(title?: string | null): string {
-  return (
-    title?.trim() ||
-    process.env["INITIAL_PUBLISHABLE_KEY_NAME"]?.trim() ||
-    DEFAULT_PUBLISHABLE_KEY_TITLE
-  )
+export const resolvePublishableKeyTitle = (title?: string | null): string => {
+  const explicitTitle = title?.trim()
+  if (explicitTitle !== undefined && explicitTitle !== "") {
+    return explicitTitle
+  }
+
+  const environmentTitle = process.env["INITIAL_PUBLISHABLE_KEY_NAME"]?.trim()
+  return environmentTitle === undefined || environmentTitle === ""
+    ? DEFAULT_PUBLISHABLE_KEY_TITLE
+    : environmentTitle
 }
 
-async function findActivePublishableKey(
+const findActivePublishableKey = async (
   apiKeyService: ApiKeyServiceDependency,
   title: string,
-): Promise<ListedApiKey | null> {
+): Promise<ListedApiKey | null> => {
   const existingKeys = await apiKeyService.listApiKeys({
     title,
     type: "publishable",
   })
 
-  return existingKeys.find((key) => !key.revoked_at) ?? null
+  return existingKeys.find((key) => key.revoked_at === null) ?? null
 }
 
-function buildProvisionLockKey(title: string): string {
-  return `${PUBLISHABLE_KEY_LOCK_PREFIX}:${encodeURIComponent(title)}`
-}
+const buildProvisionLockKey = (title: string): string =>
+  `${PUBLISHABLE_KEY_LOCK_PREFIX}:${encodeURIComponent(title)}`
 
-export async function getActivePublishableKey({
+export const getActivePublishableKey = async ({
   apiKeyService,
   title,
-}: PublishableKeyLookupInput): Promise<PublishableKeyResult | null> {
+}: PublishableKeyLookupInput): Promise<PublishableKeyResult | null> => {
   const resolvedTitle = resolvePublishableKeyTitle(title)
   const apiKey = await findActivePublishableKey(apiKeyService, resolvedTitle)
 
@@ -84,12 +85,12 @@ export async function getActivePublishableKey({
   }
 }
 
-export async function provisionPublishableKey({
+export const provisionPublishableKey = async ({
   apiKeyService,
   title,
   createdBy,
   lockingModule,
-}: ProvisionPublishableKeyInput): Promise<PublishableKeyResult> {
+}: ProvisionPublishableKeyInput): Promise<PublishableKeyResult> => {
   const resolvedTitle = resolvePublishableKeyTitle(title)
 
   const getOrCreatePublishableKey = async (): Promise<PublishableKeyResult> => {
@@ -107,7 +108,7 @@ export async function provisionPublishableKey({
     }
 
     const createdApiKey = await apiKeyService.createApiKeys({
-      created_by: createdBy?.trim() || "",
+      created_by: createdBy?.trim() ?? "",
       title: resolvedTitle,
       type: "publishable",
     })
@@ -119,7 +120,7 @@ export async function provisionPublishableKey({
     }
   }
 
-  if (!lockingModule) {
+  if (lockingModule === undefined || lockingModule === null) {
     return await getOrCreatePublishableKey()
   }
 

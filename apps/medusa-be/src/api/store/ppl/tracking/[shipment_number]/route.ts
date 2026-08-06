@@ -6,10 +6,7 @@ import {
   PPL_CLIENT_MODULE,
   PPL_STATUS_MESSAGES,
 } from "../../../../../modules/ppl-client"
-import type {
-  PplClientModuleService,
-  PplShipmentState,
-} from "../../../../../modules/ppl-client"
+import type { PplClientModuleService } from "../../../../../modules/ppl-client"
 
 /**
  * GET /store/ppl/tracking/:shipment_number
@@ -17,14 +14,11 @@ import type {
  * Fetch tracking status for a PPL shipment on-demand.
  * Returns current status from PPL API + tracking URL.
  */
-export async function GET(
-  req: MedusaRequest,
-  res: MedusaResponse,
-): Promise<void> {
+const get = async (req: MedusaRequest, res: MedusaResponse): Promise<void> => {
   const { shipment_number } = req.params
   const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
-  if (!shipment_number) {
+  if (shipment_number === undefined || shipment_number === "") {
     res.status(400).json({
       error: "Shipment number is required",
     })
@@ -45,7 +39,7 @@ export async function GET(
     const shipmentInfos = await pplClient.getShipmentInfo({
       shipmentNumbers: [shipment_number],
     })
-    const info = shipmentInfos[0]
+    const [info] = shipmentInfos
 
     const trackingUrl = `https://www.ppl.cz/vyhledat-zasilku?shipmentId=${shipment_number}`
 
@@ -59,12 +53,12 @@ export async function GET(
     }
 
     const status = info.shipmentState
-    const statusMessage = PPL_STATUS_MESSAGES[status] || status
+    const statusMessage = PPL_STATUS_MESSAGES[status] ?? status
 
     res.json({
-      cod_paid_at: info.cashOnDelivery?.codPaidDate || null,
-      delivered_at: info.deliveryDate || null,
-      picked_up_at: info.pickupDate || null,
+      cod_paid_at: info.cashOnDelivery?.codPaidDate ?? null,
+      delivered_at: info.deliveryDate ?? null,
+      picked_up_at: info.pickupDate ?? null,
       shipment_number: info.shipmentNumber,
       status,
       status_date: info.stateDate,
@@ -83,3 +77,5 @@ export async function GET(
     })
   }
 }
+
+export { get as GET }

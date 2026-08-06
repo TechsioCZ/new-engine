@@ -14,7 +14,7 @@ export const restoreCompaniesStep = createStep(
     return new StepResponse(ids, ids)
   },
   async (restoredIds: string[] | undefined, { container }) => {
-    if (!restoredIds?.length) {
+    if (restoredIds === undefined || restoredIds.length === 0) {
       return
     }
 

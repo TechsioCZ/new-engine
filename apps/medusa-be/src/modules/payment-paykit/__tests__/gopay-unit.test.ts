@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 import { PAYKIT_GOPAY_WEBHOOK_PATH } from "../constants"
 import { getGopayProviderOptions } from "../runtime"
 import { PaykitGopayPaymentProvider } from "../services/gopay"
+import type { PaykitPaymentClient } from "../types"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 type CapturePaymentInputWithAmount = CapturePaymentInput & {
@@ -23,13 +24,15 @@ describe(PaykitGopayPaymentProvider, () => {
   it("normalizes Medusa major-unit amounts to GoPay smallest units", async () => {
     const client = createMockPaykitClient({
       payments: {
-        create: vi.fn().mockResolvedValue({
-          amount: 1050,
-          currency: "czk",
-          id: "gopay-payment-1",
-          payment_url: "https://gw.example/gopay-payment-1",
-          status: "requires_action",
-        }),
+        create: vi
+          .fn<PaykitPaymentClient["payments"]["create"]>()
+          .mockResolvedValue({
+            amount: 1050,
+            currency: "czk",
+            id: "gopay-payment-1",
+            payment_url: "https://gw.example/gopay-payment-1",
+            status: "requires_action",
+          }),
       },
     })
     const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
@@ -208,21 +211,24 @@ describe(PaykitGopayPaymentProvider, () => {
   })
 
   it("normalizes GoPay webhook amounts back to Medusa major units", async () => {
-    const client = createMockPaykitClient()
-    client.handleWebhook = vi.fn().mockResolvedValue([
-      {
-        data: {
-          amount: 1050,
-          currency: "czk",
-          id: "gopay-payment-1",
-          metadata: {
-            session_id: "payses_123",
+    const client = createMockPaykitClient({
+      handleWebhook: vi
+        .fn<NonNullable<PaykitPaymentClient["handleWebhook"]>>()
+        .mockResolvedValue([
+          {
+            data: {
+              amount: 1050,
+              currency: "czk",
+              id: "gopay-payment-1",
+              metadata: {
+                session_id: "payses_123",
+              },
+              status: "succeeded",
+            },
+            type: "payment.updated",
           },
-          status: "succeeded",
-        },
-        type: "payment.updated",
-      },
-    ])
+        ]),
+    })
     const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
       client,
     })

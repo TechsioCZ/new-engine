@@ -46,7 +46,7 @@ type NoRecordsProps = {
   buttonVariant?: string
 } & ActionProps
 
-const DefaultButton = ({ action }: ActionProps) =>
+const defaultButton = ({ action }: ActionProps) =>
   action && (
     <Link to={action.to}>
       <Button size="small" variant="secondary">
@@ -55,7 +55,7 @@ const DefaultButton = ({ action }: ActionProps) =>
     </Link>
   )
 
-const TransparentIconLeftButton = ({ action }: ActionProps) =>
+const transparentIconLeftButton = ({ action }: ActionProps) =>
   action && (
     <Link to={action.to}>
       <Button className="text-ui-fg-interactive" variant="transparent">
@@ -63,6 +63,9 @@ const TransparentIconLeftButton = ({ action }: ActionProps) =>
       </Button>
     </Link>
   )
+
+const DefaultButton = defaultButton
+const TransparentIconLeftButton = transparentIconLeftButton
 
 export const NoRecords = ({
   title,

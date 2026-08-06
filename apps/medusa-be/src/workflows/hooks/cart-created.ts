@@ -1,8 +1,12 @@
 import type { Link } from "@medusajs/framework/modules-sdk"
-import type { CartDTO } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { createCartWorkflow } from "@medusajs/medusa/core-flows"
+import { isRecord } from "@techsio/std/object"
 
 import { COMPANY_MODULE } from "../../modules/company"
 
@@ -16,24 +20,34 @@ createCartWorkflow.hooks.cartCreated(
   > => {
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
 
-    const cartInputdata = cart as CartDTO
+    const cartData: unknown = cart
+    if (!isRecord(cartData) || typeof cartData["id"] !== "string") {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Cart-created hook received a cart without a valid id",
+      )
+    }
 
-    if (!cartInputdata.metadata?.["company_id"]) {
+    const metadata = isRecord(cartData["metadata"])
+      ? cartData["metadata"]
+      : undefined
+    const companyId = metadata?.["company_id"]
+    if (typeof companyId !== "string" || companyId === "") {
       return new StepResponse(undefined, null)
     }
 
     await link.create({
       [COMPANY_MODULE]: {
-        company_id: cartInputdata.metadata?.["company_id"],
+        company_id: companyId,
       },
       [Modules.CART]: {
-        cart_id: cartInputdata.id,
+        cart_id: cartData["id"],
       },
     })
 
     return new StepResponse(undefined, {
-      cart_id: cartInputdata.id,
-      company_id: cartInputdata.metadata?.["company_id"] as string,
+      cart_id: cartData["id"],
+      company_id: companyId,
     })
   },
   async (

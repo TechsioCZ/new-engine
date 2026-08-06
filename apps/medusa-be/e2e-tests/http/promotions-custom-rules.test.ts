@@ -240,6 +240,7 @@ describe("Custom promotion rules HTTP E2E", () => {
         promotion.code,
       )
 
+      expect(cart).toBeDefined()
       expectAdjusted(getItem(cart, matchingProduct.variants[0].id), promotion)
       expectUnadjusted(getItem(cart, unmatchedProduct.variants[0].id))
       expectCartDiscounted(cart)
@@ -308,8 +309,8 @@ describe("Custom promotion rules HTTP E2E", () => {
         title: `Draft Brand Non Match ${suffix()}`,
       },
     )
-    const variant = product.variants[0]
-    const otherVariant = otherProduct.variants[0]
+    const [variant] = product.variants
+    const [otherVariant] = otherProduct.variants
     const promotion = await createPromotion(context.admin, {
       targetRules: [
         {

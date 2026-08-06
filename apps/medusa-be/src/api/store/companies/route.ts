@@ -8,7 +8,7 @@ import { definedProperties } from "../../../utils/defined-properties"
 import { createCompaniesWorkflow } from "../../../workflows/company/workflows/create-companies"
 import type { StoreCreateCompanyType } from "./validators"
 
-export const POST = async (
+const post = async (
   req: AuthenticatedMedusaRequest<
     StoreCreateCompanyType | StoreCreateCompanyType[]
   >,
@@ -47,3 +47,5 @@ export const POST = async (
 
   res.json({ companies })
 }
+
+export { post as POST }

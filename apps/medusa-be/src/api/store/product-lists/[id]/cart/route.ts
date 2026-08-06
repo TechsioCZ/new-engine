@@ -22,10 +22,10 @@ const refetchCart = async (id: string, scope: MedusaContainer) => {
   return cart
 }
 
-export async function POST(
+const post = async (
   req: AuthenticatedMedusaRequest<StoreCreateProductListCartSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result } = await createCartFromProductListWorkflow(req.scope).run({
     input: definedProperties({
@@ -39,3 +39,5 @@ export async function POST(
 
   res.status(200).json({ cart })
 }
+
+export { post as POST }

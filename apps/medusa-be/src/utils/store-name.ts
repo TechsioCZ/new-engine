@@ -1,10 +1,13 @@
-import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
-export async function getMedusaStoreName(
+const isUnknownArray = (value: unknown): value is unknown[] =>
+  Array.isArray(value)
+
+export const getMedusaStoreName = async (
   container: Record<string, unknown>,
   fallback = "N1 Shop",
-): Promise<string> {
+): Promise<string> => {
   const resolver = container["resolve"]
 
   if (typeof resolver !== "function") {
@@ -12,18 +15,32 @@ export async function getMedusaStoreName(
   }
 
   try {
-    const query = resolver.call(
-      container,
+    const query: unknown = Reflect.apply(resolver, container, [
       ContainerRegistrationKeys.QUERY,
-    ) as Query
-    const { data } = await query.graph({
-      entity: "store",
-      fields: ["name"],
-      pagination: { take: 1, skip: 0 },
-    })
-    const name = (data[0] as { name?: unknown } | undefined)?.name
+    ])
+    if (!isRecord(query) || typeof query["graph"] !== "function") {
+      return fallback
+    }
 
-    return typeof name === "string" && name.trim() ? name.trim() : fallback
+    const response: unknown = await Reflect.apply(query["graph"], query, [
+      {
+        entity: "store",
+        fields: ["name"],
+        pagination: { skip: 0, take: 1 },
+      },
+    ])
+    if (!isRecord(response)) {
+      return fallback
+    }
+    const data: unknown = response["data"]
+    if (!isUnknownArray(data)) {
+      return fallback
+    }
+
+    const [store] = data
+    const name = isRecord(store) ? store["name"] : undefined
+    const normalizedName = typeof name === "string" ? name.trim() : ""
+    return normalizedName === "" ? fallback : normalizedName
   } catch {
     return fallback
   }

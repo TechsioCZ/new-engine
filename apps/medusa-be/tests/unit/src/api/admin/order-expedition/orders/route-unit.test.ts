@@ -1,67 +1,79 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { Mock } from "vitest"
 
-vi.mock(import("@medusajs/framework/utils"), async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@medusajs/framework/utils")>()
+type Graph = (input: unknown) => Promise<{
+  data: unknown[]
+  metadata: { count: number }
+}>
+type Json = (body: unknown) => unknown
 
-  return {
-    ...actual,
-    ContainerRegistrationKeys: {
-      ...actual.ContainerRegistrationKeys,
-      QUERY: "query",
-    },
-  }
-})
+type MockJsonResponse = MedusaResponse & { json: Mock<Json> }
 
-/**
- * Asserts that a plain mock object contains the given keys before narrowing
- * it to a framework type. Building the mock as `unknown` first (instead of
- * the target type) avoids requiring every property of the huge Node
- * request/response interfaces while still validating the shape the route
- * handler actually reads from at runtime.
- */
-function assertMockShape<T>(
+const isMockJsonResponse = (
   candidate: unknown,
-  requiredKeys: readonly string[],
-): asserts candidate is T {
-  if (typeof candidate !== "object" || candidate === null) {
-    throw new TypeError("Expected a mock object")
-  }
-
-  for (const key of requiredKeys) {
-    if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
-    }
-  }
-}
-
-type MockJsonResponse = MedusaResponse & { json: ReturnType<typeof vi.fn> }
+): candidate is MockJsonResponse =>
+  isRecord(candidate) && typeof candidate["json"] === "function"
 
 const createMockResponse = (): MockJsonResponse => {
-  const candidate: unknown = { json: vi.fn().mockReturnThis() }
-  assertMockShape<MockJsonResponse>(candidate, ["json"])
+  const candidate: unknown = { json: vi.fn<Json>() }
+  if (!isMockJsonResponse(candidate)) {
+    throw new TypeError("Expected a mock response with a json function")
+  }
   return candidate
 }
 
+const isMockRequest = (candidate: unknown): candidate is MedusaRequest =>
+  isRecord(candidate) &&
+  isRecord(candidate["scope"]) &&
+  typeof candidate["scope"]["resolve"] === "function" &&
+  isRecord(candidate["validatedQuery"])
+
 const createMockRequest = (
   validatedQuery: Record<string, unknown>,
-  graph: ReturnType<typeof vi.fn>,
+  graph: Graph,
 ): MedusaRequest => {
   const orderNoteService = {
-    listOrderNotes: vi.fn().mockResolvedValue([]),
+    listOrderNotes: vi.fn<() => Promise<unknown[]>>().mockResolvedValue([]),
   }
 
   const candidate: unknown = {
     scope: {
-      resolve: vi.fn((token: string) =>
+      resolve: vi.fn<(token: string) => unknown>((token) =>
         token === "query" ? { graph } : orderNoteService,
       ),
     },
     validatedQuery,
   }
-  assertMockShape<MedusaRequest>(candidate, ["scope", "validatedQuery"])
+  if (!isMockRequest(candidate)) {
+    throw new TypeError("Expected a request with scope and validated query")
+  }
   return candidate
+}
+
+const getJsonBody = (response: MockJsonResponse): Record<string, unknown> => {
+  const [call] = response.json.mock.calls
+  const [body] = call ?? []
+  if (!isRecord(body)) {
+    throw new TypeError("Expected the route to return an object")
+  }
+  return body
+}
+
+const getFirstRecord = (
+  container: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> => {
+  const value = container[key]
+  if (!Array.isArray(value)) {
+    throw new TypeError(`Expected ${key} to be an array`)
+  }
+  const first: unknown = value[0]
+  if (!isRecord(first)) {
+    throw new TypeError(`Expected ${key} to contain an object`)
+  }
+  return first
 }
 
 describe("GET /admin/order-expedition/orders", () => {
@@ -72,7 +84,7 @@ describe("GET /admin/order-expedition/orders", () => {
   it("returns an unfiltered page of orders", async () => {
     const { GET } =
       await import("../../../../../../../src/api/admin/order-expedition/orders/route")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           display_id: 1001,
@@ -108,22 +120,23 @@ describe("GET /admin/order-expedition/orders", () => {
         has_next: false,
         limit: 50,
         offset: 0,
-        orders: [
-          expect.objectContaining({
-            carrier: expect.objectContaining({ value: "ppl" }),
-            id: "order_1",
-            order_display_id: "#1001",
-          }),
-        ],
         scanned_count: null,
       }),
     )
+    const firstOrder = getFirstRecord(getJsonBody(res), "orders")
+    expect(firstOrder["id"]).toBe("order_1")
+    expect(firstOrder["order_display_id"]).toBe("#1001")
+    const { carrier } = firstOrder
+    if (!isRecord(carrier)) {
+      throw new TypeError("Expected an order carrier")
+    }
+    expect(carrier["value"]).toBe("ppl")
   })
 
   it("carrier filtering only narrows visible rows", async () => {
     const { GET } =
       await import("../../../../../../../src/api/admin/order-expedition/orders/route")
-    const graph = vi.fn().mockResolvedValueOnce({
+    const graph = vi.fn<Graph>().mockResolvedValueOnce({
       data: [
         {
           id: "order_1",
@@ -153,16 +166,22 @@ describe("GET /admin/order-expedition/orders", () => {
       1,
       expect.objectContaining({
         entity: "order",
-        fields: expect.arrayContaining([
-          "items.quantity",
-          "shipping_address.city",
-          "shipping_methods.name",
-        ]),
         pagination: {
           skip: 0,
           take: 100,
         },
       }),
+    )
+    const [[graphInput]] = graph.mock.calls
+    if (!isRecord(graphInput) || !Array.isArray(graphInput["fields"])) {
+      throw new TypeError("Expected graph fields")
+    }
+    expect(graphInput["fields"]).toStrictEqual(
+      expect.arrayContaining([
+        "items.quantity",
+        "shipping_address.city",
+        "shipping_methods.name",
+      ]),
     )
     expect(graph).toHaveBeenCalledOnce()
     expect(res.json).toHaveBeenCalledWith(
@@ -187,7 +206,7 @@ describe("GET /admin/order-expedition/orders", () => {
   it("combines carrier and business status filters with AND semantics", async () => {
     const { GET } =
       await import("../../../../../../../src/api/admin/order-expedition/orders/route")
-    const graph = vi.fn().mockResolvedValueOnce({
+    const graph = vi.fn<Graph>().mockResolvedValueOnce({
       data: [
         {
           id: "order_1",
@@ -230,21 +249,22 @@ describe("GET /admin/order-expedition/orders", () => {
         business_status: "paid",
         carrier: "packeta",
         count: 1,
-        orders: [
-          expect.objectContaining({
-            business_status: expect.objectContaining({ id: "paid" }),
-            carrier: expect.objectContaining({ value: "packeta" }),
-            id: "order_1",
-          }),
-        ],
       }),
     )
+    const firstOrder = getFirstRecord(getJsonBody(res), "orders")
+    expect(firstOrder["id"]).toBe("order_1")
+    const { business_status: businessStatus, carrier } = firstOrder
+    if (!isRecord(businessStatus) || !isRecord(carrier)) {
+      throw new TypeError("Expected business status and carrier records")
+    }
+    expect(businessStatus["id"]).toBe("paid")
+    expect(carrier["value"]).toBe("packeta")
   })
 
   it("stops carrier scans after the requested page and a next-page lookahead", async () => {
     const { GET } =
       await import("../../../../../../../src/api/admin/order-expedition/orders/route")
-    const graph = vi.fn().mockResolvedValueOnce({
+    const graph = vi.fn<Graph>().mockResolvedValueOnce({
       data: [
         {
           display_id: 1001,
@@ -295,7 +315,7 @@ describe("GET /admin/order-expedition/orders", () => {
   it("caps carrier scans and exposes truncated metadata", async () => {
     const { GET } =
       await import("../../../../../../../src/api/admin/order-expedition/orders/route")
-    const graph = vi.fn()
+    const graph = vi.fn<Graph>()
 
     for (let batchIndex = 0; batchIndex < 10; batchIndex += 1) {
       graph.mockResolvedValueOnce({

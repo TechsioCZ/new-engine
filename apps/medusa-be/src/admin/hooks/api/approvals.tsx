@@ -36,7 +36,7 @@ export const useUpdateApprovalSettings = (
         },
       )
 
-      const approvalSettings = data.approvalSettings[0]
+      const [approvalSettings] = data.approvalSettings
 
       if (!approvalSettings) {
         throw new Error("Approval settings update returned no data")
@@ -86,7 +86,7 @@ export const useUpdateApproval = (
 
   return useMutation({
     mutationFn: async (payload: AdminUpdateApproval) =>
-      sdk.client.fetch<AdminApproval>(`/admin/approvals/${approvalId}`, {
+      await sdk.client.fetch<AdminApproval>(`/admin/approvals/${approvalId}`, {
         body: payload,
         method: "POST",
       }),

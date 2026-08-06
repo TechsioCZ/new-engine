@@ -1,6 +1,6 @@
 import { MedusaService } from "@medusajs/framework/utils"
 
-import { ApprovalStatusType } from "../../types"
+import { ApprovalStatusType } from "../../types/approval/module"
 import { Approval, ApprovalSettings, ApprovalStatus } from "./models"
 
 class ApprovalModuleService extends MedusaService({
@@ -9,7 +9,7 @@ class ApprovalModuleService extends MedusaService({
   ApprovalStatus,
 }) {
   async hasPendingApprovals(cartId: string) {
-    const [_, count] = await this.listAndCountApprovals({
+    const [, count] = await this.listAndCountApprovals({
       cart_id: cartId,
       status: ApprovalStatusType.PENDING,
     })

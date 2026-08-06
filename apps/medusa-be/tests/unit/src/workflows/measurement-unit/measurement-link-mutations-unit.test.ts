@@ -1,9 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+interface MockContext {
+  container: { resolve: (name: string) => unknown }
+}
+type MockInvoke = (
+  input: unknown,
+  context: MockContext,
+) => Promise<{ compensateInput: unknown }>
+type MockCompensate = (input: unknown, context: MockContext) => Promise<void>
+type MockStep = MockInvoke & { compensate: MockCompensate }
+
 const { link } = vi.hoisted(() => ({
   link: {
-    dismiss: vi.fn(),
-    restore: vi.fn(),
+    dismiss: vi.fn<(input: unknown) => Promise<void>>().mockResolvedValue(),
+    restore: vi.fn<(input: unknown) => Promise<void>>().mockResolvedValue(),
   },
 }))
 
@@ -20,9 +30,9 @@ vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
       this.compensateInput = compensateInput
     }
   },
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate }),
-  ),
+  createStep: vi.fn<
+    (name: string, invoke: MockInvoke, compensate: MockCompensate) => MockStep
+  >((_name, invoke, compensate) => Object.assign(invoke, { compensate })),
 }))
 
 vi.mock(import("../../../../../src/modules/measurement-unit"), () => ({
@@ -51,31 +61,22 @@ vi.mock(
   }),
 )
 
-interface MockStep {
-  (
-    input: unknown,
-    context: { container: { resolve: ReturnType<typeof vi.fn> } },
-  ): Promise<{
-    compensateInput: unknown
-  }>
-  compensate: (
-    input: unknown,
-    context: { container: { resolve: ReturnType<typeof vi.fn> } },
-  ) => Promise<void>
-}
-
 const asMockStep = (candidate: unknown): MockStep => {
-  if (typeof candidate !== "function") {
+  if (
+    typeof candidate !== "function" ||
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
     throw new TypeError(
       "Expected the imported workflow step to be a mocked function",
     )
   }
 
-  return candidate as MockStep
+  return candidate
 }
 
 const container = {
-  resolve: vi.fn(() => link),
+  resolve: vi.fn<(name: string) => unknown>(() => link),
 }
 
 describe("measurement link mutation compensation", () => {

@@ -19,8 +19,9 @@ const FIELD_LISTS: readonly (readonly [string, readonly string[]])[] = [
 ]
 
 describe("order field lists that select computed totals", () => {
-  for (const [name, fields] of FIELD_LISTS) {
-    it(`selects a shipping method field alongside \`total\` for ${name}`, () => {
+  it.each(FIELD_LISTS)(
+    "selects a shipping method field alongside `total` for %s",
+    (name, fields) => {
       if (!fields.includes("total")) {
         return
       }
@@ -29,6 +30,6 @@ describe("order field lists that select computed totals", () => {
         fields.some((field) => field.startsWith("shipping_methods.")),
         `${name} selects \`total\` without any \`shipping_methods.*\` field, so the order module cannot load shipping-method adjustments`,
       ).toBeTruthy()
-    })
-  }
+    },
+  )
 })
