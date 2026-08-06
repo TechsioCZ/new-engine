@@ -1,17 +1,82 @@
 import type { IAuthModuleService, Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { isRecord } from "@techsio/std/object"
 
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../../employee/utils/admin-auth-metadata"
 
+interface CompanyEmployee {
+  customer?: {
+    email?: string | null
+    id?: string | null
+  } | null
+  is_admin?: boolean
+}
+
 interface CompanyWithEmployees {
-  employees?: {
-    customer?: {
-      email?: string | null
-      id?: string | null
-    } | null
-    is_admin?: boolean
-  }[]
+  employees?: CompanyEmployee[]
+}
+
+const isOptionalNullableString = (value: unknown) =>
+  value === undefined || value === null || typeof value === "string"
+
+const isOptionalCustomer = (value: unknown): boolean => {
+  if (value === undefined || value === null) {
+    return true
+  }
+  if (!isRecord(value)) {
+    return false
+  }
+  return (
+    isOptionalNullableString(value["email"]) &&
+    isOptionalNullableString(value["id"])
+  )
+}
+
+const isCompanyEmployee = (value: unknown): value is CompanyEmployee => {
+  if (!isRecord(value) || !isOptionalCustomer(value["customer"])) {
+    return false
+  }
+
+  const isAdmin = value["is_admin"]
+  return isAdmin === undefined || typeof isAdmin === "boolean"
+}
+
+const isCompanyWithEmployees = (
+  value: unknown,
+): value is CompanyWithEmployees => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const { employees } = value
+  return (
+    employees === undefined ||
+    (Array.isArray(employees) && employees.every(isCompanyEmployee))
+  )
+}
+
+const parseCompanies = (value: unknown): CompanyWithEmployees[] => {
+  if (!isRecord(value) || !Array.isArray(value["data"])) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Company query returned an invalid response.",
+    )
+  }
+
+  const companies = value["data"]
+  if (!companies.every(isCompanyWithEmployees)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Company query returned invalid employee data.",
+    )
+  }
+
+  return companies
 }
 
 export const clearCompanyAdminAuthMetadataStep = createStep(
@@ -21,19 +86,17 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
     { container },
   ): Promise<StepResponse<undefined, string[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-    const companiesResult: { data: CompanyWithEmployees[] } = await query.graph(
-      {
-        entity: "company",
-        fields: [
-          "id",
-          "employees.is_admin",
-          "employees.customer.email",
-          "employees.customer.id",
-        ],
-        filters: { id: companyIds },
-      },
-    )
-    const { data: companies } = companiesResult
+    const companiesResult: unknown = await query.graph({
+      entity: "company",
+      fields: [
+        "id",
+        "employees.is_admin",
+        "employees.customer.email",
+        "employees.customer.id",
+      ],
+      filters: { id: companyIds },
+    })
+    const companies = parseCompanies(companiesResult)
     const adminCandidates = companies.flatMap((company) =>
       (company.employees ?? []).flatMap((employee) =>
         employee.is_admin === true
