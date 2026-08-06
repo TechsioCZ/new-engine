@@ -39,7 +39,11 @@ import {
 } from "./lib/utils/env"
 import { migrations } from "./migrations"
 
-const { dirname } = import.meta
+const metaDirectory: unknown = import.meta.dirname
+const configDirectory =
+  typeof metaDirectory === "string" && metaDirectory.length > 0
+    ? metaDirectory
+    : path.resolve(process.cwd(), "src")
 
 const isProductionBuild = getEnv("PAYLOAD_PRODUCTION_BUILD") === "1"
 const getRuntimeEnv = (name: string, buildFallback: string): string => {
@@ -85,7 +89,7 @@ const getSeoField = (doc: unknown, field: string): string =>
 export default buildConfig({
   admin: {
     importMap: {
-      baseDir: path.resolve(dirname),
+      baseDir: path.resolve(configDirectory),
     },
     theme: "dark",
     user: Users.slug,
@@ -190,6 +194,6 @@ export default buildConfig({
   secret,
   sharp,
   typescript: {
-    outputFile: path.resolve(dirname, "payload-types.ts"),
+    outputFile: path.resolve(configDirectory, "payload-types.ts"),
   },
 })

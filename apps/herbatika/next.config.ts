@@ -1,3 +1,5 @@
+import path from "node:path"
+
 import { getRecordValue } from "@techsio/std/object"
 import type { NextConfig } from "next"
 import createNextIntlPlugin from "next-intl/plugin"
@@ -107,7 +109,7 @@ const nextConfig: NextConfig = {
       "node_modules/@playwright",
     ],
   },
-  outputFileTracingRoot: `${import.meta.dirname}/../..`,
+  outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
   reactCompiler: true,
   reactStrictMode: true,
   redirects() {

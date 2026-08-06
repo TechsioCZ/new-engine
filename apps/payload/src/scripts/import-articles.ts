@@ -1069,7 +1069,20 @@ const runCliEntryPoint = async (): Promise<void> => {
   }
 }
 
-const currentScriptFile = import.meta.filename
-if (path.resolve(process.argv[1] ?? "") === path.resolve(currentScriptFile)) {
+const isDirectCliInvocation = (
+  currentScriptFile: unknown,
+  invokedScriptFile: unknown,
+): boolean => {
+  if (typeof currentScriptFile !== "string" || currentScriptFile.length === 0) {
+    return false
+  }
+  if (typeof invokedScriptFile !== "string" || invokedScriptFile.length === 0) {
+    return false
+  }
+  return path.resolve(invokedScriptFile) === path.resolve(currentScriptFile)
+}
+
+const currentScriptFile: unknown = import.meta.filename
+if (isDirectCliInvocation(currentScriptFile, process.argv[1])) {
   await runCliEntryPoint()
 }
