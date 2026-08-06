@@ -1,4 +1,4 @@
-/**
+/*
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
@@ -14,7 +14,7 @@ import type { VariantProps } from "tailwind-variants"
 
 import { tv } from "../utils"
 import { Icon } from "./icon"
-import type { IconType } from "./icon"
+import type { IconProps, IconType } from "./icon"
 
 export const buttonVariants = tv({
   base: [
@@ -29,194 +29,194 @@ export const buttonVariants = tv({
   ],
   compoundVariants: [
     {
-      variant: "primary",
-      theme: "solid",
       className: [
         "bg-button-bg-primary-base",
         "hover:bg-button-bg-primary-hover",
         "active:bg-button-bg-primary-active",
         "text-button-fg-primary",
       ],
+      theme: "solid",
+      variant: "primary",
     },
     {
-      variant: "secondary",
-      theme: "solid",
       className: [
         "bg-button-bg-secondary-base",
         "hover:bg-button-bg-secondary-hover",
         "active:bg-button-bg-secondary-active",
         "text-button-fg-secondary",
       ],
+      theme: "solid",
+      variant: "secondary",
     },
     {
-      variant: "tertiary",
-      theme: "solid",
       className: [
         "bg-button-bg-tertiary-base",
         "hover:bg-button-bg-tertiary-hover",
         "active:bg-button-bg-tertiary-active",
         "text-button-fg-tertiary",
       ],
+      theme: "solid",
+      variant: "tertiary",
     },
     {
-      variant: "warning",
-      theme: "solid",
       className: [
         "bg-button-bg-warning-base",
         "hover:bg-button-bg-warning-hover",
         "active:bg-button-bg-warning-active",
         "text-button-fg-warning",
       ],
+      theme: "solid",
+      variant: "warning",
     },
     {
-      variant: "danger",
-      theme: "solid",
       className: [
         "bg-button-bg-danger-base",
         "hover:bg-button-bg-danger-hover",
         "active:bg-button-bg-danger-active",
         "text-button-fg-danger",
       ],
+      theme: "solid",
+      variant: "danger",
     },
     {
-      variant: "primary",
-      theme: "light",
       className: [
         "bg-button-bg-primary-light-base",
         "hover:bg-button-bg-primary-light-hover",
         "active:bg-button-bg-primary-light-active",
         "text-button-fg-primary-light",
       ],
+      theme: "light",
+      variant: "primary",
     },
     {
-      variant: "secondary",
-      theme: "light",
       className: [
         "bg-button-bg-secondary-light-base",
         "hover:bg-button-bg-secondary-light-hover",
         "active:bg-button-bg-secondary-light-active",
         "text-button-fg-secondary-light",
       ],
+      theme: "light",
+      variant: "secondary",
     },
     {
-      variant: "tertiary",
-      theme: "light",
       className: [
         "bg-button-bg-tertiary-light-base",
         "hover:bg-button-bg-tertiary-light-hover",
         "active:bg-button-bg-tertiary-light-active",
         "text-button-fg-tertiary-light",
       ],
+      theme: "light",
+      variant: "tertiary",
     },
     {
-      variant: "warning",
-      theme: "light",
       className: [
         "bg-button-bg-warning-light-base",
         "hover:bg-button-bg-warning-light-hover",
         "active:bg-button-bg-warning-light-active",
         "text-button-fg-warning-light",
       ],
+      theme: "light",
+      variant: "warning",
     },
     {
-      variant: "danger",
-      theme: "light",
       className: [
         "bg-button-bg-danger-light-base",
         "hover:bg-button-bg-danger-light-hover",
         "active:bg-button-bg-danger-light-active",
         "text-button-fg-danger-light",
       ],
+      theme: "light",
+      variant: "danger",
     },
     {
-      variant: "primary",
-      theme: "outlined",
       className: [
         "border-button-border-primary",
         "hover:bg-button-bg-outlined-primary-hover",
         "active:bg-button-bg-outlined-primary-active",
         "text-button-fg-outlined-primary",
       ],
+      theme: "outlined",
+      variant: "primary",
     },
     {
-      variant: "secondary",
-      theme: "outlined",
       className: [
         "border-button-border-secondary",
         "hover:bg-button-bg-outlined-secondary-hover",
         "active:bg-button-bg-outlined-secondary-active",
         "text-button-fg-outlined-secondary",
       ],
+      theme: "outlined",
+      variant: "secondary",
     },
     {
-      variant: "tertiary",
-      theme: "outlined",
       className: [
         "border-button-border-tertiary",
         "hover:bg-button-bg-outlined-tertiary-hover",
         "active:bg-button-bg-outlined-tertiary-active",
         "text-button-fg-outlined-tertiary",
       ],
+      theme: "outlined",
+      variant: "tertiary",
     },
     {
-      variant: "warning",
-      theme: "outlined",
       className: [
         "border-button-border-warning",
         "hover:bg-button-bg-outlined-warning-hover",
         "active:bg-button-bg-outlined-warning-active",
         "text-button-fg-outlined-warning",
       ],
+      theme: "outlined",
+      variant: "warning",
     },
     {
-      variant: "danger",
-      theme: "outlined",
       className: [
         "border-button-border-danger",
         "hover:bg-button-bg-outlined-danger-hover",
         "active:bg-button-bg-outlined-danger-active",
         "text-button-fg-outlined-danger",
       ],
-    },
-    {
-      variant: "primary",
-      theme: "borderless",
-      className: ["text-button-fg-primary-borderless"],
-    },
-    {
-      variant: "secondary",
-      theme: "borderless",
-      className: ["text-button-fg-secondary-borderless"],
-    },
-    {
-      variant: "tertiary",
-      theme: "borderless",
-      className: ["text-button-fg-tertiary-borderless"],
-    },
-    {
-      variant: "warning",
-      theme: "borderless",
-      className: ["text-button-fg-warning-borderless"],
-    },
-    {
+      theme: "outlined",
       variant: "danger",
+    },
+    {
+      className: ["text-button-fg-primary-borderless"],
       theme: "borderless",
+      variant: "primary",
+    },
+    {
+      className: ["text-button-fg-secondary-borderless"],
+      theme: "borderless",
+      variant: "secondary",
+    },
+    {
+      className: ["text-button-fg-tertiary-borderless"],
+      theme: "borderless",
+      variant: "tertiary",
+    },
+    {
+      className: ["text-button-fg-warning-borderless"],
+      theme: "borderless",
+      variant: "warning",
+    },
+    {
       className: ["text-button-fg-danger-borderless"],
+      theme: "borderless",
+      variant: "danger",
     },
     {
-      theme: "outlined",
-      size: "sm",
       className: "border-(length:--border-width-button-sm)",
+      size: "sm",
+      theme: "outlined",
     },
     {
-      theme: "outlined",
-      size: "md",
       className: "border-(length:--border-width-button-md)",
+      size: "md",
+      theme: "outlined",
     },
     {
-      theme: "outlined",
-      size: "lg",
       className: "border-(length:--border-width-button-lg)",
+      size: "lg",
+      theme: "outlined",
     },
   ],
   defaultVariants: {
@@ -263,14 +263,15 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   icon?: IconType | undefined
   iconPosition?: "left" | "right" | undefined
-  iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current" | undefined
+  // Mirrors the Icon size scale so both stay in lockstep.
+  iconSize?: IconProps["size"] | undefined
   uppercase?: boolean | undefined
   isLoading?: boolean | undefined
   loadingText?: string | undefined
   children?: ReactNode | undefined
 }
 
-export function Button({
+export const Button = ({
   variant,
   theme,
   size,
@@ -285,8 +286,15 @@ export function Button({
   className,
   disabled: disabledProp,
   ...props
-}: ButtonProps & { ref?: Ref<HTMLButtonElement> | undefined }) {
-  const disabled = isLoading || disabledProp
+}: ButtonProps & { ref?: Ref<HTMLButtonElement> | undefined }) => {
+  const disabled = isLoading === true || disabledProp === true
+  const iconNode =
+    icon === undefined ? null : <Icon icon={icon} size={iconSize} />
+  const leftIcon = iconPosition === "left" ? iconNode : null
+  const rightIcon = iconPosition === "right" ? iconNode : null
+  // Matches the previous `loadingText || children` fallback: blank text falls back too.
+  const loadingLabel =
+    loadingText === undefined || loadingText === "" ? children : loadingText
 
   return (
     <button
@@ -299,24 +307,24 @@ export function Button({
         variant,
       })}
       disabled={disabled}
+      // Explicit default preserves the native `submit` behavior; `props` still overrides it.
+      type="submit"
       {...props}
     >
-      {isLoading ? (
+      {isLoading === true ? (
         <>
           <Icon className="mr-2" icon="token-icon-button-spinner" />
-          {loadingText || children}
+          {loadingLabel}
         </>
       ) : (
         <>
-          {icon && iconPosition === "left" && (
-            <Icon icon={icon} size={iconSize} />
-          )}
+          {leftIcon}
           {children}
-          {icon && iconPosition === "right" && (
-            <Icon icon={icon} size={iconSize} />
-          )}
+          {rightIcon}
         </>
       )}
     </button>
   )
 }
+
+Button.displayName = "Button"
