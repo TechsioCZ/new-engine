@@ -1,6 +1,6 @@
 export const getProductBrandLockKeys = (productIds: string[]) =>
   [...new Set(productIds)]
-    .sort()
+    .toSorted()
     .map((productId) => `product-brand:${productId}`)
 
 export const getBrandProductsLockKeys = (
@@ -13,14 +13,18 @@ export const ensureProductsAssignableToBrand = async (
   brandId: string,
   productIds: string[],
 ) => {
-  const conflictingProducts = (scope.links ?? [])
-    .filter((link) => productIds.includes(link.product_id))
-    .filter((link) => link.brand_id !== brandId)
-    .map((link) => link.product_id)
+  const productIdSet = new Set(productIds)
+  const conflictingProducts = (scope.links ?? []).flatMap((link) =>
+    productIdSet.has(link.product_id) && link.brand_id !== brandId
+      ? [link.product_id]
+      : [],
+  )
 
-  if (conflictingProducts.length) {
-    throw new Error(
-      `Products are already linked to another brand: ${conflictingProducts.join(", ")}`,
+  if (conflictingProducts.length > 0) {
+    await Promise.reject(
+      new Error(
+        `Products are already linked to another brand: ${conflictingProducts.join(", ")}`,
+      ),
     )
   }
 }

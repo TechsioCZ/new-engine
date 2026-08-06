@@ -18,8 +18,10 @@ import { getErrorMessage } from "@techsio/std/object"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import { ActionMenu, AmountCell, Thumbnail } from "../../../../components"
+import { ActionMenu } from "../../../../components/common/action-menu"
 import { Form } from "../../../../components/common/form"
+import { AmountCell } from "../../../../components/common/table/table-cells/amount-cell"
+import { Thumbnail } from "../../../../components/common/thumbnail"
 import {
   useAddItemsToQuote,
   useRemoveQuoteItem,

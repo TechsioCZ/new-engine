@@ -1,10 +1,6 @@
 import type { FetchError } from "@medusajs/js-sdk"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type {
-  QueryKey,
-  UseMutationOptions,
-  UseQueryOptions,
-} from "@tanstack/react-query"
+import type { UseMutationOptions, UseQueryOptions } from "@tanstack/react-query"
 
 import type {
   AdminCompaniesResponse,
@@ -32,7 +28,9 @@ export const useCompanies = (
 
   const fetchCompanies = async () =>
     await sdk.client.fetch<AdminCompaniesResponse>(
-      `/admin/companies${filterQuery ? `?${filterQuery}` : ""}`,
+      filterQuery.length > 0
+        ? `/admin/companies?${filterQuery}`
+        : "/admin/companies",
       {
         method: "GET",
       },
@@ -54,7 +52,9 @@ export const useCompany = (
 
   const fetchCompany = async () =>
     await sdk.client.fetch<AdminCompanyResponse>(
-      `/admin/companies/${companyId}${filterQuery ? `?${filterQuery}` : ""}`,
+      filterQuery.length > 0
+        ? `/admin/companies/${companyId}?${filterQuery}`
+        : `/admin/companies/${companyId}`,
       {
         method: "GET",
       },
@@ -78,7 +78,7 @@ export const useCreateCompany = (
 
   return useMutation({
     mutationFn: async (company: AdminCreateCompany) =>
-      sdk.client.fetch<AdminCreateCompaniesResponse>("/admin/companies", {
+      await sdk.client.fetch<AdminCreateCompaniesResponse>("/admin/companies", {
         body: company,
         headers: {
           "Content-Type": "application/json",
@@ -89,11 +89,13 @@ export const useCreateCompany = (
       await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      for (const company of data.companies) {
-        await queryClient.invalidateQueries({
-          queryKey: companyQueryKey.detail(company.id),
-        })
-      }
+      await Promise.all(
+        data.companies.map(async (company) => {
+          await queryClient.invalidateQueries({
+            queryKey: companyQueryKey.detail(company.id),
+          })
+        }),
+      )
       await options?.onSuccess?.(data, variables, context)
     },
     ...options,
@@ -112,13 +114,16 @@ export const useUpdateCompany = (
 
   return useMutation({
     mutationFn: async (company: AdminUpdateCompany) =>
-      sdk.client.fetch<AdminCompanyResponse>(`/admin/companies/${companyId}`, {
-        body: company,
-        headers: {
-          "Content-Type": "application/json",
+      await sdk.client.fetch<AdminCompanyResponse>(
+        `/admin/companies/${companyId}`,
+        {
+          body: company,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
         },
-        method: "POST",
-      }),
+      ),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
@@ -141,10 +146,11 @@ export const useDeleteCompany = (
 ) => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async () =>
-      sdk.client.fetch<void>(`/admin/companies/${companyId}`, {
+    mutationFn: async () => {
+      await sdk.client.fetch<unknown>(`/admin/companies/${companyId}`, {
         method: "DELETE",
-      }),
+      })
+    },
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
@@ -169,7 +175,7 @@ export const useRestoreCompany = (
 
   return useMutation({
     mutationFn: async () =>
-      sdk.client.fetch<AdminCompanyResponse>(
+      await sdk.client.fetch<AdminCompanyResponse>(
         `/admin/companies/${companyId}/restore`,
         {
           method: "POST",

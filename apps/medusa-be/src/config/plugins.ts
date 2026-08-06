@@ -2,7 +2,7 @@ import { buildMeilisearchPlugin } from "../modules/meilisearch/medusa-config"
 import type { MedusaConfigEnv } from "./env"
 import type { MedusaPluginsConfig } from "./types"
 
-export function buildPlugins(env: MedusaConfigEnv): MedusaPluginsConfig {
+export const buildPlugins = (env: MedusaConfigEnv): MedusaPluginsConfig => {
   const plugins: MedusaPluginsConfig = [
     {
       options: {},

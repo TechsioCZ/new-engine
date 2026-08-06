@@ -31,8 +31,8 @@ export const buildNotificationProvider = (
       return {
         id: "resend",
         options: {
-          api_key: env.resendApiKey,
           apiStoreName: INTEGRATION_CONFIG_NAMES.RESEND,
+          api_key: env.resendApiKey,
           channels: ["email"],
           from: env.resendFromEmail,
         },

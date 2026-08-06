@@ -2,7 +2,7 @@ import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { DetailWidgetProps } from "@medusajs/framework/types"
 import { Button, Container, Heading, Text, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 
 import { RichHtmlEditor } from "../components/rich-html-editor"
 import { sdk } from "../lib/sdk"
@@ -32,34 +32,24 @@ const getMetadataHtml = (
   return typeof value === "string" ? value : ""
 }
 
-const CategoryDescriptionEditor = ({
-  data: category,
-}: CategoryDescriptionEditorProps) => {
+const CategoryDescriptionEditorContent = ({
+  category,
+  initialBottomDescriptionHtml,
+  initialTopDescriptionHtml,
+}: {
+  category: ProductCategoryWithMetadata | undefined
+  initialBottomDescriptionHtml: string
+  initialTopDescriptionHtml: string
+}) => {
   const queryClient = useQueryClient()
-  const [savedTopDescriptionHtml, setSavedTopDescriptionHtml] = useState(() =>
-    getMetadataHtml(category?.metadata, TOP_DESCRIPTION_METADATA_KEY),
+  const [savedTopDescriptionHtml, setSavedTopDescriptionHtml] = useState(
+    initialTopDescriptionHtml,
   )
   const [savedBottomDescriptionHtml, setSavedBottomDescriptionHtml] = useState(
-    () => getMetadataHtml(category?.metadata, BOTTOM_DESCRIPTION_METADATA_KEY),
+    initialBottomDescriptionHtml,
   )
   const topDescriptionHtmlRef = useRef(savedTopDescriptionHtml)
   const bottomDescriptionHtmlRef = useRef(savedBottomDescriptionHtml)
-
-  useEffect(() => {
-    const nextTopDescriptionHtml = getMetadataHtml(
-      category?.metadata,
-      TOP_DESCRIPTION_METADATA_KEY,
-    )
-    const nextBottomDescriptionHtml = getMetadataHtml(
-      category?.metadata,
-      BOTTOM_DESCRIPTION_METADATA_KEY,
-    )
-
-    topDescriptionHtmlRef.current = nextTopDescriptionHtml
-    bottomDescriptionHtmlRef.current = nextBottomDescriptionHtml
-    setSavedTopDescriptionHtml(nextTopDescriptionHtml)
-    setSavedBottomDescriptionHtml(nextBottomDescriptionHtml)
-  }, [category?.metadata])
 
   const mutation = useMutation({
     mutationFn: async ({
@@ -69,7 +59,7 @@ const CategoryDescriptionEditor = ({
       bottomDescriptionHtml: string
       topDescriptionHtml: string
     }) =>
-      sdk.client.fetch<UpdateCategoryResponse>(
+      await sdk.client.fetch<UpdateCategoryResponse>(
         `/admin/product-categories/${category?.id}`,
         {
           body: {
@@ -119,7 +109,7 @@ const CategoryDescriptionEditor = ({
     })
   }
 
-  if (!category?.id) {
+  if (typeof category?.id !== "string" || category.id.length === 0) {
     return null
   }
 
@@ -148,7 +138,9 @@ const CategoryDescriptionEditor = ({
             onChangeHtml={(html) => {
               topDescriptionHtmlRef.current = html
             }}
-            onError={(message) => toast.error(message)}
+            onError={(message) => {
+              toast.error(message)
+            }}
             valueHtml={savedTopDescriptionHtml}
           />
         </section>
@@ -163,12 +155,35 @@ const CategoryDescriptionEditor = ({
             onChangeHtml={(html) => {
               bottomDescriptionHtmlRef.current = html
             }}
-            onError={(message) => toast.error(message)}
+            onError={(message) => {
+              toast.error(message)
+            }}
             valueHtml={savedBottomDescriptionHtml}
           />
         </section>
       </div>
     </Container>
+  )
+}
+
+const CategoryDescriptionEditor = ({
+  data: category,
+}: CategoryDescriptionEditorProps) => {
+  const initialTopDescriptionHtml = getMetadataHtml(
+    category?.metadata,
+    TOP_DESCRIPTION_METADATA_KEY,
+  )
+  const initialBottomDescriptionHtml = getMetadataHtml(
+    category?.metadata,
+    BOTTOM_DESCRIPTION_METADATA_KEY,
+  )
+  return (
+    <CategoryDescriptionEditorContent
+      category={category}
+      initialBottomDescriptionHtml={initialBottomDescriptionHtml}
+      initialTopDescriptionHtml={initialTopDescriptionHtml}
+      key={`${category?.id ?? ""}:${initialTopDescriptionHtml}:${initialBottomDescriptionHtml}`}
+    />
   )
 }
 

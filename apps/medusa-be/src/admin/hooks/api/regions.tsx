@@ -1,7 +1,7 @@
 import type { HttpTypes } from "@medusajs/framework/types"
 import type { FetchError } from "@medusajs/js-sdk"
 import { useQuery } from "@tanstack/react-query"
-import type { QueryKey, UseQueryOptions } from "@tanstack/react-query"
+import type { UseQueryOptions } from "@tanstack/react-query"
 
 import { queryKeysFactory } from "../../lib/query-key-factory"
 import { sdk } from "../../lib/sdk"
@@ -18,11 +18,11 @@ export const useRegions = (
     "queryFn" | "queryKey"
   >,
 ) => {
-  const { data, ...rest } = useQuery({
-    queryFn: async () => sdk.admin.region.list(),
+  const query = useQuery({
+    queryFn: async () => await sdk.admin.region.list(),
     queryKey: regionQueryKey.list(),
     ...options,
   })
 
-  return { ...data, ...rest }
+  return { isPending: query.isPending, regions: query.data?.regions }
 }

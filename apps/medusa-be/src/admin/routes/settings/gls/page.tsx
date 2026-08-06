@@ -11,8 +11,8 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
-import type { FormEvent } from "react"
+import { useEffect, useRef, useState } from "react"
+import type { SubmitEvent } from "react"
 
 import type {
   GLSCountryCode,
@@ -113,9 +113,9 @@ const getStringField = (
 
 const buildConfigPayload = (data: GLSConfigInput): GLSConfigInput => {
   const payload: GLSConfigInput = { ...data }
-  for (const field of Object.keys(payload) as (keyof GLSConfigInput)[]) {
-    if (payload[field] === "") {
-      delete payload[field]
+  for (const [field, value] of Object.entries(payload)) {
+    if (value === "") {
+      Reflect.deleteProperty(payload, field)
     }
   }
   return payload
@@ -131,13 +131,13 @@ interface FieldConfig {
 }
 
 const getPlaceholder = (
-  isCleared: boolean | undefined,
   fieldConfig: FieldConfig,
+  isCleared: boolean | undefined = false,
 ): string => {
   if (isCleared) {
     return "Value will be cleared"
   }
-  if (fieldConfig.isSet) {
+  if (fieldConfig.isSet === true) {
     return "Leave empty to keep"
   }
   return fieldConfig.placeholder
@@ -159,8 +159,8 @@ const FormField = ({
   const inputId = `gls-${fieldConfig.field}`
   const canClear =
     CLEARABLE_FIELD_SET.has(fieldConfig.field) &&
-    fieldConfig.isSet &&
-    !isCleared
+    fieldConfig.isSet === true &&
+    isCleared !== true
 
   return (
     <div
@@ -169,15 +169,15 @@ const FormField = ({
       <div className="flex items-center justify-between">
         <Label htmlFor={inputId}>
           {fieldConfig.label}{" "}
-          {isCleared ? (
+          {isCleared === true ? (
             <span className="text-ui-fg-error">(will be cleared)</span>
           ) : (
-            fieldConfig.isSet && (
+            fieldConfig.isSet === true && (
               <span className="text-ui-fg-subtle">(set)</span>
             )
           )}
         </Label>
-        {canClear && onClear && (
+        {canClear && onClear !== undefined && (
           <button
             className="text-sm text-ui-fg-subtle hover:text-ui-fg-error"
             onClick={onClear}
@@ -193,9 +193,9 @@ const FormField = ({
         onChange={(e) => {
           onChange(e.target.value)
         }}
-        placeholder={getPlaceholder(isCleared, fieldConfig)}
+        placeholder={getPlaceholder(fieldConfig, isCleared)}
         type={fieldConfig.type ?? "text"}
-        value={isCleared ? "" : value}
+        value={isCleared === true ? "" : value}
       />
     </div>
   )
@@ -231,13 +231,205 @@ const buildFormDataFromConfig = (
   ...buildSenderFormData(configuration),
 })
 
+const SENDER_FIELDS: FieldConfig[] = [
+  { field: "sender_name", label: "Name", placeholder: "Company name" },
+  { field: "sender_street", label: "Street", placeholder: "Street name" },
+  {
+    field: "sender_house_number",
+    label: "House Number",
+    placeholder: "123",
+  },
+  {
+    field: "sender_house_number_info",
+    label: "House Number Info",
+    placeholder: "optional, e.g. /A",
+  },
+  { field: "sender_city", label: "City", placeholder: "City" },
+  {
+    field: "sender_zip_code",
+    label: "ZIP Code",
+    placeholder: "Postal code",
+  },
+  {
+    field: "sender_country",
+    label: "Country",
+    placeholder: "Country code (e.g., SK)",
+  },
+  { field: "sender_phone", label: "Phone", placeholder: "Phone number" },
+  {
+    colSpan: 2,
+    field: "sender_email",
+    label: "Email",
+    placeholder: "Email address",
+    type: "email",
+  },
+]
+
+type UpdateField = (
+  field: keyof GLSConfigInput,
+  value: GLSConfigInput[keyof GLSConfigInput],
+) => void
+
+const GeneralSettings = ({
+  formData,
+  updateField,
+}: {
+  formData: GLSConfigInput
+  updateField: UpdateField
+}) => (
+  <div className="px-6 py-4">
+    <Heading className="mb-4" level="h2">
+      General
+    </Heading>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <Label htmlFor="gls-is-enabled" id="gls-is-enabled-label">
+            Enable GLS
+          </Label>
+          <Text className="text-sm text-ui-fg-subtle" id="gls-is-enabled-desc">
+            Enable or disable GLS shipping integration
+          </Text>
+        </div>
+        <Switch
+          aria-describedby="gls-is-enabled-desc"
+          aria-labelledby="gls-is-enabled-label"
+          checked={formData.is_enabled ?? false}
+          id="gls-is-enabled"
+          onCheckedChange={(checked) => {
+            updateField("is_enabled", checked)
+          }}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="gls-country-code">Country Domain</Label>
+          <Select
+            onValueChange={(value) => {
+              updateField("country_code", value)
+            }}
+            value={formData.country_code ?? "SK"}
+          >
+            <Select.Trigger id="gls-country-code">
+              <Select.Value placeholder="Select country" />
+            </Select.Trigger>
+            <Select.Content>
+              {COUNTRY_CODES.map((country) => (
+                <Select.Item key={country.value} value={country.value}>
+                  {country.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="gls-client-number">Client Number</Label>
+          <Input
+            id="gls-client-number"
+            min={1}
+            onChange={(e) => {
+              updateField(
+                "client_number",
+                e.target.value ? Math.trunc(Number(e.target.value)) : null,
+              )
+            }}
+            placeholder="GLS client number"
+            type="number"
+            value={formData.client_number ?? ""}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
+const LabelPrintingSettings = ({
+  formData,
+  updateField,
+}: {
+  formData: GLSConfigInput
+  updateField: UpdateField
+}) => (
+  <div className="border-t px-6 py-4">
+    <Heading className="mb-4" level="h2">
+      Label Printing
+    </Heading>
+    <div className="grid grid-cols-2 gap-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="gls-printer-type">Type of Printer</Label>
+        <Select
+          onValueChange={(value) => {
+            updateField("type_of_printer", value)
+          }}
+          value={formData.type_of_printer ?? "A4_2x2"}
+        >
+          <Select.Trigger id="gls-printer-type">
+            <Select.Value placeholder="Select printer type" />
+          </Select.Trigger>
+          <Select.Content>
+            {PRINTER_TYPES.map((type) => (
+              <Select.Item key={type.value} value={type.value}>
+                {type.label}
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="gls-print-position">Print Position</Label>
+        <Input
+          id="gls-print-position"
+          max={4}
+          min={1}
+          onChange={(e) => {
+            updateField(
+              "print_position",
+              Math.trunc(Number(e.target.value)) || 1,
+            )
+          }}
+          type="number"
+          value={formData.print_position ?? 1}
+        />
+      </div>
+      <div className="col-span-2 flex items-center justify-between">
+        <div>
+          <Label htmlFor="gls-hide-phone">Hide phone number on labels</Label>
+          <Text className="text-sm text-ui-fg-subtle">
+            Optional MyGLS print flag
+          </Text>
+        </div>
+        <Switch
+          checked={formData.hide_phone_number_on_labels ?? false}
+          id="gls-hide-phone"
+          onCheckedChange={(checked) => {
+            updateField("hide_phone_number_on_labels", checked)
+          }}
+        />
+      </div>
+      <FormField
+        fieldConfig={{
+          colSpan: 2,
+          field: "webshop_engine",
+          label: "Webshop Engine",
+          placeholder: "new-engine-medusa",
+        }}
+        onChange={(value) => {
+          updateField("webshop_engine", value)
+        }}
+        value={getStringField(formData, "webshop_engine")}
+      />
+    </div>
+  </div>
+)
+
 const GLSSettingsPage = () => {
   const queryClient = useQueryClient()
-  const [formData, setFormData] = useState<GLSConfigInput>({})
-  const [clearedFields, setClearedFields] = useState<Set<ClearableField>>(
-    new Set(),
-  )
-  const [seededConfigId, setSeededConfigId] = useState<string | null>(null)
+  const [formState, setFormState] = useState<{
+    clearedFields: Set<ClearableField>
+    formData: GLSConfigInput
+  }>({ clearedFields: new Set(), formData: {} })
+  const { clearedFields, formData } = formState
+  const seededConfigId = useRef<string | null>(null)
 
   const { data, isLoading, error } = useQuery({
     queryFn: async () =>
@@ -260,7 +452,7 @@ const GLSSettingsPage = () => {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["gls-config"] })
-      setSeededConfigId(null)
+      seededConfigId.current = null
       toast.success("GLS configuration saved")
     },
   })
@@ -268,16 +460,25 @@ const GLSSettingsPage = () => {
   const glsConfig = data?.config
 
   useEffect(() => {
-    if (!(glsConfig && glsConfig.id !== seededConfigId)) {
-      return
+    let cancelled = false
+    if (glsConfig && glsConfig.id !== seededConfigId.current) {
+      queueMicrotask(() => {
+        if (cancelled) {
+          return
+        }
+        setFormState({
+          clearedFields: new Set(),
+          formData: buildFormDataFromConfig(glsConfig),
+        })
+        seededConfigId.current = glsConfig.id
+      })
     }
+    return () => {
+      cancelled = true
+    }
+  }, [glsConfig])
 
-    setFormData(buildFormDataFromConfig(glsConfig))
-    setClearedFields(new Set())
-    setSeededConfigId(glsConfig.id)
-  }, [glsConfig, seededConfigId])
-
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     const payload = buildConfigPayload(formData)
     for (const field of clearedFields) {
@@ -288,23 +489,28 @@ const GLSSettingsPage = () => {
 
   const updateField = (
     field: keyof GLSConfigInput,
-    value: string | boolean | number | null,
+    value: GLSConfigInput[keyof GLSConfigInput],
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    if (isClearableField(field) && clearedFields.has(field)) {
-      setClearedFields((prev) => {
-        const next = new Set(prev)
-        next.delete(field)
-        return next
-      })
-    }
+    setFormState((previous) => {
+      const nextClearedFields = new Set(previous.clearedFields)
+      if (isClearableField(field)) {
+        nextClearedFields.delete(field)
+      }
+      return {
+        clearedFields: nextClearedFields,
+        formData: { ...previous.formData, [field]: value },
+      }
+    })
   }
 
   const clearField = (field: keyof GLSConfigInput) => {
     if (!isClearableField(field)) {
       return
     }
-    setClearedFields((prev) => new Set(prev).add(field))
+    setFormState((previous) => ({
+      ...previous,
+      clearedFields: new Set(previous.clearedFields).add(field),
+    }))
   }
 
   const isFieldCleared = (field: keyof GLSConfigInput) =>
@@ -349,44 +555,12 @@ const GLSSettingsPage = () => {
     {
       colSpan: 2,
       field: "password",
-      isSet: glsConfig?.password_set,
+      ...(glsConfig?.password_set === undefined
+        ? {}
+        : { isSet: glsConfig.password_set }),
       label: "MyGLS Password",
       placeholder: "Your MyGLS password",
       type: "password",
-    },
-  ]
-
-  const senderFields: FieldConfig[] = [
-    { field: "sender_name", label: "Name", placeholder: "Company name" },
-    { field: "sender_street", label: "Street", placeholder: "Street name" },
-    {
-      field: "sender_house_number",
-      label: "House Number",
-      placeholder: "123",
-    },
-    {
-      field: "sender_house_number_info",
-      label: "House Number Info",
-      placeholder: "optional, e.g. /A",
-    },
-    { field: "sender_city", label: "City", placeholder: "City" },
-    {
-      field: "sender_zip_code",
-      label: "ZIP Code",
-      placeholder: "Postal code",
-    },
-    {
-      field: "sender_country",
-      label: "Country",
-      placeholder: "Country code (e.g., SK)",
-    },
-    { field: "sender_phone", label: "Phone", placeholder: "Phone number" },
-    {
-      colSpan: 2,
-      field: "sender_email",
-      label: "Email",
-      placeholder: "Email address",
-      type: "email",
     },
   ]
 
@@ -401,76 +575,7 @@ const GLSSettingsPage = () => {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="px-6 py-4">
-          <Heading className="mb-4" level="h2">
-            General
-          </Heading>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="gls-is-enabled" id="gls-is-enabled-label">
-                  Enable GLS
-                </Label>
-                <Text
-                  className="text-sm text-ui-fg-subtle"
-                  id="gls-is-enabled-desc"
-                >
-                  Enable or disable GLS shipping integration
-                </Text>
-              </div>
-              <Switch
-                aria-describedby="gls-is-enabled-desc"
-                aria-labelledby="gls-is-enabled-label"
-                checked={formData.is_enabled ?? false}
-                id="gls-is-enabled"
-                onCheckedChange={(checked) => {
-                  updateField("is_enabled", checked)
-                }}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="gls-country-code">Country Domain</Label>
-                <Select
-                  onValueChange={(value) => {
-                    updateField("country_code", value)
-                  }}
-                  value={formData.country_code ?? "SK"}
-                >
-                  <Select.Trigger id="gls-country-code">
-                    <Select.Value placeholder="Select country" />
-                  </Select.Trigger>
-                  <Select.Content>
-                    {COUNTRY_CODES.map((country) => (
-                      <Select.Item key={country.value} value={country.value}>
-                        {country.label}
-                      </Select.Item>
-                    ))}
-                  </Select.Content>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="gls-client-number">Client Number</Label>
-                <Input
-                  id="gls-client-number"
-                  min={1}
-                  onChange={(e) => {
-                    updateField(
-                      "client_number",
-                      e.target.value
-                        ? Math.trunc(Number(e.target.value))
-                        : null,
-                    )
-                  }}
-                  placeholder="GLS client number"
-                  type="number"
-                  value={formData.client_number ?? ""}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
+        <GeneralSettings formData={formData} updateField={updateField} />
         <div className="border-t px-6 py-4">
           <Heading className="mb-4" level="h2">
             MyGLS Credentials
@@ -493,79 +598,7 @@ const GLSSettingsPage = () => {
           </div>
         </div>
 
-        <div className="border-t px-6 py-4">
-          <Heading className="mb-4" level="h2">
-            Label Printing
-          </Heading>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="gls-printer-type">Type of Printer</Label>
-              <Select
-                onValueChange={(value) => {
-                  updateField("type_of_printer", value)
-                }}
-                value={formData.type_of_printer ?? "A4_2x2"}
-              >
-                <Select.Trigger id="gls-printer-type">
-                  <Select.Value placeholder="Select printer type" />
-                </Select.Trigger>
-                <Select.Content>
-                  {PRINTER_TYPES.map((type) => (
-                    <Select.Item key={type.value} value={type.value}>
-                      {type.label}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="gls-print-position">Print Position</Label>
-              <Input
-                id="gls-print-position"
-                max={4}
-                min={1}
-                onChange={(e) => {
-                  updateField(
-                    "print_position",
-                    Math.trunc(Number(e.target.value)) || 1,
-                  )
-                }}
-                type="number"
-                value={formData.print_position ?? 1}
-              />
-            </div>
-            <div className="col-span-2 flex items-center justify-between">
-              <div>
-                <Label htmlFor="gls-hide-phone">
-                  Hide phone number on labels
-                </Label>
-                <Text className="text-sm text-ui-fg-subtle">
-                  Optional MyGLS print flag
-                </Text>
-              </div>
-              <Switch
-                checked={formData.hide_phone_number_on_labels ?? false}
-                id="gls-hide-phone"
-                onCheckedChange={(checked) => {
-                  updateField("hide_phone_number_on_labels", checked)
-                }}
-              />
-            </div>
-            <FormField
-              fieldConfig={{
-                colSpan: 2,
-                field: "webshop_engine",
-                label: "Webshop Engine",
-                placeholder: "new-engine-medusa",
-              }}
-              onChange={(value) => {
-                updateField("webshop_engine", value)
-              }}
-              value={getStringField(formData, "webshop_engine")}
-            />
-          </div>
-        </div>
-
+        <LabelPrintingSettings formData={formData} updateField={updateField} />
         <div className="border-t px-6 py-4">
           <Heading className="mb-2" level="h2">
             Pickup / Sender Address
@@ -574,7 +607,7 @@ const GLSSettingsPage = () => {
             MyGLS sends this as PickupAddress when creating labels.
           </Text>
           <div className="grid grid-cols-2 gap-4">
-            {senderFields.map((field) => (
+            {SENDER_FIELDS.map((field) => (
               <FormField
                 fieldConfig={field}
                 key={field.field}

@@ -1,6 +1,6 @@
 import { clx } from "@medusajs/ui"
 
-import { formatAmount } from "../../../../utils"
+import { formatAmount } from "../../../../utils/format-amount"
 import { PlaceholderCell } from "./placeholder-cell"
 
 interface AmountCellProps {

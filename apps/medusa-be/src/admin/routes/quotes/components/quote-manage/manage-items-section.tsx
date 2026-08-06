@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next"
 import { RouteFocusModal } from "../../../../components/common/modals/route-focus-modal/route-focus-modal"
 import { StackedFocusModal } from "../../../../components/common/modals/route-focus-modal/stacked-focus-modal"
 import { useStackedModal } from "../../../../components/common/modals/route-focus-modal/use-stacked-modal"
-import { useAddItemsToQuote } from "../../../../hooks/api"
+import { useAddItemsToQuote } from "../../../../hooks/api/quotes"
 import { ManageItem } from "./manage-item"
 import { ManageItemsTable } from "./manage-items-table"
 
@@ -57,7 +57,7 @@ export const ManageItemsSection = ({
   const filteredItems = preview.items.filter(
     (i) =>
       i.title.toLowerCase().includes(normalizedFilterTerm) ||
-      i.product_title?.toLowerCase().includes(normalizedFilterTerm),
+      i.product_title?.toLowerCase().includes(normalizedFilterTerm) === true,
   )
   const originalItemsMap = new Map(order.items.map((item) => [item.id, item]))
 
@@ -105,10 +105,9 @@ export const ManageItemsSection = ({
                     <Button
                       disabled={isPending}
                       key="submit-button"
-                      onClick={async () => {
-                        await onItemsSelected()
+                      onClick={() => {
+                        void onItemsSelected()
                       }}
-                      role="button"
                       size="small"
                       type="submit"
                       variant="primary"

@@ -83,10 +83,10 @@ export const storefrontTextQueryKeys = queryKeysFactory<
 >("storefront-texts")
 
 export const listStorefrontTexts = async (params: StorefrontTextListParams) =>
-  sdk.client.fetch<StorefrontTextsResponse>("/admin/storefront-texts", {
+  await sdk.client.fetch<StorefrontTextsResponse>("/admin/storefront-texts", {
     query: {
       ...params,
-      q: params.q || undefined,
+      q: params.q ?? undefined,
     },
   })
 
@@ -94,7 +94,7 @@ export const updateStorefrontText = async (
   id: string,
   input: StorefrontTextInput,
 ) =>
-  sdk.client.fetch<StorefrontTextResponse>(
+  await sdk.client.fetch<StorefrontTextResponse>(
     `/admin/storefront-texts/${id}/update`,
     {
       body: input,
@@ -103,14 +103,17 @@ export const updateStorefrontText = async (
   )
 
 export const syncStorefrontTexts = async () =>
-  sdk.client.fetch<StorefrontTextSyncResponse>("/admin/storefront-texts/sync", {
-    method: "POST",
-  })
+  await sdk.client.fetch<StorefrontTextSyncResponse>(
+    "/admin/storefront-texts/sync",
+    {
+      method: "POST",
+    },
+  )
 
 export const getStorefrontTextCatalog = async (
   market: RegistryStorefrontTextMarket,
 ) =>
-  sdk.client.fetch<StorefrontTextCatalogResponse>(
+  await sdk.client.fetch<StorefrontTextCatalogResponse>(
     "/admin/storefront-texts/catalog",
     { query: { market } },
   )
@@ -118,7 +121,7 @@ export const getStorefrontTextCatalog = async (
 export const importStorefrontTextCatalog = async (
   input: StorefrontTextCatalogImportInput,
 ) =>
-  sdk.client.fetch<StorefrontTextCatalogImportResponse>(
+  await sdk.client.fetch<StorefrontTextCatalogImportResponse>(
     "/admin/storefront-texts/catalog",
     {
       body: input,

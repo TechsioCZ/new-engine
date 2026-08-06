@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 
 import { DataTable } from "../../../components/common/table/data-table/data-table"
-import { useApprovals } from "../../../hooks/api"
+import { useApprovals } from "../../../hooks/api/approvals"
 import { useDataTable } from "../../../hooks/use-data-table"
 import { useApprovalsTableColumns } from "./table/columns"
 import { useApprovalsTableFilters } from "./table/filters"

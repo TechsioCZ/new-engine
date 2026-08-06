@@ -4,5 +4,7 @@ export const normalizeTrimmedText = (
 ) => {
   const trimmed = value?.trim()
 
-  return trimmed == null || trimmed === "" ? fallback : trimmed
+  return trimmed === null || trimmed === undefined || trimmed === ""
+    ? fallback
+    : trimmed
 }

@@ -4,10 +4,10 @@ import { getErrorMessage } from "@techsio/std/object"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import { EmployeesUpdateDrawer } from "."
 import type { QueryCompany, QueryEmployee } from "../../../../../types"
-import { DeletePrompt } from "../../../../components/common"
-import { useDeleteEmployee } from "../../../../hooks/api"
+import { DeletePrompt } from "../../../../components/common/delete-prompt"
+import { useDeleteEmployee } from "../../../../hooks/api/employees"
+import { EmployeesUpdateDrawer } from "./employees-update-drawer"
 
 export const EmployeesActionsMenu = ({
   company,

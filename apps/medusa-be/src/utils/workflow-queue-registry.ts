@@ -1,5 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { sendProductReviewRequestWorkflow } from "../workflows/send-product-review-request"
 import type { SendProductReviewRequestWorkflowInput } from "../workflows/send-product-review-request"
@@ -13,11 +14,10 @@ type WorkflowQueueRunner = (
   input: Record<string, unknown>,
 ) => Promise<unknown>
 
-function isSendProductReviewRequestWorkflowInput(
-  input: Record<string, unknown>,
-): input is SendProductReviewRequestWorkflowInput {
-  return typeof input["order_id"] === "string"
-}
+const isSendProductReviewRequestWorkflowInput = (
+  input: unknown,
+): input is SendProductReviewRequestWorkflowInput =>
+  isRecord(input) && typeof input["order_id"] === "string"
 
 const workflowQueueRegistry: Record<string, WorkflowQueueRunner> = {
   [workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST]: async (
@@ -37,6 +37,5 @@ const workflowQueueRegistry: Record<string, WorkflowQueueRunner> = {
   },
 }
 
-export function getQueuedWorkflowRunner(workflow: string) {
-  return workflowQueueRegistry[workflow]
-}
+export const getQueuedWorkflowRunner = (workflow: string) =>
+  workflowQueueRegistry[workflow]

@@ -6,7 +6,8 @@ import { useTranslation } from "react-i18next"
 
 import { RouteFocusModal } from "../../../../components/common/modals/route-focus-modal/route-focus-modal"
 import { useRouteModal } from "../../../../components/common/modals/route-focus-modal/use-route-modal"
-import { useConfirmQuote, useOrderPreview } from "../../../../hooks/api"
+import { useOrderPreview } from "../../../../hooks/api/order-preview"
+import { useConfirmQuote } from "../../../../hooks/api/quotes"
 import { formatAmount } from "../../../../utils/format-amount"
 import { ManageItemsSection } from "./manage-items-section"
 
@@ -28,7 +29,7 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
    * FORM
    */
   const form = useForm({
-    defaultValues: async () => Promise.resolve({}),
+    defaultValues: {},
   })
 
   const handleSubmit = form.handleSubmit(async () => {
@@ -50,7 +51,12 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
 
   return (
     <RouteFocusModal.Form form={form}>
-      <form className="flex h-full flex-col" onSubmit={handleSubmit}>
+      <form
+        className="flex h-full flex-col"
+        onSubmit={(event) => {
+          void handleSubmit(event)
+        }}
+      >
         <RouteFocusModal.Header />
 
         <RouteFocusModal.Body className="flex size-full justify-center overflow-y-auto">

@@ -2,12 +2,20 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { sql } from "drizzle-orm"
 
 import { sqlRaw } from "../utils/db"
 import { isHttpXmlSource, readXmlSource } from "./herbatica-xml-utils"
 
+const CATEGORY_DUPLICATE_ROW = "category duplicate"
+const DUPLICATE_IMAGE_ROW = "duplicate image"
+const PRODUCT_AUDIT_ROW = "product audit"
+const DUPLICATE_COUNT_FIELD = "duplicate_count"
+const SOURCE_SHOPITEM_ID_FIELD = "source_shopitem_id"
 const CANONICAL_URL_QUERY_REGEX = /\?.*$/u
 const MEDUSA_ROOT = existsSync(path.resolve(process.cwd(), "src/scripts"))
   ? process.cwd()
@@ -84,6 +92,168 @@ interface DuplicateImageRaw {
   canonical_url: string
   duplicate_count: number | string
 }
+
+const invalidDatabaseRow = (
+  rowName: string,
+  index: number,
+  key: string,
+): never => {
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    `${rowName} row ${index} has invalid ${key}`,
+  )
+}
+
+const getRequiredString = (
+  row: Readonly<Record<string, unknown>>,
+  key: string,
+  rowName: string,
+  index: number,
+): string => {
+  const value = row[key]
+  return typeof value === "string"
+    ? value
+    : invalidDatabaseRow(rowName, index, key)
+}
+
+const getNullableString = (
+  row: Readonly<Record<string, unknown>>,
+  key: string,
+  rowName: string,
+  index: number,
+): string | null => {
+  const value = row[key]
+  return value === null || typeof value === "string"
+    ? value
+    : invalidDatabaseRow(rowName, index, key)
+}
+
+const getCount = (
+  row: Readonly<Record<string, unknown>>,
+  key: string,
+  rowName: string,
+  index: number,
+): number | string => {
+  const value = row[key]
+  return typeof value === "number" || typeof value === "string"
+    ? value
+    : invalidDatabaseRow(rowName, index, key)
+}
+
+const decodeDbProductRaw = (
+  row: Readonly<Record<string, unknown>>,
+  index: number,
+): DbProductRaw => ({
+  category_handles: row["category_handles"],
+  handle: getRequiredString(row, "handle", PRODUCT_AUDIT_ROW, index),
+  image_urls: row["image_urls"],
+  metadata_category_paths: row["metadata_category_paths"],
+  product_id: getRequiredString(row, "product_id", PRODUCT_AUDIT_ROW, index),
+  source_guid: getNullableString(row, "source_guid", PRODUCT_AUDIT_ROW, index),
+  source_shopitem_id: getNullableString(
+    row,
+    SOURCE_SHOPITEM_ID_FIELD,
+    PRODUCT_AUDIT_ROW,
+    index,
+  ),
+  status: getRequiredString(row, "status", PRODUCT_AUDIT_ROW, index),
+  thumbnail: getNullableString(row, "thumbnail", PRODUCT_AUDIT_ROW, index),
+  title: getRequiredString(row, "title", PRODUCT_AUDIT_ROW, index),
+  variant_count:
+    row["variant_count"] === null
+      ? null
+      : getCount(row, "variant_count", PRODUCT_AUDIT_ROW, index),
+  variant_image_refs: row["variant_image_refs"],
+  variant_thumbnails: row["variant_thumbnails"],
+})
+
+const decodeCategoryDuplicateRaw = (
+  row: Readonly<Record<string, unknown>>,
+  index: number,
+): CategoryDuplicateRaw => ({
+  duplicate_count: getCount(
+    row,
+    DUPLICATE_COUNT_FIELD,
+    CATEGORY_DUPLICATE_ROW,
+    index,
+  ),
+  handles: row["handles"],
+  normalized_name: getRequiredString(
+    row,
+    "normalized_name",
+    CATEGORY_DUPLICATE_ROW,
+    index,
+  ),
+  parent_category_id: getRequiredString(
+    row,
+    "parent_category_id",
+    CATEGORY_DUPLICATE_ROW,
+    index,
+  ),
+})
+
+const decodeCategoryHandleDuplicateRaw = (
+  row: Readonly<Record<string, unknown>>,
+  index: number,
+): CategoryHandleDuplicateRaw => ({
+  base_handle: getRequiredString(
+    row,
+    "base_handle",
+    "category handle duplicate",
+    index,
+  ),
+  duplicate_count: getCount(
+    row,
+    DUPLICATE_COUNT_FIELD,
+    "category handle duplicate",
+    index,
+  ),
+  handles: row["handles"],
+})
+
+const decodeProductSourceDuplicateRaw = (
+  row: Readonly<Record<string, unknown>>,
+  index: number,
+): ProductSourceDuplicateRaw => ({
+  duplicate_count: getCount(
+    row,
+    DUPLICATE_COUNT_FIELD,
+    "product source duplicate",
+    index,
+  ),
+  handles: row["handles"],
+  source_id: getRequiredString(
+    row,
+    "source_id",
+    "product source duplicate",
+    index,
+  ),
+})
+
+const decodeDuplicateImageRaw = (
+  row: Readonly<Record<string, unknown>>,
+  index: number,
+): DuplicateImageRaw => ({
+  canonical_url: getRequiredString(
+    row,
+    "canonical_url",
+    DUPLICATE_IMAGE_ROW,
+    index,
+  ),
+  duplicate_count: getCount(
+    row,
+    DUPLICATE_COUNT_FIELD,
+    DUPLICATE_IMAGE_ROW,
+    index,
+  ),
+  handle: getRequiredString(row, "handle", DUPLICATE_IMAGE_ROW, index),
+  source_shopitem_id: getNullableString(
+    row,
+    SOURCE_SHOPITEM_ID_FIELD,
+    DUPLICATE_IMAGE_ROW,
+    index,
+  ),
+})
 
 interface ScriptOptions {
   xmlPath: string
@@ -565,7 +735,8 @@ const parseOptions = (args?: string[]): ScriptOptions => {
 }
 
 const loadDbProducts = async (): Promise<DbProductRecord[]> => {
-  const rows = await sqlRaw<DbProductRaw>(sql`
+  const rows = await sqlRaw(
+    sql`
     SELECT
       p.id AS product_id,
       p.handle,
@@ -614,7 +785,9 @@ const loadDbProducts = async (): Promise<DbProductRecord[]> => {
         OR p.handle LIKE 'shopitem-%'
       )
     GROUP BY p.id
-  `)
+  `,
+    decodeDbProductRaw,
+  )
 
   return rows.map((row) => ({
     categoryHandles: toStringArray(row.category_handles),
@@ -636,7 +809,8 @@ const loadDbProducts = async (): Promise<DbProductRecord[]> => {
 }
 
 const loadCategoryNameDuplicates = async () => {
-  const rows = await sqlRaw<CategoryDuplicateRaw>(sql`
+  const rows = await sqlRaw(
+    sql`
     SELECT
       COALESCE(parent_category_id, 'ROOT') AS parent_category_id,
       LOWER(TRIM(name)) AS normalized_name,
@@ -647,7 +821,9 @@ const loadCategoryNameDuplicates = async () => {
     GROUP BY 1, 2
     HAVING COUNT(*) > 1
     ORDER BY duplicate_count DESC, normalized_name ASC
-  `)
+  `,
+    decodeCategoryDuplicateRaw,
+  )
 
   return rows.map((row) => ({
     duplicateCount: parseNumber(row.duplicate_count, 0),
@@ -658,7 +834,8 @@ const loadCategoryNameDuplicates = async () => {
 }
 
 const loadCategoryHandleDuplicates = async () => {
-  const rows = await sqlRaw<CategoryHandleDuplicateRaw>(sql`
+  const rows = await sqlRaw(
+    sql`
     SELECT
       REGEXP_REPLACE(handle, '-[0-9]+$', '') AS base_handle,
       COUNT(*) AS duplicate_count,
@@ -668,7 +845,9 @@ const loadCategoryHandleDuplicates = async () => {
     GROUP BY 1
     HAVING COUNT(*) > 1
     ORDER BY duplicate_count DESC, base_handle ASC
-  `)
+  `,
+    decodeCategoryHandleDuplicateRaw,
+  )
 
   return rows.map((row) => ({
     baseHandle: row.base_handle,
@@ -678,7 +857,8 @@ const loadCategoryHandleDuplicates = async () => {
 }
 
 const loadProductSourceDuplicates = async () => {
-  const rows = await sqlRaw<ProductSourceDuplicateRaw>(sql`
+  const rows = await sqlRaw(
+    sql`
     SELECT
       p.metadata ->> 'source_shopitem_id' AS source_id,
       COUNT(*) AS duplicate_count,
@@ -689,7 +869,9 @@ const loadProductSourceDuplicates = async () => {
     GROUP BY 1
     HAVING COUNT(*) > 1
     ORDER BY duplicate_count DESC, source_id ASC
-  `)
+  `,
+    decodeProductSourceDuplicateRaw,
+  )
 
   return rows.map((row) => ({
     duplicateCount: parseNumber(row.duplicate_count, 0),
@@ -699,7 +881,8 @@ const loadProductSourceDuplicates = async () => {
 }
 
 const loadDuplicateImageRows = async () => {
-  const rows = await sqlRaw<DuplicateImageRaw>(sql`
+  const rows = await sqlRaw(
+    sql`
     SELECT
       p.metadata ->> 'source_shopitem_id' AS source_shopitem_id,
       p.handle,
@@ -713,7 +896,9 @@ const loadDuplicateImageRows = async () => {
     GROUP BY 1, 2, 3
     HAVING COUNT(*) > 1
     ORDER BY duplicate_count DESC, p.handle ASC
-  `)
+  `,
+    decodeDuplicateImageRaw,
+  )
 
   return rows.map((row) => ({
     canonicalUrl: row.canonical_url,

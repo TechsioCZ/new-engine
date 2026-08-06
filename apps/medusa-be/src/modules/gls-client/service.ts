@@ -38,9 +38,23 @@ const CACHE_TTL = {
   CONFIG: 60,
 } as const
 
+type CachingDependency = Pick<
+  ICachingModuleService,
+  "clear" | "computeKey" | "get" | "set"
+>
+
 interface InjectedDependencies {
   logger: Logger
-  [Modules.CACHING]?: ICachingModuleService
+  [Modules.CACHING]?: CachingDependency
+}
+
+const isCachingDependency = (value: unknown): value is CachingDependency => {
+  if (!isRecord(value)) {
+    return false
+  }
+  return ["clear", "computeKey", "get", "set"].every(
+    (method) => typeof value[method] === "function",
+  )
 }
 
 interface GLSModuleOptions {
@@ -319,16 +333,17 @@ export class GLSClientModuleService extends MedusaService({
   private _branchesRefresh: Promise<GLSBranch[]> | null = null
   protected readonly _logger: Logger
   protected readonly _environment: GLSEnvironment
-  protected readonly _cacheService: ICachingModuleService | null
+  protected readonly _cacheService: CachingDependency | null
 
   constructor(container: InjectedDependencies, options: GLSModuleOptions) {
     super(container, options)
     this._logger = container.logger
     this._environment = options.environment
 
-    this._cacheService = safeResolve<ICachingModuleService>(
+    this._cacheService = safeResolve(
       container,
       Modules.CACHING,
+      isCachingDependency,
     )
 
     if (!this._cacheService) {

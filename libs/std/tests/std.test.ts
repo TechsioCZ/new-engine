@@ -126,17 +126,51 @@ describe("control utilities", () => {
     expect(() => clamp(1, 2, 0)).toThrow(RangeError)
   })
 
-  it("debounces callbacks", () => {
+  it("debounces and reschedules calls with their latest arguments", () => {
     vi.useFakeTimers()
     const callback = vi.fn<(value: number) => void>()
     const debounced = debounce(callback, 10)
 
     debounced(1)
-    void vi.advanceTimersByTime(9)
+    vi.advanceTimersByTime(9)
     expect(callback).not.toHaveBeenCalled()
     debounced(2)
-    void vi.advanceTimersByTime(10)
+    vi.advanceTimersByTime(10)
     expect(callback).toHaveBeenCalledExactlyOnceWith(2)
+    vi.useRealTimers()
+  })
+
+  it("cancels pending calls idempotently before and after firing", () => {
+    vi.useFakeTimers()
+    const callback = vi.fn<(value: number) => void>()
+    const debounced = debounce(callback, 10)
+
+    debounced(1)
+    debounced.cancel()
+    debounced.cancel()
+    vi.advanceTimersByTime(10)
+    expect(callback).not.toHaveBeenCalled()
+
+    debounced(2)
+    vi.advanceTimersByTime(10)
+    debounced.cancel()
+    expect(callback).toHaveBeenCalledExactlyOnceWith(2)
+    vi.useRealTimers()
+  })
+
+  it("preserves the callback receiver", () => {
+    vi.useFakeTimers()
+    const receivers: string[] = []
+    const debounced = debounce(function recordReceiver(
+      this: { id: string },
+      value: string,
+    ) {
+      receivers.push(`${this.id}:${value}`)
+    }, 10)
+
+    Reflect.apply(debounced, { id: "owner" }, ["value"])
+    vi.advanceTimersByTime(10)
+    expect(receivers).toStrictEqual(["owner:value"])
     vi.useRealTimers()
   })
 

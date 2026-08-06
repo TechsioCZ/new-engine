@@ -1,10 +1,6 @@
 import type { FetchError } from "@medusajs/js-sdk"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type {
-  QueryKey,
-  UseMutationOptions,
-  UseQueryOptions,
-} from "@tanstack/react-query"
+import type { UseMutationOptions, UseQueryOptions } from "@tanstack/react-query"
 
 import type {
   AdminCreateEmployee,
@@ -60,7 +56,7 @@ export const useCreateEmployee = (
 
   return useMutation({
     mutationFn: async (employee: AdminCreateEmployeeBody) =>
-      sdk.client.fetch<AdminEmployeeResponse>(
+      await sdk.client.fetch<AdminEmployeeResponse>(
         `/admin/companies/${companyId}/employees`,
         {
           body: employee,
@@ -99,7 +95,7 @@ export const useUpdateEmployee = (
 
   return useMutation({
     mutationFn: async (employee: AdminUpdateEmployee) =>
-      sdk.client.fetch<AdminEmployeeResponse>(
+      await sdk.client.fetch<AdminEmployeeResponse>(
         `/admin/companies/${companyId}/employees/${employeeId}`,
         {
           body: employee,
@@ -135,13 +131,14 @@ export const useDeleteEmployee = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (employeeId: string) =>
-      sdk.client.fetch<void>(
+    mutationFn: async (employeeId: string) => {
+      await sdk.client.fetch<unknown>(
         `/admin/companies/${companyId}/employees/${employeeId}`,
         {
           method: "DELETE",
         },
-      ),
+      )
+    },
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: employeeQueryKey.detail(variables),

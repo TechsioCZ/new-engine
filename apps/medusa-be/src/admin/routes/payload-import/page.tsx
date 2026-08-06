@@ -1,9 +1,9 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { DocumentText } from "@medusajs/icons"
 import { Button, Container, Heading, Input, Select, Text } from "@medusajs/ui"
-import { getErrorMessage } from "@techsio/std/object"
-import { useState } from "react"
-import type { FormEvent } from "react"
+import { getErrorMessage, isRecord } from "@techsio/std/object"
+import { useRef, useState } from "react"
+import type { SubmitEvent } from "react"
 
 export const handle = {
   breadcrumb: () => "Payload import",
@@ -18,24 +18,47 @@ interface ImportResult {
   }
 }
 
-const configuredLocales: string[] = (
-  import.meta.env["VITE_PAYLOAD_LOCALES"] ?? "cs,sk,en"
-)
-  .split(",")
-  .map((item: string) => item.trim())
-  .filter(Boolean)
-const locales = configuredLocales.length
-  ? configuredLocales
-  : ["cs", "sk", "en"]
+const LOCALE_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/u
+const FALLBACK_LOCALES = ["cs", "sk", "en"]
+
+const parseConfiguredLocales = (value: unknown): string[] => {
+  if (typeof value !== "string") {
+    return FALLBACK_LOCALES
+  }
+
+  const configuredLocales = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => LOCALE_PATTERN.test(item))
+  return configuredLocales.length > 0 ? configuredLocales : FALLBACK_LOCALES
+}
+
+const locales = parseConfiguredLocales(import.meta.env.VITE_PAYLOAD_LOCALES)
 const defaultLocale = locales.includes("sk") ? "sk" : (locales[0] ?? "cs")
 
 const parseErrorMessage = async (response: Response) => {
-  const payload = await response.json().catch(() => null)
-  if (payload && typeof payload === "object" && "message" in payload) {
-    return String(payload.message)
+  try {
+    const payload: unknown = await response.json()
+    if (isRecord(payload) && typeof payload["message"] === "string") {
+      return payload["message"]
+    }
+  } catch {
+    return "Import failed"
   }
 
   return "Import failed"
+}
+
+const isImportResult = (value: unknown): value is ImportResult => {
+  if (!isRecord(value) || value["ok"] !== true || !isRecord(value["result"])) {
+    return false
+  }
+
+  const { imported, skipped, total } = value["result"]
+  return [imported, skipped, total].every(
+    (count) =>
+      typeof count === "number" && Number.isSafeInteger(count) && count >= 0,
+  )
 }
 
 const appendOptional = (formData: FormData, key: string, value: string) => {
@@ -48,7 +71,7 @@ const getImportFailureMessage = (error: unknown) =>
   error instanceof Error ? getErrorMessage(error) : "Import se nepovedl."
 
 const PayloadImportPage = () => {
-  const [file, setFile] = useState<File | null>(null)
+  const fileRef = useRef<File | null>(null)
   const [locale, setLocale] = useState(defaultLocale)
   const [sheetName, setSheetName] = useState("")
   const [status, setStatus] = useState("")
@@ -57,12 +80,13 @@ const PayloadImportPage = () => {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setMessage("")
     setError("")
 
-    if (!file) {
+    const file = fileRef.current
+    if (file === null) {
       setError("Vyber XLSX soubor.")
       return
     }
@@ -88,12 +112,16 @@ const PayloadImportPage = () => {
         return
       }
 
-      const data = (await response.json()) as ImportResult
+      const data: unknown = await response.json()
+      if (!isImportResult(data)) {
+        setError(getImportFailureMessage(data))
+        return
+      }
       setMessage(
         `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`,
       )
-    } catch (error_) {
-      setError(getImportFailureMessage(error_))
+    } catch (caughtError) {
+      setError(getImportFailureMessage(caughtError))
     } finally {
       setIsSubmitting(false)
     }
@@ -108,7 +136,12 @@ const PayloadImportPage = () => {
         </Text>
       </div>
 
-      <form className="grid max-w-xl gap-4 px-6 py-4" onSubmit={onSubmit}>
+      <form
+        className="grid max-w-xl gap-4 px-6 py-4"
+        onSubmit={(event) => {
+          void onSubmit(event)
+        }}
+      >
         <div className="grid gap-1">
           <Text size="small" weight="plus">
             XLSX soubor
@@ -116,7 +149,7 @@ const PayloadImportPage = () => {
           <Input
             accept=".xlsx"
             onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null)
+              fileRef.current = event.target.files?.[0] ?? null
             }}
             type="file"
           />

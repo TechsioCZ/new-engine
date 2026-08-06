@@ -13,7 +13,7 @@ import type { ChangeEvent, SubmitEvent } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { AdminCreateEmployee, QueryCompany } from "../../../../../types"
-import { CoolSwitch } from "../../../../components"
+import { CoolSwitch } from "../../../../components/common/cool-switch"
 import { useAdminCustomerSearch } from "../../../../hooks/api/customers"
 import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 import { currencySymbolMap } from "../../../../utils/currency-symbol-map"

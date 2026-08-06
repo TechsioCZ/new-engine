@@ -12,13 +12,15 @@ import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 
 import type { QueryCompany } from "../../../../types"
-import { ActionMenu, DeletePrompt } from "../../../components"
-import { useDeleteCompany, useRestoreCompany } from "../../../hooks/api"
+import { ActionMenu } from "../../../components/common/action-menu"
+import { DeletePrompt } from "../../../components/common/delete-prompt"
 import {
-  CompanyApprovalSettingsDrawer,
-  CompanyCustomerGroupDrawer,
-  CompanyUpdateDrawer,
-} from "./"
+  useDeleteCompany,
+  useRestoreCompany,
+} from "../../../hooks/api/companies"
+import { CompanyApprovalSettingsDrawer } from "./company-approval-settings-drawer"
+import { CompanyCustomerGroupDrawer } from "./company-customer-group-drawer"
+import { CompanyUpdateDrawer } from "./company-update-drawer"
 
 export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
   const { t } = useTranslation("companies")
@@ -28,7 +30,7 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const { mutateAsync: mutateDelete, isPending: loadingDelete } =
     useDeleteCompany(company.id)
-  const { mutateAsync: mutateRestore, isPending: loadingRestore } =
+  const { mutate: mutateRestore, isPending: loadingRestore } =
     useRestoreCompany(company.id)
 
   const navigate = useNavigate()
@@ -46,8 +48,8 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
     toast.success(t("toasts.companyDeleted", { name: company.name }))
   }
 
-  const handleRestore = async () => {
-    await mutateRestore(undefined, {
+  const handleRestore = () => {
+    mutateRestore(undefined, {
       onError: () => {
         toast.error(t("errors.restoreCompanyFailed"))
       },

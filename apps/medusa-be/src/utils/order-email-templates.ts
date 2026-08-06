@@ -28,12 +28,10 @@ export const orderEmailTemplates = [
   },
 ] satisfies OrderEmailTemplate[]
 
-export function isOrderEmailTemplate(
+export const isOrderEmailTemplate = (
   template: string | undefined,
-): template is OrderEmailTemplateName {
-  return orderEmailTemplates.some((item) => item.template === template)
-}
+): template is OrderEmailTemplateName =>
+  orderEmailTemplates.some((item) => item.template === template)
 
-export function getOrderEmailTemplate(template: OrderEmailTemplateName) {
-  return orderEmailTemplates.find((item) => item.template === template)
-}
+export const getOrderEmailTemplate = (template: OrderEmailTemplateName) =>
+  orderEmailTemplates.find((item) => item.template === template)

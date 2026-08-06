@@ -58,6 +58,12 @@ const PRIVATE_PAYLOAD_FIELD_NAMES = new Set([
 
 type CachingDependency = Pick<ICachingModuleService, "clear" | "get" | "set">
 
+const isCachingDependency = (value: unknown): value is CachingDependency =>
+  isRecord(value) &&
+  typeof value["clear"] === "function" &&
+  typeof value["get"] === "function" &&
+  typeof value["set"] === "function"
+
 interface InjectedDependencies {
   logger: Logger
   [Modules.CACHING]?: CachingDependency
@@ -261,9 +267,10 @@ export default class PayloadModuleService extends MedusaService({}) {
       "Content-Type": "application/json",
     }
     this._logger = container.logger
-    this._cacheService = safeResolve<CachingDependency>(
+    this._cacheService = safeResolve(
       container,
       Modules.CACHING,
+      isCachingDependency,
     )
 
     this._contentCacheTtl = options.contentCacheTtl ?? DEFAULT_TTLS.CONTENT

@@ -18,6 +18,7 @@ import {
   createProductsWorkflow,
   createStockLocationsWorkflow,
 } from "@medusajs/medusa/core-flows"
+import { isRecord } from "@techsio/std/object"
 import { sql } from "drizzle-orm"
 
 import { sqlRaw } from "../utils/db"
@@ -42,6 +43,70 @@ interface ProductRecord {
   collection_name: string
 }
 
+const getRequiredProductString = (
+  row: Readonly<Record<string, unknown>>,
+  key: string,
+  index: number,
+): string => {
+  const value = row[key]
+  if (typeof value !== "string") {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Product import row ${index} has invalid ${key}`,
+    )
+  }
+  return value
+}
+
+const decodeProductRecord = (
+  row: Readonly<Record<string, unknown>>,
+  index: number,
+): ProductRecord => {
+  const productPrice = row["product_price"]
+  if (typeof productPrice !== "number" || !Number.isFinite(productPrice)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Product import row ${index} has invalid product_price`,
+    )
+  }
+  return {
+    category_image_url: getRequiredProductString(
+      row,
+      "category_image_url",
+      index,
+    ),
+    category_name: getRequiredProductString(row, "category_name", index),
+    category_slug: getRequiredProductString(row, "category_slug", index),
+    collection_name: getRequiredProductString(row, "collection_name", index),
+    collection_slug: getRequiredProductString(row, "collection_slug", index),
+    product_description: getRequiredProductString(
+      row,
+      "product_description",
+      index,
+    ),
+    product_image_url: getRequiredProductString(
+      row,
+      "product_image_url",
+      index,
+    ),
+    product_name: getRequiredProductString(row, "product_name", index),
+    product_price: productPrice,
+    product_slug: getRequiredProductString(row, "product_slug", index),
+    subcategory_image_url: getRequiredProductString(
+      row,
+      "subcategory_image_url",
+      index,
+    ),
+    subcategory_name: getRequiredProductString(row, "subcategory_name", index),
+    subcategory_slug: getRequiredProductString(row, "subcategory_slug", index),
+    subcollection_name: getRequiredProductString(
+      row,
+      "subcollection_name",
+      index,
+    ),
+  }
+}
+
 interface ImportPageResult {
   createdCount: number
   hasMore: boolean
@@ -55,7 +120,8 @@ const importProductPage = async (
   step = 10,
 ): Promise<ProductRecord[]> =>
   // Query products with pagination
-  await sqlRaw<ProductRecord>(sql`
+  await sqlRaw(
+    sql`
       SELECT
         p.slug AS product_slug,
         p.name AS product_name,
@@ -77,7 +143,9 @@ const importProductPage = async (
       JOIN categories ca ON ca.slug = sco.category_slug
       JOIN collections cl ON cl.id = ca.collection_id
       LIMIT ${step}
-      OFFSET ${page * step}`)
+      OFFSET ${page * step}`,
+    decodeProductRecord,
+  )
 
 let i = 0
 const DATE_STRING_PATTERN = /^\d{4}-\d{2}-\d{2}/u
@@ -166,12 +234,6 @@ const convertToMedusaProducts = (
       ],
     } satisfies CreateProductWorkflowInputDTO
   })
-
-/**
- * Narrow an unknown value to a plain object we can safely inspect by key
- */
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
 
 interface HandleIdentity {
   id: string

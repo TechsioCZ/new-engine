@@ -4,13 +4,18 @@ import {
   Portal as PopoverPortal,
   Root as PopoverRoot,
 } from "@radix-ui/react-popover"
+import { debounce } from "@techsio/std/function"
 import { useEffect, useRef, useState } from "react"
 
-import { debounce } from "../../../../../utils/debounce"
 import { useSelectedParams } from "../hooks"
 import { useDataTableFilterContext } from "./context"
 import FilterChip from "./filter-chip"
 import type { IFilter } from "./types"
+
+const isCancellable = (value: unknown): value is { cancel: () => void } =>
+  typeof value === "function" &&
+  "cancel" in value &&
+  typeof value.cancel === "function"
 
 type StringFilterProps = IFilter
 
@@ -46,7 +51,9 @@ export const StringFilter = ({
 
   useEffect(
     () => () => {
-      debouncedOnChange.cancel()
+      if (isCancellable(debouncedOnChange)) {
+        debouncedOnChange.cancel()
+      }
       if (timeoutIdRef.current !== null) {
         clearTimeout(timeoutIdRef.current)
       }

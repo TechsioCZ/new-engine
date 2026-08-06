@@ -22,7 +22,7 @@ const CoolSwitch = ({
       <Label className="txt-compact-small font-medium" size="xsmall">
         {label}
       </Label>
-      {tooltip && (
+      {typeof tooltip === "string" && tooltip.length > 0 && (
         <Tooltip className="z-50" content={tooltip}>
           <InformationCircleSolid color="gray" />
         </Tooltip>

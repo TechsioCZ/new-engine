@@ -13,7 +13,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import {
@@ -35,6 +35,16 @@ import {
 
 const STATUS_OPTIONS: ReviewStatus[] = ["pending", "approved", "rejected"]
 
+const isReviewStatus = (value: unknown): value is ReviewStatus =>
+  typeof value === "string" && STATUS_OPTIONS.some((status) => status === value)
+
+const retrieveSelectedReview = async (id: string | undefined) => {
+  if (id === undefined) {
+    throw new Error("Review id is required")
+  }
+  return await retrieveReview(id)
+}
+
 const toFormState = (review: Review): ReviewFormInput => ({
   content: review.content,
   first_name: review.first_name ?? "",
@@ -44,23 +54,19 @@ const toFormState = (review: Review): ReviewFormInput => ({
   title: review.title,
 })
 
-const ReviewEditDrawer = ({
-  onOpenChange,
-  open,
-  review,
-}: {
+interface ReviewEditDrawerProps {
   onOpenChange: (open: boolean) => void
   open: boolean
   review: Review
-}) => {
+}
+
+const ReviewEditDrawerContent = ({
+  onOpenChange,
+  open,
+  review,
+}: ReviewEditDrawerProps) => {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<ReviewFormInput>(() => toFormState(review))
-
-  useEffect(() => {
-    if (open) {
-      setForm(toFormState(review))
-    }
-  }, [open, review])
 
   const mutation = useMutation({
     mutationFn: async (input: ReviewInput) =>
@@ -130,10 +136,9 @@ const ReviewEditDrawer = ({
               <Label>Status</Label>
               <Select
                 onValueChange={(value) => {
-                  setForm((current) => ({
-                    ...current,
-                    status: value as ReviewStatus,
-                  }))
+                  if (isReviewStatus(value)) {
+                    setForm((current) => ({ ...current, status: value }))
+                  }
                 }}
                 value={form.status}
               >
@@ -199,13 +204,20 @@ const ReviewEditDrawer = ({
   )
 }
 
+const ReviewEditDrawer = (props: ReviewEditDrawerProps) => (
+  <ReviewEditDrawerContent
+    {...props}
+    key={`${props.review.id}:${String(props.open)}`}
+  />
+)
+
 const ReviewsDetailPage = () => {
   const { id } = useParams()
   const [editOpen, setEditOpen] = useState(false)
   const { data, isLoading } = useQuery({
-    enabled: Boolean(id),
-    queryFn: async () => await retrieveReview(id as string),
-    queryKey: reviewQueryKeys.detail(id as string),
+    enabled: id !== undefined,
+    queryFn: async () => await retrieveSelectedReview(id),
+    queryKey: reviewQueryKeys.detail(id ?? ""),
   })
   const review = data?.review
 

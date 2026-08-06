@@ -3,13 +3,13 @@ import type { toast as toastType } from "@medusajs/ui"
 import { getErrorMessage } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
 
-import { EmployeesUpdateForm } from "."
 import type {
   AdminUpdateEmployee,
   QueryCompany,
   QueryEmployee,
 } from "../../../../../types"
-import { useUpdateEmployee } from "../../../../hooks/api"
+import { useUpdateEmployee } from "../../../../hooks/api/employees"
+import { EmployeesUpdateForm } from "./employees-update-form"
 
 export const EmployeesUpdateDrawer = ({
   company,

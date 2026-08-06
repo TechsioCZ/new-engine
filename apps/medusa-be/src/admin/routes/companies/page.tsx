@@ -14,22 +14,23 @@ import {
 } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
 import type { QueryCompany } from "../../../types"
 import { adminCompanyDisplayFieldsQuery } from "../../../types/company/admin-fields"
-import { useCompanies } from "../../hooks/api"
+import { useCompanies } from "../../hooks/api/companies"
 import { translateBreadcrumb } from "../../lib/breadcrumb"
-import {
-  getPaginationTranslations,
-  onRowKeyboardActivate,
-} from "../../lib/table"
+import { getPaginationTranslations } from "../../lib/table"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
-import { CompanyActionsMenu, CompanyCreateDrawer } from "./components"
+import { CompanyActionsMenu } from "./components/company-actions-menu"
+import { CompanyCreateDrawer } from "./components/company-create-drawer"
 
 const PAGE_SIZE = 20
 const COMPANY_STATUS_OPTIONS = ["active", "deleted", "all"] as const
 type CompanyStatusFilter = (typeof COMPANY_STATUS_OPTIONS)[number]
+const isCompanyStatusFilter = (value: string): value is CompanyStatusFilter =>
+  COMPANY_STATUS_OPTIONS.some((option) => option === value)
+
 const ORDER_OPTIONS = [
   { labelKey: "nameAsc", value: "name" },
   { labelKey: "nameDesc", value: "-name" },
@@ -37,6 +38,8 @@ const ORDER_OPTIONS = [
   { labelKey: "recentlyUpdated", value: "-updated_at" },
 ] as const
 type CompanyOrder = (typeof ORDER_OPTIONS)[number]["value"]
+const isCompanyOrder = (value: string): value is CompanyOrder =>
+  ORDER_OPTIONS.some((option) => option.value === value)
 
 export const handle = {
   breadcrumb: () => translateBreadcrumb("companies:menuItem", "Companies"),
@@ -114,17 +117,11 @@ const Companies = () => {
 
       return (
         <Table.Row
-          aria-label={displayName}
           className="cursor-pointer"
           key={company.id}
           onClick={() => {
             navigate(`/companies/${company.id}`)
           }}
-          onKeyDown={onRowKeyboardActivate(() => {
-            navigate(`/companies/${company.id}`)
-          })}
-          role="button"
-          tabIndex={0}
         >
           <Table.Cell className="h-6 w-6 items-center justify-center">
             <Avatar
@@ -132,7 +129,9 @@ const Companies = () => {
               src={company.logo_url ?? ""}
             />
           </Table.Cell>
-          <Table.Cell>{displayName}</Table.Cell>
+          <Table.Cell>
+            <Link to={`/companies/${company.id}`}>{displayName}</Link>
+          </Table.Cell>
           <Table.Cell>{company.phone}</Table.Cell>
           <Table.Cell>{company.email}</Table.Cell>
           <Table.Cell>
@@ -183,8 +182,10 @@ const Companies = () => {
           />
           <Select
             onValueChange={(value) => {
-              setPageIndex(0)
-              setOrderBy(value)
+              if (isCompanyOrder(value)) {
+                setPageIndex(0)
+                setOrderBy(value)
+              }
             }}
             value={orderBy}
           >
@@ -201,8 +202,10 @@ const Companies = () => {
           </Select>
           <Select
             onValueChange={(value) => {
-              setPageIndex(0)
-              setStatus(value)
+              if (isCompanyStatusFilter(value)) {
+                setPageIndex(0)
+                setStatus(value)
+              }
             }}
             value={status}
           >

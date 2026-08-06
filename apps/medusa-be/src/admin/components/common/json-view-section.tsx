@@ -17,6 +17,80 @@ import Primitive from "@uiw/react-json-view"
 import { Suspense, useState } from "react"
 import type { CSSProperties, MouseEvent } from "react"
 
+const CONTRAST_FG_PRIMARY = "var(--contrast-fg-primary)"
+const CONTRAST_FG_SECONDARY = "var(--contrast-fg-secondary)"
+const TAG_ORANGE_ICON = "var(--tag-orange-icon)"
+
+const JSON_VIEW_STYLE = {
+  "--w-rjv-arrow-color": CONTRAST_FG_SECONDARY,
+  "--w-rjv-brackets-color": CONTRAST_FG_SECONDARY,
+  "--w-rjv-colon-color": CONTRAST_FG_PRIMARY,
+  "--w-rjv-copied-color": CONTRAST_FG_SECONDARY,
+  "--w-rjv-copied-success-color": CONTRAST_FG_PRIMARY,
+  "--w-rjv-curlybraces-color": CONTRAST_FG_SECONDARY,
+  "--w-rjv-ellipsis-color": CONTRAST_FG_SECONDARY,
+  "--w-rjv-font-family": "Roboto Mono, monospace",
+  "--w-rjv-info-color": CONTRAST_FG_SECONDARY,
+  "--w-rjv-key-number": CONTRAST_FG_SECONDARY,
+  "--w-rjv-key-string": CONTRAST_FG_PRIMARY,
+  "--w-rjv-line-color": "var(--contrast-border-base)",
+  "--w-rjv-quotes-string-color": "var(--tag-green-icon)",
+  "--w-rjv-type-bigint-color": TAG_ORANGE_ICON,
+  "--w-rjv-type-boolean-color": TAG_ORANGE_ICON,
+  "--w-rjv-type-float-color": TAG_ORANGE_ICON,
+  "--w-rjv-type-int-color": TAG_ORANGE_ICON,
+  "--w-rjv-type-string-color": "var(--tag-green-icon)",
+  fontFamily: "Roboto Mono, monospace",
+}
+
+const COPIED_STYLE: CSSProperties = { whiteSpace: "nowrap", width: "20px" }
+
+interface CopiedProps {
+  style?: CSSProperties
+  value: object | undefined
+}
+
+const Copied = ({ style, value }: CopiedProps) => {
+  const [copied, setCopied] = useState(false)
+
+  const handler = async (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    setCopied(true)
+
+    if (typeof value === "string") {
+      await navigator.clipboard.writeText(value)
+    } else {
+      const json = JSON.stringify(value, null, 2)
+      await navigator.clipboard.writeText(json)
+    }
+
+    setTimeout(() => {
+      setCopied(false)
+    }, 2000)
+  }
+
+  if (copied) {
+    return (
+      <span style={{ ...style, ...COPIED_STYLE }}>
+        <Check className="text-ui-contrast-fg-primary" />
+      </span>
+    )
+  }
+
+  return (
+    <button
+      className="inline-flex border-0 bg-transparent p-0"
+      onClick={(event) => {
+        void handler(event)
+      }}
+      style={{ ...style, ...COPIED_STYLE }}
+      type="button"
+    >
+      <SquareTwoStack className="text-ui-contrast-fg-secondary" />
+    </button>
+  )
+}
+
 interface JsonViewSectionProps {
   data: object
   title?: string
@@ -76,30 +150,7 @@ export const JsonViewSection = ({ data }: JsonViewSectionProps) => {
                 <Primitive
                   collapsed={1}
                   displayDataTypes={false}
-                  style={
-                    {
-                      "--w-rjv-arrow-color": "var(--contrast-fg-secondary)",
-                      "--w-rjv-brackets-color": "var(--contrast-fg-secondary)",
-                      "--w-rjv-colon-color": "var(--contrast-fg-primary)",
-                      "--w-rjv-copied-color": "var(--contrast-fg-secondary)",
-                      "--w-rjv-copied-success-color":
-                        "var(--contrast-fg-primary)",
-                      "--w-rjv-curlybraces-color":
-                        "var(--contrast-fg-secondary)",
-                      "--w-rjv-ellipsis-color": "var(--contrast-fg-secondary)",
-                      "--w-rjv-font-family": "Roboto Mono, monospace",
-                      "--w-rjv-info-color": "var(--contrast-fg-secondary)",
-                      "--w-rjv-key-number": "var(--contrast-fg-secondary)",
-                      "--w-rjv-key-string": "var(--contrast-fg-primary)",
-                      "--w-rjv-line-color": "var(--contrast-border-base)",
-                      "--w-rjv-quotes-string-color": "var(--tag-green-icon)",
-                      "--w-rjv-type-bigint-color": "var(--tag-orange-icon)",
-                      "--w-rjv-type-boolean-color": "var(--tag-orange-icon)",
-                      "--w-rjv-type-float-color": "var(--tag-orange-icon)",
-                      "--w-rjv-type-int-color": "var(--tag-orange-icon)",
-                      "--w-rjv-type-string-color": "var(--tag-green-icon)",
-                    } as CSSProperties
-                  }
+                  style={JSON_VIEW_STYLE}
                   value={data}
                 >
                   <Primitive.Quote render={() => <span />} />
@@ -116,7 +167,10 @@ export const JsonViewSection = ({ data }: JsonViewSectionProps) => {
                   <Primitive.CountInfo
                     render={(_props, { value }) => (
                       <span className="ml-2 text-ui-contrast-fg-secondary">
-                        {Object.keys(value as object).length} items
+                        {typeof value === "object" && value !== null
+                          ? Object.keys(value).length
+                          : 0}{" "}
+                        items
                       </span>
                     )}
                   />
@@ -138,51 +192,5 @@ export const JsonViewSection = ({ data }: JsonViewSectionProps) => {
         </Drawer.Content>
       </Drawer>
     </Container>
-  )
-}
-
-interface CopiedProps {
-  style?: CSSProperties
-  value: object | undefined
-}
-
-const Copied = ({ style, value }: CopiedProps) => {
-  const [copied, setCopied] = useState(false)
-
-  const handler = async (e: MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation()
-    setCopied(true)
-
-    if (typeof value === "string") {
-      await navigator.clipboard.writeText(value)
-    } else {
-      const json = JSON.stringify(value, null, 2)
-      await navigator.clipboard.writeText(json)
-    }
-
-    setTimeout(() => {
-      setCopied(false)
-    }, 2000)
-  }
-
-  const styl: CSSProperties = { whiteSpace: "nowrap", width: "20px" }
-
-  if (copied) {
-    return (
-      <span style={{ ...style, ...styl }}>
-        <Check className="text-ui-contrast-fg-primary" />
-      </span>
-    )
-  }
-
-  return (
-    <button
-      className="inline-flex border-0 bg-transparent p-0"
-      onClick={handler}
-      style={{ ...style, ...styl }}
-      type="button"
-    >
-      <SquareTwoStack className="text-ui-contrast-fg-secondary" />
-    </button>
   )
 }

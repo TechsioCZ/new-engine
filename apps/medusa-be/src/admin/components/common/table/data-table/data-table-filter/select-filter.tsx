@@ -6,7 +6,7 @@ import {
   Root as PopoverRoot,
 } from "@radix-ui/react-popover"
 import { Command } from "cmdk"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { useSelectedParams } from "../hooks"
@@ -22,7 +22,7 @@ type SelectFilterProps = IFilter & {
 }
 
 const normalizeValue = (value?: string | string[]) => {
-  if (!value) {
+  if (value === null || value === undefined || value === "") {
     return null
   }
 
@@ -38,9 +38,9 @@ export const SelectFilter = ({
   options,
   openOnMount,
 }: SelectFilterProps) => {
-  const [open, setOpen] = useState(openOnMount)
   const [search, setSearch] = useState("")
-  const [searchRef, setSearchRef] = useState<HTMLInputElement | null>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const timeoutId = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { t } = useTranslation()
   const { removeFilter } = useDataTableFilterContext()
@@ -48,14 +48,15 @@ export const SelectFilter = ({
   const { key, label } = filter
   const selectedParams = useSelectedParams({
     param: key,
-    ...(prefix ? { prefix } : {}),
+    ...(prefix === undefined ? {} : { prefix }),
     ...(multiple === undefined ? {} : { multiple }),
   })
   const currentValue = selectedParams.get()
 
-  const labelValues = currentValue
-    .map((v) => options.find((o) => o.value === v)?.label)
-    .filter(Boolean) as string[]
+  const labelValues = currentValue.flatMap((value) => {
+    const optionLabel = options.find((option) => option.value === value)?.label
+    return optionLabel === undefined ? [] : [optionLabel]
+  })
 
   const [previousValue, setPreviousValue] = useState<
     string | string[] | undefined
@@ -66,19 +67,15 @@ export const SelectFilter = ({
     removeFilter(key)
   }
 
-  let timeoutId: ReturnType<typeof setTimeout> | null = null
-
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen)
-
     setPreviousValue(labelValues)
 
-    if (timeoutId) {
-      clearTimeout(timeoutId)
+    if (timeoutId.current !== null) {
+      clearTimeout(timeoutId.current)
     }
 
     if (!(nextOpen || currentValue.length)) {
-      timeoutId = setTimeout(() => {
+      timeoutId.current = setTimeout(() => {
         removeFilter(key)
       }, 200)
     }
@@ -87,9 +84,7 @@ export const SelectFilter = ({
   const handleClearSearch = () => {
     setSearch("")
 
-    if (searchRef) {
-      searchRef.focus()
-    }
+    searchRef.current?.focus()
   }
 
   const handleSelect = (value: unknown) => {
@@ -102,20 +97,25 @@ export const SelectFilter = ({
     }
   }
 
-  const normalizedValues = labelValues.length ? labelValues : null
+  const normalizedValues = labelValues.length > 0 ? labelValues : null
   const normalizedPrev = normalizeValue(previousValue)
+  const selectedValueSet = new Set(selectedParams.get())
 
   return (
-    <PopoverRoot modal onOpenChange={handleOpenChange} open={open ?? false}>
+    <PopoverRoot
+      {...(openOnMount === undefined ? {} : { defaultOpen: openOnMount })}
+      modal
+      onOpenChange={handleOpenChange}
+    >
       <FilterChip
-        hadPreviousValue={!!normalizedPrev?.length}
+        hadPreviousValue={(normalizedPrev?.length ?? 0) > 0}
         hasOperator
         label={label}
         onRemove={handleRemove}
         readonly={readonly ?? false}
         value={normalizedValues?.join(", ") ?? ""}
       />
-      {!readonly && (
+      {readonly !== true && (
         <PopoverPortal>
           <PopoverContent
             align="start"
@@ -137,14 +137,14 @@ export const SelectFilter = ({
             sideOffset={8}
           >
             <Command className="h-full">
-              {searchable && (
+              {searchable === true && (
                 <div className="border-b p-1">
                   <div className="grid grid-cols-[1fr_20px] gap-x-2 rounded-md px-2 py-1">
                     <Command.Input
                       className="txt-compact-small bg-transparent outline-none placeholder:text-ui-fg-muted"
                       onValueChange={setSearch}
                       placeholder={t("filters.search")}
-                      ref={setSearchRef}
+                      ref={searchRef}
                       value={search}
                     />
                     <div className="flex h-5 w-5 items-center justify-center">
@@ -152,10 +152,10 @@ export const SelectFilter = ({
                         className={clx(
                           "rounded-md text-ui-fg-muted outline-none transition-fg focus-visible:bg-ui-bg-base-pressed",
                           {
-                            invisible: !search,
+                            invisible: search.length === 0,
                           },
                         )}
-                        disabled={!search}
+                        disabled={search.length === 0}
                         onClick={handleClearSearch}
                         type="button"
                       >
@@ -172,9 +172,7 @@ export const SelectFilter = ({
               </Command.Empty>
               <Command.List className="h-full max-h-[163px] min-h-[0] overflow-auto p-1 outline-none">
                 {options.map((option) => {
-                  const isSelected = selectedParams
-                    .get()
-                    .includes(String(option.value))
+                  const isSelected = selectedValueSet.has(String(option.value))
 
                   return (
                     <Command.Item
@@ -193,7 +191,11 @@ export const SelectFilter = ({
                           },
                         )}
                       >
-                        {multiple ? <CheckMini /> : <EllipseMiniSolid />}
+                        {multiple === true ? (
+                          <CheckMini />
+                        ) : (
+                          <EllipseMiniSolid />
+                        )}
                       </div>
                       {option.label}
                     </Command.Item>

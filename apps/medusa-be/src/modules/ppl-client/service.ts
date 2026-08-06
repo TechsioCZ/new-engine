@@ -73,11 +73,23 @@ const TOKEN_BUFFER_MS = 60_000
 const TOKEN_TTL_SAFETY_SECONDS = 60
 const MILLISECONDS_PER_SECOND = 1000
 
+type CachingDependency = Pick<ICachingModuleService, "clear" | "get" | "set">
+type LockingDependency = Pick<ILockingModule, "execute">
+
 interface InjectedDependencies {
   logger: Logger
-  [Modules.CACHING]?: ICachingModuleService
-  [Modules.LOCKING]?: ILockingModule
+  [Modules.CACHING]?: CachingDependency
+  [Modules.LOCKING]?: LockingDependency
 }
+
+const isCachingDependency = (value: unknown): value is CachingDependency =>
+  isRecord(value) &&
+  typeof value["clear"] === "function" &&
+  typeof value["get"] === "function" &&
+  typeof value["set"] === "function"
+
+const isLockingDependency = (value: unknown): value is LockingDependency =>
+  isRecord(value) && typeof value["execute"] === "function"
 
 interface CachedToken {
   accessToken: string
@@ -290,8 +302,8 @@ type LockOutcome =
  * unhandled rejection; the caller rethrows the original error unchanged.
  */
 const reserveRateLimitSlot = async (
-  cacheService: ICachingModuleService,
-  lockingService: ILockingModule,
+  cacheService: CachingDependency,
+  lockingService: LockingDependency,
 ): Promise<LockOutcome> => {
   try {
     const waitTime = await lockingService.execute(
@@ -332,8 +344,8 @@ const reserveRateLimitSlot = async (
  * a stalled provider degrades to the local fallback instead of blocking.
  */
 const acquireDistributedSlot = async (
-  cacheService: ICachingModuleService,
-  lockingService: ILockingModule,
+  cacheService: CachingDependency,
+  lockingService: LockingDependency,
 ): Promise<LockOutcome> => {
   const { promise: expiry, resolve: expire } =
     Promise.withResolvers<LockOutcome>()
@@ -376,8 +388,8 @@ interface PplModuleOptions {
 export class PplClientModuleService extends MedusaService({ PplConfig }) {
   private _client: PplClient | null = null
   private readonly _logger: Logger
-  private readonly _cacheService: ICachingModuleService | null
-  private readonly _lockingService: ILockingModule | null
+  private readonly _cacheService: CachingDependency | null
+  private readonly _lockingService: LockingDependency | null
   private readonly _environment: PplEnvironment
 
   // Local fallback state (only used when Redis unavailable)
@@ -391,13 +403,15 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     this._logger = container.logger
     this._environment = options.environment
 
-    this._cacheService = safeResolve<ICachingModuleService>(
+    this._cacheService = safeResolve(
       container,
       Modules.CACHING,
+      isCachingDependency,
     )
-    this._lockingService = safeResolve<ILockingModule>(
+    this._lockingService = safeResolve(
       container,
       Modules.LOCKING,
+      isLockingDependency,
     )
 
     if (!(this._cacheService && this._lockingService)) {

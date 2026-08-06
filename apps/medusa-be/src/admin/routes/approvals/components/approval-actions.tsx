@@ -3,8 +3,11 @@ import { IconButton, usePrompt } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import { ApprovalStatusType, ApprovalType } from "../../../../types"
-import { useUpdateApproval } from "../../../hooks/api"
+import {
+  ApprovalStatusType,
+  ApprovalType,
+} from "../../../../types/approval/module"
+import { useUpdateApproval } from "../../../hooks/api/approvals"
 
 export interface ApprovalActionCart {
   approval_status: {
@@ -79,7 +82,9 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
           aria-label={t("actions.reject")}
           className="h-8 w-8"
           isLoading={isRejecting}
-          onClick={rejectCart}
+          onClick={() => {
+            void rejectCart()
+          }}
         >
           <XMark />
         </IconButton>
@@ -87,7 +92,9 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
           aria-label={t("actions.approve")}
           className="h-8 w-8"
           isLoading={isApproving}
-          onClick={approveCart}
+          onClick={() => {
+            void approveCart()
+          }}
         >
           <Check />
         </IconButton>

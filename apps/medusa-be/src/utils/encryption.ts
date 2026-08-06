@@ -80,47 +80,46 @@ const decrypt = (ciphertext: string): string => {
   ]).toString("utf-8")
 }
 
-/**
- * Encrypts specified fields in an object.
- * Only encrypts non-null string values.
- */
-export const encryptFields = <T extends Record<string, unknown>>(
+const transformStringField = <T extends object>(
   data: T,
-  fields: (keyof T)[],
+  field: keyof T,
+  transform: (value: string) => string,
 ): T => {
-  const result = { ...data }
+  const value: unknown = data[field]
+  return typeof value === "string" && value.length > 0
+    ? { ...data, [field]: transform(value) }
+    : data
+}
 
-  for (const field of fields) {
-    const value: unknown = result[field]
-    if (typeof value === "string" && value.length > 0) {
-      Object.assign(result, { [field]: encrypt(value) })
-    }
+const decryptLegacyCompatible = (value: string): string => {
+  try {
+    return decrypt(value)
+  } catch {
+    // Legacy rows may contain plaintext; preserve those bytes unchanged.
+    return value
   }
+}
 
+/** Encrypt specified non-empty string fields without mutating the input. */
+export const encryptFields = <T extends object>(
+  data: T,
+  fields: readonly (keyof T)[],
+): T => {
+  let result = data
+  for (const field of fields) {
+    result = transformStringField(result, field, encrypt)
+  }
   return result
 }
 
-/**
- * Decrypts specified fields in an object.
- * Only decrypts non-null string values.
- */
-export const decryptFields = <T extends Record<string, unknown>>(
+/** Decrypt specified fields while retaining legacy plaintext values. */
+export const decryptFields = <T extends object>(
   data: T,
-  fields: (keyof T)[],
+  fields: readonly (keyof T)[],
 ): T => {
-  const result = { ...data }
-
+  let result = data
   for (const field of fields) {
-    const value: unknown = result[field]
-    if (typeof value === "string" && value.length > 0) {
-      try {
-        Object.assign(result, { [field]: decrypt(value) })
-      } catch {
-        // If decryption fails, the value might not be encrypted (legacy data)
-        // Keep the original value
-      }
-    }
+    result = transformStringField(result, field, decryptLegacyCompatible)
   }
-
   return result
 }

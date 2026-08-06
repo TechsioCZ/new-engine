@@ -18,7 +18,7 @@ export const TextCell = ({
   align = "left",
   maxWidth = 220,
 }: CellProps) => {
-  if (!text) {
+  if (text === null || text === undefined || text === "") {
     return <PlaceholderCell />
   }
 

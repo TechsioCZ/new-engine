@@ -7,31 +7,6 @@ interface FilterGroupProps {
   filters: Record<string, ReactNode>
 }
 
-export const FilterGroup = ({ filters }: FilterGroupProps) => {
-  const { t } = useTranslation()
-  const [searchParams] = useSearchParams()
-  const filterKeys = Object.keys(filters)
-
-  if (filterKeys.length === 0) {
-    return null
-  }
-
-  const isClearable = filterKeys.some((key) => searchParams.get(key))
-  const hasMore = !filterKeys.every((key) => searchParams.get(key))
-  const availableKeys = filterKeys.filter((key) => !searchParams.get(key))
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {hasMore && <AddFilterMenu availableKeys={availableKeys} />}
-      {isClearable && (
-        <Button size="small" variant="transparent">
-          {t("filters.clearAll")}
-        </Button>
-      )}
-    </div>
-  )
-}
-
 interface AddFilterMenuProps {
   availableKeys: string[]
 }
@@ -52,5 +27,32 @@ const AddFilterMenu = ({ availableKeys }: AddFilterMenuProps) => {
         ))}
       </DropdownMenu.Content>
     </DropdownMenu>
+  )
+}
+
+export const FilterGroup = ({ filters }: FilterGroupProps) => {
+  const { t } = useTranslation()
+  const [searchParams] = useSearchParams()
+  const filterKeys = Object.keys(filters)
+
+  if (filterKeys.length === 0) {
+    return null
+  }
+
+  const isClearable = filterKeys.some((key) => searchParams.get(key) !== null)
+  const hasMore = !filterKeys.every((key) => searchParams.get(key) !== null)
+  const availableKeys = filterKeys.filter(
+    (key) => searchParams.get(key) === null,
+  )
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {hasMore && <AddFilterMenu availableKeys={availableKeys} />}
+      {isClearable && (
+        <Button size="small" variant="transparent">
+          {t("filters.clearAll")}
+        </Button>
+      )}
+    </div>
   )
 }

@@ -40,10 +40,18 @@ const CACHE_TTL = {
   CONFIG: 60,
 } as const
 
+type CachingDependency = Pick<ICachingModuleService, "clear" | "get" | "set">
+
 type InjectedDependencies = Record<string, unknown> & {
   logger: Logger
-  [Modules.CACHING]?: ICachingModuleService
+  [Modules.CACHING]?: CachingDependency
 }
+
+const isCachingDependency = (value: unknown): value is CachingDependency =>
+  isRecord(value) &&
+  typeof value["clear"] === "function" &&
+  typeof value["get"] === "function" &&
+  typeof value["set"] === "function"
 
 interface PacketaModuleOptions {
   environment: PacketaEnvironment
@@ -164,7 +172,7 @@ export class PacketaClientModuleService extends MedusaService({
   protected readonly container: InjectedDependencies
   protected readonly logger: Logger
   protected readonly environment: PacketaEnvironment
-  protected readonly cacheService: ICachingModuleService | null
+  protected readonly cacheService: CachingDependency | null
 
   constructor(container: InjectedDependencies, options: PacketaModuleOptions) {
     super(container, options)
@@ -172,9 +180,10 @@ export class PacketaClientModuleService extends MedusaService({
     this.logger = container.logger
     this.environment = options.environment
 
-    this.cacheService = safeResolve<ICachingModuleService>(
+    this.cacheService = safeResolve(
       container,
       Modules.CACHING,
+      isCachingDependency,
     )
 
     if (this.cacheService === null) {

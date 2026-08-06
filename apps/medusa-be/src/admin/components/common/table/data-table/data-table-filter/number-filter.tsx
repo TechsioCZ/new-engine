@@ -10,15 +10,20 @@ import {
   Item as RadioGroupItem,
   Root as RadioGroupRoot,
 } from "@radix-ui/react-radio-group"
+import { debounce } from "@techsio/std/function"
 import type { TFunction } from "i18next"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import { debounce } from "../../../../../utils/debounce"
 import { useSelectedParams } from "../hooks"
 import { useDataTableFilterContext } from "./context"
 import FilterChip from "./filter-chip"
 import type { IFilter } from "./types"
+
+const isCancellable = (value: unknown): value is { cancel: () => void } =>
+  typeof value === "function" &&
+  "cancel" in value &&
+  typeof value.cancel === "function"
 
 type NumberFilterProps = IFilter
 
@@ -205,7 +210,9 @@ export const NumberFilter = ({
 
   useEffect(
     () => () => {
-      debouncedOnChange.cancel()
+      if (isCancellable(debouncedOnChange)) {
+        debouncedOnChange.cancel()
+      }
     },
     [debouncedOnChange],
   )
