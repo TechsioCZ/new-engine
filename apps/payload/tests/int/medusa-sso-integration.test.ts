@@ -1,3 +1,5 @@
+import type { randomUUID } from "node:crypto"
+
 import { importSPKI, jwtVerify } from "jose"
 import type { PayloadRequest } from "payload"
 import { generatePayloadCookie, headersWithCors, jwtSign } from "payload"
@@ -5,20 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { medusaSsoPostEndpoint } from "@/lib/endpoints/medusa-sso"
 
-vi.mock(import("payload"), () => {
-  class APIError extends Error {
-    status: number
-
-    constructor(message: string, status: number) {
-      super(message)
-      this.name = "APIError"
-      this.status = status
-    }
-  }
-
+vi.mock(import("payload"), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
-    APIError,
-    generatePayloadCookie: vi.fn<() => string>(() => "payload-cookie"),
+    ...actual,
+    generatePayloadCookie: vi.fn<typeof generatePayloadCookie>(
+      actual.generatePayloadCookie,
+    ),
     headersWithCors: vi.fn<typeof headersWithCors>(
       ({ headers }: { headers: Headers }) => headers,
     ),
@@ -28,16 +23,17 @@ vi.mock(import("payload"), () => {
   }
 })
 
-vi.mock(import("jose"), () => ({
-  importSPKI: vi.fn<typeof importSPKI>(),
-  jwtVerify: vi.fn<typeof jwtVerify>(),
-}))
+vi.mock(import("jose"), { spy: true })
+
+const randomUUIDMock = vi.hoisted(() =>
+  vi.fn<typeof randomUUID>(() => "00000000-0000-4000-8000-000000000000"),
+)
 
 vi.mock(import("node:crypto"), async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,
-    randomUUID: () => "session-id",
+    randomUUID: randomUUIDMock,
   }
 })
 
@@ -196,6 +192,7 @@ describe("medusa SSO endpoint", () => {
     setEnv("PAYLOAD_SSO_USER_EMAIL", "user@example.com")
     headersWithCorsMock.mockClear()
     generatePayloadCookieMock.mockClear()
+    generatePayloadCookieMock.mockReturnValue("payload-cookie")
     jwtSignMock.mockClear()
     importSPKIMock.mockReset()
     jwtVerifyMock.mockReset()
@@ -346,7 +343,7 @@ describe("medusa SSO endpoint", () => {
       jwtFields: {
         collection: "users",
         id: "user_1",
-        sid: "session-id",
+        sid: "00000000-0000-4000-8000-000000000000",
       },
       response: {
         accessControlAllowCredentials: "true",
@@ -365,7 +362,7 @@ describe("medusa SSO endpoint", () => {
         session: {
           createdAtIsDate: true,
           expiresAtIsDate: true,
-          id: "session-id",
+          id: "00000000-0000-4000-8000-000000000000",
         },
       },
     })

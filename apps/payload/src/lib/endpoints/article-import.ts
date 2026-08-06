@@ -143,7 +143,7 @@ const isAuthorized = (req: ArticleImportRequest) => {
     return true
   }
 
-  const apiKey = process.env.PAYLOAD_API_KEY
+  const apiKey = process.env["PAYLOAD_API_KEY"]
   return (
     apiKey !== undefined &&
     apiKey !== "" &&

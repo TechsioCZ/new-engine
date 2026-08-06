@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest"
 
 import { generateSlugFromTitle } from "@/lib/hooks/slug"
 
+const generateSlugWithoutTitle = (): string => {
+  const result: unknown = Reflect.apply(generateSlugFromTitle, undefined, [])
+  if (typeof result !== "string") {
+    throw new TypeError("generateSlugFromTitle returned a non-string value.")
+  }
+  return result
+}
+
 describe("slug utilities", () => {
   describe(generateSlugFromTitle, () => {
     it.each([
@@ -35,7 +43,7 @@ describe("slug utilities", () => {
 
     it("returns empty string as default fallback", () => {
       expect(generateSlugFromTitle(null)).toBe("")
-      expect(generateSlugFromTitle()).toBe("")
+      expect(generateSlugWithoutTitle()).toBe("")
     })
 
     it("extracts localized title from object with matching locale", () => {

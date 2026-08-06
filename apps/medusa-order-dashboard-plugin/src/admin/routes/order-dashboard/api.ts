@@ -1,3 +1,5 @@
+import type { AdminOrderResponse } from "@medusajs/framework/types"
+
 import { sdk } from "../../lib/sdk"
 import type {
   OrderDashboardBusinessStatusGroupId,
@@ -70,7 +72,7 @@ const getResponseFilename = (
   }
 
   const match = CONTENT_DISPOSITION_FILENAME_REGEX.exec(contentDisposition)
-  return match?.groups?.filename ?? fallbackFilename
+  return match?.groups?.["filename"] ?? fallbackFilename
 }
 
 const downloadPdf = async (
@@ -290,7 +292,7 @@ export const createOrderDashboardFulfillment = async (input: {
   noNotification: boolean
   orderId: string
   shippingOptionId?: string
-}) =>
+}): Promise<AdminOrderResponse> =>
   await sdk.admin.order.createFulfillment(input.orderId, {
     items: input.items,
     location_id: input.locationId,
