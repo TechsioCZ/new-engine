@@ -3,19 +3,20 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
-import type { Route } from "next"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 
 import NextLink from "@/components/app-link"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
+import { appHref } from "@/lib/routing"
+import type { AppHref } from "@/lib/routing"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 import { HerbatikaLogo } from "./herbatika-logo"
 
 type FooterNavigationLink =
   | {
-      href: Route
+      href: AppHref
       labelKey: string
       external?: false
     }
@@ -30,8 +31,8 @@ interface FooterColumn {
   links: readonly FooterNavigationLink[]
 }
 
-const giftVoucherHref = "/c/darceky" as Route
-const brandListingHref = "/znacka" as Route
+const giftVoucherHref = appHref("/c/darceky")
+const brandListingHref = appHref("/znacka")
 const formatMarketDomain = (domain: string) =>
   `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
 
