@@ -11,6 +11,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "expeditionPdf"
     | "fulfillItems"
     | "labelFormat"
+    | "openOrder"
     | "packetaEligible"
     | "packetaLabels"
     | "selected"
@@ -25,7 +26,6 @@ export type OrderDashboardAdminI18nNamespace = {
     | "address"
     | "created"
     | "customer"
-    | "details"
     | "fulfillment"
     | "manualStatus"
     | "order"
@@ -253,6 +253,7 @@ const englishOrderDashboardAdminI18n = {
     expeditionPdf: "Expedition PDF",
     fulfillItems: "Create fulfillments",
     labelFormat: "Format",
+    openOrder: "Open order",
     packetaEligible: "Printable Packeta labels: {{count}} of {{selectedCount}}",
     packetaLabels: "Packeta labels",
     selected: "{{count}} selected",
@@ -270,7 +271,6 @@ const englishOrderDashboardAdminI18n = {
     carrier: "Carrier",
     created: "Created",
     customer: "Customer",
-    details: "Details",
     fulfillment: "Fulfillment",
     manualStatus: "Manual status",
     order: "Order",
@@ -514,16 +514,17 @@ const englishOrderDashboardAdminI18n = {
 const czechOrderDashboardAdminI18n = {
   actions: {
     apply: "Použít",
-    applyManualStatus: "Nastavit ruční stav",
-    businessStatusPlaceholder: "Ruční stav",
+    applyManualStatus: "Nastavit manuální stav",
+    businessStatusPlaceholder: "Manuální stav",
     cancel: "Zrušit",
-    clearManualStatus: "Vymazat ruční stav",
+    clearManualStatus: "Vymazat manuální stav",
     closeDetails: "Zavřít",
     columns: "Sloupce",
     details: "Detail",
     expeditionPdf: "Expediční PDF",
     fulfillItems: "Vytvořit expedice",
     labelFormat: "Formát",
+    openOrder: "Otevřít objednávku",
     packetaEligible: "Štítky Packeta k tisku: {{count}} z {{selectedCount}}",
     packetaLabels: "Štítky Packeta",
     selected: "{{count}} vybráno",
@@ -541,9 +542,8 @@ const czechOrderDashboardAdminI18n = {
     carrier: "Dopravce",
     created: "Vytvořeno",
     customer: "Zákazník",
-    details: "Detail",
     fulfillment: "Expedice",
-    manualStatus: "Ruční stav",
+    manualStatus: "Manuální stav",
     order: "Objednávka",
     payment: "Platba",
     total: "Celkem",
@@ -555,7 +555,7 @@ const czechOrderDashboardAdminI18n = {
     carrier: "Dopravce",
     fulfillment: "Expedice",
     items: "Položky",
-    manualStatus: "Ruční stav",
+    manualStatus: "Manuální stav",
     noActiveFulfillment: "Žádná aktivní expedice",
     noItems: "Žádné položky nejsou dostupné.",
     orderStatus: "Stav v Meduse",
@@ -629,8 +629,8 @@ const czechOrderDashboardAdminI18n = {
   },
   manualStatus: {
     canceled: "Zrušeno",
-    clear: "Vymazat ruční stav",
-    none: "Žádný ruční stav",
+    clear: "Vymazat manuální stav",
+    none: "Žádný manuální stav",
     processing: "Zpracovává se",
     waiting_for_supplier: "Čeká na dodavatele",
   },
@@ -638,16 +638,16 @@ const czechOrderDashboardAdminI18n = {
     description: "Upraví se pouze ručně vybrané objednávky.",
     skipped: "{{order}}: přeskočeno - {{reason}}",
     skippedMore: "Další objednávky k přeskočení: {{count}}",
-    target: "Cílový ruční stav: {{status}}",
-    title: "Nastavit ruční stav",
-    updated: "{{order}}: ruční stav bude nastaven na {{status}}",
+    target: "Cílový manuální stav: {{status}}",
+    title: "Nastavit manuální stav",
+    updated: "{{order}}: manuální stav bude nastaven na {{status}}",
     updatedMore: "Další objednávky k úpravě: {{count}}",
     willChange: "K úpravě: {{updatedCount}}. K přeskočení: {{skippedCount}}.",
   },
   menuItem: "Přehled",
   manualStatusBlocker: {
-    alreadyClear: "Ruční stav je už vymazaný",
-    alreadyStatus: "Ruční stav je už {{status}}",
+    alreadyClear: "Manuální stav je už vymazaný",
+    alreadyStatus: "Manuální stav je už {{status}}",
     canceledStayCanceled: "Zrušené objednávky zůstávají zrušené",
     higherPriority: "Stav {{status}} má vyšší prioritu",
   },
@@ -754,12 +754,13 @@ const czechOrderDashboardAdminI18n = {
   },
   title: "Objednávky",
   toast: {
-    businessStatusUpdated_few: "Ruční stav byl upraven u {{count}} objednávek.",
-    businessStatusUpdated_one: "Ruční stav byl upraven u 1 objednávky.",
+    businessStatusUpdated_few:
+      "Manuální stav byl upraven u {{count}} objednávek.",
+    businessStatusUpdated_one: "Manuální stav byl upraven u 1 objednávky.",
     businessStatusUpdated_other:
-      "Ruční stav byl upraven u {{count}} objednávek.",
+      "Manuální stav byl upraven u {{count}} objednávek.",
     businessStatusUpdatedWithSkipped:
-      "Úprava ručního stavu dokončena. Upraveno: {{count}}. Přeskočeno: {{skippedCount}}.",
+      "Úprava manuálního stavu dokončena. Upraveno: {{count}}. Přeskočeno: {{skippedCount}}.",
     blockedOrderStatus: "Vybrané objednávky nepodporují tuto změnu stavu.",
     fulfillmentCreated_few: "Expedice byly vytvořeny pro {{count}} objednávky.",
     fulfillmentCreated_one: "Expedice byla vytvořena pro 1 objednávku.",
@@ -771,8 +772,8 @@ const czechOrderDashboardAdminI18n = {
       "Pro hromadné vytvoření expedic vyberte nejvýše {{count}} objednávek.",
     fulfillmentSkipped:
       "Pro žádnou vybranou objednávku nelze vytvořit expedici.",
-    manualStatusSkipped: "Ruční stav nebyl změněn.",
-    missingBusinessStatus: "Vyberte ruční stav.",
+    manualStatusSkipped: "Manuální stav nebyl změněn.",
+    missingBusinessStatus: "Vyberte manuální stav.",
     missingOrderStatus: "Vyberte cílový stav objednávky.",
     noPacketaSelection:
       "Žádné vybrané objednávky nemají štítky Packeta k tisku.",

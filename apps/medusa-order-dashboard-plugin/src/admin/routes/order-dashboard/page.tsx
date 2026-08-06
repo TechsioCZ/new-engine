@@ -1,5 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { Buildings } from "@medusajs/icons"
+import { Buildings, Eye, OpenRectArrowOut } from "@medusajs/icons"
 import {
   Badge,
   Button,
@@ -9,7 +9,9 @@ import {
   type DataTablePaginationState,
   type DataTableRowSelectionState,
   type DataTableSortingState,
+  FocusModal,
   Heading,
+  IconButton,
   Prompt,
   Select,
   StatusBadge,
@@ -128,7 +130,7 @@ const fulfillmentStatusColors = {
   shipped: "green",
 } as const satisfies Record<string, StatusBadgeColor>
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This admin route coordinates table state, batch actions, modals, and detail panels.
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This admin route coordinates table state, batch actions, and modals.
 const OrderDashboardPage = () => {
   const { i18n, t } = useTranslation("orderDashboard")
   const queryClient = useQueryClient()
@@ -232,9 +234,7 @@ const OrderDashboardPage = () => {
   )
   const selectedCount = selectedOrders.length
   const packetaEligibleCount = packetaLabelPreview.printableOrders.length
-  const detailOrder =
-    orders.find((order) => order.id === detailOrderId) ??
-    (detailOrderId ? selectedOrdersById.get(detailOrderId) : undefined)
+  const detailOrder = orders.find((order) => order.id === detailOrderId)
   const targetStatusOptions = getTargetStatusOptions(selectedOrders, t)
   const selectedTargetStatusOption = targetStatus
     ? targetStatusOptions.find((option) => option.value === targetStatus)
@@ -275,6 +275,7 @@ const OrderDashboardPage = () => {
       cell: ({ row }) => (
         <Link
           className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
+          onClick={(event) => event.stopPropagation()}
           to={`/orders/${row.original.id}`}
         >
           {row.original.order_display_id}
@@ -416,21 +417,23 @@ const OrderDashboardPage = () => {
     }),
     columnHelper.display({
       cell: ({ row }) => (
-        <Button
-          onClick={() =>
-            setDetailOrderId((currentOrderId) =>
-              currentOrderId === row.original.id ? null : row.original.id
-            )
-          }
-          size="small"
-          type="button"
-          variant="transparent"
-        >
-          {t("actions.details")}
-        </Button>
+        <Tooltip content={t("actions.details")}>
+          <IconButton
+            aria-label={t("actions.details")}
+            onClick={(event) => {
+              event.stopPropagation()
+              setDetailOrderId(row.original.id)
+            }}
+            size="small"
+            type="button"
+            variant="transparent"
+          >
+            <Eye />
+          </IconButton>
+        </Tooltip>
       ),
-      header: t("columns.details"),
-      id: "details",
+      id: "detail",
+      size: 48,
     }),
   ]
 
@@ -481,11 +484,13 @@ const OrderDashboardPage = () => {
     data: orders,
     getRowId: (order) => order.id,
     isLoading: ordersQuery.isLoading,
+    onRowClick: (_event, row) => setDetailOrderId(row.id),
     pagination: {
       onPaginationChange: (nextPagination) => {
         setPagination(nextPagination)
         setRowSelection({})
         setBlockingOrders([])
+        setDetailOrderId(null)
       },
       state: pagination,
     },
@@ -504,6 +509,7 @@ const OrderDashboardPage = () => {
         }))
         clearSelection()
         setBlockingOrders([])
+        setDetailOrderId(null)
       },
       state: sorting,
     },
@@ -767,6 +773,7 @@ const OrderDashboardPage = () => {
     }))
     clearSelection()
     setBlockingOrders([])
+    setDetailOrderId(null)
   }
 
   const handleCarrierFilterChange = (value: string) => {
@@ -787,6 +794,7 @@ const OrderDashboardPage = () => {
     }))
     clearSelection()
     setBlockingOrders([])
+    setDetailOrderId(null)
   }
 
   const errorMessage = ordersQuery.error ? t("toast.requestFailed") : null
@@ -797,6 +805,12 @@ const OrderDashboardPage = () => {
       summaryQuery.isLoading ? null : pendingUnpaidCount
     )
   }, [pendingUnpaidCount, summaryQuery.isLoading])
+
+  useEffect(() => {
+    if (detailOrderId && !detailOrder) {
+      setDetailOrderId(null)
+    }
+  }, [detailOrder, detailOrderId])
 
   useEffect(() => {
     if (selectedCount > 0) {
@@ -1225,8 +1239,12 @@ const OrderDashboardPage = () => {
       ) : null}
 
       {detailOrder ? (
-        <OrderDashboardDetailPanel
-          onClose={() => setDetailOrderId(null)}
+        <OrderDashboardDetailModal
+          onOpenChange={(open) => {
+            if (!open) {
+              setDetailOrderId(null)
+            }
+          }}
           order={detailOrder}
         />
       ) : null}
@@ -1338,7 +1356,10 @@ function ManualStatusControl({
       }}
       value={manualStatus ?? "clear"}
     >
-      <Select.Trigger className="w-[180px]">
+      <Select.Trigger
+        className="w-[180px]"
+        onClick={(event) => event.stopPropagation()}
+      >
         <Select.Value />
       </Select.Trigger>
       <Select.Content>
@@ -1353,11 +1374,11 @@ function ManualStatusControl({
   )
 }
 
-function OrderDashboardDetailPanel({
-  onClose,
+function OrderDashboardDetailModal({
+  onOpenChange,
   order,
 }: {
-  onClose: () => void
+  onOpenChange: (open: boolean) => void
   order: OrderDashboardOrder
 }) {
   const { i18n, t } = useTranslation("orderDashboard")
@@ -1368,97 +1389,124 @@ function OrderDashboardDetailPanel({
   const fulfillmentStatus = getFulfillmentStatusDisplay(order, t)
 
   return (
-    <div className="bg-ui-bg-subtle px-6 py-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <Text leading="compact" size="small" weight="plus">
+    <FocusModal onOpenChange={onOpenChange} open>
+      <FocusModal.Content className="inset-auto left-1/2 top-1/2 h-[calc(100vh-32px)] max-h-[720px] w-[calc(100vw-32px)] max-w-[960px] -translate-x-1/2 -translate-y-1/2">
+        <FocusModal.Header>
+          <FocusModal.Title>
             {t("detail.title", { order: order.order_display_id })}
-          </Text>
-          <Text className="text-ui-fg-subtle" leading="compact" size="small">
-            {order.customer}
-            {order.email ? ` - ${order.email}` : ""}
-          </Text>
-        </div>
-        <Button
-          onClick={onClose}
-          size="small"
-          type="button"
-          variant="secondary"
-        >
-          {t("actions.closeDetails")}
-        </Button>
-      </div>
+          </FocusModal.Title>
+        </FocusModal.Header>
+        <FocusModal.Description className="sr-only">
+          {order.customer}
+          {order.email ? ` - ${order.email}` : ""}
+        </FocusModal.Description>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <OrderDetailField label={t("detail.address")}>
-          {formatOrderDeliveryAddress(order.delivery_address)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.carrier")}>
-          {getCarrierLabel(order, t)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.payment")}>
-          {formatPaymentStatusLabel(order.payment_status, t)} -{" "}
-          {formatPaymentMethodLabel(order.payment_method, t)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.total")}>
-          {formatOrderTotal(order, locale)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.orderStatus")}>
-          {formatOrderStatusLabel(order.status, t)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.businessStatus")}>
-          {t(order.business_status.translation_key)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.manualStatus")}>
-          {manualStatusLabel}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.fulfillment")}>
-          {fulfillmentStatus.label}
-        </OrderDetailField>
-      </div>
-
-      <div className="mt-4">
-        <Text leading="compact" size="small" weight="plus">
-          {t("detail.items")}
-        </Text>
-        <div className="mt-2 divide-y overflow-hidden rounded-md border border-ui-border-base bg-ui-bg-base">
-          {order.items.length ? (
-            order.items.map((item, index) => (
-              <div
-                className="grid gap-2 px-3 py-2 sm:grid-cols-[1fr_auto]"
-                key={item.id ?? `${item.title}-${index}`}
-              >
-                <div className="min-w-0">
-                  <Text leading="compact" size="small">
-                    {item.title}
-                  </Text>
-                  {item.sku || item.variant ? (
-                    <Text
-                      className="text-ui-fg-subtle"
-                      leading="compact"
-                      size="small"
-                    >
-                      {[item.sku, item.variant].filter(Boolean).join(" - ")}
-                    </Text>
-                  ) : null}
-                </div>
+        <FocusModal.Body className="overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-[960px] flex-col gap-6 px-6 py-8">
+            <div className="flex flex-col gap-1">
+              <Text leading="compact" weight="plus">
+                {order.customer}
+              </Text>
+              {order.email ? (
                 <Text
                   className="text-ui-fg-subtle"
                   leading="compact"
                   size="small"
                 >
-                  {t("detail.quantity", { count: item.quantity })}
+                  {order.email}
                 </Text>
+              ) : null}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <OrderDetailField label={t("detail.address")}>
+                {formatOrderDeliveryAddress(order.delivery_address)}
+              </OrderDetailField>
+              <OrderDetailField label={t("detail.carrier")}>
+                {getCarrierLabel(order, t)}
+              </OrderDetailField>
+              <OrderDetailField label={t("detail.payment")}>
+                {formatPaymentStatusLabel(order.payment_status, t)} -{" "}
+                {formatPaymentMethodLabel(order.payment_method, t)}
+              </OrderDetailField>
+              <OrderDetailField label={t("detail.total")}>
+                {formatOrderTotal(order, locale)}
+              </OrderDetailField>
+              <OrderDetailField label={t("detail.orderStatus")}>
+                {formatOrderStatusLabel(order.status, t)}
+              </OrderDetailField>
+              <OrderDetailField label={t("detail.businessStatus")}>
+                {t(order.business_status.translation_key)}
+              </OrderDetailField>
+              <OrderDetailField label={t("detail.manualStatus")}>
+                {manualStatusLabel}
+              </OrderDetailField>
+              <OrderDetailField label={t("detail.fulfillment")}>
+                {fulfillmentStatus.label}
+              </OrderDetailField>
+            </div>
+
+            <div>
+              <Text leading="compact" size="small" weight="plus">
+                {t("detail.items")}
+              </Text>
+              <div className="mt-2 divide-y overflow-hidden rounded-md border border-ui-border-base bg-ui-bg-base">
+                {order.items.length ? (
+                  order.items.map((item, index) => (
+                    <div
+                      className="grid gap-2 px-3 py-2 sm:grid-cols-[1fr_auto]"
+                      key={item.id ?? `${item.title}-${index}`}
+                    >
+                      <div className="min-w-0">
+                        <Text leading="compact" size="small">
+                          {item.title}
+                        </Text>
+                        {item.sku || item.variant ? (
+                          <Text
+                            className="text-ui-fg-subtle"
+                            leading="compact"
+                            size="small"
+                          >
+                            {[item.sku, item.variant]
+                              .filter(Boolean)
+                              .join(" - ")}
+                          </Text>
+                        ) : null}
+                      </div>
+                      <Text
+                        className="text-ui-fg-subtle"
+                        leading="compact"
+                        size="small"
+                      >
+                        {t("detail.quantity", { count: item.quantity })}
+                      </Text>
+                    </div>
+                  ))
+                ) : (
+                  <Text className="px-3 py-2 text-ui-fg-subtle" size="small">
+                    {t("detail.noItems")}
+                  </Text>
+                )}
               </div>
-            ))
-          ) : (
-            <Text className="px-3 py-2 text-ui-fg-subtle" size="small">
-              {t("detail.noItems")}
-            </Text>
-          )}
-        </div>
-      </div>
-    </div>
+            </div>
+          </div>
+        </FocusModal.Body>
+
+        <FocusModal.Footer>
+          <FocusModal.Close asChild>
+            <Button size="small" type="button" variant="secondary">
+              {t("actions.closeDetails")}
+            </Button>
+          </FocusModal.Close>
+          <Button asChild size="small">
+            <Link to={`/orders/${order.id}`}>
+              {t("actions.openOrder")}
+              <OpenRectArrowOut />
+            </Link>
+          </Button>
+        </FocusModal.Footer>
+      </FocusModal.Content>
+    </FocusModal>
   )
 }
 
