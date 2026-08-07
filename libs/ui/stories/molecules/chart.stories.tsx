@@ -233,6 +233,7 @@ export const Types: Story = {
           type="pie"
           x="category"
           y="orders"
+          yLabel="Orders"
         />
       </VariantGroup>
       <VariantGroup title="Donut">
@@ -243,6 +244,7 @@ export const Types: Story = {
           type="donut"
           x="category"
           y="orders"
+          yLabel="Orders"
         />
       </VariantGroup>
     </VariantContainer>

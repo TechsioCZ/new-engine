@@ -131,6 +131,9 @@ const SERIES_1_PAINT = "var(--color-chart-series-1)"
 
 const DONUT_INNER_RADIUS_RATIO = 0.6
 
+/** Wide enough that any point inside a slice resolves to that slice's centroid. */
+const POLAR_FOCUS_DISTANCE = 9999
+
 function toAccessor<TDatum, TValue>(
   accessor: ChartAccessor<TDatum, TValue>
 ): (datum: TDatum) => TValue {
@@ -155,6 +158,7 @@ type ChartSpecInput = {
   color?: unknown
   animate?: boolean
   tooltip?: unknown
+  maxFocusDistance?: number
 }
 
 const defineChartSpec = defineChart as unknown as <TDatum>(
@@ -196,30 +200,51 @@ type ResolvedBuild<TDatum> = {
   valueAxis: unknown
   xAxis: Record<string, unknown>
   bandAxis: unknown
+  /**
+   * Tooltip config for a cartesian chart, told which channel carries the value
+   * so `formatValue` lands on the same number the axis ticks format.
+   */
+  tooltipFor: (valueChannel: "x" | "y") => unknown
+  /** Tooltip config for pie/donut, which read the value off the source row. */
+  polarTooltip: () => unknown
   shared: {
     color?: unknown
     animate: boolean
-    tooltip: unknown
   }
+}
+
+/** TanStack's categorical palette is six entries wide and indexes it modulo its
+ * length, so a 7th distinct series silently repaints as series-1. */
+const MAX_SERIES = 6
+
+type TooltipPoint = {
+  xValue: unknown
+  yValue: unknown
+  datum: unknown
 }
 
 /**
  * Shared x-axis resolver for the continuous chart forms (line, area,
- * scatter), probing the first row: Date values get a UTC time scale so
- * elapsed time between points is preserved, numbers get a linear scale, and
- * anything else is treated as ordered categories on a point scale.
+ * scatter): Date values get a UTC time scale so elapsed time between points is
+ * preserved, numbers get a linear scale, and anything else is treated as
+ * ordered categories on a point scale.
+ *
+ * Every row is checked, not just the first. TanStack's quantitative and
+ * temporal scales hard-throw on the first value that does not match the scale
+ * kind, which would take down the whole render tree — so one stringly-typed
+ * row from an API (`"12"`, or a trailing `"Today"` bucket) degrades to the
+ * point scale instead of crashing.
  */
 function resolveXAxis<TDatum>(
   data: readonly TDatum[],
   getX: (datum: TDatum) => string | number | Date,
   xLabel?: string
 ): Record<string, unknown> {
-  const firstDatum = data.at(0)
-  const firstX = firstDatum == null ? undefined : getX(firstDatum)
-  if (firstX instanceof Date) {
+  const values = data.map(getX)
+  if (values.length > 0 && values.every((value) => value instanceof Date)) {
     return { scale: () => scaleUtc(), nice: true, axis: { label: xLabel } }
   }
-  if (typeof firstX === "number") {
+  if (values.length > 0 && values.every((value) => typeof value === "number")) {
     return { scale: scaleLinear, nice: true, axis: { label: xLabel } }
   }
   return {
@@ -232,11 +257,70 @@ function resolveBuild<TDatum>(
   config: BuildConfig<TDatum>
 ): ResolvedBuild<TDatum> {
   const getX = toAccessor(config.x)
+  const getY = toAccessor(config.y)
+  const getSeries =
+    config.series == null ? undefined : toAccessor(config.series)
   const isPolar = config.type === "pie" || config.type === "donut"
   const showLegend = config.legend ?? (config.series != null || isPolar)
-  const valueTicks = config.formatValue
-    ? { format: config.formatValue }
-    : undefined
+  const { formatValue } = config
+  const valueTicks = formatValue ? { format: formatValue } : undefined
+
+  warnOnSeriesOverflow(config.data, getSeries)
+
+  const tooltipBase = {
+    use: chartTooltip,
+    className: config.tooltipClassName,
+  }
+  // The tooltip formats values with its own locale formatter and never
+  // consults the axis tick formatter, so `formatValue` has to be handed to it
+  // separately — otherwise the axis reads "81k €" and the tooltip "81,000".
+  const formatChannel = (point: TooltipPoint, channel: "x" | "y") => {
+    const value = channel === "x" ? point.xValue : point.yValue
+    if (typeof value === "number" && formatValue) {
+      return formatValue(value)
+    }
+    return String(value ?? "")
+  }
+
+  const tooltipFor = (valueChannel: "x" | "y") => {
+    if (!config.showTooltip) {
+      return false as const
+    }
+    if (!formatValue) {
+      return tooltipBase
+    }
+    const valueItem = {
+      channel: valueChannel,
+      text: (point: TooltipPoint) => formatChannel(point, valueChannel),
+    }
+    return {
+      ...tooltipBase,
+      items: valueChannel === "x" ? [valueItem, "y"] : ["x", valueItem],
+    }
+  }
+
+  const polarTooltip = () => {
+    if (!config.showTooltip) {
+      return false as const
+    }
+    // Polar points carry the d3 pie interval, and their x/y values are the
+    // slice mid-angle in radians and mid-radius in pixels — meaningless to a
+    // reader. Read the value straight off the source row instead.
+    return {
+      ...tooltipBase,
+      items: [
+        {
+          id: "value",
+          label: config.yLabel ?? "Value",
+          text: (point: TooltipPoint) => {
+            const row = (point.datum as PieArcDatum<TDatum>).data
+            const value = getY(row)
+            return formatValue ? formatValue(value) : String(value)
+          },
+        },
+      ],
+    }
+  }
 
   // Value axis: linear, niced, carrying the grid — chart chrome stays
   // recessive because grid/axis text derive from currentColor
@@ -253,8 +337,8 @@ function resolveBuild<TDatum>(
   return {
     data: config.data,
     getX,
-    getY: toAccessor(config.y),
-    getSeries: config.series == null ? undefined : toAccessor(config.series),
+    getY,
+    getSeries,
     stacked: config.stacked,
     points: config.points,
     curve: config.smooth ? d3Curve(curveMonotoneX) : undefined,
@@ -268,15 +352,37 @@ function resolveBuild<TDatum>(
       scale: () => scaleBand<string | number | Date>().padding(0.3),
       axis: { label: config.xLabel },
     },
+    tooltipFor,
+    polarTooltip,
     shared: {
       color: showLegend
         ? { legend: colorLegend({ label: config.legendLabel }) }
         : undefined,
       animate: config.animate,
-      tooltip: config.showTooltip
-        ? { use: chartTooltip, className: config.tooltipClassName }
-        : (false as const),
     },
+  }
+}
+
+/**
+ * Warns once per render when a dataset asks for more series than the palette
+ * can distinguish. TanStack wraps with `range[index % range.length]`, so series
+ * 7 renders identically to series 1 — including its legend swatch — with no
+ * signal that two lines are now indistinguishable.
+ */
+function warnOnSeriesOverflow<TDatum>(
+  data: readonly TDatum[],
+  getSeries?: (datum: TDatum) => string | number
+) {
+  if (getSeries == null || process.env.NODE_ENV === "production") {
+    return
+  }
+  const distinct = new Set(data.map(getSeries))
+  if (distinct.size > MAX_SERIES) {
+    console.warn(
+      `Chart: ${distinct.size} distinct series exceeds the ${MAX_SERIES}-color palette; ` +
+        "series beyond the sixth reuse earlier colors and cannot be told apart. " +
+        "Group the long tail into an “Other” bucket, or split into small multiples."
+    )
   }
 }
 
@@ -299,6 +405,7 @@ function buildLine<TDatum>(
     x: build.xAxis,
     y: build.valueAxis,
     ...build.shared,
+    tooltip: build.tooltipFor("y"),
   })
 }
 
@@ -326,6 +433,7 @@ function buildArea<TDatum>(
     x: build.xAxis,
     y: build.valueAxis,
     ...build.shared,
+    tooltip: build.tooltipFor("y"),
   })
 }
 
@@ -362,6 +470,7 @@ function buildBars<TDatum>(
       },
       y: build.bandAxis,
       ...build.shared,
+      tooltip: build.tooltipFor("x"),
     })
   }
   return defineChartSpec<TDatum>({
@@ -369,6 +478,7 @@ function buildBars<TDatum>(
     x: build.bandAxis,
     y: build.valueAxis,
     ...build.shared,
+    tooltip: build.tooltipFor("y"),
   })
 }
 
@@ -391,6 +501,7 @@ function buildScatter<TDatum>(
     x: { ...build.xAxis, grid: build.grid },
     y: build.valueAxis,
     ...build.shared,
+    tooltip: build.tooltipFor("y"),
   })
 }
 
@@ -419,6 +530,11 @@ function buildPolar<TDatum>(
               ? ({ radius }) => radius * DONUT_INNER_RADIUS_RATIO
               : 0,
             cornerRadius: 2,
+            // `z` is what gives each slice a group identity. radialArc reads
+            // groups from `z` only — unlike radialLine/radialArea it does not
+            // fall back to `color` — and the tooltip drops its title whenever
+            // the group is null, so without this the slice name never renders.
+            z: sliceLabel,
             color: sliceLabel,
             key: sliceLabel,
           }),
@@ -426,6 +542,11 @@ function buildPolar<TDatum>(
       }),
     ],
     ...build.shared,
+    tooltip: build.polarTooltip(),
+    // Arc focus points sit at the slice centroid. The 48px default leaves most
+    // of a full pie unhoverable, since the centroid is roughly half the radius
+    // from both the center and the rim.
+    maxFocusDistance: POLAR_FOCUS_DISTANCE,
   })
 }
 

@@ -71,7 +71,8 @@ Never combine two value scales in one chart — render two charts instead.
 
 - `data`, `x`, `y`, `series` — the channels described above.
 - `stacked` — multi-series layout; defaults to stacked areas and grouped bars.
-- `points`, `smooth` — line/area shape refinements.
+- `smooth` — line/area curve smoothing.
+- `points` — dots on each data point; applies to `line` only (ignored by `area`).
 - `grid` (default true) — value-axis grid lines.
 - `legend`, `legendLabel` — legend defaults to on for multi-series and
   pie/donut; a single series needs no legend (the title names it).
@@ -86,8 +87,10 @@ Never combine two value scales in one chart — render two charts instead.
 
 - Series palette: `--color-chart-series-1..6`, assigned to series in fixed
   order, bridged to TanStack's `--ts-chart-*` variables by the `chart-base`
-  utility. The six default steps pass CVD-separation and contrast validation
-  on both light and dark surfaces.
+  utility. The six default steps were picked to pass CVD-separation and
+  contrast validation on both light and dark surfaces; note that series-1
+  resolves through a Figma override of `--color-blue-500`, so re-validate
+  against resolved values rather than assuming the literal steps.
 - Chrome: axis/tick/legend text and grid derive from `--color-chart-fg` via
   `currentColor`.
 - Tooltip surface: `--color-chart-tooltip-bg/-fg/-border`,
@@ -99,7 +102,9 @@ Never combine two value scales in one chart — render two charts instead.
 ## Rules
 
 - Six series maximum — fold the tail into an "Other" row or split into
-  multiple charts; the palette never cycles.
+  multiple charts. The palette does cycle: a seventh series wraps back onto
+  series-1 and becomes indistinguishable from it, legend swatch included.
+  Chart logs a dev-mode warning when a dataset crosses six.
 - Keep semantic status colors (`--color-success` etc.) out of series slots.
 - More than one measure of different scale → separate charts, never dual axes.
 - Pie/donut only for few-slice composition; ranking reads better as
