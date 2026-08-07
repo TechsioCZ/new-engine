@@ -214,6 +214,9 @@ describe(createMedusaStorefrontPreset, () => {
           },
           status: [],
         },
+        serviceConfig: {
+          transformFacets: (facets) => ({ ...facets, dosage: [] }),
+        },
       },
       customers: {
         hooks: {
