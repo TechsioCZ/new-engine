@@ -5,6 +5,9 @@ minimumReleaseAgeExclude:
   - "@medusajs/*"
   - "@paykit-sdk/*"
   - "@rokmohar/medusa-plugin-meilisearch"
+  # The author approved this exact republished release for our continued use.
+  # Keep the exception version-scoped so later releases still age normally.
+  - "medusa-plugin-content@0.2.6"
 # trustPolicy: no-downgrade
 
 # Packages own their test-tool dependencies; catalogs centralize the two
@@ -68,7 +71,6 @@ overrides:
   "vite@5.4.21>rollup": 4.59.0
   "ts-node@10.9.2>diff": 4.0.4
   "cli-ux@5.6.7>js-yaml": 3.15.0
-  "@mdxeditor/editor@3.54.0>js-yaml": 4.3.0
 
 # These exact, package-scoped exceptions acknowledge compatibility without
 # rewriting the dependencies' published peer metadata. Future version changes
@@ -79,12 +81,6 @@ peerDependencyRules:
     # 8 test runtime independently from Medusa Admin's Vite 5 toolchain.
     "@medusajs/types@2.18.0>vite": 8.1.3
     "fdir@6.1.1>picomatch": 4.0.5
-    # 0.2.5 is the latest content-plugin release and pins its Medusa host
-    # peers to 2.17.2. Its compiled API usage remains compatible with 2.18.0;
-    # the backend/Admin builds verify these exact exceptions.
-    "medusa-plugin-content@0.2.5>@medusajs/framework": 2.18.0
-    "medusa-plugin-content@0.2.5>@medusajs/js-sdk": 2.18.0
-    "medusa-plugin-content@0.2.5>@medusajs/medusa": 2.18.0
     # Stable TS 7 metadata has not propagated to these compiler consumers yet.
     "@babel/core": 8.0.1
     "@medusajs/framework": 2.18.0
@@ -168,7 +164,7 @@ packageExtensions:
   ts-node@10.9.2:
     peerDependencies:
       typescript: ">=2.7 <6"
-  "medusa-plugin-content@0.2.5":
+  "medusa-plugin-content@0.2.6":
     dependencies:
       # The prebuilt Admin bundle imports these without declaring any of them,
       # so Rollup cannot resolve them while bundling the backend's Admin. Bind
