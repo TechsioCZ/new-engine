@@ -18,7 +18,7 @@ interface CompanyEmployee {
 }
 
 interface CompanyWithEmployees {
-  employees?: CompanyEmployee[]
+  employees: CompanyEmployee[]
 }
 
 const isOptionalNullableString = (value: unknown) =>
@@ -46,18 +46,31 @@ const isCompanyEmployee = (value: unknown): value is CompanyEmployee => {
   return isAdmin === undefined || typeof isAdmin === "boolean"
 }
 
-const isCompanyWithEmployees = (
-  value: unknown,
-): value is CompanyWithEmployees => {
+const parseCompany = (value: unknown): CompanyWithEmployees => {
   if (!isRecord(value)) {
-    return false
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Company query returned invalid company data.",
+    )
   }
 
   const { employees } = value
-  return (
-    employees === undefined ||
-    (Array.isArray(employees) && employees.every(isCompanyEmployee))
-  )
+  if (employees === undefined || employees === null) {
+    return { employees: [] }
+  }
+  if (
+    !Array.isArray(employees) ||
+    employees.some(
+      (employee) => employee !== null && !isCompanyEmployee(employee),
+    )
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Company query returned invalid employee data.",
+    )
+  }
+
+  return { employees: employees.filter(isCompanyEmployee) }
 }
 
 const parseCompanies = (value: unknown): CompanyWithEmployees[] => {
@@ -68,15 +81,7 @@ const parseCompanies = (value: unknown): CompanyWithEmployees[] => {
     )
   }
 
-  const companies = value["data"]
-  if (!companies.every(isCompanyWithEmployees)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Company query returned invalid employee data.",
-    )
-  }
-
-  return companies
+  return value["data"].map(parseCompany)
 }
 
 export const clearCompanyAdminAuthMetadataStep = createStep(
@@ -98,7 +103,7 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
     })
     const companies = parseCompanies(companiesResult)
     const adminCandidates = companies.flatMap((company) =>
-      (company.employees ?? []).flatMap((employee) =>
+      company.employees.flatMap((employee) =>
         employee.is_admin === true
           ? [
               {

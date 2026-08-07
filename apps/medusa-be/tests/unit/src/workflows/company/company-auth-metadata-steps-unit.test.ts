@@ -143,6 +143,7 @@ describe("company admin auth metadata steps", () => {
                 customer: { email: "admin@example.com", id: "cus_1" },
                 is_admin: true,
               },
+              null,
               {
                 customer: { email: "employee@example.com" },
                 is_admin: false,

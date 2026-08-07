@@ -16,10 +16,6 @@ import type {
   StoreGetEmployeeParamsType,
 } from "../../validators"
 
-interface CompanyEmployeesQueryRow {
-  employees?: Record<string, unknown>[]
-}
-
 interface QueryMetadata {
   count?: number
   skip?: number
@@ -40,18 +36,29 @@ const isQueryMetadata = (value: unknown): value is QueryMetadata => {
   )
 }
 
-const isCompanyEmployeesQueryRow = (
-  value: unknown,
-): value is CompanyEmployeesQueryRow => {
+const getCompanyEmployees = (value: unknown): Record<string, unknown>[] => {
   if (!isRecord(value)) {
-    return false
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Employee query returned invalid company data.",
+    )
   }
 
   const { employees } = value
-  return (
-    employees === undefined ||
-    (Array.isArray(employees) && employees.every(isRecord))
-  )
+  if (employees === undefined || employees === null) {
+    return []
+  }
+  if (
+    !Array.isArray(employees) ||
+    employees.some((employee) => employee !== null && !isRecord(employee))
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Employee query returned invalid company employee data.",
+    )
+  }
+
+  return employees.filter(isRecord)
 }
 
 const parseGraphResponse = (value: unknown) => {
@@ -62,13 +69,14 @@ const parseGraphResponse = (value: unknown) => {
     )
   }
 
-  const { data, metadata } = value
-  if (!Array.isArray(data)) {
+  const { data: dataValue, metadata } = value
+  if (!Array.isArray(dataValue)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Employee query returned an invalid response.",
     )
   }
+  const data: unknown[] = dataValue
   if (metadata !== undefined && !isQueryMetadata(metadata)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
@@ -98,16 +106,9 @@ const get = async (
     { throwIfKeyNotFound: true },
   )
   const queryResult = parseGraphResponse(rawQueryResult)
-  if (!queryResult.data.every(isCompanyEmployeesQueryRow)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Employee query returned invalid company employee data.",
-    )
-  }
-
   const [company] = queryResult.data
   const { metadata } = queryResult
-  const employees = company?.employees ?? []
+  const employees = company === undefined ? [] : getCompanyEmployees(company)
 
   res.json({
     count: metadata?.count ?? employees.length,
@@ -150,13 +151,13 @@ const post = async (
     { throwIfKeyNotFound: true },
   )
   const employeeQueryResult = parseGraphResponse(rawEmployeeQueryResult)
-  if (!employeeQueryResult.data.every(isRecord)) {
+  const [employee] = employeeQueryResult.data
+  if (employee !== undefined && employee !== null && !isRecord(employee)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Employee query returned invalid employee data.",
     )
   }
-  const [employee] = employeeQueryResult.data
 
   res.json({ employee: employee ?? null })
 }
