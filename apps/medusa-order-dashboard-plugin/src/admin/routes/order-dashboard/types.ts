@@ -83,6 +83,7 @@ export type OrderDashboardSortOrder =
   | `-${OrderDashboardSortField}`
 
 export type OrderDashboardLabelFormat = "A6" | "A7"
+export type OrderDashboardPdfExportMode = "combined" | "separate"
 
 export type OrderDashboardBlockingOrder = {
   id: string

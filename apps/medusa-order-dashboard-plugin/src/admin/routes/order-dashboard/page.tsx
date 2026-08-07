@@ -1,5 +1,11 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { Buildings, Eye, OpenRectArrowOut, Spinner } from "@medusajs/icons"
+import {
+  Buildings,
+  DocumentText,
+  Eye,
+  OpenRectArrowOut,
+  Spinner,
+} from "@medusajs/icons"
 import {
   Badge,
   Button,
@@ -62,6 +68,7 @@ import {
   getPacketaLabelPreview,
   preparePacketaLabelDownload,
 } from "./packeta-labels"
+import { OrderPdfExportPrompt } from "./pdf-export-prompt"
 import {
   ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_MANUAL_STATUS_IDS,
@@ -76,6 +83,7 @@ import {
   type OrderDashboardLabelFormat,
   type OrderDashboardManualStatusId,
   type OrderDashboardOrder,
+  type OrderDashboardPdfExportMode,
   type OrderDashboardQueueId,
   type OrderDashboardSortField,
   type OrderDashboardSortOrder,
@@ -178,6 +186,7 @@ const OrderDashboardPage = () => {
   const [manualStatus, setManualStatus] = useState<ManualStatusValue | "">("")
   const [isManualStatusPromptOpen, setIsManualStatusPromptOpen] =
     useState(false)
+  const [isPdfExportPromptOpen, setIsPdfExportPromptOpen] = useState(false)
   const [isFulfillmentModalOpen, setIsFulfillmentModalOpen] = useState(false)
   const [labelFormat, setLabelFormat] =
     useState<OrderDashboardLabelFormat>("A6")
@@ -666,6 +675,7 @@ const OrderDashboardPage = () => {
       toast.error(t("toast.requestFailed"))
     },
     onSuccess: () => {
+      setIsPdfExportPromptOpen(false)
       toast.success(t("toast.pdfReady"))
     },
   })
@@ -735,7 +745,22 @@ const OrderDashboardPage = () => {
       return
     }
 
-    expeditionPdfMutation.mutate(selectedOrderIds)
+    if (selectedOrderIds.length === 1) {
+      expeditionPdfMutation.mutate({
+        mode: "combined",
+        orderIds: selectedOrderIds,
+      })
+      return
+    }
+
+    setIsPdfExportPromptOpen(true)
+  }
+
+  const handleExpeditionPdfConfirm = (mode: OrderDashboardPdfExportMode) => {
+    expeditionPdfMutation.mutate({
+      mode,
+      orderIds: selectedOrderIds,
+    })
   }
 
   const handlePacketaLabels = async () => {
@@ -893,12 +918,17 @@ const OrderDashboardPage = () => {
       setIsManualStatusPromptOpen(false)
     }
 
+    if (isPdfExportPromptOpen) {
+      setIsPdfExportPromptOpen(false)
+    }
+
     if (isFulfillmentModalOpen) {
       setIsFulfillmentModalOpen(false)
     }
   }, [
     isFulfillmentModalOpen,
     isManualStatusPromptOpen,
+    isPdfExportPromptOpen,
     manualStatus,
     selectedCount,
     targetStatus,
@@ -944,6 +974,14 @@ const OrderDashboardPage = () => {
 
   return (
     <Container className="flex h-[calc(100dvh-5rem)] min-h-0 flex-col divide-y overflow-hidden p-0">
+      <OrderPdfExportPrompt
+        isPending={expeditionPdfMutation.isPending}
+        onConfirm={handleExpeditionPdfConfirm}
+        onOpenChange={setIsPdfExportPromptOpen}
+        open={isPdfExportPromptOpen}
+        selectedCount={selectedCount}
+      />
+
       <Prompt
         onOpenChange={setIsManualStatusPromptOpen}
         open={isManualStatusPromptOpen}
@@ -1150,6 +1188,7 @@ const OrderDashboardPage = () => {
               type="button"
               variant="secondary"
             >
+              <DocumentText />
               {t("actions.expeditionPdf")}
             </Button>
             <Select

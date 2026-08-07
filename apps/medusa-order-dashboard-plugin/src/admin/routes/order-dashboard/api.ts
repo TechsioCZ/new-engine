@@ -11,6 +11,7 @@ import type {
   OrderDashboardManualStatusResponse,
   OrderDashboardOrdersResponse,
   OrderDashboardPacketaEligibilityOrder,
+  OrderDashboardPdfExportMode,
   OrderDashboardShippingOption,
   OrderDashboardSortOrder,
   OrderDashboardStatusResponse,
@@ -127,13 +128,18 @@ export function updateOrderDashboardManualStatus(input: {
   )
 }
 
-export function downloadOrderDashboardExpeditionPdf(orderIds: string[]) {
-  return downloadPdf(
+export function downloadOrderDashboardExpeditionPdf(input: {
+  mode: OrderDashboardPdfExportMode
+  orderIds: string[]
+}) {
+  return downloadFile(
     "/admin/order-expedition/pdf",
     {
-      order_ids: orderIds,
+      mode: input.mode,
+      order_ids: input.orderIds,
     },
-    `expedition-orders-${new Date().toISOString().slice(0, 10)}.pdf`
+    input.mode === "separate" ? "objednavky.zip" : "objednavky.pdf",
+    "application/pdf, application/zip"
   )
 }
 
@@ -142,7 +148,7 @@ export function downloadOrderDashboardPacketaLabels(input: {
   labelOffset?: number
   orderIds: string[]
 }) {
-  return downloadPdf(
+  return downloadFile(
     "/admin/packeta-labels",
     {
       label_format: input.labelFormat,
@@ -250,15 +256,16 @@ export function createOrderDashboardFulfillment(input: {
   })
 }
 
-async function downloadPdf(
+async function downloadFile(
   path: string,
   body: Record<string, unknown>,
-  fallbackFilename: string
+  fallbackFilename: string,
+  accept = "application/pdf"
 ) {
   const response = await sdk.client.fetch<Response>(path, {
     body,
     headers: {
-      accept: "application/pdf",
+      accept,
     },
     method: "POST",
   })

@@ -39,6 +39,7 @@ export const GetAdminOrderExpeditionOrdersSchema = z.object({
 })
 
 export const PostAdminOrderExpeditionPdfSchema = z.object({
+  mode: z.enum(["combined", "separate"]).default("combined"),
   order_ids: z
     .array(z.string().min(1))
     .min(1)

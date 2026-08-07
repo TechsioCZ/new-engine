@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { GetAdminOrderExpeditionOrdersSchema } from "../../../../../../src/api/admin/order-expedition/validators"
+import {
+  GetAdminOrderExpeditionOrdersSchema,
+  PostAdminOrderExpeditionPdfSchema,
+} from "../../../../../../src/api/admin/order-expedition/validators"
 
 describe("GetAdminOrderExpeditionOrdersSchema", () => {
   it("accepts native order search and created date filters", () => {
@@ -55,5 +58,35 @@ describe("GetAdminOrderExpeditionOrdersSchema", () => {
         order: ["-created_at", "display_id"],
       })
     ).toEqual({ order: "-created_at" })
+  })
+})
+
+describe("PostAdminOrderExpeditionPdfSchema", () => {
+  it("defaults to one combined PDF", () => {
+    expect(
+      PostAdminOrderExpeditionPdfSchema.parse({ order_ids: ["order_1"] })
+    ).toEqual({
+      mode: "combined",
+      order_ids: ["order_1"],
+    })
+  })
+
+  it("accepts separate PDFs and rejects unsupported modes", () => {
+    expect(
+      PostAdminOrderExpeditionPdfSchema.parse({
+        mode: "separate",
+        order_ids: ["order_1", "order_2"],
+      })
+    ).toEqual({
+      mode: "separate",
+      order_ids: ["order_1", "order_2"],
+    })
+
+    expect(() =>
+      PostAdminOrderExpeditionPdfSchema.parse({
+        mode: "individual-downloads",
+        order_ids: ["order_1"],
+      })
+    ).toThrow()
   })
 })

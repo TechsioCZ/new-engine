@@ -150,6 +150,18 @@ export type OrderDashboardAdminI18nNamespace = {
     "description" | "position" | "print" | "selected" | "title",
     string
   >
+  pdfExportPrompt: Record<
+    | "combinedDescription"
+    | "combinedLabel"
+    | "description_few"
+    | "description_one"
+    | "description_other"
+    | "export"
+    | "separateDescription"
+    | "separateLabel"
+    | "title",
+    string
+  >
   pagination: Record<
     | "next"
     | "of"
@@ -260,7 +272,7 @@ const englishOrderDashboardAdminI18n = {
     closeDetails: "Close",
     columns: "Columns",
     details: "Details",
-    expeditionPdf: "Expedition PDF",
+    expeditionPdf: "PDF",
     fulfillItems: "Create fulfillments",
     labelFormat: "Format",
     openOrder: "Open order",
@@ -413,6 +425,17 @@ const englishOrderDashboardAdminI18n = {
     selected: "Labels to print: {{count}}",
     title: "Packeta label start position",
   },
+  pdfExportPrompt: {
+    combinedDescription: "All selected orders will be in one PDF.",
+    combinedLabel: "One PDF",
+    description_few: "Choose how to export {{count}} selected orders.",
+    description_one: "Choose how to export the selected order.",
+    description_other: "Choose how to export {{count}} selected orders.",
+    export: "Export",
+    separateDescription: "Each order will have its own PDF in one ZIP archive.",
+    separateLabel: "Separate PDFs",
+    title: "Export orders",
+  },
   pagination: {
     next: "Next",
     of: "of",
@@ -523,7 +546,7 @@ const englishOrderDashboardAdminI18n = {
     noSelection: "Select at least one order.",
     packetaLabelLimit: "Select up to {{count}} orders.",
     packetaLabelsReady: "Packeta labels were downloaded.",
-    pdfReady: "Expedition PDF was downloaded.",
+    pdfReady: "The export was downloaded.",
     requestFailed: "Operation failed.",
     statusUpdated_few: "Status updated for {{count}} orders.",
     statusUpdated_one: "Status updated for 1 order.",
@@ -541,7 +564,7 @@ const czechOrderDashboardAdminI18n = {
     closeDetails: "Zavřít",
     columns: "Sloupce",
     details: "Detail",
-    expeditionPdf: "Expediční PDF",
+    expeditionPdf: "PDF",
     fulfillItems: "Vytvořit expedice",
     labelFormat: "Formát",
     openOrder: "Otevřít objednávku",
@@ -694,6 +717,18 @@ const czechOrderDashboardAdminI18n = {
     selected: "Štítky k tisku: {{count}}",
     title: "Počáteční pozice štítku Packeta",
   },
+  pdfExportPrompt: {
+    combinedDescription: "Všechny vybrané objednávky budou v jednom PDF.",
+    combinedLabel: "Jedno PDF",
+    description_few: "Vyberte způsob exportu {{count}} vybraných objednávek.",
+    description_one: "Vyberte způsob exportu vybrané objednávky.",
+    description_other: "Vyberte způsob exportu {{count}} vybraných objednávek.",
+    export: "Exportovat",
+    separateDescription:
+      "Každá objednávka bude mít vlastní PDF v jednom ZIP archivu.",
+    separateLabel: "Samostatná PDF",
+    title: "Export objednávek",
+  },
   pagination: {
     next: "Další",
     of: "z",
@@ -810,7 +845,7 @@ const czechOrderDashboardAdminI18n = {
     noSelection: "Vyberte alespoň jednu objednávku.",
     packetaLabelLimit: "Vyberte nejvýše {{count}} objednávek.",
     packetaLabelsReady: "Štítky Packeta byly staženy.",
-    pdfReady: "Expediční PDF bylo staženo.",
+    pdfReady: "Export byl stažen.",
     requestFailed: "Operace selhala.",
     statusUpdated_few: "Stav byl upraven u {{count}} objednávek.",
     statusUpdated_one: "Stav byl upraven u 1 objednávky.",

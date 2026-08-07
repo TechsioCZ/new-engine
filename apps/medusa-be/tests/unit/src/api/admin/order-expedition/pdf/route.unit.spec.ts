@@ -1,3 +1,4 @@
+import JSZip from "jszip"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@medusajs/framework/utils", () => ({
@@ -123,12 +124,67 @@ describe("POST /admin/order-expedition/pdf", () => {
 
     expect(res.set).toHaveBeenCalledWith(
       expect.objectContaining({
-        "Content-Disposition": 'attachment; filename="expedition-1001.pdf"',
+        "Content-Disposition": 'attachment; filename="objednavka-1001.pdf"',
         "Content-Type": "application/pdf",
       })
     )
     expect(res.send).toHaveBeenCalledWith(Buffer.from([1, 2, 3]))
     expect(mockDrawText).toHaveBeenCalled()
+  })
+
+  it("returns separately named PDFs in one ZIP archive", async () => {
+    const { POST } = await import(
+      "../../../../../../../src/api/admin/order-expedition/pdf/route"
+    )
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        {
+          id: "order_1",
+          display_id: 1001,
+          items: [{ quantity: 1, title: "Tea" }],
+          status: "pending",
+        },
+        {
+          id: "order_2",
+          display_id: 1002,
+          items: [{ quantity: 1, title: "Coffee" }],
+          status: "pending",
+        },
+      ],
+    })
+    const req = createMockRequest(
+      {
+        mode: "separate",
+        order_ids: ["order_1", "order_2"],
+      },
+      graph
+    )
+    const res = createMockResponse()
+
+    await POST(req, res)
+
+    expect(res.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        "Content-Disposition":
+          'attachment; filename="objednavky-1001-1002-2.zip"',
+        "Content-Type": "application/zip",
+      })
+    )
+    expect(mockSave).toHaveBeenCalledTimes(2)
+
+    const buffer = res.send.mock.calls[0]?.[0] as Buffer
+    const archive = await JSZip.loadAsync(buffer)
+
+    expect(Object.keys(archive.files)).toEqual([
+      "objednavka-1001.pdf",
+      "objednavka-1002.pdf",
+    ])
+    await expect(
+      archive.file("objednavka-1001.pdf")?.async("nodebuffer")
+    ).resolves.toEqual(Buffer.from([1, 2, 3]))
+    await expect(
+      archive.file("objednavka-1002.pdf")?.async("nodebuffer")
+    ).resolves.toEqual(Buffer.from([1, 2, 3]))
   })
 
   it("replaces unsupported Helvetica characters before drawing text", async () => {
