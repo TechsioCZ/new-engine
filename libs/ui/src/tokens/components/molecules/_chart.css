@@ -1,0 +1,58 @@
+/*
+ * Chart — PROTOTYPE tokens (not yet exported from Figma; once the MVP look is
+ * signed off, mirror these into Figma via the figma-token-binding skill).
+ *
+ * Series palette: six fixed-order categorical hues for data identity. The
+ * exact primitive steps were chosen so the SAME values pass the dataviz
+ * six-checks validator (lightness band, chroma floor, adjacent-pair CVD
+ * separation, normal-vision floor, >=3:1 surface contrast) on BOTH the light
+ * (white) and dark (gray-950) chart surfaces — hence no light-dark() split.
+ *
+ * `--color-primary` (blue-300/sky-300) is deliberately NOT series-1: it sits
+ * outside the chart lightness band in light mode. Brand themes that want
+ * branded charts should override `--color-chart-series-*` with steps that
+ * re-pass the validator, not alias the brand accent directly.
+ */
+
+@theme static {
+  /* Reference layer — series identity, assigned in fixed order, never cycled */
+  --color-chart-series-1: var(--color-blue-500);
+  --color-chart-series-2: var(--color-orange-600);
+  --color-chart-series-3: var(--color-emerald-600);
+  --color-chart-series-4: var(--color-violet-500);
+  --color-chart-series-5: var(--color-rose-500);
+  --color-chart-series-6: var(--color-cyan-600);
+
+  /* Derived layer — chart chrome and tooltip surface */
+  --color-chart-fg: var(--color-fg-secondary);
+  --color-chart-tooltip-bg: var(--color-tooltip-bg);
+  --color-chart-tooltip-fg: var(--color-tooltip-fg);
+  --color-chart-tooltip-border: var(--color-tooltip-border-outline);
+  --radius-chart-tooltip: var(--radius-tooltip);
+  --text-chart-tooltip: var(--text-tooltip-md);
+  --padding-chart-tooltip: var(--padding-tooltip-md);
+}
+
+/*
+ * Bridge our series tokens into TanStack Charts' categorical palette
+ * variables (`--ts-chart-1..6`). Axis text, muted labels and grid lines
+ * inherit `currentColor`, so the host also carries `text-chart-fg`.
+ */
+@utility chart-base {
+  --ts-chart-1: var(--color-chart-series-1);
+  --ts-chart-2: var(--color-chart-series-2);
+  --ts-chart-3: var(--color-chart-series-3);
+  --ts-chart-4: var(--color-chart-series-4);
+  --ts-chart-5: var(--color-chart-series-5);
+  --ts-chart-6: var(--color-chart-series-6);
+}
+
+/* Surface styling for the library's native HTML tooltip element. */
+@utility chart-tooltip {
+  background: var(--color-chart-tooltip-bg);
+  color: var(--color-chart-tooltip-fg);
+  border: 1px solid var(--color-chart-tooltip-border);
+  border-radius: var(--radius-chart-tooltip);
+  padding: var(--padding-chart-tooltip);
+  font-size: var(--text-chart-tooltip);
+}
