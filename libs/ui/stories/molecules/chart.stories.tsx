@@ -332,7 +332,7 @@ export const Interactive: Story = {
           points
           type="line"
         />
-        <p className="text-fg-secondary text-sm">
+        <p className="text-fg-primary text-md">
           {selected
             ? `Selected: ${selected.channel} — ${selected.month} (${formatCurrency(selected.revenue)})`
             : "Click a point to select it."}
@@ -340,6 +340,34 @@ export const Interactive: Story = {
       </div>
     )
   },
+}
+
+type SignupPoint = { day: Date; signups: number }
+
+const signupSeries: SignupPoint[] = [
+  { day: new Date(Date.UTC(2026, 0, 1)), signups: 120 },
+  { day: new Date(Date.UTC(2026, 0, 2)), signups: 140 },
+  { day: new Date(Date.UTC(2026, 0, 5)), signups: 90 },
+  { day: new Date(Date.UTC(2026, 0, 15)), signups: 210 },
+  { day: new Date(Date.UTC(2026, 1, 1)), signups: 260 },
+  { day: new Date(Date.UTC(2026, 1, 20)), signups: 240 },
+]
+
+/** Date x values ride a UTC time scale, so uneven gaps keep their spacing. */
+export const TimeSeries: Story = {
+  render: () => (
+    <div className="mx-auto w-full max-w-3xl">
+      <Chart
+        ariaLabel="Daily signups over time"
+        data={signupSeries}
+        points
+        type="line"
+        x="day"
+        y="signups"
+        yLabel="Signups"
+      />
+    </div>
+  ),
 }
 
 /** Chart chrome switched off for embedding in dense dashboard tiles. */

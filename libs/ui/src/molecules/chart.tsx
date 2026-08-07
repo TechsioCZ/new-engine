@@ -38,6 +38,7 @@ import { scaleBand } from "@tanstack/charts-scales/band"
 import { scaleLinear } from "@tanstack/charts-scales/linear"
 import { scalePoint } from "@tanstack/charts-scales/point"
 import { Chart as TanstackChart } from "@tanstack/react-charts"
+import { scaleUtc } from "d3-scale"
 import { curveMonotoneX, type PieArcDatum, pie } from "d3-shape"
 import { useMemo } from "react"
 import { tv } from "../utils"
@@ -193,12 +194,37 @@ type ResolvedBuild<TDatum> = {
   yLabel?: string
   valueTicks?: { format: (value: number) => string }
   valueAxis: unknown
-  categoryAxis: unknown
+  xAxis: Record<string, unknown>
   bandAxis: unknown
   shared: {
     color?: unknown
     animate: boolean
     tooltip: unknown
+  }
+}
+
+/**
+ * Shared x-axis resolver for the continuous chart forms (line, area,
+ * scatter), probing the first row: Date values get a UTC time scale so
+ * elapsed time between points is preserved, numbers get a linear scale, and
+ * anything else is treated as ordered categories on a point scale.
+ */
+function resolveXAxis<TDatum>(
+  data: readonly TDatum[],
+  getX: (datum: TDatum) => string | number | Date,
+  xLabel?: string
+): Record<string, unknown> {
+  const firstDatum = data.at(0)
+  const firstX = firstDatum == null ? undefined : getX(firstDatum)
+  if (firstX instanceof Date) {
+    return { scale: () => scaleUtc(), nice: true, axis: { label: xLabel } }
+  }
+  if (typeof firstX === "number") {
+    return { scale: scaleLinear, nice: true, axis: { label: xLabel } }
+  }
+  return {
+    scale: () => scalePoint<string | number | Date>().padding(0.1),
+    axis: { label: xLabel },
   }
 }
 
@@ -222,16 +248,7 @@ function resolveBuild<TDatum>(
     axis: { label: config.yLabel, ticks: valueTicks },
   }
 
-  // Category axis: point scale for continuous forms, band scale for bars.
-  // A numeric first x value opts line/area into a linear axis.
-  const firstDatum = config.data.at(0)
-  const numericX = firstDatum != null && typeof getX(firstDatum) === "number"
-  const categoryAxis = numericX
-    ? { scale: scaleLinear, nice: true, axis: { label: config.xLabel } }
-    : {
-        scale: () => scalePoint<string | number | Date>().padding(0.1),
-        axis: { label: config.xLabel },
-      }
+  const xAxis = resolveXAxis(config.data, getX, config.xLabel)
 
   return {
     data: config.data,
@@ -246,7 +263,7 @@ function resolveBuild<TDatum>(
     yLabel: config.yLabel,
     valueTicks,
     valueAxis,
-    categoryAxis,
+    xAxis,
     bandAxis: {
       scale: () => scaleBand<string | number | Date>().padding(0.3),
       axis: { label: config.xLabel },
@@ -279,7 +296,7 @@ function buildLine<TDatum>(
         stroke: getSeries == null ? SERIES_1_PAINT : undefined,
       }),
     ],
-    x: build.categoryAxis,
+    x: build.xAxis,
     y: build.valueAxis,
     ...build.shared,
   })
@@ -306,7 +323,7 @@ function buildArea<TDatum>(
         strokeWidth: 2,
       }),
     ],
-    x: build.categoryAxis,
+    x: build.xAxis,
     y: build.valueAxis,
     ...build.shared,
   })
@@ -371,12 +388,7 @@ function buildScatter<TDatum>(
         fill: getSeries == null ? SERIES_1_PAINT : undefined,
       }),
     ],
-    x: {
-      scale: scaleLinear,
-      nice: true,
-      grid: build.grid,
-      axis: { label: build.xLabel },
-    },
+    x: { ...build.xAxis, grid: build.grid },
     y: build.valueAxis,
     ...build.shared,
   })
