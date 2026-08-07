@@ -101,11 +101,15 @@ Never combine two value scales in one chart — render two charts instead.
 
 ## Rules
 
-- Six series maximum — fold the tail into an "Other" row or split into
-  multiple charts. The palette does cycle: a seventh series wraps back onto
-  series-1 and becomes indistinguishable from it, legend swatch included.
-  Chart logs a dev-mode warning when a dataset crosses six.
+- Six colors maximum — fold the tail into an "Other" row or split into
+  multiple charts. The palette does cycle: a seventh wraps back onto series-1
+  and becomes indistinguishable from it, legend swatch included. This counts
+  distinct `series` values on cartesian charts and distinct *slices* on
+  pie/donut, which color by `x`. Chart logs a dev-mode warning either way.
 - Keep semantic status colors (`--color-success` etc.) out of series slots.
 - More than one measure of different scale → separate charts, never dual axes.
 - Pie/donut only for few-slice composition; ranking reads better as
-  `bar-horizontal`.
+  `bar-horizontal`. Note that slice hover/click resolves from the slice
+  centroid within the library's fixed 48px radius, so parts of a large slice
+  are not interactive — another reason to prefer `bar-horizontal` when the
+  chart needs `onSelect`.

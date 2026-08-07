@@ -139,11 +139,6 @@ const SERIES_STROKE_FROM_COLOR = null as unknown as string
 
 const DONUT_INNER_RADIUS_RATIO = 0.6
 
-/** Focus radius for polar marks, as a fraction of the pie radius. Below the
- * 0.8 at which a donut's center hole sits from every centroid, so the hole and
- * the empty corners still resolve to "nothing selected". */
-const POLAR_FOCUS_RADIUS_RATIO = 0.7
-
 /** Padding the polar layout insets by; mirrors the `inset` passed to polar(). */
 const POLAR_INSET = 8
 
@@ -196,8 +191,6 @@ type BuildConfig<TDatum> = {
   animate: boolean
   showTooltip: boolean
   tooltipClassName: string
-  /** Nominal min(width, height) in px, used to bound polar focus distance. */
-  nominalSize: number
 }
 
 type ResolvedBuild<TDatum> = {
@@ -222,8 +215,6 @@ type ResolvedBuild<TDatum> = {
   tooltipFor: (valueChannel: "x" | "y") => unknown
   /** Tooltip config for pie/donut, which read the value off the source row. */
   polarTooltip: () => unknown
-  /** Bounded hover/click radius for pie and donut slices. */
-  polarFocusDistance: number
   shared: {
     color?: unknown
     animate: boolean
@@ -282,12 +273,23 @@ function resolveBuild<TDatum>(
   const { formatValue } = config
   const valueTicks = formatValue ? { format: formatValue } : undefined
 
-  warnOnSeriesOverflow(config.data, getSeries)
+  warnOnSeriesOverflow(config.data, isPolar ? getX : getSeries)
 
   const tooltipBase = {
     use: chartTooltip,
     className: config.tooltipClassName,
   }
+  // Axis labels are optional, but the library falls back to the literal
+  // strings "x" and "y" when they are unset — so an unlabelled chart shows a
+  // tooltip row called "x". Borrow the caller's own field name instead, which
+  // is at least their vocabulary and their language. Undefined (never "") so
+  // the library's own fallback stays reachable when the channel is a function.
+  const channelName = (
+    accessor: ChartAccessor<TDatum, unknown>,
+    label?: string
+  ) => label ?? (typeof accessor === "string" ? accessor : undefined)
+  const xName = channelName(config.x, config.xLabel)
+  const yName = channelName(config.y, config.yLabel)
   // The tooltip formats values with its own locale formatter and never
   // consults the axis tick formatter, so `formatValue` has to be handed to it
   // separately — otherwise the axis reads "81k €" and the tooltip "81,000".
@@ -303,16 +305,26 @@ function resolveBuild<TDatum>(
     if (!config.showTooltip) {
       return false as const
     }
-    if (!formatValue) {
-      return tooltipBase
-    }
     const valueItem = {
       channel: valueChannel,
-      text: (point: TooltipPoint) => formatChannel(point, valueChannel),
+      label: valueChannel === "x" ? xName : yName,
+      // Only override the text when there is a formatter; otherwise leave it
+      // undefined so the library formats the value itself.
+      text: formatValue
+        ? (point: TooltipPoint) => formatChannel(point, valueChannel)
+        : undefined,
+    }
+    const categoryChannel = valueChannel === "x" ? "y" : "x"
+    const categoryItem = {
+      channel: categoryChannel,
+      label: categoryChannel === "x" ? xName : yName,
     }
     return {
       ...tooltipBase,
-      items: valueChannel === "x" ? [valueItem, "y"] : ["x", valueItem],
+      items:
+        valueChannel === "x"
+          ? [valueItem, categoryItem]
+          : [categoryItem, valueItem],
     }
   }
 
@@ -331,8 +343,7 @@ function resolveBuild<TDatum>(
           // No hardcoded English fallback — this string ships to storefronts
           // in other languages. `yLabel` is the localized name when given;
           // otherwise borrow the caller's own field name, which they control.
-          label:
-            config.yLabel ?? (typeof config.y === "string" ? config.y : ""),
+          label: yName,
           text: (point: TooltipPoint) => {
             const row = (point.datum as PieArcDatum<TDatum>).data
             const value = getY(row)
@@ -375,8 +386,6 @@ function resolveBuild<TDatum>(
     },
     tooltipFor,
     polarTooltip,
-    polarFocusDistance:
-      (config.nominalSize / 2 - POLAR_INSET) * POLAR_FOCUS_RADIUS_RATIO,
     shared: {
       color: showLegend
         ? { legend: colorLegend({ label: config.legendLabel }) }
@@ -387,29 +396,33 @@ function resolveBuild<TDatum>(
 }
 
 /**
- * Warns once per render when a dataset asks for more series than the palette
- * can distinguish. TanStack wraps with `range[index % range.length]`, so series
- * 7 renders identically to series 1 — including its legend swatch — with no
- * signal that two lines are now indistinguishable.
+ * Warns once per render when a dataset asks for more colors than the palette
+ * can distinguish. TanStack wraps with `range[index % range.length]`, so the
+ * 7th color renders identically to the 1st — including its legend swatch —
+ * with no signal that two marks are now indistinguishable.
+ *
+ * Which channel carries color identity depends on the chart form: cartesian
+ * charts color by `series`, but pie and donut color by slice, i.e. `x`. A
+ * 9-slice pie overflows the palette exactly like a 9-series line chart does.
  */
 function warnOnSeriesOverflow<TDatum>(
   data: readonly TDatum[],
-  getSeries?: (datum: TDatum) => string | number
+  getColorIdentity?: (datum: TDatum) => string | number | Date
 ) {
   // `process` is guarded, not assumed: this is a browser-target ESM package and
   // the bare reference survives into dist, so an unbundled consumer (plain
   // <script type="module">, CDN, Deno) would throw ReferenceError on first
-  // render of any chart with `series` set.
+  // render of any chart that reaches this path.
   const isProduction =
     typeof process !== "undefined" && process.env?.NODE_ENV === "production"
-  if (getSeries == null || isProduction) {
+  if (getColorIdentity == null || isProduction) {
     return
   }
-  const distinct = new Set(data.map(getSeries))
+  const distinct = new Set(data.map((datum) => String(getColorIdentity(datum))))
   if (distinct.size > MAX_SERIES) {
     console.warn(
-      `Chart: ${distinct.size} distinct series exceeds the ${MAX_SERIES}-color palette; ` +
-        "series beyond the sixth reuse earlier colors and cannot be told apart. " +
+      `Chart: ${distinct.size} distinct colors exceeds the ${MAX_SERIES}-color palette; ` +
+        "everything beyond the sixth reuses an earlier color and cannot be told apart. " +
         "Group the long tail into an “Other” bucket, or split into small multiples."
     )
   }
@@ -582,13 +595,15 @@ function buildPolar<TDatum>(
     ],
     ...build.shared,
     tooltip: build.polarTooltip(),
-    // Arc focus points sit at the slice centroid, so the 48px default leaves
-    // most of a full pie unhoverable. Widen it — but keep it *bounded*: the
-    // renderer resolves clicks through this same distance, so an unbounded
-    // value would make every click land on a slice and `onSelect(null)` would
-    // never fire. At 0.7x the radius a donut's center hole (0.8x from every
-    // centroid) and the empty corners still deselect.
-    maxFocusDistance: build.polarFocusDistance,
+    // Deliberately NOT setting maxFocusDistance. Arc focus points sit at the
+    // slice centroid, so the library's 48px default leaves parts of a large pie
+    // hard to hover — but the value is fixed at spec time while the chart
+    // renders responsively, and the same distance also gates clicks. Any
+    // constant is therefore wrong at some width: too small and a big slice is
+    // unreachable, too large and `onSelect(null)` can never fire because every
+    // click resolves to a slice. Widening this needs a `focus` strategy that
+    // hit-tests the arc against the measured layout, not a guess from
+    // `initialWidth`. Tracked; the default at least keeps deselect correct.
   })
 }
 
@@ -642,11 +657,6 @@ export function Chart<TDatum>({
   const { root, tooltip: tooltipSlot } = chartVariants()
   const tooltipClassName = tooltipSlot()
 
-  // Nominal box for the first frame; the polar focus radius is derived from it
-  // so it scales with the chart instead of being a magic pixel count.
-  const nominalHeight = height ?? initialWidth / (aspectRatio ?? 16 / 9)
-  const nominalSize = Math.min(initialWidth, nominalHeight)
-
   const definition = useMemo(
     () =>
       buildChartDefinition({
@@ -667,7 +677,6 @@ export function Chart<TDatum>({
         animate,
         showTooltip: tooltip,
         tooltipClassName,
-        nominalSize,
       }),
     [
       type,
@@ -687,7 +696,6 @@ export function Chart<TDatum>({
       animate,
       tooltip,
       tooltipClassName,
-      nominalSize,
     ]
   )
 
