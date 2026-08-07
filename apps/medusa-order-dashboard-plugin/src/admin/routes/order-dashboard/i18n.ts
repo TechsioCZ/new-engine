@@ -50,7 +50,17 @@ export type OrderDashboardAdminI18nNamespace = {
     | "total",
     string
   >
-  filters: Record<"allCarriers", string>
+  filters: Record<
+    | "allCarriers"
+    | "clearAll"
+    | "createdAt"
+    | "createdAtRange"
+    | "createdAtRangeEnd"
+    | "createdAtRangeStart"
+    | "filter"
+    | "searchPlaceholder",
+    string
+  >
   fulfillmentStatus: Record<
     | "canceled"
     | "delivered"
@@ -181,10 +191,7 @@ export type OrderDashboardAdminI18nNamespace = {
     string
   >
   table: Record<
-    | "blockedOrdersTitle"
-    | "carrierFilterLimit"
-    | "empty"
-    | "loading",
+    "blockedOrdersTitle" | "carrierFilterLimit" | "empty" | "loading",
     string
   >
   tableMessages: Record<"blockedCount" | "moreBlocked", string>
@@ -295,6 +302,13 @@ const englishOrderDashboardAdminI18n = {
   },
   filters: {
     allCarriers: "All carriers",
+    clearAll: "Clear all",
+    createdAt: "Created",
+    createdAtRange: "Custom range",
+    createdAtRangeEnd: "To",
+    createdAtRangeStart: "From",
+    filter: "Filter orders",
+    searchPlaceholder: "Search orders or customers...",
   },
   fulfillmentStatus: {
     canceled: "Canceled",
@@ -566,6 +580,13 @@ const czechOrderDashboardAdminI18n = {
   },
   filters: {
     allCarriers: "Všichni dopravci",
+    clearAll: "Vymazat vše",
+    createdAt: "Vytvořeno",
+    createdAtRange: "Vlastní období",
+    createdAtRangeEnd: "Do",
+    createdAtRangeStart: "Od",
+    filter: "Filtrovat objednávky",
+    searchPlaceholder: "Hledat objednávku nebo zákazníka...",
   },
   fulfillmentStatus: {
     canceled: "Zrušeno",

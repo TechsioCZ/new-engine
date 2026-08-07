@@ -100,6 +100,100 @@ describe("GET /admin/order-expedition/orders", () => {
     )
   })
 
+  it("passes order search and created date filters to the native query", async () => {
+    const { GET } = await import(
+      "../../../../../../../src/api/admin/order-expedition/orders/route"
+    )
+    const graph = vi.fn().mockResolvedValue({
+      data: [],
+      metadata: {
+        count: 0,
+      },
+    })
+    const createdAt = {
+      $gte: "2026-08-01T00:00:00.000Z",
+      $lte: "2026-08-31T23:59:59.999Z",
+    }
+    const req = createMockRequest(
+      {
+        created_at: createdAt,
+        limit: 50,
+        offset: 0,
+        q: "#1001",
+      },
+      graph
+    )
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(graph).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: "order",
+        filters: {
+          created_at: createdAt,
+          q: "1001",
+        },
+      })
+    )
+  })
+
+  it("applies native search filters before derived carrier filtering", async () => {
+    const { GET } = await import(
+      "../../../../../../../src/api/admin/order-expedition/orders/route"
+    )
+    const matchingOrder = {
+      id: "order_2",
+      display_id: 1002,
+      shipping_methods: [{ name: "Packeta" }],
+      status: "pending",
+    }
+    const graph = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [matchingOrder],
+        metadata: {
+          count: 1,
+        },
+      })
+      .mockResolvedValueOnce({ data: [matchingOrder] })
+    const createdAt = {
+      $gte: "2026-08-01T00:00:00.000Z",
+      $lte: "2026-08-31T23:59:59.999Z",
+    }
+    const req = createMockRequest(
+      {
+        carrier: "packeta",
+        created_at: createdAt,
+        limit: 50,
+        offset: 0,
+        q: "John Doe",
+      },
+      graph
+    )
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(graph).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        entity: "order",
+        filters: {
+          created_at: createdAt,
+          q: "John Doe",
+        },
+      })
+    )
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        carrier: "packeta",
+        count: 1,
+        orders: [expect.objectContaining({ id: "order_2" })],
+      })
+    )
+  })
+
   it("carrier filtering only narrows visible rows", async () => {
     const { GET } = await import(
       "../../../../../../../src/api/admin/order-expedition/orders/route"
@@ -254,9 +348,7 @@ describe("GET /admin/order-expedition/orders", () => {
     const firstBatch = Array.from({ length: 100 }, (_, index) => ({
       id: `order_${index + 1}`,
       display_id: 1001 + index,
-      shipping_methods: [
-        { name: index < 2 ? "Packeta" : "PPL" },
-      ],
+      shipping_methods: [{ name: index < 2 ? "Packeta" : "PPL" }],
       status: "pending",
     }))
     const graph = vi
@@ -366,9 +458,7 @@ describe("GET /admin/order-expedition/orders", () => {
         count: 1,
         count_exact: true,
         has_next: false,
-        orders: [
-          expect.objectContaining({ id: "order_match_after_1000" }),
-        ],
+        orders: [expect.objectContaining({ id: "order_match_after_1000" })],
         scanned_count: 1001,
       })
     )

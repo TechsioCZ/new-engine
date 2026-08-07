@@ -46,14 +46,37 @@ type OrderExpeditionOrderFilters = {
   businessStatus?: OrderBusinessStatusId
   carrier?: OrderExpeditionCarrierKey
 }
+type OrderExpeditionNativeFilters = Pick<
+  GetAdminOrderExpeditionOrdersSchemaType,
+  "created_at" | "q"
+>
 type OrderExpeditionSort = {
   direction: "ASC" | "DESC"
   field: OrderExpeditionSortField
   query: OrderExpeditionSortQuery
 }
+type FetchOrderBatchOptions = {
+  fields: string[]
+  filters: OrderExpeditionNativeFilters
+  limit: number
+  offset: number
+  order: Record<string, "ASC" | "DESC">
+  query: Query
+}
+type FetchOrdersOptions = {
+  filters: OrderExpeditionNativeFilters
+  limit: number
+  offset: number
+  query: Query
+  sort: OrderExpeditionSort
+}
+type FetchProjectedOrdersOptions = FetchOrdersOptions & {
+  expeditionFilters: OrderExpeditionOrderFilters
+}
 
 const ORDER_EXPEDITION_SCAN_BATCH_SIZE = 100
 const DEFAULT_ORDER_EXPEDITION_SORT: OrderExpeditionSortQuery = "-created_at"
+const ORDER_EXPEDITION_DISPLAY_ID_SEARCH_PATTERN = /^#\d+$/
 const NATIVE_ORDER_EXPEDITION_SORT_FIELDS = new Set<OrderExpeditionSortField>([
   "created_at",
   "display_id",
@@ -63,12 +86,6 @@ const ORDER_EXPEDITION_SORT_COLLATOR = new Intl.Collator("cs", {
   sensitivity: "base",
 })
 
-function isOrderExpeditionQueryOrder<T>(
-  order: T
-): order is T & OrderExpeditionRawOrder {
-  return isOrderExpeditionRawOrder(order)
-}
-
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const orderNoteService =
@@ -77,36 +94,45 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     business_status_group: businessStatusGroup,
     business_status: businessStatus,
     carrier,
+    created_at: createdAt,
     limit,
     offset,
-    order,
+    order: sortOrderQuery,
+    q,
   } = req.validatedQuery as GetAdminOrderExpeditionOrdersSchemaType
   const normalizedLimit = limit ?? ORDER_EXPEDITION_DEFAULT_LIMIT
   const normalizedOffset = offset ?? 0
-  const normalizedOrder = parseOrderExpeditionSort(order)
+  const normalizedOrder = parseOrderExpeditionSort(sortOrderQuery)
   const filters = {
     businessStatusGroup,
     businessStatus,
     carrier,
+  }
+  const normalizedSearchQuery = normalizeOrderExpeditionSearchQuery(q)
+  const nativeFilters = {
+    ...(createdAt ? { created_at: createdAt } : {}),
+    ...(normalizedSearchQuery ? { q: normalizedSearchQuery } : {}),
   }
   const requiresProjectionScan =
     hasOrderExpeditionFilters(filters) ||
     !NATIVE_ORDER_EXPEDITION_SORT_FIELDS.has(normalizedOrder.field)
 
   const result = requiresProjectionScan
-    ? await fetchProjectedOrders(
+    ? await fetchProjectedOrders({
+        expeditionFilters: filters,
+        filters: nativeFilters,
+        limit: normalizedLimit,
+        offset: normalizedOffset,
         query,
-        filters,
-        normalizedOrder,
-        normalizedLimit,
-        normalizedOffset
-      )
-    : await fetchOrders(
+        sort: normalizedOrder,
+      })
+    : await fetchOrders({
+        filters: nativeFilters,
+        limit: normalizedLimit,
+        offset: normalizedOffset,
         query,
-        normalizedOrder,
-        normalizedLimit,
-        normalizedOffset
-      )
+        sort: normalizedOrder,
+      })
 
   const notesByOrderId = await fetchOrderExpeditionOrderNotesByOrderIds(
     orderNoteService,
@@ -140,19 +166,21 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   })
 }
 
-async function fetchOrders(
-  query: Query,
-  order: OrderExpeditionSort,
-  limit: number,
-  offset: number
-): Promise<OrderExpeditionOrdersPage> {
-  const batch = await fetchOrderBatch(
-    query,
-    offset,
+async function fetchOrders({
+  filters,
+  limit,
+  offset,
+  query,
+  sort,
+}: FetchOrdersOptions): Promise<OrderExpeditionOrdersPage> {
+  const batch = await fetchOrderBatch({
+    fields: ORDER_EXPEDITION_ORDER_FIELDS,
+    filters,
     limit,
-    ORDER_EXPEDITION_ORDER_FIELDS,
-    getNativeOrderExpeditionSort(order)
-  )
+    offset,
+    query,
+    order: getNativeOrderExpeditionSort(sort),
+  })
   const count = batch.metadataCount ?? batch.orders.length
 
   return {
@@ -165,25 +193,27 @@ async function fetchOrders(
   }
 }
 
-async function fetchProjectedOrders(
-  query: Query,
-  filters: OrderExpeditionOrderFilters,
-  order: OrderExpeditionSort,
-  limit: number,
-  offset: number
-): Promise<OrderExpeditionOrdersPage> {
+async function fetchProjectedOrders({
+  expeditionFilters,
+  filters,
+  limit,
+  offset,
+  query,
+  sort,
+}: FetchProjectedOrdersOptions): Promise<OrderExpeditionOrdersPage> {
   const matchingOrders: OrderExpeditionRawOrder[] = []
   let scanOffset = 0
   let scannedCount = 0
 
   while (true) {
-    const batch = await fetchOrderBatch(
+    const batch = await fetchOrderBatch({
+      fields: ORDER_EXPEDITION_LIST_FIELDS,
+      filters,
+      limit: ORDER_EXPEDITION_SCAN_BATCH_SIZE,
+      offset: scanOffset,
+      order: { created_at: "DESC", id: "DESC" },
       query,
-      scanOffset,
-      ORDER_EXPEDITION_SCAN_BATCH_SIZE,
-      ORDER_EXPEDITION_LIST_FIELDS,
-      { created_at: "DESC", id: "DESC" }
-    )
+    })
 
     if (!batch.scannedCount) {
       break
@@ -192,7 +222,7 @@ async function fetchProjectedOrders(
     scannedCount += batch.scannedCount
     matchingOrders.push(
       ...batch.orders.filter((candidate) =>
-        orderMatchesFilters(candidate, filters)
+        orderMatchesFilters(candidate, expeditionFilters)
       )
     )
     scanOffset += batch.scannedCount
@@ -207,7 +237,7 @@ async function fetchProjectedOrders(
   }
 
   matchingOrders.sort((left, right) =>
-    compareOrderExpeditionOrders(left, right, order)
+    compareOrderExpeditionOrders(left, right, sort)
   )
   const pageOrderIds = matchingOrders
     .slice(offset, offset + limit)
@@ -256,16 +286,18 @@ function orderMatchesFilters(
   return true
 }
 
-async function fetchOrderBatch(
-  query: Query,
-  offset: number,
-  limit: number,
-  fields: string[],
-  order: Record<string, "ASC" | "DESC">
-): Promise<OrderExpeditionOrderBatch> {
+async function fetchOrderBatch({
+  fields,
+  filters,
+  limit,
+  offset,
+  order,
+  query,
+}: FetchOrderBatchOptions): Promise<OrderExpeditionOrderBatch> {
   const { data: orders, metadata } = await query.graph({
     entity: "order",
     fields,
+    filters,
     pagination: {
       order,
       skip: offset,
@@ -273,7 +305,7 @@ async function fetchOrderBatch(
     },
   })
   const validOrders = Array.isArray(orders)
-    ? orders.filter(isOrderExpeditionQueryOrder)
+    ? orders.filter(isOrderExpeditionRawOrder)
     : []
   const scannedCount = Array.isArray(orders) ? orders.length : 0
 
@@ -282,6 +314,18 @@ async function fetchOrderBatch(
     orders: validOrders,
     scannedCount,
   }
+}
+
+function normalizeOrderExpeditionSearchQuery(query: string | undefined) {
+  const normalized = query?.trim()
+
+  if (!normalized) {
+    return
+  }
+
+  return ORDER_EXPEDITION_DISPLAY_ID_SEARCH_PATTERN.test(normalized)
+    ? normalized.slice(1)
+    : normalized
 }
 
 function hasOrderExpeditionFilters(filters: OrderExpeditionOrderFilters) {

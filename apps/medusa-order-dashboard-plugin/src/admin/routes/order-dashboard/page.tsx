@@ -1,17 +1,21 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { Buildings, Eye, OpenRectArrowOut } from "@medusajs/icons"
+import { Buildings, Eye, OpenRectArrowOut, Spinner } from "@medusajs/icons"
 import {
   Badge,
   Button,
   Container,
   createDataTableColumnHelper,
+  createDataTableFilterHelper,
   DataTable,
+  type DataTableDateComparisonOperator,
+  type DataTableFilteringState,
   type DataTablePaginationState,
   type DataTableRowSelectionState,
   type DataTableSortingState,
   FocusModal,
   Heading,
   IconButton,
+  Input,
   Prompt,
   Select,
   StatusBadge,
@@ -21,8 +25,13 @@ import {
   toast,
   useDataTable,
 } from "@medusajs/ui"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { type ReactNode, useEffect, useState } from "react"
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { setOrderDashboardSidebarBadgeCount } from "../../sidebar-badge"
@@ -77,6 +86,7 @@ import {
 const ORDER_DASHBOARD_QUERY_KEY = "order-dashboard-orders"
 const ORDER_DASHBOARD_SUMMARY_QUERY_KEY = "order-dashboard-summary"
 const PACKETA_ELIGIBILITY_QUERY_KEY = "order-dashboard-packeta-eligibility"
+const ORDER_DASHBOARD_SEARCH_DEBOUNCE_MS = 300
 const ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID = {
   business_status: "business_status",
   carrier: "carrier",
@@ -93,6 +103,11 @@ const DEFAULT_ORDER_DASHBOARD_SORTING = {
 } satisfies DataTableSortingState
 
 const columnHelper = createDataTableColumnHelper<OrderDashboardOrder>()
+const filterHelper = createDataTableFilterHelper<OrderDashboardOrder>()
+
+type OrderDashboardFilteringState = DataTableFilteringState<{
+  created_at?: DataTableDateComparisonOperator | null
+}>
 
 type ManualStatusValue = OrderDashboardManualStatusId | "clear"
 type ManualStatusTarget = OrderDashboardManualStatusId | null
@@ -142,6 +157,8 @@ const OrderDashboardPage = () => {
   const [carrierFilter, setCarrierFilter] = useState<
     OrderDashboardCarrierKey | "all"
   >("all")
+  const [filtering, setFiltering] = useState<OrderDashboardFilteringState>({})
+  const [search, setSearch] = useState("")
   const [activeQueueId, setActiveQueueId] =
     useState<OrderDashboardQueueId>("all")
   const [sorting, setSorting] = useState<DataTableSortingState>(
@@ -181,31 +198,39 @@ const OrderDashboardPage = () => {
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null)
 
   const carrier = carrierFilter === "all" ? undefined : carrierFilter
-  const businessStatusGroupFilter =
-    getBusinessStatusGroupFilter(activeQueueId)
+  const businessStatusGroupFilter = getBusinessStatusGroupFilter(activeQueueId)
   const businessStatusFilter = getBusinessStatusFilter(activeQueueId)
+  const createdAtFilter = filtering.created_at ?? undefined
   const limit = pagination.pageSize
   const offset = pagination.pageIndex * limit
-  const order = getOrderDashboardSortOrder(sorting)
+  const sortOrder = getOrderDashboardSortOrder(sorting)
 
   const ordersQuery = useQuery({
-    queryFn: () =>
-      listOrderDashboardOrders({
-        businessStatusGroup: businessStatusGroupFilter,
-        businessStatus: businessStatusFilter,
-        carrier,
-        limit,
-        offset,
-        order,
-      }),
+    placeholderData: keepPreviousData,
+    queryFn: ({ signal }) =>
+      listOrderDashboardOrders(
+        {
+          businessStatusGroup: businessStatusGroupFilter,
+          businessStatus: businessStatusFilter,
+          carrier,
+          createdAt: createdAtFilter,
+          limit,
+          offset,
+          order: sortOrder,
+          q: search || undefined,
+        },
+        signal
+      ),
     queryKey: [
       ORDER_DASHBOARD_QUERY_KEY,
       carrier,
       businessStatusGroupFilter,
       businessStatusFilter,
+      createdAtFilter,
       limit,
       offset,
-      order,
+      sortOrder,
+      search,
     ],
   })
   const summaryQuery = useQuery({
@@ -328,9 +353,7 @@ const OrderDashboardPage = () => {
     }),
     columnHelper.accessor("carrier.value", {
       cell: ({ row }) => (
-        <Badge size="2xsmall">
-          {getCarrierLabel(row.original, t)}
-        </Badge>
+        <Badge size="2xsmall">{getCarrierLabel(row.original, t)}</Badge>
       ),
       enableSorting: true,
       header: t("columns.carrier"),
@@ -469,6 +492,32 @@ const OrderDashboardPage = () => {
     setSelectedOrdersById(new Map())
   }
 
+  const resetPagination = () => {
+    setPagination((currentPagination) => ({
+      ...currentPagination,
+      pageIndex: 0,
+    }))
+  }
+
+  const clearResultScopedState = () => {
+    clearSelection()
+    setBlockingOrders([])
+    setDetailOrderId(null)
+  }
+
+  const handleFilteringChange = (
+    nextFiltering: OrderDashboardFilteringState
+  ) => {
+    setFiltering(nextFiltering)
+    clearResultScopedState()
+  }
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    resetPagination()
+    clearResultScopedState()
+  }
+
   const handleRowSelectionChange = (
     nextSelection:
       | DataTableRowSelectionState
@@ -511,6 +560,22 @@ const OrderDashboardPage = () => {
     data: orders,
     getRowId: (order) => order.id,
     isLoading: ordersQuery.isLoading,
+    filtering: {
+      onFilteringChange: handleFilteringChange,
+      state: filtering,
+    },
+    filters: [
+      filterHelper.accessor("created_at", {
+        format: "date",
+        formatDateValue: (date) => formatOrderDate(date.toISOString(), locale),
+        label: t("filters.createdAt"),
+        options: [],
+        rangeOptionEndLabel: t("filters.createdAtRangeEnd"),
+        rangeOptionLabel: t("filters.createdAtRange"),
+        rangeOptionStartLabel: t("filters.createdAtRangeStart"),
+        type: "date",
+      }),
+    ],
     onRowClick: (_event, row) => setDetailOrderId(row.id),
     pagination: {
       onPaginationChange: (nextPagination) => {
@@ -530,13 +595,8 @@ const OrderDashboardPage = () => {
       onSortingChange: (nextSorting) => {
         // Medusa UI emits undefined when TanStack clears its single sort.
         setSorting(nextSorting ?? DEFAULT_ORDER_DASHBOARD_SORTING)
-        setPagination((currentPagination) => ({
-          ...currentPagination,
-          pageIndex: 0,
-        }))
-        clearSelection()
-        setBlockingOrders([])
-        setDetailOrderId(null)
+        resetPagination()
+        clearResultScopedState()
       },
       state: sorting,
     },
@@ -794,13 +854,8 @@ const OrderDashboardPage = () => {
     }
 
     setActiveQueueId(value)
-    setPagination((currentPagination) => ({
-      ...currentPagination,
-      pageIndex: 0,
-    }))
-    clearSelection()
-    setBlockingOrders([])
-    setDetailOrderId(null)
+    resetPagination()
+    clearResultScopedState()
   }
 
   const handleCarrierFilterChange = (value: string) => {
@@ -815,13 +870,8 @@ const OrderDashboardPage = () => {
     }
 
     setCarrierFilter(nextCarrierFilter)
-    setPagination((currentPagination) => ({
-      ...currentPagination,
-      pageIndex: 0,
-    }))
-    clearSelection()
-    setBlockingOrders([])
-    setDetailOrderId(null)
+    resetPagination()
+    clearResultScopedState()
   }
 
   const errorMessage = ordersQuery.error ? t("toast.requestFailed") : null
@@ -1294,7 +1344,15 @@ const OrderDashboardPage = () => {
         </div>
       ) : (
         <DataTable instance={table}>
-          <DataTable.FilterBar alwaysShow>
+          <DataTable.FilterBar
+            alwaysShow
+            clearAllFiltersLabel={t("filters.clearAll")}
+          >
+            <OrderDashboardSearchInput
+              onSearchChange={handleSearchChange}
+              placeholder={t("filters.searchPlaceholder")}
+              value={search}
+            />
             <Select
               onValueChange={handleCarrierFilterChange}
               value={carrierFilter}
@@ -1313,19 +1371,30 @@ const OrderDashboardPage = () => {
                 ))}
               </Select.Content>
             </Select>
+            <DataTable.FilterMenu tooltip={t("filters.filter")} />
             <DataTable.SortingMenu tooltip={t("actions.sorting")} />
             <DataTable.ColumnVisibilityMenu tooltip={t("actions.columns")} />
           </DataTable.FilterBar>
-          <DataTable.Table
-            emptyState={{
-              empty: {
-                heading: t("table.empty"),
-              },
-              filtered: {
-                heading: t("table.empty"),
-              },
-            }}
-          />
+          <div className="relative flex min-h-0 flex-1 overflow-hidden">
+            <DataTable.Table
+              emptyState={{
+                empty: {
+                  heading: t("table.empty"),
+                },
+                filtered: {
+                  heading: t("table.empty"),
+                },
+              }}
+            />
+            {ordersQuery.isFetching && !ordersQuery.isLoading ? (
+              <output
+                aria-label={t("table.loading")}
+                className="absolute inset-x-0 top-12 bottom-0 z-[2] flex items-center justify-center bg-ui-bg-base"
+              >
+                <Spinner className="animate-spin text-ui-fg-muted" />
+              </output>
+            ) : null}
+          </div>
           <DataTable.Pagination
             translations={{
               next: t("pagination.next"),
@@ -1338,6 +1407,50 @@ const OrderDashboardPage = () => {
         </DataTable>
       )}
     </Container>
+  )
+}
+
+function OrderDashboardSearchInput({
+  onSearchChange,
+  placeholder,
+  value,
+}: {
+  onSearchChange: (value: string) => void
+  placeholder: string
+  value: string
+}) {
+  const [inputValue, setInputValue] = useState(value)
+  const onSearchChangeRef = useRef(onSearchChange)
+
+  useEffect(() => {
+    onSearchChangeRef.current = onSearchChange
+  }, [onSearchChange])
+
+  useEffect(() => {
+    setInputValue(value)
+  }, [value])
+
+  useEffect(() => {
+    if (inputValue === value) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      onSearchChangeRef.current(inputValue)
+    }, ORDER_DASHBOARD_SEARCH_DEBOUNCE_MS)
+
+    return () => window.clearTimeout(timeout)
+  }, [inputValue, value])
+
+  return (
+    <Input
+      className="w-[240px]"
+      onChange={(event) => setInputValue(event.target.value)}
+      placeholder={placeholder}
+      size="small"
+      type="search"
+      value={inputValue}
+    />
   )
 }
 
@@ -1417,7 +1530,7 @@ function OrderDashboardDetailModal({
 
   return (
     <FocusModal onOpenChange={onOpenChange} open>
-      <FocusModal.Content className="inset-auto left-1/2 top-1/2 h-[calc(100vh-32px)] max-h-[720px] w-[calc(100vw-32px)] max-w-[960px] -translate-x-1/2 -translate-y-1/2">
+      <FocusModal.Content className="-translate-x-1/2 -translate-y-1/2 inset-auto top-1/2 left-1/2 h-[calc(100vh-32px)] max-h-[720px] w-[calc(100vw-32px)] max-w-[960px]">
         <FocusModal.Header>
           <FocusModal.Title>
             {t("detail.title", { order: order.order_display_id })}
@@ -1836,9 +1949,10 @@ function getOrderDashboardSortOrder(
     return "-created_at"
   }
 
-  const field = ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID[
-    sorting.id as keyof typeof ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID
-  ]
+  const field =
+    ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID[
+      sorting.id as keyof typeof ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID
+    ]
 
   if (!field) {
     return "-created_at"

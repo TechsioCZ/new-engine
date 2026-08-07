@@ -389,9 +389,9 @@ export function isOrderExpeditionTargetStatus(
   return ORDER_EXPEDITION_TARGET_STATUSES.some((status) => status === value)
 }
 
-export function isOrderExpeditionRawOrder(
-  value: unknown
-): value is OrderExpeditionRawOrder {
+export function isOrderExpeditionRawOrder<T>(
+  value: T
+): value is T & OrderExpeditionRawOrder {
   return (
     typeof value === "object" &&
     value !== null &&

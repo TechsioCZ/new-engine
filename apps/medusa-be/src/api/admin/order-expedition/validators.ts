@@ -1,4 +1,5 @@
 import { z } from "@medusajs/framework/zod"
+import { createOperatorMap } from "@medusajs/medusa/api/utils/validators"
 import {
   ORDER_BUSINESS_STATUS_GROUP_IDS,
   ORDER_BUSINESS_STATUS_IDS,
@@ -30,9 +31,11 @@ export const GetAdminOrderExpeditionOrdersSchema = z.object({
   business_status_group: z.enum(ORDER_BUSINESS_STATUS_GROUP_IDS).optional(),
   business_status: z.enum(ORDER_BUSINESS_STATUS_IDS).optional(),
   carrier: z.enum(ORDER_EXPEDITION_CARRIER_KEYS).optional(),
+  created_at: createOperatorMap().optional(),
   limit: OptionalLimitQuerySchema,
   offset: OptionalNonNegativeIntQuerySchema,
   order: OptionalOrderQuerySchema,
+  q: z.string().optional(),
 })
 
 export const PostAdminOrderExpeditionPdfSchema = z.object({

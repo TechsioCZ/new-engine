@@ -1,3 +1,4 @@
+import type { DataTableDateComparisonOperator } from "@medusajs/ui"
 import { sdk } from "../../lib/sdk"
 import type {
   OrderDashboardBusinessStatusGroupId,
@@ -50,19 +51,26 @@ type ListOrderDashboardOrdersInput = {
   businessStatusGroup?: OrderDashboardBusinessStatusGroupId
   businessStatus?: OrderDashboardBusinessStatusId
   carrier?: OrderDashboardCarrierKey
+  createdAt?: DataTableDateComparisonOperator
   limit: number
   offset: number
   order: OrderDashboardSortOrder
+  q?: string
 }
 
-export function listOrderDashboardOrders({
-  businessStatusGroup,
-  businessStatus,
-  carrier,
-  limit,
-  offset,
-  order,
-}: ListOrderDashboardOrdersInput) {
+export function listOrderDashboardOrders(
+  {
+    businessStatusGroup,
+    businessStatus,
+    carrier,
+    createdAt,
+    limit,
+    offset,
+    order,
+    q,
+  }: ListOrderDashboardOrdersInput,
+  signal?: AbortSignal
+) {
   return sdk.client.fetch<OrderDashboardOrdersResponse>(
     "/admin/order-expedition/orders",
     {
@@ -70,10 +78,13 @@ export function listOrderDashboardOrders({
         business_status_group: businessStatusGroup,
         business_status: businessStatus,
         carrier,
+        created_at: createdAt,
         limit,
         offset,
         order,
+        q,
       },
+      signal,
     }
   )
 }

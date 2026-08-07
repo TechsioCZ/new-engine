@@ -2,6 +2,24 @@ import { describe, expect, it } from "vitest"
 import { GetAdminOrderExpeditionOrdersSchema } from "../../../../../../src/api/admin/order-expedition/validators"
 
 describe("GetAdminOrderExpeditionOrdersSchema", () => {
+  it("accepts native order search and created date filters", () => {
+    expect(
+      GetAdminOrderExpeditionOrdersSchema.parse({
+        created_at: {
+          $gte: "2026-08-01T00:00:00.000Z",
+          $lte: "2026-08-31T23:59:59.999Z",
+        },
+        q: "John Doe",
+      })
+    ).toEqual({
+      created_at: {
+        $gte: "2026-08-01T00:00:00.000Z",
+        $lte: "2026-08-31T23:59:59.999Z",
+      },
+      q: "John Doe",
+    })
+  })
+
   it.each([
     "created_at",
     "-created_at",
