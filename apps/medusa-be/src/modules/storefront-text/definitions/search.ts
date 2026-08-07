@@ -52,6 +52,11 @@ export const STOREFRONT_SEARCH_TEXT_DEFINITIONS = [
     namespace: "search",
   },
   {
+    description: "Nadpis sekce obsahu v návrzích vyhledávání.",
+    key: "search.autocomplete.sections.content",
+    namespace: "search",
+  },
+  {
     description: "Typ návrhu pro kategorii.",
     key: "search.autocomplete.types.category",
     namespace: "search",

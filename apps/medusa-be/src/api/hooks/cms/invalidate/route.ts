@@ -2,6 +2,10 @@ import { createHmac } from "node:crypto"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  type CmsSearchChange,
+  reconcileContentSearchChange,
+} from "../../../../modules/meilisearch/content-events"
 import { PAYLOAD_MODULE } from "../../../../modules/payload"
 import type PayloadModuleService from "../../../../modules/payload/service"
 import {
@@ -12,7 +16,12 @@ import {
 /** Expected webhook payload from Payload CMS invalidation hook. */
 type PayloadWebhookBody = {
   collection?: string
-  doc?: { id?: string; slug?: string; locale?: string }
+  doc?: Record<string, unknown> & {
+    id?: string
+    slug?: string
+    locale?: string
+  }
+  operation?: string
 }
 
 /** Hook endpoint to invalidate cached CMS content in Medusa. */
@@ -49,6 +58,11 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       body.collection,
       body.doc?.slug,
       body.doc?.locale
+    )
+    await reconcileContentSearchChange(
+      body as CmsSearchChange,
+      logger,
+      req.scope
     )
   } catch (error) {
     logger.error(

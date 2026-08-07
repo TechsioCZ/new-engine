@@ -27,6 +27,7 @@ import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewa
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
 import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
+import { adminSearchProfileRoutesMiddlewares } from "./admin/search-profiles/middlewares"
 import { adminStorefrontTextRoutesMiddlewares } from "./admin/storefront-texts/middlewares"
 import { serveAdminAppStatic } from "./admin-app-static"
 import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
@@ -38,6 +39,7 @@ import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middle
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
 import { storeProductAttributesRoutesMiddlewares } from "./store/products/[id]/product-attributes/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
+import { storeSearchAutocompleteRoutesMiddlewares } from "./store/search/autocomplete/middlewares"
 import { storeShopReviewRoutesMiddlewares } from "./store/shop-reviews/middlewares"
 import { storeStorefrontTextRoutesMiddlewares } from "./store/storefront-texts/middlewares"
 
@@ -86,10 +88,12 @@ export default defineMiddlewares({
     ...adminProductAttributeRoutesMiddlewares,
     ...adminQrPaymentConfigRoutesMiddlewares,
     ...adminReviewRoutesMiddlewares,
+    ...adminSearchProfileRoutesMiddlewares,
     ...adminStorefrontTextRoutesMiddlewares,
     ...storeMiddlewares,
     ...storeCustomerReviewRoutesMiddlewares,
     ...storeCatalogProductsRoutesMiddlewares,
+    ...storeSearchAutocompleteRoutesMiddlewares,
     ...storeCmsRoutesMiddlewares,
     ...storeProductListsRoutesMiddlewares,
     ...storeProductLocationAvailabilityRoutesMiddlewares,
