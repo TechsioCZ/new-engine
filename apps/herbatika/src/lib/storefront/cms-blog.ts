@@ -115,7 +115,13 @@ const isNonEmptyString = (value: unknown): value is string =>
 const resolveTopicFromCategory = (
   category: CmsCategory | null | undefined,
 ): Exclude<BlogTopicKey, "all"> => {
-  switch (category?.slug) {
+  const slug = category?.slug
+
+  if (slug === null || slug === undefined) {
+    return DEFAULT_CMS_TOPIC
+  }
+
+  switch (slug) {
     case "beauty":
     case "krasa": {
       return "krasa"
@@ -123,12 +129,6 @@ const resolveTopicFromCategory = (
     case "fitness":
     case "sport": {
       return "fitness"
-    }
-    case undefined: {
-      throw new Error("Not implemented yet: undefined case")
-    }
-    case null: {
-      throw new Error("Not implemented yet: null case")
     }
     default: {
       return DEFAULT_CMS_TOPIC
