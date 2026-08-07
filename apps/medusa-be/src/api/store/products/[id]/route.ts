@@ -6,74 +6,24 @@ import type {
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
-  MedusaError,
   QueryContext,
 } from "@medusajs/framework/utils"
-import { z } from "@medusajs/framework/zod"
-import {
-  filterOutInternalProductCategories,
-  wrapProductsWithTaxPrices,
-} from "@medusajs/medusa/api/store/products/helpers"
 import type { RequestWithContext } from "@medusajs/medusa/api/store/products/helpers"
-import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
 
 import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
   getMeasurementDecorationQueryFields,
 } from "../../../../utils/measurement-units"
-
-type InventoryDecoratableVariant = HttpTypes.StoreProductVariant & {
-  manage_inventory?: boolean
-}
-
-const StoreProductSchema = z
-  .object({
-    created_at: z.string().nullable(),
-    deleted_at: z.string().nullable(),
-    description: z.string().nullable(),
-    discountable: z.boolean(),
-    external_id: z.string().nullable(),
-    handle: z.string(),
-    height: z.number().nullable(),
-    hs_code: z.string().nullable(),
-    id: z.string(),
-    images: z.array(z.record(z.string(), z.unknown())).nullable(),
-    is_giftcard: z.boolean(),
-    length: z.number().nullable(),
-    material: z.string().nullable(),
-    mid_code: z.string().nullable(),
-    options: z.array(z.record(z.string(), z.unknown())).nullable(),
-    origin_country: z.string().nullable(),
-    status: z.enum(["draft", "proposed", "published", "rejected"]),
-    subtitle: z.string().nullable(),
-    thumbnail: z.string().nullable(),
-    title: z.string(),
-    type_id: z.string().nullable(),
-    updated_at: z.string().nullable(),
-    variants: z
-      .array(
-        z
-          .object({
-            id: z.string(),
-            manage_inventory: z.boolean().nullable(),
-          })
-          .loose(),
-      )
-      .nullable(),
-    weight: z.number().nullable(),
-    width: z.number().nullable(),
-  })
-  .loose()
-
-const isStoreProduct = (value: unknown): value is HttpTypes.StoreProduct =>
-  StoreProductSchema.safeParse(value).success
+import type { StoreProductProjection } from "../product-graph-validation"
+import { parseStoreProductDetailGraphResponse } from "../product-graph-validation"
+import {
+  decorateInventoryQuantityForProductProjections,
+  decorateProductProjectionsWithTaxPrices,
+  filterOutInternalProductCategoryProjections,
+} from "../product-projection-decorators"
 
 const INCLUDED_FIELD_PREFIX_PATTERN = /^[+*]/u
-
-const isInventoryDecoratableVariant = (
-  variant: HttpTypes.StoreProductVariant,
-): variant is InventoryDecoratableVariant => variant.manage_inventory !== null
 
 const normalizeIncludedField = (field: string) =>
   field.replace(INCLUDED_FIELD_PREFIX_PATTERN, "")
@@ -95,7 +45,7 @@ const includesCategoryVisibilityField = (fields: string[]) =>
 
 const get = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,
-  res: MedusaResponse<HttpTypes.StoreProductResponse>,
+  res: MedusaResponse<{ product: StoreProductProjection }>,
 ) => {
   const requestedFields = req.queryConfig.fields
   const measurementDecorationOptions =
@@ -135,7 +85,7 @@ const get = async (
 
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-  const { data: products } = await query.graph(
+  const rawProductResult: unknown = await query.graph(
     {
       context,
       entity: "product",
@@ -144,28 +94,20 @@ const get = async (
     },
     req.locale === undefined ? {} : { locale: req.locale },
   )
-  const product: unknown = products.at(0)
-
-  if (!isStoreProduct(product)) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      `Product with id: ${req.params["id"]} was not found`,
-    )
-  }
+  const product = parseStoreProductDetailGraphResponse(
+    rawProductResult,
+    req.params["id"],
+  )
 
   if (withInventoryQuantity) {
-    const variants = (product.variants ?? []).filter(
-      isInventoryDecoratableVariant,
-    )
-
-    await wrapVariantsWithInventoryQuantityForSalesChannel(req, variants)
+    await decorateInventoryQuantityForProductProjections(req, [product])
   }
 
   if (includesCategoriesField) {
-    filterOutInternalProductCategories([product])
+    filterOutInternalProductCategoryProjections([product])
   }
 
-  await wrapProductsWithTaxPrices(req, [product])
+  await decorateProductProjectionsWithTaxPrices(req, [product])
   await decorateProductsWithMeasurements(
     req.scope,
     [product],

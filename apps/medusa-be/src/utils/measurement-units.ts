@@ -1,5 +1,4 @@
 import type {
-  HttpTypes,
   InferEntityType,
   MedusaContainer,
 } from "@medusajs/framework/types"
@@ -54,9 +53,14 @@ export interface ProductVariantMeasurementResponse {
   updated_at?: Date | string
 }
 
-type CalculatedPriceLike = NonNullable<
-  HttpTypes.StoreProductVariant["calculated_price"]
-> & {
+interface CalculatedPriceLike {
+  calculated_amount?: unknown
+  calculated_amount_with_tax?: unknown
+  calculated_amount_without_tax?: unknown
+  currency_code?: unknown
+  original_amount?: unknown
+  original_amount_with_tax?: unknown
+  original_amount_without_tax?: unknown
   price_per_unit?: Record<string, unknown>
 }
 
@@ -65,11 +69,12 @@ interface ProductLike {
   measurement?: ProductMeasurementResponse | null
   variants?:
     | {
-        calculated_price?: CalculatedPriceLike | null
+        calculated_price?: CalculatedPriceLike | null | undefined
         id?: unknown
-        measurement?: ProductVariantMeasurementResponse | null
+        measurement?: ProductVariantMeasurementResponse | null | undefined
       }[]
     | null
+    | undefined
 }
 
 export interface MeasurementDecorationOptions {
