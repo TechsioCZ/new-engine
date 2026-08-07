@@ -6,6 +6,7 @@ import { z } from "@medusajs/framework/zod"
 import type {
   PplAccessPoint,
   PplAccessPointsQuery,
+  PplAddress,
   PplAddressWhisperItem,
   PplAddressWhisperQuery,
   PplApiInfo,
@@ -83,11 +84,9 @@ type RetryAttemptResult<T> =
   | { retry: true; error: Error }
   | { retry: false; value: T }
 
-const passthroughObject = <T extends z.ZodRawShape>(shape: T) => z.object(shape)
-
 const optionalString = z.optional(z.string())
 const optionalNumber = z.optional(z.number())
-const addressSchema = passthroughObject({
+const addressSchema = z.object({
   city: z.string(),
   contact: optionalString,
   country: z.string(),
@@ -97,8 +96,8 @@ const addressSchema = passthroughObject({
   phone: optionalString,
   street: z.string(),
   zipCode: z.string(),
-})
-const batchItemSchema = passthroughObject({
+}) satisfies z.ZodType<PplAddress>
+const batchItemSchema = z.object({
   errorMessage: optionalString,
   importState: z.optional(
     z.enum(["Received", "InProcess", "Complete", "Error"]),
@@ -109,12 +108,12 @@ const batchItemSchema = passthroughObject({
   shipmentNumber: optionalString,
   trackingUrl: optionalString,
 })
-const batchResponseSchema = passthroughObject({
+const batchResponseSchema = z.object({
   items: z.array(batchItemSchema),
-})
-const shipmentInfoSchema = passthroughObject({
+}) satisfies z.ZodType<PplBatchResponse>
+const shipmentInfoSchema = z.object({
   cashOnDelivery: z.optional(
-    passthroughObject({
+    z.object({
       codPaidDate: optionalString,
       codPrice: z.number(),
     }),
@@ -141,8 +140,8 @@ const shipmentInfoSchema = passthroughObject({
   ]),
   stateDate: z.string(),
   weight: optionalNumber,
-})
-const accessPointSchema = passthroughObject({
+}) satisfies z.ZodType<PplShipmentInfo>
+const accessPointSchema = z.object({
   accessPointType: z.string(),
   address: addressSchema,
   code: z.string(),
@@ -151,55 +150,55 @@ const accessPointSchema = passthroughObject({
   longitude: optionalNumber,
   name: z.string(),
   openingHours: optionalString,
-})
-const addressWhisperItemSchema = passthroughObject({
+}) satisfies z.ZodType<PplAccessPoint>
+const addressWhisperItemSchema = z.object({
   city: optionalString,
   country: optionalString,
   street: optionalString,
   zipCode: optionalString,
-})
-const codelistProductSchema = passthroughObject({
+}) satisfies z.ZodType<PplAddressWhisperItem>
+const codelistProductSchema = z.object({
   code: z.string(),
   description: optionalString,
   name: z.string(),
-})
-const codelistCountrySchema = passthroughObject({
+}) satisfies z.ZodType<PplCodelistProduct>
+const codelistCountrySchema = z.object({
   codAllowed: z.optional(z.boolean()),
   code: z.string(),
   name: z.string(),
-})
-const codelistCurrencySchema = passthroughObject({
+}) satisfies z.ZodType<PplCodelistCountry>
+const codelistCurrencySchema = z.object({
   code: z.string(),
   name: z.string(),
-})
-const codelistServiceSchema = passthroughObject({
-  code: z.string(),
-  description: optionalString,
-  name: z.string(),
-})
-const codelistStatusSchema = passthroughObject({
+}) satisfies z.ZodType<PplCodelistCurrency>
+const codelistServiceSchema = z.object({
   code: z.string(),
   description: optionalString,
   name: z.string(),
-})
-const servicePriceLimitSchema = passthroughObject({
+}) satisfies z.ZodType<PplCodelistServiceItem>
+const codelistStatusSchema = z.object({
+  code: z.string(),
+  description: optionalString,
+  name: z.string(),
+}) satisfies z.ZodType<PplCodelistStatus>
+const servicePriceLimitSchema = z.object({
   country: optionalString,
   currency: optionalString,
   maxValue: optionalNumber,
   minValue: optionalNumber,
   product: optionalString,
   service: optionalString,
-})
-const customerInfoSchema = passthroughObject({
+}) satisfies z.ZodType<PplCodelistServicePriceLimit>
+const customerInfoSchema = z.object({
   currencies: z.optional(z.array(z.string())),
   customerId: optionalNumber,
   customerName: optionalString,
-})
+}) satisfies z.ZodType<PplCustomerInfo>
 const customerAddressSchema = addressSchema.extend({
   code: z.string(),
   default: z.optional(z.boolean()),
 })
-const orderSchema = passthroughObject({
+const orderSchema = z.object({
   createdDate: optionalString,
   customerReference: optionalString,
   email: optionalString,
@@ -217,97 +216,55 @@ const orderSchema = passthroughObject({
   sendTimeTo: optionalString,
   sender: z.optional(addressSchema),
   shipmentCount: optionalNumber,
-})
-const orderBatchItemSchema = passthroughObject({
+}) satisfies z.ZodType<PplOrder>
+const orderBatchItemSchema = z.object({
   errorMessage: optionalString,
   importState: z.enum(["Received", "InProcess", "Complete", "Error"]),
   orderNumber: optionalString,
   referenceId: optionalString,
 })
-const orderBatchResponseSchema = passthroughObject({
+const orderBatchResponseSchema = z.object({
   batchId: z.string(),
   items: z.array(orderBatchItemSchema),
-})
-const batchLabelItemSchema = passthroughObject({
+}) satisfies z.ZodType<PplOrderBatchResponse>
+const batchLabelItemSchema = z.object({
   labelUrl: optionalString,
   referenceId: optionalString,
   shipmentNumber: z.string(),
 })
-const batchLabelResponseSchema = passthroughObject({
+const batchLabelResponseSchema = z.object({
   completeLabelUrl: optionalString,
   items: z.array(batchLabelItemSchema),
   limit: optionalNumber,
   offset: optionalNumber,
   totalCount: optionalNumber,
-})
-const routingResponseSchema = passthroughObject({
+}) satisfies z.ZodType<PplBatchLabelResponse>
+const routingResponseSchema = z.object({
   deliveryTour: optionalString,
   depotCode: optionalString,
   routeCode: optionalString,
   sortCode: optionalString,
-})
-const versionInfoItemSchema = passthroughObject({
+}) satisfies z.ZodType<PplRoutingResponse>
+const versionInfoItemSchema = z.object({
   description: optionalString,
   infoType: optionalString,
   releaseDate: optionalString,
   title: optionalString,
   version: optionalString,
 })
-const versionInformationSchema = passthroughObject({
+const versionInformationSchema = z.object({
   items: z.array(versionInfoItemSchema),
   totalCount: optionalNumber,
-})
-const apiInfoSchema = passthroughObject({
+}) satisfies z.ZodType<PplVersionInformationResponse>
+const apiInfoSchema = z.object({
   environment: optionalString,
   status: optionalString,
   version: optionalString,
-})
+}) satisfies z.ZodType<PplApiInfo>
 
-const asDomainSchema = <T>(schema: z.ZodType): z.ZodType<T> =>
-  z.custom<T>((value) => schema.safeParse(value).success)
-
-const accessPointDomainSchema =
-  asDomainSchema<PplAccessPoint>(accessPointSchema)
-const addressWhisperItemDomainSchema = asDomainSchema<PplAddressWhisperItem>(
-  addressWhisperItemSchema,
-)
-const apiInfoDomainSchema = asDomainSchema<PplApiInfo>(apiInfoSchema)
-const batchLabelResponseDomainSchema = asDomainSchema<PplBatchLabelResponse>(
-  batchLabelResponseSchema,
-)
-const batchResponseDomainSchema =
-  asDomainSchema<PplBatchResponse>(batchResponseSchema)
-const codelistCountryDomainSchema = asDomainSchema<PplCodelistCountry>(
-  codelistCountrySchema,
-)
-const codelistCurrencyDomainSchema = asDomainSchema<PplCodelistCurrency>(
-  codelistCurrencySchema,
-)
-const codelistProductDomainSchema = asDomainSchema<PplCodelistProduct>(
-  codelistProductSchema,
-)
-const codelistServiceDomainSchema = asDomainSchema<PplCodelistServiceItem>(
-  codelistServiceSchema,
-)
-const codelistStatusDomainSchema =
-  asDomainSchema<PplCodelistStatus>(codelistStatusSchema)
-const customerAddressResponseDomainSchema =
-  asDomainSchema<PplCustomerAddressResponse>(z.array(customerAddressSchema))
-const customerInfoDomainSchema =
-  asDomainSchema<PplCustomerInfo>(customerInfoSchema)
-const orderBatchResponseDomainSchema = asDomainSchema<PplOrderBatchResponse>(
-  orderBatchResponseSchema,
-)
-const orderDomainSchema = asDomainSchema<PplOrder>(orderSchema)
-const routingResponseDomainSchema = asDomainSchema<PplRoutingResponse>(
-  routingResponseSchema,
-)
-const servicePriceLimitDomainSchema =
-  asDomainSchema<PplCodelistServicePriceLimit>(servicePriceLimitSchema)
-const shipmentInfoDomainSchema =
-  asDomainSchema<PplShipmentInfo>(shipmentInfoSchema)
-const versionInformationDomainSchema =
-  asDomainSchema<PplVersionInformationResponse>(versionInformationSchema)
+const customerAddressResponseSchema = z.array(
+  customerAddressSchema,
+) satisfies z.ZodType<PplCustomerAddressResponse>
 
 const emptyResponseParser = (value: unknown): null => {
   if (value !== null) {
@@ -321,7 +278,7 @@ const emptyResponseParser = (value: unknown): null => {
 const parseArrayOrItems = <T>(schema: z.ZodType<T>) => {
   const responseSchema = z.union([
     z.array(schema),
-    passthroughObject({ items: z.array(schema) }),
+    z.object({ items: z.array(schema) }),
   ])
 
   return (value: unknown): T[] => {
@@ -455,7 +412,7 @@ export class PplClient {
     batchId: string,
   ): Promise<PplBatchResponse> {
     return await this.get(token, `/shipment/batch/${batchId}`, (value) =>
-      batchResponseDomainSchema.parse(value),
+      batchResponseSchema.parse(value),
     )
   }
 
@@ -487,7 +444,7 @@ export class PplClient {
     const { data } = await this.makeRequest(
       token,
       `/shipment?${params.toString()}`,
-      { parse: parseArrayOrItems(shipmentInfoDomainSchema) },
+      { parse: parseArrayOrItems(shipmentInfoSchema) },
     )
     return data ?? []
   }
@@ -519,7 +476,7 @@ export class PplClient {
     const { data } = await this.makeRequest(
       token,
       `/accessPoint?${params.toString()}`,
-      { parse: parseArrayOrItems(accessPointDomainSchema) },
+      { parse: parseArrayOrItems(accessPointSchema) },
     )
     return data ?? []
   }
@@ -549,7 +506,7 @@ export class PplClient {
     const { data } = await this.makeRequest(
       token,
       `/addressWhisper?${params.toString()}`,
-      { parse: parseArrayOrItems(addressWhisperItemDomainSchema) },
+      { parse: parseArrayOrItems(addressWhisperItemSchema) },
     )
     return data ?? []
   }
@@ -566,7 +523,7 @@ export class PplClient {
       token,
       "product",
       query,
-      codelistProductDomainSchema,
+      codelistProductSchema,
     )
   }
 
@@ -578,7 +535,7 @@ export class PplClient {
       token,
       "country",
       query,
-      codelistCountryDomainSchema,
+      codelistCountrySchema,
     )
   }
 
@@ -590,7 +547,7 @@ export class PplClient {
       token,
       "currency",
       query,
-      codelistCurrencyDomainSchema,
+      codelistCurrencySchema,
     )
   }
 
@@ -602,7 +559,7 @@ export class PplClient {
       token,
       "service",
       query,
-      codelistServiceDomainSchema,
+      codelistServiceSchema,
     )
   }
 
@@ -614,7 +571,7 @@ export class PplClient {
       token,
       "status",
       query,
-      codelistStatusDomainSchema,
+      codelistStatusSchema,
     )
   }
 
@@ -642,7 +599,7 @@ export class PplClient {
     const { data } = await this.makeRequest(
       token,
       `/codelist/servicePriceLimit?${params.toString()}`,
-      { parse: parseArrayOrItems(servicePriceLimitDomainSchema) },
+      { parse: parseArrayOrItems(servicePriceLimitSchema) },
     )
     return data ?? []
   }
@@ -654,7 +611,7 @@ export class PplClient {
   async getCustomerInfo(token: string): Promise<PplCustomerInfo | null> {
     const { data, status } = await this.makeRequest(token, "/customer", {
       allow404: true,
-      parse: (value) => customerInfoDomainSchema.parse(value),
+      parse: (value) => customerInfoSchema.parse(value),
     })
     return status === 404 ? null : data
   }
@@ -667,7 +624,7 @@ export class PplClient {
       "/customer/address",
       {
         allow404: true,
-        parse: (value) => customerAddressResponseDomainSchema.parse(value),
+        parse: (value) => customerAddressResponseSchema.parse(value),
       },
     )
     return status === 404 ? null : data
@@ -693,7 +650,7 @@ export class PplClient {
     batchId: string,
   ): Promise<PplOrderBatchResponse> {
     return await this.get(token, `/order/batch/${batchId}`, (value) =>
-      orderBatchResponseDomainSchema.parse(value),
+      orderBatchResponseSchema.parse(value),
     )
   }
 
@@ -703,7 +660,7 @@ export class PplClient {
       token,
       `/order?${params.toString()}`,
       {
-        parse: parseArrayOrItems(orderDomainSchema),
+        parse: parseArrayOrItems(orderSchema),
       },
     )
     return data ?? []
@@ -772,7 +729,7 @@ export class PplClient {
     return await this.get(
       token,
       `/shipment/batch/${batchId}/label?${params.toString()}`,
-      (value) => batchLabelResponseDomainSchema.parse(value),
+      (value) => batchLabelResponseSchema.parse(value),
     )
   }
 
@@ -839,7 +796,7 @@ export class PplClient {
     }
 
     return await this.get(token, `/routing?${params.toString()}`, (value) =>
-      routingResponseDomainSchema.parse(value),
+      routingResponseSchema.parse(value),
     )
   }
 
@@ -847,14 +804,12 @@ export class PplClient {
     token: string,
   ): Promise<PplVersionInformationResponse> {
     return await this.get(token, "/versionInformation", (value) =>
-      versionInformationDomainSchema.parse(value),
+      versionInformationSchema.parse(value),
     )
   }
 
   async getApiInfo(token: string): Promise<PplApiInfo> {
-    return await this.get(token, "/info", (value) =>
-      apiInfoDomainSchema.parse(value),
-    )
+    return await this.get(token, "/info", (value) => apiInfoSchema.parse(value))
   }
 
   // ============================================
