@@ -1358,6 +1358,7 @@ const OrderDashboardPage = () => {
               </Select>
               <OrderDashboardCreatedAtFilter
                 labels={{
+                  apply: t("actions.apply"),
                   clear: t("filters.createdAtClear"),
                   customRange: t("filters.createdAtRange"),
                   end: t("filters.createdAtRangeEnd"),

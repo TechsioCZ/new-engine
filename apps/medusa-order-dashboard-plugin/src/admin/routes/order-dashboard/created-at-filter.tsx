@@ -17,6 +17,7 @@ import { useId, useState } from "react"
 import { formatOrderDate } from "./format"
 
 type CreatedAtFilterLabels = {
+  apply: string
   clear: string
   customRange: string
   end: string
@@ -54,28 +55,42 @@ export function OrderDashboardCreatedAtFilter({
   )
   const [isOpen, setIsOpen] = useState(false)
   const [showCustomRange, setShowCustomRange] = useState(false)
+  const [draftValue, setDraftValue] =
+    useState<DataTableDateComparisonOperator>()
   const displayValue =
     selectedOption?.label ??
     formatCreatedAtFilterValue(value, locale, labels.start, labels.end)
+  const canApply = hasDateFilterValue(draftValue) || hasDateFilterValue(value)
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
 
     if (open) {
+      setDraftValue(value ? { ...value } : undefined)
       setShowCustomRange(Boolean(value && !selectedOption))
+    } else {
+      setShowCustomRange(false)
     }
   }
 
   const handleRangeChange = (boundary: "$gte" | "$lte", date: Date | null) => {
-    const nextValue = { ...value }
+    setDraftValue((currentValue) => {
+      const nextValue = { ...currentValue }
 
-    if (date) {
-      nextValue[boundary] = getDateFilterBoundary(date, boundary)
-    } else {
-      delete nextValue[boundary]
-    }
+      if (date) {
+        nextValue[boundary] = getDateFilterBoundary(date, boundary)
+      } else {
+        delete nextValue[boundary]
+      }
 
-    onChange(Object.keys(nextValue).length ? nextValue : undefined)
+      return hasDateFilterValue(nextValue) ? nextValue : undefined
+    })
+  }
+
+  const handleApply = () => {
+    onChange(draftValue)
+    setIsOpen(false)
+    setShowCustomRange(false)
   }
 
   const handleClear = () => {
@@ -146,10 +161,12 @@ export function OrderDashboardCreatedAtFilter({
                 <DatePicker
                   aria-labelledby={startLabelId}
                   granularity="day"
-                  maxValue={value?.$lte ? new Date(value.$lte) : undefined}
+                  maxValue={
+                    draftValue?.$lte ? new Date(draftValue.$lte) : undefined
+                  }
                   onChange={(date) => handleRangeChange("$gte", date)}
                   size="small"
-                  value={value?.$gte ? new Date(value.$gte) : null}
+                  value={draftValue?.$gte ? new Date(draftValue.$gte) : null}
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -159,11 +176,23 @@ export function OrderDashboardCreatedAtFilter({
                 <DatePicker
                   aria-labelledby={endLabelId}
                   granularity="day"
-                  minValue={value?.$gte ? new Date(value.$gte) : undefined}
+                  minValue={
+                    draftValue?.$gte ? new Date(draftValue.$gte) : undefined
+                  }
                   onChange={(date) => handleRangeChange("$lte", date)}
                   size="small"
-                  value={value?.$lte ? new Date(value.$lte) : null}
+                  value={draftValue?.$lte ? new Date(draftValue.$lte) : null}
                 />
+              </div>
+              <div className="flex justify-end pt-1">
+                <Button
+                  disabled={!canApply}
+                  onClick={handleApply}
+                  size="small"
+                  type="button"
+                >
+                  {labels.apply}
+                </Button>
               </div>
             </div>
           ) : null}
@@ -184,6 +213,12 @@ export function OrderDashboardCreatedAtFilter({
       ) : null}
     </div>
   )
+}
+
+function hasDateFilterValue(
+  value: DataTableDateComparisonOperator | undefined
+) {
+  return Boolean(value?.$gte || value?.$lte || value?.$gt || value?.$lt)
 }
 
 function getCreatedAtFilterOptions(
