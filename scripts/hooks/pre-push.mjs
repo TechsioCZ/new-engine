@@ -359,8 +359,13 @@ process.stdin.on("end", () => {
     run(process.execPath, [
       "--test",
       "scripts/danger/check-migration-immutability.test.mjs",
-      "scripts/danger/policy.test.ts",
       "scripts/hooks/files.test.mjs",
+    ])
+    run(path.resolve("node_modules/.bin/vitest"), [
+      "run",
+      "--dir",
+      "scripts/danger",
+      "policy.test.ts",
     ])
   }
 })
