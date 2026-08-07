@@ -273,15 +273,9 @@ export const validateRouteQuery = (
 
   invalid.push(...conflictingAliases(keys))
 
-  const utmCount = entries.filter(([key]) =>
-    TRACKING_KEY_PATTERN.test(key)
-  ).length
-  if (utmCount > 10) {
-    invalid.push(
-      ...entries
-        .filter(([key]) => TRACKING_KEY_PATTERN.test(key))
-        .map(([key]) => key)
-    )
+  const utmEntries = entries.filter(([key]) => TRACKING_KEY_PATTERN.test(key))
+  if (utmEntries.length > 10) {
+    invalid.push(...utmEntries.map(([key]) => key))
   }
   if (
     entries.reduce((count, [, values]) => count + values.length, 0) >
