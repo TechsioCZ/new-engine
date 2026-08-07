@@ -4,6 +4,7 @@ import {
   buildJsonResponse,
   getLocaleFromRequest,
   getQueryParam,
+  publishedInCategoryWhere,
 } from "../utils/endpoint"
 
 const DEFAULT_MAX_PAGES = 500
@@ -30,14 +31,7 @@ export const pageCategoriesWithPagesEndpoint: Endpoint = {
       pagination: false,
       limit: DEFAULT_MAX_PAGES,
       locale,
-      where: {
-        status: { equals: "published" },
-        ...(categorySlug
-          ? {
-              "category.slug": { equals: categorySlug },
-            }
-          : {}),
-      },
+      where: publishedInCategoryWhere(categorySlug),
       select: {
         id: true,
         title: true,

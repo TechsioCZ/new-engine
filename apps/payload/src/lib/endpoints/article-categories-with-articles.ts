@@ -8,6 +8,7 @@ import {
   buildJsonResponse,
   getLocaleFromRequest,
   getQueryParam,
+  publishedInCategoryWhere,
 } from "../utils/endpoint"
 
 const MAX_ARTICLES = 500
@@ -41,14 +42,7 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
       pagination: true,
       limit: MAX_ARTICLES,
       locale,
-      where: {
-        status: { equals: "published" },
-        ...(categorySlug
-          ? {
-              "category.slug": { equals: categorySlug },
-            }
-          : {}),
-      },
+      where: publishedInCategoryWhere(categorySlug),
       select: {
         id: true,
         title: true,

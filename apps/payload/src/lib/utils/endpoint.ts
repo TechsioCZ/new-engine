@@ -1,4 +1,4 @@
-import { headersWithCors, type PayloadRequest } from "payload"
+import { headersWithCors, type PayloadRequest, type Where } from "payload"
 
 type LocaleValue = PayloadRequest["locale"]
 
@@ -57,3 +57,12 @@ export const buildJsonResponse = (
     headers,
   })
 }
+
+/**
+ * Build the shared `where` filter for the category-grouping endpoints: only
+ * published documents, optionally narrowed to a single category slug.
+ */
+export const publishedInCategoryWhere = (categorySlug?: string): Where => ({
+  status: { equals: "published" },
+  ...(categorySlug ? { "category.slug": { equals: categorySlug } } : {}),
+})
