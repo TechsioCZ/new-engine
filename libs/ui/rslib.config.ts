@@ -3,6 +3,17 @@ import { defineConfig } from "@rslib/core"
 import { globSync } from "glob"
 import { pluginPublint } from "rsbuild-plugin-publint"
 
+import packageJson from "./package.json" with { type: "json" }
+
+const REGEXP_SPECIAL_CHARACTER_PATTERN = /[.*+?^${}()|[\]\\]/gu
+const escapeRegExp = (value: string) =>
+  value.replace(REGEXP_SPECIAL_CHARACTER_PATTERN, "\\$&")
+
+const externalDependencies = [
+  ...Object.keys(packageJson.dependencies),
+  ...Object.keys(packageJson.peerDependencies),
+].map((dependency) => new RegExp(`^${escapeRegExp(dependency)}(?:/|$)`, "u"))
+
 const sourceEntries = Object.fromEntries(
   globSync("src/**/*.{ts,tsx}", {
     cwd: import.meta.dirname,
@@ -22,11 +33,7 @@ const sourceEntries = Object.fromEntries(
 export default defineConfig({
   lib: [
     {
-      autoExternal: {
-        dependencies: true,
-        devDependencies: false,
-        peerDependencies: true,
-      },
+      autoExternal: false,
       bundle: true,
       dts: {
         tsconfigPath: "./tsconfig.json",
@@ -35,6 +42,7 @@ export default defineConfig({
     },
   ],
   output: {
+    externals: externalDependencies,
     target: "web",
   },
   plugins: [
