@@ -53,7 +53,7 @@ export interface PplAddress {
   /** Name/company, max 50 chars */
   name: string
   /** Secondary name/company, max 50 chars */
-  name2?: string | undefined
+  name2?: string
   /** Street address, max 60 chars */
   street: string
   /** City, max 50 chars */
@@ -63,11 +63,11 @@ export interface PplAddress {
   /** ISO 3166-1 alpha-2 country code (e.g., "CZ") */
   country: string
   /** Contact person, max 50 chars */
-  contact?: string | undefined
+  contact?: string
   /** Phone number, max 30 chars */
-  phone?: string | undefined
+  phone?: string
   /** Email address, max 50 chars */
-  email?: string | undefined
+  email?: string
 }
 
 /**
@@ -333,17 +333,17 @@ export interface PplBatchItem {
   /** Reference ID from request */
   referenceId: string
   /** PPL shipment number (tracking number) */
-  shipmentNumber?: string | undefined
+  shipmentNumber?: string
   /** Label download URL */
-  labelUrl?: string | undefined
+  labelUrl?: string
   /** Public tracking URL */
-  trackingUrl?: string | undefined
+  trackingUrl?: string
   /** Error message if item failed */
-  errorMessage?: string | undefined
+  errorMessage?: string
   /** Item import state */
-  importState?: PplBatchState | undefined
+  importState?: PplBatchState
   /** Related items */
-  relatedItems?: unknown[] | undefined
+  relatedItems?: unknown[]
 }
 
 /**
@@ -351,26 +351,24 @@ export interface PplBatchItem {
  */
 export interface PplShipmentInfo {
   shipmentNumber: string
-  referenceId?: string | undefined
+  referenceId?: string
   shipmentState: PplShipmentState
   /** ISO date of last state change */
   stateDate: string
   productType: string
-  recipient?: PplAddress | undefined
-  sender?: PplAddress | undefined
-  cashOnDelivery?:
-    | {
-        codPrice: number
-        /** ISO date when COD was collected */
-        codPaidDate?: string | undefined
-      }
-    | undefined
+  recipient?: PplAddress
+  sender?: PplAddress
+  cashOnDelivery?: {
+    codPrice: number
+    /** ISO date when COD was collected */
+    codPaidDate?: string
+  }
   /** Weight in kg */
-  weight?: number | undefined
+  weight?: number
   /** Actual delivery date (ISO) */
-  deliveryDate?: string | undefined
+  deliveryDate?: string
   /** Pickup from sender date (ISO) */
-  pickupDate?: string | undefined
+  pickupDate?: string
 }
 
 /**
@@ -445,11 +443,11 @@ export interface PplAccessPoint {
   /** Type: ParcelShop, ParcelBox, AlzaBox, etc. */
   accessPointType: PplAccessPointType
   address: PplAddress
-  openingHours?: string | undefined
-  latitude?: number | undefined
-  longitude?: number | undefined
+  openingHours?: string
+  latitude?: number
+  longitude?: number
   /** Whether access point is active */
-  isActive?: boolean | undefined
+  isActive?: boolean
 }
 
 /** Access point types - includes | string for forward-compatibility with PPL API */
@@ -646,39 +644,39 @@ export interface PplOrderQuery {
  */
 export interface PplOrder {
   /** Order ID */
-  orderId?: number | undefined
+  orderId?: number
   /** Order number */
-  orderNumber?: string | undefined
+  orderNumber?: string
   /** Order reference */
-  orderReference?: string | undefined
+  orderReference?: string
   /** Customer reference */
-  customerReference?: string | undefined
+  customerReference?: string
   /** Order type */
   orderType: PplOrderType
   /** Order state */
   orderState: PplOrderState
   /** Send date (ISO DateTime) */
-  sendDate?: string | undefined
+  sendDate?: string
   /** Number of shipments */
-  shipmentCount?: number | undefined
+  shipmentCount?: number
   /** Contact email */
-  email?: string | undefined
+  email?: string
   /** Note/description */
-  note?: string | undefined
+  note?: string
   /** Send time from (HH:mm) */
-  sendTimeFrom?: string | undefined
+  sendTimeFrom?: string
   /** Send time to (HH:mm) */
-  sendTimeTo?: string | undefined
+  sendTimeTo?: string
   /** Product type */
-  productType?: string | undefined
+  productType?: string
   /** Sender address */
-  sender?: PplAddress | undefined
+  sender?: PplAddress
   /** Recipient address */
-  recipient?: PplAddress | undefined
+  recipient?: PplAddress
   /** Created date (ISO DateTime) */
-  createdDate?: string | undefined
+  createdDate?: string
   /** Error message if failed */
-  errorMessage?: string | undefined
+  errorMessage?: string
 }
 
 /**
@@ -733,13 +731,13 @@ export interface PplOrderBatchResponse {
  */
 export interface PplOrderBatchItem {
   /** Reference ID from request */
-  referenceId?: string | undefined
+  referenceId?: string
   /** Order number (assigned after processing) */
-  orderNumber?: string | undefined
+  orderNumber?: string
   /** Import state */
   importState: PplBatchState
   /** Error message if failed */
-  errorMessage?: string | undefined
+  errorMessage?: string
 }
 
 /**
@@ -796,10 +794,10 @@ export interface PplAddressWhisperResponse {
  * Single address suggestion from whisper
  */
 export interface PplAddressWhisperItem {
-  street?: string | undefined
-  zipCode?: string | undefined
-  city?: string | undefined
-  country?: string | undefined
+  street?: string
+  zipCode?: string
+  city?: string
+  country?: string
 }
 
 /**
@@ -821,7 +819,7 @@ export interface PplCodelistProduct {
   /** Product name */
   name: string
   /** Product description */
-  description?: string | undefined
+  description?: string
 }
 
 /**
@@ -853,7 +851,7 @@ export interface PplCodelistCountry {
   /** Country name */
   name: string
   /** Whether COD is allowed for this country */
-  codAllowed?: boolean | undefined
+  codAllowed?: boolean
 }
 
 /**
@@ -875,7 +873,7 @@ export interface PplCodelistServiceItem {
   /** Service name */
   name: string
   /** Service description */
-  description?: string | undefined
+  description?: string
 }
 
 /**
@@ -897,17 +895,17 @@ export interface PplServicePriceLimitQuery extends PplCodelistQuery {
  */
 export interface PplCodelistServicePriceLimit {
   /** Service code */
-  service?: string | undefined
+  service?: string
   /** Currency code */
-  currency?: string | undefined
+  currency?: string
   /** Country code */
-  country?: string | undefined
+  country?: string
   /** Product code */
-  product?: string | undefined
+  product?: string
   /** Minimum value */
-  minValue?: number | undefined
+  minValue?: number
   /** Maximum value */
-  maxValue?: number | undefined
+  maxValue?: number
 }
 
 /**
@@ -931,7 +929,7 @@ export interface PplCodelistStatus {
   /** Status name */
   name: string
   /** Status description */
-  description?: string | undefined
+  description?: string
 }
 
 /**
@@ -961,7 +959,7 @@ export interface PplCustomerAddress extends PplAddress {
   /** Address type code (e.g., "SEAT", "INVO", "PICK", "BACK") */
   code: string
   /** Whether this is the default address */
-  default?: boolean | undefined
+  default?: boolean
 }
 
 /**
@@ -975,11 +973,11 @@ export type PplCustomerAddressResponse = PplCustomerAddress[]
  */
 export interface PplCustomerInfo {
   /** Allowed currencies for the customer */
-  currencies?: string[] | undefined
+  currencies?: string[]
   /** Customer ID */
-  customerId?: number | undefined
+  customerId?: number
   /** Customer name */
-  customerName?: string | undefined
+  customerName?: string
 }
 
 /**
@@ -1044,9 +1042,9 @@ export interface PplBatchLabelItem {
   /** Shipment number */
   shipmentNumber: string
   /** Reference ID */
-  referenceId?: string | undefined
+  referenceId?: string
   /** Label URL for this shipment */
-  labelUrl?: string | undefined
+  labelUrl?: string
 }
 
 /**
@@ -1055,10 +1053,10 @@ export interface PplBatchLabelItem {
 export interface PplBatchLabelResponse {
   items: PplBatchLabelItem[]
   /** Complete/merged label URL if requested */
-  completeLabelUrl?: string | undefined
-  totalCount?: number | undefined
-  limit?: number | undefined
-  offset?: number | undefined
+  completeLabelUrl?: string
+  totalCount?: number
+  limit?: number
+  offset?: number
 }
 
 /**
@@ -1084,13 +1082,13 @@ export interface PplRoutingQuery {
  */
 export interface PplRoutingResponse {
   /** Route code */
-  routeCode?: string | undefined
+  routeCode?: string
   /** Depot code */
-  depotCode?: string | undefined
+  depotCode?: string
   /** Delivery tour */
-  deliveryTour?: string | undefined
+  deliveryTour?: string
   /** Sort code */
-  sortCode?: string | undefined
+  sortCode?: string
 }
 
 /**
@@ -1098,7 +1096,7 @@ export interface PplRoutingResponse {
  */
 export interface PplVersionInformationResponse {
   items: PplVersionInfoItem[]
-  totalCount?: number | undefined
+  totalCount?: number
 }
 
 /**
@@ -1106,15 +1104,15 @@ export interface PplVersionInformationResponse {
  */
 export interface PplVersionInfoItem {
   /** Version number */
-  version?: string | undefined
+  version?: string
   /** Release date (ISO DateTime) */
-  releaseDate?: string | undefined
+  releaseDate?: string
   /** Version description/changelog */
-  description?: string | undefined
+  description?: string
   /** Information type (e.g., Release, Maintenance, Notice) */
-  infoType?: string | undefined
+  infoType?: string
   /** Title */
-  title?: string | undefined
+  title?: string
 }
 
 /**
@@ -1122,11 +1120,11 @@ export interface PplVersionInfoItem {
  */
 export interface PplApiInfo {
   /** API version */
-  version?: string | undefined
+  version?: string
   /** API environment */
-  environment?: string | undefined
+  environment?: string
   /** API status */
-  status?: string | undefined
+  status?: string
 }
 
 // ============================================

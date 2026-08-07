@@ -2,6 +2,7 @@ import { setTimeout as sleep } from "node:timers/promises"
 
 import { MedusaError } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
+import { omitUndefined } from "@techsio/std/object"
 
 import type {
   PplAccessPoint,
@@ -84,9 +85,12 @@ type RetryAttemptResult<T> =
   | { retry: true; error: Error }
   | { retry: false; value: T }
 
+const responseObject = <T extends z.ZodRawShape>(shape: T) =>
+  z.object(shape).transform(omitUndefined)
+
 const optionalString = z.optional(z.string())
 const optionalNumber = z.optional(z.number())
-const addressSchema = z.object({
+const addressShape = {
   city: z.string(),
   contact: optionalString,
   country: z.string(),
@@ -96,8 +100,11 @@ const addressSchema = z.object({
   phone: optionalString,
   street: z.string(),
   zipCode: z.string(),
-}) satisfies z.ZodType<PplAddress>
-const batchItemSchema = z.object({
+}
+const addressSchema = responseObject(
+  addressShape,
+) satisfies z.ZodType<PplAddress>
+const batchItemSchema = responseObject({
   errorMessage: optionalString,
   importState: z.optional(
     z.enum(["Received", "InProcess", "Complete", "Error"]),
@@ -108,12 +115,12 @@ const batchItemSchema = z.object({
   shipmentNumber: optionalString,
   trackingUrl: optionalString,
 })
-const batchResponseSchema = z.object({
+const batchResponseSchema = responseObject({
   items: z.array(batchItemSchema),
 }) satisfies z.ZodType<PplBatchResponse>
-const shipmentInfoSchema = z.object({
+const shipmentInfoSchema = responseObject({
   cashOnDelivery: z.optional(
-    z.object({
+    responseObject({
       codPaidDate: optionalString,
       codPrice: z.number(),
     }),
@@ -141,7 +148,7 @@ const shipmentInfoSchema = z.object({
   stateDate: z.string(),
   weight: optionalNumber,
 }) satisfies z.ZodType<PplShipmentInfo>
-const accessPointSchema = z.object({
+const accessPointSchema = responseObject({
   accessPointType: z.string(),
   address: addressSchema,
   code: z.string(),
@@ -151,37 +158,37 @@ const accessPointSchema = z.object({
   name: z.string(),
   openingHours: optionalString,
 }) satisfies z.ZodType<PplAccessPoint>
-const addressWhisperItemSchema = z.object({
+const addressWhisperItemSchema = responseObject({
   city: optionalString,
   country: optionalString,
   street: optionalString,
   zipCode: optionalString,
 }) satisfies z.ZodType<PplAddressWhisperItem>
-const codelistProductSchema = z.object({
+const codelistProductSchema = responseObject({
   code: z.string(),
   description: optionalString,
   name: z.string(),
 }) satisfies z.ZodType<PplCodelistProduct>
-const codelistCountrySchema = z.object({
+const codelistCountrySchema = responseObject({
   codAllowed: z.optional(z.boolean()),
   code: z.string(),
   name: z.string(),
 }) satisfies z.ZodType<PplCodelistCountry>
-const codelistCurrencySchema = z.object({
+const codelistCurrencySchema = responseObject({
   code: z.string(),
   name: z.string(),
 }) satisfies z.ZodType<PplCodelistCurrency>
-const codelistServiceSchema = z.object({
+const codelistServiceSchema = responseObject({
   code: z.string(),
   description: optionalString,
   name: z.string(),
 }) satisfies z.ZodType<PplCodelistServiceItem>
-const codelistStatusSchema = z.object({
+const codelistStatusSchema = responseObject({
   code: z.string(),
   description: optionalString,
   name: z.string(),
 }) satisfies z.ZodType<PplCodelistStatus>
-const servicePriceLimitSchema = z.object({
+const servicePriceLimitSchema = responseObject({
   country: optionalString,
   currency: optionalString,
   maxValue: optionalNumber,
@@ -189,16 +196,17 @@ const servicePriceLimitSchema = z.object({
   product: optionalString,
   service: optionalString,
 }) satisfies z.ZodType<PplCodelistServicePriceLimit>
-const customerInfoSchema = z.object({
+const customerInfoSchema = responseObject({
   currencies: z.optional(z.array(z.string())),
   customerId: optionalNumber,
   customerName: optionalString,
 }) satisfies z.ZodType<PplCustomerInfo>
-const customerAddressSchema = addressSchema.extend({
+const customerAddressSchema = responseObject({
+  ...addressShape,
   code: z.string(),
   default: z.optional(z.boolean()),
 })
-const orderSchema = z.object({
+const orderSchema = responseObject({
   createdDate: optionalString,
   customerReference: optionalString,
   email: optionalString,
@@ -217,46 +225,46 @@ const orderSchema = z.object({
   sender: z.optional(addressSchema),
   shipmentCount: optionalNumber,
 }) satisfies z.ZodType<PplOrder>
-const orderBatchItemSchema = z.object({
+const orderBatchItemSchema = responseObject({
   errorMessage: optionalString,
   importState: z.enum(["Received", "InProcess", "Complete", "Error"]),
   orderNumber: optionalString,
   referenceId: optionalString,
 })
-const orderBatchResponseSchema = z.object({
+const orderBatchResponseSchema = responseObject({
   batchId: z.string(),
   items: z.array(orderBatchItemSchema),
 }) satisfies z.ZodType<PplOrderBatchResponse>
-const batchLabelItemSchema = z.object({
+const batchLabelItemSchema = responseObject({
   labelUrl: optionalString,
   referenceId: optionalString,
   shipmentNumber: z.string(),
 })
-const batchLabelResponseSchema = z.object({
+const batchLabelResponseSchema = responseObject({
   completeLabelUrl: optionalString,
   items: z.array(batchLabelItemSchema),
   limit: optionalNumber,
   offset: optionalNumber,
   totalCount: optionalNumber,
 }) satisfies z.ZodType<PplBatchLabelResponse>
-const routingResponseSchema = z.object({
+const routingResponseSchema = responseObject({
   deliveryTour: optionalString,
   depotCode: optionalString,
   routeCode: optionalString,
   sortCode: optionalString,
 }) satisfies z.ZodType<PplRoutingResponse>
-const versionInfoItemSchema = z.object({
+const versionInfoItemSchema = responseObject({
   description: optionalString,
   infoType: optionalString,
   releaseDate: optionalString,
   title: optionalString,
   version: optionalString,
 })
-const versionInformationSchema = z.object({
+const versionInformationSchema = responseObject({
   items: z.array(versionInfoItemSchema),
   totalCount: optionalNumber,
 }) satisfies z.ZodType<PplVersionInformationResponse>
-const apiInfoSchema = z.object({
+const apiInfoSchema = responseObject({
   environment: optionalString,
   status: optionalString,
   version: optionalString,
