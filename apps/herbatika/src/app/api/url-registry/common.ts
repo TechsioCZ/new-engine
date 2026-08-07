@@ -38,6 +38,26 @@ export const authorizeUrlRegistryAdmin = (
   return null
 }
 
+/**
+ * Wrap an admin route handler with the shared bearer-token check and the
+ * canonical error translation, so each route only expresses its own logic.
+ */
+export const withUrlRegistryAdmin =
+  <TContext>(
+    handler: (request: Request, context: TContext) => Promise<Response>
+  ) =>
+  async (request: Request, context?: TContext): Promise<Response> => {
+    const unauthorizedResponse = authorizeUrlRegistryAdmin(request)
+    if (unauthorizedResponse) {
+      return unauthorizedResponse
+    }
+    try {
+      return await handler(request, context as TContext)
+    } catch (error) {
+      return urlRegistryErrorResponse(error)
+    }
+  }
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 

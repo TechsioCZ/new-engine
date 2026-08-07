@@ -1,14 +1,10 @@
 import { getUrlRegistry } from "@/lib/url-registry/factory"
-import { authorizeUrlRegistryAdmin, urlRegistryErrorResponse } from "../common"
+import { withUrlRegistryAdmin } from "../common"
 
 type DetailContext = { params: Promise<{ id: string }> }
 
-export const GET = async (request: Request, context: DetailContext) => {
-  const unauthorized = authorizeUrlRegistryAdmin(request)
-  if (unauthorized) {
-    return unauthorized
-  }
-  try {
+export const GET = withUrlRegistryAdmin<DetailContext>(
+  async (_request, context) => {
     const { id } = await context.params
     const registry = await getUrlRegistry()
     const result = await registry.list({ id, limit: 1 })
@@ -16,7 +12,5 @@ export const GET = async (request: Request, context: DetailContext) => {
     return record
       ? Response.json({ record })
       : Response.json({ error: "URL record not found" }, { status: 404 })
-  } catch (error) {
-    return urlRegistryErrorResponse(error)
   }
-}
+)
