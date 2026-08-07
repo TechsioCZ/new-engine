@@ -106,3 +106,19 @@ export const resolveCatalogActiveFilterCount = (
     queryState.ingredient.length
   )
 }
+
+type CatalogCountableResponse = {
+  count?: number | null
+  products?: readonly unknown[] | null
+}
+
+/**
+ * Resolve the effective product count from a catalog list response, falling
+ * back to the returned page length when the backend omits a total count.
+ */
+export const resolveCatalogResultCount = (
+  response: CatalogCountableResponse
+): number =>
+  typeof response.count === "number"
+    ? response.count
+    : (response.products?.length ?? 0)

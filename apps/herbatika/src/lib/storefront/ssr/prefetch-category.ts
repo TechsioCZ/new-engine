@@ -1,6 +1,9 @@
 import { dehydrate } from "@tanstack/react-query"
 import { assertServerOnly } from "@/lib/server-guard"
-import { buildCatalogProductsParams } from "../catalog-query-state"
+import {
+  buildCatalogProductsParams,
+  resolveCatalogResultCount,
+} from "../catalog-query-state"
 import {
   buildCategoryListParams,
   CATEGORY_TREE_FIELDS,
@@ -62,10 +65,7 @@ export const prefetchCategoryPageStorefrontData = async (
       catalogListParams,
       requestContext
     )
-    availableProductCount =
-      typeof catalog.count === "number"
-        ? catalog.count
-        : (catalog.products?.length ?? 0)
+    availableProductCount = resolveCatalogResultCount(catalog)
   }
 
   return {

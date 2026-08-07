@@ -1,6 +1,9 @@
 import { dehydrate } from "@tanstack/react-query"
 import { assertServerOnly } from "@/lib/server-guard"
-import { buildCatalogProductsParams } from "../catalog-query-state"
+import {
+  buildCatalogProductsParams,
+  resolveCatalogResultCount,
+} from "../catalog-query-state"
 import type { RequestServerContext } from "../market-context.server"
 import { PLP_PAGE_SIZE, type PlpQueryState } from "../plp-query-state"
 import { fetchServerCatalogProducts } from "../storefront-server"
@@ -52,10 +55,7 @@ export const prefetchBrandPageStorefrontData = async (
         requestContext
       ),
     ])
-    availableProductCount =
-      typeof availability.count === "number"
-        ? availability.count
-        : (availability.products?.length ?? 0)
+    availableProductCount = resolveCatalogResultCount(availability)
   }
 
   return {

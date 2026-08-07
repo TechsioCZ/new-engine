@@ -3,6 +3,7 @@ import {
   type CatalogProductsParams as CatalogProductsParamsValue,
   resolveCatalogActiveFilterCount as resolveCatalogActiveFilterCountValue,
   resolveCatalogPriceBounds as resolveCatalogPriceBoundsValue,
+  resolveCatalogResultCount as resolveCatalogResultCountValue,
 } from "./catalog-query-state/params"
 import { parseCatalogQueryStateFromSearchParams as parseCatalogQueryStateFromSearchParamsValue } from "./catalog-query-state/parse"
 
@@ -30,6 +31,7 @@ export const parseCatalogQueryStateFromSearchParams =
 export const PLP_PAGE_SIZE = PLP_PAGE_SIZE_VALUE
 export const PRODUCT_SORT_OPTIONS = PRODUCT_SORT_OPTIONS_VALUE
 export const PRODUCT_SORT_VALUES = PRODUCT_SORT_VALUES_VALUE
+export const resolveCatalogResultCount = resolveCatalogResultCountValue
 export const resolveCatalogActiveFilterCount =
   resolveCatalogActiveFilterCountValue
 export const resolveCatalogPriceBounds = resolveCatalogPriceBoundsValue
