@@ -40,7 +40,8 @@
     "prepare": "pnpm build",
     "publish:local": "medusa plugin:publish",
     "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/medusa-order-dashboard-plugin/tsconfig.json",
-    "lint:oxlint": "pnpm -w exec oxlint apps/medusa-order-dashboard-plugin --type-aware --deny-warnings"
+    "lint:oxlint": "pnpm -w exec oxlint apps/medusa-order-dashboard-plugin --type-aware --deny-warnings",
+    "test": "vitest run"
   },
   "dependencies": {
     "@medusajs/admin-sdk": "2.18.0",

@@ -16,7 +16,8 @@
     "validate:file-size": "node scripts/validate-file-size-guardrail.mjs",
     "validate:file-size:json": "node scripts/validate-file-size-guardrail.mjs --json",
     "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives && pnpm validate:file-size",
-    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/herbatika/tsconfig.json"
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/herbatika/tsconfig.json",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@medusajs/js-sdk": "^2.18.0",

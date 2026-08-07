@@ -1,9 +1,15 @@
 import assert from "node:assert/strict"
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import path from "node:path"
 import { test } from "node:test"
 
 import { z } from "zod"
 
 import importedConfig from "../../dependency-cruiser.config.cjs"
+import projectResolver from "./dependency-cruiser-projects.cjs"
+
+const { readProjects } = projectResolver
 
 const pathPatternSchema = z.union([z.string(), z.array(z.string())])
 const boundarySchema = z.object({
@@ -85,4 +91,47 @@ void test("platform boundaries reject web to backend imports", () => {
   assert.ok(rule)
   assert.equal(catches(rule, APP_SOURCE, BACKEND_SOURCE), true)
   assert.equal(catches(rule, APP_SOURCE, LIBRARY_SOURCE), false)
+})
+
+void test("package-only Nx tags stay in parity with architecture fallbacks", async () => {
+  const fixtureRoot = await mkdtemp(
+    path.join(tmpdir(), "dependency-cruiser-tags-"),
+  )
+  const projectRoot = path.join(fixtureRoot, "apps", "package-only")
+  const manifestTags = ["type:app", "platform:web", "framework:react"]
+
+  try {
+    await mkdir(projectRoot, { recursive: true })
+    await writeFile(
+      path.join(projectRoot, "package.json"),
+      JSON.stringify({ nx: { tags: manifestTags } }),
+    )
+
+    assert.deepEqual(
+      readProjects(fixtureRoot, {
+        fallbackTags: {
+          "apps/package-only": ["framework:react", "platform:web", "type:app"],
+        },
+        workspaceFolders: ["apps"],
+      }),
+      [{ root: "apps/package-only", tags: manifestTags }],
+    )
+
+    assert.throws(
+      () =>
+        readProjects(fixtureRoot, {
+          fallbackTags: {
+            "apps/package-only": [
+              "type:app",
+              "platform:shared",
+              "framework:agnostic",
+            ],
+          },
+          workspaceFolders: ["apps"],
+        }),
+      /apps\/package-only Nx tags disagree with dependency-cruiser fallback/u,
+    )
+  } finally {
+    await rm(fixtureRoot, { force: true, recursive: true })
+  }
 })

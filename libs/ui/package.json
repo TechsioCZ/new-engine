@@ -81,7 +81,8 @@
     "validate:token-usage": "bun scripts/validate-token-usage.js",
     "validate:token-definitions": "bun scripts/validate-token-definitions.js",
     "semantic-release": "semantic-release",
-    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/libs/ui/tsconfig.json"
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/libs/ui/tsconfig.json",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@iconify-json/mdi": "^1.2.3",

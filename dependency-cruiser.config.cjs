@@ -1,8 +1,10 @@
 /// <reference types="node" />
 
-const fs = require("node:fs")
-const path = require("node:path")
 const swc = require("@swc/core")
+
+const {
+  readProjects,
+} = require("./scripts/lint/dependency-cruiser-projects.cjs")
 
 const workspaceRoot = __dirname
 
@@ -14,13 +16,12 @@ swc.parseFileSync = (fileName, options) =>
     ...options,
     tsx: /\.[cm]?[jt]sx$/u.test(fileName),
   })
-const workspaceFolders = ["apps", "libs"]
-
 const TYPE_APP = "type:app"
 const TYPE_LIB = "type:lib"
 const PLATFORM_WEB = "platform:web"
 const PLATFORM_SHARED = "platform:shared"
 const FRAMEWORK_NEXT = "framework:next"
+const FRAMEWORK_REACT = "framework:react"
 const FRAMEWORK_AGNOSTIC = "framework:agnostic"
 const WORKSPACE_SOURCE_PATTERN = "^(?:apps|libs)/"
 
@@ -29,102 +30,14 @@ const fallbackTags = {
   "apps/herbatika": [TYPE_APP, PLATFORM_WEB, FRAMEWORK_NEXT],
   "apps/payload": [TYPE_APP, PLATFORM_WEB, FRAMEWORK_NEXT],
   "apps/smart-suggest": [TYPE_APP, PLATFORM_WEB, FRAMEWORK_NEXT],
-  "libs/smart-suggest": [TYPE_LIB, PLATFORM_WEB, "framework:react"],
+  "libs/smart-suggest": [TYPE_LIB, PLATFORM_WEB, FRAMEWORK_REACT],
   "libs/std": [TYPE_LIB, PLATFORM_SHARED, FRAMEWORK_AGNOSTIC],
-  "libs/storefront-data": [TYPE_LIB, PLATFORM_SHARED, FRAMEWORK_AGNOSTIC],
+  "libs/storefront-data": [TYPE_LIB, PLATFORM_WEB, FRAMEWORK_REACT],
   "libs/storefront-i18n": [TYPE_LIB, PLATFORM_WEB, FRAMEWORK_NEXT],
   "libs/storefront-security": [TYPE_LIB, PLATFORM_SHARED, FRAMEWORK_AGNOSTIC],
 }
 
-/**
- * @param {unknown} value - Candidate value read from untrusted JSON.
- * @returns {value is string[]} Whether the value is an all-string array.
- */
-const isStringArray = (value) =>
-  Array.isArray(value) && value.every((item) => typeof item === "string")
-
-/**
- * Reads the Nx `tags` array from parsed project.json contents, treating the
- * document as untrusted input.
- * @param {unknown} metadata - Parsed project.json document.
- * @returns {readonly string[] | null} Non-empty tags, when present.
- */
-const readManifestTags = (metadata) => {
-  if (
-    typeof metadata !== "object" ||
-    metadata === null ||
-    !("tags" in metadata)
-  ) {
-    return null
-  }
-
-  const { tags } = metadata
-  return isStringArray(tags) && tags.length > 0 ? tags : null
-}
-
-/**
- * Classifies one workspace project directory.
- * @param {string} workspaceFolder - Top-level folder name (`apps` or `libs`).
- * @param {string} absoluteFolder - Absolute path of that folder.
- * @param {import("node:fs").Dirent} entry - Directory entry to classify.
- * @returns {{ root: string, tags: readonly string[] } | null} Project
- * classification, or null for directories outside boundary enforcement.
- */
-const resolveProject = (workspaceFolder, absoluteFolder, entry) => {
-  const projectRoot = `${workspaceFolder}/${entry.name}`
-  const packageJson = path.join(absoluteFolder, entry.name, "package.json")
-  const projectJson = path.join(absoluteFolder, entry.name, "project.json")
-  const fallback = fallbackTags[projectRoot]
-  // Manifest-less libraries (plain .mjs sources) still need boundary
-  // enforcement, so an explicit fallback classification is enough to
-  // include them. Skipping on the manifest check alone would silently
-  // exempt them from libraries-do-not-import-applications.
-  if (
-    !(fs.existsSync(packageJson) || fs.existsSync(projectJson)) &&
-    (fallback === undefined || fallback.length === 0)
-  ) {
-    return null
-  }
-
-  /** @type {unknown} */
-  const metadata = fs.existsSync(projectJson)
-    ? JSON.parse(fs.readFileSync(projectJson, "utf-8"))
-    : {}
-  const tags = readManifestTags(metadata) ?? fallback
-
-  if (tags === undefined || tags.length === 0) {
-    throw new Error(
-      `${projectRoot} needs Nx tags or a dependency-cruiser fallback classification`,
-    )
-  }
-
-  return { root: projectRoot, tags }
-}
-
-const readProjects = () => {
-  /** @type {{ root: string, tags: readonly string[] }[]} */
-  const projects = []
-
-  for (const workspaceFolder of workspaceFolders) {
-    const absoluteFolder = path.join(workspaceRoot, workspaceFolder)
-    for (const entry of fs.readdirSync(absoluteFolder, {
-      withFileTypes: true,
-    })) {
-      if (!entry.isDirectory()) {
-        continue
-      }
-
-      const project = resolveProject(workspaceFolder, absoluteFolder, entry)
-      if (project !== null) {
-        projects.push(project)
-      }
-    }
-  }
-
-  return projects
-}
-
-const projects = readProjects()
+const projects = readProjects(workspaceRoot, { fallbackTags })
 /**
  * @param {string} value - Literal project path fragment.
  * @returns {string} The fragment with regex metacharacters escaped.
@@ -158,7 +71,7 @@ const libraryRoots = rootsWithTag(TYPE_LIB)
 const webRoots = rootsWithTag(PLATFORM_WEB)
 const backendRoots = rootsWithTag("platform:backend")
 const nextRoots = rootsWithTag(FRAMEWORK_NEXT)
-const reactRoots = rootsWithTag("framework:react")
+const reactRoots = rootsWithTag(FRAMEWORK_REACT)
 const medusaRoots = rootsWithTag("framework:medusa")
 const agnosticRoots = rootsWithTag(FRAMEWORK_AGNOSTIC)
 
