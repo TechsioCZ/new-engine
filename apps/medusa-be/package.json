@@ -151,6 +151,11 @@
     "vitest": "catalog:vite5-testing",
     "yalc": "1.0.0-pre.53"
   },
+  "dependenciesMeta": {
+    "medusa-symmy-plugin": {
+      "injected": true
+    }
+  },
   "engines": {
     "node": "24.x"
   }

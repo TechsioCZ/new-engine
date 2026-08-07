@@ -551,6 +551,9 @@ importers:
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
+    dependenciesMeta:
+      medusa-symmy-plugin:
+        injected: true
     devDependencies:
       '@medusajs/promotion':
         specifier: ^2.18.0
