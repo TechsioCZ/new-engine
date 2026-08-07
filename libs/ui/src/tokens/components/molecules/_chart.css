@@ -23,8 +23,11 @@
   --color-chart-series-5: var(--color-rose-500);
   --color-chart-series-6: var(--color-cyan-600);
 
-  /* Derived layer — chart chrome and tooltip surface */
-  --color-chart-fg: var(--color-fg-secondary);
+  /* Derived layer — chart chrome and tooltip surface. Axis/tick/legend text
+   * renders at small sizes inside the SVG, so it wears primary ink: the
+   * secondary tone measures APCA 80.7 Lc against both surfaces, below the
+   * repo's 90 Lc gold gate. */
+  --color-chart-fg: var(--color-fg-primary);
   --color-chart-tooltip-bg: var(--color-tooltip-bg);
   --color-chart-tooltip-fg: var(--color-tooltip-fg);
   --color-chart-tooltip-border: var(--color-tooltip-border-outline);
