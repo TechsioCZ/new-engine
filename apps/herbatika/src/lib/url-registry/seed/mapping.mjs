@@ -1,12 +1,5 @@
-import {
-  MAX_SLUG_LENGTH,
-  SlugError,
-  slugify,
-  validateSlug,
-} from "../../url/slug.ts"
-
-const TRAILING_SEGMENT_PATTERN = /-[^-]*$/
-const TRAILING_HYPHENS_PATTERN = /-+$/
+import { slugifyProductTitle } from "../../url/product-slug.ts"
+import { slugify, validateSlug } from "../../url/slug.ts"
 
 const sourceGroups = (source) => [
   {
@@ -41,21 +34,6 @@ const sourceGroups = (source) => [
   },
 ]
 
-const boundedProductSlug = (title) => {
-  try {
-    return slugify(title)
-  } catch (error) {
-    if (!(error instanceof SlugError && error.reason === "too-long")) {
-      throw error
-    }
-    const bounded = error.value.slice(0, MAX_SLUG_LENGTH)
-    return validateSlug(
-      bounded.replace(TRAILING_SEGMENT_PATTERN, "") ||
-        bounded.replace(TRAILING_HYPHENS_PATTERN, "")
-    )
-  }
-}
-
 const sourceSlug = (entity, kind) => {
   const candidate =
     entity.slug?.trim() ||
@@ -65,7 +43,7 @@ const sourceSlug = (entity, kind) => {
     throw new Error(`Seed entity ${entity.id} has no slug or handle`)
   }
   return kind === "product"
-    ? boundedProductSlug(candidate)
+    ? slugifyProductTitle(candidate)
     : validateSlug(slugify(candidate))
 }
 
