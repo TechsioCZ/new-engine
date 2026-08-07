@@ -52,6 +52,8 @@
   --text-chart-tooltip: var(--text-tooltip-md);
   --padding-chart-tooltip: var(--padding-tooltip-md);
   --border-width-chart-tooltip: var(--border-width-tooltip);
+  --font-chart-tooltip: var(--font-body);
+  --font-weight-chart-tooltip: var(--font-weight-medium);
 }
 
 /*
@@ -86,5 +88,10 @@
     var(--color-chart-tooltip-border) !important;
   border-radius: var(--radius-chart-tooltip) !important;
   padding: var(--padding-chart-tooltip) !important;
+  /* The inline `font` shorthand sets family, weight, size and line-height in
+   * one go, so countering only the size would leave the chart tooltip in
+   * system-ui while every other tooltip in the library uses --font-body. */
+  font-family: var(--font-chart-tooltip) !important;
   font-size: var(--text-chart-tooltip) !important;
+  font-weight: var(--font-weight-chart-tooltip) !important;
 }
