@@ -15,7 +15,17 @@
  */
 
 @theme static {
-  /* Reference layer — series identity, assigned in fixed order, never cycled */
+  /* Reference layer — series identity, assigned in fixed order. The palette is
+   * six entries and TanStack indexes it modulo its length (scales.js), so a 7th
+   * distinct series wraps back onto series-1 rather than erroring. Keep charts
+   * to <=6 series; Chart warns in dev when a dataset exceeds that.
+   *
+   * Note: `--color-blue-500` is re-declared by figma/variables.css, which is
+   * imported after this file — series-1 therefore resolves to the Figma step
+   * (chroma 0.188), not Tailwind's default (chroma 0.214). Series 2-6 have no
+   * Figma counterpart and resolve to Tailwind defaults. Re-run the dataviz
+   * validator against these *resolved* values before treating the set as
+   * signed off. */
   --color-chart-series-1: var(--color-blue-500);
   --color-chart-series-2: var(--color-orange-600);
   --color-chart-series-3: var(--color-emerald-600);
@@ -24,9 +34,16 @@
   --color-chart-series-6: var(--color-cyan-600);
 
   /* Derived layer — chart chrome and tooltip surface. Axis/tick/legend text
-   * renders at small sizes inside the SVG, so it wears primary ink: the
-   * secondary tone measures APCA 80.7 Lc against both surfaces, below the
-   * repo's 90 Lc gold gate. */
+   * renders at small sizes inside the SVG, so it wears primary ink rather than
+   * the secondary tone.
+   *
+   * Caveat on the contrast math: TanStack composites this color before it
+   * paints — tick/legend labels at fillOpacity 0.68, axis lines at
+   * strokeOpacity 0.28 (scene.js). So the *rendered* label is fg-primary at 68%
+   * over the surface, not fg-primary itself, and it does not reach the repo's
+   * 90 Lc gold gate on its own. Fixing that properly means compensating for the
+   * library opacity (or overriding it), not swapping this token — tracked
+   * rather than silently claimed as passing. */
   --color-chart-fg: var(--color-fg-primary);
   --color-chart-tooltip-bg: var(--color-tooltip-bg);
   --color-chart-tooltip-fg: var(--color-tooltip-fg);
@@ -34,6 +51,7 @@
   --radius-chart-tooltip: var(--radius-tooltip);
   --text-chart-tooltip: var(--text-tooltip-md);
   --padding-chart-tooltip: var(--padding-tooltip-md);
+  --border-width-chart-tooltip: var(--border-width-tooltip);
 }
 
 /*
@@ -50,12 +68,23 @@
   --ts-chart-6: var(--color-chart-series-6);
 }
 
-/* Surface styling for the library's native HTML tooltip element. */
+/*
+ * Surface styling for the library's native HTML tooltip element.
+ *
+ * `!important` is load-bearing, not defensive: TanStack's `createTooltip()`
+ * writes background/color/border/border-radius/padding and a `font` shorthand
+ * directly onto `element.style`, then only *appends* this class. Inline styles
+ * beat class rules, so without `!important` every declaration below is dead and
+ * the tooltip renders in the system `Canvas`/`CanvasText` colors — visible as an
+ * unthemed tooltip under the neo/cyber brands and in dark mode. The `font`
+ * shorthand also resets font-size, so that too must win.
+ */
 @utility chart-tooltip {
-  background: var(--color-chart-tooltip-bg);
-  color: var(--color-chart-tooltip-fg);
-  border: 1px solid var(--color-chart-tooltip-border);
-  border-radius: var(--radius-chart-tooltip);
-  padding: var(--padding-chart-tooltip);
-  font-size: var(--text-chart-tooltip);
+  background: var(--color-chart-tooltip-bg) !important;
+  color: var(--color-chart-tooltip-fg) !important;
+  border: var(--border-width-chart-tooltip) solid
+    var(--color-chart-tooltip-border) !important;
+  border-radius: var(--radius-chart-tooltip) !important;
+  padding: var(--padding-chart-tooltip) !important;
+  font-size: var(--text-chart-tooltip) !important;
 }
