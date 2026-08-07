@@ -1,8 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
 import { createChangeBlurFieldValidators } from "@/lib/forms/validators/field-validator-factories"
 import {
-  validateCustomerName,
-  validateOptionalPhoneNumber,
+  createCustomerNameValidator,
+  createOptionalPhoneNumberValidator,
 } from "@/lib/forms/validators/shared"
 
 export type AccountSettingsValues = {
@@ -12,15 +12,29 @@ export type AccountSettingsValues = {
   company_name: string
 }
 
-export const accountSettingsValidators = {
-  first_name: createChangeBlurFieldValidators((value: string) =>
-    validateCustomerName(value, "Meno")
-  ),
-  last_name: createChangeBlurFieldValidators((value: string) =>
-    validateCustomerName(value, "Priezvisko")
-  ),
-  phone: createChangeBlurFieldValidators(validateOptionalPhoneNumber),
+type AccountSettingsValidationMessages = {
+  firstNameMinLength: string
+  lastNameMinLength: string
+  phoneInvalid: string
+  phoneMinDigits: string
 }
+
+export const createAccountSettingsValidators = (
+  messages: AccountSettingsValidationMessages
+) => ({
+  first_name: createChangeBlurFieldValidators(
+    createCustomerNameValidator(messages.firstNameMinLength)
+  ),
+  last_name: createChangeBlurFieldValidators(
+    createCustomerNameValidator(messages.lastNameMinLength)
+  ),
+  phone: createChangeBlurFieldValidators(
+    createOptionalPhoneNumberValidator({
+      invalid: messages.phoneInvalid,
+      minDigits: messages.phoneMinDigits,
+    })
+  ),
+})
 
 export const toAccountSettingsValues = (
   customer: HttpTypes.StoreCustomer | null | undefined

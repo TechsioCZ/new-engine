@@ -1,4 +1,5 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { useTranslations } from "next-intl"
 import { PASSWORD_REQUIREMENTS } from "@/lib/auth/auth-form-validators"
 
 type PasswordRequirementsProps = {
@@ -8,15 +9,21 @@ type PasswordRequirementsProps = {
 export const PasswordRequirements = ({
   password,
 }: PasswordRequirementsProps) => {
+  const tAuth = useTranslations("auth")
+  const requirementLabels = {
+    "has-number": tAuth("password_requirements.number"),
+    "min-length": tAuth("password_requirements.min_length"),
+  } as const
   const requirements = PASSWORD_REQUIREMENTS.map((requirement) => ({
     ...requirement,
+    label: requirementLabels[requirement.id],
     met: requirement.test(password),
   }))
 
   return (
     <div className="space-y-100">
       <p className="font-medium text-fg-secondary text-sm">
-        Požiadavky na heslo:
+        {tAuth("password_requirements.title")}
       </p>
       <ul className="space-y-100">
         {requirements.map((requirement) => (

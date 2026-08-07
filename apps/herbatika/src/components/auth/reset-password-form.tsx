@@ -3,11 +3,12 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { useState } from "react"
+import { useTranslations } from "next-intl"
+import { useMemo, useState } from "react"
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import {
+  createResetPasswordValidators,
   type ResetPasswordFormValues,
-  resetPasswordValidators,
 } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -38,8 +39,20 @@ export const ResetPasswordForm = ({
   onSubmit,
   text,
 }: ResetPasswordFormProps) => {
+  const tAuth = useTranslations("auth")
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
+  const resetPasswordValidators = useMemo(
+    () =>
+      createResetPasswordValidators({
+        confirmPasswordRequired: tAuth("validation.confirm_password_required"),
+        passwordMinLength: tAuth("validation.password_min_length"),
+        passwordMismatch: tAuth("validation.password_mismatch"),
+        passwordNumber: tAuth("validation.password_number"),
+        passwordRequired: tAuth("validation.password_required"),
+      }),
+    [tAuth]
+  )
 
   const form = useHerbatikaForm({
     defaultValues,
@@ -78,7 +91,7 @@ export const ResetPasswordForm = ({
         </StatusText>
         <div className="flex flex-wrap gap-200">
           <LinkButton href={loginHref} size="sm" variant="primary">
-            Prejsť na prihlásenie
+            {tAuth("go_to_login")}
           </LinkButton>
         </div>
       </div>
@@ -109,7 +122,7 @@ export const ResetPasswordForm = ({
             <field.TextField
               autoComplete="new-password"
               id="auth-reset-password"
-              label="Nové heslo"
+              label={tAuth("new_password")}
               onValueChange={() => setSubmitError(null)}
               required
               type="password"
@@ -128,7 +141,7 @@ export const ResetPasswordForm = ({
           <field.TextField
             autoComplete="new-password"
             id="auth-reset-confirm-password"
-            label="Potvrdenie hesla"
+            label={tAuth("password_confirmation")}
             onValueChange={() => setSubmitError(null)}
             required
             type="password"

@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useLocale, useTranslations } from "next-intl"
 import {
   resolveCategoryBottomHtml,
   resolveCategoryContextImageTiles,
@@ -26,7 +27,6 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   type NuqsPlpQueryState,
   PLP_PAGE_SIZE,
@@ -36,10 +36,11 @@ import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 const resolveBreadcrumbItems = (
   slug: string,
   activeCategory: HttpTypes.StoreProductCategory | null,
-  categoryById: Map<string, HttpTypes.StoreProductCategory>
+  categoryById: Map<string, HttpTypes.StoreProductCategory>,
+  homeLabel: string
 ) => {
   const items: HerbatikaBreadcrumbItem[] = [
-    { label: "Domů", href: "/", icon: "token-icon-home" },
+    { label: homeLabel, href: "/", icon: "token-icon-home" },
   ]
 
   if (!activeCategory) {
@@ -86,6 +87,8 @@ export function useCategoryListingQueries({
   queryState,
   slug,
 }: UseCategoryListingQueriesProps) {
+  const locale = useLocale()
+  const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const categoriesQuery = useCategories({
@@ -129,14 +132,15 @@ export function useCategoryListingQueries({
 
       return normalizeCategoryName(left.name).localeCompare(
         normalizeCategoryName(right.name),
-        "sk"
+        locale
       )
     })
 
   const breadcrumbItems = resolveBreadcrumbItems(
     slug,
     activeCategory,
-    categoryById
+    categoryById,
+    tNavigation("breadcrumbs.home")
   )
 
   const catalogProductsInput = buildCatalogProductsParams({
@@ -200,16 +204,7 @@ export function useCategoryListingQueries({
     asideIngredientItems,
     asideStatusItems,
     breadcrumbItems,
-    catalogError: catalogQuery.error
-      ? resolveErrorMessage(catalogQuery.error, "Načítanie produktov zlyhalo.")
-      : null,
     catalogQuery,
-    categoriesError: categoriesQuery.error
-      ? resolveErrorMessage(
-          categoriesQuery.error,
-          "Načítanie kategórií zlyhalo."
-        )
-      : null,
     categoriesQuery,
     categoryBottomHtml: resolveCategoryBottomHtml({
       activeCategory,

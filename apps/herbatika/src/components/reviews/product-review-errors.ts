@@ -1,10 +1,6 @@
+import type { useTranslations } from "next-intl"
+
 const REVIEW_TITLE_MAX_LENGTH = 200
-const GENERIC_REVIEW_SUBMIT_ERROR =
-  "Recenziu sa nepodarilo odoslať. Skúste to prosím znova."
-const PURCHASE_REQUIRED_REVIEW_ERROR =
-  "Na napísanie recenzie musíte mať tento produkt zakúpený."
-const REVIEW_VALIDATION_ERROR =
-  "Skontrolujte prosím hodnotenie a text recenzie."
 const BAD_REQUEST_REVIEW_STATUSES = new Set([400, 422])
 // Broad duplicate keywords are skipped for validation statuses below.
 const BROAD_DUPLICATE_REVIEW_MESSAGE_PATTERNS = [
@@ -25,21 +21,57 @@ const DUPLICATE_REVIEW_MESSAGE_RULES = [
 const REVIEW_VALIDATION_MESSAGE_RULES = [
   {
     patterns: ["rating"],
-    message: "Vyberte prosím hodnotenie.",
+    messageKey: "ratingRequired",
   },
   {
     patterns: ["content"],
-    message: "Napíšte prosím text recenzie.",
+    messageKey: "contentRequired",
   },
   {
     patterns: ["text"],
-    message: "Napíšte prosím text recenzie.",
+    messageKey: "contentRequired",
   },
   {
     patterns: ["title"],
-    message: "Skontrolujte prosím nadpis recenzie.",
+    messageKey: "titleInvalid",
   },
 ] as const
+
+export type ProductReviewErrorMessages = {
+  authRequired: string
+  contentRequired: string
+  duplicate: string
+  forbidden: string
+  generic: string
+  purchaseRequired: string
+  ratingRequired: string
+  titleInvalid: string
+  tokenExpired: string
+  tokenMismatch: string
+  tokenNotFound: string
+  tokenUsed: string
+  validation: string
+}
+
+type CatalogTranslator = ReturnType<typeof useTranslations<"catalog">>
+
+export const translateProductReviewErrorMessages = (
+  translate: CatalogTranslator
+): ProductReviewErrorMessages => ({
+  authRequired: translate("reviews.errors.auth_required"),
+  contentRequired: translate("reviews.errors.content_required"),
+  duplicate: translate("reviews.errors.duplicate"),
+  forbidden: translate("reviews.errors.forbidden"),
+  generic: translate("reviews.errors.generic"),
+  purchaseRequired: translate("reviews.errors.purchase_required"),
+  ratingRequired: translate("reviews.errors.rating_required"),
+  titleInvalid: translate("reviews.errors.title_invalid"),
+  tokenExpired: translate("reviews.errors.token_expired"),
+  tokenMismatch: translate("reviews.errors.token_mismatch"),
+  tokenNotFound: translate("reviews.errors.token_not_found"),
+  tokenUsed: translate("reviews.errors.token_used"),
+  validation: translate("reviews.errors.validation"),
+})
 
 const hasErrorShape = (
   error: unknown
@@ -59,18 +91,21 @@ const extractErrorMessage = (error: unknown): string => {
   return ""
 }
 
-const resolveTokenMessage = (normalizedMessage: string): string | null => {
+const resolveTokenMessage = (
+  normalizedMessage: string,
+  messages: ProductReviewErrorMessages
+): string | null => {
   if (normalizedMessage.includes("token has already been used")) {
-    return "Tento odkaz na hodnotenie už bol použitý."
+    return messages.tokenUsed
   }
   if (normalizedMessage.includes("token has expired")) {
-    return "Tento odkaz na hodnotenie už expiroval."
+    return messages.tokenExpired
   }
   if (normalizedMessage.includes("token does not match")) {
-    return "Tento odkaz nepatrí k vybranému produktu."
+    return messages.tokenMismatch
   }
   if (normalizedMessage.includes("token was not found")) {
-    return "Tento odkaz na hodnotenie nie je platný."
+    return messages.tokenNotFound
   }
   return null
 }
@@ -116,55 +151,66 @@ const isDuplicateReviewError = (
 }
 
 // Multi-pattern validation rules intentionally use AND semantics.
-const resolveReviewValidationMessage = (normalizedMessage: string) =>
-  REVIEW_VALIDATION_MESSAGE_RULES.find(({ patterns }) =>
+const resolveReviewValidationMessage = (
+  normalizedMessage: string,
+  messages: ProductReviewErrorMessages
+) => {
+  const messageKey = REVIEW_VALIDATION_MESSAGE_RULES.find(({ patterns }) =>
     patterns.every((pattern) => normalizedMessage.includes(pattern))
-  )?.message ?? REVIEW_VALIDATION_ERROR
+  )?.messageKey
+
+  return messageKey ? messages[messageKey] : messages.validation
+}
 
 const resolveKnownReviewErrorMessage = ({
+  messages,
   normalizedMessage,
   status,
 }: {
+  messages: ProductReviewErrorMessages
   normalizedMessage: string
   status: number | undefined
 }) => {
-  const tokenMessage = resolveTokenMessage(normalizedMessage)
+  const tokenMessage = resolveTokenMessage(normalizedMessage, messages)
   if (tokenMessage) {
     return tokenMessage
   }
 
   if (status === 409) {
-    return "Tento produkt ste už hodnotili."
+    return messages.duplicate
   }
 
   if (status === 401) {
-    return "Pre odoslanie recenzie sa prosím prihláste."
+    return messages.authRequired
   }
 
   if (status === 403) {
-    return "Recenziu pre tento produkt momentálne nemôžete odoslať."
+    return messages.forbidden
   }
 
   if (isPurchaseRequiredReviewMessage(normalizedMessage)) {
-    return PURCHASE_REQUIRED_REVIEW_ERROR
+    return messages.purchaseRequired
   }
 
   if (isDuplicateReviewError(status, normalizedMessage)) {
-    return "Tento produkt ste už hodnotili."
+    return messages.duplicate
   }
 
   if (status && BAD_REQUEST_REVIEW_STATUSES.has(status)) {
-    return resolveReviewValidationMessage(normalizedMessage)
+    return resolveReviewValidationMessage(normalizedMessage, messages)
   }
 
   if (status && status >= 500) {
-    return GENERIC_REVIEW_SUBMIT_ERROR
+    return messages.generic
   }
 
   return null
 }
 
-export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
+export const resolveProductReviewSubmitErrorMessage = (
+  error: unknown,
+  messages: ProductReviewErrorMessages
+) => {
   const message = extractErrorMessage(error)
   const status =
     hasErrorShape(error) && typeof error.status === "number"
@@ -173,13 +219,14 @@ export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
   const normalizedMessage = message.toLowerCase()
 
   if (!message && status === undefined) {
-    return GENERIC_REVIEW_SUBMIT_ERROR
+    return messages.generic
   }
 
   const knownMessage = resolveKnownReviewErrorMessage({
+    messages,
     normalizedMessage,
     status,
   })
 
-  return knownMessage || message || GENERIC_REVIEW_SUBMIT_ERROR
+  return knownMessage || messages.generic
 }

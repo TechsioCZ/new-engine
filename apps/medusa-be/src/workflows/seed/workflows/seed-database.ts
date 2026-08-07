@@ -27,6 +27,7 @@ export type SeedDatabaseWorkflowInput = {
   publishableKey: Steps.CreatePublishableKeyStepInput
   productCategories: Steps.CreateProductCategoriesStepInput
   products: Steps.CreateProductsStepInput
+  legacyBrandAttributeNames?: string[]
   priceLists?: Steps.SyncPriceListsStepInput["priceLists"]
   priceListSync?: Steps.SyncPriceListsStepInput["config"]
 }
@@ -188,11 +189,13 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     transform(
       {
         createPublishableKeyResult,
+        input,
         salesChannelsResult,
       },
       (data) => ({
         salesChannels: data.salesChannelsResult.result,
         publishableApiKey: data.createPublishableKeyResult.publishableApiKey,
+        salesChannelNames: data.input.publishableKey.salesChannelNames,
       })
     )
 
@@ -203,7 +206,7 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     input.productCategories
   )
 
-  const createProductsStepInput: Steps.CreateProductsStepInput = transform(
+  const productSeedInput: Steps.CreateProductsStepInput = transform(
     {
       input,
       createProductCategoriesResult,
@@ -213,7 +216,39 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     (data) => data.input.products
   )
 
+  const reconcileProductVariantEansResult =
+    Steps.reconcileProductVariantEansStep(productSeedInput)
+  const createProductsStepInput: Steps.CreateProductsStepInput = transform(
+    { reconcileProductVariantEansResult },
+    (data) => data.reconcileProductVariantEansResult.products
+  )
   const createProductsResult = Steps.createProductsStep(createProductsStepInput)
+  const reconcileProductAttributesInput: Steps.CreateProductsStepInput =
+    transform(
+      {
+        createProductsResult,
+        createProductsStepInput,
+      },
+      (data) => data.createProductsStepInput
+    )
+  const reconcileProductAttributesResult = Steps.reconcileProductAttributesStep(
+    reconcileProductAttributesInput
+  )
+  const reconcileProductMeasurementsResult =
+    Steps.reconcileProductMeasurementsStep(reconcileProductAttributesInput)
+  const cleanupProductBrandAttributesInput: Steps.CleanupProductBrandAttributesStepInput =
+    transform(
+      {
+        createProductsResult,
+        input,
+      },
+      (data) => ({
+        attributeNames: data.input.legacyBrandAttributeNames,
+        productIds: data.createProductsResult.result,
+      })
+    )
+  const cleanupProductBrandAttributesResult =
+    Steps.cleanupProductBrandAttributesStep(cleanupProductBrandAttributesInput)
 
   const syncPriceListsInput: Steps.SyncPriceListsStepInput = transform(
     {
@@ -283,7 +318,11 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     createPublishableKeyResult,
     linkSalesChannelsApiKeyStepInputResult,
     createProductCategoriesResult,
+    reconcileProductVariantEansResult,
     createProductsResult,
+    reconcileProductAttributesResult,
+    reconcileProductMeasurementsResult,
+    cleanupProductBrandAttributesResult,
     syncPriceListsResult,
     createTaxRatesResult,
     createInventoryLevelsResult,

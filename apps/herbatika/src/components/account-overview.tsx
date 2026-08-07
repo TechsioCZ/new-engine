@@ -1,6 +1,7 @@
 "use client"
 
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { useTranslations } from "next-intl"
 import {
   AccountSkeletonSurface,
   AccountSurface,
@@ -9,6 +10,8 @@ import { useAuth } from "@/lib/storefront/auth"
 import { useOrders } from "@/lib/storefront/orders"
 
 export function AccountOverview() {
+  const tAuth = useTranslations("auth")
+  const tForm = useTranslations("form")
   const authQuery = useAuth()
   const ordersQuery = useOrders({
     page: 1,
@@ -27,28 +30,30 @@ export function AccountOverview() {
   return (
     <AccountSurface className="space-y-500">
       <header className="space-y-200">
-        <h2 className="font-semibold text-xl">Prehľad účtu</h2>
+        <h2 className="font-semibold text-xl">
+          {tAuth("account.overview.title")}
+        </h2>
         <p className="text-fg-secondary text-sm">
-          Správa objednávok a údajov zákazníka.
+          {tAuth("account.overview.description")}
         </p>
       </header>
 
       <ul className="flex flex-col flex-wrap gap-200">
         <li>
-          <span>Zákazník: </span>
+          <span>{tAuth("account.overview.customer")}: </span>
           <span className="text-fg-secondary">
             {`${authQuery.customer.first_name ?? ""} ${authQuery.customer.last_name ?? ""}`.trim() ||
-              "Zákazník"}
+              tAuth("account.overview.customer_fallback")}
           </span>
         </li>
         <li>
-          <span>Email: </span>
+          <span>{tForm("email")}: </span>
           <span className="text-fg-secondary">
             {authQuery.customer.email ?? "-"}
           </span>
         </li>
         <li>
-          <span>Objednávky: </span>
+          <span>{tAuth("account.navigation.orders")}: </span>
           <span className="text-fg-secondary">{`${ordersQuery.totalCount}`}</span>
         </li>
       </ul>

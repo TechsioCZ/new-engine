@@ -18,9 +18,14 @@ export type HerbatikaProductCardBaseProps = {
   onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void
 }
 
+type HerbatikaProductCardStateOptions = {
+  priceUnavailableLabel: string
+  onImageError?: () => void
+}
+
 export function useHerbatikaProductCardState(
   product: HttpTypes.StoreProduct,
-  onImageError?: () => void
+  { priceUnavailableLabel, onImageError }: HerbatikaProductCardStateOptions
 ) {
   const region = useRegionContext()
   const currencyCode = resolveRegionCurrency(region)
@@ -33,10 +38,11 @@ export function useHerbatikaProductCardState(
   const productHref = product.handle
     ? `/p/${product.handle}${searchResultVariantId ? `?variant=${encodeURIComponent(searchResultVariantId)}` : ""}`
     : "/#"
-  const price = resolvePriceState(product, currencyCode)
+  const price = resolvePriceState(product, currencyCode, priceUnavailableLabel)
   const thumbnail = resolveThumbnail(product)
   const [imageSrc, setImageSrc] = useState(thumbnail)
-  const productTitle = product.title || "Produkt"
+  const productTitle =
+    product.title?.trim() || product.handle?.trim() || product.id
   const title = searchResultVariantTitle
     ? `${productTitle} – ${searchResultVariantTitle}`
     : productTitle

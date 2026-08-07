@@ -7,6 +7,8 @@ import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { Metadata } from "next"
 import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
 import localFont from "next/font/local"
+import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl"
+import { getMessages } from "next-intl/server"
 import { Suspense } from "react"
 import { AppShell } from "@/components/app-shell"
 import {
@@ -14,6 +16,8 @@ import {
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
+import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
+import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
 import "./globals.css"
@@ -61,39 +65,58 @@ const roboto = Roboto({
   display: "swap",
 })
 
-export const metadata: Metadata = {
-  title: "Herbatica",
-  description: "Herbatica e-shop - prírodné produkty",
+export async function generateMetadata(): Promise<Metadata> {
+  const marketContext = await getMarketServerContext()
+
+  return {
+    title: marketContext.metadata.title,
+    description: marketContext.metadata.description,
+  }
 }
 
 type LayoutShellProps = Readonly<{
   children: React.ReactNode
   dehydratedState: DehydratedState
   initialRegion?: RegionInfo | null
+  marketContext: HerbatikaMarketContext
+  messages: AbstractIntlMessages
 }>
 
 function LayoutShell({
   children,
   dehydratedState,
   initialRegion = null,
+  marketContext,
+  messages,
 }: LayoutShellProps) {
   return (
-    <Providers initialRegion={initialRegion}>
-      <HydrationBoundary state={dehydratedState}>
-        <Suspense fallback={<div className="min-h-dvh bg-base" />}>
-          <AppShell>{children}</AppShell>
-        </Suspense>
-      </HydrationBoundary>
-    </Providers>
+    <NextIntlClientProvider messages={messages}>
+      <Providers
+        initialMarketContext={marketContext}
+        initialRegion={initialRegion}
+      >
+        <HydrationBoundary state={dehydratedState}>
+          <Suspense fallback={<div className="min-h-dvh bg-base" />}>
+            <AppShell>{children}</AppShell>
+          </Suspense>
+        </HydrationBoundary>
+      </Providers>
+    </NextIntlClientProvider>
   )
 }
 
 async function ResolvedLayoutShell({
   children,
+  marketContext,
 }: Readonly<{
   children: React.ReactNode
+  marketContext: HerbatikaMarketContext
 }>) {
-  const { queryClient, region } = await getRegionServerContext()
+  const [{ queryClient, region }, messages] = await Promise.all([
+    getRegionServerContext(),
+    getMessages(),
+  ])
+
   try {
     await fetchServerCategories(
       queryClient,
@@ -111,9 +134,38 @@ async function ResolvedLayoutShell({
     <LayoutShell
       dehydratedState={dehydrate(queryClient)}
       initialRegion={region}
+      marketContext={marketContext}
+      messages={messages}
     >
       {children}
     </LayoutShell>
+  )
+}
+
+async function ResolvedRootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  const marketContext = await getMarketServerContext()
+
+  return (
+    <html
+      className={`${verdana.variable} ${openSans.variable} ${inter.variable} ${rubik.variable} ${roboto.variable}`}
+      lang={marketContext.htmlLang}
+    >
+      <body className={`text-fg-primary ${verdana.className}`}>
+        <Suspense
+          // Avoid rendering a fallback app shell here. During streaming, it can
+          // coexist with the resolved shell and duplicate header popover ids.
+          fallback={<div className="min-h-dvh bg-base" />}
+        >
+          <ResolvedLayoutShell marketContext={marketContext}>
+            {children}
+          </ResolvedLayoutShell>
+        </Suspense>
+      </body>
+    </html>
   )
 }
 
@@ -123,19 +175,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html
-      className={`${verdana.variable} ${openSans.variable} ${inter.variable} ${rubik.variable} ${roboto.variable}`}
-      lang="sk"
-    >
-      <body className={`text-fg-primary ${verdana.className}`}>
-        <Suspense
-          // Avoid rendering a fallback app shell here. During streaming, it can
-          // coexist with the resolved shell and duplicate header popover ids.
-          fallback={<div className="min-h-dvh bg-base" />}
-        >
-          <ResolvedLayoutShell>{children}</ResolvedLayoutShell>
-        </Suspense>
-      </body>
-    </html>
+    <Suspense fallback={null}>
+      <ResolvedRootLayout>{children}</ResolvedRootLayout>
+    </Suspense>
   )
 }

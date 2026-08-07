@@ -2,6 +2,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useLocale, useTranslations } from "next-intl"
 import {
   formatBlogDate,
   formatTopicFromKey,
@@ -13,10 +14,13 @@ type HomepageBlogSectionProps = {
 }
 
 export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
+  const locale = useLocale()
+  const tContent = useTranslations("content")
+
   return (
     <section className="space-y-400" id="blog">
       <h2 className="font-bold text-3xl text-fg-primary leading-tight">
-        Blog o zdraví a kráse
+        {tContent("home.blog.title")}
       </h2>
 
       <div className="grid grid-cols-1 gap-400 lg:grid-cols-3">
@@ -39,7 +43,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
             <div className="flex h-full flex-col gap-200 p-300">
               <div className="flex items-center justify-between gap-200">
                 <p className="text-2xs text-fg-secondary leading-normal">
-                  {formatBlogDate(post.publishedAt)}
+                  {formatBlogDate(post.publishedAt, locale)}
                 </p>
                 <Badge
                   className="rounded-full px-200 py-100 font-medium text-2xs"
@@ -69,7 +73,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
                   className="font-semibold text-fg-primary text-xs leading-normal underline underline-offset-2 hover:text-primary"
                   href={post.href}
                 >
-                  Prejsť na článok
+                  {tContent("blog.card.open_article")}
                 </Link>
                 <span className="text-2xs text-fg-secondary leading-normal">
                   {post.readingTime}

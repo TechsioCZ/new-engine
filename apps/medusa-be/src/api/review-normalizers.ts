@@ -1,3 +1,4 @@
+import { escapeLikePattern } from "../utils/sql"
 import type { AdminGetReviewsSchemaType } from "./admin/reviews/validators"
 
 export type ProductRecord = {
@@ -32,12 +33,8 @@ type PublicReviewRecord = Pick<
   | "title"
 >
 
-const LIKE_WILDCARD_REGEX = /[%_\\]/g
 const ORDER_FIELDS = new Set(["created_at", "rating", "status", "updated_at"])
 const LEADING_DASH_REGEX = /^-/
-
-const escapeLikePattern = (value: string) =>
-  value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
 
 const serializeDate = (date: Date | string | undefined) =>
   date instanceof Date ? date.toISOString() : date
@@ -113,6 +110,22 @@ export const normalizeAdminReview = (
 ) => ({
   ...review,
   product: productsById.get(review.product_id) ?? null,
+})
+
+export const normalizeCustomerReview = (
+  review: ReviewRecord,
+  productsById: Map<string, ProductRecord>
+) => ({
+  content: review.content,
+  created_at: serializeDate(review.created_at),
+  customer_id: review.customer_id,
+  id: review.id,
+  product: productsById.get(review.product_id) ?? null,
+  product_id: review.product_id,
+  rating: review.rating,
+  status: review.status,
+  title: review.title,
+  updated_at: serializeDate(review.updated_at),
 })
 
 export const normalizePublicReview = (review: PublicReviewRecord) => ({

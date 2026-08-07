@@ -19,6 +19,7 @@ RUN corepack install && rm -rf /tmp/corepack
 WORKDIR /var/www
 CMD ["sh", "-lc", "\
     [ -x apps/herbatika/node_modules/.bin/next ] || CI=true pnpm install --frozen-lockfile --prefer-offline --filter=herbatika...; \
+    pnpm --filter=@techsio/storefront-i18n build; \
     pnpm --filter=@techsio/storefront-data build; \
     pnpm --filter=@techsio/ui-kit build; \
     pnpm --filter=herbatika exec next dev --turbopack --hostname 0.0.0.0 --port 3000 \
@@ -41,10 +42,12 @@ COPY tsconfig.base.json tsconfig.json nx.json ./
 COPY apps/herbatika ./apps/herbatika
 COPY libs/ui ./libs/ui
 COPY libs/storefront-data ./libs/storefront-data
+COPY libs/storefront-i18n ./libs/storefront-i18n
 
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=herbatika... && \
+    pnpm --filter=@techsio/storefront-i18n build && \
     pnpm --filter=@techsio/storefront-data build && \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=herbatika...
@@ -70,6 +73,7 @@ COPY tsconfig.base.json tsconfig.json nx.json ./
 COPY apps/herbatika ./apps/herbatika
 COPY libs/ui ./libs/ui
 COPY libs/storefront-data ./libs/storefront-data
+COPY libs/storefront-i18n ./libs/storefront-i18n
 
 ARG NEXT_PUBLIC_MEDUSA_BACKEND_URL
 ARG NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
@@ -77,6 +81,7 @@ ARG NEXT_PUBLIC_STOREFRONT_AUTH_MODE
 ARG NEXT_PUBLIC_PACKETA_WIDGET_API_KEY
 ARG NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES
 ARG NEXT_PUBLIC_PPL_WIDGET_API_KEY
+ARG NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED
 ARG NEXT_PUBLIC_PAYLOAD_BASE_URL
 
 ENV NEXT_PUBLIC_MEDUSA_BACKEND_URL=${NEXT_PUBLIC_MEDUSA_BACKEND_URL}
@@ -85,11 +90,13 @@ ENV NEXT_PUBLIC_STOREFRONT_AUTH_MODE=${NEXT_PUBLIC_STOREFRONT_AUTH_MODE}
 ENV NEXT_PUBLIC_PACKETA_WIDGET_API_KEY=${NEXT_PUBLIC_PACKETA_WIDGET_API_KEY}
 ENV NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES=${NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES}
 ENV NEXT_PUBLIC_PPL_WIDGET_API_KEY=${NEXT_PUBLIC_PPL_WIDGET_API_KEY}
+ENV NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED=${NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED}
 ENV NEXT_PUBLIC_PAYLOAD_BASE_URL=${NEXT_PUBLIC_PAYLOAD_BASE_URL}
 
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --filter=herbatika...
 
+RUN pnpm --filter=@techsio/storefront-i18n build
 RUN pnpm --filter=@techsio/storefront-data build
 RUN pnpm --filter=@techsio/ui-kit build
 

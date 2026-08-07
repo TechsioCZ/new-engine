@@ -15,6 +15,7 @@ describe("GET /admin/order-expedition/carriers", () => {
 
     expect(res.json).toHaveBeenCalledWith({
       carriers: [
+        { label: "GLS", value: "gls" },
         { label: "PPL", value: "ppl" },
         { label: "Packeta", value: "packeta" },
         { label: "Other", value: "other" },

@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
@@ -5,12 +6,18 @@ import {
 import { FaqAccordion } from "./faq-accordion"
 import { faqItemCount, faqItems } from "./faq-page.data"
 
-const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
-  { label: "Domov", href: "/", icon: "token-icon-home" },
-  { label: "Časté otázky" },
-]
-
 export function FaqPage() {
+  const tContent = useTranslations("content")
+  const tNavigation = useTranslations("navigation")
+  const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
+    {
+      label: tNavigation("breadcrumbs.home"),
+      href: "/",
+      icon: "token-icon-home",
+    },
+    { label: tContent("pages.faq") },
+  ]
+
   return (
     <main className="w-full bg-base font-rubik">
       <div className="mx-auto flex w-full max-w-max-w flex-col gap-faq-page-gap p-faq-page 2xl:p-faq-page-lg">
@@ -26,7 +33,7 @@ export function FaqPage() {
             </p>
           </div>
           <p className="font-verdana text-fg-secondary text-sm leading-normal">
-            {faqItemCount} položiek celkom
+            {tContent("faq.item_count", { count: faqItemCount })}
           </p>
 
           <FaqAccordion items={faqItems} />

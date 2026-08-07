@@ -12,6 +12,7 @@ import {
   buildNotificationProvider,
   buildNotificationProviders,
 } from "../../../../src/config/providers"
+import { INTEGRATION_CONFIG_NAMES } from "../../../../src/modules/api-store/integration-config"
 
 const baseEnv = {
   REDIS_SESSIONS_ENABLED: "0",
@@ -202,6 +203,7 @@ describe("readMedusaConfigEnv", () => {
         id: "resend",
         options: {
           channels: ["email"],
+          apiStoreName: INTEGRATION_CONFIG_NAMES.RESEND,
           api_key: "re_test",
           from: "store@example.com",
         },

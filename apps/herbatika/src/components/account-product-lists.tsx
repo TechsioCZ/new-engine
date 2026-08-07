@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { AccountSurface } from "@/components/account/account-surface"
 import { AddListDialog } from "@/components/product-lists/add-list-dialog"
 import { ProductListTabs } from "@/components/product-lists/product-list-tabs"
@@ -16,10 +17,12 @@ function ProductListsEmptyState({
 }: {
   onCreateList: () => void
 }) {
+  const tAuth = useTranslations("auth")
+
   return (
     <div className="space-y-300 rounded-md border border-border-secondary p-400">
       <p className="text-fg-secondary text-sm">
-        Zatiaľ nemáte žiadny zoznam produktov.
+        {tAuth("product_lists.empty_description")}
       </p>
       <div className="flex flex-wrap items-center gap-200">
         <Button
@@ -29,10 +32,10 @@ function ProductListsEmptyState({
           type="button"
           variant="secondary"
         >
-          Nový zoznam
+          {tAuth("product_lists.new_list")}
         </Button>
         <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
-          Prejsť na produkty
+          {tAuth("product_lists.browse_products")}
         </LinkButton>
       </div>
     </div>
@@ -40,6 +43,7 @@ function ProductListsEmptyState({
 }
 
 export function AccountProductLists() {
+  const tAuth = useTranslations("auth")
   const accountLists = useAccountProductLists()
 
   if (accountLists.listsQuery.isLoading) {
@@ -55,13 +59,16 @@ export function AccountProductLists() {
   if (accountLists.listsQuery.error) {
     return (
       <AccountSurface className="space-y-400">
+        <p className="text-danger text-sm">
+          {tAuth("product_lists.errors.lists_load_failed")}
+        </p>
         <Button
           onClick={() => {
             runDetachedPromise(accountLists.listsQuery.query.refetch())
           }}
           variant="secondary"
         >
-          Skúsiť znova
+          {tAuth("product_lists.retry")}
         </Button>
       </AccountSurface>
     )
@@ -71,9 +78,11 @@ export function AccountProductLists() {
     <AccountSurface className="space-y-500">
       <header className="flex flex-col gap-300 md:flex-row md:items-end md:justify-between">
         <div className="space-y-150">
-          <h2 className="font-semibold text-xl">Zoznamy produktov</h2>
+          <h2 className="font-semibold text-xl">
+            {tAuth("product_lists.title")}
+          </h2>
           <p className="text-fg-secondary text-sm">
-            Uložené produkty a vlastné nákupné zoznamy.
+            {tAuth("product_lists.description")}
           </p>
         </div>
       </header>

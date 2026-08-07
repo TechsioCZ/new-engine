@@ -1,5 +1,4 @@
 import type { HttpTypes } from "@medusajs/types"
-import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import type { Product } from "@/components/product-detail/product-detail.types"
@@ -12,8 +11,6 @@ import {
   asRecord,
   asString,
 } from "@/components/product-detail/utils/value-utils"
-
-const PRODUCT_SUMMARY_FALLBACK = "Popis produktu bude čoskoro doplnený."
 
 export const resolveSelectedVariant = (
   variants: HttpTypes.StoreProductVariant[],
@@ -71,23 +68,25 @@ export const resolveProductSummaryText = (
   }
 
   const descriptionText = stripHtml(product?.description)
-  return descriptionText || PRODUCT_SUMMARY_FALLBACK
+  return descriptionText
 }
 
 export const resolveProductBreadcrumbItems = (
   productCategories: HttpTypes.StoreProductCategory[],
   product: Product | null,
-  handle: string
+  handle: string,
+  homeLabel: string
 ): HerbatikaBreadcrumbItem[] => {
   const primaryCategory = productCategories[0]
+  const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")
 
   return [
-    ...(primaryCategory?.handle
+    { label: homeLabel, href: "/", icon: "token-icon-home" },
+    ...(primaryCategory?.handle && primaryCategoryName
       ? [
           {
-            label: normalizeCategoryName(primaryCategory.name),
+            label: primaryCategoryName,
             href: `/c/${primaryCategory.handle}`,
-            icon: "token-icon-home" as IconType,
           },
         ]
       : []),

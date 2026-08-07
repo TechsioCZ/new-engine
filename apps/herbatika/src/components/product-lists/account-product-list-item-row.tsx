@@ -7,6 +7,7 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import Image from "next/image"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
@@ -31,6 +32,32 @@ type AccountProductListItemRowProps = {
   product: HttpTypes.StoreProduct | null
 }
 
+type AuthTranslator = ReturnType<typeof useTranslations<"auth">>
+
+const resolveAvailabilityLabel = (
+  availability: ReturnType<typeof resolveProductListItemAvailability>,
+  translate: AuthTranslator
+) => {
+  if (availability.status === "product_unavailable") {
+    return translate("product_lists.availability.product_unavailable")
+  }
+
+  if (availability.status === "out_of_stock") {
+    return translate("product_lists.availability.out_of_stock")
+  }
+
+  if (
+    availability.status === "limited_stock" &&
+    availability.availableQuantity !== null
+  ) {
+    return translate("product_lists.availability.limited_stock", {
+      quantity: availability.availableQuantity,
+    })
+  }
+
+  return null
+}
+
 export function AccountProductListItemRow({
   canChangeQuantity,
   isAddingToCart,
@@ -42,13 +69,24 @@ export function AccountProductListItemRow({
   onQuantitySet,
   product,
 }: AccountProductListItemRowProps) {
+  const tAuth = useTranslations("auth")
+  const tCart = useTranslations("cart")
+  const tCatalog = useTranslations("catalog")
   const itemProduct = product ?? item.product ?? null
-  const productTitle = itemProduct?.title ?? item.product_id ?? "Produkt"
+  const productTitle =
+    itemProduct?.title?.trim() || item.product_id || item.id || ""
   const productHref = itemProduct?.handle ? `/p/${itemProduct.handle}` : "#"
   const imageSrc = itemProduct?.thumbnail ?? PRODUCT_FALLBACK_IMAGE
-  const price = itemProduct ? resolvePriceState(itemProduct) : null
+  const price = itemProduct
+    ? resolvePriceState(
+        itemProduct,
+        undefined,
+        tCatalog("product_card.price_on_request")
+      )
+    : null
   const quantity = resolveProductListItemQuantity(item)
   const availability = resolveProductListItemAvailability(item, itemProduct)
+  const availabilityLabel = resolveAvailabilityLabel(availability, tAuth)
   const canAddToCart = availability.canAddToCart
   const availabilityBadgeId = useId()
   const [localQuantity, setLocalQuantity] = useState(quantity)
@@ -116,18 +154,20 @@ export function AccountProductListItemRow({
         ) : null}
         <div className="flex flex-wrap items-center gap-x-300 gap-y-100 text-sm">
           {canChangeQuantity ? null : (
-            <span className="text-fg-secondary">{quantity} ks</span>
+            <span className="text-fg-secondary">
+              {tAuth("product_lists.item.quantity", { quantity })}
+            </span>
           )}
           {price ? (
             <span className="font-semibold">{price.currentLabel}</span>
           ) : null}
-          {availability.badgeLabel ? (
+          {availabilityLabel ? (
             <Badge
               id={availabilityBadgeId}
               size="sm"
               variant={availability.badgeVariant}
             >
-              {availability.badgeLabel}
+              {availabilityLabel}
             </Badge>
           ) : null}
         </div>
@@ -149,18 +189,21 @@ export function AccountProductListItemRow({
               <NumericInput.DecrementTrigger
                 disabled={isSettingQuantity || localQuantity <= 1}
               />
-              <NumericInput.Input aria-label={`Množstvo pre ${productTitle}`} />
+              <NumericInput.Input
+                aria-label={tAuth("product_lists.item.quantity_aria", {
+                  productName: productTitle,
+                })}
+              />
               <NumericInput.IncrementTrigger disabled={isSettingQuantity} />
             </NumericInput.Control>
           </NumericInput>
         ) : null}
         <Button
-          aria-describedby={
-            availability.badgeLabel ? availabilityBadgeId : undefined
-          }
+          aria-describedby={availabilityLabel ? availabilityBadgeId : undefined}
           disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAddingToCart}
+          loadingText={tCart("adding_to_cart")}
           onClick={() => {
             if (itemProduct) {
               onAddToCart(item, itemProduct)
@@ -169,16 +212,18 @@ export function AccountProductListItemRow({
           size="sm"
           variant="primary"
         >
-          Do košíka
+          {tCart("add_to_cart")}
         </Button>
         <Button
-          aria-label={`Odstrániť ${productTitle} zo zoznamu`}
+          aria-label={tAuth("product_lists.item.remove_aria", {
+            productName: productTitle,
+          })}
           className="text-danger"
           disabled={!item.id || isDeleting}
           icon="token-icon-trash"
           iconSize="md"
           isLoading={isDeleting}
-          loadingText="Odstraňujem"
+          loadingText={tAuth("product_lists.item.removing")}
           onClick={() => onDelete(item)}
           size="current"
           theme="unstyled"

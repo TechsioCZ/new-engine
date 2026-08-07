@@ -305,4 +305,287 @@ describe("createCartHooks reactive storage and cache sync", () => {
     expect(queryClient.getQueryData(activeKey)).toEqual(updatedCart)
     expect(queryClient.getQueryData(detailKey)).toEqual(updatedCart)
   })
+
+  it("keeps the later cart mutation when an earlier cancellation settles last", async () => {
+    const olderCart: Cart = {
+      id: "cart_1",
+      region_id: "reg_1",
+      items: [{ quantity: 1 }],
+    }
+    const newerCart: Cart = {
+      id: "cart_1",
+      region_id: "reg_1",
+      items: [{ quantity: 2 }],
+    }
+    let resolveFirstCancellation: (() => void) | undefined
+    const firstCancellation = new Promise<void>((resolve) => {
+      resolveFirstCancellation = resolve
+    })
+    const queryKeys = createCartQueryKeys("test-cart-mutation-order")
+    const { useUpdateLineItem } = createCartHooks<
+      Cart,
+      { region_id?: string },
+      { region_id?: string }
+    >({
+      service: {
+        retrieveCart: async () => olderCart,
+        createCart: async () => olderCart,
+        updateLineItem: async (_cartId, _lineItemId, input) =>
+          input.quantity === 1 ? olderCart : newerCart,
+      },
+      queryKeys,
+      requireRegion: false,
+    })
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const cancelQueries = vi
+      .spyOn(queryClient, "cancelQueries")
+      .mockImplementation(() =>
+        cancelQueries.mock.calls.length <= 2
+          ? firstCancellation
+          : Promise.resolve()
+      )
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(() => useUpdateLineItem(), { wrapper })
+    const detailKey = queryKeys.detail("cart_1")
+
+    const firstMutation = result.current.mutateAsync({
+      cartId: "cart_1",
+      lineItemId: "item_1",
+      quantity: 1,
+    })
+    await waitFor(() => {
+      expect(cancelQueries).toHaveBeenCalledTimes(2)
+    })
+
+    const secondMutation = result.current.mutateAsync({
+      cartId: "cart_1",
+      lineItemId: "item_1",
+      quantity: 2,
+    })
+    await waitFor(() => {
+      expect(queryClient.getQueryData(detailKey)).toEqual(newerCart)
+    })
+
+    resolveFirstCancellation?.()
+    await Promise.all([firstMutation, secondMutation])
+
+    expect(queryClient.getQueryData(detailKey)).toEqual(newerCart)
+  })
+
+  it("does not let a restored inactive cart observer overwrite a newer mutation", async () => {
+    const staleCart: Cart = {
+      id: "cart_1",
+      region_id: "reg_1",
+      items: [{ quantity: 1 }],
+    }
+    const updatedCart: Cart = {
+      id: "cart_1",
+      region_id: "reg_1",
+      items: [{ quantity: 1 }, { quantity: 1 }],
+    }
+    const queryKeys = createCartQueryKeys("test-cart-activity-restore")
+    const { useCart } = createCartHooks<
+      Cart,
+      { region_id?: string },
+      { region_id?: string }
+    >({
+      service: {
+        retrieveCart: async () => staleCart,
+        createCart: async () => staleCart,
+      },
+      queryKeys,
+      requireRegion: false,
+    })
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const activeKey = queryKeys.active({ cartId: "cart_1", regionId: "reg_1" })
+    const detailKey = queryKeys.detail("cart_1")
+
+    queryClient.setQueryData(activeKey, updatedCart)
+    queryClient.setQueryData(detailKey, updatedCart)
+
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(
+      () =>
+        useCart(
+          {
+            autoCreate: false,
+            cartId: "cart_1",
+            enabled: false,
+            region_id: "reg_1",
+          },
+          {
+            queryOptions: {
+              select: () => staleCart,
+            },
+          }
+        ),
+      { wrapper }
+    )
+
+    expect(result.current.cart).toEqual(staleCart)
+    await waitFor(() => {
+      expect(queryClient.getQueryData(activeKey)).toEqual(updatedCart)
+      expect(queryClient.getQueryData(detailKey)).toEqual(updatedCart)
+    })
+  })
+
+  it("keeps a newer line item mutation when an older cart read finishes later", async () => {
+    const staleCart: Cart = {
+      id: "cart_1",
+      region_id: "reg_1",
+      items: [{ quantity: 1 }],
+    }
+    const updatedCart: Cart = {
+      id: "cart_1",
+      region_id: "reg_1",
+      items: [{ quantity: 2 }],
+    }
+    let resolveCartRead: ((cart: Cart) => void) | undefined
+    const retrieveCart = vi.fn(
+      () =>
+        new Promise<Cart>((resolve) => {
+          resolveCartRead = resolve
+        })
+    )
+
+    const { useCart, useUpdateLineItem } = createCartHooks<
+      Cart,
+      { region_id?: string },
+      { region_id?: string }
+    >({
+      service: {
+        retrieveCart,
+        createCart: async () => staleCart,
+        updateLineItem: async () => updatedCart,
+      },
+      requireRegion: false,
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(
+      () => ({
+        cart: useCart({
+          autoCreate: false,
+          cartId: "cart_1",
+          region_id: "reg_1",
+        }),
+        updateLineItem: useUpdateLineItem(),
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(retrieveCart).toHaveBeenCalledTimes(1)
+    })
+
+    await act(async () => {
+      await result.current.updateLineItem.mutateAsync({
+        cartId: "cart_1",
+        lineItemId: "item_1",
+        quantity: 2,
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.cart.cart?.items?.[0]?.quantity).toBe(2)
+    })
+
+    await act(async () => {
+      resolveCartRead?.(staleCart)
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(result.current.cart.query.fetchStatus).toBe("idle")
+    })
+    expect(result.current.cart.cart?.items?.[0]?.quantity).toBe(2)
+  })
+
+  it("allows an active cart read to finish when a line item mutation fails", async () => {
+    const cart: Cart = {
+      id: "cart_1",
+      region_id: "reg_1",
+      items: [{ quantity: 1 }],
+    }
+    let resolveCartRead: ((cart: Cart) => void) | undefined
+    const retrieveCart = vi.fn(
+      () =>
+        new Promise<Cart>((resolve) => {
+          resolveCartRead = resolve
+        })
+    )
+
+    const { useCart, useUpdateLineItem } = createCartHooks<
+      Cart,
+      { region_id?: string },
+      { region_id?: string }
+    >({
+      service: {
+        retrieveCart,
+        createCart: async () => cart,
+        updateLineItem: async () => {
+          throw new Error("update failed")
+        },
+      },
+      requireRegion: false,
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(
+      () => ({
+        cart: useCart({
+          autoCreate: false,
+          cartId: "cart_1",
+          region_id: "reg_1",
+        }),
+        updateLineItem: useUpdateLineItem(),
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(retrieveCart).toHaveBeenCalledTimes(1)
+    })
+
+    await act(async () => {
+      await expect(
+        result.current.updateLineItem.mutateAsync({
+          cartId: "cart_1",
+          lineItemId: "item_1",
+          quantity: 2,
+        })
+      ).rejects.toThrow("update failed")
+    })
+
+    await act(async () => {
+      resolveCartRead?.(cart)
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(result.current.cart.cart?.items?.[0]?.quantity).toBe(1)
+    })
+  })
 })

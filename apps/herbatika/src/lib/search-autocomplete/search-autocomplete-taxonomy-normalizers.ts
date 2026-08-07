@@ -26,7 +26,6 @@ const createCategorySuggestion = (
     type: "category",
     title,
     href: `/c/${handle}`,
-    subtitle: "Kategória",
   }
 }
 
@@ -56,7 +55,6 @@ const createBrandSuggestion = (
     type: "brand",
     title,
     href: createBrandHref({ slug }),
-    subtitle: "Značka",
   }
 }
 

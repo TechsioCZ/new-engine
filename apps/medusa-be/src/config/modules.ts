@@ -1,5 +1,7 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { API_STORE_MODULE } from "../modules/api-store"
 import { DATABASE_MODULE } from "../modules/database"
+import { GLS_CLIENT_MODULE } from "../modules/gls-client/constants"
 import { buildPaykitPaymentProviders } from "../modules/payment-paykit/medusa-config"
 import {
   QR_PAYMENT_MODULE,
@@ -39,13 +41,13 @@ function buildPaymentProviders(env: MedusaConfigEnv): PaymentProviderConfig[] {
 }
 
 function buildPaymentDependencies(env: MedusaConfigEnv): string[] {
-  const dependencies: string[] = []
+  const dependencies: string[] = [API_STORE_MODULE]
 
   if (env.featurePaymentQrEnabled) {
     dependencies.push(QR_PAYMENT_MODULE)
   }
 
-  return dependencies
+  return [...new Set(dependencies)]
 }
 
 function buildPaymentModule(env: MedusaConfigEnv): MedusaModuleConfig {
@@ -88,9 +90,19 @@ function buildFulfillmentClientModules(
   if (env.featurePacketaEnabled) {
     modules.push({
       resolve: "./src/modules/packeta-client",
-      dependencies: [Modules.LOCKING],
+      dependencies: [Modules.LOCKING, API_STORE_MODULE],
       options: {
         environment: env.packetaEnvironment,
+      },
+    })
+  }
+
+  if (env.featureGlsEnabled) {
+    modules.push({
+      resolve: "./src/modules/gls-client",
+      dependencies: [Modules.LOCKING],
+      options: {
+        environment: env.glsEnvironment,
       },
     })
   }
@@ -113,7 +125,15 @@ function buildFulfillmentDependencies(env: MedusaConfigEnv): string[] {
     )
   }
 
-  return dependencies
+  if (env.featureGlsEnabled) {
+    dependencies.push(
+      GLS_CLIENT_MODULE,
+      Modules.FILE,
+      ContainerRegistrationKeys.QUERY
+    )
+  }
+
+  return [...new Set(dependencies)]
 }
 
 function buildFulfillmentProviders(
@@ -140,13 +160,26 @@ function buildFulfillmentProviders(
     })
   }
 
+  if (env.featureGlsEnabled) {
+    providers.push({
+      resolve: "./src/modules/fulfillment-gls",
+      id: "gls",
+    })
+  }
+
   return providers
 }
 
 function buildFulfillmentModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
   const modules: MedusaModuleConfig[] = []
 
-  if (!(env.featurePplEnabled || env.featurePacketaEnabled)) {
+  if (
+    !(
+      env.featurePplEnabled ||
+      env.featurePacketaEnabled ||
+      env.featureGlsEnabled
+    )
+  ) {
     return modules
   }
 
@@ -186,6 +219,7 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "@medusajs/medusa/notification",
+      dependencies: [API_STORE_MODULE],
       options: {
         providers: buildNotificationProviders(env),
       },
@@ -198,6 +232,16 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/measurement-unit",
     },
     {
+      resolve: "./src/modules/product-attribute",
+    },
+    {
+      resolve: "./src/modules/api-store",
+    },
+    {
+      resolve: "./src/modules/shop-review",
+      dependencies: [API_STORE_MODULE],
+    },
+    {
       resolve: "./src/modules/product-list",
     },
     {
@@ -206,6 +250,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     {
       resolve: "./src/modules/search-profile",
       dependencies: [Modules.CACHING],
+    },
+    {
+      resolve: "./src/modules/storefront-text",
     },
     {
       resolve: "./src/modules/company",

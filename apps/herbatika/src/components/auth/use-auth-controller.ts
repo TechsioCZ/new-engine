@@ -2,6 +2,7 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import {
   buildAuthRouteHref,
@@ -26,9 +27,8 @@ import {
   useTransferCart,
 } from "@/lib/storefront/cart"
 import { cartStorage } from "@/lib/storefront/cart-storage"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
-import { useLogoutAction } from "@/lib/storefront/use-logout-action"
 
 type AuthControlsMode = "login" | "register"
 
@@ -41,17 +41,17 @@ export const useAuthController = ({
   mode,
   afterAuthHref,
 }: UseAuthControllerProps) => {
+  const tAuth = useTranslations("auth")
   const router = useRouter()
+  const marketContext = useMarketContext()
   const region = useRegionContext()
   const authQuery = useAuth()
   const loginMutation = useLogin()
   const registerMutation = useRegister()
   const transferCartMutation = useTransferCart()
-  const registerCountryItems = useRegisterCountryItems(region)
-  const [authError, setAuthError] = useState<string | null>(null)
+  const registerCountryItems = useRegisterCountryItems()
   const [authMessage, setAuthMessage] = useState<string | null>(null)
   const [authNotice, setAuthNotice] = useState<string | null>(null)
-  const { handleLogout: performLogout, logoutMutation } = useLogoutAction()
 
   const cartQuery = useCart(
     {
@@ -68,11 +68,10 @@ export const useAuthController = ({
   const safeRedirectHref = resolveSafeRedirectHref(afterAuthHref)
   const loginDefaultValues = buildLoginDefaults()
   const registerDefaultValues = buildRegisterDefaults({
-    countryCode: region?.country_code,
+    countryCode: marketContext.countryCode,
   })
 
   const clearFeedback = () => {
-    setAuthError(null)
     setAuthMessage(null)
     setAuthNotice(null)
   }
@@ -100,7 +99,7 @@ export const useAuthController = ({
       await transferCartIfAvailable()
       return null
     } catch {
-      return "Účet je aktívny, ale obsah košíka sa nepodarilo preniesť. Skúste to prosím znova v košíku."
+      return tAuth("cart_transfer_failed")
     }
   }
 
@@ -130,11 +129,14 @@ export const useAuthController = ({
         return null
       }
 
-      setAuthMessage("Prihlásenie prebehlo úspešne.")
+      setAuthMessage(tAuth("login.success"))
       setAuthNotice(transferNotice)
       return null
     } catch (error) {
-      return resolveLoginSubmitError(error)
+      return resolveLoginSubmitError(error, {
+        failed: tAuth("login.failed"),
+        invalidCredentials: tAuth("login.invalid_credentials"),
+      })
     }
   }
 
@@ -156,53 +158,34 @@ export const useAuthController = ({
         return null
       }
 
-      setAuthMessage("Registrácia prebehla úspešne.")
+      setAuthMessage(tAuth("register.success"))
       setAuthNotice(
         buildRegisterSuccessNotice({
           isWholesale: isWholesaleRegistration(values),
           transferNotice,
+          wholesaleNotice: tAuth("register.wholesale_success"),
         })
       )
       return null
     } catch (error) {
-      return resolveRegisterSubmitError(error)
-    }
-  }
-
-  const handleLogout = async () => {
-    clearFeedback()
-
-    const result = await performLogout()
-    if (result.ok) {
-      setAuthMessage("Odhlásenie prebehlo úspešne.")
-      return
-    }
-
-    setAuthError(result.error)
-  }
-
-  const handleTransferCart = async () => {
-    clearFeedback()
-
-    try {
-      await transferCartIfAvailable()
-      setAuthMessage("Prenos košíka prebehol úspešne.")
-    } catch (error) {
-      setAuthError(resolveErrorMessage(error))
+      return resolveRegisterSubmitError(error, {
+        emailExists: tAuth("register.email_exists"),
+        failed: tAuth("register.failed"),
+      })
     }
   }
 
   const isBusy =
     loginMutation.isPending ||
     registerMutation.isPending ||
-    logoutMutation.isPending ||
     transferCartMutation.isPending
 
-  const title = mode === "register" ? "Vytvorenie účtu" : "Prihlásenie do účtu"
+  const title =
+    mode === "register" ? tAuth("register.title") : tAuth("login.title")
   const description =
     mode === "register"
-      ? "Vyplňte údaje a vytvorte si zákaznícky účet."
-      : "Zadajte prihlasovacie údaje pre vstup do zákazníckej sekcie."
+      ? tAuth("register.description")
+      : tAuth("login.description")
   const loginHref = buildAuthRouteHref(
     "/auth/login",
     safeRedirectHref ?? undefined
@@ -214,20 +197,16 @@ export const useAuthController = ({
   const forgotPasswordHref = "/auth/forgot-password"
 
   return {
-    authError,
     authMessage,
     authNotice,
     authQuery,
     cartQuery,
     description,
     handleLoginSubmit,
-    handleLogout,
     handleRegisterSubmit,
-    handleTransferCart,
     isBusy,
     loginDefaultValues,
     loginHref,
-    logoutMutation,
     registerCountryItems,
     registerDefaultValues,
     registerHref,

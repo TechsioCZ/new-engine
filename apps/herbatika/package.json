@@ -30,8 +30,10 @@
     "@tanstack/react-form": "^1.27.4",
     "@tanstack/react-query": "^5.90.2",
     "@techsio/storefront-data": "workspace:*",
+    "@techsio/storefront-i18n": "workspace:*",
     "@techsio/ui-kit": "workspace:*",
     "next": "16.3.0-preview.5",
+    "next-intl": "^4.13.2",
     "nuqs": "^2.8.8",
     "qrcode": "1.5.4",
     "react": "19.2.3",
@@ -49,6 +51,8 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "catalog:vite8-testing",
+    "vitest": "catalog:vite8-testing"
   }
 }

@@ -50,7 +50,7 @@
 - From the repo root, prefer `pnpm -C apps/herbatika <script>` for app scripts.
 - Do not use the root frontend-demo `localhost:3000` assumption for this app.
 - `pnpm build` builds production output; `pnpm start` serves the production build.
-- Temporary rule: do not run Biome commands in this app until stability issue is resolved.
+- Run `pnpm -C apps/herbatika lint` before handoff to match the Nx/CI Biome check.
 
 ## Testing Workflow
 - For manual QA, use skill `local-web-testing`.
@@ -69,3 +69,11 @@
   - `~/.local/share/medusa`
   - `~/.local/share/zagjs`
 - If local mirrors are missing/outdated, use official upstream docs.
+
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
+**Keep this block, including in commits.** It is part of the project's agent setup, maintained by `next dev` for every agent that works here. If it appears as an uncommitted change, that is intentional — commit it as-is. Do not remove it to clean up a diff; it will be regenerated.
+<!-- END:nextjs-agent-rules -->

@@ -12,17 +12,28 @@ export type CreateSalesChannelsStepInput = {
   default: boolean
 }[]
 
+export function validateSalesChannelSeedInput(
+  input: CreateSalesChannelsStepInput
+) {
+  const names = input.map(({ name }) => name.trim())
+  if (new Set(names).size !== names.length) {
+    throw new Error("Seed sales channel names must be unique")
+  }
+  if (input.filter(({ default: isDefault }) => isDefault).length !== 1) {
+    throw new Error("Seed sales channels must define exactly one default")
+  }
+  return names
+}
+
 const CreateSalesChannelsStepId = "create-sales-channels-seed-step"
 export const createSalesChannelsStep = createStep(
   CreateSalesChannelsStepId,
   async (input: CreateSalesChannelsStepInput, { container }) => {
-    const result: Array<SalesChannelDTO & { isDefault: boolean }> = []
-
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const salesChannelModuleService =
       container.resolve<ISalesChannelModuleService>(Modules.SALES_CHANNEL)
 
-    const salesChannels = input.map((i) => i.name)
+    const salesChannels = validateSalesChannelSeedInput(input)
 
     const existingSalesChannels =
       await salesChannelModuleService.listSalesChannels({
@@ -33,8 +44,8 @@ export const createSalesChannelsStep = createStep(
       .filter((i) => !existingSalesChannels.find((j) => j.name === i))
       .map((i) => ({ name: i }))
 
+    let createdSalesChannels: SalesChannelDTO[] = []
     if (missingSalesChannels.length !== 0) {
-      // create the default sales channel
       const { result: salesChannelResult } = await createSalesChannelsWorkflow(
         container
       ).run({
@@ -43,34 +54,31 @@ export const createSalesChannelsStep = createStep(
         },
       })
 
-      const defaultTarget =
-        input.find((i) => i.default)?.name ?? salesChannelResult[0]?.name
-      for (const salesChannelResultElement of salesChannelResult) {
-        result.push({
-          ...salesChannelResultElement,
-          isDefault: salesChannelResultElement.name === defaultTarget,
-        })
-      }
-    } else {
-      const existingDefault = existingSalesChannels.find(
-        (channel) => channel.name === input.find((inp) => inp.default)?.name
-      )
-      if (!existingDefault) {
-        throw new Error("Could not find default sales channel")
-      }
-
-      result.push({
-        ...existingDefault,
-        isDefault: true,
-      })
+      createdSalesChannels = salesChannelResult
     }
 
-    const defaultSalesChannel = result.find((i) => i.isDefault)
-    if (defaultSalesChannel) {
-      logger.info(`Found default sales channel: ${defaultSalesChannel.name}`)
-    } else {
+    const channelsByName = new Map(
+      [...existingSalesChannels, ...createdSalesChannels].map((channel) => [
+        channel.name,
+        channel,
+      ])
+    )
+    const defaultIndex = input.findIndex(({ default: isDefault }) => isDefault)
+    const defaultName = salesChannels[defaultIndex]
+    const result = salesChannels.map((name, index) => {
+      const channel = channelsByName.get(name)
+      if (!channel) {
+        throw new Error(`Could not find configured sales channel "${name}"`)
+      }
+      return { ...channel, isDefault: input[index]?.default ?? false }
+    })
+    const defaultSalesChannel = result.find(
+      (channel) => channel.name === defaultName
+    )
+    if (!defaultSalesChannel) {
       throw new Error("Could not find default sales channel")
     }
+    logger.info(`Found default sales channel: ${defaultSalesChannel.name}`)
 
     return new StepResponse({
       defaultSalesChannel,

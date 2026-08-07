@@ -1,0 +1,3 @@
+export const STOREFRONT_TEXT_LOCK_TIMEOUT_SECONDS = 5
+export const STOREFRONT_TEXT_LOCK_TTL_SECONDS = 120
+export const STOREFRONT_TEXT_LOCK_KEY = "storefront-texts"

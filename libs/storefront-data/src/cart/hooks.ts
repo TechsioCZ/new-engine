@@ -12,7 +12,11 @@ import {
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
-import { invalidateCartCaches, syncCartCaches } from "../shared/cart-cache-sync"
+import {
+  cancelCartCaches,
+  invalidateCartCaches,
+  syncCartCaches,
+} from "../shared/cart-cache-sync"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   MutationOptions,
@@ -530,12 +534,18 @@ export function createCartHooks<
     invalidateCartCaches(queryClient, resolvedQueryKeys, cartId)
   }
 
-  const syncMutationCart = (
+  const syncMutationCart = async (
     queryClient: ReturnType<typeof useQueryClient>,
     cart: TCart
   ) => {
+    const cancellation = cancelCartCaches(
+      queryClient,
+      resolvedQueryKeys,
+      cart.id
+    )
     syncCartCaches(queryClient, resolvedQueryKeys, cart)
     invalidateCart(queryClient, cart)
+    await cancellation
   }
 
   type LoadCartOptions = {
@@ -618,6 +628,16 @@ export function createCartHooks<
     previousRegionId: string | null
   ) => {
     if (!cart?.id) {
+      return
+    }
+
+    const sourceKey = resolvedQueryKeys.active({
+      cartId: previousCartId,
+      regionId: previousRegionId,
+    })
+    // A restored inactive observer can resume with data older than its cache.
+    // Only the raw value still owned by this query may fan out to cart aliases.
+    if (queryClient.getQueryData(sourceKey) !== cart) {
       return
     }
 
@@ -744,9 +764,9 @@ export function createCartHooks<
       mutationFn: (input: TCreateInput) =>
         service.createCart(buildCreate(input)),
       onMutate: options?.onMutate,
-      onSuccess: (cart, variables, context) => {
+      onSuccess: async (cart, variables, context) => {
         persistCartId(cart.id)
-        syncMutationCart(queryClient, cart)
+        await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
       onError: (error, variables, context) => {
@@ -772,8 +792,8 @@ export function createCartHooks<
         return service.updateCart(cartId, buildUpdate(input))
       },
       onMutate: options?.onMutate,
-      onSuccess: (cart, variables, context) => {
-        syncMutationCart(queryClient, cart)
+      onSuccess: async (cart, variables, context) => {
+        await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
       onError: (error, variables, context) => {
@@ -806,8 +826,8 @@ export function createCartHooks<
         return callUpdateCart(cartId, buildUpdate(updateInput))
       },
       onMutate: options?.onMutate,
-      onSuccess: (cart, variables, context) => {
-        syncMutationCart(queryClient, cart)
+      onSuccess: async (cart, variables, context) => {
+        await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
       onError: (error, variables, context) => {
@@ -854,8 +874,8 @@ export function createCartHooks<
         return updated
       },
       onMutate: options?.onMutate,
-      onSuccess: (cart, variables, context) => {
-        syncMutationCart(queryClient, cart)
+      onSuccess: async (cart, variables, context) => {
+        await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
       onError: (error, variables, context) => {
@@ -887,8 +907,8 @@ export function createCartHooks<
         )
       },
       onMutate: options?.onMutate,
-      onSuccess: (cart, variables, context) => {
-        syncMutationCart(queryClient, cart)
+      onSuccess: async (cart, variables, context) => {
+        await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
       onError: (error, variables, context) => {
@@ -916,8 +936,8 @@ export function createCartHooks<
         return service.removeLineItem(cartId, input.lineItemId)
       },
       onMutate: options?.onMutate,
-      onSuccess: (cart, variables, context) => {
-        syncMutationCart(queryClient, cart)
+      onSuccess: async (cart, variables, context) => {
+        await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
       onError: (error, variables, context) => {
@@ -945,8 +965,8 @@ export function createCartHooks<
         return service.transferCart(cartId)
       },
       onMutate: options?.onMutate,
-      onSuccess: (cart, variables, context) => {
-        syncMutationCart(queryClient, cart)
+      onSuccess: async (cart, variables, context) => {
+        await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
       onError: (error, variables, context) => {

@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+import { useTranslations } from "next-intl"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   clearStoredCarrierPickupSelection,
@@ -33,32 +34,42 @@ type UseCheckoutActionsProps = {
   setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
 }
 
+type OrderCompletionBlockerMessages = {
+  cartEmpty: string
+  cartNotReady: string
+  selectPaymentBeforeCompletion: string
+  selectShippingBeforeCompletion: string
+}
+
 const resolveOrderCompletionBlocker = ({
   cartId,
   itemCount,
   selectedPaymentProviderId,
   selectedShippingMethodId,
+  messages,
 }: Pick<
   UseCheckoutActionsProps,
   | "cartId"
   | "itemCount"
   | "selectedPaymentProviderId"
   | "selectedShippingMethodId"
->) => {
+> & {
+  messages: OrderCompletionBlockerMessages
+}) => {
   if (!cartId) {
-    return "Košík nie je pripravený."
+    return messages.cartNotReady
   }
 
   if (itemCount < 1) {
-    return "Košík je prázdny. Pridajte najprv produkty."
+    return messages.cartEmpty
   }
 
   if (!selectedShippingMethodId) {
-    return "Vyberte dopravu pred dokončením objednávky."
+    return messages.selectShippingBeforeCompletion
   }
 
   if (!selectedPaymentProviderId) {
-    return "Vyberte platobnú metódu pred dokončením objednávky."
+    return messages.selectPaymentBeforeCompletion
   }
 
   return null
@@ -83,6 +94,7 @@ export function useCheckoutActions({
   selectedShippingMethodId,
   setShippingMethod,
 }: UseCheckoutActionsProps) {
+  const tCheckout = useTranslations("checkout")
   const resetFeedback = () => {
     onCheckoutErrorChange(null)
     if (completedOrderId) {
@@ -106,7 +118,7 @@ export function useCheckoutActions({
       setShippingMethod(optionId, data)
     } catch (error) {
       onCheckoutErrorChange(
-        resolveErrorMessage(error, "Nastavenie dopravy zlyhalo.")
+        resolveErrorMessage(error, tCheckout("shipping_update_failed"))
       )
     }
   }
@@ -115,7 +127,7 @@ export function useCheckoutActions({
     resetFeedback()
 
     if (!canInitiatePayment) {
-      onCheckoutErrorChange("Najprv vyberte dopravu.")
+      onCheckoutErrorChange(tCheckout("select_shipping_before_payment"))
       return
     }
 
@@ -123,7 +135,7 @@ export function useCheckoutActions({
       onPaymentProviderSelect(providerId)
     } catch (error) {
       onCheckoutErrorChange(
-        resolveErrorMessage(error, "Nastavenie platby zlyhalo.")
+        resolveErrorMessage(error, tCheckout("payment_update_failed"))
       )
     }
   }
@@ -136,6 +148,16 @@ export function useCheckoutActions({
       itemCount,
       selectedPaymentProviderId,
       selectedShippingMethodId,
+      messages: {
+        cartEmpty: tCheckout("cart_empty"),
+        cartNotReady: tCheckout("cart_not_ready"),
+        selectPaymentBeforeCompletion: tCheckout(
+          "select_payment_before_completion"
+        ),
+        selectShippingBeforeCompletion: tCheckout(
+          "select_shipping_before_completion"
+        ),
+      },
     })
     if (blockerMessage) {
       onCheckoutErrorChange(blockerMessage)
@@ -143,9 +165,7 @@ export function useCheckoutActions({
     }
 
     if (!selectedPaymentProviderId) {
-      onCheckoutErrorChange(
-        "Vyberte platobnú metódu pred dokončením objednávky."
-      )
+      onCheckoutErrorChange(tCheckout("select_payment_before_completion"))
       return
     }
 
@@ -188,11 +208,11 @@ export function useCheckoutActions({
       }
 
       onOrderCompletionAbort()
-      onCheckoutErrorChange("Dokončenie objednávky zlyhalo.")
+      onCheckoutErrorChange(tCheckout("complete_failed"))
     } catch (error) {
       onOrderCompletionAbort()
       onCheckoutErrorChange(
-        resolveErrorMessage(error, "Dokončenie objednávky zlyhalo.")
+        resolveErrorMessage(error, tCheckout("complete_failed"))
       )
     }
   }

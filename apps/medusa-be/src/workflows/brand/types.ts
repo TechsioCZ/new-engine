@@ -41,6 +41,7 @@ export type RestoreBrandsWorkflowInput = {
 export type SetProductBrandsWorkflowInput = {
   product_id: string
   brand_ids: string[]
+  dismiss_inactive?: boolean
   fail_on_conflict?: boolean
 }
 

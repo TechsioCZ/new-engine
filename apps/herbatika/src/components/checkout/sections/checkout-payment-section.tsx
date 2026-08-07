@@ -1,9 +1,9 @@
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { useTranslations } from "next-intl"
 import {
-  resolvePaymentDescription,
-  resolvePaymentHint,
+  formatProviderLabel,
+  resolvePaymentDisplayTextKeys,
   resolvePaymentIcon,
-  resolveProviderLabel,
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -12,6 +12,8 @@ import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 type PaymentProvider = {
   id?: string | null
 }
+
+type CheckoutTranslator = ReturnType<typeof useTranslations<"checkout">>
 
 type CheckoutPaymentSectionProps = {
   canInitiatePayment: boolean
@@ -31,6 +33,69 @@ const resolveProviderId = (provider: PaymentProvider) => {
   return ""
 }
 
+const translatePaymentText = ({
+  key,
+  providerName,
+  translate,
+}: {
+  key?: string
+  providerName?: string
+  translate: CheckoutTranslator
+}) => {
+  if (!key) {
+    return
+  }
+
+  return providerName ? translate(key, { providerName }) : translate(key)
+}
+
+const createPaymentProviderOption = ({
+  canInitiatePayment,
+  index,
+  isBusy,
+  isInitiatingPayment,
+  provider,
+  translate,
+}: {
+  canInitiatePayment: boolean
+  index: number
+  isBusy: boolean
+  isInitiatingPayment: boolean
+  provider: PaymentProvider
+  translate: CheckoutTranslator
+}) => {
+  const providerId = resolveProviderId(provider)
+  const displayTextKeys = resolvePaymentDisplayTextKeys(providerId)
+  const providerLabel =
+    translatePaymentText({
+      key: displayTextKeys.labelKey,
+      providerName: displayTextKeys.providerName,
+      translate,
+    }) ??
+    displayTextKeys.providerName ??
+    formatProviderLabel(providerId)
+  const paymentDescription = translatePaymentText({
+    key: displayTextKeys.descriptionKey,
+    providerName: displayTextKeys.providerName,
+    translate,
+  })
+  const paymentHint = displayTextKeys.hintKey
+    ? translate(displayTextKeys.hintKey)
+    : displayTextKeys.hintValue
+  const isProviderSelectable = Boolean(providerId && canInitiatePayment)
+
+  return {
+    bodyText: paymentDescription,
+    disabled: isBusy || isInitiatingPayment || !isProviderSelectable,
+    hint: paymentHint,
+    icon: resolvePaymentIcon(providerId),
+    priceLabel: translate("free"),
+    priceTone: "success" as const,
+    title: providerLabel,
+    value: providerId || `${providerLabel}-${index}`,
+  }
+}
+
 export function CheckoutPaymentSection({
   canInitiatePayment,
   isBusy,
@@ -40,43 +105,36 @@ export function CheckoutPaymentSection({
   selectedPaymentProviderId,
   selectionMessage,
 }: CheckoutPaymentSectionProps) {
+  const tCheckout = useTranslations("checkout")
+
   return (
     <section className="space-y-250 rounded-sm p-550 font-rubik">
       <header>
-        <h2 className="font-medium text-fg-primary text-xl">Platba</h2>
+        <h2 className="font-medium text-fg-primary text-xl">
+          {tCheckout("payment")}
+        </h2>
       </header>
       <div className="grid gap-150">
         {paymentProviders.length > 0 ? (
           <CheckoutOptionRadioCard
-            label="Platba"
+            label={tCheckout("payment")}
             onValueChange={(value) => {
               runDetachedPromise(onSelectPaymentProvider(value))
             }}
-            options={paymentProviders.map((provider, index) => {
-              const providerId = resolveProviderId(provider)
-              const providerLabel = resolveProviderLabel(providerId)
-              const isProviderSelectable = Boolean(
-                providerId && canInitiatePayment
-              )
-
-              return {
-                disabled:
-                  isBusy || isInitiatingPayment || !isProviderSelectable,
-                bodyText: resolvePaymentDescription(providerId),
-                hint: resolvePaymentHint(providerId),
-                icon: resolvePaymentIcon(providerId),
-                priceLabel: "Zadarmo",
-                priceTone: "success" as const,
-                title: providerLabel,
-                value: providerId || `${providerLabel}-${index}`,
-              }
-            })}
+            options={paymentProviders.map((provider, index) =>
+              createPaymentProviderOption({
+                canInitiatePayment,
+                index,
+                isBusy,
+                isInitiatingPayment,
+                provider,
+                translate: tCheckout,
+              })
+            )}
             value={selectedPaymentProviderId ?? null}
           />
         ) : (
-          <SupportingText>
-            Nie sú dostupné žiadne platobné metódy.
-          </SupportingText>
+          <SupportingText>{tCheckout("no_payment_methods")}</SupportingText>
         )}
         {paymentProviders.length > 0 && selectionMessage ? (
           <PaymentSelectionMessage message={selectionMessage} />

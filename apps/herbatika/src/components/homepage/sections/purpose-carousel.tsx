@@ -7,6 +7,7 @@ import {
 } from "@techsio/ui-kit/molecules/carousel"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import type { ComponentProps } from "react"
 import type { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "@/components/header/herbatika-header.submenu-data"
 import { useHerbatikaHeaderSubmenu } from "@/components/header/use-herbatika-header-submenu"
@@ -126,12 +127,14 @@ function PurposeCarouselSlides({
 export function PurposeCarousel({
   items,
   rootHandle = DEFAULT_ROOT_HANDLE,
-  title = "Čo vás trápi? Nakupujte podľa účelu",
+  title,
   viewAllHref,
 }: PurposeCarouselProps) {
+  const tContent = useTranslations("content")
   const { groupsByRootHandle } = useHerbatikaHeaderSubmenu()
   const resolvedItems =
     items ?? buildResolvedPurposeCarouselItems(rootHandle, groupsByRootHandle)
+  const resolvedTitle = title ?? tContent("home.purpose.title")
   const slides = buildImageSlides(resolvedItems)
 
   if (resolvedItems.length === 0) {
@@ -142,7 +145,7 @@ export function PurposeCarousel({
     <section className="space-y-350" id="test-nakupujte-carousel">
       <div className="flex items-center justify-between gap-300">
         <h2 className="font-bold text-3xl text-fg-primary leading-none">
-          {title}
+          {resolvedTitle}
         </h2>
         <TextActionLink href={viewAllHref ?? `/c/${rootHandle}`} />
       </div>

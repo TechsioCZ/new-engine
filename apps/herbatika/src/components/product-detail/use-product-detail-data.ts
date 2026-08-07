@@ -1,6 +1,7 @@
 "use client"
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import {
@@ -30,6 +31,10 @@ import {
   resolveProductImages,
 } from "@/components/product-detail/utils/metadata-parsers"
 import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
+import {
+  mergeWarrantyIntoProductContentSections,
+  resolveProductWarranty,
+} from "@/lib/storefront/product-attributes"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 import { resolveProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
 import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
@@ -46,6 +51,8 @@ export function useProductDetailData({
   handle,
   initialVariantId,
 }: UseProductDetailDataProps) {
+  const tCatalog = useTranslations("catalog")
+  const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [quantity, setQuantity] = useState(1)
@@ -72,6 +79,10 @@ export function useProductDetailData({
         productId: product?.id ?? null,
       }
     )
+  const productAttributesQuery =
+    storefront.hooks.productAttributes.useProductAttributes({
+      productId: product?.id ?? null,
+    })
   const locationAvailabilityState = resolveProductLocationAvailabilityState(
     productLocationAvailabilityQuery,
     selectedVariant?.id ?? null,
@@ -82,13 +93,21 @@ export function useProductDetailData({
   const optionTitlesById = resolveOptionTitlesById(product)
   const variantItems = resolveVariantItems(variants, optionTitlesById)
 
-  const offerState = resolveOfferState(product, selectedVariant)
+  const offerState = resolveOfferState(product, selectedVariant, {
+    inStock: tCatalog("product_detail.stock.in_stock"),
+    outOfStock: tCatalog("product_detail.stock.out_of_stock"),
+  })
   const selectedVariantInventory = resolveVariantInventoryState(
     selectedVariant,
     quantity
   )
   const productPrice = product
-    ? resolvePriceState(product, selectedVariantId, regionCurrencyCode)
+    ? resolvePriceState(
+        product,
+        selectedVariantId,
+        regionCurrencyCode,
+        tCatalog("product_detail.price_on_request")
+      )
     : null
   const shortDescriptionHtml = resolveShortDescriptionHtml(product)
   const productSummaryText = resolveProductSummaryText(
@@ -96,13 +115,30 @@ export function useProductDetailData({
     shortDescriptionHtml
   )
   const productImages = resolveProductImages(product)
-  const galleryItems = resolveGalleryItems(productImages, product?.title)
-  const productHighlights = resolveProductHighlights(
-    productSummaryText,
-    productCategories
+  const galleryItems = resolveGalleryItems(
+    productImages,
+    product?.title,
+    product?.handle?.trim() || product?.id || handle
   )
-  const productContentSections = resolveProductContentSections(product)
-  const mediaFacts = resolveProductMediaFacts(product, productContentSections)
+  const productHighlights = resolveProductHighlights(productSummaryText)
+  const otherSectionTitle = tCatalog("product_detail.sections.other")
+  const productContentSections = mergeWarrantyIntoProductContentSections(
+    resolveProductContentSections(product, {
+      composition: tCatalog("product_detail.sections.composition"),
+      content: tCatalog("product_detail.sections.content"),
+      description: tCatalog("product_detail.sections.description"),
+      other: otherSectionTitle,
+      usage: tCatalog("product_detail.sections.usage"),
+      warning: tCatalog("product_detail.sections.warning"),
+    }),
+    resolveProductWarranty(productAttributesQuery.productAttributes),
+    otherSectionTitle
+  )
+  const mediaFacts = resolveProductMediaFacts(product, productContentSections, {
+    dailyCapsules: (count) =>
+      tCatalog("product_detail.media.daily_capsules", { count }),
+    doses: (count) => tCatalog("product_detail.media.doses", { count }),
+  })
   const {
     currentAmount,
     currentAmountLabel,
@@ -115,7 +151,7 @@ export function useProductDetailData({
     productPrice,
     regionCurrencyCode,
     offerState,
-    mediaFacts,
+    priceUnavailableLabel: tCatalog("product_detail.price_on_request"),
   })
   const canAddToCart =
     Boolean(selectedVariant?.id) &&
@@ -124,12 +160,20 @@ export function useProductDetailData({
   const maxQuantity = selectedVariantInventory.maxPurchaseQuantity
 
   const availableQuantity = selectedVariantInventory.availableQuantity
-  const volumeDiscountOptions = resolveProductVolumeDiscountOptions(
+  const volumeDiscountOptions = resolveProductVolumeDiscountOptions({
+    availableQuantity,
     currentAmount,
     currentCurrencyCode,
+    labels: {
+      perUnit: (price) =>
+        tCatalog("product_detail.bulk_discount.per_unit", { price }),
+      title: (optionQuantity) =>
+        tCatalog("product_detail.bulk_discount.option_title", {
+          quantity: optionQuantity,
+        }),
+    },
     offerState,
-    availableQuantity
-  )
+  })
   const selectedVolumeDiscountOption = resolveSelectedVolumeDiscountOption(
     volumeDiscountOptions,
     selectedVolumeDiscountId
@@ -178,7 +222,8 @@ export function useProductDetailData({
   const breadcrumbItems = resolveProductBreadcrumbItems(
     productCategories,
     product,
-    handle
+    handle,
+    tNavigation("breadcrumbs.home")
   )
   const freeShippingThresholdLabel =
     resolveFreeShippingThresholdLabel(currentCurrencyCode)
