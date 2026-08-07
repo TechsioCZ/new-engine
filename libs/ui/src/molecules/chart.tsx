@@ -129,10 +129,23 @@ const chartVariants = tv({
  * grow a synthetic group label just to reach the palette. */
 const SERIES_1_PAINT = "var(--color-chart-series-1)"
 
+/**
+ * Sentinel that asks a mark to stroke with the color channel's resolved series
+ * color. The marks treat `undefined` as "no stroke" and short-circuit before
+ * the fallback, so only an explicit `null` reaches `null ?? resolvedColor`.
+ * The channel type has no null member, hence the cast.
+ */
+const SERIES_STROKE_FROM_COLOR = null as unknown as string
+
 const DONUT_INNER_RADIUS_RATIO = 0.6
 
-/** Wide enough that any point inside a slice resolves to that slice's centroid. */
-const POLAR_FOCUS_DISTANCE = 9999
+/** Focus radius for polar marks, as a fraction of the pie radius. Below the
+ * 0.8 at which a donut's center hole sits from every centroid, so the hole and
+ * the empty corners still resolve to "nothing selected". */
+const POLAR_FOCUS_RADIUS_RATIO = 0.7
+
+/** Padding the polar layout insets by; mirrors the `inset` passed to polar(). */
+const POLAR_INSET = 8
 
 function toAccessor<TDatum, TValue>(
   accessor: ChartAccessor<TDatum, TValue>
@@ -183,6 +196,8 @@ type BuildConfig<TDatum> = {
   animate: boolean
   showTooltip: boolean
   tooltipClassName: string
+  /** Nominal min(width, height) in px, used to bound polar focus distance. */
+  nominalSize: number
 }
 
 type ResolvedBuild<TDatum> = {
@@ -207,6 +222,8 @@ type ResolvedBuild<TDatum> = {
   tooltipFor: (valueChannel: "x" | "y") => unknown
   /** Tooltip config for pie/donut, which read the value off the source row. */
   polarTooltip: () => unknown
+  /** Bounded hover/click radius for pie and donut slices. */
+  polarFocusDistance: number
   shared: {
     color?: unknown
     animate: boolean
@@ -311,7 +328,11 @@ function resolveBuild<TDatum>(
       items: [
         {
           id: "value",
-          label: config.yLabel ?? "Value",
+          // No hardcoded English fallback — this string ships to storefronts
+          // in other languages. `yLabel` is the localized name when given;
+          // otherwise borrow the caller's own field name, which they control.
+          label:
+            config.yLabel ?? (typeof config.y === "string" ? config.y : ""),
           text: (point: TooltipPoint) => {
             const row = (point.datum as PieArcDatum<TDatum>).data
             const value = getY(row)
@@ -354,6 +375,8 @@ function resolveBuild<TDatum>(
     },
     tooltipFor,
     polarTooltip,
+    polarFocusDistance:
+      (config.nominalSize / 2 - POLAR_INSET) * POLAR_FOCUS_RADIUS_RATIO,
     shared: {
       color: showLegend
         ? { legend: colorLegend({ label: config.legendLabel }) }
@@ -373,7 +396,13 @@ function warnOnSeriesOverflow<TDatum>(
   data: readonly TDatum[],
   getSeries?: (datum: TDatum) => string | number
 ) {
-  if (getSeries == null || process.env.NODE_ENV === "production") {
+  // `process` is guarded, not assumed: this is a browser-target ESM package and
+  // the bare reference survives into dist, so an unbundled consumer (plain
+  // <script type="module">, CDN, Deno) would throw ReferenceError on first
+  // render of any chart with `series` set.
+  const isProduction =
+    typeof process !== "undefined" && process.env?.NODE_ENV === "production"
+  if (getSeries == null || isProduction) {
     return
   }
   const distinct = new Set(data.map(getSeries))
@@ -426,7 +455,13 @@ function buildArea<TDatum>(
         curve: build.curve,
         fill: getSeries == null ? SERIES_1_PAINT : undefined,
         fillOpacity: getSeries != null && isStacked ? 0.85 : 0.25,
-        stroke: getSeries == null ? SERIES_1_PAINT : undefined,
+        // areaY skips stroke entirely when the option is `undefined`, so
+        // multi-series areas would otherwise render with no outline at all —
+        // worst in the overlapping layout, where the boundary is the only thing
+        // separating two 25%-opacity bands. `null` clears that short-circuit and
+        // then resolves to the series' own palette color, the same fallback
+        // `fill` rides on.
+        stroke: getSeries == null ? SERIES_1_PAINT : SERIES_STROKE_FROM_COLOR,
         strokeWidth: 2,
       }),
     ],
@@ -520,7 +555,7 @@ function buildPolar<TDatum>(
     y: null,
     marks: [
       polar({
-        inset: 8,
+        inset: POLAR_INSET,
         marks: [
           radialArc(slices, {
             startAngle: "startAngle",
@@ -536,17 +571,24 @@ function buildPolar<TDatum>(
             // the group is null, so without this the slice name never renders.
             z: sliceLabel,
             color: sliceLabel,
-            key: sliceLabel,
+            // No explicit `key`: an explicit one skips the uniqueness check,
+            // and two rows sharing an x label (duplicate category names, two
+            // "Other" buckets) would then collide onto one reconciled node and
+            // drop a slice on re-render. The default row-index key is stable
+            // here because the pie layout preserves input order (.sort(null)).
           }),
         ],
       }),
     ],
     ...build.shared,
     tooltip: build.polarTooltip(),
-    // Arc focus points sit at the slice centroid. The 48px default leaves most
-    // of a full pie unhoverable, since the centroid is roughly half the radius
-    // from both the center and the rim.
-    maxFocusDistance: POLAR_FOCUS_DISTANCE,
+    // Arc focus points sit at the slice centroid, so the 48px default leaves
+    // most of a full pie unhoverable. Widen it — but keep it *bounded*: the
+    // renderer resolves clicks through this same distance, so an unbounded
+    // value would make every click land on a slice and `onSelect(null)` would
+    // never fire. At 0.7x the radius a donut's center hole (0.8x from every
+    // centroid) and the empty corners still deselect.
+    maxFocusDistance: build.polarFocusDistance,
   })
 }
 
@@ -600,6 +642,11 @@ export function Chart<TDatum>({
   const { root, tooltip: tooltipSlot } = chartVariants()
   const tooltipClassName = tooltipSlot()
 
+  // Nominal box for the first frame; the polar focus radius is derived from it
+  // so it scales with the chart instead of being a magic pixel count.
+  const nominalHeight = height ?? initialWidth / (aspectRatio ?? 16 / 9)
+  const nominalSize = Math.min(initialWidth, nominalHeight)
+
   const definition = useMemo(
     () =>
       buildChartDefinition({
@@ -620,6 +667,7 @@ export function Chart<TDatum>({
         animate,
         showTooltip: tooltip,
         tooltipClassName,
+        nominalSize,
       }),
     [
       type,
@@ -639,6 +687,7 @@ export function Chart<TDatum>({
       animate,
       tooltip,
       tooltipClassName,
+      nominalSize,
     ]
   )
 
