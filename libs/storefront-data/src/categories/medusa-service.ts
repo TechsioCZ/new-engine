@@ -103,9 +103,11 @@ type MedusaCategoryServiceArgs<
           | undefined,
       ]
     : [
-        config:
-          | MedusaCategoryServiceConfig<TCategory, TListParams, TDetailParams>
-          | undefined,
+        config: MedusaCategoryServiceConfig<
+          TCategory,
+          TListParams,
+          TDetailParams
+        >,
       ]
 
 export function createMedusaCategoryService<

@@ -163,11 +163,7 @@ type MedusaProductServiceArgs<
           | MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>
           | undefined,
       ]
-    : [
-        config:
-          | MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>
-          | undefined,
-      ]
+    : [config: MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>]
 
 export function createMedusaProductService<
   TProduct = HttpTypes.StoreProduct,

@@ -292,16 +292,8 @@ type MedusaCatalogServiceArgs<
             | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
             | undefined,
         ]
-      : [
-          config:
-            | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
-            | undefined,
-        ]
-    : [
-        config:
-          | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
-          | undefined,
-      ]
+      : [config: MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>]
+    : [config: MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>]
 
 export function createMedusaCatalogService<
   TProduct = HttpTypes.StoreProduct,

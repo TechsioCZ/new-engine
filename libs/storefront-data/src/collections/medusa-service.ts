@@ -111,13 +111,11 @@ type MedusaCollectionServiceArgs<
           | undefined,
       ]
     : [
-        config:
-          | MedusaCollectionServiceConfig<
-              TCollection,
-              TListParams,
-              TDetailParams
-            >
-          | undefined,
+        config: MedusaCollectionServiceConfig<
+          TCollection,
+          TListParams,
+          TDetailParams
+        >,
       ]
 
 export function createMedusaCollectionService<
