@@ -18,7 +18,8 @@
 /dependency-cruiser.config.cjs @RedEyeCZ
 /.jscpd.json @RedEyeCZ
 /sgconfig.yml @RedEyeCZ
-/knip.json @RedEyeCZ
+/knip.base.json @RedEyeCZ
+/knip.config.js @RedEyeCZ
 /lefthook.yml @RedEyeCZ
 /dangerfile.ts @RedEyeCZ
 /scripts/ @RedEyeCZ

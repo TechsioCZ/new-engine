@@ -19,6 +19,12 @@ const requestedCompiler =
 if (compilerOptionIndex !== -1) {
   compilerArguments.splice(compilerOptionIndex, 2)
 }
+const skipDistBuildsOptionIndex =
+  compilerArguments.indexOf("--skip-dist-builds")
+const skipDistBuilds = skipDistBuildsOptionIndex !== -1
+if (skipDistBuilds) {
+  compilerArguments.splice(skipDistBuildsOptionIndex, 1)
+}
 if (requestedCompiler !== "tsc" && requestedCompiler !== "tsgo") {
   throw new Error("--compiler must be either tsc or tsgo")
 }
@@ -104,7 +110,10 @@ const run = (command, argumentsToPass, { continueOnError = false } = {}) => {
 
 run(process.execPath, [path.join(import.meta.dirname, "audit.mjs")])
 run(process.execPath, [path.join(import.meta.dirname, "resolution.mjs")])
-run("pnpm", ["--filter", "@techsio/std", "build"])
+if (!skipDistBuilds) {
+  run("pnpm", ["--filter", "@techsio/std", "build"])
+  run("pnpm", ["--filter", "@techsio/ui-kit", "build"])
+}
 
 const rootConfigPath = path.join(repositoryRoot, "tsconfig.json")
 const rootConfig = parseJsonObject(
