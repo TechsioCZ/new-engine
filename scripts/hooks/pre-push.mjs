@@ -326,12 +326,28 @@ process.stdin.on("end", () => {
   }
 
   const groups = pushedFileGroups(stdin)
-  const files = [...new Set(groups.flatMap((group) => group.files))]
 
   for (const group of groups) {
-    // Classify against the materialized pushed tree: the pushed branch may
-    // contain files that do not exist in the checked-out worktree.
+    // Classify and test against the materialized pushed tree: the pushed branch may
+    // differ from the checked-out worktree or contain files absent from it.
     const workdir = materializePushedTree(group.sha)
+    if (touchesDangerPolicy(group.files)) {
+      run(
+        process.execPath,
+        [
+          "--test",
+          "scripts/danger/check-migration-immutability.test.mjs",
+          "scripts/hooks/files.test.mjs",
+        ],
+        { cwd: workdir },
+      )
+      run(
+        path.resolve(workdir, "node_modules/.bin/vitest"),
+        ["run", "--dir", "scripts/danger", "policy.test.ts"],
+        { cwd: workdir },
+      )
+    }
+
     const formatFiles = formattableFiles(group.files, workdir)
     const lintFiles = lintableFiles(group.files, workdir)
     if (formatFiles.length === 0 && lintFiles.length === 0) {
@@ -353,19 +369,5 @@ process.stdin.on("end", () => {
         { cwd: workdir },
       )
     }
-  }
-
-  if (touchesDangerPolicy(files)) {
-    run(process.execPath, [
-      "--test",
-      "scripts/danger/check-migration-immutability.test.mjs",
-      "scripts/hooks/files.test.mjs",
-    ])
-    run(path.resolve("node_modules/.bin/vitest"), [
-      "run",
-      "--dir",
-      "scripts/danger",
-      "policy.test.ts",
-    ])
   }
 })
