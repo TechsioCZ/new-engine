@@ -217,6 +217,7 @@ export {
   DEFAULT_DEVELOPMENT_BACKEND_URL,
   DEFAULT_PUBLIC_BACKEND_ENV_NAME,
   resolvePublicBackendOrigin,
+  resolvePublicBackendUrl,
 } from "./backend-url.mjs"
 export {
   buildDevHmrOrigins,
@@ -228,5 +229,9 @@ export {
 export {
   buildStorefrontResponseHeaders,
   DEFAULT_PERMISSIONS_POLICY_DIRECTIVES,
+  DEFAULT_STRICT_TRANSPORT_SECURITY_VALUE,
 } from "./headers.mjs"
-export { resolveStorefrontSecurityPreset } from "./presets.mjs"
+export {
+  resolveStorefrontSecurityPreset,
+  storefrontSecurityPresets,
+} from "./presets.mjs"

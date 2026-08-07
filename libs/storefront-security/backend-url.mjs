@@ -12,7 +12,7 @@ export const DEFAULT_DEVELOPMENT_BACKEND_URL = "http://localhost:9000"
  * }} [options] - Backend URL resolution settings.
  * @returns {string} Normalized public backend URL.
  */
-const resolvePublicBackendUrl = (options = {}) => {
+export const resolvePublicBackendUrl = (options = {}) => {
   const {
     isProduction = process.env.NODE_ENV === "production",
     envVarName = DEFAULT_PUBLIC_BACKEND_ENV_NAME,

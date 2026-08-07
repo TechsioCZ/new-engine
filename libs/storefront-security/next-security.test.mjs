@@ -5,8 +5,11 @@ import {
   buildDevHmrOrigins,
   buildStorefrontContentSecurityPolicy,
   createStorefrontSecurityConfig,
+  DEFAULT_STRICT_TRANSPORT_SECURITY_VALUE,
   resolvePublicBackendOrigin,
+  resolvePublicBackendUrl,
   resolveStorefrontSecurityPreset,
+  storefrontSecurityPresets,
 } from "./index.mjs"
 
 const MISSING_BACKEND_URL_PATTERN = /Missing NEXT_PUBLIC_MEDUSA_BACKEND_URL/u
@@ -15,6 +18,21 @@ const UNKNOWN_PRESET_PATTERN = /Unknown storefront security preset/u
 const BACKEND_ORIGIN = "https://demo-medusa.example.com"
 const CONTENT_SECURITY_POLICY_HEADER = "Content-Security-Policy"
 const FRAME_OPTIONS_HEADER = "X-Frame-Options"
+
+await test("the public entry point preserves documented security exports", () => {
+  assert.equal(
+    resolvePublicBackendUrl({
+      isProduction: false,
+      publicBackendUrl: "https://demo-medusa.example.com/",
+    }),
+    BACKEND_ORIGIN,
+  )
+  assert.equal(typeof storefrontSecurityPresets.medusaStorefront, "function")
+  assert.equal(
+    DEFAULT_STRICT_TRANSPORT_SECURITY_VALUE,
+    "max-age=31536000; includeSubDomains",
+  )
+})
 
 await test("resolvePublicBackendOrigin falls back to localhost in development", () => {
   assert.equal(

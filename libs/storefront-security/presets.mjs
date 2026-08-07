@@ -26,9 +26,9 @@ const createMedusaStorefrontPreset = (context) => ({
   permissionsPolicy: [...DEFAULT_PERMISSIONS_POLICY_DIRECTIVES],
 })
 
-const storefrontSecurityPresets = new Map([
-  ["medusaStorefront", createMedusaStorefrontPreset],
-])
+export const storefrontSecurityPresets = {
+  medusaStorefront: createMedusaStorefrontPreset,
+}
 
 /**
  * @param {{
@@ -61,13 +61,11 @@ export const resolveStorefrontSecurityPreset = (options) => {
     }
   }
 
-  const presetFactory = storefrontSecurityPresets.get(preset)
-
-  if (presetFactory === undefined) {
+  if (preset !== "medusaStorefront") {
     throw new Error(`Unknown storefront security preset: "${preset}".`)
   }
 
-  const resolvedPreset = presetFactory({
+  const resolvedPreset = storefrontSecurityPresets.medusaStorefront({
     allowedDevOrigins,
     devPort,
     isProduction,
