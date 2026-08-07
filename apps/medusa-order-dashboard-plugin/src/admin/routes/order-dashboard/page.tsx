@@ -5,7 +5,6 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
-  createDataTableFilterHelper,
   DataTable,
   type DataTableDateComparisonOperator,
   type DataTableFilteringState,
@@ -44,6 +43,7 @@ import {
   updateOrderDashboardManualStatus,
   updateOrderDashboardStatuses,
 } from "./api"
+import { OrderDashboardCreatedAtFilter } from "./created-at-filter"
 import {
   formatLocaleCode,
   formatOrderDate,
@@ -103,7 +103,6 @@ const DEFAULT_ORDER_DASHBOARD_SORTING = {
 } satisfies DataTableSortingState
 
 const columnHelper = createDataTableColumnHelper<OrderDashboardOrder>()
-const filterHelper = createDataTableFilterHelper<OrderDashboardOrder>()
 
 type OrderDashboardFilteringState = DataTableFilteringState<{
   created_at?: DataTableDateComparisonOperator | null
@@ -564,18 +563,6 @@ const OrderDashboardPage = () => {
       onFilteringChange: handleFilteringChange,
       state: filtering,
     },
-    filters: [
-      filterHelper.accessor("created_at", {
-        format: "date",
-        formatDateValue: (date) => formatOrderDate(date.toISOString(), locale),
-        label: t("filters.createdAt"),
-        options: [],
-        rangeOptionEndLabel: t("filters.createdAtRangeEnd"),
-        rangeOptionLabel: t("filters.createdAtRange"),
-        rangeOptionStartLabel: t("filters.createdAtRangeStart"),
-        type: "date",
-      }),
-    ],
     onRowClick: (_event, row) => setDetailOrderId(row.id),
     pagination: {
       onPaginationChange: (nextPagination) => {
@@ -1344,37 +1331,57 @@ const OrderDashboardPage = () => {
         </div>
       ) : (
         <DataTable instance={table}>
-          <DataTable.FilterBar
-            alwaysShow
-            clearAllFiltersLabel={t("filters.clearAll")}
-          >
+          <div className="flex w-full flex-nowrap items-center justify-between gap-2 overflow-x-auto border-t px-6 py-2">
             <OrderDashboardSearchInput
               onSearchChange={handleSearchChange}
               placeholder={t("filters.searchPlaceholder")}
               value={search}
             />
-            <Select
-              onValueChange={handleCarrierFilterChange}
-              value={carrierFilter}
-            >
-              <Select.Trigger className="w-[180px]">
-                <Select.Value />
-              </Select.Trigger>
-              <Select.Content>
-                <Select.Item value="all">
-                  {t("filters.allCarriers")}
-                </Select.Item>
-                {ORDER_DASHBOARD_CARRIER_KEYS.map((carrierKey) => (
-                  <Select.Item key={carrierKey} value={carrierKey}>
-                    {t(`carriers.${carrierKey}`)}
+            <div className="flex flex-shrink-0 items-center gap-2">
+              <Select
+                onValueChange={handleCarrierFilterChange}
+                value={carrierFilter}
+              >
+                <Select.Trigger className="w-[180px]">
+                  <Select.Value />
+                </Select.Trigger>
+                <Select.Content>
+                  <Select.Item value="all">
+                    {t("filters.allCarriers")}
                   </Select.Item>
-                ))}
-              </Select.Content>
-            </Select>
-            <DataTable.FilterMenu tooltip={t("filters.filter")} />
-            <DataTable.SortingMenu tooltip={t("actions.sorting")} />
-            <DataTable.ColumnVisibilityMenu tooltip={t("actions.columns")} />
-          </DataTable.FilterBar>
+                  {ORDER_DASHBOARD_CARRIER_KEYS.map((carrierKey) => (
+                    <Select.Item key={carrierKey} value={carrierKey}>
+                      {t(`carriers.${carrierKey}`)}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select>
+              <OrderDashboardCreatedAtFilter
+                labels={{
+                  clear: t("filters.createdAtClear"),
+                  customRange: t("filters.createdAtRange"),
+                  end: t("filters.createdAtRangeEnd"),
+                  label: t("filters.createdAt"),
+                  last30Days: t("filters.createdAtLast30Days"),
+                  last7Days: t("filters.createdAtLast7Days"),
+                  start: t("filters.createdAtRangeStart"),
+                  today: t("filters.createdAtToday"),
+                  yesterday: t("filters.createdAtYesterday"),
+                }}
+                locale={locale}
+                onChange={(value) => {
+                  if (value) {
+                    table.updateFilter({ id: "created_at", value })
+                  } else {
+                    table.removeFilter("created_at")
+                  }
+                }}
+                value={createdAtFilter}
+              />
+              <DataTable.SortingMenu tooltip={t("actions.sorting")} />
+              <DataTable.ColumnVisibilityMenu tooltip={t("actions.columns")} />
+            </div>
+          </div>
           <div className="relative flex min-h-0 flex-1 overflow-hidden">
             <DataTable.Table
               emptyState={{
@@ -1444,7 +1451,7 @@ function OrderDashboardSearchInput({
 
   return (
     <Input
-      className="w-[240px]"
+      className="w-[300px] max-w-full"
       onChange={(event) => setInputValue(event.target.value)}
       placeholder={placeholder}
       size="small"

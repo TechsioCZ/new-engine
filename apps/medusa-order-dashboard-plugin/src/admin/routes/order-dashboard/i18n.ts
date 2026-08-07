@@ -52,12 +52,15 @@ export type OrderDashboardAdminI18nNamespace = {
   >
   filters: Record<
     | "allCarriers"
-    | "clearAll"
     | "createdAt"
+    | "createdAtClear"
+    | "createdAtLast30Days"
+    | "createdAtLast7Days"
     | "createdAtRange"
     | "createdAtRangeEnd"
     | "createdAtRangeStart"
-    | "filter"
+    | "createdAtToday"
+    | "createdAtYesterday"
     | "searchPlaceholder",
     string
   >
@@ -302,13 +305,16 @@ const englishOrderDashboardAdminI18n = {
   },
   filters: {
     allCarriers: "All carriers",
-    clearAll: "Clear all",
-    createdAt: "Created",
+    createdAt: "Creation date",
+    createdAtClear: "Clear creation date",
+    createdAtLast30Days: "Last 30 days",
+    createdAtLast7Days: "Last 7 days",
     createdAtRange: "Custom range",
     createdAtRangeEnd: "To",
     createdAtRangeStart: "From",
-    filter: "Filter orders",
-    searchPlaceholder: "Search orders or customers...",
+    createdAtToday: "Today",
+    createdAtYesterday: "Yesterday",
+    searchPlaceholder: "Order number, name, or email...",
   },
   fulfillmentStatus: {
     canceled: "Canceled",
@@ -580,13 +586,16 @@ const czechOrderDashboardAdminI18n = {
   },
   filters: {
     allCarriers: "Všichni dopravci",
-    clearAll: "Vymazat vše",
-    createdAt: "Vytvořeno",
+    createdAt: "Datum vytvoření",
+    createdAtClear: "Vymazat datum vytvoření",
+    createdAtLast30Days: "Posledních 30 dní",
+    createdAtLast7Days: "Posledních 7 dní",
     createdAtRange: "Vlastní období",
     createdAtRangeEnd: "Do",
     createdAtRangeStart: "Od",
-    filter: "Filtrovat objednávky",
-    searchPlaceholder: "Hledat objednávku nebo zákazníka...",
+    createdAtToday: "Dnes",
+    createdAtYesterday: "Včera",
+    searchPlaceholder: "Číslo objednávky, jméno nebo e-mail...",
   },
   fulfillmentStatus: {
     canceled: "Zrušeno",
