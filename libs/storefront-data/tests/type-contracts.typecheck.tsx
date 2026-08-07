@@ -490,38 +490,43 @@ export const storefrontCatalogFacetsWithUndefinedServiceConfig: unknown =
     sdk,
   })
 
-export const transformedStorefrontPreset: unknown =
-  createMedusaStorefrontPreset<
-    CustomOutput,
-    CustomOutput,
-    CustomOutput,
-    CustomOutput,
-    ExtendedCatalogFacets
-  >({
-    catalog: {
-      fallbackFacets: extendedCatalogFacets,
-      serviceConfig: {
-        transformFacets: (facets) => ({ ...facets, dosage: [] }),
-        transformProduct: (product) => ({ slug: product.handle }),
-      },
+const transformedStorefrontPreset = createMedusaStorefrontPreset<
+  CustomOutput,
+  CustomOutput,
+  CustomOutput,
+  CustomOutput,
+  ExtendedCatalogFacets
+>({
+  catalog: {
+    fallbackFacets: extendedCatalogFacets,
+    serviceConfig: {
+      transformFacets: (facets) => ({ ...facets, dosage: [] }),
+      transformProduct: (product) => ({ slug: product.handle }),
     },
-    categories: {
-      serviceConfig: {
-        transformCategory: (category) => ({ slug: category.handle }),
-      },
+  },
+  categories: {
+    serviceConfig: {
+      transformCategory: (category) => ({ slug: category.handle }),
     },
-    collections: {
-      serviceConfig: {
-        transformCollection: (collection) => ({ slug: collection.handle }),
-      },
+  },
+  collections: {
+    serviceConfig: {
+      transformCollection: (collection) => ({ slug: collection.handle }),
     },
-    products: {
-      serviceConfig: {
-        transformProduct: (product) => ({ slug: product.handle }),
-      },
+  },
+  products: {
+    serviceConfig: {
+      transformProduct: (product) => ({ slug: product.handle }),
     },
-    sdk,
-  })
+  },
+  sdk,
+})
+
+declare const transformedCatalogHookResult: ReturnType<
+  typeof transformedStorefrontPreset.hooks.catalog.useCatalogProducts
+>
+export const transformedStorefrontDosage =
+  transformedCatalogHookResult.facets.dosage
 
 interface ProductList {
   id: string

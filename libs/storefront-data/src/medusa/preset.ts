@@ -908,7 +908,44 @@ export type MedusaStorefrontQueryKeys = MedusaStorefrontQueryKeysFromFoundation
  * This factory intentionally wires query keys/services/hooks for every domain in one
  * place so applications can keep only thin customer-specific override modules.
  */
-export const createMedusaStorefrontPreset = <
+export function createMedusaStorefrontPreset<
+  TProduct = HttpTypes.StoreProduct,
+  TCategory = HttpTypes.StoreProductCategory,
+  TCollection = HttpTypes.StoreCollection,
+  TCatalogProduct = HttpTypes.StoreProduct,
+  TCatalogFacets = CatalogFacets,
+  TCartAddressInput = Record<string, unknown>,
+  TCartAddressPayload = Record<string, unknown>,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
+    MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
+    MedusaCustomerAddressUpdateHookInput,
+>(
+  config: CreateMedusaStorefrontPresetConfig<
+    TProduct,
+    TCategory,
+    TCollection,
+    TCatalogProduct,
+    TCatalogFacets,
+    TCartAddressInput,
+    TCartAddressPayload,
+    TCustomerAddressCreateInput,
+    TCustomerAddressUpdateInput
+  >,
+): MedusaStorefrontPresetResult<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets,
+  TCartAddressInput,
+  TCartAddressPayload,
+  TCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput
+>
+// The default facets are only reachable for the exact default config. Custom
+// facet outputs require both a matching transform and fallback in the overload.
+export function createMedusaStorefrontPreset<
   TProduct = HttpTypes.StoreProduct,
   TCategory = HttpTypes.StoreProductCategory,
   TCollection = HttpTypes.StoreCollection,
@@ -942,7 +979,7 @@ export const createMedusaStorefrontPreset = <
   TCartAddressPayload,
   TCustomerAddressCreateInput,
   TCustomerAddressUpdateInput
-> => {
+> {
   const {
     namespace,
     cacheConfig: resolvedCacheConfig,
