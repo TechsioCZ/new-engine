@@ -30,7 +30,7 @@ type Story = StoryObj<typeof SafeHtml>
 
 export const Playground: Story = {
   render: (args) => (
-    <div className="max-w-container text-fg-primary">
+    <div className="max-w-max-w text-fg-primary">
       <SafeHtml {...args} />
     </div>
   ),
@@ -41,7 +41,7 @@ export const RejectsUnsafeMarkup: Story = {
     html: '<p style="color:red" onclick="alert(1)">Visible text remains.</p><script>alert(1)</script><a href="javascript:alert(1)">Unsafe link becomes text.</a>',
   },
   render: (args) => (
-    <div className="max-w-container text-fg-primary">
+    <div className="max-w-max-w text-fg-primary">
       <SafeHtml {...args} />
     </div>
   ),

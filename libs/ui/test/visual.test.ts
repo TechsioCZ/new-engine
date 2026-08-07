@@ -212,39 +212,39 @@ const waitForDocumentFonts = async (): Promise<void> => {
   }
 }
 
-const waitUntilStable = async (
-  element: HTMLElement,
-  previous: number,
-  remaining: number,
-): Promise<void> => {
-  if (remaining === 0) {
-    return
-  }
-  const { promise, resolve } = Promise.withResolvers<null>()
-  requestAnimationFrame(() => {
-    resolve(null)
-  })
-  await promise
-  const current = element.scrollLeft + element.scrollTop
-  if (Math.abs(current - previous) >= 1) {
-    await waitUntilStable(element, current, remaining - 1)
+const prepareCarouselScroll = (): void => {
+  const groups = document.querySelectorAll<HTMLElement>(
+    '[data-scope="carousel"][data-part="item-group"]',
+  )
+  for (const group of groups) {
+    group.style.scrollBehavior = "auto"
+    delete group.dataset["visualScrollPosition"]
+    delete group.dataset["visualStableFrames"]
   }
 }
 
-const waitForCarouselScroll = async (): Promise<void> => {
-  const groups = [
-    ...document.querySelectorAll<HTMLElement>(
-      '[data-scope="carousel"][data-part="item-group"]',
-    ),
-  ]
-  for (const group of groups) {
-    group.style.scrollBehavior = "auto"
-  }
-  await Promise.all(
-    groups.map(async (group) => {
-      await waitUntilStable(group, group.scrollLeft + group.scrollTop, 10)
-    }),
+const carouselScrollIsStable = (): boolean => {
+  const groups = document.querySelectorAll<HTMLElement>(
+    '[data-scope="carousel"][data-part="item-group"]',
   )
+  let allStable = true
+  for (const group of groups) {
+    const current = group.scrollLeft + group.scrollTop
+    const previous = Number(group.dataset["visualScrollPosition"])
+    const previousStableFrames = Number(
+      group.dataset["visualStableFrames"] ?? "0",
+    )
+    const stableFrames =
+      Number.isFinite(previous) && Math.abs(current - previous) < 1
+        ? previousStableFrames + 1
+        : 0
+    group.dataset["visualScrollPosition"] = String(current)
+    group.dataset["visualStableFrames"] = String(stableFrames)
+    if (stableFrames < 2) {
+      allStable = false
+    }
+  }
+  return allStable
 }
 
 const waitForTwoAnimationFrames = async (): Promise<void> => {
@@ -300,6 +300,27 @@ const storyImagesAreComplete = (): boolean => {
     (image) =>
       image.src.length === 0 || (image.complete && image.naturalWidth > 0),
   )
+}
+
+const prepareHeadlessRichCombobox = async (
+  page: Page,
+  storyId: string,
+): Promise<void> => {
+  if (
+    storyId !==
+    "molecules-combobox-headless-rich-links--grouped-linked-suggestions"
+  ) {
+    return
+  }
+  const input = page.getByRole("combobox", {
+    name: "Search documentation",
+  })
+  await input.focus()
+  await input.press("ArrowDown")
+  await page
+    .locator('[data-scope="combobox"][data-part="item"][data-highlighted]')
+    .first()
+    .waitFor({ state: "visible", timeout: 30_000 })
 }
 
 test.describe.parallel("storybook visual", () => {
@@ -391,10 +412,14 @@ test.describe.parallel("storybook visual", () => {
         })
 
         // Avoid networkidle here; Storybook keeps background activity that can stall tests.
-        await page.waitForFunction(storyRootHasContent, { timeout: 30_000 })
+        await page.waitForFunction(storyRootHasContent, undefined, {
+          timeout: 30_000,
+        })
         // Story CSS is injected as stylesheet links by dynamically imported
         // chunks; capturing before every sheet applies yields unstyled layout.
-        await page.waitForFunction(stylesheetsAreLoaded, { timeout: 30_000 })
+        await page.waitForFunction(stylesheetsAreLoaded, undefined, {
+          timeout: 30_000,
+        })
         await page.evaluate(waitForDocumentFonts)
 
         // Force lazy images to load eagerly so layout is deterministic, then
@@ -403,7 +428,7 @@ test.describe.parallel("storybook visual", () => {
         // succeed; failing loudly beats capturing a pre-load layout.
         await page.evaluate(prepareStoryImages)
         try {
-          await page.waitForFunction(storyImagesAreComplete, {
+          await page.waitForFunction(storyImagesAreComplete, undefined, {
             timeout: 30_000,
           })
         } catch {
@@ -426,6 +451,7 @@ test.describe.parallel("storybook visual", () => {
           story.id.startsWith("molecules-carousel--") ||
           story.id.startsWith("templates-carouseltemplate--")
         if (isCarouselStory) {
+          await page.evaluate(prepareCarouselScroll)
           const firstIndicators = page.locator(
             '[data-scope="carousel"][data-part="indicator"][data-index="0"]',
           )
@@ -435,9 +461,12 @@ test.describe.parallel("storybook visual", () => {
               await firstIndicators.nth(index).click()
             }),
           )
-
-          await page.evaluate(waitForCarouselScroll)
+          await page.waitForFunction(carouselScrollIsStable, undefined, {
+            timeout: 30_000,
+          })
         }
+
+        await prepareHeadlessRichCombobox(page, story.id)
 
         if (story.id.includes("carousel--autoplay")) {
           const autoplayTrigger = page.locator(

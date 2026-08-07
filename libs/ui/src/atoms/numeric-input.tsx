@@ -357,7 +357,7 @@ const NumericInputControl = ({
       className={styles.container({ className })}
       ref={ref}
       {...mergeProps(api.getControlProps(), props)}
-      data-invalid={invalid ?? undefined}
+      data-invalid={invalid === true ? true : undefined}
     >
       {children}
     </div>

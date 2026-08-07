@@ -18,7 +18,7 @@ const ARTICLE_POLICY: SafeHtmlPolicy = {
 describe(SafeHtml, () => {
   it("preserves sanitized rich-text markup during SSR", () => {
     const markup = renderToStaticMarkup(
-      <div className="content">
+      <div className="text-fg-primary">
         <SafeHtml
           html="<p>Hello <strong>world</strong> and <em>friends</em>.</p>"
           policy={ARTICLE_POLICY}
@@ -27,7 +27,7 @@ describe(SafeHtml, () => {
     )
 
     expect(markup).toBe(
-      '<div class="content"><p>Hello <strong>world</strong> and <em>friends</em>.</p></div>',
+      '<div class="text-fg-primary"><p>Hello <strong>world</strong> and <em>friends</em>.</p></div>',
     )
   })
 

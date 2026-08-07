@@ -41,6 +41,7 @@ const HeadlessRichCombobox = () => {
     inputValue,
     items: ITEMS,
     onInputValueChange: setInputValue,
+    open: true,
     openOnChange: true,
     selectionBehavior: "preserve",
   })
@@ -48,7 +49,7 @@ const HeadlessRichCombobox = () => {
   void _nativeSize
 
   return (
-    <div {...api.getRootProps()} className="w-lg">
+    <div {...api.getRootProps()} className="w-full max-w-lg">
       <label
         {...api.getLabelProps()}
         htmlFor={api.getInputProps().id}
@@ -62,7 +63,7 @@ const HeadlessRichCombobox = () => {
       {api.open ? (
         <div
           {...api.getContentProps()}
-          className="mt-100 rounded-base border border-border-secondary bg-surface p-100"
+          className="mt-100 rounded-combobox border border-border-secondary bg-surface p-100"
         >
           <div {...api.getListProps()}>
             {GROUPS.map((group) => {
@@ -80,7 +81,7 @@ const HeadlessRichCombobox = () => {
                   {groupItems.map((item) => (
                     <a
                       {...api.getItemProps({ item })}
-                      className="block rounded-base p-200 text-fg-primary data-[highlighted]:bg-fill-secondary"
+                      className="block rounded-combobox-sm p-200 text-fg-primary data-[highlighted]:bg-combobox-item-bg-hover"
                       href={item.data?.href}
                       key={item.value}
                     >

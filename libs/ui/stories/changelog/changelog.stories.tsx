@@ -299,7 +299,7 @@ const CHANGELOG = `
 
 const Changelog = () => (
   <div className="min-h-screen bg-base p-400">
-    <div className="mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2">
+    <div className="mx-auto max-w-max-w rounded-2xl bg-surface p-300 shadow-primary">
       <pre className="whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed">
         {CHANGELOG}
       </pre>

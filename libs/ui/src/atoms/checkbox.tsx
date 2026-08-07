@@ -71,9 +71,9 @@ export const Checkbox = ({
 
   return (
     <input
-      aria-invalid={invalid ?? undefined}
+      aria-invalid={invalid === true ? true : undefined}
       className={checkboxVariants({ className })}
-      data-invalid={invalid ?? undefined}
+      data-invalid={invalid === true ? true : undefined}
       ref={setIndeterminate}
       type="checkbox"
       {...props}

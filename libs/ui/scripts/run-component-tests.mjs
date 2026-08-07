@@ -9,6 +9,7 @@ import path from "node:path"
 const scriptDir = import.meta.dirname
 const uiRoot = path.resolve(scriptDir, "..")
 const repoRoot = path.resolve(uiRoot, "../..")
+const stdRoot = path.resolve(repoRoot, "libs/std")
 
 const dockerfilePath = path.resolve(
   repoRoot,
@@ -177,6 +178,11 @@ const copyArtifact = (label, sourcePath, destinationPath) => {
   }
 }
 
+// The Playwright suite imports canonical runtime guards from @techsio/std.
+// Build that workspace package before mounting its package surface read-only.
+console.log("Building @techsio/std...")
+run("pnpm", ["-C", stdRoot, "build"])
+
 // Build storybook (default) or when missing
 if (rebuildStorybook) {
   console.log("Building Storybook...")
@@ -239,6 +245,10 @@ const dockerRunArgs = [
   `${path.resolve(uiRoot, "playwright.config.mts")}:/app/playwright.config.mts:ro`,
   "-v",
   `${path.resolve(uiRoot, "package.json")}:/app/package.json:ro`,
+  "-v",
+  `${path.resolve(stdRoot, "package.json")}:/app/node_modules/@techsio/std/package.json:ro`,
+  "-v",
+  `${path.resolve(stdRoot, "dist")}:/app/node_modules/@techsio/std/dist:ro`,
   imageName,
   "infinity",
 ]

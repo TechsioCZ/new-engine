@@ -62,6 +62,7 @@ export default defineConfig({
   ],
   reporter: "html",
   testDir: "./test",
+  testMatch: "visual.test.ts",
   timeout: testTimeout,
   use: {
     baseURL: storybookUrl,
