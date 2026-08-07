@@ -3,12 +3,50 @@ import { describe, expect, it, vi } from "vitest"
 
 import type { StoreProductProjection } from "../product-graph-validation"
 import type { ProductProjectionTaxDependencies } from "../product-projection-decorators"
-import { decorateProductProjectionsWithAutomaticTax } from "../product-projection-decorators"
+import {
+  decorateProductProjectionsWithAutomaticTax,
+  decorateProductProjectionsWithTaxPrices,
+} from "../product-projection-decorators"
 
 const createGetTaxLinesMock = () =>
   vi.fn<ProductProjectionTaxDependencies["getTaxLines"]>()
 
+const assertTaxRequestShape: (
+  candidate: unknown,
+) => asserts candidate is Parameters<
+  typeof decorateProductProjectionsWithTaxPrices
+>[0] = (
+  candidate,
+): asserts candidate is Parameters<
+  typeof decorateProductProjectionsWithTaxPrices
+>[0] => {
+  if (candidate === null || typeof candidate !== "object") {
+    throw new TypeError("Expected a request object")
+  }
+  if (!("scope" in candidate) || !("taxContext" in candidate)) {
+    throw new TypeError("Tax request mock is incomplete")
+  }
+}
+
 describe("product projection tax decoration", () => {
+  it("does not resolve the tax service when automatic taxes are disabled", async () => {
+    const resolve = vi.fn<() => never>(() => {
+      throw new Error("Tax service should not be resolved")
+    })
+    const requestCandidate: unknown = {
+      scope: { resolve },
+      taxContext: {
+        taxInclusivityContext: { automaticTaxes: false },
+        taxLineContext: {},
+      },
+    }
+    assertTaxRequestShape(requestCandidate)
+
+    await decorateProductProjectionsWithTaxPrices(requestCandidate, [])
+
+    expect(resolve).not.toHaveBeenCalled()
+  })
+
   it("does not inspect or fetch taxes when automatic taxes are disabled", async () => {
     const products: StoreProductProjection[] = [
       {

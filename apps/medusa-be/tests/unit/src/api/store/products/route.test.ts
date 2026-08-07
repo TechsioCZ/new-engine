@@ -1,7 +1,4 @@
-import type {
-  filterOutInternalProductCategories as filterOutInternalProductCategoriesType,
-  wrapProductsWithTaxPrices as wrapProductsWithTaxPricesType,
-} from "@medusajs/medusa/api/store/products/helpers"
+import type { wrapProductsWithTaxPrices as wrapProductsWithTaxPricesType } from "@medusajs/medusa/api/store/products/helpers"
 import type { wrapVariantsWithInventoryQuantityForSalesChannel as wrapVariantsWithInventoryQuantityForSalesChannelType } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -25,7 +22,6 @@ const { overrideModule } = vi.hoisted(() => ({
 
 const {
   decorateProductsWithMeasurements,
-  filterOutInternalProductCategories,
   getMeasurementDecorationOptions,
   getMeasurementDecorationQueryFields,
   wrapProductsWithTaxPrices,
@@ -34,8 +30,6 @@ const {
   decorateProductsWithMeasurements: vi
     .fn<typeof decorateProductsWithMeasurementsType>()
     .mockResolvedValue([]),
-  filterOutInternalProductCategories:
-    vi.fn<typeof filterOutInternalProductCategoriesType>(),
   getMeasurementDecorationOptions: vi.fn<
     typeof getMeasurementDecorationOptionsType
   >(() => ({
@@ -58,7 +52,6 @@ vi.mock(
   import("@medusajs/medusa/api/store/products/helpers"),
   async (importOriginal) =>
     overrideModule(await importOriginal(), {
-      filterOutInternalProductCategories,
       wrapProductsWithTaxPrices,
     }),
 )
@@ -126,7 +119,7 @@ const createHarness = (fields: string[]) => {
     variants: [],
     weight: null,
     width: null,
-    ...(fields.includes("categories.is_internal")
+    ...(fields.some((field) => field.includes("categories"))
       ? {
           categories: [
             { id: "pcat_public", is_internal: false },
@@ -190,12 +183,14 @@ describe("store product detail field projection", () => {
       }),
       {},
     )
-    expect(filterOutInternalProductCategories).not.toHaveBeenCalled()
     expect(json).toHaveBeenCalledWith({ product })
   })
 
   it("adds the visibility helper and filters when categories are requested", async () => {
-    const { graph, req, res } = createHarness(["id", "*categories"])
+    const { graph, json, product, req, res } = createHarness([
+      "id",
+      "*categories",
+    ])
 
     await GET(req, res)
 
@@ -205,6 +200,11 @@ describe("store product detail field projection", () => {
       }),
       {},
     )
-    expect(filterOutInternalProductCategories).toHaveBeenCalledOnce()
+    expect(json).toHaveBeenCalledWith({
+      product: {
+        ...product,
+        categories: [{ id: "pcat_public", is_internal: false }],
+      },
+    })
   })
 })

@@ -233,11 +233,16 @@ export const decorateProductProjectionsWithTaxPrices = async <T>(
   }
 
   const { taxLineContext } = req.taxContext
+  const { automaticTaxes } = req.taxContext.taxInclusivityContext
+  if (!automaticTaxes) {
+    return
+  }
+
   // Medusa's product helper forwards nullable product type ids even though
   // TaxableItemDTO currently declares this field as string-only.
   const taxService = req.scope.resolve<ProductProjectionTaxService>(Modules.TAX)
   await decorateProductProjectionsWithAutomaticTax(products, {
-    automaticTaxes: req.taxContext.taxInclusivityContext.automaticTaxes,
+    automaticTaxes,
     getTaxLines: async (items) => {
       const taxLines = await taxService.getTaxLines(items, taxLineContext)
       const itemTaxLines = taxLines.filter(
