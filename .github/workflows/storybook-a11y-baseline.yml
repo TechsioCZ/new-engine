@@ -70,6 +70,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter='.' --filter='@techsio/ui-kit...'
 
+      # The test-runner config imports @techsio/std through dist-backed package
+      # exports, so the scan jobs need the same clean-runner build sequence as
+      # the Storybook build job.
+      - name: Build test-runner dependencies
+        run: pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build
+
       - name: Install Playwright browsers
         # Storybook's test runner can use a different Playwright version than
         # the workspace root. Install its exact matching browser revision.
@@ -95,7 +101,6 @@ jobs:
 
       - name: Run a11y tests (${{ matrix.theme }} theme)
         id: a11y
-        continue-on-error: true
         env:
           A11Y_REPORT_OUTPUT_DIR: a11y-report/${{ matrix.theme }}
           A11Y_THEME: ${{ matrix.theme }}

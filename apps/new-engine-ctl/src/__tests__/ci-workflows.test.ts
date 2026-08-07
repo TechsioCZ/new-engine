@@ -241,6 +241,23 @@ describe("CI workflow contracts", () => {
     )
   })
 
+  test("Storybook baseline scan builds dist dependencies and surfaces scan failures", async () => {
+    const baselineWorkflow = await readFile(
+      path.join(repoRoot, ".github/workflows/storybook-a11y-baseline.yml"),
+      "utf-8",
+    )
+
+    expect(baselineWorkflow).toContain(
+      [
+        "      - name: Build test-runner dependencies",
+        "        run: pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build",
+        "",
+        "      - name: Install Playwright browsers",
+      ].join("\n"),
+    )
+    expect(baselineWorkflow).not.toContain("continue-on-error: true")
+  })
+
   test("Storybook baseline change authorization gate blocks unauthorized baseline changes", async () => {
     const workflow = await readFile(
       path.join(repoRoot, ".github/workflows/storybook-a11y.yml"),
