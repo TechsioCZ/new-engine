@@ -17,6 +17,9 @@ const CHANGELOG = `
   paired 1:1 with the \`button-usage\` skill's \`component_version\` and this changelog entry,
   enforced by the \`check-skill-sync\` pre-commit gate.
 
+### Chart v1.0.0
+- New data-visualization molecule built on TanStack Charts (\`@tanstack/charts\` + \`@tanstack/react-charts\`). A single \`type\` prop switches between line, area, bar, horizontal bar, scatter, pie and donut charts from the same \`data\`/\`x\`/\`y\`/\`series\` channels. Series colors come from the new \`--color-chart-series-1..6\` tokens (validated for CVD separation and surface contrast in light and dark mode, bridged to TanStack's \`--ts-chart-*\` palette variables), chart chrome inherits \`--color-chart-fg\`, and the native tooltip is styled by the Tooltip-atom-aliased \`--*-chart-tooltip-*\` tokens. Paired 1:1 with the chart-usage skill and this changelog entry.
+
 ### Accordion v1.0.0
 - Opted into per-component versioning; paired 1:1 with the accordion-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
