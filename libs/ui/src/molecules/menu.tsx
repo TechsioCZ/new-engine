@@ -96,7 +96,7 @@ const menuVariants = tv({
       "data-[highlighted]:bg-menu-item-bg-hover",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    itemIcon: ["text-menu-item-icon text-menu-item-icon-fg"],
+    itemIcon: ["text-(length:--text-menu-item-icon)"],
     itemText: ["flex-grow"],
     optionItem: ["data-[state=checked]:font-semibold"],
     positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
