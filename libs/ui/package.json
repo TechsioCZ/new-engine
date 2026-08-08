@@ -69,8 +69,6 @@
     "figma:connect:publish": "figma connect publish --config figma.config.json",
     "test-storybook": "test-storybook",
     "storybook:a11y": "bash scripts/storybook-a11y.sh",
-    "storybook:a11y:ci": "A11Y_FAIL_ON_REGRESSION=true bash scripts/storybook-a11y.sh",
-    "storybook:a11y:update-baseline": "mise exec node@24 -- node scripts/storybook-a11y-regression.mjs --report-root a11y-report --baseline a11y-baseline.json --update-baseline",
     "test:components": "node scripts/run-component-tests.mjs",
     "test:components:update": "node scripts/run-component-tests.mjs --update-snapshots",
     "lint:tailwind": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js --max-warnings=0",

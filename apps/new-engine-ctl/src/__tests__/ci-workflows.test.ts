@@ -23,7 +23,6 @@ const execFileAsync = promisify(
     execFile(file, args, settle)
   },
 )
-
 const execFileWithEnvAsync = promisify(
   (
     file: string,
@@ -54,6 +53,23 @@ const findNamedStep = (steps: readonly unknown[], name: string) =>
   steps.find((step) => isRecord(step) && step["name"] === name)
 
 const githubExpression = (expression: string) => `\${{ ${expression} }}`
+const shellVariable = (name: string) => `\${${name}}`
+
+const makeAccessibilityReport = (targets: readonly string[]) => [
+  {
+    name: "Injected",
+    results: {
+      violations: [
+        {
+          id: "color-contrast",
+          nodes: targets.map((target) => ({ target: [target] })),
+        },
+      ],
+    },
+    storyId: "contract--injected",
+    title: "Contract",
+  },
+]
 
 const workflowPaths = [
   ".github/workflows/zaneops-main-after-ci.yml",
@@ -88,12 +104,6 @@ const blockingResultEnvironment = {
   TESTS: githubExpression("needs.tests.result"),
   TYPECHECK: githubExpression("needs.typecheck.result"),
 }
-const immutableBaseA11yBaselinePattern =
-  /git show "\$\{BASE_SHA\}:libs\/ui\/a11y-baseline\.json" > "\$BASELINE_PATH"/u
-const baseA11yRegressionPattern =
-  /storybook-a11y-regression\.mjs --report-root storybook-a11y-report --baseline "\$BASELINE_PATH" --fail-on-new/u
-const immutableBaseShaPattern =
-  /\$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.sha \}\}/u
 const mainVerifyEnvironmentFallbackPattern =
   /ENVIRONMENT_NAME:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\}\}/u
 const mainVerifySummaryEnvironmentFallbackPattern =
@@ -124,33 +134,6 @@ const collectEnvMaps = (
 
   return envMaps
 }
-
-const makeAccessibilityFindingBaseline = (count: number) => ({
-  description: "contract fixture",
-  themes: Object.fromEntries(
-    ["light", "dark"].map((theme) => [
-      theme,
-      {
-        entries:
-          count === 0
-            ? []
-            : [
-                {
-                  count,
-                  id: "injected-finding",
-                  story: "Contract / Injected",
-                  storyId: "contract--injected",
-                  target: "__violation__",
-                },
-              ],
-        stories: 1,
-        storyIds: ["contract--injected"],
-        violations: count,
-      },
-    ]),
-  ),
-  version: 2,
-})
 
 describe("CI workflow contracts", () => {
   // ZaneOps workflows are temporarily disabled.
@@ -336,184 +319,145 @@ describe("CI workflow contracts", () => {
     expect(knipStep["run"]).toBe("pnpm knip:prod")
   })
 
-  test("Storybook accessibility CI uses the immutable base SHA and baseline path", async () => {
+  test("Storybook accessibility PR scans report deltas against master", async () => {
     const workflow = await readFile(
       path.join(repoRoot, ".github/workflows/storybook-a11y.yml"),
       "utf-8",
     )
 
     expect(workflow).toContain("fail-on-violations: false")
-    expect(workflow).toMatch(immutableBaseShaPattern)
+    expect(workflow).toContain("post-pr-comment: false")
     expect(workflow).toContain(
-      'git fetch --no-tags --depth=1 origin "$BASE_SHA"',
+      "baseline-workflow-path: .github/workflows/storybook-a11y-baseline.yml",
     )
-    expect(workflow).toMatch(immutableBaseA11yBaselinePattern)
-    expect(workflow).toMatch(baseA11yRegressionPattern)
+    expect(workflow).toContain("baseline-branch: master")
+    expect(workflow).toContain(
+      `baseline-run-id: ${githubExpression("needs.detect-a11y-changes.outputs.baseline-run-id")}`,
+    )
   })
 
-  test("Storybook accessibility CI does not compare against the static committed baseline", async () => {
-    const workflow = await readFile(
-      path.join(repoRoot, ".github/workflows/storybook-a11y.yml"),
-      "utf-8",
-    )
-    const baselineWorkflow = await readFile(
-      path.join(repoRoot, ".github/workflows/storybook-a11y-baseline.yml"),
-      "utf-8",
-    )
-
-    expect(workflow).not.toMatch(
-      /--baseline libs\/ui\/a11y-baseline\.json --fail-on-new/u,
-    )
-    expect(baselineWorkflow).not.toMatch(/\bpush:/u)
-  })
-
-  test("Storybook baseline changes trigger should_run and surface the dispatch link", async () => {
+  test("Storybook baseline resolution rejects stale scans", async () => {
     const workflow = await readFile(
       path.join(repoRoot, ".github/workflows/storybook-a11y.yml"),
       "utf-8",
     )
 
-    expect(workflow).not.toContain("!libs/ui/a11y-baseline.json")
+    expect(workflow).toContain("latest_relevant=$(git rev-list -1")
     expect(workflow).toContain(
-      "libs/ui/a11y-baseline.json)\n                baseline_changed=true\n                should_run=true",
+      'git merge-base --is-ancestor "$latest_relevant" "$head_sha"',
     )
-    expect(workflow).toContain(
-      "/actions/workflows/storybook-a11y-baseline.yml/runs?event=workflow_dispatch",
-    )
-    expect(workflow).toContain(
-      'select(.head_sha == env.BASELINE_SHA and .conclusion == "success")',
-    )
-    expect(workflow).toContain(
-      "Accessibility baseline changes require a successful authorized run",
-    )
+    expect(workflow).toContain("for attempt in {1..80}")
+    expect(workflow).toContain("sleep 15")
   })
 
-  test("Storybook baseline scan builds dist dependencies and surfaces scan failures", async () => {
-    const baselineWorkflow = await readFile(
-      path.join(repoRoot, ".github/workflows/storybook-a11y-baseline.yml"),
-      "utf-8",
-    )
-
-    expect(baselineWorkflow).toContain(
-      [
-        "      - name: Build test-runner dependencies",
-        "        run: pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build",
-        "",
-        "      - name: Install Playwright browsers",
-      ].join("\n"),
-    )
-    expect(baselineWorkflow).not.toContain("continue-on-error: true")
-  })
-
-  test("Storybook baseline change authorization gate blocks unauthorized baseline changes", async () => {
+  test("Storybook comparator bootstrap is immutable and available", async () => {
     const workflow = await readFile(
       path.join(repoRoot, ".github/workflows/storybook-a11y.yml"),
       "utf-8",
     )
-    const baselineWorkflow = await readFile(
+    const bootstrapCommit = "002322f8a7897be5bd4e5b1ab30840448aa14214"
+
+    expect(workflow).toContain(
+      `git cat-file -e "${shellVariable("BASE_SHA")}:libs/ui/scripts/storybook-a11y-regression.mjs"`,
+    )
+    expect(workflow).toContain(`bootstrap_commit="${bootstrapCommit}"`)
+    await expect(
+      execFileAsync("git", [
+        "-C",
+        repoRoot,
+        "cat-file",
+        "-e",
+        `${bootstrapCommit}:libs/ui/scripts/storybook-a11y-regression.mjs`,
+      ]),
+    ).resolves.toBeDefined()
+  })
+
+  test("Storybook accessibility PR scans fail closed on integrity errors", async () => {
+    const workflow = await readFile(
+      path.join(repoRoot, ".github/workflows/storybook-a11y.yml"),
+      "utf-8",
+    )
+
+    expect(workflow).toContain("name: Accessibility scan integrity")
+    expect(workflow).toContain(
+      `run-id: ${githubExpression("needs.detect-a11y-changes.outputs.baseline-run-id")}`,
+    )
+    expect(workflow).not.toMatch(/pull_request:\n\s+paths:/u)
+    expect(workflow).not.toContain("authorize-baseline-change")
+    expect(workflow).not.toContain("--fail-on-new")
+  })
+
+  test("Storybook baseline scans follow master and refresh before expiry", async () => {
+    const workflow = await readFile(
       path.join(repoRoot, ".github/workflows/storybook-a11y-baseline.yml"),
       "utf-8",
     )
 
-    expect(workflow).toContain("- authorize-baseline-change")
-    expect(workflow).toContain(
-      [
-        "AUTHORIZATION_RESULT: ${{",
-        "needs.authorize-baseline-change.result }}",
-      ].join(" "),
-    )
-    expect(workflow).toContain(
-      '[ "$BASELINE_CHANGED" = "true" ] && [ "$AUTHORIZATION_RESULT" != "success" ]',
-    )
-    expect(baselineWorkflow).toContain(
-      "Verify proposed baseline matches the authorized scan",
-    )
-    expect(baselineWorkflow).toContain(
-      'cmp --silent "$AUTHORIZED_BASELINE" libs/ui/a11y-baseline.json',
-    )
+    expect(workflow).toMatch(/push:\n\s+branches:\n\s+- master/u)
+    expect(workflow).toContain("workflow_dispatch:")
+    expect(workflow).toContain('cron: "17 3 * * 1"')
+    expect(workflow).toContain("group: storybook-a11y-master-baseline")
+    expect(workflow).toContain("cancel-in-progress: false")
   })
 
-  test("accessibility regression counts nodes and preserves story coverage", async () => {
+  test("Storybook master scans publish only complete baselines", async () => {
+    const workflow = await readFile(
+      path.join(repoRoot, ".github/workflows/storybook-a11y-baseline.yml"),
+      "utf-8",
+    )
+
+    expect(workflow).toContain(
+      "run: pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build",
+    )
+    expect(workflow).toContain("retention-days: 30")
+    expect(workflow).not.toContain("continue-on-error: true")
+    expect(workflow).not.toContain("a11y-baseline.json")
+  })
+
+  test("accessibility comparison detects an added node for an existing rule", async () => {
     const fixtureRoot = await mkdtemp(
-      path.join(tmpdir(), "storybook-a11y-nodes-"),
+      path.join(tmpdir(), "storybook-a11y-node-delta-"),
     )
-    const reportRoot = path.join(fixtureRoot, "report")
+    const baselineRoot = path.join(fixtureRoot, "baseline-report")
+    const currentRoot = path.join(fixtureRoot, "current-report")
     const baselinePath = path.join(fixtureRoot, "baseline.json")
     const script = path.join(
       repoRoot,
       "libs/ui/scripts/storybook-a11y-regression.mjs",
     )
-    const baseline = {
-      description: "node contract fixture",
-      themes: Object.fromEntries(
-        ["light", "dark"].map((theme) => [
-          theme,
-          {
-            entries: [
-              {
-                count: 1,
-                id: "color-contrast",
-                story: "Contract / Injected",
-                storyId: "contract--injected",
-                target: '["#one"]',
-              },
-            ],
-            stories: 1,
-            storyIds: ["contract--injected"],
-            violations: 1,
-          },
-        ]),
-      ),
-      version: 2,
-    }
-
     try {
       await Promise.all(
-        ["light", "dark"].map(async (theme) => {
-          await mkdir(path.join(reportRoot, theme), { recursive: true })
-          await writeFile(
-            path.join(reportRoot, theme, "report.json"),
-            JSON.stringify([
-              {
-                name: "Injected",
-                results: {
-                  violations: [
-                    {
-                      id: "color-contrast",
-                      nodes: [{ target: ["#one"] }, { target: ["#two"] }],
-                    },
-                  ],
-                },
-                storyId: "contract--injected",
-                title: "Contract",
-              },
-            ]),
-          )
-        }),
-      )
-      await writeFile(baselinePath, JSON.stringify(baseline))
-
-      await expect(
-        execFileAsync(process.execPath, [
-          script,
-          "--report-root",
-          reportRoot,
-          "--baseline",
-          baselinePath,
-          "--fail-on-new",
+        ["light", "dark"].flatMap((theme) => [
+          mkdir(path.join(baselineRoot, theme), { recursive: true }),
+          mkdir(path.join(currentRoot, theme), { recursive: true }),
         ]),
-      ).rejects.toMatchObject({ code: 1 })
-
-      await Promise.all(
-        ["light", "dark"].map(async (theme) => {
-          await writeFile(path.join(reportRoot, theme, "report.json"), "[]")
-        }),
       )
+      await Promise.all(
+        ["light", "dark"].flatMap((theme) => [
+          writeFile(
+            path.join(baselineRoot, theme, "report.json"),
+            JSON.stringify(makeAccessibilityReport(["#one"])),
+          ),
+          writeFile(
+            path.join(currentRoot, theme, "report.json"),
+            JSON.stringify(makeAccessibilityReport(["#one", "#two"])),
+          ),
+        ]),
+      )
+      await execFileAsync(process.execPath, [
+        script,
+        "--report-root",
+        baselineRoot,
+        "--baseline",
+        baselinePath,
+        "--update-baseline",
+      ])
+
       await expect(
         execFileAsync(process.execPath, [
           script,
           "--report-root",
-          reportRoot,
+          currentRoot,
           "--baseline",
           baselinePath,
           "--fail-on-new",
@@ -524,67 +468,20 @@ describe("CI workflow contracts", () => {
     }
   })
 
-  test("a PR-edited baseline cannot mask an injected accessibility finding", async () => {
-    const fixtureRoot = await mkdtemp(
-      path.join(tmpdir(), "storybook-a11y-contract-"),
+  test("local Storybook scans do not own master baseline state", async () => {
+    const packageJson = await readFile(
+      path.join(repoRoot, "libs/ui/package.json"),
+      "utf-8",
     )
-    const reportRoot = path.join(fixtureRoot, "report")
-    const baseBaselinePath = path.join(fixtureRoot, "base-baseline.json")
-    const pullRequestBaselinePath = path.join(fixtureRoot, "pr-baseline.json")
-    const report = [
-      {
-        name: "Injected",
-        results: { violations: [{ id: "injected-finding" }] },
-        storyId: "contract--injected",
-        title: "Contract",
-      },
-    ]
+    const script = await readFile(
+      path.join(repoRoot, "libs/ui/scripts/storybook-a11y.sh"),
+      "utf-8",
+    )
 
-    try {
-      await Promise.all(
-        ["light", "dark"].map(async (theme) => {
-          await mkdir(path.join(reportRoot, theme), { recursive: true })
-          await writeFile(
-            path.join(reportRoot, theme, "report.json"),
-            JSON.stringify(report),
-          )
-        }),
-      )
-      await writeFile(
-        baseBaselinePath,
-        JSON.stringify(makeAccessibilityFindingBaseline(0)),
-      )
-      await writeFile(
-        pullRequestBaselinePath,
-        JSON.stringify(makeAccessibilityFindingBaseline(1)),
-      )
-
-      const script = path.join(
-        repoRoot,
-        "libs/ui/scripts/storybook-a11y-regression.mjs",
-      )
-      await expect(
-        execFileAsync(process.execPath, [
-          script,
-          "--report-root",
-          reportRoot,
-          "--baseline",
-          pullRequestBaselinePath,
-          "--fail-on-new",
-        ]),
-      ).resolves.toBeDefined()
-      await expect(
-        execFileAsync(process.execPath, [
-          script,
-          "--report-root",
-          reportRoot,
-          "--baseline",
-          baseBaselinePath,
-          "--fail-on-new",
-        ]),
-      ).rejects.toMatchObject({ code: 1 })
-    } finally {
-      await rm(fixtureRoot, { force: true, recursive: true })
-    }
+    expect(packageJson).not.toContain('"storybook:a11y:update-baseline"')
+    expect(packageJson).not.toContain('"storybook:a11y:ci"')
+    expect(script).not.toContain("A11Y_BASELINE_FILE")
+    expect(script).not.toContain("A11Y_FAIL_ON_REGRESSION")
+    expect(script).not.toContain("storybook-a11y-regression.mjs")
   })
 })

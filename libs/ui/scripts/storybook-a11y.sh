@@ -4,8 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPORT_DIR="${A11Y_REPORT_OUTPUT_DIR:-a11y-report}"
 FAIL_ON_VIOLATIONS="${A11Y_REPORT_FAIL_ON_VIOLATIONS:-false}"
-FAIL_ON_REGRESSION="${A11Y_FAIL_ON_REGRESSION:-false}"
-BASELINE_FILE="${A11Y_BASELINE_FILE:-${ROOT_DIR}/a11y-baseline.json}"
 WAIT_MS="${A11Y_REPORT_WAIT_MS:-30000}"
 WORKERS="${A11Y_STORYBOOK_WORKERS:-1}"
 TEST_TIMEOUT="${A11Y_TEST_TIMEOUT:-60000}"
@@ -199,22 +197,10 @@ run_theme() {
 run_theme light
 run_theme dark
 
-REGRESSION_ARGS=(
-  --report-root "${PUBLISH_DIR}"
-  --baseline "${BASELINE_FILE}"
-)
-if [ "${FAIL_ON_REGRESSION}" = "true" ]; then
-  REGRESSION_ARGS+=(--fail-on-new)
-fi
-mise exec node@24 -- node "${ROOT_DIR}/scripts/storybook-a11y-regression.mjs" "${REGRESSION_ARGS[@]}"
-
 rm -rf -- "${REPORT_ROOT}"
 mv "${PUBLISH_DIR}" "${REPORT_ROOT}"
 
 if [ "${FAIL_ON_VIOLATIONS}" = "false" ]; then
   echo "WARNING: Known accessibility violations remain and are reported above."
-  if [ "${FAIL_ON_REGRESSION}" = "false" ]; then
-    echo "WARNING: Regression failures are disabled locally (A11Y_FAIL_ON_REGRESSION=false)."
-  fi
   echo "See ${REPORT_DIR}/light/summary.md and ${REPORT_DIR}/dark/summary.md for full details."
 fi
