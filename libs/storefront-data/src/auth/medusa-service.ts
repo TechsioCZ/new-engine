@@ -22,6 +22,21 @@ export type MedusaUpdateCustomerData = Partial<{
   phone: string
 }>
 
+export type MedusaRequestCustomerAccountDeactivationResult = {
+  customer_id: string
+  sent: boolean
+}
+
+export type MedusaConfirmCustomerAccountDeactivationInput = {
+  token: string
+}
+
+export type MedusaDeactivateCustomerAccountResult = {
+  auth_identity_deleted: boolean
+  customer_id: string
+  deleted: boolean
+}
+
 export class MedusaRegistrationSignInError extends Error {
   readonly code = "registration_sign_in_failed"
   readonly email: string
@@ -96,7 +111,10 @@ export function createMedusaAuthService(
   MedusaUpdateCustomerData,
   unknown,
   string,
-  string
+  string,
+  MedusaRequestCustomerAccountDeactivationResult,
+  MedusaConfirmCustomerAccountDeactivationInput,
+  MedusaDeactivateCustomerAccountResult
 > {
   const reportLogoutError = (
     error: unknown,
@@ -142,6 +160,26 @@ export function createMedusaAuthService(
   }
 
   return {
+    confirmAccountDeactivation(input) {
+      return sdk.client.fetch<MedusaDeactivateCustomerAccountResult>(
+        "/store/customers/deactivate/confirm",
+        {
+          method: "POST",
+          body: input,
+        }
+      )
+    },
+
+    requestAccountDeactivation() {
+      return sdk.client.fetch<MedusaRequestCustomerAccountDeactivationResult>(
+        "/store/customers/me/deactivate",
+        {
+          method: "POST",
+          body: { confirm: true },
+        }
+      )
+    },
+
     async getCustomer(signal?: AbortSignal) {
       try {
         const { customer } =
