@@ -141,9 +141,13 @@ jobs:
   storybook-a11y:
     needs: detect-a11y-changes
     if: needs.detect-a11y-changes.outputs.should-run == 'true'
+    # The pinned reusable workflow declares these permissions at job scope.
+    # Publishing inputs remain disabled below, so no write steps execute.
     permissions:
       actions: read
+      checks: write
       contents: read
+      pull-requests: write
     uses: TechsioCZ/storybook-addons/.github/workflows/storybook-a11y.yml@b52eaf44688051b19eb989fab7b6ab721ce1a2d1 # storybook-a11y-workflow-v0.1.9
     with:
       node-version: "24"
