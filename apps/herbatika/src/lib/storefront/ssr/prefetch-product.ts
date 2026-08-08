@@ -9,36 +9,36 @@ import {
 } from "../product-query-config"
 import { RELATED_PRODUCTS_LIMIT } from "../related-products-config"
 import { PRODUCT_REVIEWS_PAGE_SIZE } from "../review-query-config"
+import { fetchServerProducts } from "../storefront-server"
 import {
   getRegionServerContext,
   prefetchProductAttributes,
-  prefetchProductDetail,
   prefetchProductList,
   prefetchProductReviews,
 } from "./context"
-import type { ProductDetailParams } from "./types"
 
 assertServerOnly("storefront/ssr/prefetch-product")
 
 export const prefetchProductDetailPageStorefrontData = async (
   requestContext: RequestServerContext,
-  handle: string
+  productId: string
 ) => {
   const { queryClient, region } = await getRegionServerContext(requestContext)
 
   if (region) {
-    const detailParams: ProductDetailParams = {
-      handle,
-      fields: PRODUCT_DETAIL_FIELDS,
-      region_id: region.region_id,
-      country_code: region.country_code,
-    }
-
-    const product = await prefetchProductDetail(
+    const response = await fetchServerProducts(
       queryClient,
-      detailParams,
+      {
+        id: [productId],
+        fields: PRODUCT_DETAIL_FIELDS,
+        limit: 1,
+        region_id: region.region_id,
+        country_code: region.country_code,
+      },
       requestContext
     )
+    const product =
+      response.products.find((candidate) => candidate.id === productId) ?? null
     const relatedCategoryIds = resolveRelatedCategoryIds(product)
 
     if (product?.id) {

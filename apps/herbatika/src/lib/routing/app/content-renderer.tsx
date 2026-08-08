@@ -288,11 +288,11 @@ async function renderProductEntity(entityId: string) {
 
   const { dehydratedState } = await prefetchProductDetailPageStorefrontData(
     requestContext,
-    product.handle
+    entityId
   )
   return (
     <HydrationBoundary state={dehydratedState}>
-      <ProductDetail handle={product.handle} />
+      <ProductDetail productId={entityId} slug={product.handle} />
     </HydrationBoundary>
   )
 }

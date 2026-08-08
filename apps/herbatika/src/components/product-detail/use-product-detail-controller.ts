@@ -4,13 +4,15 @@ import { useProductDetailActions } from "@/components/product-detail/use-product
 import { useProductDetailData } from "@/components/product-detail/use-product-detail-data"
 
 type UseProductDetailControllerProps = {
-  handle: string
+  productId: string
+  slug: string
 }
 
 export function useProductDetailController({
-  handle,
+  productId,
+  slug,
 }: UseProductDetailControllerProps) {
-  const data = useProductDetailData({ handle })
+  const data = useProductDetailData({ productId, slug })
   const actions = useProductDetailActions({
     product: data.product,
     quantity: data.quantity,

@@ -5,7 +5,8 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon"
 export type Product = HttpTypes.StoreProduct
 
 export type ProductDetailProps = {
-  handle: string
+  productId: string
+  slug: string
 }
 
 export type ProductPriceState = {

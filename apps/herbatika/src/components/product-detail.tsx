@@ -3,7 +3,6 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
@@ -20,11 +19,12 @@ import { ProductDetailSkeleton } from "@/components/product-detail/sections/prod
 import { ProductDetailTabs } from "@/components/product-detail/sections/product-detail-tabs"
 import { useProductDetailController } from "@/components/product-detail/use-product-detail-controller"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import { StorefrontLink } from "@/components/storefront-link"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
-export function ProductDetail({ handle }: ProductDetailProps) {
+export function ProductDetail({ productId, slug }: ProductDetailProps) {
   const tCatalog = useTranslations("catalog")
-  const controller = useProductDetailController({ handle })
+  const controller = useProductDetailController({ productId, slug })
   const [activeInfoSection, setActiveInfoSection] = useState<
     string | undefined
   >(controller.defaultInfoSectionValue)
@@ -34,14 +34,14 @@ export function ProductDetail({ handle }: ProductDetailProps) {
     setActiveInfoSection(controller.defaultInfoSectionValue)
   }, [controller.defaultInfoSectionValue, controller.product?.id])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `handle` is an intentional trigger — App Router reuses this client component across product navigations, so scroll-to-top must re-run when the handle changes even though the body doesn't read it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `slug` is an intentional trigger — App Router reuses this client component across product navigations, so scroll-to-top must re-run when the slug changes even though the body doesn't read it.
   useEffect(() => {
     if (window.location.hash) {
       return
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: "auto" })
-  }, [handle])
+  }, [slug])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `controller.product?.id` is an intentional trigger — re-selects the reviews tab when navigating to a different product while the reviews hash is in the URL.
   useEffect(() => {
@@ -98,7 +98,12 @@ export function ProductDetail({ handle }: ProductDetailProps) {
           <StatusText showIcon status="error">
             {tCatalog("product_detail.errors.not_found")}
           </StatusText>
-          <LinkButton as={StorefrontLink} href="/" size="sm" variant="secondary">
+          <LinkButton
+            as={StorefrontLink}
+            href="/"
+            size="sm"
+            variant="secondary"
+          >
             {tCatalog("product_detail.back_home")}
           </LinkButton>
         </section>

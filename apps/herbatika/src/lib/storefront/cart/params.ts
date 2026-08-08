@@ -137,7 +137,8 @@ export const buildAddLineItemParams = (
     enabled: _enabled,
     region_id: _regionId,
     country_code: _countryCode,
-    salesChannelId: _salesChannelId,
+    sales_channel_id: _salesChannelId,
+    salesChannelId: _salesChannelInput,
     variantId,
     ...rest
   } = input as AddLineItemInputBase & Record<string, unknown>

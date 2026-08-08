@@ -3,7 +3,6 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
-import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import {
   resolveOptionTitlesById,
@@ -32,20 +31,27 @@ import {
   resolveProductImages,
 } from "@/components/product-detail/utils/metadata-parsers"
 import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   mergeWarrantyIntoProductContentSections,
   resolveProductWarranty,
 } from "@/lib/storefront/product-attributes"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 import { resolveProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
-import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
+import { PRODUCT_DETAIL_FIELDS, useProducts } from "@/lib/storefront/products"
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { storefront } from "@/lib/storefront/storefront"
 
-type UseProductDetailDataProps = { handle: string }
+type UseProductDetailDataProps = {
+  productId: string
+  slug: string
+}
 
-export function useProductDetailData({ handle }: UseProductDetailDataProps) {
+export function useProductDetailData({
+  productId,
+  slug,
+}: UseProductDetailDataProps) {
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
@@ -59,12 +65,13 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     string | null
   >(null)
 
-  const productQuery = useProduct({
-    handle,
+  const productQuery = useProducts({
+    id: [productId],
     fields: PRODUCT_DETAIL_FIELDS,
+    limit: 1,
   })
 
-  const product = (productQuery.product ?? null) as Product | null
+  const product = (productQuery.products[0] ?? null) as Product | null
   const variants = product?.variants ?? []
   const productCategories = product?.categories ?? []
 
@@ -114,7 +121,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const galleryItems = resolveGalleryItems(
     productImages,
     product?.title,
-    product?.handle?.trim() || product?.id || handle
+    product?.handle?.trim() || product?.id || slug
   )
   const productHighlights = resolveProductHighlights(productSummaryText)
   const otherSectionTitle = tCatalog("product_detail.sections.other")
@@ -214,7 +221,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const breadcrumbItems = resolveProductBreadcrumbItems(
     productCategories,
     product,
-    handle,
+    slug,
     tNavigation("breadcrumbs.home"),
     market
   )
