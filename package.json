@@ -48,7 +48,7 @@
     "@nubjs/nub": "0.4.13",
     "@nx/esbuild": "23.1.0",
     "@nx/playwright": "23.1.0",
-    "@opentelemetry/core": "2.4.0",
+    "@opentelemetry/core": "2.10.0",
     "@playwright/test": "^1.61.1",
     "@rslib/core": "0.23.2",
     "@swc-node/register": "~1.12.0",

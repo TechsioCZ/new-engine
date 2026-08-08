@@ -108,6 +108,7 @@ WORKDIR /app
 COPY --from=build --chown=node:node /var/www/apps/medusa-be/.medusa/server ./
 COPY --from=build --chown=node:node /var/www/medusa-be-prod/node_modules ./node_modules
 COPY --from=build --chown=node:node /var/www/apps/medusa-be/src/scripts/seed-files ./src/scripts/seed-files
+COPY --from=build --chown=node:node /var/www/apps/medusa-be/licenses ./licenses
 
 # Create writable dirs for runtime (types, admin assets, local uploads if used)
 RUN mkdir -p /app/.medusa/types /app/.medusa/client /app/static && \

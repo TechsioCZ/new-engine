@@ -70,7 +70,11 @@ overrides:
   # Keep these narrow so future parent upgrades restore normal resolution.
   "vite@5.4.21>rollup": 4.59.0
   "ts-node@10.9.2>diff": 4.0.4
-  "cli-ux@5.6.7>js-yaml": 3.15.0
+  "cli-ux@5.6.7>js-yaml": 3.15.1
+  "@mdxeditor/editor@4.0.4>js-yaml": 4.3.1
+  "@mdxeditor/editor@4.2.0>js-yaml": 4.3.1
+  "json-schema-to-typescript@15.0.3>js-yaml": 4.3.1
+  "@apidevtools/json-schema-ref-parser@11.9.3>js-yaml": 4.3.1
 
 # These exact, package-scoped exceptions acknowledge compatibility without
 # rewriting the dependencies' published peer metadata. Future version changes
@@ -97,7 +101,6 @@ peerDependencyRules:
     react-router-dom: ">=6.30.4 <8"
     typescript: ^7.0.2
     zod-validation-error@3.5.1>zod: ">=3.25 <5"
-    zod-validation-error@3.5.4>zod: ">=3.24.4 <5"
 
 supportedArchitectures:
   # `current` still covers Windows when it is the active host. Darwin + Linux
@@ -176,18 +179,15 @@ packageExtensions:
       "@tanstack/react-query": 5.64.2
       react: 19.2.7
       react-router-dom: 6.30.4
-  "@sentry/node-core@10.66.0":
+  "@sentry/node-core@10.67.0":
     dependencies:
-      "@opentelemetry/core": 2.4.0
-  "@sentry/opentelemetry@10.66.0":
+      "@opentelemetry/core": 2.10.0
+  "@sentry/opentelemetry@10.67.0":
     dependencies:
-      "@opentelemetry/core": 2.4.0
+      "@opentelemetry/core": 2.10.0
   zod-validation-error@3.5.1:
     peerDependencies:
       zod: ">=3.25.0 <5"
-  zod-validation-error@3.5.4:
-    peerDependencies:
-      zod: ">=3.24.4 <5"
 
 patchedDependencies:
   "@lexical/code@0.35.0": patches/@lexical__code@0.35.0.patch
