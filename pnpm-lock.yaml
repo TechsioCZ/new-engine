@@ -447,8 +447,8 @@ importers:
         specifier: workspace:*
         version: file:apps/medusa-order-dashboard-plugin(2bcc2f34fbb2a3a61f4e71de2ad237b7)
       medusa-plugin-content:
-        specifier: 0.2.5
-        version: 0.2.5(@codemirror/language@6.12.3)(@lezer/highlight@1.2.3)(@medusajs/framework@2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3))(@medusajs/js-sdk@2.18.0)(@medusajs/medusa@2.18.0)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(yjs@13.6.30)
+        specifier: https://github.com/TechsioCZ/medusa-plugins/releases/download/medusa-plugin-content-v0.2.5-mit/medusa-plugin-content-0.2.5.tgz
+        version: https://github.com/TechsioCZ/medusa-plugins/releases/download/medusa-plugin-content-v0.2.5-mit/medusa-plugin-content-0.2.5.tgz(@codemirror/language@6.12.3)(@lezer/highlight@1.2.3)(@medusajs/framework@2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3))(@medusajs/js-sdk@2.18.0)(@medusajs/medusa@2.18.0)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(yjs@13.6.30)
       medusa-symmy-plugin:
         specifier: workspace:*
         version: file:apps/medusa-symmy-plugin(@medusajs/admin-sdk@2.18.0)(@medusajs/admin-shared@2.18.0)(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@medusajs/framework@2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3))(@medusajs/icons@2.18.0(react@19.2.3))(@medusajs/medusa@2.18.0)(@medusajs/ui@4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -14816,8 +14816,9 @@ packages:
       react-i18next: 13.5.0
       react-router-dom: 6.30.4
 
-  medusa-plugin-content@0.2.5:
-    resolution: {integrity: sha512-8bBQ05ySMBhKHe0OQNjuxDWW7x9Z+Hy3dT8i9FyFHGho96QMeAD2tGniuaFKh9vIZ/Xd22degS/5phm0HNwvrQ==}
+  medusa-plugin-content@https://github.com/TechsioCZ/medusa-plugins/releases/download/medusa-plugin-content-v0.2.5-mit/medusa-plugin-content-0.2.5.tgz:
+    resolution: {integrity: sha512-bv9OZ3/G+1WO8DVedext0woGsT57j/LOns+UlMj6RWVKpDWOn/A4lnLWu1q/PcEdxENH2ZiZUByaEODG7okedg==, tarball: https://github.com/TechsioCZ/medusa-plugins/releases/download/medusa-plugin-content-v0.2.5-mit/medusa-plugin-content-0.2.5.tgz}
+    version: 0.2.5
     engines: {node: '>=20'}
     peerDependencies:
       '@medusajs/framework': 2.17.2
@@ -35742,7 +35743,7 @@ snapshots:
       react-i18next: 13.5.0(i18next@23.7.11)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react-router-dom: 6.30.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
 
-  medusa-plugin-content@0.2.5(@codemirror/language@6.12.3)(@lezer/highlight@1.2.3)(@medusajs/framework@2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3))(@medusajs/js-sdk@2.18.0)(@medusajs/medusa@2.18.0)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(yjs@13.6.30):
+  medusa-plugin-content@https://github.com/TechsioCZ/medusa-plugins/releases/download/medusa-plugin-content-v0.2.5-mit/medusa-plugin-content-0.2.5.tgz(@codemirror/language@6.12.3)(@lezer/highlight@1.2.3)(@medusajs/framework@2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3))(@medusajs/js-sdk@2.18.0)(@medusajs/medusa@2.18.0)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(yjs@13.6.30):
     dependencies:
       '@mdxeditor/editor': 3.54.0(@codemirror/language@6.12.3)(@lezer/highlight@1.2.3)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(yjs@13.6.30)
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)

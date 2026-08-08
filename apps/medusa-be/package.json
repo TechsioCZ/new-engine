@@ -108,7 +108,7 @@
     "lodash": "^4.17.21",
     "marked": "15.0.12",
     "medusa-order-dashboard-plugin": "workspace:*",
-    "medusa-plugin-content": "0.2.5",
+    "medusa-plugin-content": "https://github.com/TechsioCZ/medusa-plugins/releases/download/medusa-plugin-content-v0.2.5-mit/medusa-plugin-content-0.2.5.tgz",
     "medusa-symmy-plugin": "workspace:*",
     "mime": "4.1.0",
     "mysql2": "^3.15.3",
