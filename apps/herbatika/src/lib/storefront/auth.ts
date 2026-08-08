@@ -7,8 +7,14 @@ import type {
 } from "./auth/types"
 import { storefront } from "./storefront"
 
-export const { useAuth, useLogin, useRegister, useLogout } =
-  storefront.hooks.auth
+export const {
+  useAuth,
+  useConfirmAccountDeactivation,
+  useLogin,
+  useRegister,
+  useRequestAccountDeactivation,
+  useLogout,
+} = storefront.hooks.auth
 
 export type AuthLoginInput = AuthLoginInputValue
 export type AuthRegisterInput = AuthRegisterInputValue

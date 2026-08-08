@@ -161,10 +161,11 @@ export const createCustomerProfile = async ({
     }
   )
 
-  const customerConflict = isConflictStatus(createCustomerResponse.status)
-  return createCustomerResponse.ok || customerConflict
-    ? null
-    : buildErrorResponse(createCustomerResponse)
+  if (createCustomerResponse.ok) {
+    return null
+  }
+
+  return buildErrorResponse(createCustomerResponse)
 }
 
 export const createWholesaleProfile = async ({

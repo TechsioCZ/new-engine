@@ -57,6 +57,7 @@ type ResendTemplateEmailOptions = {
     path?: string
   }[]
   from: string
+  subject: string
   template: {
     id: string
     variables: Record<string, TemplateVariableValue>
@@ -257,6 +258,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
         body: JSON.stringify({
           attachments: emailOptions.attachments,
           from: emailOptions.from,
+          subject: emailOptions.subject,
           template: emailOptions.template,
           to: emailOptions.to,
         }),
@@ -335,6 +337,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       apiKey: runtimeOptions.api_key,
       attachments: this.getAttachments(notification),
       from: runtimeOptions.from,
+      subject: template.subject,
       template: {
         id: template.id,
         variables,
