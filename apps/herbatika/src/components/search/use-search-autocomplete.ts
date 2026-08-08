@@ -14,6 +14,7 @@ type UseSearchAutocompleteInput = {
   countryCode?: string
   query: string
   currencyCode: string
+  enabled: boolean
   regionId?: string
 }
 
@@ -26,6 +27,7 @@ export function useSearchAutocomplete({
   countryCode,
   query,
   currencyCode,
+  enabled,
   regionId,
 }: UseSearchAutocompleteInput): UseSearchAutocompleteResult {
   const normalizedQuery = query
@@ -37,7 +39,16 @@ export function useSearchAutocomplete({
   const [status, setStatus] = useState<SearchAutocompleteStatus>("idle")
 
   useEffect(() => {
-    if (normalizedQuery.length < SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH) {
+    if (!enabled) {
+      setData(createEmptySearchAutocompleteResponse(normalizedQuery))
+      setStatus("idle")
+      return
+    }
+
+    if (
+      normalizedQuery.length > 0 &&
+      normalizedQuery.length < SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH
+    ) {
       setData(createEmptySearchAutocompleteResponse(normalizedQuery))
       setStatus("idle")
       return
@@ -90,7 +101,7 @@ export function useSearchAutocomplete({
       window.clearTimeout(timeoutId)
       abortController.abort()
     }
-  }, [countryCode, currencyCode, normalizedQuery, regionId])
+  }, [countryCode, currencyCode, enabled, normalizedQuery, regionId])
 
   return { data, status }
 }

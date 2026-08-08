@@ -4,6 +4,7 @@ import {
   createAddressFieldValidators,
 } from "@/lib/forms/validators/address"
 import { createChangeBlurSubmitScopedFieldValidators } from "@/lib/forms/validators/field-validator-factories"
+import type { HerbatikaCountryCode } from "@/lib/storefront/market-context"
 
 export type CheckoutAddressValidationMessages = AddressValidationMessages
 
@@ -17,9 +18,10 @@ const validateBillingCompanyFields = (values: CheckoutDetailsValues) =>
   !values.useSameAddress && values.isCompanyPurchase
 
 export const createCheckoutFieldValidators = (
-  messages: CheckoutAddressValidationMessages
+  messages: CheckoutAddressValidationMessages,
+  countryCode: HerbatikaCountryCode
 ) => {
-  const validators = createAddressFieldValidators(messages)
+  const validators = createAddressFieldValidators(messages, countryCode)
 
   const shipping = {
     address1: createChangeBlurSubmitScopedFieldValidators(validators.address1),
