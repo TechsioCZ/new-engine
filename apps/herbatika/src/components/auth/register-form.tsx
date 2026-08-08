@@ -16,6 +16,7 @@ import {
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { translateAddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { AuthFooter } from "./auth-footer"
 
 type RegisterFormProps = {
@@ -36,19 +37,25 @@ export const RegisterForm = ({
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
   const toast = useAppToast()
+  const { countryCode } = useMarketContext()
   const registerValidators = useMemo(
     () =>
-      createRegisterValidators({
-        ...translateAddressValidationMessages(tForm),
-        accountTypeRequired: tAuth("validation.account_type_required"),
-        confirmPasswordRequired: tAuth("validation.confirm_password_required"),
-        passwordMinLength: tAuth("validation.password_min_length"),
-        passwordMismatch: tAuth("validation.password_mismatch"),
-        passwordNumber: tAuth("validation.password_number"),
-        passwordRequired: tAuth("validation.password_required"),
-        termsRequired: tAuth("validation.terms_required"),
-      }),
-    [tAuth, tForm]
+      createRegisterValidators(
+        {
+          ...translateAddressValidationMessages(tForm),
+          accountTypeRequired: tAuth("validation.account_type_required"),
+          confirmPasswordRequired: tAuth(
+            "validation.confirm_password_required"
+          ),
+          passwordMinLength: tAuth("validation.password_min_length"),
+          passwordMismatch: tAuth("validation.password_mismatch"),
+          passwordNumber: tAuth("validation.password_number"),
+          passwordRequired: tAuth("validation.password_required"),
+          termsRequired: tAuth("validation.terms_required"),
+        },
+        countryCode
+      ),
+    [countryCode, tAuth, tForm]
   )
 
   const form = useHerbatikaForm({
