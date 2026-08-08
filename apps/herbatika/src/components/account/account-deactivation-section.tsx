@@ -3,27 +3,25 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
-import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
-import { useDeactivateAccount } from "@/lib/storefront/auth"
-import { cartStorage } from "@/lib/storefront/cart-storage"
+import { useRequestAccountDeactivation } from "@/lib/storefront/auth"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { AccountSurface } from "./account-surface"
 
 export function AccountDeactivationSection() {
-  const router = useRouter()
   const appToast = useAppToast()
-  const deactivateAccountMutation = useDeactivateAccount()
+  const requestAccountDeactivationMutation = useRequestAccountDeactivation()
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isRequestSent, setIsRequestSent] = useState(false)
   const [deactivationError, setDeactivationError] = useState<string | null>(
     null
   )
 
   const closeDialog = () => {
-    if (deactivateAccountMutation.isPending) {
+    if (requestAccountDeactivationMutation.isPending) {
       return
     }
 
@@ -31,18 +29,22 @@ export function AccountDeactivationSection() {
     setIsDialogOpen(false)
   }
 
-  const handleDeactivateAccount = async () => {
+  const handleRequestAccountDeactivation = async () => {
     setDeactivationError(null)
 
     try {
-      await deactivateAccountMutation.mutateAsync()
-      cartStorage.clearCartId()
+      const result = await requestAccountDeactivationMutation.mutateAsync()
+      if (!result.sent) {
+        throw new Error("Potvrdzovací e-mail sa nepodarilo odoslať.")
+      }
+
+      setIsRequestSent(true)
       setIsDialogOpen(false)
       appToast.success({
-        title: "Účet bol zrušený",
-        description: "Boli ste bezpečne odhlásení.",
+        title: "Potvrdzovací e-mail bol odoslaný",
+        description:
+          "Účet zostáva aktívny, kým jeho zrušenie nepotvrdíte v e-maile.",
       })
-      router.replace("/")
     } catch (error) {
       setDeactivationError(resolveErrorMessage(error))
     }
@@ -53,11 +55,16 @@ export function AccountDeactivationSection() {
       <header className="space-y-200">
         <h2 className="font-semibold text-xl">Zrušenie účtu</h2>
         <p className="text-fg-secondary text-sm">
-          Po zrušení účtu sa už neprihlásite a stratíte prístup k jeho obsahu.
-          Objednávky zostanú bezpečne uložené kvôli ich vybaveniu a zákonným
-          povinnostiam.
+          Pošleme vám e-mail s odkazom na potvrdenie. Účet zostane aktívny, kým
+          odkaz nepoužijete. Existujúce objednávky sa nevymažú.
         </p>
       </header>
+
+      {isRequestSent && (
+        <StatusText align="start" showIcon status="success">
+          Skontrolujte si e-mail. Potvrdzovací odkaz je platný 30 minút.
+        </StatusText>
+      )}
 
       <Button
         onClick={() => {
@@ -66,14 +73,14 @@ export function AccountDeactivationSection() {
         }}
         variant="danger"
       >
-        Zrušiť účet
+        {isRequestSent ? "Znovu odoslať e-mail" : "Požiadať o zrušenie účtu"}
       </Button>
 
       <Dialog
         actions={
           <>
             <Button
-              disabled={deactivateAccountMutation.isPending}
+              disabled={requestAccountDeactivationMutation.isPending}
               onClick={closeDialog}
               ref={cancelButtonRef}
               size="sm"
@@ -84,31 +91,31 @@ export function AccountDeactivationSection() {
               Ponechať účet
             </Button>
             <Button
-              disabled={deactivateAccountMutation.isPending}
-              icon="token-icon-trash"
-              isLoading={deactivateAccountMutation.isPending}
-              loadingText="Ruší sa účet"
+              disabled={requestAccountDeactivationMutation.isPending}
+              isLoading={requestAccountDeactivationMutation.isPending}
+              loadingText="Odosiela sa e-mail"
               onClick={() => {
-                runDetachedPromise(handleDeactivateAccount())
+                runDetachedPromise(handleRequestAccountDeactivation())
               }}
               size="sm"
               type="button"
               variant="danger"
             >
-              Áno, zrušiť účet
+              Odoslať potvrdzovací e-mail
             </Button>
           </>
         }
         behavior="modal"
         className="shadow-md"
-        closeOnEscape={!deactivateAccountMutation.isPending}
-        closeOnInteractOutside={!deactivateAccountMutation.isPending}
+        closeOnEscape={!requestAccountDeactivationMutation.isPending}
+        closeOnInteractOutside={!requestAccountDeactivationMutation.isPending}
         customTrigger
         description={
           <div className="space-y-200">
-            <p>Táto akcia sa z pohľadu používateľa nedá vrátiť späť.</p>
+            <p>Účet sa týmto krokom ešte nezruší.</p>
             <ul className="list-disc space-y-100 pl-400">
-              <li>Vaše prihlasovacie údaje prestanú fungovať.</li>
+              <li>Na váš e-mail pošleme odkaz platný 30 minút.</li>
+              <li>Účet zrušíme až po otvorení odkazu a potvrdení.</li>
               <li>Existujúce objednávky sa nevymažú.</li>
             </ul>
           </div>
@@ -126,7 +133,7 @@ export function AccountDeactivationSection() {
         open={isDialogOpen}
         role="alertdialog"
         size="sm"
-        title="Naozaj chcete zrušiť účet?"
+        title="Odoslať potvrdenie zrušenia účtu?"
       >
         {deactivationError && (
           <StatusText align="start" showIcon status="error">

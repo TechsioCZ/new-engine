@@ -33,7 +33,9 @@ export type CreateAuthHooksConfig<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
-  TDeactivateResult = unknown,
+  TRequestAccountDeactivationResult = unknown,
+  TConfirmAccountDeactivationInput = unknown,
+  TConfirmAccountDeactivationResult = unknown,
 > = {
   service: AuthService<
     TCustomer,
@@ -43,7 +45,9 @@ export type CreateAuthHooksConfig<
     TCreateCustomerInput,
     TLoginResult,
     TRegisterResult,
-    TDeactivateResult
+    TRequestAccountDeactivationResult,
+    TConfirmAccountDeactivationInput,
+    TConfirmAccountDeactivationResult
   >
   queryKeys?: AuthQueryKeys
   queryKeyNamespace?: QueryNamespace
@@ -75,7 +79,9 @@ export function createAuthHooks<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
-  TDeactivateResult = unknown,
+  TRequestAccountDeactivationResult = unknown,
+  TConfirmAccountDeactivationInput = unknown,
+  TConfirmAccountDeactivationResult = unknown,
 >({
   service,
   queryKeys,
@@ -90,7 +96,9 @@ export function createAuthHooks<
   TCreateCustomerInput,
   TLoginResult,
   TRegisterResult,
-  TDeactivateResult
+  TRequestAccountDeactivationResult,
+  TConfirmAccountDeactivationInput,
+  TConfirmAccountDeactivationResult
 >) {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys = queryKeys ?? createAuthQueryKeys(queryKeyNamespace)
@@ -280,16 +288,62 @@ export function createAuthHooks<
     })
   }
 
-  function useDeactivateAccount<TContext = unknown>(
-    options?: AuthMutationOptions<TDeactivateResult, void, TContext>
+  function useRequestAccountDeactivation<TContext = unknown>(
+    options?: AuthMutationOptions<
+      TRequestAccountDeactivationResult,
+      void,
+      TContext
+    >
+  ) {
+    return useMutation<
+      TRequestAccountDeactivationResult,
+      unknown,
+      void,
+      TContext
+    >({
+      mutationFn: () => {
+        if (!service.requestAccountDeactivation) {
+          throw new Error(
+            "requestAccountDeactivation service is not configured"
+          )
+        }
+        return service.requestAccountDeactivation()
+      },
+      retry: false,
+      onMutate: options?.onMutate,
+      onSuccess: (data, variables, context) => {
+        options?.onSuccess?.(data, variables, context)
+      },
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
+    })
+  }
+
+  function useConfirmAccountDeactivation<TContext = unknown>(
+    options?: AuthMutationOptions<
+      TConfirmAccountDeactivationResult,
+      TConfirmAccountDeactivationInput,
+      TContext
+    >
   ) {
     const queryClient = useQueryClient()
-    return useMutation<TDeactivateResult, unknown, void, TContext>({
-      mutationFn: () => {
-        if (!service.deactivateAccount) {
-          throw new Error("deactivateAccount service is not configured")
+    return useMutation<
+      TConfirmAccountDeactivationResult,
+      unknown,
+      TConfirmAccountDeactivationInput,
+      TContext
+    >({
+      mutationFn: (input: TConfirmAccountDeactivationInput) => {
+        if (!service.confirmAccountDeactivation) {
+          throw new Error(
+            "confirmAccountDeactivation service is not configured"
+          )
         }
-        return service.deactivateAccount()
+        return service.confirmAccountDeactivation(input)
       },
       retry: false,
       onMutate: options?.onMutate,
@@ -367,7 +421,8 @@ export function createAuthHooks<
     useLogin,
     useRegister,
     useCreateCustomer,
-    useDeactivateAccount,
+    useRequestAccountDeactivation,
+    useConfirmAccountDeactivation,
     useLogout,
     useUpdateCustomer,
     useRefreshAuth,
@@ -382,7 +437,9 @@ export type AuthHooks<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
-  TDeactivateResult = unknown,
+  TRequestAccountDeactivationResult = unknown,
+  TConfirmAccountDeactivationInput = unknown,
+  TConfirmAccountDeactivationResult = unknown,
 > = ReturnType<
   typeof createAuthHooks<
     TCustomer,
@@ -392,6 +449,8 @@ export type AuthHooks<
     TCreateCustomerInput,
     TLoginResult,
     TRegisterResult,
-    TDeactivateResult
+    TRequestAccountDeactivationResult,
+    TConfirmAccountDeactivationInput,
+    TConfirmAccountDeactivationResult
   >
 >

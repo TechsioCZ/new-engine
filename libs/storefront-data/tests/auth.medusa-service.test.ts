@@ -65,28 +65,6 @@ function createSdkMock(overrides?: {
 }
 
 describe("createMedusaAuthService", () => {
-  it("deactivates the current customer through the authenticated store endpoint", async () => {
-    const deactivationResult = {
-      auth_identity_deleted: true,
-      customer_id: "cus_1",
-      deleted: true,
-    }
-    const sdk = createSdkMock()
-    sdk.client.fetch.mockResolvedValue(deactivationResult)
-    const service = createMedusaAuthService(sdk as never)
-
-    await expect(service.deactivateAccount?.()).resolves.toEqual(
-      deactivationResult
-    )
-    expect(sdk.client.fetch).toHaveBeenCalledWith(
-      "/store/customers/me/deactivate",
-      {
-        method: "POST",
-        body: { confirm: true },
-      }
-    )
-  })
-
   it("forwards AbortSignal in getCustomer and sorts addresses by creation time", async () => {
     const sdk = createSdkMock({
       fetchCustomer: vi.fn().mockResolvedValue({

@@ -9,9 +9,10 @@ import { storefront } from "./storefront"
 
 export const {
   useAuth,
-  useDeactivateAccount,
+  useConfirmAccountDeactivation,
   useLogin,
   useRegister,
+  useRequestAccountDeactivation,
   useLogout,
 } = storefront.hooks.auth
 

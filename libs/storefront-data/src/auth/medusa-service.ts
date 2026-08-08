@@ -22,6 +22,15 @@ export type MedusaUpdateCustomerData = Partial<{
   phone: string
 }>
 
+export type MedusaRequestCustomerAccountDeactivationResult = {
+  customer_id: string
+  sent: boolean
+}
+
+export type MedusaConfirmCustomerAccountDeactivationInput = {
+  token: string
+}
+
 export type MedusaDeactivateCustomerAccountResult = {
   auth_identity_deleted: boolean
   customer_id: string
@@ -103,6 +112,8 @@ export function createMedusaAuthService(
   unknown,
   string,
   string,
+  MedusaRequestCustomerAccountDeactivationResult,
+  MedusaConfirmCustomerAccountDeactivationInput,
   MedusaDeactivateCustomerAccountResult
 > {
   const reportLogoutError = (
@@ -149,8 +160,18 @@ export function createMedusaAuthService(
   }
 
   return {
-    deactivateAccount() {
+    confirmAccountDeactivation(input) {
       return sdk.client.fetch<MedusaDeactivateCustomerAccountResult>(
+        "/store/customers/deactivate/confirm",
+        {
+          method: "POST",
+          body: input,
+        }
+      )
+    },
+
+    requestAccountDeactivation() {
+      return sdk.client.fetch<MedusaRequestCustomerAccountDeactivationResult>(
         "/store/customers/me/deactivate",
         {
           method: "POST",

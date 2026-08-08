@@ -264,64 +264,6 @@ describe("storefront-data missing hook coverage", () => {
     ).toHaveLength(0)
   })
 
-  it("clears auth and customer-owned cache after account deactivation", async () => {
-    const deactivateAccount = vi.fn(async () => ({ deleted: true }))
-    const service = {
-      getCustomer: async () => ({ id: "cus_1" }),
-      login: async () => null,
-      register: async () => null,
-      logout: async () => undefined,
-      deactivateAccount,
-    }
-
-    const queryKeyNamespace = "test-auth-deactivation"
-    const authQueryKeys = createAuthQueryKeys(queryKeyNamespace)
-    const customerDomainKey = createQueryKey(queryKeyNamespace, "customer")
-    const ordersDomainKey = createQueryKey(queryKeyNamespace, "orders")
-    const productListsDomainKey = createQueryKey(
-      queryKeyNamespace,
-      "product-lists"
-    )
-    const { useDeactivateAccount } = createAuthHooks({
-      service,
-      queryKeyNamespace,
-      invalidateOnAuthChange: {
-        removeOnLogout: [productListsDomainKey],
-      },
-    })
-
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    })
-    const wrapper = createWrapper(queryClient)
-
-    queryClient.setQueryData(authQueryKeys.customer(), { id: "cus_1" })
-    queryClient.setQueryData(authQueryKeys.session(), { id: "sess_1" })
-    queryClient.setQueryData(customerDomainKey, { id: "cus_1" })
-    queryClient.setQueryData(ordersDomainKey, [{ id: "order_1" }])
-    queryClient.setQueryData(productListsDomainKey, [{ id: "list_1" }])
-
-    const { result } = renderHook(() => useDeactivateAccount(), { wrapper })
-
-    await act(async () => {
-      await result.current.mutateAsync()
-    })
-
-    expect(deactivateAccount).toHaveBeenCalledTimes(1)
-    expect(
-      queryClient.getQueryCache().findAll({ queryKey: authQueryKeys.all() })
-    ).toHaveLength(0)
-    expect(
-      queryClient.getQueryCache().findAll({ queryKey: customerDomainKey })
-    ).toHaveLength(0)
-    expect(
-      queryClient.getQueryCache().findAll({ queryKey: ordersDomainKey })
-    ).toHaveLength(0)
-    expect(
-      queryClient.getQueryCache().findAll({ queryKey: productListsDomainKey })
-    ).toHaveLength(0)
-  })
-
   it("invalidates customer and order domains on login", async () => {
     const service = {
       getCustomer: async () => ({ id: "cus_1" }),

@@ -1,6 +1,11 @@
 import type { HttpTypes } from "@medusajs/types"
 import { createMedusaAuthService } from "@techsio/storefront-data/auth/medusa-service"
-import { authTokenStorage, isSessionProxyAuthMode, storefrontSdk } from "../sdk"
+import {
+  authTokenStorage,
+  broadcastAuthSessionLogout,
+  isSessionProxyAuthMode,
+  storefrontSdk,
+} from "../sdk"
 import {
   requestAuthProxy,
   requestLogoutProxy,
@@ -70,6 +75,7 @@ const cleanupDeactivatedSession = async () => {
     )
   } finally {
     clearToken()
+    broadcastAuthSessionLogout()
   }
 }
 
@@ -102,12 +108,12 @@ const ensureSessionProxyToken = async (): Promise<string | null> => {
 }
 
 export const authService = {
-  async deactivateAccount() {
-    if (!authServiceBase.deactivateAccount) {
-      throw new Error("deactivateAccount service is not configured")
+  async confirmAccountDeactivation(input: { token: string }) {
+    if (!authServiceBase.confirmAccountDeactivation) {
+      throw new Error("confirmAccountDeactivation service is not configured")
     }
 
-    const result = await authServiceBase.deactivateAccount()
+    const result = await authServiceBase.confirmAccountDeactivation(input)
     await cleanupDeactivatedSession()
     return result
   },
@@ -168,6 +174,15 @@ export const authService = {
     await storeToken(token)
     return token
   },
+  requestAccountDeactivation() {
+    if (!authServiceBase.requestAccountDeactivation) {
+      return Promise.reject(
+        new Error("requestAccountDeactivation service is not configured")
+      )
+    }
+
+    return authServiceBase.requestAccountDeactivation()
+  },
   async logout() {
     if (isSessionProxyAuthMode) {
       await requestLogoutProxy()
@@ -175,6 +190,7 @@ export const authService = {
 
     await authServiceBase.logout()
     clearToken()
+    broadcastAuthSessionLogout()
   },
   updateCustomer(input: AuthUpdateInput) {
     if (!authServiceBase.updateCustomer) {
