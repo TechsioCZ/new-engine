@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs"
 
+import { MedusaError } from "@medusajs/framework/utils"
+
 export interface XmlElement {
   attributes: Record<string, string>
   inner: string
@@ -120,7 +122,8 @@ export const readXmlSource = async (source: string): Promise<string> => {
 
   const response = await fetch(source)
   if (!response.ok) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Failed to fetch XML source ${source}: ${response.status} ${response.statusText}`,
     )
   }

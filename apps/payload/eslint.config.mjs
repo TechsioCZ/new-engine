@@ -1,16 +1,36 @@
-import nextVitals from "eslint-config-next/core-web-vitals"
-import nextTypescript from "eslint-config-next/typescript"
+import { createRequire, registerHooks } from "node:module"
+import { pathToFileURL } from "node:url"
+
+const projectRequire = createRequire(import.meta.url)
+const typescriptUrl = pathToFileURL(
+  projectRequire.resolve("typescript-eslint-compat"),
+).href
+
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier === "typescript") {
+      return { shortCircuit: true, url: typescriptUrl }
+    }
+
+    return nextResolve(specifier, context)
+  },
+})
+
+const { default: nextVitals } =
+  await import("eslint-config-next/core-web-vitals")
+const { default: nextTypescript } =
+  await import("eslint-config-next/typescript")
 
 const eslintConfig = [
   ...nextVitals,
   ...nextTypescript,
   {
     rules: {
-      "@typescript-eslint/ban-ts-comment": "warn",
-      "@typescript-eslint/no-empty-object-type": "warn",
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/ban-ts-comment": "error",
+      "@typescript-eslint/no-empty-object-type": "error",
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [
-        "warn",
+        "error",
         {
           args: "after-used",
           argsIgnorePattern: "^_",
@@ -26,6 +46,7 @@ const eslintConfig = [
   {
     ignores: [
       ".next/",
+      "src/migrations/[0-9]*.ts",
       "src/payload-types.ts",
       "src/app/(payload)/importMap.js",
     ],

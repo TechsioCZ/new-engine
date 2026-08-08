@@ -38,7 +38,7 @@ const checkboxVariants = tv({
       "data-disabled:cursor-not-allowed",
       "data-disabled:bg-checkbox-bg-disabled",
       "data-disabled:border-checkbox-border-disabled",
-      "data-focus-visible:outline-(style:--default-ring-style) data-focus-visible:outline-(length:--default-ring-width)",
+      "data-focus-visible:outline-(length:--default-ring-width) data-focus-visible:outline-(style:--default-ring-style)",
       "data-focus-visible:outline-checkbox-ring-focus",
       "data-focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-invalid:border-(length:--border-width-validation)",

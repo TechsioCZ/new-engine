@@ -1,14 +1,9 @@
-interface FieldErrorMeta {
-  errors: unknown[]
-  isBlurred: boolean
-  errorMap: {
-    onBlur?: unknown
-    onChange?: unknown
-    onDynamic?: unknown
-    onSubmit?: unknown
-    onServer?: unknown
-  }
-}
+import type { FieldErrorMeta } from "./field-error-validation-results"
+import {
+  hasValidationResultFromSources,
+  resolveErrorFromValidationSources,
+  resolveFallbackFieldError,
+} from "./field-error-validation-results"
 
 interface ResolveVisibleFieldErrorOptions {
   hasChangedSinceBlur?: boolean
@@ -17,59 +12,12 @@ interface ResolveVisibleFieldErrorOptions {
   validationMode?: "none" | "blur"
 }
 
-type FieldValidationSource = keyof FieldErrorMeta["errorMap"]
 type FieldValidateStatus = "default" | "error"
 
 interface VisibleFieldFeedback {
   errorText: string | undefined
   validateStatus: FieldValidateStatus
 }
-
-interface ResolvedFieldValidationResult {
-  errorText?: string
-  matchedSource: boolean
-}
-
-const toFieldErrorText = (error: unknown): string | undefined => {
-  let errorText: string | undefined
-
-  if (typeof error === "string" || typeof error === "number") {
-    errorText = String(error)
-  } else if (Array.isArray(error) && error.length > 0) {
-    errorText = toFieldErrorText(error[0])
-  }
-
-  return errorText
-}
-
-const hasValidationResult = (
-  meta: FieldErrorMeta,
-  source: FieldValidationSource,
-) => Object.hasOwn(meta.errorMap, source)
-
-const hasValidationResultFromSources = (
-  meta: FieldErrorMeta,
-  sources: readonly FieldValidationSource[],
-) => sources.some((source) => hasValidationResult(meta, source))
-
-const resolveErrorFromValidationSources = (
-  meta: FieldErrorMeta,
-  sources: readonly FieldValidationSource[],
-): ResolvedFieldValidationResult => {
-  for (const source of sources) {
-    if (hasValidationResult(meta, source)) {
-      const errorText = toFieldErrorText(meta.errorMap[source])
-      return errorText === undefined
-        ? { matchedSource: true }
-        : { errorText, matchedSource: true }
-    }
-  }
-
-  return { matchedSource: false }
-}
-
-const resolveFallbackFieldError = (meta: FieldErrorMeta) =>
-  toFieldErrorText(meta.errors[0])
 
 const LIVE_VALIDATION_SOURCES = ["onDynamic", "onChange"] as const
 const BLURRED_SUBMITTED_VALIDATION_SOURCES = [

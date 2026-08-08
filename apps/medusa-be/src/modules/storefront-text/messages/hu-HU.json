@@ -174,6 +174,43 @@
         "company_optional": "{label} (opcionális)",
         "update_failed": "Nem sikerült menteni a fiók adatait. Próbálja újra."
       },
+      "deactivation": {
+        "metadata_title": "A fiók megszüntetésének megerősítése",
+        "section": {
+          "title": "Fiók megszüntetése",
+          "description": "Megerősítő hivatkozást küldünk e-mailben. A fiók addig aktív marad, amíg nem használja a hivatkozást. A meglévő rendelések nem törlődnek.",
+          "sent_status": "Ellenőrizze az e-mailjeit. A megerősítő hivatkozás 30 percig érvényes.",
+          "request_action": "Fiók megszüntetésének kérése",
+          "resend_action": "E-mail újraküldése"
+        },
+        "dialog": {
+          "title": "Elküldi a fiók megszüntetését megerősítő e-mailt?",
+          "intro": "A fiók ebben a lépésben még nem szűnik meg.",
+          "link_expiry": "E-mailben küldünk egy 30 percig érvényes hivatkozást.",
+          "confirmation_required": "A fiókot csak a hivatkozás megnyitása és a megerősítés után szüntetjük meg.",
+          "orders_preserved": "A meglévő rendelések nem törlődnek.",
+          "keep_action": "Fiók megtartása",
+          "submit_action": "Megerősítő e-mail küldése",
+          "loading": "E-mail küldése"
+        },
+        "toast": {
+          "title": "A megerősítő e-mailt elküldtük",
+          "description": "A fiók addig aktív marad, amíg az e-mailben meg nem erősíti a megszüntetését."
+        },
+        "confirmation": {
+          "title": "A fiók megszüntetésének megerősítése",
+          "description": "A megerősítés után már nem tud bejelentkezni. Meglévő rendeléseit biztonságosan megőrizzük.",
+          "success": "A fiók megszűnt. Ha ugyanazzal az e-mail-címmel újra regisztrál, az eredeti fiók és a rendelési előzmények helyreállnak.",
+          "store_action": "Tovább az áruházba",
+          "confirm_action": "Fiók megszüntetésének megerősítése",
+          "loading": "Fiók megszüntetése"
+        },
+        "errors": {
+          "request_failed": "Nem sikerült elküldeni a megerősítő e-mailt. Próbálja újra.",
+          "invalid_token": "A megerősítő hivatkozás érvénytelen.",
+          "confirmation_failed": "Nem sikerült megszüntetni a fiókot. Lehet, hogy a megerősítő hivatkozás érvénytelen vagy lejárt."
+        }
+      },
       "orders": {
         "retry": "Újrapróbálkozás",
         "empty_description": "Még nincs befejezett rendelése.",

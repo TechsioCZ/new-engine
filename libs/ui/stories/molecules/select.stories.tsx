@@ -140,10 +140,10 @@ const meta: Meta<typeof Select> = {
       return (
         <div className="flex w-80 flex-col gap-6 p-4">
           {typeof title === "string" && title.length > 0 ? (
-            <h3 className="font-medium text-lg">{title}</h3>
+            <h3 className="text-lg font-medium">{title}</h3>
           ) : null}
           {typeof description === "string" && description.length > 0 ? (
-            <p className="mb-2 text-gray-600 text-sm">{description}</p>
+            <p className="mb-2 text-sm text-gray-600">{description}</p>
           ) : null}
           <div className="space-y-4">
             <Story />
@@ -574,7 +574,7 @@ export const WithAvatars: Story = {
                     <Image
                       src={teamMember.avatar}
                       alt={teamMember.label}
-                      className="rounded-full object-cover size-6"
+                      className="size-6 rounded-full object-cover"
                     />
                   ) : null}
                   <span>{items[0]?.label}</span>
@@ -593,7 +593,7 @@ export const WithAvatars: Story = {
                 <Image
                   src={item.avatar}
                   alt={item.label}
-                  className="rounded-full object-cover size-6"
+                  className="size-6 rounded-full object-cover"
                 />
                 <span className="flex flex-col">
                   <Select.ItemText />
@@ -707,7 +707,7 @@ export const CustomItemContent: Story = {
                   (item) => item.value === items[0]?.value,
                 )
                 return (
-                  <span className="flex items-center justify-between w-full">
+                  <span className="flex w-full items-center justify-between">
                     <span>{items[0]?.label}</span>
                     <span className="text-sm text-gray-500">{plan?.price}</span>
                   </span>
@@ -720,7 +720,7 @@ export const CustomItemContent: Story = {
           <Select.Content>
             {plans.map((item) => (
               <Select.Item key={item.value} item={item}>
-                <span className="flex flex-col flex-1">
+                <span className="flex flex-1 flex-col">
                   <span className="flex items-center gap-2">
                     <Select.ItemText />
                   </span>

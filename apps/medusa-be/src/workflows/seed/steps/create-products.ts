@@ -9,6 +9,7 @@ import type {
 import {
   ContainerRegistrationKeys,
   kebabCase,
+  MedusaError,
   Modules,
   ProductStatus,
   toHandle,
@@ -305,7 +306,8 @@ const mergeBrandScalar = (
 
   const currentValue = brand[field]
   if (currentValue !== undefined && currentValue !== normalizedValue) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Conflicting ${field} values for brand "${brand.title}" from products "${brand.products[0]}" and "${productHandle}"`,
     )
   }
@@ -320,7 +322,8 @@ const mergeBrandAttribute = (
 ) => {
   const name = attribute.name.trim().toLowerCase()
   if (name === "") {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Brand "${brand.title}" has an attribute with an empty name on product "${productHandle}"`,
     )
   }
@@ -328,7 +331,8 @@ const mergeBrandAttribute = (
   const value = attribute.value.trim()
   const currentValue = brand.attributes.get(name)
   if (currentValue !== undefined && currentValue !== value) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Conflicting attribute "${name}" values for brand "${brand.title}" from products "${brand.products[0]}" and "${productHandle}"`,
     )
   }
@@ -349,7 +353,8 @@ export const buildBrandRegistry = (
 
     const handle = normalizeBrandRegistryKey(title)
     if (handle === "") {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         `Product "${inputProduct.handle}" has a brand title that cannot produce a valid handle`,
       )
     }
@@ -561,7 +566,10 @@ const processProductVariantImagesInput = (
   const variantImages = productVariantImages.get(inputProduct.handle)
 
   if (!variantImages) {
-    throw new Error(`Product "${inputProduct.handle}" not found`)
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Product "${inputProduct.handle}" not found`,
+    )
   }
 
   for (const variant of inputProduct.variants ?? []) {
@@ -588,7 +596,8 @@ const prepareVariantImagesWorkflowInput = (
 
   const variantImages = productVariantImages.get(product.handle)
   if (!variantImages) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Product "${product.handle}" not found when processing variant images`,
     )
   }
@@ -597,7 +606,10 @@ const prepareVariantImagesWorkflowInput = (
 
   for (const variant of product.variants) {
     if (variant.sku === null || variant.sku === "") {
-      throw new Error(`Variant SKU is empty for product "${product.handle}"`)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Variant SKU is empty for product "${product.handle}"`,
+      )
     }
 
     const variantImage = variantImages.get(variant.sku)
@@ -661,7 +673,10 @@ const resolveCategory = (
     (cat) => cat.handle === handle,
   )
   if (!existingCategory) {
-    throw new Error(`Category "${handle}" not found`)
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Category "${handle}" not found`,
+    )
   }
 
   return existingCategory
@@ -673,7 +688,10 @@ const resolveShippingProfileId = (
 ): string => {
   const profile = existingShippingProfiles.find((sp) => sp.name === name)
   if (!profile) {
-    throw new Error(`Shipping profile "${name}" not found`)
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Shipping profile "${name}" not found`,
+    )
   }
 
   return profile.id
@@ -685,7 +703,10 @@ const resolveSalesChannel = (
 ): ExistingSalesChannel => {
   const channel = existingSalesChannels.find((sc) => sc.name === name)
   if (!channel) {
-    throw new Error(`Sales channel "${name}" not found`)
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Sales channel "${name}" not found`,
+    )
   }
 
   return channel
@@ -945,7 +966,8 @@ const getDesiredBrandHandleByProduct = (brands: BrandRegistry) => {
     for (const productHandle of brand.products) {
       const existing = desiredBrandHandleByProduct.get(productHandle)
       if (existing !== undefined && existing !== brand.handle) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
           `Product "${productHandle}" resolves to multiple brands: "${existing}" and "${brand.handle}"`,
         )
       }
@@ -964,14 +986,16 @@ const mergeExistingBrandAttributes = (
   for (const attribute of existing.attributes ?? []) {
     const persistedName = attribute.attributeType?.name?.trim()
     if (persistedName === undefined || persistedName === "") {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Existing brand "${existing.title}" has an attribute without an attribute type name`,
       )
     }
     const key = persistedName.toLowerCase()
     const prior = attributes.get(key)
     if (prior !== undefined && prior.value !== attribute.value) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Existing brand "${existing.title}" has conflicting values for attribute "${key}"`,
       )
     }
@@ -1084,7 +1108,8 @@ const findExistingSeedBrand = async (
     const formattedBrands = existingBrands
       .map((brand) => `"${brand.title}" (${brand.handle})`)
       .join(", ")
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.CONFLICT,
       `Brand "${brandData.title}" resolves to multiple persisted records for handles ${formattedHandles}: ${formattedBrands}`,
     )
   }
@@ -1139,7 +1164,8 @@ const assertSeedBrandsCompatibleWithPersistence = async (
       priorDesiredHandle !== undefined &&
       priorDesiredHandle !== brandData.handle
     ) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.CONFLICT,
         `Persisted brand "${existing.title}" (${existing.handle}) resolves to multiple seed handles: "${priorDesiredHandle}" and "${brandData.handle}"`,
       )
     }
@@ -1165,7 +1191,10 @@ const upsertSeedBrand = async (params: {
     })
     const [created] = result
     if (created === undefined) {
-      throw new Error(`Brand "${params.brandData.title}" was not created`)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Brand "${params.brandData.title}" was not created`,
+      )
     }
     return {
       ...created,
@@ -1243,7 +1272,8 @@ const listSeedProductsByHandle = async (params: {
     const missingHandles = uniqueHandles.filter(
       (handle) => !foundHandles.has(handle),
     )
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
       `Products were not found for brand linking: ${missingHandles.join(", ")}`,
     )
   }
@@ -1265,7 +1295,8 @@ export const buildDesiredProductBrandLinks = (params: {
         ? undefined
         : params.brandIdsByHandle.get(desiredHandle)
     if (desiredHandle !== undefined && desiredBrandId === undefined) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Resolved brand was not found for product "${product.handle}"`,
       )
     }

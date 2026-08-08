@@ -1,10 +1,14 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
-import { omitUndefined } from "@techsio/std/object"
+import { isRecord, omitUndefined } from "@techsio/std/object"
 
 import { toComparableTimestamp } from "../shared/date-utils"
 import { isAuthError } from "../shared/medusa-errors"
+import { InvalidMedusaAccountDeactivationResponseError } from "./account-deactivation-errors"
+import type { MedusaAccountDeactivationOperation } from "./account-deactivation-errors"
 import type { AuthService } from "./types"
+
+export { InvalidMedusaAccountDeactivationResponseError } from "./account-deactivation-errors"
 
 const MULTI_STEP_AUTH_UNSUPPORTED = "Multi-step authentication not supported"
 
@@ -25,6 +29,83 @@ export type MedusaUpdateCustomerData = Partial<{
   last_name: string
   phone: string
 }>
+
+export interface MedusaRequestCustomerAccountDeactivationResult {
+  customer_id: string
+  sent: boolean
+}
+
+export interface MedusaConfirmCustomerAccountDeactivationInput {
+  token: string
+}
+
+export interface MedusaDeactivateCustomerAccountResult {
+  auth_identity_deleted: boolean
+  customer_id: string
+  deleted: boolean
+}
+
+const readCustomerId = (
+  value: Record<string, unknown>,
+  operation: MedusaAccountDeactivationOperation,
+): string => {
+  const customerId = value["customer_id"]
+  if (typeof customerId !== "string" || customerId.trim().length === 0) {
+    throw new InvalidMedusaAccountDeactivationResponseError(
+      operation,
+      "customer_id",
+    )
+  }
+  return customerId
+}
+
+const parseDeactivationRequestResponse = (
+  value: unknown,
+): MedusaRequestCustomerAccountDeactivationResult => {
+  if (!isRecord(value)) {
+    throw new InvalidMedusaAccountDeactivationResponseError(
+      "request",
+      "response body",
+    )
+  }
+  const customerId = readCustomerId(value, "request")
+  const { sent } = value
+  if (typeof sent !== "boolean") {
+    throw new InvalidMedusaAccountDeactivationResponseError("request", "sent")
+  }
+  return { customer_id: customerId, sent }
+}
+
+const parseDeactivationConfirmationResponse = (
+  value: unknown,
+): MedusaDeactivateCustomerAccountResult => {
+  if (!isRecord(value)) {
+    throw new InvalidMedusaAccountDeactivationResponseError(
+      "confirm",
+      "response body",
+    )
+  }
+  const customerId = readCustomerId(value, "confirm")
+  const authIdentityDeleted = value["auth_identity_deleted"]
+  const { deleted } = value
+  if (typeof authIdentityDeleted !== "boolean") {
+    throw new InvalidMedusaAccountDeactivationResponseError(
+      "confirm",
+      "auth_identity_deleted",
+    )
+  }
+  if (typeof deleted !== "boolean") {
+    throw new InvalidMedusaAccountDeactivationResponseError(
+      "confirm",
+      "deleted",
+    )
+  }
+  return {
+    auth_identity_deleted: authIdentityDeleted,
+    customer_id: customerId,
+    deleted,
+  }
+}
 
 export class MedusaRegistrationSignInError extends Error {
   readonly code = "registration_sign_in_failed"
@@ -100,7 +181,10 @@ export const createMedusaAuthService = (
   MedusaUpdateCustomerData,
   unknown,
   string,
-  string
+  string,
+  MedusaRequestCustomerAccountDeactivationResult,
+  MedusaConfirmCustomerAccountDeactivationInput,
+  MedusaDeactivateCustomerAccountResult
 > => {
   const reportLogoutError = (
     error: unknown,
@@ -146,6 +230,17 @@ export const createMedusaAuthService = (
   }
 
   return {
+    async confirmAccountDeactivation(input) {
+      const response: unknown = await sdk.client.fetch<unknown>(
+        "/store/customers/deactivate/confirm",
+        {
+          body: { token: input.token },
+          method: "POST",
+        },
+      )
+      return parseDeactivationConfirmationResponse(response)
+    },
+
     async getCustomer(signal?: AbortSignal) {
       try {
         const { customer } =
@@ -262,6 +357,17 @@ export const createMedusaAuthService = (
 
         throw error
       }
+    },
+
+    async requestAccountDeactivation() {
+      const response: unknown = await sdk.client.fetch<unknown>(
+        "/store/customers/me/deactivate",
+        {
+          body: { confirm: true },
+          method: "POST",
+        },
+      )
+      return parseDeactivationRequestResponse(response)
     },
 
     async updateCustomer(data) {

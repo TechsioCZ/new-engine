@@ -1,6 +1,6 @@
 import type { Query } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 
 interface AdminRoleCandidate {
   customer_id?: string | null | undefined

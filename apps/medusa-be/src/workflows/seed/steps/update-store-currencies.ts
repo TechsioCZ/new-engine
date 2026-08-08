@@ -3,7 +3,11 @@ import type {
   Logger,
   StoreDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { updateStoresWorkflow } from "@medusajs/medusa/core-flows"
 
@@ -31,7 +35,10 @@ export const updateStoreCurrenciesStep = createStep(
     // medusa bug? storeModuleService interface is not exported / defined?
     const [store]: StoreDTO[] = await storeModuleService.listStores()
     if (!store) {
-      throw new Error("Store not found while updating seed currencies")
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        "Store not found while updating seed currencies",
+      )
     }
 
     const currencies = input.currencies.map((i) => ({

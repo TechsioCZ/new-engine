@@ -294,7 +294,7 @@ try {
       "./scripts/run-vitest.mjs",
       "run",
       "--config",
-      "vitest.config.ts",
+      "vitest.config.mts",
       "--no-file-parallelism",
     ],
     {

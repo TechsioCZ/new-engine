@@ -156,7 +156,10 @@ export const trackingBatchClientMapperHelper = {
       }
       const [match] = matches
       if (match === undefined) {
-        throw new Error(`SKU '${requested.sku}' could not be resolved`)
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `SKU '${requested.sku}' could not be resolved`,
+        )
       }
       return {
         id: match.id,

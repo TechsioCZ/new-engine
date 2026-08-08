@@ -605,7 +605,7 @@ export const DataPreview: Story = {
                 theme="unstyled"
               >
                 <span className="text-sm">{label}</span>
-                <span className="font-bold text-2xl">{value}</span>
+                <span className="text-2xl font-bold">{value}</span>
               </Button>
             </Tooltip>
           ))}

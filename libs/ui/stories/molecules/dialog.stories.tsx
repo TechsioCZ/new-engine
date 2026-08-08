@@ -401,21 +401,21 @@ export const RichContent: Story = {
     children: (
       <div className="space-y-300">
         <div className="flex gap-200">
-          <div className="flex items-center justify-center rounded-lg bg-surface size-24">
-            <span className="text-secondary text-sm">Image</span>
+          <div className="flex size-24 items-center justify-center rounded-lg bg-surface">
+            <span className="text-sm text-secondary">Image</span>
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-lg">Premium Headphones</h3>
+            <h3 className="text-lg font-semibold">Premium Headphones</h3>
             <p className="text-secondary">
               High-quality wireless headphones with noise cancellation
             </p>
-            <p className="mt-100 font-bold text-2xl text-success">$299.99</p>
+            <p className="mt-100 text-2xl font-bold text-success">$299.99</p>
           </div>
         </div>
 
         <div className="border-t pt-4">
           <h4 className="mb-100 font-semibold">Features</h4>
-          <ul className="list-inside list-disc space-y-50 text-secondary text-sm">
+          <ul className="list-inside list-disc space-y-50 text-sm text-secondary">
             <li>Active noise cancellation</li>
             <li>30-hour battery life</li>
             <li>Premium leather ear cups</li>
@@ -430,7 +430,7 @@ export const RichContent: Story = {
               <span className="text-warning">★★★★★</span>
               <span className="text-sm">4.8 out of 5 stars</span>
             </div>
-            <p className="text-secondary text-sm">Based on 2,847 reviews</p>
+            <p className="text-sm text-secondary">Based on 2,847 reviews</p>
           </div>
         </div>
       </div>
@@ -562,7 +562,7 @@ const DrawerRightRender: NonNullable<Story["render"]> = () => {
           <p>Right drawer content.</p>
           <p>Great for settings panels or additional information.</p>
           <div className="rounded bg-base-reverse p-150">
-            <p className="text-fg-reverse text-sm">Example content block</p>
+            <p className="text-sm text-fg-reverse">Example content block</p>
           </div>
         </div>
       </Dialog>
@@ -604,7 +604,7 @@ const DrawerTopRender: NonNullable<Story["render"]> = () => {
             <span>📧</span>
             <div>
               <p className="font-medium">New message</p>
-              <p className="text-fg-secondary text-sm">
+              <p className="text-sm text-fg-secondary">
                 You have 3 unread messages
               </p>
             </div>
@@ -613,7 +613,7 @@ const DrawerTopRender: NonNullable<Story["render"]> = () => {
             <span>✅</span>
             <div>
               <p className="font-medium">Task completed</p>
-              <p className="text-fg-secondary text-sm">
+              <p className="text-sm text-fg-secondary">
                 Your deployment is ready
               </p>
             </div>

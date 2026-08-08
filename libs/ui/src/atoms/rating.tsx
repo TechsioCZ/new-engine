@@ -37,7 +37,7 @@ const rating = tv({
     ],
     itemWrapper: [
       "flex items-center",
-      "has-focus-visible:outline-(style:--default-ring-style) has-focus-visible:outline-(length:--default-ring-width)",
+      "has-focus-visible:outline-(length:--default-ring-width) has-focus-visible:outline-(style:--default-ring-style)",
       "has-focus-visible:outline-rating-ring",
       "has-focus-visible:outline-offset-(length:--default-ring-offset)",
     ],

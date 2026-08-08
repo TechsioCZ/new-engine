@@ -34,7 +34,7 @@ const PlaygroundStory = (args: PlaygroundArgs) => {
   const [value, setValue] = useState(50.5)
   const { showLabel, label, showControls, showScrubber, ...numericArgs } = args
   return (
-    <div className="w-md flex flex-col gap-50">
+    <div className="flex w-md flex-col gap-50">
       {showLabel === true && (
         <Label htmlFor="numeric-playground">{label}</Label>
       )}
@@ -55,7 +55,7 @@ const PlaygroundStory = (args: PlaygroundArgs) => {
           )}
         </NumericInput.Control>
       </NumericInput>
-      <p className="text-fg-secondary text-sm mt-100">Current value: {value}</p>
+      <p className="mt-100 text-sm text-fg-secondary">Current value: {value}</p>
     </div>
   )
 }
@@ -122,7 +122,7 @@ const WithLabelStory: NonNullable<Story["render"]> = () => {
   const [value, setValue] = useState(42)
 
   return (
-    <div className="w-md flex flex-col gap-50">
+    <div className="flex w-md flex-col gap-50">
       <Label htmlFor="numeric-with-label">Quantity</Label>
       <NumericInput
         id="numeric-with-label"
@@ -150,7 +150,7 @@ export const WithLabel: Story = {
 export const AllSizes: Story = {
   render: () => (
     <div className="flex flex-col gap-300">
-      <div className="w-md flex flex-col gap-50">
+      <div className="flex w-md flex-col gap-50">
         <Label htmlFor="numeric-sm" size="sm">
           Small (sm)
         </Label>
@@ -165,7 +165,7 @@ export const AllSizes: Story = {
         </NumericInput>
       </div>
 
-      <div className="w-md flex flex-col gap-50">
+      <div className="flex w-md flex-col gap-50">
         <Label htmlFor="numeric-md" size="md">
           Medium (md)
         </Label>
@@ -180,7 +180,7 @@ export const AllSizes: Story = {
         </NumericInput>
       </div>
 
-      <div className="w-md flex flex-col gap-50">
+      <div className="flex w-md flex-col gap-50">
         <Label htmlFor="numeric-lg" size="lg">
           Large (lg)
         </Label>
@@ -202,7 +202,7 @@ const WithoutControlsStory: NonNullable<Story["render"]> = () => {
   const [value, setValue] = useState(50)
 
   return (
-    <div className="w-md flex flex-col gap-50">
+    <div className="flex w-md flex-col gap-50">
       <Label htmlFor="numeric-no-controls">Use arrow keys or mouse wheel</Label>
       <NumericInput
         id="numeric-no-controls"
@@ -217,7 +217,7 @@ const WithoutControlsStory: NonNullable<Story["render"]> = () => {
           <NumericInput.Input />
         </NumericInput.Control>
       </NumericInput>
-      <p className="text-fg-secondary text-sm mt-50">Current value: {value}</p>
+      <p className="mt-50 text-sm text-fg-secondary">Current value: {value}</p>
     </div>
   )
 }
@@ -230,7 +230,7 @@ const WithScrubberStory: NonNullable<Story["render"]> = () => {
   const [value, setValue] = useState(50)
 
   return (
-    <div className="w-md flex flex-col gap-50">
+    <div className="flex w-md flex-col gap-50">
       <Label htmlFor="numeric-scrubber">Drag left/right to change value</Label>
       <NumericInput
         id="numeric-scrubber"
@@ -249,7 +249,7 @@ const WithScrubberStory: NonNullable<Story["render"]> = () => {
           </NumericInput.TriggerContainer>
         </NumericInput.Control>
       </NumericInput>
-      <p className="text-fg-secondary text-sm mt-50">Current value: {value}</p>
+      <p className="mt-50 text-sm text-fg-secondary">Current value: {value}</p>
     </div>
   )
 }
@@ -262,7 +262,7 @@ const MinMaxStory: NonNullable<Story["render"]> = () => {
   const [value, setValue] = useState(5)
 
   return (
-    <div className="w-md flex flex-col gap-50">
+    <div className="flex w-md flex-col gap-50">
       <Label htmlFor="numeric-minmax">Range: 0-10 (clamped on blur)</Label>
       <NumericInput
         id="numeric-minmax"
@@ -281,7 +281,7 @@ const MinMaxStory: NonNullable<Story["render"]> = () => {
           </NumericInput.TriggerContainer>
         </NumericInput.Control>
       </NumericInput>
-      <p className="text-fg-secondary text-sm mt-50">
+      <p className="mt-50 text-sm text-fg-secondary">
         Try typing a value outside the range and blur the input
       </p>
     </div>
@@ -297,7 +297,7 @@ const InvalidStateStory: NonNullable<Story["render"]> = () => {
   const isInvalid = value < 0 || value > 100
 
   return (
-    <div className="w-md flex flex-col gap-50">
+    <div className="flex w-md flex-col gap-50">
       <Label htmlFor="numeric-invalid">Valid range: 0-100</Label>
       <NumericInput
         id="numeric-invalid"
@@ -318,7 +318,7 @@ const InvalidStateStory: NonNullable<Story["render"]> = () => {
         </NumericInput.Control>
       </NumericInput>
       {isInvalid && (
-        <p className="text-fg-accent-danger text-sm mt-50">
+        <p className="mt-50 text-sm text-fg-accent-danger">
           Value must be between 0 and 100
         </p>
       )}
@@ -334,7 +334,7 @@ const WithPrecisionStory: NonNullable<Story["render"]> = () => {
   const [value, setValue] = useState(3.14)
 
   return (
-    <div lang="cs" className="w-md flex flex-col gap-50">
+    <div lang="cs" className="flex w-md flex-col gap-50">
       <Label htmlFor="numeric-precision">Pi approximation (2 decimals)</Label>
       <NumericInput
         id="numeric-precision"
@@ -353,7 +353,7 @@ const WithPrecisionStory: NonNullable<Story["render"]> = () => {
           </NumericInput.TriggerContainer>
         </NumericInput.Control>
       </NumericInput>
-      <p className="text-fg-secondary text-sm mt-50">Current value: {value}</p>
+      <p className="mt-50 text-sm text-fg-secondary">Current value: {value}</p>
     </div>
   )
 }
@@ -366,7 +366,7 @@ const CustomLayoutHorizontalStory: NonNullable<Story["render"]> = () => {
   const [value, setValue] = useState(50)
 
   return (
-    <div className="w-md flex flex-col gap-50">
+    <div className="flex w-md flex-col gap-50">
       <Label htmlFor="numeric-custom-h">Custom Layout</Label>
       <NumericInput
         id="numeric-custom-h"
@@ -399,7 +399,7 @@ export const CustomLayoutHorizontal: Story = {
 
 export const Disabled: Story = {
   render: () => (
-    <div className="w-md flex flex-col gap-50">
+    <div className="flex w-md flex-col gap-50">
       <Label htmlFor="numeric-disabled">Disabled Input</Label>
       <NumericInput id="numeric-disabled" defaultValue={42} disabled>
         <NumericInput.Control>
@@ -420,7 +420,7 @@ const CustomButtonPropsStory: NonNullable<Story["render"]> = () => {
 
   return (
     <div className="flex flex-col gap-300">
-      <div className="w-md flex flex-col gap-50">
+      <div className="flex w-md flex-col gap-50">
         <Label htmlFor="numeric-variant">Different Variants</Label>
         <NumericInput
           id="numeric-variant"
@@ -439,7 +439,7 @@ const CustomButtonPropsStory: NonNullable<Story["render"]> = () => {
         </NumericInput>
       </div>
 
-      <div className="w-md flex flex-col gap-50">
+      <div className="flex w-md flex-col gap-50">
         <Label htmlFor="numeric-size">Different Themes</Label>
         <NumericInput
           id="numeric-size"

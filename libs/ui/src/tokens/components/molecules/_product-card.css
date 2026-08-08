@@ -50,3 +50,11 @@
 @utility token-icon-wishlist-button {
   @apply token-icon-heart;
 }
+
+@utility grid-rows-product-card-compact {
+  grid-template-rows: auto auto auto;
+}
+
+@utility grid-cols-product-card-feature {
+  grid-template-columns: auto 1fr;
+}

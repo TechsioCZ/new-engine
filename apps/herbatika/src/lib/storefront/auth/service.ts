@@ -1,12 +1,19 @@
 import type { HttpTypes } from "@medusajs/types"
 import { createMedusaAuthService } from "@techsio/storefront-data/auth/medusa-service"
+import type { MedusaConfirmCustomerAccountDeactivationInput } from "@techsio/storefront-data/auth/medusa-service"
 
-import { authTokenStorage, isSessionProxyAuthMode, storefrontSdk } from "../sdk"
+import {
+  authTokenStorage,
+  broadcastAuthSessionLogout,
+  isSessionProxyAuthMode,
+  storefrontSdk,
+} from "../sdk"
 import {
   requestAuthProxy,
   requestLogoutProxy,
   requestSessionProxy,
 } from "./proxy"
+import { cleanupDeactivatedSession } from "./session-cleanup"
 import type {
   AuthLoginInput,
   AuthRegisterInput,
@@ -64,6 +71,24 @@ const ensureSessionProxyToken = async (): Promise<string | null> => {
 }
 
 export const authService = {
+  async confirmAccountDeactivation(
+    input: MedusaConfirmCustomerAccountDeactivationInput,
+  ) {
+    if (!authServiceBase.confirmAccountDeactivation) {
+      throw new Error("confirmAccountDeactivation service is not configured")
+    }
+
+    const result = await authServiceBase.confirmAccountDeactivation(input)
+    await cleanupDeactivatedSession({
+      broadcastLogout: broadcastAuthSessionLogout,
+      clearToken,
+      logout: async () => {
+        await authServiceBase.logout()
+      },
+      ...(isSessionProxyAuthMode ? { logoutProxy: requestLogoutProxy } : {}),
+    })
+    return result
+  },
   async getCustomer(
     signal?: AbortSignal,
   ): Promise<HttpTypes.StoreCustomer | null> {
@@ -116,6 +141,7 @@ export const authService = {
 
     await authServiceBase.logout()
     clearToken()
+    broadcastAuthSessionLogout()
   },
   async register(input: AuthRegisterInput) {
     const { token } = await requestAuthProxy("register", {
@@ -128,6 +154,13 @@ export const authService = {
 
     await storeToken(token)
     return token
+  },
+  async requestAccountDeactivation() {
+    if (!authServiceBase.requestAccountDeactivation) {
+      throw new Error("requestAccountDeactivation service is not configured")
+    }
+
+    return await authServiceBase.requestAccountDeactivation()
   },
   async updateCustomer(input: AuthUpdateInput) {
     if (!authServiceBase.updateCustomer) {

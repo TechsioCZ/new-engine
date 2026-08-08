@@ -1,4 +1,4 @@
-import { MedusaService } from "@medusajs/framework/utils"
+import { MedusaError, MedusaService } from "@medusajs/framework/utils"
 
 import SymmyImportJob from "./models/symmy-import-job"
 
@@ -44,7 +44,10 @@ const parseJobStatus = (value: string): SymmyImportJobStatus => {
   ) {
     return value
   }
-  throw new Error(`Invalid import job status: ${value}`)
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    `Invalid import job status: ${value}`,
+  )
 }
 
 const normalizeJob = <T extends { status: string }>(job: T) => ({

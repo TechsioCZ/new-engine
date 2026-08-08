@@ -1,5 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { batchProductsWorkflow } from "@medusajs/medusa/core-flows"
 
 import { productBatchClientMapperHelper } from "./client-mapper-helper"
@@ -208,7 +211,10 @@ export class ProductBatchClient {
 
     const workflowResult: unknown = result
     if (!isObjectMap(workflowResult)) {
-      throw new Error("Product batch workflow returned an invalid result")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Product batch workflow returned an invalid result",
+      )
     }
     const created = decodeCreatedProducts(
       getObjectValue(workflowResult, "created"),
@@ -217,7 +223,10 @@ export class ProductBatchClient {
       getObjectValue(workflowResult, "updated"),
     )
     if (created === null || updated === null) {
-      throw new Error("Product batch workflow returned invalid products")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Product batch workflow returned invalid products",
+      )
     }
     return { created, updated }
   }

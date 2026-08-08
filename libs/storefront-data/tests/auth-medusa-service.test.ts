@@ -3,6 +3,7 @@ import type {
   AuthRedirectResponse,
   AuthRegisterResponse,
   ClientHeaders,
+  FetchArgs,
 } from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import type { Mock } from "vitest"
@@ -10,6 +11,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import type { MedusaLogoutErrorContext } from "../src/auth/medusa-service"
 import {
+  InvalidMedusaAccountDeactivationResponseError,
   MedusaRegistrationSignInError,
   createMedusaAuthService,
 } from "../src/auth/medusa-service"
@@ -19,10 +21,7 @@ import {
   createTestMedusaSdk,
 } from "./medusa-fixtures"
 
-type FetchCustomer = (
-  path: string,
-  init?: { signal?: AbortSignal | null },
-) => Promise<{ customer?: HttpTypes.StoreCustomer }>
+type FetchMedusa = (path: string, init?: FetchArgs) => Promise<unknown>
 
 type RegisterAuth = (
   actor: string,
@@ -47,7 +46,7 @@ type CreateCustomer = (
 type OnLogoutError = (error: unknown, context: MedusaLogoutErrorContext) => void
 
 interface SdkSpies {
-  clientFetch: Mock<FetchCustomer>
+  clientFetch: Mock<FetchMedusa>
   login: Mock<LoginAuth>
   logout: Mock<LogoutAuth>
   refresh: Mock<RefreshAuth>
@@ -58,7 +57,7 @@ interface SdkSpies {
 const createSdkMock = () => {
   const sdk = createTestMedusaSdk()
   const spies: SdkSpies = {
-    clientFetch: vi.fn<FetchCustomer>().mockResolvedValue({
+    clientFetch: vi.fn<FetchMedusa>().mockResolvedValue({
       customer: createStoreCustomer("cus_1"),
     }),
     login: vi.fn<LoginAuth>().mockResolvedValue("token_1"),
@@ -129,6 +128,115 @@ describe(createMedusaAuthService, () => {
     const service = createMedusaAuthService(sdk)
 
     await expect(service.getCustomer()).resolves.toBeNull()
+  })
+
+  it("parses a valid account deactivation request response", async () => {
+    const { sdk, spies } = createSdkMock()
+    spies.clientFetch.mockResolvedValue({ customer_id: "cus_1", sent: true })
+    const service = createMedusaAuthService(sdk)
+    const { requestAccountDeactivation } = service
+
+    if (requestAccountDeactivation === undefined) {
+      throw new Error(
+        "Expected the Medusa auth service to support deactivation",
+      )
+    }
+
+    await expect(requestAccountDeactivation()).resolves.toStrictEqual({
+      customer_id: "cus_1",
+      sent: true,
+    })
+    expect(spies.clientFetch).toHaveBeenCalledWith(
+      "/store/customers/me/deactivate",
+      {
+        body: { confirm: true },
+        method: "POST",
+      },
+    )
+  })
+
+  it("rejects a malformed account deactivation request response", async () => {
+    const { sdk, spies } = createSdkMock()
+    spies.clientFetch.mockResolvedValue({ customer_id: "cus_1", sent: "yes" })
+    const service = createMedusaAuthService(sdk)
+    const { requestAccountDeactivation } = service
+
+    if (requestAccountDeactivation === undefined) {
+      throw new Error(
+        "Expected the Medusa auth service to support deactivation",
+      )
+    }
+
+    const request = requestAccountDeactivation()
+    await expect(request).rejects.toMatchObject({
+      code: "INVALID_MEDUSA_ACCOUNT_DEACTIVATION_RESPONSE",
+      field: "sent",
+      operation: "request",
+    })
+    await expect(request).rejects.toBeInstanceOf(
+      InvalidMedusaAccountDeactivationResponseError,
+    )
+  })
+
+  it("parses a valid account deactivation confirmation response", async () => {
+    const { sdk, spies } = createSdkMock()
+    spies.clientFetch.mockResolvedValue({
+      auth_identity_deleted: true,
+      customer_id: "cus_1",
+      deleted: true,
+    })
+    const service = createMedusaAuthService(sdk)
+    const { confirmAccountDeactivation } = service
+
+    if (confirmAccountDeactivation === undefined) {
+      throw new Error(
+        "Expected the Medusa auth service to support deactivation",
+      )
+    }
+
+    await expect(
+      confirmAccountDeactivation({ token: "deactivation-token" }),
+    ).resolves.toStrictEqual({
+      auth_identity_deleted: true,
+      customer_id: "cus_1",
+      deleted: true,
+    })
+    expect(spies.clientFetch).toHaveBeenCalledWith(
+      "/store/customers/deactivate/confirm",
+      {
+        body: { token: "deactivation-token" },
+        method: "POST",
+      },
+    )
+  })
+
+  it("rejects a malformed account deactivation confirmation response", async () => {
+    const { sdk, spies } = createSdkMock()
+    spies.clientFetch.mockResolvedValue({
+      auth_identity_deleted: true,
+      customer_id: "cus_1",
+      deleted: 1,
+    })
+    const service = createMedusaAuthService(sdk)
+    const { confirmAccountDeactivation } = service
+
+    if (confirmAccountDeactivation === undefined) {
+      throw new Error(
+        "Expected the Medusa auth service to support deactivation",
+      )
+    }
+
+    const confirmation = confirmAccountDeactivation({
+      token: "deactivation-token",
+    })
+    await expect(confirmation).rejects.toMatchObject({
+      code: "INVALID_MEDUSA_ACCOUNT_DEACTIVATION_RESPONSE",
+      field: "deleted",
+      operation: "confirm",
+    })
+    await expect(confirmation).rejects.toBeInstanceOf(
+      InvalidMedusaAccountDeactivationResponseError,
+    )
   })
 
   it("returns refreshed token from register flow and forwards login token to refresh", async () => {

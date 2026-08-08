@@ -2,7 +2,6 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import type { SetValues } from "nuqs"
-import { useEffect } from "react"
 
 import { toggleSelection } from "@/components/category/category-selection-utils"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -18,6 +17,8 @@ import {
 } from "@/lib/storefront/products"
 import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
+export { useCatalogListingPageBounds } from "./use-catalog-listing-page-bounds"
+
 type CatalogMultiSelectKey = "status" | "form" | "brand" | "ingredient"
 
 interface UseCatalogListingInteractionsInput {
@@ -26,14 +27,6 @@ interface UseCatalogListingInteractionsInput {
   queryState: NuqsPlpQueryState
   regionId?: string
   setQueryState: SetValues<typeof plpQueryParsers>
-}
-
-interface UseCatalogListingPageBoundsInput {
-  isLoading: boolean
-  isQueryEnabled: boolean
-  page: number
-  setQueryState: SetValues<typeof plpQueryParsers>
-  totalPages: number
 }
 
 const resolveNextMultiSelectValues = (
@@ -58,36 +51,6 @@ const resolveNextMultiSelectValues = (
       return {}
     }
   }
-}
-
-const synchronizeCatalogPageBounds = async (
-  setQueryState: SetValues<typeof plpQueryParsers>,
-  safeLastPage: number,
-) => {
-  await setQueryState({ page: safeLastPage })
-}
-
-export const useCatalogListingPageBounds = ({
-  isLoading,
-  isQueryEnabled,
-  page,
-  setQueryState,
-  totalPages,
-}: UseCatalogListingPageBoundsInput) => {
-  useEffect(() => {
-    if (!isQueryEnabled || isLoading) {
-      return
-    }
-
-    const safeLastPage = Math.max(totalPages, 1)
-    if (page <= safeLastPage) {
-      return
-    }
-
-    runDetachedPromise(
-      synchronizeCatalogPageBounds(setQueryState, safeLastPage),
-    )
-  }, [isLoading, isQueryEnabled, page, setQueryState, totalPages])
 }
 
 export const useCatalogListingInteractions = ({

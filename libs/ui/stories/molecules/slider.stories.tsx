@@ -166,7 +166,7 @@ export const Playground: Story = {
     label: "Price Range",
   },
   render: (args) => (
-    <div className="min-w-sm h-96">
+    <div className="h-96 min-w-sm">
       <Slider {...args} />
     </div>
   ),
@@ -309,7 +309,7 @@ const ControlledStory: NonNullable<Story["render"]> = (args) => {
     <div className="min-w-sm">
       <Slider {...args} value={values} onChange={handleChange} />
       <div className="mt-400 rounded border bg-overlay p-200">
-        <p className="text-fg-secondary text-sm">Component State:</p>
+        <p className="text-sm text-fg-secondary">Component State:</p>
         <p className="font-mono text-lg">[{values.join(", ")}]</p>
         <div>
           <Button size="sm" onClick={handleRandom}>

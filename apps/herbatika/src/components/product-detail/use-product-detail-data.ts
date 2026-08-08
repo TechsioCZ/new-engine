@@ -2,175 +2,31 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
-import { useState } from "react"
 
 import {
   resolveOptionTitlesById,
   resolveProductBreadcrumbItems,
-  resolveProductSummaryText,
-  resolveSelectedVariant,
-  resolveShortDescriptionHtml,
   resolveVariantItems,
 } from "@/components/product-detail/product-detail-data.utils"
+import { resolveProductDetailPresentationData } from "@/components/product-detail/product-detail-presentation-data"
 import {
   resolveFreeShippingThresholdLabel,
-  resolveProductPricingLabels,
-  resolveProductVolumeDiscountOptions,
-  resolveSelectedVolumeDiscountOption,
+  resolveProductPricingData,
 } from "@/components/product-detail/product-detail-pricing-data.utils"
-import { resolveInitialVariantId } from "@/components/product-detail/product-detail-selection"
-import type { Product } from "@/components/product-detail/product-detail.types"
+import { useProductDetailCoreData } from "@/components/product-detail/use-product-detail-core-data"
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log"
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products"
-import {
-  resolveGalleryItems,
-  resolveProductHighlights,
-} from "@/components/product-detail/utils/display-utils"
-import { resolveProductMediaFacts } from "@/components/product-detail/utils/media-facts"
-import {
-  resolveOfferState,
-  resolveProductContentSections,
-  resolveProductImages,
-} from "@/components/product-detail/utils/metadata-parsers"
-import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
-import {
-  mergeWarrantyIntoProductContentSections,
-  resolveProductWarranty,
-} from "@/lib/storefront/product-attributes"
-import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 import { resolveProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
-import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
-import { storefront } from "@/lib/storefront/storefront"
 
 interface UseProductDetailDataProps {
   handle: string
   initialVariantId?: string
 }
 
-interface ProductDetailSelectionState {
-  productKey: string
-  quantity: number
-  selectedVariantId: string | null
-  selectedVolumeDiscountId: string | null
-}
-
-const createSelectionKey = (
-  productKey: string,
-  initialSelectedVariantId: string | null,
-) => JSON.stringify([productKey, initialSelectedVariantId])
-
-const createDefaultSelection = (
-  selectionKey: string,
-  defaultSelectedVariantId: string | null,
-): ProductDetailSelectionState => ({
-  productKey: selectionKey,
-  quantity: 1,
-  selectedVariantId: defaultSelectedVariantId,
-  selectedVolumeDiscountId: null,
-})
-
-const resolveCurrentSelection = (
-  selection: ProductDetailSelectionState,
-  selectionKey: string,
-  defaultSelectedVariantId: string | null,
-) =>
-  selection.productKey === selectionKey
-    ? selection
-    : createDefaultSelection(selectionKey, defaultSelectedVariantId)
-
-const updateCurrentSelection = (
-  selection: ProductDetailSelectionState,
-  selectionKey: string,
-  defaultSelectedVariantId: string | null,
-  update: Partial<
-    Pick<
-      ProductDetailSelectionState,
-      "quantity" | "selectedVariantId" | "selectedVolumeDiscountId"
-    >
-  >,
-): ProductDetailSelectionState => ({
-  ...resolveCurrentSelection(selection, selectionKey, defaultSelectedVariantId),
-  ...update,
-})
-
-const resolveAvailableQuantity = (
-  requestedQuantity: number,
-  availableQuantity: number | null,
-) => {
-  if (availableQuantity === null || availableQuantity < 1) {
-    return requestedQuantity
-  }
-  return Math.min(requestedQuantity, availableQuantity)
-}
-
-const resolveProductPrice = (
-  product: Product | null,
-  selectedVariantId: string | null,
-  regionCurrencyCode: string,
-  priceUnavailableLabel: string,
-) =>
-  product === null
-    ? null
-    : resolvePriceState(
-        product,
-        selectedVariantId,
-        regionCurrencyCode,
-        priceUnavailableLabel,
-      )
-
-const resolveGalleryFallbackLabel = (
-  product: Product | null,
-  handle: string,
-) => {
-  const productHandle = product?.handle?.trim()
-  if (productHandle !== undefined && productHandle !== "") {
-    return productHandle
-  }
-  return product?.id ?? handle
-}
-
-const resolveCanAddToCart = (
-  selectedVariantId: string | undefined,
-  currentAmount: number | null | undefined,
-  isPurchasable: boolean,
-) =>
-  selectedVariantId !== undefined &&
-  selectedVariantId !== "" &&
-  typeof currentAmount === "number" &&
-  isPurchasable
-
-const resolveProductQueryState = (
-  queriedProduct: Product | null | undefined,
-  handle: string,
-) => {
-  const product = queriedProduct ?? null
-  return {
-    product,
-    productCategories: product?.categories ?? [],
-    productKey: product?.id ?? `handle:${handle}`,
-    variants: product?.variants ?? [],
-  }
-}
-
-const resolveProductQueryIdentifiers = (
-  product: Product | null,
-  selectedVariantId: string | undefined,
-  inventory: { managesInventory: boolean | null | undefined },
-) => ({
-  locationInventoryOptions: {
-    isInventoryManaged: inventory.managesInventory,
-  },
-  productId: product?.id ?? null,
-  selectedVariantId: selectedVariantId ?? null,
-})
-
 const resolveDefaultInformationSection = (sections: { key: string }[]) =>
   sections[0]?.key ?? "description"
-
-const isRegionBootstrapping = (regionId: string | undefined) =>
-  regionId === undefined || regionId === ""
 
 export const useProductDetailData = ({
   handle,
@@ -180,134 +36,59 @@ export const useProductDetailData = ({
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
-  const [selectionState, setSelectionState] =
-    useState<ProductDetailSelectionState>(() => {
-      const defaultSelectedVariantId = initialVariantId ?? null
-      return createDefaultSelection(
-        createSelectionKey(`handle:${handle}`, defaultSelectedVariantId),
-        defaultSelectedVariantId,
-      )
-    })
-
-  const productQuery = useProduct({
-    fields: PRODUCT_DETAIL_FIELDS,
+  const core = useProductDetailCoreData({
     handle,
-  })
-
-  const { product, productCategories, productKey, variants } =
-    resolveProductQueryState(productQuery.product, handle)
-  const initialSelectedVariantId = resolveInitialVariantId(
-    variants,
-    initialVariantId,
-  )
-  const selectionKey = createSelectionKey(productKey, initialSelectedVariantId)
-  const currentSelection = resolveCurrentSelection(
-    selectionState,
-    selectionKey,
-    initialSelectedVariantId,
-  )
-  const { selectedVariantId, selectedVolumeDiscountId } = currentSelection
-
-  const selectedVariant = resolveSelectedVariant(variants, selectedVariantId)
-  const queryIdentifiers = resolveProductQueryIdentifiers(
-    product,
-    selectedVariant?.id,
-    { managesInventory: selectedVariant?.manage_inventory },
-  )
-  const productLocationAvailabilityQuery =
-    storefront.hooks.productLocationAvailability.useProductLocationAvailability(
-      { productId: queryIdentifiers.productId },
-    )
-  const productAttributesQuery =
-    storefront.hooks.productAttributes.useProductAttributes({
-      productId: queryIdentifiers.productId,
-    })
-  const locationAvailabilityState = resolveProductLocationAvailabilityState(
-    productLocationAvailabilityQuery,
-    queryIdentifiers.selectedVariantId,
-    queryIdentifiers.locationInventoryOptions,
-  )
-  const optionTitlesById = resolveOptionTitlesById(product)
-  const variantItems = resolveVariantItems(variants, optionTitlesById)
-
-  const offerState = resolveOfferState(product, selectedVariant, {
-    inStock: tCatalog("product_detail.stock.in_stock"),
-    outOfStock: tCatalog("product_detail.stock.out_of_stock"),
-  })
-  const preliminaryVariantInventory = resolveVariantInventoryState(
-    selectedVariant,
-    currentSelection.quantity,
-  )
-  const quantity = resolveAvailableQuantity(
-    currentSelection.quantity,
-    preliminaryVariantInventory.availableQuantity,
-  )
-  const selectedVariantInventory = resolveVariantInventoryState(
-    selectedVariant,
-    quantity,
-  )
-  const productPrice = resolveProductPrice(
-    product,
-    selectedVariantId,
-    regionCurrencyCode,
-    tCatalog("product_detail.price_on_request"),
-  )
-  const shortDescriptionHtml = resolveShortDescriptionHtml(product)
-  const productSummaryText = resolveProductSummaryText(
-    product,
-    shortDescriptionHtml,
-  )
-  const productImages = resolveProductImages(product)
-  const galleryItems = resolveGalleryItems(
-    productImages,
-    product?.title,
-    resolveGalleryFallbackLabel(product, handle),
-  )
-  const productHighlights = resolveProductHighlights(productSummaryText)
-  const otherSectionTitle = tCatalog("product_detail.sections.other")
-  const productContentSections = mergeWarrantyIntoProductContentSections(
-    resolveProductContentSections(product, {
-      composition: tCatalog("product_detail.sections.composition"),
-      content: tCatalog("product_detail.sections.content"),
-      description: tCatalog("product_detail.sections.description"),
-      other: otherSectionTitle,
-      usage: tCatalog("product_detail.sections.usage"),
-      warning: tCatalog("product_detail.sections.warning"),
-    }),
-    resolveProductWarranty(productAttributesQuery.productAttributes),
-    otherSectionTitle,
-  )
-  const mediaFacts = resolveProductMediaFacts(product, productContentSections, {
-    dailyCapsules: (count) =>
-      tCatalog("product_detail.media.daily_capsules", { count }),
-    doses: (count) => tCatalog("product_detail.media.doses", { count }),
+    ...(initialVariantId === undefined ? {} : { initialVariantId }),
   })
   const {
-    currentAmount,
-    currentAmountLabel,
-    currentCurrencyCode,
-    discountPercent,
-    displayOriginalLabel,
-    unitPriceLabel,
-    vipCreditLabel,
-  } = resolveProductPricingLabels({
-    offerState,
-    priceUnavailableLabel: tCatalog("product_detail.price_on_request"),
-    productPrice,
-    regionCurrencyCode,
-  })
-  const canAddToCart = resolveCanAddToCart(
-    selectedVariant?.id,
-    productPrice?.currentAmount,
-    selectedVariantInventory.isPurchasable,
+    currentSelection,
+    product,
+    productAttributesQuery,
+    productCategories,
+    productLocationAvailabilityQuery,
+    productQuery,
+    quantity,
+    selectedVariant,
+    selectedVariantInventory,
+    setQuantity,
+    setSelectedVariantId,
+    setSelectedVolumeDiscountId,
+    variants,
+  } = core
+  const locationAvailabilityState = resolveProductLocationAvailabilityState(
+    productLocationAvailabilityQuery,
+    selectedVariant?.id ?? null,
+    { isInventoryManaged: selectedVariant?.manage_inventory },
   )
-  const maxQuantity = selectedVariantInventory.maxPurchaseQuantity
-
-  const { availableQuantity } = selectedVariantInventory
-  const volumeDiscountOptions = resolveProductVolumeDiscountOptions({
-    availableQuantity,
-    currentAmount,
-    currentCurrencyCode,
+  const variantItems = resolveVariantItems(
+    variants,
+    resolveOptionTitlesById(product),
+  )
+  const presentation = resolveProductDetailPresentationData({
+    handle,
+    labels: {
+      dailyCapsules: (count) =>
+        tCatalog("product_detail.media.daily_capsules", { count }),
+      doses: (count) => tCatalog("product_detail.media.doses", { count }),
+      sections: {
+        composition: tCatalog("product_detail.sections.composition"),
+        content: tCatalog("product_detail.sections.content"),
+        description: tCatalog("product_detail.sections.description"),
+        other: tCatalog("product_detail.sections.other"),
+        usage: tCatalog("product_detail.sections.usage"),
+        warning: tCatalog("product_detail.sections.warning"),
+      },
+      stock: {
+        inStock: tCatalog("product_detail.stock.in_stock"),
+        outOfStock: tCatalog("product_detail.stock.out_of_stock"),
+      },
+    },
+    product,
+    productAttributes: productAttributesQuery.productAttributes,
+    selectedVariant,
+  })
+  const pricing = resolveProductPricingData({
+    inventory: selectedVariantInventory,
     labels: {
       perUnit: (price) =>
         tCatalog("product_detail.bulk_discount.per_unit", { price }),
@@ -316,108 +97,63 @@ export const useProductDetailData = ({
           quantity: optionQuantity,
         }),
     },
-    offerState,
-  })
-  const selectedVolumeDiscountOption = resolveSelectedVolumeDiscountOption(
-    volumeDiscountOptions,
-    selectedVolumeDiscountId,
-  )
-
-  const relatedSections = useProductDetailRelatedProducts({
+    offerState: presentation.offerState,
+    priceUnavailableLabel: tCatalog("product_detail.price_on_request"),
+    priceVariantId: currentSelection.selectedVariantId,
     product,
+    regionCurrencyCode,
+    selectedVariantId: selectedVariant?.id ?? null,
+    selectedVolumeDiscountId: currentSelection.selectedVolumeDiscountId,
   })
-
-  const setQuantity = (nextQuantity: number) => {
-    setSelectionState((current) =>
-      updateCurrentSelection(current, selectionKey, initialSelectedVariantId, {
-        quantity: nextQuantity,
-      }),
-    )
-  }
-  const setSelectedVariantId = (nextVariantId: string | null) => {
-    setSelectionState((current) => {
-      const currentForProduct = resolveCurrentSelection(
-        current,
-        selectionKey,
-        initialSelectedVariantId,
-      )
-      const nextVariant = resolveSelectedVariant(variants, nextVariantId)
-      const nextInventory = resolveVariantInventoryState(
-        nextVariant,
-        currentForProduct.quantity,
-      )
-      const nextQuantity = resolveAvailableQuantity(
-        currentForProduct.quantity,
-        nextInventory.availableQuantity,
-      )
-
-      return updateCurrentSelection(
-        currentForProduct,
-        selectionKey,
-        initialSelectedVariantId,
-        {
-          quantity: nextQuantity,
-          selectedVariantId: nextVariantId,
-        },
-      )
-    })
-  }
-  const setSelectedVolumeDiscountId = (nextOptionId: string | null) => {
-    setSelectionState((current) =>
-      updateCurrentSelection(current, selectionKey, initialSelectedVariantId, {
-        selectedVolumeDiscountId: nextOptionId,
-      }),
-    )
-  }
+  const relatedSections = useProductDetailRelatedProducts({ product })
 
   useProductDetailDebugLog(product)
   useRecordRecentlyVisitedProduct(product)
 
-  const breadcrumbItems = resolveProductBreadcrumbItems(
-    productCategories,
-    product,
-    handle,
-    tNavigation("breadcrumbs.home"),
-  )
-  const freeShippingThresholdLabel =
-    resolveFreeShippingThresholdLabel(currentCurrencyCode)
-
   return {
-    breadcrumbItems,
-    canAddToCart,
-    currentAmountLabel,
-    defaultInfoSectionValue: resolveDefaultInformationSection(
-      productContentSections,
+    breadcrumbItems: resolveProductBreadcrumbItems(
+      productCategories,
+      product,
+      handle,
+      tNavigation("breadcrumbs.home"),
     ),
-    discountPercent,
-    displayOriginalLabel,
-    freeShippingThresholdLabel,
-    galleryItems,
-    isBootstrappingRegion: isRegionBootstrapping(region?.region_id),
+    canAddToCart: pricing.canAddToCart,
+    currentAmountLabel: pricing.currentAmountLabel,
+    defaultInfoSectionValue: resolveDefaultInformationSection(
+      presentation.productContentSections,
+    ),
+    discountPercent: pricing.discountPercent,
+    displayOriginalLabel: pricing.displayOriginalLabel,
+    freeShippingThresholdLabel: resolveFreeShippingThresholdLabel(
+      pricing.currentCurrencyCode,
+    ),
+    galleryItems: presentation.galleryItems,
+    isBootstrappingRegion:
+      region?.region_id === undefined || region.region_id === "",
     locationAvailabilityState,
-    maxQuantity,
-    mediaFacts,
-    offerState,
+    maxQuantity: pricing.maxQuantity,
+    mediaFacts: presentation.mediaFacts,
+    offerState: presentation.offerState,
     product,
     productCategories,
-    productContentSections,
-    productHighlights,
+    productContentSections: presentation.productContentSections,
+    productHighlights: presentation.productHighlights,
     productQuery,
     quantity,
     region,
     relatedSections,
     selectedVariant,
     selectedVariantId: selectedVariant?.id ?? null,
-    selectedVolumeDiscountId: selectedVolumeDiscountOption?.id ?? null,
-    selectedVolumeDiscountOption,
+    selectedVolumeDiscountId: pricing.selectedVolumeDiscountId,
+    selectedVolumeDiscountOption: pricing.selectedVolumeDiscountOption,
     setQuantity,
     setSelectedVariantId,
     setSelectedVolumeDiscountId,
-    unitPriceLabel,
+    unitPriceLabel: pricing.unitPriceLabel,
     variantItems,
     variants,
-    vipCreditLabel,
-    volumeDiscountOptions,
+    vipCreditLabel: pricing.vipCreditLabel,
+    volumeDiscountOptions: pricing.volumeDiscountOptions,
   }
 }
 

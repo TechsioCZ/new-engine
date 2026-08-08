@@ -6,13 +6,13 @@ import type {
   FulfillmentDTO,
   FulfillmentItemDTO,
   FulfillmentOption,
+  IFulfillmentProvider,
   FulfillmentOrderDTO,
   IFileModuleService,
   Logger,
   ValidateFulfillmentDataContext,
 } from "@medusajs/framework/types"
 import {
-  AbstractFulfillmentProviderService,
   ContainerRegistrationKeys,
   MedusaError,
   Modules,
@@ -149,20 +149,31 @@ const pickOptionalShippingStrings = (
  */
 export const GLS_PROVIDER_IDENTIFIER = "gls"
 
-class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
-  static override readonly identifier = GLS_PROVIDER_IDENTIFIER
+/**
+ * The framework's abstract provider currently narrows document methods below
+ * the canonical `IFulfillmentProvider` contract. Implementing that contract
+ * directly keeps the real document results typed while the discovery marker
+ * preserves Medusa's runtime provider identification.
+ */
+class GLSFulfillmentProviderService implements IFulfillmentProvider {
+  static readonly _isFulfillmentService = true
+  static readonly identifier = GLS_PROVIDER_IDENTIFIER
 
+  protected readonly identifier = GLS_PROVIDER_IDENTIFIER
   protected readonly logger: Logger
   protected readonly glsClient: GLSClientModuleService | undefined
   protected readonly fileService: IFileModuleService
   protected readonly query: QueryService | undefined
 
   constructor(container: InjectedDependencies, _options: GLSOptions) {
-    super()
     this.logger = container.logger
     this.glsClient = container[GLS_CLIENT_MODULE]
     this.fileService = container[Modules.FILE]
     this.query = container[ContainerRegistrationKeys.QUERY]
+  }
+
+  getIdentifier(): string {
+    return this.identifier
   }
 
   private getClient(): GLSClientModuleService {
@@ -180,7 +191,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
   // Shipping options
   // ============================================
 
-  override async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
+  async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
     try {
       const config = await this.getClient().getEffectiveConfig()
       if (!config) {
@@ -211,9 +222,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     ]
   }
 
-  override async validateOption(
-    data: Record<string, unknown>,
-  ): Promise<boolean> {
+  async validateOption(data: Record<string, unknown>): Promise<boolean> {
     await Promise.resolve(this)
     return isParcelShopCode(data["code"])
   }
@@ -222,7 +231,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Called during checkout when the customer finalises the shipping method.
    * Validates that a GLS pickup-point was selected by the widget.
    */
-  override async validateFulfillmentData(
+  async validateFulfillmentData(
     optionData: Record<string, unknown>,
     data: Record<string, unknown>,
     _context: ValidateFulfillmentDataContext,
@@ -260,7 +269,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     } satisfies GLSShippingOptionData
   }
 
-  override async createFulfillment(
+  async createFulfillment(
     data: Record<string, unknown>,
     _items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
     order: Partial<FulfillmentOrderDTO> | undefined,
@@ -367,7 +376,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     }
   }
 
-  override async cancelFulfillment(
+  async cancelFulfillment(
     data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     if (!isGLSFulfillmentData(data)) {
@@ -393,7 +402,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     return { cancelled: true, packet_id: packetId }
   }
 
-  override async createReturnFulfillment(
+  async createReturnFulfillment(
     _fulfillment: Record<string, unknown>,
   ): Promise<CreateFulfillmentResult> {
     await Promise.resolve(this)
@@ -403,14 +412,12 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     )
   }
 
-  override async canCalculate(
-    _data: CreateShippingOptionDTO,
-  ): Promise<boolean> {
+  async canCalculate(_data: CreateShippingOptionDTO): Promise<boolean> {
     await Promise.resolve(this)
     return false
   }
 
-  override async calculatePrice(
+  async calculatePrice(
     _optionData: CalculateShippingOptionPriceDTO["optionData"],
     _data: CalculateShippingOptionPriceDTO["data"],
     _context: CalculateShippingOptionPriceDTO["context"],
@@ -422,8 +429,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     }
   }
 
-  // @ts-expect-error Base class returns never[] but we return actual documents
-  override async getFulfillmentDocuments(
+  async getFulfillmentDocuments(
     data: Record<string, unknown>,
   ): Promise<{ type: string; url: string; format?: string }[]> {
     await Promise.resolve(this)
@@ -450,8 +456,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     return documents
   }
 
-  // @ts-expect-error Base class returns void but we return document or null
-  override async retrieveDocuments(
+  async retrieveDocuments(
     fulfillmentData: Record<string, unknown>,
     documentType: string,
   ): Promise<{ type: string; url: string; format?: string } | null> {
@@ -478,16 +483,12 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     }
   }
 
-  override async getReturnDocuments(
-    _data: Record<string, unknown>,
-  ): Promise<never[]> {
+  async getReturnDocuments(_data: Record<string, unknown>): Promise<never[]> {
     await Promise.resolve(this)
     return []
   }
 
-  override async getShipmentDocuments(
-    _data: Record<string, unknown>,
-  ): Promise<never[]> {
+  async getShipmentDocuments(_data: Record<string, unknown>): Promise<never[]> {
     await Promise.resolve(this)
     return []
   }

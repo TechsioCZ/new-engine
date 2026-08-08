@@ -26,12 +26,12 @@ const config = [
       tailwindcss: tailwind,
     },
     rules: {
-      // Only enable Tailwind CSS rules for class name validation
-      "tailwindcss/classnames-order": "off",
+      // The plugin's Tailwind 4-compatible validation rules complement the
+      // token-specific validators in scripts/validate-token-*.js.
+      "tailwindcss/classnames-order": "error",
       "tailwindcss/enforces-negative-arbitrary-values": "error",
       "tailwindcss/enforces-shorthand": "error",
-      "tailwindcss/migration-from-tailwind-2": "off",
-      "tailwindcss/no-arbitrary-value": "off",
+      "tailwindcss/no-arbitrary-value": "error",
       "tailwindcss/no-contradicting-classname": "error",
       "tailwindcss/no-custom-classname": "error",
       "tailwindcss/no-unnecessary-arbitrary-value": "error",

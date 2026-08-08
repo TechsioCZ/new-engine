@@ -44,7 +44,7 @@ color: current | primary | secondary | danger | success | warning
 <Icon icon="token-icon-status-text-warning" color="warning" />
 ```
 
-Use `icon-[...]` for specific Iconify icons only when there is no token icon for that component state.
+Use `icon-[mdi--bug-outline]` for a specific Iconify icon only when there is no token icon for that component state.
 
 ### Match icon size to component size
 

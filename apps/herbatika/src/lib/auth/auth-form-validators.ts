@@ -1,112 +1,30 @@
-import { createAddressFieldValidators } from "@/lib/forms/validators/address"
 import type { AddressValidationMessages } from "@/lib/forms/validators/address"
-import {
-  createChangeBlurContextualFieldValidators,
-  createChangeBlurFieldValidators,
-  createChangeBlurSubmitScopedFieldValidators,
-} from "@/lib/forms/validators/field-validator-factories"
-import {
-  createEmailAddressValidator,
-  passwordHasNumber,
-  validateRequiredAgreement,
-} from "@/lib/forms/validators/shared"
+import { createChangeBlurFieldValidators } from "@/lib/forms/validators/field-validator-factories"
+import { createEmailAddressValidator } from "@/lib/forms/validators/shared"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 
-export interface LoginFormValues {
-  email: string
-  password: string
-}
+import type {
+  AuthValidationMessages,
+  PasswordValidationMessages,
+} from "./auth-validation-types"
+import {
+  createPasswordConfirmationFieldValidators,
+  createPasswordValidator,
+} from "./password-form-validators"
 
-type RegisterAccountType = "retail" | "wholesale"
-
-export interface RegisterFormValues {
-  account_type: RegisterAccountType
-  first_name: string
-  last_name: string
-  email: string
-  password: string
-  confirm_password: string
-  company_name: string
-  company_identifier: string
-  billing_address_1: string
-  billing_address_2: string
-  billing_city: string
-  billing_postal_code: string
-  billing_country_code: string
-  accept_terms: boolean
-}
-
-export interface ForgotPasswordFormValues {
-  email: string
-}
-
-export interface ResetPasswordFormValues {
-  password: string
-  confirm_password: string
-}
-
-interface ConfirmPasswordFieldApi {
-  form: {
-    getFieldValue: (name: "password") => unknown
-  }
-}
-
-export const isWholesaleRegistration = (values: RegisterFormValues) =>
-  values.account_type === "wholesale"
-
-interface PasswordValidationMessages {
-  confirmPasswordRequired: string
-  passwordMismatch: string
-  passwordMinLength: string
-  passwordNumber: string
-  passwordRequired: string
-}
-
-export type AuthValidationMessages = AddressValidationMessages &
-  PasswordValidationMessages & {
-    accountTypeRequired: string
-    termsRequired: string
-  }
-
-interface LoginSubmitErrorMessages {
-  failed: string
-  invalidCredentials: string
-}
-
-interface RegisterSubmitErrorMessages {
-  emailExists: string
-  failed: string
-}
-
-const createWholesaleFieldValidators = <TFormValues>(
-  validator: (value: string) => string | undefined,
-  isWholesale: (values: TFormValues) => boolean,
-) => createChangeBlurSubmitScopedFieldValidators(validator, isWholesale)
-
-const createPasswordValidator =
-  (messages: PasswordValidationMessages) => (value: string) => {
-    let validationError: string | undefined
-
-    if (value.length === 0) {
-      validationError = messages.passwordRequired
-    } else if (value.length < 8) {
-      validationError = messages.passwordMinLength
-    } else if (!passwordHasNumber(value)) {
-      validationError = messages.passwordNumber
-    }
-
-    return validationError
-  }
-
-const createPasswordConfirmationValidator =
-  (messages: PasswordValidationMessages) =>
-  (password: string, confirmPassword: string) => {
-    if (!confirmPassword) {
-      return messages.confirmPasswordRequired
-    }
-
-    return password === confirmPassword ? undefined : messages.passwordMismatch
-  }
+export type {
+  AuthValidationMessages,
+  ForgotPasswordFormValues,
+  LoginFormValues,
+  RegisterFormValues,
+  ResetPasswordFormValues,
+} from "./auth-validation-types"
+export {
+  createRegisterValidators,
+  isWholesaleRegistration,
+} from "./register-form-validators"
+export type { RegisterFormValidators } from "./register-form-validators"
+export { PASSWORD_REQUIREMENTS } from "./password-form-validators"
 
 const createEmailValidator = (
   messages: Pick<AddressValidationMessages, "emailInvalid" | "emailRequired">,
@@ -128,76 +46,6 @@ export const createLoginValidators = (
   ),
 })
 
-export const PASSWORD_REQUIREMENTS = [
-  {
-    id: "min-length",
-    test: (password: string) => password.length >= 8,
-  },
-  {
-    id: "has-number",
-    test: passwordHasNumber,
-  },
-] as const
-
-export const createRegisterValidators = (messages: AuthValidationMessages) => {
-  const addressValidators = createAddressFieldValidators(messages)
-  const validatePassword = createPasswordValidator(messages)
-  const validatePasswordConfirmation =
-    createPasswordConfirmationValidator(messages)
-  const createWholesaleValidator = (
-    validator: (value: string) => string | undefined,
-  ) => createWholesaleFieldValidators(validator, isWholesaleRegistration)
-
-  return {
-    accept_terms: createChangeBlurFieldValidators((value: boolean) =>
-      validateRequiredAgreement(value, messages.termsRequired),
-    ),
-    account_type: createChangeBlurFieldValidators((value: string) =>
-      value === "retail" || value === "wholesale"
-        ? undefined
-        : messages.accountTypeRequired,
-    ),
-    billing_address_1: createWholesaleValidator(addressValidators.address1),
-    billing_city: createWholesaleValidator(addressValidators.city),
-    billing_country_code: createWholesaleValidator(
-      addressValidators.countryCode,
-    ),
-    billing_postal_code: createWholesaleValidator(addressValidators.postalCode),
-    company_identifier: createWholesaleValidator(addressValidators.companyId),
-    company_name: createWholesaleValidator(addressValidators.company),
-    confirm_password: {
-      onChangeListenTo: ["password"] as (keyof RegisterFormValues)[],
-      ...createChangeBlurContextualFieldValidators(
-        ({
-          value,
-          fieldApi,
-        }: {
-          value: string
-          fieldApi: ConfirmPasswordFieldApi
-        }) => {
-          const passwordValue = fieldApi.form.getFieldValue("password")
-          const password =
-            typeof passwordValue === "string" ? passwordValue : ""
-
-          return validatePasswordConfirmation(password, value)
-        },
-      ),
-    },
-    email: createChangeBlurFieldValidators(addressValidators.email),
-    first_name: createChangeBlurFieldValidators(addressValidators.firstName),
-    last_name: createChangeBlurFieldValidators(addressValidators.lastName),
-    password: createChangeBlurFieldValidators(validatePassword),
-  }
-}
-
-export type RegisterFormValidators = ReturnType<typeof createRegisterValidators>
-
-interface ResetPasswordConfirmFieldApi {
-  form: {
-    getFieldValue: (name: "password") => unknown
-  }
-}
-
 export const createForgotPasswordValidators = (
   messages: Pick<AuthValidationMessages, "emailInvalid" | "emailRequired">,
 ) => ({
@@ -206,66 +54,55 @@ export const createForgotPasswordValidators = (
 
 export const createResetPasswordValidators = (
   messages: PasswordValidationMessages,
-) => {
-  const validatePassword = createPasswordValidator(messages)
-  const validatePasswordConfirmation =
-    createPasswordConfirmationValidator(messages)
+) => ({
+  confirm_password: createPasswordConfirmationFieldValidators(messages),
+  password: createChangeBlurFieldValidators(createPasswordValidator(messages)),
+})
 
-  return {
-    confirm_password: {
-      onChangeListenTo: ["password"] as (keyof ResetPasswordFormValues)[],
-      ...createChangeBlurContextualFieldValidators(
-        ({
-          value,
-          fieldApi,
-        }: {
-          value: string
-          fieldApi: ResetPasswordConfirmFieldApi
-        }) => {
-          const passwordValue = fieldApi.form.getFieldValue("password")
-          const password =
-            typeof passwordValue === "string" ? passwordValue : ""
-
-          return validatePasswordConfirmation(password, value)
-        },
-      ),
-    },
-    password: createChangeBlurFieldValidators(validatePassword),
-  }
+interface LoginSubmitErrorMessages {
+  failed: string
+  invalidCredentials: string
 }
+interface RegisterSubmitErrorMessages {
+  emailExists: string
+  failed: string
+}
+
+const LOGIN_ERROR_MARKERS = new Set(["invalid", "credential", "401", "403"])
+const LOGIN_ERROR_MARKER_PATTERN = /invalid|credential|401|403/gu
+const REGISTER_ERROR_MARKERS = new Set([
+  "identity with email already exists",
+  "email already exists",
+])
+const REGISTER_ERROR_MARKER_PATTERN =
+  /identity with email already exists|email already exists/gu
+
+const includesAny = (
+  value: string,
+  pattern: RegExp,
+  candidates: ReadonlySet<string>,
+) => (value.match(pattern) ?? []).some((candidate) => candidates.has(candidate))
 
 export const resolveLoginSubmitError = (
   error: unknown,
   messages: LoginSubmitErrorMessages,
-) => {
-  const message = resolveErrorMessage(error, "")
-  const normalizedMessage = message.toLowerCase()
-
-  if (
-    normalizedMessage.includes("invalid") ||
-    normalizedMessage.includes("credential") ||
-    normalizedMessage.includes("401") ||
-    normalizedMessage.includes("403")
-  ) {
-    return messages.invalidCredentials
-  }
-
-  return messages.failed
-}
+) =>
+  includesAny(
+    resolveErrorMessage(error, "").toLowerCase(),
+    LOGIN_ERROR_MARKER_PATTERN,
+    LOGIN_ERROR_MARKERS,
+  )
+    ? messages.invalidCredentials
+    : messages.failed
 
 export const resolveRegisterSubmitError = (
   error: unknown,
   messages: RegisterSubmitErrorMessages,
-) => {
-  const message = resolveErrorMessage(error, "")
-  const normalizedMessage = message.toLowerCase()
-
-  if (
-    normalizedMessage.includes("identity with email already exists") ||
-    normalizedMessage.includes("email already exists")
-  ) {
-    return messages.emailExists
-  }
-
-  return messages.failed
-}
+) =>
+  includesAny(
+    resolveErrorMessage(error, "").toLowerCase(),
+    REGISTER_ERROR_MARKER_PATTERN,
+    REGISTER_ERROR_MARKERS,
+  )
+    ? messages.emailExists
+    : messages.failed

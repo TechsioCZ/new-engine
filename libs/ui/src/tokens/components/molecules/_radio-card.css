@@ -2,12 +2,8 @@
  * RadioCard — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
  * The outline checked state intentionally keeps the base background until
- * hover; Figma only exports the checked-hover override.
+ * hover; Figma exports only the checked-hover override.
  */
-
-@theme static {
-  --color-radio-card-item-bg-outline-checked: var(--color-radio-card-item-bg);
-}
 
 @utility token-icon-radio-card-checked {
   @apply token-icon-circle;

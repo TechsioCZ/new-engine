@@ -6,6 +6,7 @@ import {
   asStorefrontRecord,
   resolveProductTopOffer,
 } from "./product-pricing"
+import { asPositiveInteger, asString } from "./recommended-product-values"
 
 interface RecommendedProductCandidate {
   familyKey: string
@@ -16,33 +17,6 @@ interface RecommendedProductCandidate {
 }
 
 const TOP_OFFER_SET_MULTIPLIER_PATTERN = /\/\d+$/u
-
-const asString = (value: unknown): string | null => {
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value.trim()
-  }
-
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return `${value}`
-  }
-
-  return null
-}
-
-const asPositiveInteger = (value: unknown): number | null => {
-  let parsed = Number.NaN
-  if (typeof value === "number" && Number.isFinite(value)) {
-    parsed = value
-  } else if (typeof value === "string" && value.trim().length > 0) {
-    parsed = Number(value.trim())
-  }
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null
-  }
-
-  return parsed
-}
 
 const resolveProductMetadata = (product: HttpTypes.StoreProduct) =>
   asStorefrontRecord(product.metadata)

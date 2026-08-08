@@ -233,7 +233,7 @@ export const AllVariants: Story = {
 // Validation States - Dedicated story showing all 4 validation states
 export const ValidationStates: Story = {
   render: () => (
-    <div className="flex flex-col gap-200 w-3xs">
+    <div className="flex w-3xs flex-col gap-200">
       <FormInput
         id="default-validation"
         label="Default State"
@@ -269,7 +269,7 @@ export const ValidationStates: Story = {
 // Sizes - Dedicated story showing all size variants
 export const Sizes: Story = {
   render: () => (
-    <div className="flex flex-col gap-200 w-3xs">
+    <div className="flex w-3xs flex-col gap-200">
       <FormInput
         id="small-size"
         label="Small Size"
@@ -330,7 +330,7 @@ const EmailValidationExample = () => {
 
   return (
     <div className="w-xs">
-      <h3 className="mb-200 font-medium text-lg">Email Validation</h3>
+      <h3 className="mb-200 text-lg font-medium">Email Validation</h3>
       <FormInput
         id="success-input"
         label="Email"
@@ -373,7 +373,7 @@ const PasswordCheck = ({
   >
     <span
       className={
-        passed ? "icon-[mdi--check-circle]" : "icon-[mdi--circle-outline]"
+        passed ? "token-icon-check-circle" : "token-icon-circle-outline"
       }
     />
     {label}
@@ -462,7 +462,7 @@ const RegistrationFormExample = () => {
 
   return (
     <div className="w-md rounded-md border border-border-primary p-300 shadow-sm">
-      <h2 className="mb-300 font-semibold text-xl">Account Registration</h2>
+      <h2 className="mb-300 text-xl font-semibold">Account Registration</h2>
 
       <div className="space-y-200">
         <FormInput

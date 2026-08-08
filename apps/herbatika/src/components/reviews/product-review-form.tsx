@@ -8,21 +8,18 @@ import { useState } from "react"
 import type { ChangeEvent, SyntheticEvent } from "react"
 
 import { buildProductReviewTitle } from "@/components/reviews/product-review-errors"
+import {
+  DEFAULT_PRODUCT_REVIEW_FORM_VALUES,
+  REVIEW_CONTENT_MIN_LENGTH,
+  validateProductReviewForm,
+} from "@/components/reviews/product-review-form-validation"
+import type {
+  ProductReviewFormErrors,
+  ProductReviewFormSubmitValues,
+  ProductReviewFormValues,
+} from "@/components/reviews/product-review-form-validation"
 
-export interface ProductReviewFormSubmitValues {
-  content: string
-  rating: number
-  title: string
-}
-
-interface ProductReviewFormValues {
-  content: string
-  rating: number | null
-}
-
-type ProductReviewFormErrors = Partial<
-  Record<keyof ProductReviewFormValues, string>
->
+export type { ProductReviewFormSubmitValues } from "@/components/reviews/product-review-form-validation"
 
 interface ProductReviewFormProps {
   disabled?: boolean
@@ -30,37 +27,6 @@ interface ProductReviewFormProps {
   resetKey?: number
   submitError?: string | null
   onSubmit: (values: ProductReviewFormSubmitValues) => void
-}
-
-const REVIEW_CONTENT_MIN_LENGTH = 4
-const defaultValues: ProductReviewFormValues = {
-  content: "",
-  rating: null,
-}
-
-const validateReviewForm = (
-  values: ProductReviewFormValues,
-  messages: {
-    contentMinLength: string
-    ratingRequired: string
-  },
-) => {
-  const errors: ProductReviewFormErrors = {}
-
-  if (
-    typeof values.rating !== "number" ||
-    !Number.isInteger(values.rating) ||
-    values.rating < 1 ||
-    values.rating > 5
-  ) {
-    errors.rating = messages.ratingRequired
-  }
-
-  if (values.content.trim().length < REVIEW_CONTENT_MIN_LENGTH) {
-    errors.content = messages.contentMinLength
-  }
-
-  return errors
 }
 
 type ProductReviewFormFieldsProps = Omit<ProductReviewFormProps, "resetKey">
@@ -73,14 +39,16 @@ const ProductReviewFormFields = ({
 }: ProductReviewFormFieldsProps) => {
   const tCatalog = useTranslations("catalog")
   const [errors, setErrors] = useState<ProductReviewFormErrors>({})
-  const [values, setValues] = useState<ProductReviewFormValues>(defaultValues)
+  const [values, setValues] = useState<ProductReviewFormValues>(
+    DEFAULT_PRODUCT_REVIEW_FORM_VALUES,
+  )
 
   const handleSubmit = (
     event: SyntheticEvent<HTMLFormElement, SubmitEvent>,
   ) => {
     event.preventDefault()
 
-    const nextErrors = validateReviewForm(values, {
+    const nextErrors = validateProductReviewForm(values, {
       contentMinLength: tCatalog("reviews.form.content_min_length_validation", {
         min: REVIEW_CONTENT_MIN_LENGTH,
       }),

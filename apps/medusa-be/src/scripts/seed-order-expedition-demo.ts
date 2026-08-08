@@ -11,6 +11,7 @@ import type {
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
+  MedusaError,
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
@@ -127,7 +128,10 @@ const pickCircular = <T>(items: readonly T[], index: number): T => {
   const item = items[index % items.length]
 
   if (item === undefined) {
-    throw new Error("Cannot pick from an empty demo seed collection")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Cannot pick from an empty demo seed collection",
+    )
   }
 
   return item
@@ -670,7 +674,8 @@ const seedOrderExpeditionDemo = async ({ container }: ExecArgs) => {
 
   const variants = await fetchVariants(query)
   if (variants.length < 6) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
       "Not enough product variants for order expedition demo seed",
     )
   }

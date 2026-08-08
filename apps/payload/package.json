@@ -12,7 +12,7 @@
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "import:articles": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/import-articles.ts",
-    "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
+    "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint . --max-warnings=0",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed.ts",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
@@ -52,6 +52,7 @@
     "eslint-config-next": "16.3.0-preview.5",
     "jsdom": "29.1.1",
     "typescript": "^7.0.2",
+    "typescript-eslint-compat": "npm:typescript@5.9.3",
     "vite": "catalog:vite8-testing",
     "vitest": "catalog:vite8-testing"
   },

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { RegisterAccountTypeField } from "@/components/auth/register-account-type-field"
+import { RegisterPersonalFields } from "@/components/auth/register-personal-fields"
 import { RegisterWholesaleFields } from "@/components/auth/register-wholesale-fields"
 import { useAppToast } from "@/hooks/use-app-toast"
 import { createRegisterValidators } from "@/lib/auth/auth-form-validators"
@@ -13,6 +14,7 @@ import type { RegisterFormValues } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { translateAddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 import { AuthFooter } from "./auth-footer"
 
@@ -34,16 +36,20 @@ export const RegisterForm = ({
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
   const toast = useAppToast()
-  const registerValidators = createRegisterValidators({
-    ...translateAddressValidationMessages(tForm),
-    accountTypeRequired: tAuth("validation.account_type_required"),
-    confirmPasswordRequired: tAuth("validation.confirm_password_required"),
-    passwordMinLength: tAuth("validation.password_min_length"),
-    passwordMismatch: tAuth("validation.password_mismatch"),
-    passwordNumber: tAuth("validation.password_number"),
-    passwordRequired: tAuth("validation.password_required"),
-    termsRequired: tAuth("validation.terms_required"),
-  })
+  const { countryCode } = useMarketContext()
+  const registerValidators = createRegisterValidators(
+    {
+      ...translateAddressValidationMessages(tForm),
+      accountTypeRequired: tAuth("validation.account_type_required"),
+      confirmPasswordRequired: tAuth("validation.confirm_password_required"),
+      passwordMinLength: tAuth("validation.password_min_length"),
+      passwordMismatch: tAuth("validation.password_mismatch"),
+      passwordNumber: tAuth("validation.password_number"),
+      passwordRequired: tAuth("validation.password_required"),
+      termsRequired: tAuth("validation.terms_required"),
+    },
+    countryCode,
+  )
 
   const form = useHerbatikaForm({
     defaultValues,
@@ -75,47 +81,7 @@ export const RegisterForm = ({
         />
       </div>
 
-      <form.AppField
-        name="first_name"
-        validators={registerValidators.first_name}
-      >
-        {(field) => (
-          <field.TextField
-            autoComplete="off"
-            id="auth-register-first-name"
-            label={tForm("first_name")}
-            required
-            validationMode="blur"
-          />
-        )}
-      </form.AppField>
-
-      <form.AppField name="last_name" validators={registerValidators.last_name}>
-        {(field) => (
-          <field.TextField
-            autoComplete="off"
-            id="auth-register-last-name"
-            label={tForm("last_name")}
-            required
-            validationMode="blur"
-          />
-        )}
-      </form.AppField>
-
-      <div className="col-span-2">
-        <form.AppField name="email" validators={registerValidators.email}>
-          {(field) => (
-            <field.TextField
-              autoComplete="off"
-              id="auth-register-email"
-              label={tForm("email")}
-              required
-              type="email"
-              validationMode="blur"
-            />
-          )}
-        </form.AppField>
-      </div>
+      <RegisterPersonalFields form={form} validators={registerValidators} />
 
       <form.Subscribe selector={(state) => state.values.account_type}>
         {(accountType) =>

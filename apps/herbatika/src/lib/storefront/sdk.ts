@@ -10,6 +10,7 @@ import type { MedusaClientConfig } from "@techsio/storefront-data/shared/medusa-
 import { resolveMedusaBackendUrl } from "./runtime-env"
 
 const AUTH_TOKEN_STORAGE_KEY = "herbatika_auth_token"
+export const AUTH_SESSION_LOGOUT_STORAGE_KEY = "herbatika_auth_session_logout"
 type StorefrontAuthMode = "jwt_localstorage" | "session_proxy"
 
 const DEFAULT_AUTH_MODE: StorefrontAuthMode = "session_proxy"
@@ -84,6 +85,10 @@ export const authTokenStorage = {
 
     setLocalStorageItem(AUTH_TOKEN_STORAGE_KEY, token)
   },
+}
+
+export const broadcastAuthSessionLogout = () => {
+  setLocalStorageItem(AUTH_SESSION_LOGOUT_STORAGE_KEY, String(Date.now()))
 }
 
 const medusaClientConfig: MedusaClientConfig = {

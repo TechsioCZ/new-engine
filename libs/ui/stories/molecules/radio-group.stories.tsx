@@ -313,7 +313,7 @@ const ControlledStory: NonNullable<Story["render"]> = () => {
         </Button>
       </div>
 
-      <div className="text-fg-secondary text-sm">
+      <div className="text-sm text-fg-secondary">
         Current value: {value ?? "none"}
       </div>
     </div>
@@ -336,7 +336,7 @@ export const RichContent: Story = {
             <RadioGroup.ItemContent>
               <div className="flex items-center gap-100">
                 <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
-                <span className="rounded-full bg-fill-base px-100 py-50 text-fg-secondary text-xs">
+                <span className="rounded-full bg-fill-base px-100 py-50 text-xs text-fg-secondary">
                   {option.value === "growth" ? "Popular" : "Available"}
                 </span>
               </div>

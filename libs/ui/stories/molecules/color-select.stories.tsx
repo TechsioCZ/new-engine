@@ -357,7 +357,7 @@ const MultipleSelectionRender: NonNullable<Story["render"]> = () => {
     <VariantContainer>
       <VariantGroup title="Multiple Selection Mode">
         <div className="max-w-lg">
-          <div className="flex justify-between items-center mb-100">
+          <div className="mb-100 flex items-center justify-between">
             <span className="font-medium">Select Colors</span>
             {Array.isArray(selected) && selected.length > 0 && (
               <Button
@@ -415,8 +415,8 @@ const EcommerceExampleRender: NonNullable<Story["render"]> = () => {
   const selectedCount = Array.isArray(selected) ? selected.length : 0
 
   return (
-    <div className="max-w-lg p-200 bg-surface rounded-lg border border-border-primary">
-      <div className="flex justify-between items-center mb-150">
+    <div className="max-w-lg rounded-lg border border-border-primary bg-surface p-200">
+      <div className="mb-150 flex items-center justify-between">
         <h3 className="font-semibold text-fg-primary">Color</h3>
         {selectedCount > 0 && (
           <Button onClick={clear} theme="borderless" size="sm">
@@ -433,7 +433,7 @@ const EcommerceExampleRender: NonNullable<Story["render"]> = () => {
         selectionMode="multiple"
       />
       {selectedCount > 0 && (
-        <div className="mt-200 p-100 bg-primary rounded text-sm text-fg-light">
+        <div className="mt-200 rounded bg-primary p-100 text-sm text-fg-light">
           Filtering by {selectedCount} color{selectedCount > 1 ? "s" : ""}
         </div>
       )}

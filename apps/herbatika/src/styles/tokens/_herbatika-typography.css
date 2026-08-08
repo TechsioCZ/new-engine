@@ -32,4 +32,5 @@
   --line-height-normal: 1.4;
   --line-height-relaxed: 1.5;
   --line-height-loose: 1.75;
+  --line-height-blog-category: var(--text-lg);
 }

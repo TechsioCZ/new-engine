@@ -1,9 +1,13 @@
-import { categoryImagesAtoP } from "./category-images-a-to-p"
-import { categoryImagesPtoZ } from "./category-images-p-to-z"
+import { categoryImagesAtoK } from "./category-images-a-to-k"
+import { categoryImagesLtoP } from "./category-images-l-to-p"
+import { categoryImagesPtoR } from "./category-images-p-to-r"
+import { categoryImagesStoZ } from "./category-images-s-to-z"
 
 export const categoryImagesBySlug = {
-  ...categoryImagesAtoP,
-  ...categoryImagesPtoZ,
+  ...categoryImagesAtoK,
+  ...categoryImagesLtoP,
+  ...categoryImagesPtoR,
+  ...categoryImagesStoZ,
 }
 
 export type CategoryImageSlug = keyof typeof categoryImagesBySlug

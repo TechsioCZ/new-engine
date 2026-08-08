@@ -6,7 +6,6 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import { useTranslations } from "next-intl"
-import { useEffect, useRef, useState } from "react"
 
 import NextLink from "@/components/app-link"
 import {
@@ -20,85 +19,14 @@ import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-actions"
 
 import { CartItemRow } from "./herbatika-cart-item-row"
+import { CartTotals, EmptyCartPreview } from "./herbatika-cart-popover-content"
+import { useCartPopoverHover } from "./use-cart-popover-hover"
 
 interface HerbatikaCartPopoverProps {
   cart: HttpTypes.StoreCart | null | undefined
   cartTotalLabel: string
   currencyCode: HerbatikaCurrencyCode
   itemCount: number
-}
-
-interface CartTotalsProps {
-  cartItemsTotalLabel: string
-  cartTotalLabel: string
-  currencyCode: HerbatikaCartPopoverProps["currencyCode"]
-  discountAmount: number | null
-  shippingAmount: number | null
-  taxAmount: number
-}
-
-const CartTotals = ({
-  cartItemsTotalLabel,
-  cartTotalLabel,
-  currencyCode,
-  discountAmount,
-  shippingAmount,
-  taxAmount,
-}: CartTotalsProps) => {
-  const t = useTranslations("cart")
-
-  return (
-    <div className="space-y-150 border-border-secondary border-t pt-250">
-      <div className="flex items-center justify-between gap-200">
-        <span className="text-fg-secondary">
-          {t("products_subtotal_excl_tax")}:
-        </span>
-        <span>{cartItemsTotalLabel}</span>
-      </div>
-
-      {shippingAmount !== null && shippingAmount > 0 ? (
-        <div className="flex items-center justify-between gap-200">
-          <span className="text-fg-secondary">{t("shipping_excl_tax")}:</span>
-          <span>{formatCurrencyAmount(shippingAmount, currencyCode)}</span>
-        </div>
-      ) : null}
-
-      {taxAmount > 0 ? (
-        <div className="flex items-center justify-between gap-200">
-          <span className="text-fg-secondary">{t("tax")}:</span>
-          <span>{formatCurrencyAmount(taxAmount, currencyCode)}</span>
-        </div>
-      ) : null}
-
-      {discountAmount !== null && discountAmount > 0 ? (
-        <div className="flex items-center justify-between gap-200 text-success">
-          <span>{t("discount")}:</span>
-          <span>-{formatCurrencyAmount(discountAmount, currencyCode)}</span>
-        </div>
-      ) : null}
-
-      <div className="flex items-center justify-between gap-200 border-border-secondary border-t pt-200 font-bold text-lg">
-        <span>{t("total_incl_tax")}:</span>
-        <span>{cartTotalLabel}</span>
-      </div>
-    </div>
-  )
-}
-
-const EmptyCartPreview = () => {
-  const t = useTranslations("cart")
-
-  return (
-    <output className="flex flex-col items-center gap-200 py-400 text-center">
-      <span aria-hidden="true" className="grid place-items-center text-primary">
-        <Icon className="text-icon-cart" icon="token-icon-cart" />
-      </span>
-      <div className="space-y-50">
-        <p className="font-semibold text-fg-primary">{t("empty_title")}</p>
-        <p className="text-fg-secondary text-sm">{t("empty_description")}</p>
-      </div>
-    </output>
-  )
 }
 
 export const HerbatikaCartPopover = ({
@@ -108,10 +36,13 @@ export const HerbatikaCartPopover = ({
   itemCount,
 }: HerbatikaCartPopoverProps) => {
   const t = useTranslations("cart")
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-  const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  )
+  const {
+    handleClose,
+    handlePreviewOpen,
+    isPopoverOpen,
+    schedulePreviewClose,
+    setIsPopoverOpen,
+  } = useCartPopoverHover()
   const cartIdForActions = cart?.id
   const lineItemActions = useCartLineItemActions(
     cartIdForActions === undefined ? {} : { cartId: cartIdForActions },
@@ -135,42 +66,6 @@ export const HerbatikaCartPopover = ({
   const hiddenItemCount = Math.max(cartItems.length - 4, 0)
   const visibleItems = cartItems.slice(0, 4)
 
-  const clearHoverCloseTimeout = () => {
-    if (!hoverCloseTimeoutRef.current) {
-      return
-    }
-
-    clearTimeout(hoverCloseTimeoutRef.current)
-    hoverCloseTimeoutRef.current = null
-  }
-
-  const handlePreviewOpen = () => {
-    clearHoverCloseTimeout()
-    setIsPopoverOpen(true)
-  }
-
-  const schedulePreviewClose = () => {
-    clearHoverCloseTimeout()
-    hoverCloseTimeoutRef.current = setTimeout(() => {
-      setIsPopoverOpen(false)
-      hoverCloseTimeoutRef.current = null
-    }, 120)
-  }
-
-  const handleClose = () => {
-    clearHoverCloseTimeout()
-    setIsPopoverOpen(false)
-  }
-
-  useEffect(
-    () => () => {
-      if (hoverCloseTimeoutRef.current) {
-        clearTimeout(hoverCloseTimeoutRef.current)
-      }
-    },
-    [],
-  )
-
   return (
     <Popover.Root
       gutter={10}
@@ -186,7 +81,7 @@ export const HerbatikaCartPopover = ({
       <Popover.Anchor className="inline-flex">
         <LinkButton
           as={NextLink}
-          className="relative inline-flex items-center gap-250 py-550 text-xl data-[state=open]:bg-button-bg-primary-hover sm:w-36"
+          className="relative inline-flex items-center gap-250 py-550 text-xl data-[state=open]:bg-button-bg-primary-hover sm:w-cart-trigger"
           data-state={isPopoverOpen ? "open" : "closed"}
           href="/checkout/kosik"
           onClick={handleClose}
@@ -199,7 +94,7 @@ export const HerbatikaCartPopover = ({
           <div className="relative">
             <Icon icon="token-icon-cart" size="2xl" />
             <Badge
-              className="-top-[7px] -right-200 absolute min-w-500 justify-center rounded-full bg-surface px-100 py-50 text-xs text-primary"
+              className="-top-cart-badge-offset -right-200 absolute min-w-500 justify-center rounded-full bg-surface px-100 py-50 text-xs text-primary"
               variant="success"
             >
               {itemCount > 99 ? "99+" : String(itemCount)}
@@ -213,7 +108,7 @@ export const HerbatikaCartPopover = ({
 
       <Popover.Positioner>
         <Popover.Content
-          className="w-[27rem] max-w-[calc(100vw-2rem)] space-y-300"
+          className="w-cart-popover max-w-popover-viewport space-y-300"
           onMouseEnter={handlePreviewOpen}
           onMouseLeave={schedulePreviewClose}
         >

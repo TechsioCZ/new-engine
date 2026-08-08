@@ -12,7 +12,7 @@ export const VariantGroup = ({
   fullWidth,
 }: VariantGroupProps) => (
   <div className="w-full space-y-2">
-    <h3 className="font-semibold text-fg-primary text-md">{title}</h3>
+    <h3 className="text-md font-semibold text-fg-primary">{title}</h3>
     <div
       className={`flex ${
         fullWidth === true ? "flex-col" : "flex-wrap"

@@ -7,14 +7,13 @@ import {
   setSessionTokenCookie,
 } from "../auth-route-utils"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
+import { createCustomerProfile, createWholesaleProfile } from "./register-flow"
+import type { ParsedRegisterPayload } from "./register-flow"
 import {
   createCustomerIdentity,
-  createCustomerProfile,
-  createWholesaleProfile,
   loginCustomerIdentity,
   refreshCustomerToken,
-} from "./register-flow"
-import type { ParsedRegisterPayload } from "./register-flow"
+} from "./register-identity"
 import { parseWholesaleRegistration } from "./wholesale"
 
 interface RegisterResponse {

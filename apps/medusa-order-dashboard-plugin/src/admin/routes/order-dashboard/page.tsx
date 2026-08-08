@@ -108,11 +108,6 @@ const isOrderDashboardLabelFormat = (
   value: unknown,
 ): value is OrderDashboardLabelFormat => value === "A6" || value === "A7"
 
-const isPacketaLabelStartPosition = (
-  value: number,
-): value is PacketaLabelStartPosition =>
-  value === 1 || value === 2 || value === 3 || value === 4
-
 interface PendingPacketaLabelsDownload {
   labelFormat: OrderDashboardLabelFormat
   orderIds: string[]
@@ -1549,27 +1544,36 @@ const useOrderDashboardPage = () => {
                 count: pendingPacketaLabelsDownload?.orderIds.length ?? 0,
               })}
             </Text>
-            <Select
-              onValueChange={(value) => {
-                const position = Number(value)
+            <div className="flex justify-center">
+              <div className="grid grid-cols-2 gap-2">
+                {packetaLabelStartPositions.map((position) => {
+                  const isSelected = position === packetaLabelStartPosition
 
-                if (isPacketaLabelStartPosition(position)) {
-                  setPacketaLabelStartPosition(position)
-                }
-              }}
-              value={String(packetaLabelStartPosition)}
-            >
-              <Select.Trigger>
-                <Select.Value />
-              </Select.Trigger>
-              <Select.Content>
-                {packetaLabelStartPositions.map((position) => (
-                  <Select.Item key={position} value={String(position)}>
-                    {t("packetaLabelPositionPrompt.position", { position })}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select>
+                  return (
+                    <button
+                      aria-pressed={isSelected}
+                      className={`flex h-28 w-24 items-center justify-center border text-ui-fg-base transition-colors hover:bg-ui-bg-base-hover focus-visible:shadow-borders-focus focus-visible:outline-none ${
+                        isSelected
+                          ? "border-ui-border-base bg-ui-bg-highlight shadow-borders-focus"
+                          : "border-ui-border-base bg-ui-bg-base"
+                      }`}
+                      key={position}
+                      onClick={() => {
+                        setPacketaLabelStartPosition(position)
+                      }}
+                      type="button"
+                    >
+                      <Text size="large" weight="plus">
+                        {position}
+                      </Text>
+                      <span className="sr-only">
+                        {t("packetaLabelPositionPrompt.position", { position })}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           </div>
           <Prompt.Footer>
             <Prompt.Cancel>{t("actions.cancel")}</Prompt.Cancel>

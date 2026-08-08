@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.strict.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["medusa.config.mjs"]
+}

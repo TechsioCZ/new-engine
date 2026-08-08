@@ -99,7 +99,12 @@ const resolvePromiseWithValue = async <Result>(
   value: unknown,
 ): Promise<Result> => {
   await Promise.resolve()
-  throw new Error("Resolved Packeta fulfillment value", { cause: value })
+  const error = new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    "Resolved Packeta fulfillment value",
+  )
+  error.cause = value
+  throw error
 }
 
 const getPacketaFulfillmentData = (

@@ -12,7 +12,7 @@ export const searchFormVariants = tv({
     // The clear button (an ActionIcon) lives inside the input, pinned to the
     // trailing edge at the input's inline padding (set per size below) and
     // vertically centered. ActionIcon owns its size, glyph and hover pill.
-    clearButton: ["-translate-y-1/2 absolute top-1/2"],
+    clearButton: ["absolute top-1/2 -translate-y-1/2"],
     control: ["flex items-stretch"],
     // The input keeps its own styling/focus ring from the Input atom.
     input: ["w-full"],

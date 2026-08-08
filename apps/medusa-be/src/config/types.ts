@@ -2,6 +2,7 @@ import type {
   InputConfigModules,
   InputConfigWithArrayModules,
 } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 
 export type MedusaAdminConfig = NonNullable<
   InputConfigWithArrayModules["admin"]
@@ -19,5 +20,10 @@ export type MedusaProjectConfig = NonNullable<
 >
 
 export const assertUnhandledConfigValue = (value: never): never => {
-  throw new Error("Unhandled config value", { cause: value })
+  const error = new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    "Unhandled config value",
+  )
+  error.cause = value
+  throw error
 }

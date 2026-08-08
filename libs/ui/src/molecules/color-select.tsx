@@ -27,7 +27,7 @@ const colorSelectVariants = tv({
       "aspect-square overflow-hidden",
       "border-2 transition-all duration-200 motion-reduce:transition-none",
       "border-color-select-border shadow-color-select hover:border-color-select-border-hover",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-color-select-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-[selected=true]:border-color-select-border-selected data-[selected=true]:shadow-none",
@@ -35,10 +35,10 @@ const colorSelectVariants = tv({
     cell: "grid",
     color: [
       "absolute",
-      "hover:brightness-75 size-full",
+      "size-full hover:brightness-75",
       "data-[selected=true]:brightness-75",
     ],
-    countText: ["text-color-select-label-fg text-xs"],
+    countText: ["text-xs text-color-select-label-fg"],
     group: ["grid place-items-start"],
     icon: [
       "absolute hidden items-center justify-center",
@@ -47,7 +47,7 @@ const colorSelectVariants = tv({
       "data-[selected=true]:flex",
     ],
     labelContainer: ["text-center"],
-    labelText: ["text-color-select-label-fg text-xs"],
+    labelText: ["text-xs text-color-select-label-fg"],
   },
   variants: {
     disabled: {
@@ -81,7 +81,7 @@ const colorSelectVariants = tv({
       full: {
         atom: "h-full",
         cell: "size-full",
-        group: "gap-color-select-md size-full",
+        group: "size-full gap-color-select-md",
         icon: "size-color-select-icon",
       },
       lg: {

@@ -51,7 +51,7 @@ const headerVariants = tv({
       "data-[position=center]:justify-items-center-safe",
       "data-[position=end]:justify-items-end-safe",
     ],
-    desktop: "flex @max-header-desktop:hidden w-full",
+    desktop: "flex w-full @max-header-desktop:hidden",
     hamburger: [
       "@header-desktop:hidden",
       "items-center",
@@ -60,7 +60,7 @@ const headerVariants = tv({
       "cursor-pointer",
     ],
     mobile: [
-      "absolute top-full @header-desktop:hidden *:flex *:flex-col data-[position=right]:right-0 data-[position=left]:left-0 data-[open=false]:hidden",
+      "absolute top-full *:flex *:flex-col data-[open=false]:hidden data-[position=left]:left-0 data-[position=right]:right-0 @header-desktop:hidden",
     ],
     nav: ["flex flex-1 items-center", "@max-header-desktop:bg-header-bg"],
     navItem: [

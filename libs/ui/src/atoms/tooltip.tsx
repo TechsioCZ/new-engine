@@ -55,7 +55,7 @@ const tooltipVariants = tv({
     variant: {
       default: {},
       outline: {
-        arrow: "border-tooltip-border-outline border-s border-t",
+        arrow: "border-s border-t border-tooltip-border-outline",
         content: "border border-tooltip-border-outline",
       },
     },

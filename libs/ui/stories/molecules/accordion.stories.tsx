@@ -59,7 +59,7 @@ export const Playground: Story = {
     variant: "default",
   },
   render: (args) => (
-    <div className="w-md h-96">
+    <div className="h-96 w-md">
       <Accordion {...args}>
         <Accordion.Item value="item-1">
           <Accordion.Header>
@@ -148,7 +148,7 @@ export const Multiple: Story = {
 
 export const ShadowVariants: Story = {
   render: () => (
-    <div className="w-md flex flex-col gap-300">
+    <div className="flex w-md flex-col gap-300">
       <div>
         <h3 className="mb-150 text-sm font-medium">Shadow: none (default)</h3>
         <Accordion shadow={noShadow}>
@@ -197,7 +197,7 @@ export const ShadowVariants: Story = {
 
 export const SizeVariants: Story = {
   render: () => (
-    <div className="w-md flex flex-col gap-300">
+    <div className="flex w-md flex-col gap-300">
       <div>
         <h3 className="mb-150 text-sm font-medium">Size: sm</h3>
         <Accordion size="sm">
@@ -256,7 +256,7 @@ export const CustomContent: Story = {
       <Accordion collapsible multiple>
         <Accordion.Item value="custom-1">
           <Accordion.Header>
-            <span className="inline-flex items-center gap-200 flex-1">
+            <span className="inline-flex flex-1 items-center gap-200">
               <Badge variant="primary">NEW</Badge>
               <Accordion.Title>Custom Header with Badge</Accordion.Title>
             </span>
@@ -305,13 +305,13 @@ export const CustomContent: Story = {
           </Accordion.Header>
           <Accordion.Content>
             <div className="flex flex-col gap-200">
-              <div className="flex justify-between items-center">
+              <div className="flex items-center justify-between">
                 <span>Enable notifications</span>
                 <Button size="sm" variant="secondary" theme="borderless">
                   Configure
                 </Button>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex items-center justify-between">
                 <span>Auto-save</span>
                 <Button size="sm" variant="secondary" theme="borderless">
                   Configure
@@ -327,7 +327,7 @@ export const CustomContent: Story = {
 
 export const AllVariants: Story = {
   render: () => (
-    <div className="w-md flex flex-col gap-300">
+    <div className="flex w-md flex-col gap-300">
       <div>
         <h3 className="mb-150 text-sm font-medium">Variant: default</h3>
         <Accordion variant="default" collapsible>
@@ -437,7 +437,7 @@ const ControlledAccordionStory = () => {
 
   return (
     <div className="w-md">
-      <h2 className="mb-200 font-bold text-lg">Controlled Accordion</h2>
+      <h2 className="mb-200 text-lg font-bold">Controlled Accordion</h2>
       <div className="mb-200">
         <p className="text-sm">
           Active items: {activeItems.join(", ") || "None"}

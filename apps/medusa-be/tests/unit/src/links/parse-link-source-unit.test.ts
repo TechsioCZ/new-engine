@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -17,11 +18,31 @@ const validSerializedSource = {
   serviceName: "product",
 }
 
+const captureError = (operation: () => unknown): unknown => {
+  try {
+    operation()
+  } catch (error) {
+    return error
+  }
+  return undefined
+}
+
+const expectInvalidLinkSource = (error: unknown, message: string): void => {
+  expect(error).toBeInstanceOf(MedusaError)
+  expect(error).toMatchObject({
+    code: "INVALID_LINK_SOURCE",
+    message,
+    type: MedusaError.Types.UNEXPECTED_STATE,
+  })
+}
+
 describe("Medusa link source parsing", () => {
-  it("returns the original valid linkable object", () => {
+  it("returns the validated serialized link source", () => {
     const source = { toJSON: () => validSerializedSource }
 
-    expect(parseLinkSource(source, "Product module")).toBe(source)
+    expect(parseLinkSource(source, "Product module")).toBe(
+      validSerializedSource,
+    )
   })
 
   it("validates serialized nested sources for field overrides", () => {
@@ -31,30 +52,39 @@ describe("Medusa link source parsing", () => {
   })
 
   it("rejects missing required serialized fields", () => {
+    expect.hasAssertions()
     const source = {
       toJSON: () => ({ ...validSerializedSource, primaryKey: "" }),
     }
 
-    expect(() => parseLinkSource(source, "Product module")).toThrow(
-      "Product module linkable definition is invalid",
+    expectInvalidLinkSource(
+      captureError(() => parseLinkSource(source, "Product module")),
+      "Product module: linkable definition is invalid",
     )
   })
 
   it("rejects linkables without a serializer", () => {
-    expect(() => parseLinkSource({}, "Product module")).toThrow(
-      "Product module linkable definition is invalid",
+    expect.hasAssertions()
+    expectInvalidLinkSource(
+      captureError(() => parseLinkSource({}, "Product module")),
+      "Product module: linkable definition is invalid",
     )
   })
 
   it("wraps serializer failures with context", () => {
+    expect.hasAssertions()
+    const serializationError = new Error("serialization broke")
     const source = {
       toJSON: () => {
-        throw new Error("serialization broke")
+        throw serializationError
       },
     }
+    const error = captureError(() => parseLinkSource(source, "Product module"))
 
-    expect(() => parseLinkSource(source, "Product module")).toThrow(
-      "Product module linkable serialization failed",
+    expectInvalidLinkSource(
+      error,
+      "Product module: linkable serialization failed",
     )
+    expect(error).toHaveProperty("cause", serializationError)
   })
 })

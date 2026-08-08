@@ -2,13 +2,16 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
 import { redirect, usePathname, useRouter } from "next/navigation"
 import type { ReactNode } from "react"
 
+import {
+  ACCOUNT_NAV_ITEMS,
+  isNavItemActive,
+} from "@/components/account-shell-navigation"
 import NextLink from "@/components/app-link"
 import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skeleton"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
@@ -16,54 +19,6 @@ import { OrderSkeleton } from "@/components/loading/order-skeleton"
 import { useAuth } from "@/lib/storefront/auth"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useLogoutAction } from "@/lib/storefront/use-logout-action"
-
-const ACCOUNT_NAV_LABEL_KEYS = {
-  lists: "account.navigation.lists",
-  orders: "account.navigation.orders",
-  overview: "account.navigation.overview",
-  settings: "account.navigation.settings",
-} as const
-
-interface AccountNavItemType {
-  href: string
-  icon: IconType
-  labelKey: (typeof ACCOUNT_NAV_LABEL_KEYS)[keyof typeof ACCOUNT_NAV_LABEL_KEYS]
-}
-
-const ACCOUNT_NAV_ITEMS: AccountNavItemType[] = [
-  {
-    href: "/account",
-    icon: "token-icon-user",
-    labelKey: "account.navigation.overview",
-  },
-  {
-    href: "/account/orders",
-    icon: "token-icon-order",
-    labelKey: "account.navigation.orders",
-  },
-  {
-    href: "/account/lists",
-    icon: "token-icon-heart",
-    labelKey: "account.navigation.lists",
-  },
-  {
-    href: "/account/settings",
-    icon: "token-icon-settings",
-    labelKey: "account.navigation.settings",
-  },
-] as const
-
-const isNavItemActive = (pathname: string, href: string) => {
-  if (pathname === href) {
-    return true
-  }
-
-  if (href === "/account") {
-    return false
-  }
-
-  return pathname.startsWith(`${href}/`)
-}
 
 interface AccountShellProps {
   children: ReactNode
@@ -75,6 +30,8 @@ export const AccountShell = ({ children }: AccountShellProps) => {
   const pathname = usePathname()
   const authQuery = useAuth()
   const redirectTarget = pathname
+  const isDeactivationConfirmationRoute =
+    pathname === "/account/deactivate/confirm"
   const isOrdersListRoute = pathname === "/account/orders"
   const isOrderDetailRoute = pathname.startsWith("/account/orders/")
   const {
@@ -92,6 +49,10 @@ export const AccountShell = ({ children }: AccountShellProps) => {
   const handleLogout = async () => {
     clearLogoutError()
     await performLogout()
+  }
+
+  if (isDeactivationConfirmationRoute) {
+    return <div>{children}</div>
   }
 
   if (authQuery.isLoading) {
@@ -134,7 +95,7 @@ export const AccountShell = ({ children }: AccountShellProps) => {
 
   return (
     <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
-      <div className="grid gap-account-page-gap lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-account-page-gap lg:account-shell-layout lg:items-start">
         <aside className="space-y-400 rounded-lg border border-border-secondary bg-surface p-400">
           <header className="leading-none">
             <h1 className="font-semibold text-xl">

@@ -43,7 +43,7 @@ const carouselVariants = tv({
       class: [
         "p-carousel-trigger",
         "text-carousel-trigger-fg-base",
-        "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+        "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
         "focus-visible:outline-carousel-ring",
         "focus-visible:outline-offset-(length:--default-ring-offset)",
       ],
@@ -51,7 +51,7 @@ const carouselVariants = tv({
     },
     {
       class: [
-        "bg-carousel-trigger-bg-base hover:bg-carousel-trigger-bg-hover text-carousel-trigger",
+        "bg-carousel-trigger-bg-base text-carousel-trigger hover:bg-carousel-trigger-bg-hover",
         "hover:text-carousel-trigger-fg-hover",
         "transition-colors duration-200 motion-reduce:transition-none",
       ],
@@ -131,25 +131,25 @@ const carouselVariants = tv({
     },
     controlPosition: {
       bottom: {
-        control: "-translate-x-1/2 absolute bottom-0 left-1/2",
+        control: "absolute bottom-0 left-1/2 -translate-x-1/2",
       },
       side: {
         control: "flex-col items-center justify-between",
       },
       top: {
-        control: "-translate-x-1/2 absolute top-0 left-1/2",
+        control: "absolute top-0 left-1/2 -translate-x-1/2",
       },
       unset: {},
     },
     objectFit: {
       contain: {
-        slide: "*:object-contain *:size-full",
+        slide: "*:size-full *:object-contain",
       },
       cover: {
-        slide: "*:object-cover *:size-full",
+        slide: "*:size-full *:object-cover",
       },
       fill: {
-        slide: "*:object-fill *:size-full",
+        slide: "*:size-full *:object-fill",
       },
       none: {
         slide: "",

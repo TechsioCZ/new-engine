@@ -50,27 +50,9 @@ const CONFIG = {
     "**/node_modules/**",
   ],
 
-  // Patterns to ignore completely
-  ignorePatterns: [/^--tw-/u, /_test$/u, /_debug$/u],
-
-  // Token CSS glob
+  // Token CSS globs
+  externalTokenCssGlob: "src/tokens/figma/**/*.css",
   tokenCssGlob: "src/tokens/components/**/*.css",
-
-  // Tokens to always consider "used" (whitelist)
-  whitelistPatterns: [
-    /^--color-primary$/u,
-    /^--color-secondary$/u,
-    /^--color-danger$/u,
-    /^--color-warning$/u,
-    /^--color-success$/u,
-    /^--color-info$/u,
-    /^--spacing-\d{2,3}$/u,
-    /^--text-(?:xs|sm|md|lg|xl)$/u,
-    /^--radius-(?:sm|md|lg)$/u,
-    // Base system tokens
-    /^--color-.*-(?:50|100|200|300|400|500|600|700|800|900)$/u,
-    /^--state-(?:hover|focus|active|disabled)$/u,
-  ],
 }
 
 /** @type {Readonly<Record<string, readonly string[]>>} */
@@ -238,14 +220,6 @@ const profiled = (enabled) => {
   }
 }
 
-/** @param {string} tokenName - Token name. */
-const isWhitelisted = (tokenName) =>
-  CONFIG.whitelistPatterns.some((pattern) => pattern.test(tokenName))
-
-/** @param {string} tokenName - Token name. */
-const shouldIgnoreToken = (tokenName) =>
-  CONFIG.ignorePatterns.some((pattern) => pattern.test(tokenName))
-
 /** @param {unknown} error - Thrown value. */
 const getErrorMessage = (error) =>
   error instanceof Error ? error.message : String(error)
@@ -272,8 +246,9 @@ const isExcludedComponentFile = (file) =>
 /** @param {string} pattern - Glob pattern. @returns {string[]} */
 const findFiles = (pattern) => {
   const tokenFiles = pattern.endsWith(".css")
+  const tokenBase = pattern.slice(0, pattern.indexOf("/**"))
   const baseDirectory = tokenFiles
-    ? path.join(ROOT, "src/tokens/components")
+    ? path.join(ROOT, tokenBase)
     : path.join(ROOT, "src")
   const allowedExtensions = tokenFiles
     ? new Set([".css"])
@@ -400,8 +375,15 @@ const indexTokenDefinitions = (content, file, defs, dependencyGraph) => {
  * @param {string} file - Relative file path.
  * @param {Map<string, TokenDefinition>} defs - Token definitions.
  * @param {Map<string, Set<string>>} cssUsage - Direct CSS usage.
+ * @param {ReadonlySet<string>} [excludedTokens] - Definitions owned elsewhere.
  */
-const indexCssUsage = (lines, file, defs, cssUsage) => {
+const indexCssUsage = (
+  lines,
+  file,
+  defs,
+  cssUsage,
+  excludedTokens = new Set(),
+) => {
   const definitionLines = new Set()
   for (const definition of defs.values()) {
     if (definition.file === file) {
@@ -413,6 +395,9 @@ const indexCssUsage = (lines, file, defs, cssUsage) => {
     const lineNumber = index + 1
     if (!definitionLines.has(lineNumber) && line.includes("var(")) {
       for (const token of extractDependencies(line)) {
+        if (excludedTokens.has(token)) {
+          continue
+        }
         const locations = cssUsage.get(token) ?? new Set()
         // This is direct usage from a non-definition CSS property.
         locations.add(`${file}:${lineNumber} (CSS property)`)
@@ -443,6 +428,35 @@ const processTokenFile = async (file, defs, dependencyGraph, cssUsage) => {
   }
 }
 
+/**
+ * @param {string} file - Relative external token file.
+ * @param {Map<string, Set<string>>} cssUsage - Direct CSS usage.
+ * @param {ReadonlySet<string>} externalDefinitions - Figma-owned definitions.
+ */
+const processExternalTokenUsage = async (
+  file,
+  cssUsage,
+  externalDefinitions,
+) => {
+  const absolutePath = path.join(ROOT, file)
+  if (!existsSync(absolutePath)) {
+    return
+  }
+
+  try {
+    const content = await fs.readFile(absolutePath, "utf-8")
+    indexCssUsage(
+      content.split("\n"),
+      file,
+      new Map(),
+      cssUsage,
+      externalDefinitions,
+    )
+  } catch (error) {
+    console.error(`💥 Failed to process ${file}:`, getErrorMessage(error))
+  }
+}
+
 const buildTokenIndices = async () => {
   const files = findFiles(CONFIG.tokenCssGlob)
   /** @type {Map<string, TokenDefinition>} */
@@ -455,6 +469,28 @@ const buildTokenIndices = async () => {
   await Promise.all(
     files.map(async (file) => {
       await processTokenFile(file, defs, dependencyGraph, cssUsage)
+    }),
+  )
+
+  const externalFiles = findFiles(CONFIG.externalTokenCssGlob)
+  /** @type {Map<string, TokenDefinition>} */
+  const externalDefs = new Map()
+  /** @type {Map<string, Set<string>>} */
+  const externalDependencies = new Map()
+  await Promise.all(
+    externalFiles.map(async (file) => {
+      await processTokenFile(
+        file,
+        externalDefs,
+        externalDependencies,
+        new Map(),
+      )
+    }),
+  )
+  const externalDefinitions = new Set(externalDefs.keys())
+  await Promise.all(
+    externalFiles.map(async (file) => {
+      await processExternalTokenUsage(file, cssUsage, externalDefinitions)
     }),
   )
 
@@ -639,23 +675,12 @@ const propagateUsage = (initialUsed, dependencyGraph) => {
 }
 
 /**
- * @param {readonly string[]} allTokens - Defined tokens.
  * @param {Map<string, Set<string>>} cssUsage - Direct CSS usage.
  * @param {Map<string, Set<string>>} componentVarUsage - Component var usage.
  * @param {ReadonlySet<string>} classUsageTokens - Class-based usage.
  */
-const collectDirectUsage = (
-  allTokens,
-  cssUsage,
-  componentVarUsage,
-  classUsageTokens,
-) => {
+const collectDirectUsage = (cssUsage, componentVarUsage, classUsageTokens) => {
   const usedDirect = new Set(classUsageTokens)
-  for (const token of allTokens) {
-    if (isWhitelisted(token)) {
-      usedDirect.add(token)
-    }
-  }
   for (const [token, locations] of cssUsage) {
     if (locations.size > 0) {
       usedDirect.add(token)
@@ -678,7 +703,7 @@ const collectDirectUsage = (
 const findUnusedTokens = (allTokens, usedTokens, defs) => {
   const unusedTokens = []
   for (const name of allTokens) {
-    if (!shouldIgnoreToken(name) && !usedTokens.has(name)) {
+    if (!usedTokens.has(name)) {
       const definition = defs.get(name)
       if (definition !== undefined) {
         unusedTokens.push({ name, ...definition })
@@ -775,7 +800,6 @@ const validateTokenDefinitions = async ({
   }
 
   const usedDirect = collectDirectUsage(
-    allTokens,
     cssUsage,
     componentVarUsage,
     classUsageTokens,

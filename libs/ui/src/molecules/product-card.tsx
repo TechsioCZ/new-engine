@@ -37,16 +37,16 @@ const productCardVariants = tv({
     button: "",
     imageSlot: "h-full rounded-product-card-image object-cover",
     nameSlot:
-      "line-clamp-product-card-name font-product-card-name text-product-card-name-fg text-product-card-name-size",
+      "line-clamp-product-card-name text-product-card-name-size font-product-card-name text-product-card-name-fg",
     priceSlot:
-      "font-product-card-price text-product-card-price-fg text-product-card-price-size",
+      "text-product-card-price-size font-product-card-price text-product-card-price-fg",
     ratingSlot: "flex items-center",
     root: [
       "rounded-product-card p-product-card-padding",
-      "border-(length:--border-product-card-width) max-w-product-card-max border-product-card-border bg-product-card-bg shadow-sm",
+      "max-w-product-card-max border-(length:--border-product-card-width) border-product-card-border bg-product-card-bg shadow-sm",
     ],
     stockStatusSlot: [
-      "font-product-card-stock text-product-card-stock-size",
+      "text-product-card-stock-size font-product-card-stock",
       "data-[stock=in-stock]:text-product-card-stock-fg-in-stock",
       "data-[stock=limited-stock]:text-product-card-stock-fg-limited-stock",
       "data-[stock=out-of-stock]:text-product-card-stock-fg-out-of-stock",

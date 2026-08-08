@@ -3,7 +3,11 @@ import type {
   Logger,
   MedusaContainer,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 
 import { SYMMY_IMPORT_JOB_MODULE } from "../modules/import-job"
 import type {
@@ -171,14 +175,20 @@ export const runImportJob = async <TInput, TOutput extends object>({
         try {
           const input: unknown = job.payload
           if (!decodeInput(input)) {
-            throw new Error("Import job payload failed validation")
+            throw new MedusaError(
+              MedusaError.Types.INVALID_DATA,
+              "Import job payload failed validation",
+            )
           }
           const output = await run(input)
           const stats = getCompletionStats(output)
           const persistedOutput: unknown = output
           const { isRecord } = await import("@techsio/std/object")
           if (!isRecord(persistedOutput)) {
-            throw new Error("Import job output is not a record")
+            throw new MedusaError(
+              MedusaError.Types.UNEXPECTED_STATE,
+              "Import job output is not a record",
+            )
           }
 
           const completedJob = await importJobService.markCompleted(job.id, {

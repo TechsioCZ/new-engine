@@ -1,117 +1,122 @@
+import type { Product } from "@/components/product-detail/product-detail.types"
 import type { resolveOfferState } from "@/components/product-detail/utils/metadata-parsers"
 import {
   resolveDiscountPercent,
   resolveDisplayOriginalAmount,
+  resolvePriceState,
   resolveVipCreditLabel,
   resolveVolumeDiscountOptions,
 } from "@/components/product-detail/utils/pricing-utils"
-import type { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { formatUnitPriceLabel } from "@/lib/storefront/unit-price"
 
+interface ProductPricingDataLabels {
+  perUnit: (price: string) => string
+  title: (quantity: number) => string
+}
+
 const resolveDisplayOriginalLabel = (
   productPrice: ReturnType<typeof resolvePriceState> | null,
   displayOriginalAmount: number | null,
-  currentCurrencyCode: string,
+  currencyCode: string,
 ) =>
   productPrice && typeof displayOriginalAmount === "number"
-    ? formatCurrencyAmount(displayOriginalAmount, currentCurrencyCode)
+    ? formatCurrencyAmount(displayOriginalAmount, currencyCode)
     : null
 
-export const resolveProductVolumeDiscountOptions = ({
-  availableQuantity,
-  currentAmount,
-  currentCurrencyCode,
+export const resolveProductPricingData = ({
+  inventory,
   labels,
   offerState,
+  priceUnavailableLabel,
+  priceVariantId,
+  product,
+  regionCurrencyCode,
+  selectedVariantId,
+  selectedVolumeDiscountId,
 }: {
-  availableQuantity: number | null
-  currentAmount: number | null
-  currentCurrencyCode: string
-  labels: {
-    title: (quantity: number) => string
-    perUnit: (price: string) => string
+  inventory: {
+    availableQuantity: number | null
+    isPurchasable: boolean
+    maxPurchaseQuantity: number
   }
+  labels: ProductPricingDataLabels
   offerState: ReturnType<typeof resolveOfferState>
+  priceUnavailableLabel: string
+  priceVariantId: string | null
+  product: Product | null
+  regionCurrencyCode: string
+  selectedVariantId: string | null
+  selectedVolumeDiscountId: string | null
 }) => {
+  const productPrice =
+    product === null
+      ? null
+      : resolvePriceState(
+          product,
+          priceVariantId,
+          regionCurrencyCode,
+          priceUnavailableLabel,
+        )
+  const currentAmount = productPrice?.currentAmount ?? null
+  const currentCurrencyCode = productPrice?.currencyCode ?? regionCurrencyCode
+  const displayOriginalAmount = resolveDisplayOriginalAmount(productPrice)
   const discountOptions = resolveVolumeDiscountOptions(
     currentAmount,
     currentCurrencyCode,
     offerState.applyQuantityDiscount || offerState.applyVolumeDiscount,
     labels,
   )
-
-  if (availableQuantity === null) {
-    return discountOptions
-  }
-
-  return discountOptions.filter(
-    (option) => option.quantity <= availableQuantity,
-  )
-}
-
-export const resolveProductPricingLabels = ({
-  productPrice,
-  regionCurrencyCode,
-  offerState,
-  priceUnavailableLabel,
-}: {
-  productPrice: ReturnType<typeof resolvePriceState> | null
-  regionCurrencyCode: string
-  offerState: ReturnType<typeof resolveOfferState>
-  priceUnavailableLabel: string
-}) => {
-  const currentAmount = productPrice?.currentAmount ?? null
-  const currentAmountLabel = productPrice?.currentLabel ?? priceUnavailableLabel
-  const currentCurrencyCode = productPrice?.currencyCode ?? regionCurrencyCode
-  const displayOriginalAmount = resolveDisplayOriginalAmount(productPrice)
-  const displayOriginalLabel = resolveDisplayOriginalLabel(
-    productPrice,
-    displayOriginalAmount,
-    currentCurrencyCode,
-  )
-  const discountPercent = resolveDiscountPercent(
-    currentAmount,
-    displayOriginalAmount,
-  )
-  const vipCreditLabel = resolveVipCreditLabel(
-    currentAmount,
-    currentCurrencyCode,
-    offerState.applyLoyaltyDiscount,
-  )
-  const unitPriceLabel = formatUnitPriceLabel(productPrice?.pricePerUnit)
+  const { availableQuantity } = inventory
+  const volumeDiscountOptions =
+    availableQuantity === null
+      ? discountOptions
+      : discountOptions.filter((option) => option.quantity <= availableQuantity)
+  const selectedVolumeDiscountOption =
+    volumeDiscountOptions.find(
+      (option) => option.id === selectedVolumeDiscountId,
+    ) ??
+    volumeDiscountOptions[0] ??
+    null
 
   return {
-    currentAmount,
-    currentAmountLabel,
+    canAddToCart:
+      selectedVariantId !== null &&
+      selectedVariantId !== "" &&
+      typeof currentAmount === "number" &&
+      inventory.isPurchasable,
+    currentAmountLabel: productPrice?.currentLabel ?? priceUnavailableLabel,
     currentCurrencyCode,
-    discountPercent,
-    displayOriginalLabel,
-    unitPriceLabel,
-    vipCreditLabel,
+    discountPercent: resolveDiscountPercent(
+      currentAmount,
+      displayOriginalAmount,
+    ),
+    displayOriginalLabel: resolveDisplayOriginalLabel(
+      productPrice,
+      displayOriginalAmount,
+      currentCurrencyCode,
+    ),
+    maxQuantity: inventory.maxPurchaseQuantity,
+    selectedVolumeDiscountId: selectedVolumeDiscountOption?.id ?? null,
+    selectedVolumeDiscountOption,
+    unitPriceLabel: formatUnitPriceLabel(productPrice?.pricePerUnit),
+    vipCreditLabel: resolveVipCreditLabel(
+      currentAmount,
+      currentCurrencyCode,
+      offerState.applyLoyaltyDiscount,
+    ),
+    volumeDiscountOptions,
   }
 }
-
-export const resolveSelectedVolumeDiscountOption = (
-  volumeDiscountOptions: ReturnType<typeof resolveVolumeDiscountOptions>,
-  selectedVolumeDiscountId: string | null,
-) =>
-  volumeDiscountOptions.find(
-    (option) => option.id === selectedVolumeDiscountId,
-  ) ??
-  volumeDiscountOptions[0] ??
-  null
 
 export const resolveFreeShippingThresholdLabel = (
   currentCurrencyCode: string,
 ) => {
-  const freeShippingThresholdAmount =
-    resolveFreeShippingThresholdAmount(currentCurrencyCode)
-
-  return freeShippingThresholdAmount === null
+  const amount = resolveFreeShippingThresholdAmount(currentCurrencyCode)
+  return amount === null
     ? null
-    : formatCurrencyAmount(freeShippingThresholdAmount, currentCurrencyCode, {
+    : formatCurrencyAmount(amount, currentCurrencyCode, {
         maximumFractionDigits: 0,
         minimumFractionDigits: 0,
       })

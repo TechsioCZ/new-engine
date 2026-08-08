@@ -9,6 +9,7 @@ import { createMedusaCollectionService } from "../src/collections/medusa-service
 import { createMedusaStorefrontPreset } from "../src/medusa/preset"
 import type { CreateMedusaStorefrontPresetConfig } from "../src/medusa/preset"
 import { createMedusaStorefrontServerReadPreset } from "../src/medusa/server-read"
+import type { CreateMedusaStorefrontServerReadPresetConfig } from "../src/medusa/server-read"
 import type { ProductListHooks } from "../src/product-lists/hooks"
 import { createMedusaProductListService } from "../src/product-lists/medusa-service"
 import type { ProductListCartLike } from "../src/product-lists/types"
@@ -16,6 +17,7 @@ import type { ProductHooks } from "../src/products/hooks"
 import { createMedusaProductService } from "../src/products/medusa-service"
 import type { StoreProductWithPricePerUnit } from "../src/products/types"
 import { createMedusaProductReviewService } from "../src/reviews/medusa-service"
+import type { ExpectFalse, Extends } from "./type-assertions"
 
 declare const sdk: Medusa
 declare const explicitUndefined: undefined
@@ -28,8 +30,9 @@ export const validPricePerUnitAmount: number | undefined =
   pricePerUnit?.calculated_amount_with_tax
 export const validPricePerUnitSymbol: string | undefined =
   pricePerUnit?.unit_symbol
-// @ts-expect-error the shared contract must reject fields not returned by the API
-export const invalidPricePerUnitField: unknown = pricePerUnit?.amount
+export type PricePerUnitRejectsUnreturnedAmount = ExpectFalse<
+  Extends<"amount", keyof NonNullable<typeof pricePerUnit>>
+>
 
 export const defaultProductService = createMedusaProductService(sdk)
 export const defaultCatalogService = createMedusaCatalogService(sdk)
@@ -38,45 +41,59 @@ export const defaultCollectionService = createMedusaCollectionService(sdk)
 export const defaultReviewService = createMedusaProductReviewService(sdk)
 export const defaultProductListService = createMedusaProductListService(sdk)
 
-export const unsafeCustomProductService =
-  // @ts-expect-error custom product output requires a transform
-  createMedusaProductService<{ slug: string }>(sdk)
+interface CustomOutput {
+  slug: string
+}
 
-export const unsafeCustomCatalogService =
-  // @ts-expect-error custom catalog output requires a transform
-  createMedusaCatalogService<{ slug: string }>(sdk)
+type CustomProductServiceParameters = Parameters<
+  typeof createMedusaProductService<CustomOutput>
+>
+type CustomCatalogServiceParameters = Parameters<
+  typeof createMedusaCatalogService<CustomOutput>
+>
+type CustomCategoryServiceParameters = Parameters<
+  typeof createMedusaCategoryService<CustomOutput>
+>
+type CustomCollectionServiceParameters = Parameters<
+  typeof createMedusaCollectionService<CustomOutput>
+>
+type CustomReviewServiceParameters = Parameters<
+  typeof createMedusaProductReviewService<CustomOutput>
+>
+type CustomProductListServiceParameters = Parameters<
+  typeof createMedusaProductListService<CustomOutput>
+>
 
-export const unsafeCustomCategoryService =
-  // @ts-expect-error custom category output requires a transform
-  createMedusaCategoryService<{ slug: string }>(sdk)
-
-export const unsafeCustomCollectionService =
-  // @ts-expect-error custom collection output requires a transform
-  createMedusaCollectionService<{ slug: string }>(sdk)
-
-export const unsafeCustomReviewService =
-  // @ts-expect-error custom review output requires a transform
-  createMedusaProductReviewService<{ slug: string }>(sdk)
-
-export const unsafeCustomProductListService =
-  // @ts-expect-error custom product-list output requires a transform
-  createMedusaProductListService<{ slug: string }>(sdk)
-
-export const unsafeUndefinedCustomProductService =
-  // @ts-expect-error custom product output rejects an explicitly undefined transform config
-  createMedusaProductService<{ slug: string }>(sdk, explicitUndefined)
-
-export const unsafeUndefinedCustomCatalogService =
-  // @ts-expect-error custom catalog product output rejects an explicitly undefined transform config
-  createMedusaCatalogService<{ slug: string }>(sdk, explicitUndefined)
-
-export const unsafeUndefinedCustomCategoryService =
-  // @ts-expect-error custom category output rejects an explicitly undefined transform config
-  createMedusaCategoryService<{ slug: string }>(sdk, explicitUndefined)
-
-export const unsafeUndefinedCustomCollectionService =
-  // @ts-expect-error custom collection output rejects an explicitly undefined transform config
-  createMedusaCollectionService<{ slug: string }>(sdk, explicitUndefined)
+export type CustomProductServiceRequiresTransform = ExpectFalse<
+  Extends<[sdk: Medusa], CustomProductServiceParameters>
+>
+export type CustomCatalogServiceRequiresTransform = ExpectFalse<
+  Extends<[sdk: Medusa], CustomCatalogServiceParameters>
+>
+export type CustomCategoryServiceRequiresTransform = ExpectFalse<
+  Extends<[sdk: Medusa], CustomCategoryServiceParameters>
+>
+export type CustomCollectionServiceRequiresTransform = ExpectFalse<
+  Extends<[sdk: Medusa], CustomCollectionServiceParameters>
+>
+export type CustomReviewServiceRequiresTransform = ExpectFalse<
+  Extends<[sdk: Medusa], CustomReviewServiceParameters>
+>
+export type CustomProductListServiceRequiresTransform = ExpectFalse<
+  Extends<[sdk: Medusa], CustomProductListServiceParameters>
+>
+export type CustomProductServiceRejectsUndefinedTransform = ExpectFalse<
+  Extends<[sdk: Medusa, config: undefined], CustomProductServiceParameters>
+>
+export type CustomCatalogServiceRejectsUndefinedTransform = ExpectFalse<
+  Extends<[sdk: Medusa, config: undefined], CustomCatalogServiceParameters>
+>
+export type CustomCategoryServiceRejectsUndefinedTransform = ExpectFalse<
+  Extends<[sdk: Medusa, config: undefined], CustomCategoryServiceParameters>
+>
+export type CustomCollectionServiceRejectsUndefinedTransform = ExpectFalse<
+  Extends<[sdk: Medusa, config: undefined], CustomCollectionServiceParameters>
+>
 
 export const defaultUndefinedProductService = createMedusaProductService(
   sdk,
@@ -130,24 +147,23 @@ type ExtendedCatalogFacets = CatalogFacets & {
   dosage: CatalogFacets["brand"]
 }
 
-export const unsafeCustomCatalogFacetsService =
-  // @ts-expect-error custom catalog facets require a transform config
-  createMedusaCatalogService<
+type CustomCatalogFacetsServiceParameters = Parameters<
+  typeof createMedusaCatalogService<
     HttpTypes.StoreProduct,
     MedusaCatalogListInput,
     ExtendedCatalogFacets
-  >(sdk)
+  >
+>
 
-export const unsafeUndefinedCustomCatalogFacetsService =
-  createMedusaCatalogService<
-    HttpTypes.StoreProduct,
-    MedusaCatalogListInput,
-    ExtendedCatalogFacets
-  >(
-    sdk,
-    // @ts-expect-error custom catalog facets reject an explicitly undefined transform config
-    explicitUndefined,
-  )
+export type CustomCatalogFacetsServiceRequiresTransform = ExpectFalse<
+  Extends<[sdk: Medusa], CustomCatalogFacetsServiceParameters>
+>
+export type CustomCatalogFacetsServiceRejectsUndefinedTransform = ExpectFalse<
+  Extends<
+    [sdk: Medusa, config: undefined],
+    CustomCatalogFacetsServiceParameters
+  >
+>
 
 export const transformedCatalogFacetsService = createMedusaCatalogService<
   HttpTypes.StoreProduct,
@@ -164,12 +180,19 @@ type CustomFacetConfig = CreateMedusaStorefrontPresetConfig<
   ExtendedCatalogFacets
 >
 
-// @ts-expect-error custom facet shapes must provide catalog.fallbackFacets
-export const missingCatalogFallback: CustomFacetConfig = { sdk }
-
-interface CustomOutput {
-  slug: string
-}
+export type CustomFacetConfigRequiresCatalogFallback = ExpectFalse<
+  Extends<
+    {
+      catalog: {
+        serviceConfig: {
+          transformFacets: (facets: CatalogFacets) => ExtendedCatalogFacets
+        }
+      }
+      sdk: Medusa
+    },
+    CustomFacetConfig
+  >
+>
 
 export const defaultServerReadPreset = createMedusaStorefrontServerReadPreset({
   sdk,
@@ -178,110 +201,89 @@ export const defaultStorefrontPreset: unknown = createMedusaStorefrontPreset({
   sdk,
 })
 
-export const serverReadProductWithoutSection =
-  // @ts-expect-error custom product output requires products.serviceConfig
-  createMedusaStorefrontServerReadPreset<CustomOutput>({ sdk })
-export const serverReadProductWithoutServiceConfig =
-  createMedusaStorefrontServerReadPreset<CustomOutput>({
-    // @ts-expect-error custom product output requires products.serviceConfig
-    products: {},
-    sdk,
-  })
-export const serverReadProductWithUndefinedServiceConfig =
-  createMedusaStorefrontServerReadPreset<CustomOutput>({
-    products: {
-      // @ts-expect-error custom product output rejects an undefined serviceConfig
-      serviceConfig: explicitUndefined,
-    },
-    sdk,
-  })
-
-export const serverReadCategoryWithoutSection =
-  createMedusaStorefrontServerReadPreset<HttpTypes.StoreProduct, CustomOutput>(
-    // @ts-expect-error custom category output requires categories.serviceConfig
-    { sdk },
-  )
-export const serverReadCategoryWithoutServiceConfig =
-  createMedusaStorefrontServerReadPreset<HttpTypes.StoreProduct, CustomOutput>({
-    // @ts-expect-error custom category output requires categories.serviceConfig
-    categories: {},
-    sdk,
-  })
-export const serverReadCategoryWithUndefinedServiceConfig =
-  createMedusaStorefrontServerReadPreset<HttpTypes.StoreProduct, CustomOutput>({
-    categories: {
-      // @ts-expect-error custom category output rejects an undefined serviceConfig
-      serviceConfig: explicitUndefined,
-    },
-    sdk,
-  })
-
-export const serverReadCollectionWithoutSection =
-  createMedusaStorefrontServerReadPreset<
+type CustomProductServerReadConfig =
+  CreateMedusaStorefrontServerReadPresetConfig<CustomOutput>
+type CustomCategoryServerReadConfig =
+  CreateMedusaStorefrontServerReadPresetConfig<
+    HttpTypes.StoreProduct,
+    CustomOutput
+  >
+type CustomCollectionServerReadConfig =
+  CreateMedusaStorefrontServerReadPresetConfig<
     HttpTypes.StoreProduct,
     HttpTypes.StoreProductCategory,
     CustomOutput
-  >(
-    // @ts-expect-error custom collection output requires collections.serviceConfig
-    { sdk },
-  )
-export const serverReadCollectionWithoutServiceConfig =
-  createMedusaStorefrontServerReadPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    CustomOutput
-  >({
-    // @ts-expect-error custom collection output requires collections.serviceConfig
-    collections: {},
-    sdk,
-  })
-export const serverReadCollectionWithUndefinedServiceConfig =
-  createMedusaStorefrontServerReadPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    CustomOutput
-  >({
-    collections: {
-      // @ts-expect-error custom collection output rejects an undefined serviceConfig
-      serviceConfig: explicitUndefined,
-    },
-    sdk,
-  })
-
-export const serverReadCatalogProductWithoutSection =
-  createMedusaStorefrontServerReadPreset<
+  >
+type CustomCatalogProductServerReadConfig =
+  CreateMedusaStorefrontServerReadPresetConfig<
     HttpTypes.StoreProduct,
     HttpTypes.StoreProductCategory,
     HttpTypes.StoreCollection,
     CustomOutput
-  >(
-    // @ts-expect-error custom catalog product output requires catalog.serviceConfig
-    { sdk },
-  )
-export const serverReadCatalogProductWithoutServiceConfig =
-  createMedusaStorefrontServerReadPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    HttpTypes.StoreCollection,
-    CustomOutput
-  >({
-    // @ts-expect-error custom catalog product output requires catalog.serviceConfig
-    catalog: {},
-    sdk,
-  })
-export const serverReadCatalogProductWithUndefinedServiceConfig =
-  createMedusaStorefrontServerReadPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    HttpTypes.StoreCollection,
-    CustomOutput
-  >({
-    catalog: {
-      // @ts-expect-error custom catalog product output rejects an undefined serviceConfig
-      serviceConfig: explicitUndefined,
-    },
-    sdk,
-  })
+  >
+
+export type ServerReadCustomProductRequiresSection = ExpectFalse<
+  Extends<{ sdk: Medusa }, CustomProductServerReadConfig>
+>
+export type ServerReadCustomProductRequiresServiceConfig = ExpectFalse<
+  Extends<
+    { products: Record<never, never>; sdk: Medusa },
+    CustomProductServerReadConfig
+  >
+>
+export type ServerReadCustomProductRejectsUndefinedServiceConfig = ExpectFalse<
+  Extends<
+    { products: { serviceConfig: undefined }; sdk: Medusa },
+    CustomProductServerReadConfig
+  >
+>
+export type ServerReadCustomCategoryRequiresSection = ExpectFalse<
+  Extends<{ sdk: Medusa }, CustomCategoryServerReadConfig>
+>
+export type ServerReadCustomCategoryRequiresServiceConfig = ExpectFalse<
+  Extends<
+    { categories: Record<never, never>; sdk: Medusa },
+    CustomCategoryServerReadConfig
+  >
+>
+export type ServerReadCustomCategoryRejectsUndefinedServiceConfig = ExpectFalse<
+  Extends<
+    { categories: { serviceConfig: undefined }; sdk: Medusa },
+    CustomCategoryServerReadConfig
+  >
+>
+export type ServerReadCustomCollectionRequiresSection = ExpectFalse<
+  Extends<{ sdk: Medusa }, CustomCollectionServerReadConfig>
+>
+export type ServerReadCustomCollectionRequiresServiceConfig = ExpectFalse<
+  Extends<
+    { collections: Record<never, never>; sdk: Medusa },
+    CustomCollectionServerReadConfig
+  >
+>
+export type ServerReadCustomCollectionRejectsUndefinedServiceConfig =
+  ExpectFalse<
+    Extends<
+      { collections: { serviceConfig: undefined }; sdk: Medusa },
+      CustomCollectionServerReadConfig
+    >
+  >
+export type ServerReadCustomCatalogProductRequiresSection = ExpectFalse<
+  Extends<{ sdk: Medusa }, CustomCatalogProductServerReadConfig>
+>
+export type ServerReadCustomCatalogProductRequiresServiceConfig = ExpectFalse<
+  Extends<
+    { catalog: Record<never, never>; sdk: Medusa },
+    CustomCatalogProductServerReadConfig
+  >
+>
+export type ServerReadCustomCatalogProductRejectsUndefinedServiceConfig =
+  ExpectFalse<
+    Extends<
+      { catalog: { serviceConfig: undefined }; sdk: Medusa },
+      CustomCatalogProductServerReadConfig
+    >
+  >
 
 const extendedCatalogFacets: ExtendedCatalogFacets = {
   brand: [],
@@ -292,43 +294,31 @@ const extendedCatalogFacets: ExtendedCatalogFacets = {
   status: [],
 }
 
-export const serverReadCatalogFacetsWithoutSection =
-  createMedusaStorefrontServerReadPreset<
+type CustomCatalogFacetsServerReadConfig =
+  CreateMedusaStorefrontServerReadPresetConfig<
     HttpTypes.StoreProduct,
     HttpTypes.StoreProductCategory,
     HttpTypes.StoreCollection,
     HttpTypes.StoreProduct,
     ExtendedCatalogFacets
-  >(
-    // @ts-expect-error custom catalog facets require catalog.serviceConfig
-    { sdk },
-  )
-export const serverReadCatalogFacetsWithoutServiceConfig =
-  createMedusaStorefrontServerReadPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    HttpTypes.StoreCollection,
-    HttpTypes.StoreProduct,
-    ExtendedCatalogFacets
-  >({
-    // @ts-expect-error custom catalog facets require catalog.serviceConfig
-    catalog: {},
-    sdk,
-  })
-export const serverReadCatalogFacetsWithUndefinedServiceConfig =
-  createMedusaStorefrontServerReadPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    HttpTypes.StoreCollection,
-    HttpTypes.StoreProduct,
-    ExtendedCatalogFacets
-  >({
-    catalog: {
-      // @ts-expect-error custom catalog facets reject an undefined serviceConfig
-      serviceConfig: explicitUndefined,
-    },
-    sdk,
-  })
+  >
+
+export type ServerReadCustomCatalogFacetsRequireSection = ExpectFalse<
+  Extends<{ sdk: Medusa }, CustomCatalogFacetsServerReadConfig>
+>
+export type ServerReadCustomCatalogFacetsRequireServiceConfig = ExpectFalse<
+  Extends<
+    { catalog: Record<never, never>; sdk: Medusa },
+    CustomCatalogFacetsServerReadConfig
+  >
+>
+export type ServerReadCustomCatalogFacetsRejectUndefinedServiceConfig =
+  ExpectFalse<
+    Extends<
+      { catalog: { serviceConfig: undefined }; sdk: Medusa },
+      CustomCatalogFacetsServerReadConfig
+    >
+  >
 
 export const transformedServerReadPreset =
   createMedusaStorefrontServerReadPreset<
@@ -362,133 +352,108 @@ export const transformedServerReadPreset =
     sdk,
   })
 
-export const storefrontProductWithoutSection: unknown =
-  // @ts-expect-error custom product output requires products.serviceConfig
-  createMedusaStorefrontPreset<CustomOutput>({ sdk })
-export const storefrontProductWithoutServiceConfig: unknown =
-  // @ts-expect-error custom product output requires products.serviceConfig
-  createMedusaStorefrontPreset<CustomOutput>({ products: {}, sdk })
-export const storefrontProductWithUndefinedServiceConfig: unknown =
-  createMedusaStorefrontPreset<CustomOutput>({
-    products: {
-      // @ts-expect-error custom product output rejects an undefined serviceConfig
-      serviceConfig: explicitUndefined,
-    },
-    sdk,
-  })
+type CustomProductStorefrontConfig =
+  CreateMedusaStorefrontPresetConfig<CustomOutput>
+type CustomCategoryStorefrontConfig = CreateMedusaStorefrontPresetConfig<
+  HttpTypes.StoreProduct,
+  CustomOutput
+>
+type CustomCollectionStorefrontConfig = CreateMedusaStorefrontPresetConfig<
+  HttpTypes.StoreProduct,
+  HttpTypes.StoreProductCategory,
+  CustomOutput
+>
+type CustomCatalogProductStorefrontConfig = CreateMedusaStorefrontPresetConfig<
+  HttpTypes.StoreProduct,
+  HttpTypes.StoreProductCategory,
+  HttpTypes.StoreCollection,
+  CustomOutput
+>
 
-export const storefrontCategoryWithoutSection: unknown =
-  // @ts-expect-error custom category output requires categories.serviceConfig
-  createMedusaStorefrontPreset<HttpTypes.StoreProduct, CustomOutput>({ sdk })
-export const storefrontCategoryWithoutServiceConfig: unknown =
-  createMedusaStorefrontPreset<HttpTypes.StoreProduct, CustomOutput>({
-    // @ts-expect-error custom category output requires categories.serviceConfig
-    categories: {},
-    sdk,
-  })
-export const storefrontCategoryWithUndefinedServiceConfig: unknown =
-  createMedusaStorefrontPreset<HttpTypes.StoreProduct, CustomOutput>({
-    categories: {
-      // @ts-expect-error custom category output rejects an undefined serviceConfig
-      serviceConfig: explicitUndefined,
+export type StorefrontCustomProductRequiresSection = ExpectFalse<
+  Extends<{ sdk: Medusa }, CustomProductStorefrontConfig>
+>
+export type StorefrontCustomProductRequiresServiceConfig = ExpectFalse<
+  Extends<
+    { products: Record<never, never>; sdk: Medusa },
+    CustomProductStorefrontConfig
+  >
+>
+export type StorefrontCustomProductRejectsUndefinedServiceConfig = ExpectFalse<
+  Extends<
+    { products: { serviceConfig: undefined }; sdk: Medusa },
+    CustomProductStorefrontConfig
+  >
+>
+export type StorefrontCustomCategoryRequiresSection = ExpectFalse<
+  Extends<{ sdk: Medusa }, CustomCategoryStorefrontConfig>
+>
+export type StorefrontCustomCategoryRequiresServiceConfig = ExpectFalse<
+  Extends<
+    { categories: Record<never, never>; sdk: Medusa },
+    CustomCategoryStorefrontConfig
+  >
+>
+export type StorefrontCustomCategoryRejectsUndefinedServiceConfig = ExpectFalse<
+  Extends<
+    { categories: { serviceConfig: undefined }; sdk: Medusa },
+    CustomCategoryStorefrontConfig
+  >
+>
+export type StorefrontCustomCollectionRequiresSection = ExpectFalse<
+  Extends<{ sdk: Medusa }, CustomCollectionStorefrontConfig>
+>
+export type StorefrontCustomCollectionRequiresServiceConfig = ExpectFalse<
+  Extends<
+    { collections: Record<never, never>; sdk: Medusa },
+    CustomCollectionStorefrontConfig
+  >
+>
+export type StorefrontCustomCollectionRejectsUndefinedServiceConfig =
+  ExpectFalse<
+    Extends<
+      { collections: { serviceConfig: undefined }; sdk: Medusa },
+      CustomCollectionStorefrontConfig
+    >
+  >
+export type StorefrontCustomCatalogProductRequiresSection = ExpectFalse<
+  Extends<{ sdk: Medusa }, CustomCatalogProductStorefrontConfig>
+>
+export type StorefrontCustomCatalogProductRequiresServiceConfig = ExpectFalse<
+  Extends<
+    { catalog: Record<never, never>; sdk: Medusa },
+    CustomCatalogProductStorefrontConfig
+  >
+>
+export type StorefrontCustomCatalogProductRejectsUndefinedServiceConfig =
+  ExpectFalse<
+    Extends<
+      { catalog: { serviceConfig: undefined }; sdk: Medusa },
+      CustomCatalogProductStorefrontConfig
+    >
+  >
+export type StorefrontCustomCatalogFacetsRequireServiceConfig = ExpectFalse<
+  Extends<
+    {
+      catalog: { fallbackFacets: ExtendedCatalogFacets }
+      sdk: Medusa
     },
-    sdk,
-  })
-
-export const storefrontCollectionWithoutSection: unknown =
-  createMedusaStorefrontPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    CustomOutput
-  >(
-    // @ts-expect-error custom collection output requires collections.serviceConfig
-    { sdk },
-  )
-export const storefrontCollectionWithoutServiceConfig: unknown =
-  createMedusaStorefrontPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    CustomOutput
-  >({
-    // @ts-expect-error custom collection output requires collections.serviceConfig
-    collections: {},
-    sdk,
-  })
-export const storefrontCollectionWithUndefinedServiceConfig: unknown =
-  createMedusaStorefrontPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    CustomOutput
-  >({
-    collections: {
-      // @ts-expect-error custom collection output rejects an undefined serviceConfig
-      serviceConfig: explicitUndefined,
-    },
-    sdk,
-  })
-
-export const storefrontCatalogProductWithoutSection: unknown =
-  createMedusaStorefrontPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    HttpTypes.StoreCollection,
-    CustomOutput
-  >(
-    // @ts-expect-error custom catalog product output requires catalog.serviceConfig
-    { sdk },
-  )
-export const storefrontCatalogProductWithoutServiceConfig: unknown =
-  createMedusaStorefrontPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    HttpTypes.StoreCollection,
-    CustomOutput
-  >({
-    // @ts-expect-error custom catalog product output requires catalog.serviceConfig
-    catalog: {},
-    sdk,
-  })
-export const storefrontCatalogProductWithUndefinedServiceConfig: unknown =
-  createMedusaStorefrontPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    HttpTypes.StoreCollection,
-    CustomOutput
-  >({
-    catalog: {
-      // @ts-expect-error custom catalog product output rejects an undefined serviceConfig
-      serviceConfig: explicitUndefined,
-    },
-    sdk,
-  })
-
-export const storefrontCatalogFacetsWithoutServiceConfig: unknown =
-  createMedusaStorefrontPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    HttpTypes.StoreCollection,
-    HttpTypes.StoreProduct,
-    ExtendedCatalogFacets
-  >({
-    // @ts-expect-error custom catalog facets require catalog.serviceConfig
-    catalog: { fallbackFacets: extendedCatalogFacets },
-    sdk,
-  })
-export const storefrontCatalogFacetsWithUndefinedServiceConfig: unknown =
-  createMedusaStorefrontPreset<
-    HttpTypes.StoreProduct,
-    HttpTypes.StoreProductCategory,
-    HttpTypes.StoreCollection,
-    HttpTypes.StoreProduct,
-    ExtendedCatalogFacets
-  >({
-    catalog: {
-      fallbackFacets: extendedCatalogFacets,
-      // @ts-expect-error custom catalog facets reject an undefined serviceConfig
-      serviceConfig: explicitUndefined,
-    },
-    sdk,
-  })
+    CustomFacetConfig
+  >
+>
+export type StorefrontCustomCatalogFacetsRejectUndefinedServiceConfig =
+  ExpectFalse<
+    Extends<
+      {
+        catalog: {
+          fallbackFacets: ExtendedCatalogFacets
+          serviceConfig: undefined
+        }
+        sdk: Medusa
+      },
+      CustomFacetConfig
+    >
+  >
 
 const transformedStorefrontPreset = createMedusaStorefrontPreset<
   CustomOutput,
@@ -562,10 +527,9 @@ export const validSuspenseProductListDetailInput: SuspenseProductListInput = {
   id: "list_1",
 }
 
-// @ts-expect-error suspense product-list detail input requires id
-export const missingSuspenseProductListDetailInput: SuspenseProductListInput = {
-  customerId: "cus_1",
-}
+export type SuspenseProductListDetailRequiresId = ExpectFalse<
+  Extends<{ customerId: string }, SuspenseProductListInput>
+>
 
 interface Product {
   id: string
@@ -603,14 +567,9 @@ export const validSuspenseProductDetailInput: SuspenseProductDetailInput = {
   region_id: "reg_1",
 }
 
-export const invalidSuspenseProductListInput = {
-  // @ts-expect-error suspense product list input must not expose enabled
-  enabled: false,
-  page: 1,
-} satisfies SuspenseProductListQueryInput
-
-export const invalidSuspenseProductDetailInput = {
-  // @ts-expect-error suspense product detail input must not expose enabled
-  enabled: false,
-  handle: "hoodie",
-} satisfies SuspenseProductDetailInput
+export type SuspenseProductListRejectsEnabled = ExpectFalse<
+  Extends<"enabled", keyof SuspenseProductListQueryInput>
+>
+export type SuspenseProductDetailRejectsEnabled = ExpectFalse<
+  Extends<"enabled", keyof SuspenseProductDetailInput>
+>

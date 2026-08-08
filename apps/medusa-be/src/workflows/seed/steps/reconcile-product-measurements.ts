@@ -8,7 +8,11 @@ import type {
   ProductDTO,
   Query,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { ProductMeasurementLink } from "../../../links/product-measurement"
@@ -155,7 +159,8 @@ const validateSeedMeasurementUnit = (unit: SeedMeasurementUnitInput) => {
   const hasPositiveBaseQuantity =
     Number.isFinite(unit.base_quantity) && unit.base_quantity > 0
   if (!(hasRequiredText && hasPositiveBaseQuantity)) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       "Seed measurement unit code, name, symbol, and positive base quantity are required",
     )
   }
@@ -171,7 +176,8 @@ const validateVariantQuantity = (
       desired.product_unit_quantity > 0
     )
   ) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Product Variant "${variantId}" measurement quantity must be positive`,
     )
   }
@@ -185,12 +191,14 @@ export const validateSeedProductMeasurementInput = (
       const { measurement } = variant
 
       if (product.measurement === undefined && measurement !== undefined) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
           `Product "${product.handle}" cannot reconcile Variant measurements without owning Product measurement reconciliation`,
         )
       }
       if (product.measurement === null && measurement) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
           `Product "${product.handle}" cannot assign a Variant measurement while clearing its Product measurement`,
         )
       }
@@ -474,14 +482,18 @@ const findPersistedVariant = (
       )
 
   if (candidates.length !== 1) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Expected one persisted Variant for Product "${productHandle}" source Variant "${sourceVariantId ?? inputVariant.sku}", found ${candidates.length}`,
     )
   }
 
   const [candidate] = candidates
   if (candidate === undefined) {
-    throw new Error("Persisted Variant candidate disappeared during resolution")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Persisted Variant candidate disappeared during resolution",
+    )
   }
   return candidate
 }
@@ -503,7 +515,8 @@ const resolveProductInput = (
       input.handle,
     )
     if (variantInputById.has(persisted.id)) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         `Product "${input.handle}" maps multiple seed Variants to persisted Variant "${persisted.id}"`,
       )
     }
@@ -551,7 +564,8 @@ const resolveProducts = async (
     .map((product) => product.handle)
     .filter((handle) => !productByHandle.has(handle))
   if (missing.length) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
       `Products were not found during measurement reconciliation: ${missing.join(", ")}`,
     )
   }
@@ -559,7 +573,8 @@ const resolveProducts = async (
   return owned.map((product) => {
     const persisted = productByHandle.get(product.handle)
     if (persisted === undefined) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
         `Product "${product.handle}" disappeared during measurement reconciliation`,
       )
     }
@@ -638,7 +653,8 @@ const getDesiredUnit = (
     getSeedMeasurementUnitSemanticKey(measurement.unit),
   )
   if (!unit) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Measurement unit "${measurement.unit.symbol}" with base quantity ${measurement.unit.base_quantity} was not reconciled`,
     )
   }
@@ -761,7 +777,8 @@ export const buildProductRecordMutationPlan = (
     const records = productsById.get(current.product.id) ?? []
     const desired = current.input.measurement
     if (desired === undefined) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Product "${current.input.handle}" does not own measurement reconciliation`,
       )
     }
@@ -1189,7 +1206,8 @@ const listLinkRecords = async <T>({
       withDeleted: true,
     })
     if (!(Array.isArray(data) && data.every(isRecord))) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Measurement link query for "${entity}" returned invalid data`,
       )
     }
@@ -1451,7 +1469,8 @@ const assertBatchMeasurementUnitsAreActive = async (
   for (const [semanticKey, expected] of required) {
     const active = activeById.get(expected.id)
     if (!active || getSeedMeasurementUnitSemanticKey(active) !== semanticKey) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Measurement unit "${expected.id}" changed during seed reconciliation; rerun the seed`,
       )
     }

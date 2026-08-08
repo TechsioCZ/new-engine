@@ -214,7 +214,7 @@ const SettingsPanelStory: NonNullable<Story["render"]> = () => {
 
   return (
     <div className="w-96 rounded-lg border p-6">
-      <h3 className="mb-6 font-semibold text-lg">Privacy Settings</h3>
+      <h3 className="mb-6 text-lg font-semibold">Privacy Settings</h3>
 
       <div className="space-y-6">
         <Switch

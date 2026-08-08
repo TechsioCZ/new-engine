@@ -77,7 +77,7 @@ export const CheckoutEmptyCartSection = () => {
               <h2 className="font-bold text-2xl text-fg-primary leading-tight">
                 {tCheckout("empty_cart_title")}
               </h2>
-              <SupportingText className="max-w-3xl">
+              <SupportingText className="max-w-checkout-empty-copy">
                 {tCheckout("empty_cart_description")}
               </SupportingText>
             </div>

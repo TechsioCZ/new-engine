@@ -88,7 +88,7 @@ const UpdateExampleRender: NonNullable<Story["render"]> = () => {
   return (
     <VariantContainer>
       <div className="space-y-200">
-        <p className="text-fg-secondary text-sm">
+        <p className="text-sm text-fg-secondary">
           Create a toast, then update it step by step
         </p>
         <div className="flex gap-200">
@@ -168,7 +168,7 @@ const RemoveVsDismissRender: NonNullable<Story["render"]> = () => {
   return (
     <VariantContainer>
       <div className="space-y-200">
-        <p className="text-fg-secondary text-sm">
+        <p className="text-sm text-fg-secondary">
           Compare remove (instant) vs dismiss (with animation)
         </p>
 
@@ -258,7 +258,7 @@ const PauseResumeExampleRender: NonNullable<Story["render"]> = () => {
   return (
     <VariantContainer>
       <div className="space-y-200">
-        <p className="text-fg-secondary text-sm">
+        <p className="text-sm text-fg-secondary">
           Create a toast with timer, then pause/resume it
         </p>
 
@@ -325,7 +325,7 @@ const BatchOperationsRender: NonNullable<Story["render"]> = () => {
   return (
     <VariantContainer>
       <div className="space-y-200">
-        <p className="text-fg-secondary text-sm">
+        <p className="text-sm text-fg-secondary">
           Create multiple toasts and control them all at once
         </p>
 
@@ -419,7 +419,7 @@ const PromiseExampleRender: NonNullable<Story["render"]> = () => {
   return (
     <VariantContainer>
       <div className="space-y-200">
-        <p className="text-fg-secondary text-sm">
+        <p className="text-sm text-fg-secondary">
           Create toast that updates based on promise state (50% chance of
           success)
         </p>

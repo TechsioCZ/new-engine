@@ -100,7 +100,7 @@ const tableVariants = tv({
         row: "border-b-(length:--border-table-width) border-table-border",
       },
       outline: {
-        root: "border-(length:--border-table-width) rounded-table border-table-border shadow-table-outline",
+        root: "rounded-table border-(length:--border-table-width) border-table-border shadow-table-outline",
       },
       striped: {
         row: "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary",

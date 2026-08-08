@@ -197,7 +197,7 @@ export const FormValidationContext: Story = {
   render: () => (
     <div className="flex w-full max-w-md flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm" htmlFor="email">
+        <label className="text-sm font-medium" htmlFor="email">
           Email
         </label>
         <input
@@ -212,7 +212,7 @@ export const FormValidationContext: Story = {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm" htmlFor="username">
+        <label className="text-sm font-medium" htmlFor="username">
           Username
         </label>
         <input
@@ -227,7 +227,7 @@ export const FormValidationContext: Story = {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm" htmlFor="password">
+        <label className="text-sm font-medium" htmlFor="password">
           Password
         </label>
         <input
@@ -242,7 +242,7 @@ export const FormValidationContext: Story = {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm" htmlFor="phone">
+        <label className="text-sm font-medium" htmlFor="phone">
           Phone (Optional)
         </label>
         <input

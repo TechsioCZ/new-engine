@@ -36,17 +36,17 @@ const stepsVariants = tv({
   },
   slots: {
     completedContent: [
-      "border-(length:--border-width-steps-content) w-full rounded-steps-content",
+      "w-full rounded-steps-content border-(length:--border-width-steps-content)",
       "border-steps-content-border bg-steps-content-bg",
       "text-steps-content-fg",
       "data-complete:border-steps-content-border-complete",
       "data-complete:bg-steps-content-bg-complete",
     ],
     content: [
-      "border-(length:--border-width-steps-content) w-full rounded-steps-content",
+      "w-full rounded-steps-content border-(length:--border-width-steps-content)",
       "border-steps-content-border bg-steps-content-bg",
       "text-steps-content-fg",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-steps-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
@@ -85,7 +85,7 @@ const stepsVariants = tv({
       "data-[orientation=vertical]:justify-start",
     ],
     nextTrigger: "",
-    number: ["font-steps-number leading-none"],
+    number: ["leading-none font-steps-number"],
     panels: [
       "flex w-full flex-col gap-steps-panels",
       "data-[orientation=vertical]:min-w-0 data-[orientation=vertical]:flex-1",
@@ -98,7 +98,7 @@ const stepsVariants = tv({
     ],
     progressRange: [
       "absolute rounded-steps-progress bg-steps-progress-range-bg",
-      "transition-[width,height] duration-200 motion-reduce:transition-none",
+      "transition-steps-progress duration-200 motion-reduce:transition-none",
       "data-[orientation=horizontal]:inset-y-0 data-[orientation=horizontal]:start-0",
       "data-[orientation=vertical]:inset-x-0 data-[orientation=vertical]:top-0",
     ],
@@ -116,7 +116,7 @@ const stepsVariants = tv({
       transitionColors,
     ],
     title: [
-      "truncate font-steps-title text-steps-title text-steps-title-fg",
+      "truncate text-steps-title font-steps-title text-steps-title-fg",
       "data-current:text-steps-title-fg-current",
       "data-complete:text-steps-title-fg-complete",
       transitionColors,
@@ -124,7 +124,7 @@ const stepsVariants = tv({
     trigger: [
       "group relative flex min-w-0 items-center justify-start gap-steps-trigger",
       "text-left",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-steps-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-[orientation=vertical]:items-start",

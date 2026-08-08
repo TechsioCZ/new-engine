@@ -9,6 +9,7 @@ import type {
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
+  MedusaError,
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
@@ -2102,7 +2103,10 @@ const buildCategoryExportPathIndex = (
       return ""
     }
     if (visiting.has(categoryId)) {
-      throw new Error(`Detected circular category ancestry for ${categoryId}`)
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Detected circular category ancestry for ${categoryId}`,
+      )
     }
     visiting.add(categoryId)
     const title = normalizeInlineText(category.title) ?? categoryId
@@ -2153,7 +2157,10 @@ const buildCategoriesFromExport = (
     .map((category) => {
       const path = pathById.get(category.id)
       if (path === undefined || path === "") {
-        throw new Error(`Missing resolved path for category ${category.id}`)
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Missing resolved path for category ${category.id}`,
+        )
       }
       return {
         category,
@@ -2308,7 +2315,8 @@ export const resolveHerbaticaProductVisibility = (item: {
       }
     }
     default: {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         `Unsupported Herbatica product visibility "${item.visibility}"`,
       )
     }
@@ -2612,13 +2620,17 @@ export const resolveHerbaticaOfferMeasurement = (
     return null
   }
   if (populatedCount !== values.length) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Incomplete UNIT_OF_MEASURE configuration for ${sourceLabel}`,
     )
   }
   const { measureAmount, packageAmount } = offer
   if (measureAmount === undefined || packageAmount === undefined) {
-    throw new Error(`Incomplete UNIT_OF_MEASURE amounts for ${sourceLabel}`)
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Incomplete UNIT_OF_MEASURE amounts for ${sourceLabel}`,
+    )
   }
   if (
     !(
@@ -2628,17 +2640,22 @@ export const resolveHerbaticaOfferMeasurement = (
       measureAmount > 0
     )
   ) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `UNIT_OF_MEASURE amounts must be positive for ${sourceLabel}`,
     )
   }
   if (packageUnit?.toLowerCase() !== measureUnit?.toLowerCase()) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `UNIT_OF_MEASURE package unit "${packageUnit}" does not match comparison unit "${measureUnit}" for ${sourceLabel}`,
     )
   }
   if (measureUnit === undefined) {
-    throw new Error(`Missing UNIT_OF_MEASURE unit for ${sourceLabel}`)
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Missing UNIT_OF_MEASURE unit for ${sourceLabel}`,
+    )
   }
   const symbol = measureUnit
   return {
@@ -2677,7 +2694,8 @@ const resolveHerbaticaProductMeasurement = (item: ParsedShopItem) => {
     (current) => getMeasurementConfigurationKey(current) !== expectedKey,
   )
   if (conflicting) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Product "${item.id}" contains conflicting UNIT_OF_MEASURE comparison configurations`,
     )
   }
@@ -3538,7 +3556,8 @@ const resolveProductsXmlPath = (args?: string[]): string => {
     existsSync(path),
   )
   if (detectedPath === undefined || detectedPath === "") {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Could not find productsComplete.xml. Checked: ${HERBATICA_PRODUCTS_XML_PATHS.join(", ")}`,
     )
   }
@@ -3580,7 +3599,8 @@ const resolveManufacturersCsvSource = (args?: string[]): string => {
   if (envPath !== undefined && envPath !== "") {
     return envPath
   }
-  throw new Error(
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
     `Manufacturers CSV source is required. Pass it as the fourth seed argument or set ${HERBATICA_MANUFACTURERS_CSV_ENV} to an explicit local path or pinned/versioned URL. No mutable remote fallback is used.`,
   )
 }

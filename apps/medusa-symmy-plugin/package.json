@@ -39,7 +39,7 @@
     "dev": "medusa plugin:develop",
     "lint": "pnpm lint:oxlint && pnpm lint:medusa",
     "lint:fix": "pnpm -w exec ultracite fix apps/medusa-symmy-plugin && pnpm lint:medusa",
-    "lint:medusa": "eslint . --config eslint.config.ts --quiet",
+    "lint:medusa": "eslint . --config eslint.config.mjs --max-warnings=0",
     "prepare": "pnpm build",
     "publish:local": "medusa plugin:publish",
     "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/medusa-symmy-plugin/tsconfig.json",

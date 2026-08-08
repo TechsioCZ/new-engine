@@ -28,3 +28,12 @@
 @utility token-icon-toast-close {
   @apply token-icon-close;
 }
+
+@utility will-change-toast-motion {
+  will-change: translate, opacity, scale;
+}
+
+@utility transition-toast-motion {
+  @apply transition;
+  transition-property: translate, scale, opacity;
+}

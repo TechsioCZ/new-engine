@@ -43,7 +43,7 @@ const LoginAccountPopover = ({
       </Popover.Trigger>
 
       <Popover.Positioner>
-        <Popover.Content className="w-[22rem] max-w-[calc(100vw-2rem)]">
+        <Popover.Content className="w-account-popover max-w-popover-viewport">
           <Popover.Arrow />
           <Popover.Title>{title}</Popover.Title>
           <LoginForm

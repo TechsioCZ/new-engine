@@ -6,7 +6,7 @@ const buttonVariants = tv({
     "inline-flex cursor-pointer items-center justify-center whitespace-nowrap",
     "font-medium",
     "transition-all duration-200 motion-reduce:transition-none",
-    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+    "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
     "focus-visible:outline-button-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:cursor-not-allowed disabled:text-button-fg-disabled",

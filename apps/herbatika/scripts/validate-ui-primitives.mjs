@@ -12,12 +12,10 @@ import { parseSync, Visitor } from "oxc-parser"
 import { globToRegExp, parseGuardrailArgs } from "./guardrail-utils.mjs"
 import defaultConfig from "./ui-primitives.config.mjs"
 
-/** @typedef {{ filePattern?: string, tag?: string }} AllowByFileConfig */
 /** @typedef {{ enabled?: boolean, message?: string, modulePatterns?: (RegExp | string)[] }} BannedImportsConfig */
-/** @typedef {{ allowByFile?: AllowByFileConfig[], enabled?: boolean, suggestions?: Record<string, string>, tags?: string[] }} BannedJsxTagsConfig */
+/** @typedef {{ enabled?: boolean, suggestions?: Record<string, string>, tags?: string[] }} BannedJsxTagsConfig */
 /** @typedef {{ exclude?: string[], fileExtensions?: string[], rules?: { bannedImports?: BannedImportsConfig, bannedJsxTags?: BannedJsxTagsConfig }, scanDirectories?: string[] }} UiPrimitivesConfig */
-/** @typedef {{ fileRegex: RegExp, tag: string }} ParsedAllowByFile */
-/** @typedef {{ bannedImports: { enabled: boolean, message: string, modulePatterns: RegExp[] }, bannedJsxTags: { allowByFile: ParsedAllowByFile[], enabled: boolean, suggestions: Record<string, string>, tags: Set<string> } }} RulesConfig */
+/** @typedef {{ bannedImports: { enabled: boolean, message: string, modulePatterns: RegExp[] }, bannedJsxTags: { enabled: boolean, suggestions: Record<string, string>, tags: Set<string> } }} RulesConfig */
 /** @typedef {{ column: number, detail: string, line: number, message: string, rule: string }} Finding */
 /** @typedef {Finding & {file: string}} FileFinding */
 /** @typedef {import("oxc-parser").JSXElementName} JSXElementName */
@@ -60,19 +58,6 @@ const isStringRecord = (value) => {
   )
 }
 
-/** @param {unknown} value - Candidate value. @returns {value is AllowByFileConfig} Whether value is allowlist entry. */
-const isAllowByFileConfig = (value) => {
-  if (!isObject(value)) {
-    return false
-  }
-  const filePattern = getProperty(value, "filePattern")
-  const tag = getProperty(value, "tag")
-  const filePatternValid =
-    filePattern === undefined || typeof filePattern === "string"
-  const tagValid = tag === undefined || typeof tag === "string"
-  return filePatternValid && tagValid
-}
-
 /** @param {unknown} value - Candidate value. @returns {value is BannedImportsConfig} Whether value is banned-import config. */
 const isBannedImportsConfig = (value) => {
   if (!isObject(value)) {
@@ -97,18 +82,14 @@ const isBannedJsxTagsConfig = (value) => {
   if (!isObject(value)) {
     return false
   }
-  const allowByFile = getProperty(value, "allowByFile")
   const enabled = getProperty(value, "enabled")
   const suggestions = getProperty(value, "suggestions")
   const tags = getProperty(value, "tags")
-  const allowlistValid =
-    allowByFile === undefined ||
-    (Array.isArray(allowByFile) && allowByFile.every(isAllowByFileConfig))
   const enabledValid = enabled === undefined || typeof enabled === "boolean"
   const suggestionsValid =
     suggestions === undefined || isStringRecord(suggestions)
   const tagsValid = tags === undefined || isStringArray(tags)
-  return allowlistValid && enabledValid && suggestionsValid && tagsValid
+  return enabledValid && suggestionsValid && tagsValid
 }
 
 /** @param {unknown} value - Candidate value. @returns {value is UiPrimitivesConfig} Whether value is valid config. */
@@ -191,10 +172,6 @@ const parseRuleConfig = (config) => {
   const rules = config.rules ?? {}
   const bannedJsxTags = rules.bannedJsxTags ?? { enabled: false }
   const bannedImports = rules.bannedImports ?? { enabled: false }
-  const allowByFile = (bannedJsxTags.allowByFile ?? []).map((item) => ({
-    fileRegex: globToRegExp(item.filePattern ?? ""),
-    tag: (item.tag ?? "").toLowerCase(),
-  }))
   return {
     bannedImports: {
       enabled: Boolean(bannedImports.enabled),
@@ -206,7 +183,6 @@ const parseRuleConfig = (config) => {
       ),
     },
     bannedJsxTags: {
-      allowByFile,
       enabled: Boolean(bannedJsxTags.enabled),
       suggestions: bannedJsxTags.suggestions ?? {},
       tags: new Set((bannedJsxTags.tags ?? []).map((tag) => tag.toLowerCase())),
@@ -245,14 +221,6 @@ const normalizedTagName = (node) => {
   return ""
 }
 
-/** @param {string} file - Relative file path. @param {string} tag - Tag name. @param {ParsedAllowByFile[]} allowlist - File allowlist. @returns {boolean} Whether tag is allowed. */
-const isTagAllowedForFile = (file, tag, allowlist) => {
-  const normalizedFile = file.replaceAll(path.sep, "/")
-  return allowlist.some(
-    (item) => item.tag === tag && item.fileRegex.test(normalizedFile),
-  )
-}
-
 /** @param {ImportDeclaration} node - Import node. @param {string} content - Source text. @param {RulesConfig} rules - Parsed rules. @returns {Finding | null} Import finding. */
 const resolveBannedImportFinding = (node, content, rules) => {
   if (!rules.bannedImports.enabled || typeof node.source.value !== "string") {
@@ -276,19 +244,14 @@ const resolveBannedImportFinding = (node, content, rules) => {
   }
 }
 
-/** @param {JSXOpeningElement} node - JSX opening node. @param {string} content - Source text. @param {string} file - Relative file path. @param {RulesConfig} rules - Parsed rules. @returns {Finding | null} JSX finding. */
-const resolveBannedJsxTagFinding = (node, content, file, rules) => {
+/** @param {JSXOpeningElement} node - JSX opening node. @param {string} content - Source text. @param {RulesConfig} rules - Parsed rules. @returns {Finding | null} JSX finding. */
+const resolveBannedJsxTagFinding = (node, content, rules) => {
   if (!rules.bannedJsxTags.enabled || !isIntrinsicTagName(node.name)) {
     return null
   }
   const tagName = normalizedTagName(node.name)
   const banned = rules.bannedJsxTags.tags.has(tagName)
-  const allowed = isTagAllowedForFile(
-    file,
-    tagName,
-    rules.bannedJsxTags.allowByFile,
-  )
-  if (!banned || allowed) {
+  if (!banned) {
     return null
   }
   const { line, column } = getLineAndColumn(content, node.name.start)
@@ -331,7 +294,7 @@ const collectFileFindings = (file, content, rules) => {
   }
   /** @param {JSXOpeningElement} node - JSX opening node. */
   const visitJsxOpening = (node) => {
-    pushFinding(resolveBannedJsxTagFinding(node, content, file, rules))
+    pushFinding(resolveBannedJsxTagFinding(node, content, rules))
   }
   new Visitor({
     ImportDeclaration: visitImport,

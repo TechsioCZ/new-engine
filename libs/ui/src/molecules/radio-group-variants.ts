@@ -13,7 +13,7 @@ const radioGroupVariants = tv({
       "data-disabled:cursor-not-allowed",
       "data-readonly:cursor-default",
     ],
-    itemContent: ["col-start-2 row-start-1 min-w-0 flex flex-col"],
+    itemContent: ["col-start-2 row-start-1 flex min-w-0 flex-col"],
     itemControl: [
       "row-start-1 self-center",
       "inline-grid shrink-0 place-items-center rounded-radio-group-control",
@@ -33,7 +33,7 @@ const radioGroupVariants = tv({
       "data-invalid:outline-offset-(length:--default-ring-offset)",
     ],
     itemDescription: [
-      "col-start-2 row-start-2 min-w-0 text-radio-group-item-description leading-normal",
+      "col-start-2 row-start-2 min-w-0 leading-normal text-radio-group-item-description",
       "data-disabled:text-radio-group-item-description-disabled",
     ],
     itemGroup: [
@@ -50,7 +50,7 @@ const radioGroupVariants = tv({
       "data-disabled:data-[state=checked]:text-radio-group-item-indicator-disabled",
     ],
     itemText: [
-      "min-w-0 text-radio-group-item-fg leading-normal",
+      "min-w-0 leading-normal text-radio-group-item-fg",
       "data-disabled:text-radio-group-item-fg-disabled",
     ],
     root: ["flex w-full flex-col"],

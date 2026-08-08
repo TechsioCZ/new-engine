@@ -25,10 +25,10 @@ export const paginationVariants = tv({
       'has-[[data-part="compact-text"]]:bg-pagination-bg-neutral',
     ],
     link: [
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-pagination-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "border-(length:--border-pagination-width) rounded-pagination border-pagination-border-base",
+      "rounded-pagination border-(length:--border-pagination-width) border-pagination-border-base",
       "aspect-square",
       "data-disabled:text-pagination-fg-disabled data-disabled:hover:bg-pagination-bg-disabled",
       "data-disabled:bg-pagination-bg-disabled",

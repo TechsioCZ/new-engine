@@ -65,7 +65,7 @@ const treeViewVariants = tv({
       class: [
         "relative",
         // get --depth from zag-js api
-        "ms-[calc(var(--depth)*var(--tree-indent-per-level))]",
+        "tree-view-depth-indent",
         "data-[depth=1]:ms-0",
       ],
       // leaf has a common style with branch
@@ -95,7 +95,7 @@ const treeViewVariants = tv({
     branchControl: ["flex-1"],
     branchIndicator: [
       "group-hover:text-tree-view-fg-hover",
-      "data-[state=open]:token-icon-tree-indicator-open cursor-pointer hover:scale-125",
+      "cursor-pointer hover:scale-125 data-[state=open]:token-icon-tree-indicator-open",
       "transition-all duration-200 motion-reduce:transition-none",
     ],
     branchText: ["flex-1"],
@@ -103,13 +103,13 @@ const treeViewVariants = tv({
       "group flex items-center justify-between",
       "hover:bg-tree-view-node-bg-hover",
       "cursor-pointer",
-      "has-focus-visible:outline-(style:--default-ring-style) has-focus-visible:outline-(length:--default-ring-width)",
+      "has-focus-visible:outline-(length:--default-ring-width) has-focus-visible:outline-(style:--default-ring-style)",
       "has-focus-visible:outline-tree-view-ring",
       "has-focus-visible:outline-offset-(length:--default-ring-offset)",
       transitionColors,
     ],
     indentGuide: [
-      "absolute start-1 inset-y-0",
+      "absolute inset-y-0 start-1",
       "w-tree-view-indent-width bg-tree-view-indent-bg",
       "opacity-tree-view-indent",
     ],

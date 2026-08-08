@@ -7,11 +7,10 @@ import path from "node:path"
 const DEFAULT_CONFIG_PATH = "scripts/file-size-guardrail.config.json"
 
 /** @typedef {{ error: number, warning: number }} Thresholds */
-/** @typedef {{ allowlist: string[], exclude: string[], fileExtensions: string[], scanDirectories: string[], thresholds: Thresholds }} GuardrailConfig */
-/** @typedef {"allowlisted" | "error" | "warning"} Severity */
-/** @typedef {"error" | "warning"} SourceSeverity */
-/** @typedef {{ file: string, lineCount: number, severity: Severity, sourceSeverity: SourceSeverity, threshold: number }} Finding */
-/** @typedef {{ allowlisted: number, allowlistedErrors: number, allowlistedWarnings: number, errors: number, warnings: number }} FindingCounts */
+/** @typedef {{ exclude: string[], fileExtensions: string[], scanDirectories: string[], thresholds: Thresholds }} GuardrailConfig */
+/** @typedef {"error" | "warning"} Severity */
+/** @typedef {{ file: string, lineCount: number, severity: Severity, threshold: number }} Finding */
+/** @typedef {{ errors: number, warnings: number }} FindingCounts */
 /** @typedef {{ counts: FindingCounts, findings: Finding[], scannedFiles: number, thresholds: Thresholds }} Report */
 
 /** @type {(value: string) => string} */
@@ -72,18 +71,11 @@ const loadConfig = (configPath) => {
     throw new Error("Invalid config format.")
   }
 
-  const {
-    allowlist = [],
-    exclude = [],
-    fileExtensions,
-    scanDirectories,
-    thresholds,
-  } = config
+  const { exclude = [], fileExtensions, scanDirectories, thresholds } = config
 
   assertArrayOfStrings(scanDirectories, "scanDirectories")
   assertArrayOfStrings(fileExtensions, "fileExtensions")
   assertArrayOfStrings(exclude, "exclude")
-  assertArrayOfStrings(allowlist, "allowlist")
 
   if (!isRecord(thresholds)) {
     throw new Error("thresholds must be an object.")
@@ -100,7 +92,6 @@ const loadConfig = (configPath) => {
   }
 
   return {
-    allowlist,
     exclude,
     fileExtensions,
     scanDirectories,
@@ -162,7 +153,7 @@ const resolveLineCount = (content) => {
   return content.endsWith("\n") ? newlineCount : newlineCount + 1
 }
 
-/** @type {(lineCount: number, thresholds: Thresholds) => SourceSeverity | null} */
+/** @type {(lineCount: number, thresholds: Thresholds) => Severity | null} */
 const resolveSeverity = (lineCount, thresholds) => {
   if (lineCount >= thresholds.error) {
     return "error"
@@ -175,8 +166,8 @@ const resolveSeverity = (lineCount, thresholds) => {
   return null
 }
 
-/** @type {(options: { cwd: string, files: string[], allowlistMatchers: RegExp[], thresholds: Thresholds }) => Report} */
-const buildReport = ({ cwd, files, allowlistMatchers, thresholds }) => {
+/** @type {(options: { cwd: string, files: string[], thresholds: Thresholds }) => Report} */
+const buildReport = ({ cwd, files, thresholds }) => {
   /** @type {Finding[]} */
   const findings = []
 
@@ -184,19 +175,14 @@ const buildReport = ({ cwd, files, allowlistMatchers, thresholds }) => {
     const absolutePath = path.resolve(cwd, file)
     const content = fs.readFileSync(absolutePath, "utf-8")
     const lineCount = resolveLineCount(content)
-    const sourceSeverity = resolveSeverity(lineCount, thresholds)
+    const severity = resolveSeverity(lineCount, thresholds)
 
-    if (sourceSeverity) {
-      const isAllowlisted = matchesAny(file, allowlistMatchers)
-      const severity = isAllowlisted ? "allowlisted" : sourceSeverity
-
+    if (severity) {
       findings.push({
         file,
         lineCount,
         severity,
-        sourceSeverity,
-        threshold:
-          sourceSeverity === "error" ? thresholds.error : thresholds.warning,
+        threshold: severity === "error" ? thresholds.error : thresholds.warning,
       })
     }
   }
@@ -210,16 +196,6 @@ const buildReport = ({ cwd, files, allowlistMatchers, thresholds }) => {
   })
 
   const counts = {
-    allowlisted: findings.filter((item) => item.severity === "allowlisted")
-      .length,
-    allowlistedErrors: findings.filter(
-      (item) =>
-        item.severity === "allowlisted" && item.sourceSeverity === "error",
-    ).length,
-    allowlistedWarnings: findings.filter(
-      (item) =>
-        item.severity === "allowlisted" && item.sourceSeverity === "warning",
-    ).length,
     errors: findings.filter((item) => item.severity === "error").length,
     warnings: findings.filter((item) => item.severity === "warning").length,
   }
@@ -258,7 +234,7 @@ const printHumanReadable = (report) => {
     `Thresholds: warning >= ${report.thresholds.warning}, error >= ${report.thresholds.error}`,
   )
   console.log(
-    `Counts: errors=${report.counts.errors}, warnings=${report.counts.warnings}, allowlisted=${report.counts.allowlisted}`,
+    `Counts: errors=${report.counts.errors}, warnings=${report.counts.warnings}`,
   )
 
   if (report.findings.length === 0) {
@@ -274,16 +250,6 @@ const printHumanReadable = (report) => {
     "Warnings",
     report.findings.filter((item) => item.severity === "warning"),
   )
-  printSection(
-    "Allowlisted",
-    report.findings.filter((item) => item.severity === "allowlisted"),
-  )
-
-  if (report.counts.allowlistedErrors > 0) {
-    console.log(
-      `\nAllowlisted errors: ${report.counts.allowlistedErrors} (baseline debt, does not fail guardrail).`,
-    )
-  }
 }
 
 /** @type {(argv: string[]) => { configPath: string, json: boolean }} */
@@ -334,7 +300,6 @@ const main = () => {
   }
 
   const excludeMatchers = buildMatchers(config.exclude)
-  const allowlistMatchers = buildMatchers(config.allowlist)
   /** @type {string[]} */
   const files = []
 
@@ -351,7 +316,6 @@ const main = () => {
   files.sort((left, right) => left.localeCompare(right))
 
   const report = buildReport({
-    allowlistMatchers,
     cwd,
     files,
     thresholds: config.thresholds,

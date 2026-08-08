@@ -295,7 +295,7 @@ export const CustomLinkComponent: Story = {
     <VariantContainer>
       <VariantGroup title="Custom polymorphic link">
         <div className="space-y-300">
-          <p className="text-fg-secondary text-sm">
+          <p className="text-sm text-fg-secondary">
             `Pagination` stays navigation-only, but can forward extra props to a
             custom link component.
           </p>
@@ -321,11 +321,11 @@ export const RealWorldScenarios: Story = {
       <VariantGroup title="Table navigation">
         <div className="space-y-300">
           <div className="space-y-300 rounded border bg-base p-300">
-            <div className="flex h-32 items-center justify-center rounded bg-surface text-fg-primary text-sm">
+            <div className="flex h-32 items-center justify-center rounded bg-surface text-sm text-fg-primary">
               Table content area
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-fg-secondary text-sm">
+              <span className="text-sm text-fg-secondary">
                 20 items per page
               </span>
               <StoryPagination count={456} defaultPage={3} pageSize={20} />

@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useEffectEvent, useRef, useState } from "react"
+import Script from "next/script"
+import { useEffect, useEffectEvent, useState } from "react"
 
 export interface PplAccessPointData {
   code: string
@@ -152,6 +153,7 @@ const parsePplSelection = (detail: unknown): PplAccessPointData | undefined => {
 }
 
 const PPL_SCRIPT_URL = "https://www.ppl.cz/sources/map/main.js"
+const PPL_SCRIPT_ID_PREFIX = "ppl-parcelshop-map-bundle"
 const PPL_CSS_URL = "https://www.ppl.cz/sources/map/main.css"
 /** Container id the PPL script scans for */
 const WIDGET_ID = "ppl-parcelshop-map"
@@ -183,7 +185,7 @@ export const PplWidget = ({
     lat: number
     lng: number
   } | null>(null)
-  const mountIdRef = useRef(0)
+  const [scriptRunId, setScriptRunId] = useState<string | null>(null)
 
   // Effect Event: keeps the latest `onSelect` reachable from the document
   // listener without re-running the effect on parent re-renders.
@@ -309,13 +311,13 @@ export const PplWidget = ({
     document.head.append(link)
   }, [])
 
-  // Main effect: attach event listener and load script
+  // Main effect: attach the event listener, then reveal a framework-owned
+  // script on the next microtask. The ordering matters when the bundle is
+  // already in the browser cache: PPL can initialize as soon as it executes.
   useEffect(() => {
-    mountIdRef.current += 1
-    const currentMountId = mountIdRef.current
+    let cancelled = true
+    let activeScriptId: string | undefined
 
-    // Handlers are declared unconditionally so the effect keeps a single
-    // cleanup path; detaching a listener that was never attached is a no-op.
     const handlePplSelection = (event: Event) => {
       const detail = readEventDetail(event)
 
@@ -330,45 +332,31 @@ export const PplWidget = ({
       }
     }
 
-    const handleScriptLoad = () => {
-      if (currentMountId !== mountIdRef.current) {
-        return
-      }
-      if (process.env.NODE_ENV === "development") {
-        console.log("[PplWidget] Script loaded, widget should initialize")
-      }
-    }
-
-    let script: HTMLScriptElement | undefined
-
     if (isReady) {
-      // Attach event listener BEFORE loading script
+      cancelled = false
+      const runId = crypto.randomUUID()
+      const id = `${PPL_SCRIPT_ID_PREFIX}-${runId}`
+      activeScriptId = id
+
       document.addEventListener(PPL_SELECTION_EVENT, handlePplSelection)
 
-      // Remove any existing PPL script to force reinitialization
-      const existingScript = document.querySelector(
-        `script[src="${PPL_SCRIPT_URL}"]`,
-      )
-      if (existingScript) {
-        existingScript.remove()
-      }
-
-      // Load script dynamically. PPL's bundle self-initializes on load by
-      // scanning the document for #ppl-parcelshop-map, and the pickup dialog
-      // remounts this widget on every open, so the bundle has to be re-executed
-      // per mount. A server-rendered tag executes once and cannot do that.
-      // oxlint-disable-next-line github/no-dynamic-script-tag -- third-party map bundle must re-execute on every widget mount; no server-template equivalent exists
-      script = document.createElement("script")
-      script.src = PPL_SCRIPT_URL
-      script.async = true
-      script.addEventListener("load", handleScriptLoad)
-      document.body.append(script)
+      // PPL self-initializes by scanning for #ppl-parcelshop-map. Give every
+      // mount a distinct fragment so Next executes the bundle again without
+      // changing the URL sent to PPL's server.
+      queueMicrotask(() => {
+        if (!cancelled) {
+          setScriptRunId(runId)
+        }
+      })
     }
 
     return () => {
+      cancelled = true
       document.removeEventListener(PPL_SELECTION_EVENT, handlePplSelection)
-      script?.removeEventListener("load", handleScriptLoad)
-      // Don't remove script on cleanup - let next mount handle it
+
+      if (activeScriptId !== undefined) {
+        document.querySelector(`#${activeScriptId}`)?.remove()
+      }
     }
   }, [isReady])
 
@@ -377,20 +365,33 @@ export const PplWidget = ({
   const finalLng = hasLatLngProps ? lng : geoLocation?.lng
 
   return (
-    <div
-      data-country={country.toLowerCase()}
-      data-language={language}
-      data-mode={mode}
-      id={WIDGET_ID}
-      {...(finalLat !== undefined && { "data-lat": finalLat })}
-      {...(finalLng !== undefined && { "data-lng": finalLng })}
-      {...(isFilledString(address) && { "data-address": address })}
-      {...(isFilledString(selectedCode) && { "data-code": selectedCode })}
-      {...(isFilledString(initialFilters) && {
-        "data-initialfilters": initialFilters,
-      })}
-      className="w-full rounded border border-border-secondary"
-      style={{ minHeight: "400px" }}
-    />
+    <>
+      <div
+        data-country={country.toLowerCase()}
+        data-language={language}
+        data-mode={mode}
+        id={WIDGET_ID}
+        {...(finalLat !== undefined && { "data-lat": finalLat })}
+        {...(finalLng !== undefined && { "data-lng": finalLng })}
+        {...(isFilledString(address) && { "data-address": address })}
+        {...(isFilledString(selectedCode) && { "data-code": selectedCode })}
+        {...(isFilledString(initialFilters) && {
+          "data-initialfilters": initialFilters,
+        })}
+        className="w-full rounded border border-border-secondary"
+        style={{ minHeight: "400px" }}
+      />
+      {isReady && scriptRunId !== null ? (
+        <Script
+          async
+          defer
+          fetchPriority="low"
+          id={`${PPL_SCRIPT_ID_PREFIX}-${scriptRunId}`}
+          key={scriptRunId}
+          src={`${PPL_SCRIPT_URL}#${scriptRunId}`}
+          strategy="afterInteractive"
+        />
+      ) : null}
+    </>
   )
 }

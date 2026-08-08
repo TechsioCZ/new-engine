@@ -1,4 +1,5 @@
 import type { ExecArgs } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 
 import { PACKETA_CLIENT_MODULE } from "../modules/packeta-client"
 import type { PacketaClientModuleService } from "../modules/packeta-client"
@@ -28,11 +29,15 @@ import type { PacketaClientModuleService } from "../modules/packeta-client"
 export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   const addressIdRaw = process.env["PACKETA_ADDRESS_ID"]
   if (addressIdRaw === undefined || addressIdRaw === "") {
-    throw new Error("Set PACKETA_ADDRESS_ID env var")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Set PACKETA_ADDRESS_ID env var",
+    )
   }
   const addressId = Math.trunc(Number(addressIdRaw))
   if (!Number.isFinite(addressId)) {
-    throw new TypeError(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `PACKETA_ADDRESS_ID must be a number, got: ${addressIdRaw}`,
     )
   }
@@ -43,15 +48,22 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
 
   const config = await packetaService.getConfig()
   if (!config) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
       "No Packeta config in DB. Configure it first in Admin → Settings → Packeta.",
     )
   }
   if (!config.is_enabled) {
-    throw new Error("Packeta is disabled in DB config (is_enabled=false).")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Packeta is disabled in DB config (is_enabled=false).",
+    )
   }
   if (config.api_password === null || config.api_password === "") {
-    throw new Error("Packeta config has no api_password set.")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Packeta config has no api_password set.",
+    )
   }
 
   const orderRef = `TEST-${Date.now()}`

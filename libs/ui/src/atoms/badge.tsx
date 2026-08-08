@@ -26,10 +26,10 @@ const badgeVariants = tv({
   },
   variants: {
     size: {
-      lg: ["font-badge-lg text-badge-lg", "p-badge-lg"],
-      md: ["font-badge-md text-badge-md", "p-badge-md"],
-      sm: ["font-badge-sm text-badge-sm", "p-badge-sm"],
-      xl: ["font-badge-xl text-badge-xl", "p-badge-xl"],
+      lg: ["text-badge-lg font-badge-lg", "p-badge-lg"],
+      md: ["text-badge-md font-badge-md", "p-badge-md"],
+      sm: ["text-badge-sm font-badge-sm", "p-badge-sm"],
+      xl: ["text-badge-xl font-badge-xl", "p-badge-xl"],
     },
     variant: {
       danger: [

@@ -1,89 +1,21 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
 
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 
+import type { UseCheckoutActionsProps } from "./checkout-actions.utils"
 import {
-  clearStoredCarrierPickupSelection,
-  writeStoredCarrierPickupSelection,
-} from "./carrier-pickup-selection-storage"
+  persistCarrierPickupSelection,
+  resetCheckoutActionFeedback,
+  resolveOrderCompletionBlocker,
+} from "./checkout-actions.utils"
 import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "./checkout-completion.utils"
 import { resolveReusablePaymentCollection } from "./checkout-payment-collection-reuse"
 import { resolvePaymentRedirectUrl } from "./checkout-payment-redirect.utils"
-
-interface UseCheckoutActionsProps {
-  cart?: HttpTypes.StoreCart | null
-  cartId?: string
-  completedOrderId: string | null
-  onCompletedOrderIdChange: (orderId: string | null) => void
-  onOrderCompletionAbort: () => void
-  onOrderCompletionStart: () => void
-  onPaymentRedirect: (url: string) => void
-  itemCount: number
-  refreshCart?: () => Promise<HttpTypes.StoreCart | null>
-  canInitiatePayment: boolean
-  selectedPaymentProviderId?: string | null
-  selectedShippingMethodId?: string | null
-  completeCart: () => Promise<unknown>
-  initiatePayment: (providerId: string) => Promise<unknown>
-  onCheckoutErrorChange: (message: string | null) => void
-  onPaymentProviderSelect: (providerId: string) => void
-  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
-}
-
-interface OrderCompletionBlockerMessages {
-  cartEmpty: string
-  cartNotReady: string
-  selectPaymentBeforeCompletion: string
-  selectShippingBeforeCompletion: string
-}
-
-const resolveOrderCompletionBlocker = ({
-  cartId,
-  itemCount,
-  selectedPaymentProviderId,
-  selectedShippingMethodId,
-  messages,
-}: Pick<
-  UseCheckoutActionsProps,
-  | "cartId"
-  | "itemCount"
-  | "selectedPaymentProviderId"
-  | "selectedShippingMethodId"
-> & {
-  messages: OrderCompletionBlockerMessages
-}) => {
-  if (cartId === undefined || cartId.length === 0) {
-    return messages.cartNotReady
-  }
-
-  if (itemCount < 1) {
-    return messages.cartEmpty
-  }
-
-  if (
-    selectedShippingMethodId === undefined ||
-    selectedShippingMethodId === null ||
-    selectedShippingMethodId.length === 0
-  ) {
-    return messages.selectShippingBeforeCompletion
-  }
-
-  if (
-    selectedPaymentProviderId === undefined ||
-    selectedPaymentProviderId === null ||
-    selectedPaymentProviderId.length === 0
-  ) {
-    return messages.selectPaymentBeforeCompletion
-  }
-
-  return null
-}
 
 export const useCheckoutActions = ({
   cart,
@@ -106,15 +38,12 @@ export const useCheckoutActions = ({
 }: UseCheckoutActionsProps) => {
   const tCheckout = useTranslations("checkout")
   const resetFeedback = () => {
-    onCheckoutErrorChange(null)
-    if (
-      completedOrderId !== null &&
-      completedOrderId !== undefined &&
-      completedOrderId.length > 0
-    ) {
-      onCompletedOrderIdChange(null)
-      onOrderCompletionAbort()
-    }
+    resetCheckoutActionFeedback({
+      completedOrderId,
+      onCheckoutErrorChange,
+      onCompletedOrderIdChange,
+      onOrderCompletionAbort,
+    })
   }
 
   const handleSelectShipping = (
@@ -124,15 +53,7 @@ export const useCheckoutActions = ({
     resetFeedback()
 
     try {
-      if (data) {
-        writeStoredCarrierPickupSelection({
-          ...(cartId === undefined ? {} : { cartId }),
-          data,
-          optionId,
-        })
-      } else {
-        clearStoredCarrierPickupSelection(cartId)
-      }
+      persistCarrierPickupSelection({ cartId, data, optionId })
       setShippingMethod(optionId, data)
     } catch (error) {
       onCheckoutErrorChange(

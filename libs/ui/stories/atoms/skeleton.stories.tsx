@@ -102,7 +102,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     } = args
 
     return (
-      <div className="space-y-250 w-md">
+      <div className="w-md space-y-250">
         {showRectangle === true && (
           <Skeleton.Rectangle {...skeletonArgs} className="h-20 w-xs" />
         )}
@@ -141,7 +141,7 @@ const WithContentStory = () => {
         Toggle Loaded State
       </Button>
       <Skeleton isLoaded={isLoaded} className="h-20 w-xs">
-        <div className="h-20 w-xs bg-primary text-white flex items-center justify-center rounded">
+        <div className="flex h-20 w-xs items-center justify-center rounded bg-primary text-white">
           ✨ Content loaded!
         </div>
       </Skeleton>
@@ -199,13 +199,13 @@ export const SpeedInheritance: Story = {
     },
   },
   render: () => (
-    <div className="space-y-400 max-w-xs">
+    <div className="max-w-xs space-y-400">
       <div>
         <p className="mb-150 text-sm text-fg-secondary">
           Parent speed=&quot;fast&quot; - children inherit
         </p>
         <Skeleton speed="fast">
-          <div className="flex gap-250 p-250 border rounded-lg">
+          <div className="flex gap-250 rounded-lg border p-250">
             <Skeleton.Circle size="lg" />
             <div className="flex-1 space-y-150">
               <Skeleton.Text noOfLines={2} />
@@ -219,7 +219,7 @@ export const SpeedInheritance: Story = {
           Parent speed=&quot;slow&quot; - one child overrides to fast
         </p>
         <Skeleton speed="slow">
-          <div className="flex gap-250 p-250 border rounded-lg">
+          <div className="flex gap-250 rounded-lg border p-250">
             <Skeleton.Circle size="lg" speed="fast" />
             <div className="flex-1 space-y-150">
               <Skeleton.Text noOfLines={2} />
@@ -234,7 +234,7 @@ export const SpeedInheritance: Story = {
 
 export const CircleSizes: Story = {
   render: () => (
-    <div className="flex gap-250 items-end">
+    <div className="flex items-end gap-250">
       <div className="text-center">
         <Skeleton.Circle size="sm" />
         <p className="mt-150 text-xs">sm (32px)</p>
@@ -271,7 +271,7 @@ const CircleWithAvatarStory = () => {
       <Skeleton.Circle size="lg" isLoaded={isLoaded}>
         <Image
           alt="User avatar"
-          className="rounded-full size-16"
+          className="size-16 rounded-full"
           size="custom"
           src="https://i.pravatar.cc/150?img=1"
         />
@@ -400,7 +400,7 @@ export const RectangleFixedDimensions: Story = {
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Fixed width + height</p>
-        <Skeleton.Rectangle className="w-xs h-16" />
+        <Skeleton.Rectangle className="h-16 w-xs" />
       </div>
     </div>
   ),
@@ -409,10 +409,10 @@ export const RectangleFixedDimensions: Story = {
 export const ProductCardSkeleton: Story = {
   name: "🛍️ Product Card",
   render: () => (
-    <div className="w-md border p-250 rounded-lg">
+    <div className="w-md rounded-lg border p-250">
       <Skeleton.Rectangle className="mb-250 h-64" />
       <Skeleton.Text noOfLines={2} size="sm" />
-      <div className="flex gap-150 mt-250">
+      <div className="mt-250 flex gap-150">
         <Skeleton.Rectangle className="h-10 flex-1" />
         <Skeleton.Rectangle className="size-10" />
       </div>
@@ -423,11 +423,11 @@ export const ProductCardSkeleton: Story = {
 export const UserProfileSkeleton: Story = {
   name: "👤 User Profile",
   render: () => (
-    <div className="flex gap-250 p-250 border rounded-lg max-w-md">
+    <div className="flex max-w-md gap-250 rounded-lg border p-250">
       <Skeleton.Circle size="lg" />
       <div className="flex-1">
         <Skeleton.Text noOfLines={3} />
-        <div className="flex gap-150 mt-250">
+        <div className="mt-250 flex gap-150">
           <Skeleton.Rectangle className="h-8 w-20" />
           <Skeleton.Rectangle className="h-8 w-24" />
         </div>
@@ -439,10 +439,10 @@ export const UserProfileSkeleton: Story = {
 export const FeedSkeleton: Story = {
   name: "📰 Feed Item",
   render: () => (
-    <div className="space-y-250 max-w-xs">
+    <div className="max-w-xs space-y-250">
       {[1, 2, 3].map((item) => (
-        <div key={item} className="border p-250 rounded-lg">
-          <div className="flex gap-200 mb-250">
+        <div key={item} className="rounded-lg border p-250">
+          <div className="mb-250 flex gap-200">
             <Skeleton.Circle size="md" />
             <div className="flex-1">
               <Skeleton.Text noOfLines={2} size="sm" />
@@ -468,7 +468,7 @@ export const ReducedMotion: Story = {
   },
   render: () => (
     <div className="space-y-250">
-      <div className="bg-warning-light border border-warning p-250 rounded">
+      <div className="rounded border border-warning bg-warning-light p-250">
         <p className="text-sm text-warning">
           💡 <strong>Accessibility:</strong> When users enable &quot;Reduce
           motion&quot; in their OS, animations automatically switch to the

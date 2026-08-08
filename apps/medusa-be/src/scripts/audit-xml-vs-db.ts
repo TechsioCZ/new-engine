@@ -701,12 +701,16 @@ const resolveXmlPath = (xmlPathArg?: string): string => {
   }
 
   if (resolvedXmlPath === undefined || resolvedXmlPath === "") {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
       `Could not find XML feed. Checked: ${DEFAULT_XML_PATHS.join(", ")}`,
     )
   }
   if (!(isHttpXmlSource(resolvedXmlPath) || existsSync(resolvedXmlPath))) {
-    throw new Error(`XML feed does not exist at path: ${resolvedXmlPath}`)
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `XML feed does not exist at path: ${resolvedXmlPath}`,
+    )
   }
 
   return resolvedXmlPath

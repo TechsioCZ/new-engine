@@ -352,7 +352,7 @@ export const NestedSubmenu: Story = {
                     id="categories-popover-1"
                     placement="right-start"
                   >
-                    <Popover.Trigger className="text-fg-primary hover:bg-transparent p-0">
+                    <Popover.Trigger className="p-0 text-fg-primary hover:bg-transparent">
                       <Header.NavItem>
                         <span>Categories</span>
                         <Icon icon="icon-[mdi--chevron-down]" />
@@ -484,7 +484,7 @@ export const NestedSubmenu: Story = {
                       id="categories-popover-2"
                       placement="right-start"
                     >
-                      <Popover.Trigger className="text-fg-primary hover:bg-transparent p-0">
+                      <Popover.Trigger className="p-0 text-fg-primary hover:bg-transparent">
                         <Header.NavItem>
                           <span>Categories</span>
                           <Icon icon="icon-[mdi--chevron-down]" />
@@ -611,7 +611,7 @@ export const EcommerceLayout: Story = {
     <div className="flex flex-col gap-950">
       <Header>
         <Header.Container className="items-center" position="start">
-          <div className="font-bold text-lg">StoreBrand</div>
+          <div className="text-lg font-bold">StoreBrand</div>
         </Header.Container>
         <Header.Desktop>
           <Header.Nav>
@@ -686,7 +686,7 @@ export const EcommerceLayout: Story = {
       <div className="w-2xl">
         <Header>
           <Header.Container className="items-center" position="start">
-            <div className="font-bold text-lg">StoreBrand</div>
+            <div className="text-lg font-bold">StoreBrand</div>
           </Header.Container>
 
           <Header.Desktop>
@@ -867,7 +867,7 @@ const DrawerHeaderContent = ({
       size="xs"
       hideCloseButton
       behavior="modeless"
-      className="-z-1 top-full @max-header-desktop:hidden shadow-none"
+      className="top-full -z-1 shadow-none @max-header-desktop:hidden"
       modal={false}
       portal={false}
     >

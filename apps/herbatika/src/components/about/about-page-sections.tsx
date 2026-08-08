@@ -1,31 +1,15 @@
 import { Fragment } from "react"
 
-import NextLink from "@/components/app-link"
-
 import { ABOUT_PAGE } from "./about-page.data"
-import type { AboutParagraph } from "./about-page.data"
 import {
   AboutImageFrame,
   AboutParagraphText,
   aboutParagraphClassName,
   SectionHeader,
 } from "./about-page.shared"
+import { getAboutParagraphKey } from "./about-page.types"
 import { AboutReviewRating } from "./about-review-rating"
-
-const iconLinkClassName =
-  "inline-flex h-800 w-800 items-center justify-center rounded-full border border-border-secondary bg-surface text-fg-primary transition-colors hover:border-primary hover:bg-primary-light"
-
-const getAboutParagraphKey = (paragraph: AboutParagraph) => {
-  if (typeof paragraph === "string") {
-    return paragraph
-  }
-
-  return paragraph
-    .map((part) =>
-      typeof part === "string" ? part : `${part.label}:${part.href}`,
-    )
-    .join("|")
-}
+import { AboutSocialLinks } from "./about-social-links"
 
 const AboutLogoMeaning = () => (
   <section className="border-border-secondary border-t pt-650">
@@ -119,24 +103,6 @@ export const AboutPrinciples = () => (
       </article>
     ))}
   </section>
-)
-
-const AboutSocialLinks = () => (
-  <ul className="flex flex-wrap gap-150">
-    {ABOUT_PAGE.socialLinks.map((link) => (
-      <li key={link.href}>
-        <NextLink
-          aria-label={link.label}
-          className={iconLinkClassName}
-          href={link.href}
-          rel="noreferrer noopener"
-          target="_blank"
-        >
-          <span aria-hidden="true" className={`${link.icon} text-icon-lg`} />
-        </NextLink>
-      </li>
-    ))}
-  </ul>
 )
 
 export const AboutCommunityAndReviews = () => (

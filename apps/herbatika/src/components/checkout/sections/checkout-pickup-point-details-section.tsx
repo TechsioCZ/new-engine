@@ -3,11 +3,13 @@ import { useTranslations } from "next-intl"
 
 import { formatCarrierPickupAddress } from "@/components/checkout/carrier-pickup-address.utils"
 import type { CarrierPickupAddress } from "@/components/checkout/carrier-pickup-address.utils"
-import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { SupportingText } from "@/components/text/supporting-text"
-import { useCheckoutFieldValidators } from "@/lib/storefront/use-checkout-field-validators"
 
+import { CheckoutAddressCompanyFields } from "./checkout-address-company-fields"
+import { CheckoutCustomerNoteField } from "./checkout-address-extra-fields"
+import { CheckoutAddressLocationFields } from "./checkout-address-location-fields"
+import { CheckoutAddressPersonFields } from "./checkout-address-person-fields"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
@@ -26,8 +28,7 @@ export const CheckoutPickupPointDetailsSection = ({
 }: CheckoutPickupPointDetailsSectionProps) => {
   const tCheckout = useTranslations("checkout")
   const { isCompanyPurchase } = checkoutDetailsForm.values
-  const tForm = useTranslations("form")
-  const fieldValidators = useCheckoutFieldValidators()
+  const handleCompanyPurchaseChange = checkoutDetailsForm.setCompanyPurchase
 
   return (
     <>
@@ -58,63 +59,12 @@ export const CheckoutPickupPointDetailsSection = ({
 
         <div className="space-y-250 font-inter">
           <div className="grid gap-250 md:grid-cols-2">
-            <checkoutDetailsForm.form.AppField
-              name={resolveCheckoutAddressFieldName("shipping", "firstName")}
-              validators={fieldValidators.shipping.firstName}
-            >
-              {(field) => (
-                <field.TextField
-                  id="checkout-pickup-first-name"
-                  label={tForm("first_name")}
-                  required
-                  validationMode="blur"
-                />
-              )}
-            </checkoutDetailsForm.form.AppField>
-
-            <checkoutDetailsForm.form.AppField
-              name={resolveCheckoutAddressFieldName("shipping", "lastName")}
-              validators={fieldValidators.shipping.lastName}
-            >
-              {(field) => (
-                <field.TextField
-                  id="checkout-pickup-last-name"
-                  label={tForm("last_name")}
-                  required
-                  validationMode="blur"
-                />
-              )}
-            </checkoutDetailsForm.form.AppField>
-
-            <checkoutDetailsForm.form.AppField
-              name={resolveCheckoutAddressFieldName("shipping", "email")}
-              validators={fieldValidators.shipping.email}
-            >
-              {(field) => (
-                <field.TextField
-                  autoComplete="email"
-                  id="checkout-pickup-email"
-                  label={tForm("email")}
-                  required
-                  type="email"
-                  validationMode="blur"
-                />
-              )}
-            </checkoutDetailsForm.form.AppField>
-
-            <checkoutDetailsForm.form.AppField
-              name={resolveCheckoutAddressFieldName("shipping", "phone")}
-              validators={fieldValidators.shipping.phone}
-            >
-              {(field) => (
-                <field.PhoneField
-                  id="checkout-pickup-phone"
-                  label={tForm("phone")}
-                  required
-                  validationMode="blur"
-                />
-              )}
-            </checkoutDetailsForm.form.AppField>
+            <CheckoutAddressPersonFields
+              checkoutDetailsForm={checkoutDetailsForm}
+              fieldPrefix="checkout-pickup"
+              scope="shipping"
+              showContactFields
+            />
           </div>
 
           <CheckoutPurchaseTypeToggle
@@ -122,156 +72,31 @@ export const CheckoutPickupPointDetailsSection = ({
             groupLabel={tCheckout("purchase_type")}
             id="checkout-pickup-purchase-type"
             isCompanyPurchase={isCompanyPurchase}
-            onValueChange={(value) => {
-              checkoutDetailsForm.setCompanyPurchase(value)
-            }}
+            onValueChange={handleCompanyPurchaseChange}
             privateLabel={tCheckout("private_purchase")}
           />
 
           <div className="grid gap-250 md:grid-cols-2">
             {isCompanyPurchase ? (
-              <>
-                <div className="md:col-span-2">
-                  <checkoutDetailsForm.form.AppField
-                    name={resolveCheckoutAddressFieldName("billing", "company")}
-                    validators={fieldValidators.billing.company}
-                  >
-                    {(field) => (
-                      <field.TextField
-                        id="checkout-pickup-company"
-                        label={tForm("company_name")}
-                        required
-                        validationMode="blur"
-                      />
-                    )}
-                  </checkoutDetailsForm.form.AppField>
-                </div>
-
-                <div className="grid gap-250 md:col-span-2 md:grid-cols-3">
-                  <checkoutDetailsForm.form.AppField
-                    name={resolveCheckoutAddressFieldName(
-                      "billing",
-                      "companyId",
-                    )}
-                    validators={fieldValidators.billing.companyId}
-                  >
-                    {(field) => (
-                      <field.TextField
-                        id="checkout-pickup-company-id"
-                        label={tForm("company_id")}
-                        required
-                        validationMode="blur"
-                      />
-                    )}
-                  </checkoutDetailsForm.form.AppField>
-
-                  <checkoutDetailsForm.form.AppField
-                    name={resolveCheckoutAddressFieldName("billing", "taxId")}
-                    validators={fieldValidators.billing.taxId}
-                  >
-                    {(field) => (
-                      <field.TextField
-                        id="checkout-pickup-tax-id"
-                        label={tForm("tax_id")}
-                        required
-                        validationMode="blur"
-                      />
-                    )}
-                  </checkoutDetailsForm.form.AppField>
-
-                  <checkoutDetailsForm.form.AppField
-                    name={resolveCheckoutAddressFieldName("billing", "vatId")}
-                  >
-                    {(field) => (
-                      <field.TextField
-                        id="checkout-pickup-vat-id"
-                        label={tForm("vat_id")}
-                        validationMode="blur"
-                      />
-                    )}
-                  </checkoutDetailsForm.form.AppField>
-                </div>
-              </>
+              <CheckoutAddressCompanyFields
+                checkoutDetailsForm={checkoutDetailsForm}
+                fieldPrefix="checkout-pickup"
+                scope="billing"
+              />
             ) : null}
-
-            <checkoutDetailsForm.form.AppField
-              name={resolveCheckoutAddressFieldName("billing", "countryCode")}
-              validators={fieldValidators.billing.countryCode}
-            >
-              {(field) => (
-                <field.SelectField
-                  id="checkout-pickup-billing-country"
-                  items={countryItems}
-                  label={tForm("country")}
-                  placeholder={tForm("country_placeholder")}
-                  readOnly
-                  required
-                  validationMode="blur"
-                />
-              )}
-            </checkoutDetailsForm.form.AppField>
-
-            <checkoutDetailsForm.form.AppField
-              name={resolveCheckoutAddressFieldName("billing", "address1")}
-              validators={fieldValidators.billing.address1}
-            >
-              {(field) => (
-                <field.TextField
-                  id="checkout-pickup-billing-address-1"
-                  label={tForm("address")}
-                  required
-                  validationMode="blur"
-                />
-              )}
-            </checkoutDetailsForm.form.AppField>
-
-            <checkoutDetailsForm.form.AppField
-              name={resolveCheckoutAddressFieldName("billing", "city")}
-              validators={fieldValidators.billing.city}
-            >
-              {(field) => (
-                <field.TextField
-                  id="checkout-pickup-billing-city"
-                  label={tForm("city")}
-                  required
-                  validationMode="blur"
-                />
-              )}
-            </checkoutDetailsForm.form.AppField>
-
-            <checkoutDetailsForm.form.AppField
-              name={resolveCheckoutAddressFieldName("billing", "postalCode")}
-              validators={fieldValidators.billing.postalCode}
-            >
-              {(field) => (
-                <field.TextField
-                  id="checkout-pickup-billing-postal-code"
-                  label={tForm("postal_code")}
-                  required
-                  validationMode="blur"
-                />
-              )}
-            </checkoutDetailsForm.form.AppField>
-
+            <CheckoutAddressLocationFields
+              checkoutDetailsForm={checkoutDetailsForm}
+              countryItems={countryItems}
+              fieldPrefix="checkout-pickup-billing"
+              scope="billing"
+            />
             <div className="md:col-span-2">
-              <checkoutDetailsForm.form.AppField
-                name={resolveCheckoutAddressFieldName(
-                  "shipping",
-                  "customerNote",
-                )}
-              >
-                {(field) => (
-                  <field.TextareaField
-                    className="min-h-14"
-                    id="checkout-pickup-customer-note"
-                    label={tForm("customer_note")}
-                    resize="auto"
-                    rows={3}
-                    size="sm"
-                    validationMode="none"
-                  />
-                )}
-              </checkoutDetailsForm.form.AppField>
+              <CheckoutCustomerNoteField
+                checkoutDetailsForm={checkoutDetailsForm}
+                className="min-h-checkout-note"
+                fieldPrefix="checkout-pickup"
+                scope="shipping"
+              />
             </div>
           </div>
         </div>

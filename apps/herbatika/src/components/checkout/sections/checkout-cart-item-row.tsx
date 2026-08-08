@@ -21,12 +21,12 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
-import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
 import {
   resolveAvailabilityText,
   resolveOriginalLineItemTotalAmount,
 } from "../utils/resolve-availability-text"
+import { CheckoutCartItemPrice } from "./checkout-cart-item-price"
 
 interface CheckoutCartItemRowProps {
   currencyCode: HerbatikaCurrencyCode
@@ -35,35 +35,6 @@ interface CheckoutCartItemRowProps {
   onRemove: (lineItemId: string) => void
   onUpdateQuantity: (lineItemId: string, quantity: number) => void
   product?: HttpTypes.StoreProduct | null
-}
-
-interface CheckoutCartItemPriceProps {
-  currencyCode: CheckoutCartItemRowProps["currencyCode"]
-  currentLineAmount: number
-  originalLineAmount: number | null
-}
-
-const CheckoutCartItemPrice = ({
-  currencyCode,
-  currentLineAmount,
-  originalLineAmount,
-}: CheckoutCartItemPriceProps) => {
-  const shouldShowOriginalAmount =
-    typeof originalLineAmount === "number" &&
-    originalLineAmount > currentLineAmount + 0.001
-
-  return (
-    <div className="flex flex-col items-end gap-100">
-      <p className="font-bold text-fg-primary text-xl leading-tight">
-        {formatCurrencyAmount(currentLineAmount, currencyCode)}
-      </p>
-      {shouldShowOriginalAmount ? (
-        <p className="font-light text-fg-secondary text-sm leading-tight line-through">
-          {formatCurrencyAmount(originalLineAmount, currencyCode)}
-        </p>
-      ) : null}
-    </div>
-  )
 }
 
 export const CheckoutCartItemRow = ({

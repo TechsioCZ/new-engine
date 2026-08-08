@@ -1,11 +1,5 @@
-import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
-import type { ReactNode } from "react"
 
-import {
-  formatProviderLabel,
-  resolvePaymentDisplayTextKeys,
-} from "@/components/checkout/checkout-display.utils"
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
 import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants"
 import { CheckoutCartSidebarSection } from "@/components/checkout/sections/checkout-cart-sidebar-section"
@@ -16,69 +10,12 @@ import { CheckoutOrderSummarySection } from "@/components/checkout/sections/chec
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
 
-import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section"
-
-const CheckoutStepLayout = ({
-  header,
-  aside,
-  children,
-  cartItems,
-}: {
-  header?: ReactNode
-  aside: ReactNode
-  children: ReactNode
-  cartItems?: HttpTypes.StoreCartLineItem[]
-}) => (
-  <div className="mx-auto w-full max-w-max-w space-y-900">
-    <div className="mx-auto grid w-full max-w-checkout gap-x-700 gap-y-400 xl:grid-cols-12 xl:items-start">
-      {header}
-      <div className="space-y-350 xl:col-span-7">{children}</div>
-      <aside className="space-y-300 xl:sticky xl:top-400 xl:col-span-5 xl:self-start">
-        {aside}
-      </aside>
-    </div>
-    {cartItems && <CheckoutInlineProductsSection cartItems={cartItems} />}
-  </div>
-)
+import { resolveSelectedPaymentLabel } from "./checkout-payment-label"
+import { CheckoutStepLayout } from "./checkout-step-layout"
 
 interface CheckoutStepContentProps {
   activeStep: CheckoutStepSlug
   controller: CheckoutController
-}
-
-type CheckoutTranslator = ReturnType<typeof useTranslations<"checkout">>
-
-const resolveSelectedPaymentLabel = ({
-  providerId,
-  translate,
-}: {
-  providerId: string | null | undefined
-  translate: CheckoutTranslator
-}) => {
-  if (
-    providerId === undefined ||
-    providerId === null ||
-    providerId.length === 0
-  ) {
-    return null
-  }
-
-  const displayTextKeys = resolvePaymentDisplayTextKeys(providerId)
-  if (
-    displayTextKeys.summaryLabelKey === undefined ||
-    displayTextKeys.summaryLabelKey.length === 0
-  ) {
-    return displayTextKeys.providerName ?? formatProviderLabel(providerId)
-  }
-  if (
-    displayTextKeys.providerName === undefined ||
-    displayTextKeys.providerName.length === 0
-  ) {
-    return translate(displayTextKeys.summaryLabelKey)
-  }
-  return translate(displayTextKeys.summaryLabelKey, {
-    providerName: displayTextKeys.providerName,
-  })
 }
 
 export const CheckoutStepContent = ({

@@ -3,22 +3,17 @@ const spacingScale = Array.from({ length: 19 }, (_, index) =>
 )
 
 export default {
-  exclude: [
-    "**/*.stories.tsx",
-    "**/*.test.tsx",
-    "**/*.spec.tsx",
-    "src/app/theme/**",
-  ],
+  exclude: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.spec.tsx"],
   fileExtensions: [".ts", ".tsx"],
   rules: {
     noArbitraryValues: {
-      allowClassPatterns: [
+      enabled: true,
+      validClassPatterns: [
         /^icon-\[[^\]]+\]$/u,
         /^token-icon-[\w-]+$/u,
         /^\[scrollbar-width:none\]$/u,
         /^\[&::-webkit-scrollbar\]:hidden$/u,
       ],
-      enabled: true,
     },
     noTailwindContainerScale: {
       disallowedValues: [

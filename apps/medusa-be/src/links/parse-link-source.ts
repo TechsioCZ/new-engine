@@ -1,8 +1,8 @@
-import type { defineLink } from "@medusajs/framework/utils"
+import { MedusaError } from "@medusajs/framework/utils"
 import { isRecord } from "@techsio/std/object"
 
-type DefineLinkSource = Parameters<typeof defineLink>[0]
-
+const INVALID_LINK_SOURCE_CODE = "INVALID_LINK_SOURCE"
+const INVALID_LINK_SOURCE_REASON = "linkable definition is invalid"
 const REQUIRED_STRING_FIELDS = [
   "field",
   "linkable",
@@ -23,6 +23,13 @@ interface SerializedLinkSource {
   readOnly?: boolean
   serviceName: string
 }
+
+const invalidLinkSource = (context: string, reason: string): MedusaError =>
+  new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    `${context}: ${reason}`,
+    INVALID_LINK_SOURCE_CODE,
+  )
 
 const hasValidSerializedFields = (value: Record<string, unknown>): boolean => {
   const hasRequiredFields = REQUIRED_STRING_FIELDS.every((field) => {
@@ -59,34 +66,6 @@ const isSerializedLinkSource = (
 ): value is SerializedLinkSource =>
   isRecord(value) && hasValidSerializedFields(value)
 
-const isDefineLinkSource = (value: unknown): value is DefineLinkSource => {
-  if (!isRecord(value)) {
-    return false
-  }
-  const { toJSON } = value
-  if (typeof toJSON !== "function") {
-    return false
-  }
-  const serialized: unknown = Reflect.apply(toJSON, value, [])
-  return isRecord(serialized) && hasValidSerializedFields(serialized)
-}
-
-export const parseLinkSource = (
-  value: unknown,
-  context: string,
-): DefineLinkSource => {
-  try {
-    if (isDefineLinkSource(value)) {
-      return value
-    }
-  } catch (error) {
-    throw new TypeError(`${context} linkable serialization failed`, {
-      cause: error,
-    })
-  }
-  throw new TypeError(`${context} linkable definition is invalid`)
-}
-
 export const parseSerializedLinkSource = (
   value: unknown,
   context: string,
@@ -94,7 +73,33 @@ export const parseSerializedLinkSource = (
   if (isSerializedLinkSource(value)) {
     return value
   }
-  throw new TypeError(`${context} linkable definition is invalid`)
+  throw invalidLinkSource(context, INVALID_LINK_SOURCE_REASON)
+}
+
+export const parseLinkSource = (
+  value: unknown,
+  context: string,
+): SerializedLinkSource => {
+  if (!isRecord(value)) {
+    throw invalidLinkSource(context, INVALID_LINK_SOURCE_REASON)
+  }
+  const { toJSON } = value
+  if (typeof toJSON !== "function") {
+    throw invalidLinkSource(context, INVALID_LINK_SOURCE_REASON)
+  }
+
+  let serialized: unknown
+  try {
+    serialized = Reflect.apply(toJSON, value, [])
+  } catch (error) {
+    const linkSourceError = invalidLinkSource(
+      context,
+      "linkable serialization failed",
+    )
+    linkSourceError.cause = error
+    throw linkSourceError
+  }
+  return parseSerializedLinkSource(serialized, context)
 }
 
 export const parseNestedSerializedLinkSource = (
@@ -103,7 +108,7 @@ export const parseNestedSerializedLinkSource = (
   context: string,
 ): SerializedLinkSource => {
   if (!isRecord(value)) {
-    throw new TypeError(`${context} linkable definition is invalid`)
+    throw invalidLinkSource(context, INVALID_LINK_SOURCE_REASON)
   }
   return parseSerializedLinkSource(value[key], context)
 }

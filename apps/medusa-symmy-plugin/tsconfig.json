@@ -22,7 +22,7 @@
     ".medusa",
     "dist",
     "**/*.spec.ts",
-    "eslint.config.*",
-    "src/**/migrations/**/*.ts"
+    "src/**/migrations/**/*.ts",
+    "eslint.config.*"
   ]
 }

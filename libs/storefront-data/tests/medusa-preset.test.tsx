@@ -2,11 +2,14 @@ import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { vi, describe, expect, it } from "vitest"
+import { vi, describe, expect, expectTypeOf, it } from "vitest"
 
 import type {
   MedusaAuthCredentials,
+  MedusaConfirmCustomerAccountDeactivationInput,
+  MedusaDeactivateCustomerAccountResult,
   MedusaRegisterData,
+  MedusaRequestCustomerAccountDeactivationResult,
   MedusaUpdateCustomerData,
 } from "../src/auth/medusa-service"
 import type { AuthService } from "../src/auth/types"
@@ -236,16 +239,22 @@ describe(createMedusaStorefrontPreset, () => {
       dosage: CatalogFacets["brand"]
     }
 
-    // @ts-expect-error custom facet shapes must provide catalog.fallbackFacets
-    const invalidConfig: CreateMedusaStorefrontPresetConfig<
+    type CustomFacetConfig = CreateMedusaStorefrontPresetConfig<
       HttpTypes.StoreProduct,
       HttpTypes.StoreProductCategory,
       HttpTypes.StoreCollection,
       HttpTypes.StoreProduct,
       ExtendedCatalogFacets
-    > = { sdk }
+    >
 
-    expect(invalidConfig).toBeDefined()
+    expectTypeOf<{
+      catalog: {
+        serviceConfig: {
+          transformFacets: (facets: CatalogFacets) => ExtendedCatalogFacets
+        }
+      }
+      sdk: typeof sdk
+    }>().not.toExtend<CustomFacetConfig>()
   })
 
   it("builds namespaced query keys", () => {
@@ -316,15 +325,13 @@ describe(createMedusaStorefrontPreset, () => {
       customerId: "cus_1",
       id: "list_1",
     } satisfies SuspenseProductListInput
-    // @ts-expect-error suspense product-list detail input requires id
-    const missingSuspenseInput: SuspenseProductListInput = {
-      customerId: "cus_1",
-    }
+    expectTypeOf<{
+      customerId: string
+    }>().not.toExtend<SuspenseProductListInput>()
 
     expect(listInput.page).toBe(2)
     expect(detailInput.enabled).toBeFalsy()
     expect(suspenseDetailInput.id).toBe("list_1")
-    expect(missingSuspenseInput.customerId).toBe("cus_1")
   })
 
   it("passes domain hook overrides to the composed hooks", async () => {
@@ -430,7 +437,10 @@ describe(createMedusaStorefrontPreset, () => {
       MedusaUpdateCustomerData,
       unknown,
       string,
-      string
+      string,
+      MedusaRequestCustomerAccountDeactivationResult,
+      MedusaConfirmCustomerAccountDeactivationInput,
+      MedusaDeactivateCustomerAccountResult
     > = {
       getCustomer: async () => {
         await Promise.resolve()

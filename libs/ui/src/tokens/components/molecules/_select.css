@@ -2,17 +2,13 @@
  * Select — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
  * Kept here:
- *   - `--color-select-danger` — helper-text color seed (Figma has only
- *     border validation colors).
  *   - `--padding-select-item` composite bridge (Figma splits x/y).
- *   - `--spacing-content` — consumed as a raw var() inside calc() in the
- *     TSX; aliases Figma's --spacing-select-content.
+ *   - `--spacing-content` — consumed by the semantic available-height
+ *     utility; aliases Figma's --spacing-select-content.
  *   - `--z-content` layering (code-side).
  */
 
 @theme static {
-  --color-select-danger: var(--color-danger);
-
   --padding-select-item: var(--padding-select-item-y)
     var(--padding-select-item-x);
 
@@ -35,4 +31,18 @@
 
 @utility token-icon-select-clear {
   @apply token-icon-close;
+}
+
+@utility select-content-available-height {
+  height: calc(var(--available-height) - var(--spacing-content));
+}
+
+@utility transition-select-content {
+  @apply transition;
+  transition-property: opacity, display, translate;
+}
+
+@utility transition-select-indicator {
+  @apply transition;
+  transition-property: transform, color;
 }

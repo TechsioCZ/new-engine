@@ -362,7 +362,7 @@ export const CustomTrigger: Story = {
       <PopoverTemplate
         id="custom-area-trigger-popover"
         trigger={
-          <div className="rounded-lg border-2 border-border-primary border-dashed p-100">
+          <div className="rounded-lg border-2 border-dashed border-border-primary p-100">
             <p className="text-sm">Click this custom area</p>
           </div>
         }
@@ -489,7 +489,7 @@ export const PositioningBehaviors: Story = {
           Bounded containers simulate narrow viewport. Compare slide behavior:
         </p>
         <div className="flex gap-200">
-          <div className="relative h-48 w-sm overflow-hidden border border-border-primary border-dashed">
+          <div className="relative h-48 w-sm overflow-hidden border border-dashed border-border-primary">
             <div>
               <PopoverTemplate
                 id="slide-true-popover"
@@ -504,7 +504,7 @@ export const PositioningBehaviors: Story = {
             </div>
           </div>
 
-          <div className="relative h-48 w-sm overflow-hidden border border-border-primary border-dashed">
+          <div className="relative h-48 w-sm overflow-hidden border border-dashed border-border-primary">
             <div>
               <PopoverTemplate
                 id="slide-false-popover"
@@ -554,7 +554,7 @@ export const SameWidthDemo: Story = {
 export const EdgePositioning: Story = {
   args: {},
   render: () => (
-    <div className="relative h-96 w-full border border-border-primary border-dashed">
+    <div className="relative h-96 w-full border border-dashed border-border-primary">
       <div className="absolute top-2 left-2">
         <PopoverTemplate
           id="smart-popover"

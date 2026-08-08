@@ -715,7 +715,7 @@ export const ComplexCard: Story = {
         </Button>
       </ProductCard.Actions>
 
-      <div className="border-border-primary border-t pt-100">
+      <div className="border-t border-border-primary pt-100">
         <span className="text-xs text-fg-secondary">
           ✓ 2-year warranty • ✓ 30-day returns • ✓ Expert support
         </span>
@@ -835,14 +835,14 @@ export const CustomRowSpan: Story = {
     },
   },
   render: () => (
-    <ProductCard layout="row" className="w-lg grid-rows-[auto_auto_auto]">
+    <ProductCard layout="row" className="w-lg grid-rows-product-card-compact">
       <div className="row-span-3">
         <ProductCard.Name>Professional Camera</ProductCard.Name>
         <ProductCard.Image
           as="img"
           src={productImages.camera}
           alt="Camera"
-          className="h-fit row-span-2"
+          className="row-span-2 h-fit"
         />
       </div>
       <div className="col-2 row-3 place-self-end">
@@ -872,18 +872,18 @@ export const CustomGridLayout: Story = {
     },
   },
   render: () => (
-    <ProductCard layout="row" className="w-xl grid-cols-[auto_1fr]">
+    <ProductCard layout="row" className="w-xl grid-cols-product-card-feature">
       <div className="flex flex-col gap-200">
         <ProductCard.Name>Premium Wireless Headphones</ProductCard.Name>
         <ProductCard.Image
           as="img"
           src={productImages.headphones}
           alt="Headphones"
-          className="aspect-video row-span-1"
+          className="row-span-1 aspect-video"
         />
       </div>
       <div className="flex flex-col gap-200">
-        <ProductCard.Badges className="flex flex-row flex-nowrap w-max">
+        <ProductCard.Badges className="flex w-max flex-row flex-nowrap">
           <Badge variant="success">New Arrival</Badge>
           <Badge variant="info">Noise Cancelling</Badge>
         </ProductCard.Badges>

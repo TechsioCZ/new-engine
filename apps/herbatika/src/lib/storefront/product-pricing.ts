@@ -3,6 +3,13 @@ import { getRecordValue } from "@techsio/std/object"
 import { normalizeSupportedCurrencyCode } from "./currency"
 import type { HerbatikaCurrencyCode as BaseHerbatikaCurrencyCode } from "./currency"
 import {
+  matchesExpectedCurrency,
+  resolveMatchingTopOfferOriginalAmount,
+  resolvePositiveOriginalAmount,
+  resolveTopOfferCurrentAmount,
+  resolveTopOfferStockAmount,
+} from "./product-pricing-candidates"
+import {
   asStorefrontBoolean,
   asStorefrontNumber,
   asStorefrontRecord,
@@ -27,20 +34,6 @@ export const resolveProductTopOffer = (
 ) => {
   const metadata = asStorefrontRecord(product?.metadata)
   return asStorefrontRecord(getRecordValue(metadata ?? {}, "top_offer"))
-}
-
-const resolveTopOfferCurrentAmount = (
-  topOffer: Record<string, unknown> | null,
-) =>
-  asStorefrontNumber(getRecordValue(topOffer ?? {}, "current_price")) ??
-  asStorefrontNumber(getRecordValue(topOffer ?? {}, "action_price")) ??
-  asStorefrontNumber(getRecordValue(topOffer ?? {}, "price_vat"))
-
-const resolveTopOfferStockAmount = (
-  topOffer: Record<string, unknown> | null,
-): number | null => {
-  const stock = asStorefrontRecord(getRecordValue(topOffer ?? {}, "stock"))
-  return asStorefrontNumber(getRecordValue(stock ?? {}, "amount"))
 }
 
 export const resolveTopOfferInStock = (
@@ -109,54 +102,6 @@ export interface ResolvedStorefrontPrice {
   source: StorefrontPriceSource
 }
 
-const resolvePositiveOriginalAmount = (
-  currentAmount: number,
-  originalAmount: unknown,
-): number | null => {
-  const normalizedOriginalAmount = asStorefrontNumber(originalAmount)
-
-  return typeof normalizedOriginalAmount === "number" &&
-    normalizedOriginalAmount > currentAmount
-    ? normalizedOriginalAmount
-    : null
-}
-
-const resolveMatchingTopOfferOriginalAmount = ({
-  currentAmount,
-  currencyCode,
-  topOffer,
-}: {
-  currentAmount: number
-  currencyCode: HerbatikaCurrencyCode
-  topOffer: Record<string, unknown> | null
-}) => {
-  const topOfferCurrencyCode = normalizeSupportedCurrencyCode(
-    getRecordValue(topOffer ?? {}, "currency"),
-  )
-
-  if (topOfferCurrencyCode !== currencyCode) {
-    return null
-  }
-
-  return resolveTopOfferOriginalAmount({
-    currentAmount,
-    topOffer,
-  })
-}
-
-const matchesExpectedCurrency = (
-  resolvedCurrency: HerbatikaCurrencyCode | null,
-  expectedCurrency: HerbatikaCurrencyCode | null,
-): resolvedCurrency is HerbatikaCurrencyCode => {
-  if (resolvedCurrency === null) {
-    return false
-  }
-  if (expectedCurrency === null) {
-    return true
-  }
-  return resolvedCurrency === expectedCurrency
-}
-
 export const resolveStorefrontPrice = ({
   calculatedAmount,
   calculatedCurrencyCode,
@@ -185,6 +130,7 @@ export const resolveStorefrontPrice = ({
         resolveMatchingTopOfferOriginalAmount({
           currencyCode: resolvedCalculatedCurrency,
           currentAmount: resolvedCalculatedAmount,
+          resolveOriginalAmount: resolveTopOfferOriginalAmount,
           topOffer,
         }),
       source: "calculated_price",

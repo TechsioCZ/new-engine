@@ -674,7 +674,7 @@ const WithSelectionAndActionsStory = (args: TableStoryArgs) => {
   return (
     <div>
       {selection.length > 0 && (
-        <div className="mb-200 p-200 bg-surface rounded-md flex justify-between items-center">
+        <div className="mb-200 flex items-center justify-between rounded-md bg-surface p-200">
           <span>
             <strong>{selection.length}</strong> item(s) selected
           </span>

@@ -1,5 +1,11 @@
 import type { Context } from "@medusajs/framework/types"
-import { MedusaError, MedusaService } from "@medusajs/framework/utils"
+import {
+  InjectManager,
+  InjectTransactionManager,
+  MedusaContext,
+  MedusaError,
+  MedusaService,
+} from "@medusajs/framework/utils"
 
 import { encryptFields } from "../../utils/encryption"
 import {
@@ -36,10 +42,11 @@ interface ApiStoreWriteData {
 class ApiStoreModuleService extends MedusaService({
   ApiStore,
 }) {
+  @InjectManager()
   async listApiStoreConfigs(
     filters: { name?: string } = {},
     config: { take?: number; skip?: number } = {},
-    sharedContext?: Context,
+    @MedusaContext() sharedContext?: Context,
   ): Promise<[ApiStoreAdminDTO[], number]> {
     const [records, count] = await this.listAndCountApiStores(
       { ...filters, is_internal: false },
@@ -54,17 +61,19 @@ class ApiStoreModuleService extends MedusaService({
     return [records.map((record) => toApiStoreAdminDTO(record)), count]
   }
 
+  @InjectManager()
   async retrieveApiStoreConfig(
     id: string,
-    sharedContext?: Context,
+    @MedusaContext() sharedContext?: Context,
   ): Promise<ApiStoreAdminDTO> {
     const record = await this.retrieveApiStore(id, {}, sharedContext)
     return toApiStoreAdminDTO(record)
   }
 
+  @InjectManager()
   async retrieveApiStoreSecretsByName(
     name: string,
-    sharedContext?: Context,
+    @MedusaContext() sharedContext?: Context,
   ): Promise<ApiStoreSecretDTO | null> {
     const records = await this.listApiStores(
       { name: normalizeName(name) },
@@ -80,9 +89,10 @@ class ApiStoreModuleService extends MedusaService({
     return toApiStoreSecretDTO(record)
   }
 
+  @InjectManager()
   async createApiStoreConfig(
     input: ApiStoreCreateInput,
-    sharedContext?: Context,
+    @MedusaContext() sharedContext?: Context,
   ): Promise<ApiStoreAdminDTO> {
     const name = normalizeName(input.name)
     if (!name) {
@@ -110,10 +120,11 @@ class ApiStoreModuleService extends MedusaService({
     return toApiStoreAdminDTO(created)
   }
 
+  @InjectManager()
   async updateApiStoreConfig(
     id: string,
     input: ApiStoreUpdateInput,
-    sharedContext?: Context,
+    @MedusaContext() sharedContext?: Context,
   ): Promise<ApiStoreAdminDTO> {
     const existing = await this.retrieveApiStore(id, {}, sharedContext)
     const data: ApiStoreWriteData = { id }
@@ -178,9 +189,10 @@ class ApiStoreModuleService extends MedusaService({
     return toApiStoreAdminDTO(updated)
   }
 
+  @InjectManager()
   async deleteApiStoreConfig(
     id: string,
-    sharedContext?: Context,
+    @MedusaContext() sharedContext?: Context,
   ): Promise<{ id: string }> {
     await this.retrieveApiStore(id, {}, sharedContext)
     await this.deleteApiStores(id, sharedContext)
@@ -188,9 +200,10 @@ class ApiStoreModuleService extends MedusaService({
     return { id }
   }
 
+  @InjectManager()
   async upsertApiStoreConfigByName(
     input: ApiStoreCreateInput,
-    sharedContext?: Context,
+    @MedusaContext() sharedContext?: Context,
   ): Promise<ApiStoreAdminDTO> {
     const name = normalizeName(input.name)
     const existing = await this.retrieveApiStoreSecretsByName(
@@ -205,10 +218,11 @@ class ApiStoreModuleService extends MedusaService({
     return await this.updateApiStoreConfig(existing.id, input, sharedContext)
   }
 
+  @InjectTransactionManager()
   private async assertNameAvailable(
     name: string,
     currentId?: string,
-    sharedContext?: Context,
+    @MedusaContext() sharedContext?: Context,
   ): Promise<void> {
     const existing = await this.listApiStores(
       { name },

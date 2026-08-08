@@ -74,7 +74,7 @@ const ComponentCard = ({
   <div
     className={`flex min-w-0 flex-col gap-200 rounded-md border border-border-primary p-300 ${className ?? ""}`}
   >
-    <div className="text-fg-secondary text-sm font-semibold">{title}</div>
+    <div className="text-sm font-semibold text-fg-secondary">{title}</div>
     <div className={bodyClassName ?? "flex flex-wrap items-center gap-200"}>
       {children}
     </div>
@@ -96,9 +96,9 @@ const Section = ({
 }: SectionProps) => (
   <section className="flex flex-col gap-300">
     <div className="flex flex-col gap-100">
-      <h2 className="text-fg-primary text-lg font-semibold">{title}</h2>
+      <h2 className="text-lg font-semibold text-fg-primary">{title}</h2>
       {description !== undefined && description !== "" && (
-        <p className="text-fg-secondary text-sm">{description}</p>
+        <p className="text-sm text-fg-secondary">{description}</p>
       )}
     </div>
     <div
@@ -288,7 +288,7 @@ const ComponentComparison = () => {
       <div className="mx-auto flex max-w-5xl flex-col gap-700 p-600">
         <header className="flex flex-col gap-100">
           <h1 className="text-xl font-semibold">Component Comparison</h1>
-          <p className="text-fg-secondary text-sm">
+          <p className="text-sm text-fg-secondary">
             Side-by-side snapshots of UI primitives and composites for visual
             consistency checks.
           </p>
@@ -563,7 +563,7 @@ const ComponentComparison = () => {
               title="Dialog title"
               triggerText="Open dialog"
             >
-              <p className="text-fg-secondary text-sm">
+              <p className="text-sm text-fg-secondary">
                 Dialog body content goes here.
               </p>
             </Dialog>
@@ -633,7 +633,7 @@ const ComponentComparison = () => {
                   <Popover.Description>
                     Quick details about the item.
                   </Popover.Description>
-                  <div className="text-fg-secondary text-sm">
+                  <div className="text-sm text-fg-secondary">
                     Popover content.
                   </div>
                 </Popover.Content>

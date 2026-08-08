@@ -46,8 +46,14 @@ jobs:
         run: pnpm format:check
       - name: Run blocking Ultracite policy
         run: pnpm lint:ultracite
+      - name: Run type-aware Oxlint
+        run: pnpm lint:oxlint
       - name: Run scoped Medusa ESLint
         run: pnpm lint:medusa
+      - name: Run project-specific ESLint
+        run: pnpm lint:project-eslint
+      - name: Run application guardrails
+        run: pnpm lint:guardrails
 
   architecture-and-hygiene:
     name: Architecture and hygiene

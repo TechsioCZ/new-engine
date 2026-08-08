@@ -140,6 +140,9 @@
 @utility token-icon-circle {
   @apply icon-[mdi--circle];
 }
+@utility token-icon-circle-outline {
+  @apply icon-[mdi--circle-outline];
+}
 @utility token-icon-star {
   @apply icon-[mdi--star];
 }

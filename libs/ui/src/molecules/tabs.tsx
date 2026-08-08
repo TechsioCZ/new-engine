@@ -30,15 +30,15 @@ const tabsVariants = tv({
   slots: {
     content: [
       "text-tabs-content-fg",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-tabs-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
     indicator: [
       "absolute rounded-tabs-indicator bg-tabs-indicator-bg",
-      "data-[orientation=vertical]:h-(--height) data-[orientation=horizontal]:w-(--width)",
+      "data-[orientation=horizontal]:w-(--width) data-[orientation=vertical]:h-(--height)",
       "data-[orientation=horizontal]:h-tabs-indicator-height data-[orientation=vertical]:w-tabs-indicator",
-      "data-[orientation=vertical]:start-0 data-[orientation=horizontal]:bottom-0",
+      "data-[orientation=horizontal]:bottom-0 data-[orientation=vertical]:start-0",
     ],
     list: [
       "relative flex",
@@ -59,7 +59,7 @@ const tabsVariants = tv({
       "rounded-tabs-trigger",
       "cursor-pointer",
       "hover:bg-tabs-trigger-bg-hover",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-tabs-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-[selected]:text-tabs-trigger-fg-selected",

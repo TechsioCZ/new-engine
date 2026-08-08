@@ -13,6 +13,7 @@ const defineTemplate = <
 
 export const resendEmailTemplates = {
   ACCOUNT_SETUP: "account-setup",
+  CUSTOMER_ACCOUNT_DEACTIVATION: "customer-account-deactivation",
   FORGOT_PASSWORD: ["user", "forgotpwd"].join("-"),
   ORDER_PAYMENT_REMINDER: "order-payment-reminder",
   ORDER_PLACED: "order-placed",
@@ -26,6 +27,13 @@ export const resendTemplateDefinitions = {
     optionalVariables: ["customer_id", "customer_name", "order_display_id"],
     requiredVariables: ["reset_url"],
     subject: "Dokončenie registrácie",
+  }),
+  [resendEmailTemplates.CUSTOMER_ACCOUNT_DEACTIVATION]: defineTemplate({
+    id: "customer-account-deactivation",
+    label: "Customer account deactivation",
+    optionalVariables: ["customer_id", "customer_name"],
+    requiredVariables: ["confirmation_url"],
+    subject: "Confirm account deactivation",
   }),
   [resendEmailTemplates.FORGOT_PASSWORD]: defineTemplate({
     id: "user-forgotpwd",

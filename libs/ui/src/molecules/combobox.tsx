@@ -38,7 +38,7 @@ const comboboxVariants = tv({
   compoundSlots: [
     {
       class: [
-        "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+        "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
         "focus-visible:outline-combobox-ring",
         "focus-visible:outline-offset-(length:--default-ring-offset)",
         "text-combobox-trigger text-combobox-trigger-fg-base",
@@ -59,7 +59,7 @@ const comboboxVariants = tv({
       "rounded-combobox shadow-md",
       "bg-combobox-content-bg",
       "z-(--z-combobox-content) border border-combobox-border-base",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
+      "duration-200 ease-out motion-safe:transition-combobox-content",
       "transition-discrete",
       "starting:-translate-y-2 starting:opacity-0",
       "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
@@ -67,12 +67,12 @@ const comboboxVariants = tv({
       "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
     ],
     control: [
-      "form-control-base relative flex w-full items-center overflow-hidden",
+      "relative flex w-full items-center overflow-hidden form-control-base",
       "bg-combobox-bg-base",
       "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
       "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
       "data-focus:border-combobox-border-focus data-focus:bg-combobox-bg-focus",
-      "data-focus-visible:outline-(style:--default-ring-style) data-focus-visible:outline-(length:--default-ring-width)",
+      "data-focus-visible:outline-(length:--default-ring-width) data-focus-visible:outline-(style:--default-ring-style)",
       "data-focus-visible:outline-combobox-ring",
       "data-focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-disabled:border-combobox-border-disabled data-disabled:bg-combobox-bg-disabled",
@@ -119,7 +119,7 @@ const comboboxVariants = tv({
     ],
     triggerIndicator: [
       "text-combobox-trigger-fg-base group-hover:text-combobox-trigger-fg-hover",
-      "motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none",
+      "motion-safe:transition-combobox-indicator motion-safe:duration-200 motion-reduce:transition-none",
       "rotate-0 group-data-[state=open]:rotate-180",
     ],
   },

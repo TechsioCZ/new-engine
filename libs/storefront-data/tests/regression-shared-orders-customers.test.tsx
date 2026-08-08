@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { vi, describe, expect, it } from "vitest"
+import { vi, describe, expect, expectTypeOf, it } from "vitest"
 
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
@@ -422,17 +422,8 @@ describe("phase 3 regressions", () => {
     void validListInput
     void validDetailInput
 
-    // @ts-expect-error -- suspense list contracts intentionally reject enabled
-    const invalidListInput: SuspenseListInput = { enabled: false, page: 1 }
-    const invalidDetailInput: SuspenseDetailInput = {
-      // @ts-expect-error -- suspense detail contracts intentionally reject enabled
-      enabled: false,
-      handle: "hoodie",
-    }
-    void invalidListInput
-    void invalidDetailInput
-
-    expect(true).toBeTruthy()
+    expectTypeOf<"enabled">().not.toExtend<keyof SuspenseListInput>()
+    expectTypeOf<"enabled">().not.toExtend<keyof SuspenseDetailInput>()
   })
 
   it("keeps runtime guard for delete address mutation while requiring addressId", async () => {

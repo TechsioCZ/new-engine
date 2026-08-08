@@ -20,6 +20,7 @@ import type {
   StorefrontTextNamespace,
   StorefrontTextStatus,
 } from "./configuration"
+import { STOREFRONT_ACCOUNT_DEACTIVATION_TEXT_DEFINITIONS } from "./definitions/account-deactivation"
 import { STOREFRONT_ACCOUNT_ORDERS_TEXT_DEFINITIONS } from "./definitions/account-orders"
 import { STOREFRONT_AUTH_TEXT_DEFINITIONS } from "./definitions/auth"
 import { STOREFRONT_CATALOG_TEXT_DEFINITIONS } from "./definitions/catalog"
@@ -371,6 +372,7 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
     namespace: "checkout",
   },
   ...STOREFRONT_AUTH_TEXT_DEFINITIONS,
+  ...STOREFRONT_ACCOUNT_DEACTIVATION_TEXT_DEFINITIONS,
   ...STOREFRONT_ACCOUNT_ORDERS_TEXT_DEFINITIONS,
   ...STOREFRONT_CHECKOUT_CART_TEXT_DEFINITIONS,
   ...STOREFRONT_CHECKOUT_COMPLETED_ORDER_TEXT_DEFINITIONS,

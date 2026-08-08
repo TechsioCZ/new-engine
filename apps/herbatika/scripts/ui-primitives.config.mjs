@@ -1,10 +1,5 @@
 export default {
-  exclude: [
-    "**/*.stories.tsx",
-    "**/*.test.tsx",
-    "**/*.spec.tsx",
-    "src/app/theme/**",
-  ],
+  exclude: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.spec.tsx"],
   fileExtensions: [".ts", ".tsx"],
   rules: {
     bannedImports: {
@@ -23,7 +18,6 @@ export default {
       ],
     },
     bannedJsxTags: {
-      allowByFile: [],
       enabled: true,
       suggestions: {
         button: "Pouzij <Button /> z @techsio/ui-kit/atoms/button.",

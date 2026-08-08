@@ -90,7 +90,7 @@ const AllFormInputsStory = ({
 
   return (
     <div className="w-full space-y-6 p-6">
-      <h2 className="mb-8 font-bold text-2xl">
+      <h2 className="mb-8 text-2xl font-bold">
         Comprehensive Form - Size: {size}
       </h2>
 

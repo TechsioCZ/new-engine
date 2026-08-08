@@ -1,5 +1,8 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 
 interface QueryService {
   graph: (config: {
@@ -120,7 +123,10 @@ const resolvePublishableKey = async (query: QueryService) => {
     token.length === 0 ||
     salesChannelIds.length === 0
   ) {
-    throw new Error("No publishable API key with sales channels found")
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      "No publishable API key with sales channels found",
+    )
   }
 
   return {

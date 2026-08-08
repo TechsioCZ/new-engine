@@ -1,3 +1,5 @@
+import { MedusaError } from "@medusajs/framework/utils"
+
 type MedusaCookieSameSite = "lax" | "none" | "strict"
 
 const FEATURE_FLAG_ENABLED_VALUE = "1"
@@ -89,7 +91,7 @@ const readRequiredEnv = (env: NodeJS.ProcessEnv, name: string): string => {
   const value = env[name]?.trim()
 
   if (value === undefined || value.length === 0) {
-    throw new Error(`${name} is required`)
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, `${name} is required`)
   }
 
   return value
@@ -105,7 +107,8 @@ const readEnumEnv = <const AllowedValues extends readonly string[]>(
 
   if (!(hasValue && allowedValues.includes(value))) {
     const receivedValue = hasValue ? `. Received: ${value}` : ""
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `${name} must be one of: ${allowedValues.join(", ")}${receivedValue}`,
     )
   }
@@ -162,7 +165,8 @@ const readAdminAllowedHosts = (
 
 export const requireRedisUrl = (env: MedusaConfigEnv): string => {
   if (env.redisUrl === undefined || env.redisUrl.length === 0) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       "REDIS_URL is required when a Redis-backed provider is enabled",
     )
   }

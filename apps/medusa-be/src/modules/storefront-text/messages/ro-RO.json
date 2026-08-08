@@ -174,6 +174,43 @@
         "company_optional": "{label} (opțional)",
         "update_failed": "Datele contului nu au putut fi salvate. Încercați din nou."
       },
+      "deactivation": {
+        "metadata_title": "Confirmarea dezactivării contului",
+        "section": {
+          "title": "Dezactivarea contului",
+          "description": "Vă vom trimite un e-mail cu un link de confirmare. Contul va rămâne activ până când utilizați linkul. Comenzile existente nu vor fi șterse.",
+          "sent_status": "Verificați-vă e-mailul. Linkul de confirmare este valabil timp de 30 de minute.",
+          "request_action": "Solicită dezactivarea contului",
+          "resend_action": "Retrimite e-mailul"
+        },
+        "dialog": {
+          "title": "Trimiteți confirmarea dezactivării contului?",
+          "intro": "Contul nu va fi dezactivat încă în acest pas.",
+          "link_expiry": "Vă vom trimite prin e-mail un link valabil timp de 30 de minute.",
+          "confirmation_required": "Vom dezactiva contul numai după ce deschideți linkul și confirmați.",
+          "orders_preserved": "Comenzile existente nu vor fi șterse.",
+          "keep_action": "Păstrează contul",
+          "submit_action": "Trimite e-mailul de confirmare",
+          "loading": "Se trimite e-mailul"
+        },
+        "toast": {
+          "title": "E-mailul de confirmare a fost trimis",
+          "description": "Contul rămâne activ până când confirmați dezactivarea lui prin e-mail."
+        },
+        "confirmation": {
+          "title": "Confirmarea dezactivării contului",
+          "description": "După confirmare, nu vă veți mai putea autentifica. Comenzile existente vor fi păstrate în siguranță.",
+          "success": "Contul a fost dezactivat. Dacă vă înregistrați din nou cu aceeași adresă de e-mail, contul original și istoricul comenzilor vor fi restaurate.",
+          "store_action": "Continuă către magazin",
+          "confirm_action": "Confirmă dezactivarea contului",
+          "loading": "Se dezactivează contul"
+        },
+        "errors": {
+          "request_failed": "E-mailul de confirmare nu a putut fi trimis. Încercați din nou.",
+          "invalid_token": "Linkul de confirmare nu este valid.",
+          "confirmation_failed": "Contul nu a putut fi dezactivat. Este posibil ca linkul de confirmare să nu fie valid sau să fi expirat."
+        }
+      },
       "orders": {
         "retry": "Încearcă din nou",
         "empty_description": "Nu aveți încă nicio comandă finalizată.",

@@ -1,6 +1,5 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
 import { useTranslations } from "next-intl"
@@ -8,31 +7,15 @@ import type { ReactNode } from "react"
 
 import NextLink from "@/components/app-link"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
-import { appHref } from "@/lib/routing"
-import type { AppHref } from "@/lib/routing"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
+import {
+  FOOTER_COLUMNS,
+  FOOTER_LOCALES,
+  SOCIAL_LINKS,
+} from "./herbatika-footer-data"
 import { HerbatikaLogo } from "./herbatika-logo"
 
-type FooterNavigationLink =
-  | {
-      href: AppHref
-      labelKey: string
-      external?: false
-    }
-  | {
-      href: `https://${string}`
-      labelKey: string
-      external: true
-    }
-
-interface FooterColumn {
-  titleKey: string
-  links: readonly FooterNavigationLink[]
-}
-
-const giftVoucherHref = appHref("/c/darceky")
-const brandListingHref = appHref("/znacka")
 const formatMarketDomain = (domain: string) =>
   `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
 
@@ -40,110 +23,6 @@ const emphasizeFooterBrand = (chunks: ReactNode) => (
   <strong className="text-fg-primary">{chunks}</strong>
 )
 
-const FOOTER_COLUMNS: readonly FooterColumn[] = [
-  {
-    links: [
-      { href: "/blog", labelKey: "footer.columns.information.blog" },
-      { href: "/o-nas", labelKey: "footer.columns.information.about" },
-      { href: "/faq", labelKey: "footer.columns.information.faq" },
-      {
-        href: giftVoucherHref,
-        labelKey: "footer.columns.information.gift_voucher",
-      },
-      {
-        href: brandListingHref,
-        labelKey: "footer.columns.information.brands",
-      },
-      {
-        external: true,
-        href: "https://obchody.heureka.sk/herbatica-sk/recenze/",
-        labelKey: "footer.columns.information.reviews",
-      },
-    ],
-    titleKey: "footer.columns.information.title",
-  },
-  {
-    links: [
-      {
-        href: "/#doprava-a-platby",
-        labelKey: "footer.columns.important.shipping_payment",
-      },
-      {
-        href: "/#reklamacia-a-vratenie",
-        labelKey: "footer.columns.important.claims_returns",
-      },
-      {
-        href: "/#obchodne-podmienky",
-        labelKey: "footer.columns.important.terms",
-      },
-      {
-        href: "/#ochrana-osobnych-udajov",
-        labelKey: "footer.columns.important.privacy",
-      },
-      {
-        href: "/#cookies",
-        labelKey: "footer.columns.important.cookies",
-      },
-    ],
-    titleKey: "footer.columns.important.title",
-  },
-  {
-    links: [
-      {
-        href: "/#affiliate",
-        labelKey: "footer.columns.partners.affiliate",
-      },
-      {
-        href: "/#velkoobchod",
-        labelKey: "footer.columns.partners.wholesale",
-      },
-      {
-        href: "/#dropshipping",
-        labelKey: "footer.columns.partners.dropshipping",
-      },
-      {
-        href: "/#private-label",
-        labelKey: "footer.columns.partners.private_label",
-      },
-    ],
-    titleKey: "footer.columns.partners.title",
-  },
-]
-
-const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
-  {
-    href: "https://www.facebook.com/vasaherbatica",
-    icon: "token-icon-fb",
-    label: "Facebook",
-  },
-  {
-    href: "https://www.instagram.com/herbatica/",
-    icon: "token-icon-instagram",
-    label: "Instagram",
-  },
-  {
-    href: "https://www.youtube.com/@herbatica",
-    icon: "token-icon-youtube",
-    label: "YouTube",
-  },
-  {
-    href: "https://www.linkedin.com/company/herbaticask/",
-    icon: "token-icon-linkedin",
-    label: "LinkedIn",
-  },
-  {
-    href: "https://www.tiktok.com/@herbatica.sk",
-    icon: "token-icon-tiktok",
-    label: "TikTok",
-  },
-]
-
-const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
-  { active: true, code: "SK", icon: "token-icon-sk" },
-  { code: "CZ", icon: "token-icon-cz" },
-  { code: "HU", icon: "token-icon-hu" },
-  { code: "RO", icon: "token-icon-ro" },
-]
 export const HerbatikaFooter = () => {
   const t = useTranslations("navigation")
   const marketContext = useMarketContext()
@@ -256,7 +135,7 @@ export const HerbatikaFooter = () => {
         <div className="flex w-full flex-wrap items-center justify-center gap-150 md:w-auto md:justify-end">
           {FOOTER_LOCALES.map((locale) => (
             <Button
-              className={`${locale.active === true ? "" : "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
+              className={`${locale.active === true ? "" : "bg-base"} font-bold footer-locale-icon-filter`}
               icon={locale.icon}
               iconSize="md"
               key={locale.code}

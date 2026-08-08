@@ -1,5 +1,8 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
 import { isRecord } from "@techsio/std/object"
 
@@ -249,7 +252,8 @@ const fetchBusinessStatusDemoStockLocationId = async (
   const stockLocationId = getRows(result)[0]?.id
 
   if (stockLocationId === undefined || stockLocationId.length === 0) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
       "At least one stock location is required for business status demo seed",
     )
   }
@@ -635,17 +639,24 @@ export default async function seedOrderBusinessStatusDemo({
   ])
 
   if (!region) {
-    throw new Error("Czechia region is required for business status demo seed")
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      "Czechia region is required for business status demo seed",
+    )
   }
 
   if (!salesChannel) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
       "Default Sales Channel is required for business status demo seed",
     )
   }
 
   if (!variants.length) {
-    throw new Error("At least one demo product variant is required")
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      "At least one demo product variant is required",
+    )
   }
 
   const existingOrders = await fetchBusinessStatusDemoOrders(query)
@@ -656,7 +667,10 @@ export default async function seedOrderBusinessStatusDemo({
 
     const variant = variants[index % variants.length]
     if (variant === undefined) {
-      throw new Error(`Missing variant for business status demo ${demo.key}`)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Missing variant for business status demo ${demo.key}`,
+      )
     }
 
     return [{ demo, index, variant }]
@@ -682,7 +696,10 @@ export default async function seedOrderBusinessStatusDemo({
     )
 
     if (order === undefined) {
-      throw new Error(`Business status demo order ${demo.key} was not created`)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Business status demo order ${demo.key} was not created`,
+      )
     }
 
     return { demo, index, order }

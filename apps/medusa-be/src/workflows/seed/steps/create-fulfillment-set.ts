@@ -5,7 +5,11 @@ import type {
   Logger,
   UpdateFulfillmentSetDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 export interface CreateFulfillmentSetStepInput {
@@ -144,11 +148,17 @@ export const createFulfillmentSetStep = createStep(
     const serviceZone = fulfillmentSet?.service_zones?.[0]
 
     if (!fulfillmentSet) {
-      throw new Error("Could not find fulfillment set")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Could not find fulfillment set",
+      )
     }
 
     if (serviceZone?.id === undefined || serviceZone.id.length === 0) {
-      throw new Error("Could not find service zone in fulfillment set")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Could not find service zone in fulfillment set",
+      )
     }
 
     return new StepResponse({

@@ -5,12 +5,19 @@ import {
   createEmailAddressValidator,
   createOptionalPhoneNumberValidator,
 } from "@/lib/forms/validators/shared"
+import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 
 type AddressFieldValidator = (value: string) => string | undefined
 
 export type { AddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 
 const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/u
+const POSTAL_CODE_DIGIT_COUNT = {
+  cz: 5,
+  hu: 4,
+  ro: 6,
+  sk: 5,
+} as const satisfies Record<HerbatikaMarketContext["countryCode"], number>
 
 const createRequiredTextValidator =
   (
@@ -47,8 +54,9 @@ const createPostalCodeValidator =
   (
     messages: Pick<
       AddressValidationMessageSet,
-      "postalCodeInvalid" | "postalCodeMinDigits" | "postalCodeRequired"
+      "postalCodeInvalid" | "postalCodeRequired"
     >,
+    countryCode: HerbatikaMarketContext["countryCode"],
   ): AddressFieldValidator =>
   (value) => {
     const normalized = value.trim()
@@ -61,9 +69,10 @@ const createPostalCodeValidator =
       return messages.postalCodeInvalid
     }
 
-    return normalized.replaceAll(/\D/gu, "").length < 4
-      ? messages.postalCodeMinDigits
-      : undefined
+    return normalized.replaceAll(/\D/gu, "").length ===
+      POSTAL_CODE_DIGIT_COUNT[countryCode]
+      ? undefined
+      : messages.postalCodeInvalid
   }
 
 const createCountryCodeValidator =
@@ -85,6 +94,7 @@ const createCountryCodeValidator =
 
 export const createAddressFieldValidators = (
   messages: AddressValidationMessageSet,
+  countryCode: HerbatikaMarketContext["countryCode"],
 ) => ({
   address1: createRequiredTextValidator(
     messages.addressRequired,
@@ -111,7 +121,7 @@ export const createAddressFieldValidators = (
   firstName: createCustomerNameValidator(messages.firstNameMinLength),
   lastName: createCustomerNameValidator(messages.lastNameMinLength),
   phone: createRequiredPhoneNumberValidator(messages),
-  postalCode: createPostalCodeValidator(messages),
+  postalCode: createPostalCodeValidator(messages, countryCode),
   taxId: createRequiredTextValidator(
     messages.taxIdRequired,
     messages.taxIdMinLength,

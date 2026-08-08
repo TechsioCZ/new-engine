@@ -1,5 +1,8 @@
 import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
@@ -274,7 +277,8 @@ const resolveReviewsXmlPath = (args?: string[]) => {
     return envPath
   }
 
-  throw new Error(
+  throw new MedusaError(
+    MedusaError.Types.NOT_FOUND,
     `Could not find Herbatica reviews XML. Pass it as an argument or set ${HERBATICA_REVIEWS_XML_ENV}.`,
   )
 }

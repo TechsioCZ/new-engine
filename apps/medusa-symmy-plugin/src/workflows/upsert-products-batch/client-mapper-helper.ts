@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import type {
   CreateProductsWorkflowInput,
   UpdateProductsWorkflowInputProducts,
@@ -40,7 +41,10 @@ const getNullableString = (value: unknown): string | null =>
 
 const getRequiredString = (value: unknown, field: string): string => {
   if (typeof value !== "string") {
-    throw new TypeError(`Expected existing product ${field} to be a string`)
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Expected existing product ${field} to be a string`,
+    )
   }
   return value
 }
@@ -63,7 +67,10 @@ const getVariants = (value: unknown): ExistingProduct["variants"] => {
   return value.map((entry) => {
     const variant = getMetadata(entry)
     if (variant === null) {
-      throw new TypeError("Expected existing product variant to be an object")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Expected existing product variant to be an object",
+      )
     }
 
     const { ean, id, sku } = variant
@@ -97,7 +104,10 @@ export class ProductBatchClientMapperHelper {
     index: ExistingProductIndex,
   ): ExistingProduct | null => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     if (product.identifier_type === "erp_id" && product.erp_id !== undefined) {
       return index.byErpId.get(product.erp_id) ?? null
@@ -115,7 +125,10 @@ export class ProductBatchClientMapperHelper {
     variants: VariantInput[] | undefined,
   ): { title: string; values: string[] }[] | undefined => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     if (variants === undefined || variants.length === 0) {
       return undefined
@@ -146,7 +159,10 @@ export class ProductBatchClientMapperHelper {
     productOptions: { title: string }[] | undefined,
   ): Record<string, string> => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     if (productOptions === undefined || productOptions.length === 0) {
       return { Default: "Default" }
@@ -163,7 +179,10 @@ export class ProductBatchClientMapperHelper {
     prices: PriceInput[] | undefined,
   ): { amount: number; currency_code: string }[] | undefined => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     if (prices === undefined || prices.length === 0) {
       return undefined
@@ -178,7 +197,10 @@ export class ProductBatchClientMapperHelper {
     variant: VariantInput,
   ): Record<string, unknown> | undefined => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     if (variant.vat_rate === undefined && variant.metadata === undefined) {
       return undefined
@@ -193,7 +215,10 @@ export class ProductBatchClientMapperHelper {
     existing: ExistingProduct,
   ): ExistingVariantIndex => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     const byId = new Map<string, string>()
     const bySku = new Map<string, string>()
@@ -217,7 +242,10 @@ export class ProductBatchClientMapperHelper {
     index: ExistingVariantIndex,
   ): string | null => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     if (variant.identifier_type === "variant_id") {
       return variant.variant_id === undefined
@@ -238,7 +266,10 @@ export class ProductBatchClientMapperHelper {
     resolved: ResolvedCategoryMap,
   ): string[] => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     if (refs === undefined || refs.length === 0) {
       return []
@@ -263,7 +294,10 @@ export class ProductBatchClientMapperHelper {
     images: ImageInput[] | undefined,
   ): { url: string }[] | undefined => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     if (images === undefined || images.length === 0) {
       return undefined
@@ -437,7 +471,10 @@ export class ProductBatchClientMapperHelper {
     products: ProductInput[],
   ): ProductIdentifierSets => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     const erpIds = new Set<string>()
     const skus = new Set<string>()
@@ -488,7 +525,10 @@ export class ProductBatchClientMapperHelper {
     field: "sku" | "ean",
   ): Map<string, string> => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     const result = new Map<string, string>()
 
@@ -508,7 +548,10 @@ export class ProductBatchClientMapperHelper {
     productIdMaps: Map<string, string>[],
   ): Set<string> => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     const missingProductIds = new Set<string>()
 
@@ -528,7 +571,10 @@ export class ProductBatchClientMapperHelper {
     identifierToProductId: Map<string, string>,
   ): Map<string, ExistingProduct> => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     const result = new Map<string, ExistingProduct>()
 
@@ -544,7 +590,10 @@ export class ProductBatchClientMapperHelper {
 
   collectCategoryRefs = (products: ProductInput[]): CategoryRefSets => {
     if (this.helperInstance !== this) {
-      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
     const handles = new Set<string>()
     const names = new Set<string>()

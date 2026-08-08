@@ -1,26 +1,25 @@
 import { defineLink } from "@medusajs/framework/utils"
-import { z } from "@medusajs/framework/zod"
 import CartModule from "@medusajs/medusa/cart"
-import { omitUndefined } from "@techsio/std/object"
 
 import ApprovalModule from "../modules/approval"
+import { parseNestedSerializedLinkSource } from "./parse-link-source"
 
-const cartLinkable: unknown = CartModule.linkable["cart"]
-const cartSource = omitUndefined(
-  z
-    .object({
-      id: z.object({
-        entity: z.string().optional(),
-        field: z.string(),
-        linkable: z.string(),
-        primaryKey: z.string(),
-        serviceName: z.string(),
-      }),
-    })
-    .parse(cartLinkable).id,
+const cartModule = {
+  linkable: {
+    cart: {
+      id: parseNestedSerializedLinkSource(
+        CartModule.linkable["cart"],
+        "id",
+        "Cart module cart id",
+      ),
+    },
+  },
+}
+
+export default defineLink(
+  { ...cartModule.linkable.cart.id },
+  {
+    deleteCascade: true,
+    linkable: ApprovalModule.linkable.approvalStatus,
+  },
 )
-
-export default defineLink(cartSource, {
-  deleteCascade: true,
-  linkable: ApprovalModule.linkable.approvalStatus,
-})

@@ -6,7 +6,11 @@ import type {
   Logger,
   ProductDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { chunk } from "@techsio/std/array"
 
@@ -54,7 +58,8 @@ const assertCanonicalDefinitionCompatible = (
       existing.is_public !== source.is_public ||
       existing.label !== label)
   ) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Conflicting canonical Product Attribute definition "${key}" in seed input`,
     )
   }
@@ -90,7 +95,8 @@ const collectCanonicalOption = (
 ) => {
   if (source.input_type === "text") {
     if (source.option) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         `Text Product Attribute "${definitionKey}" cannot contain an option`,
       )
     }
@@ -101,7 +107,8 @@ const collectCanonicalOption = (
     source.text_value !== undefined &&
     source.text_value !== ""
   ) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Select Product Attribute "${definitionKey}" cannot contain text_value`,
     )
   }
@@ -120,7 +127,8 @@ const collectCanonicalOption = (
     existingLabel !== "" &&
     existingLabel !== optionLabel
   ) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Product Attribute option key collision for "${definitionKey}:${optionKey}" from source labels "${existingLabel}" and "${optionLabel}"`,
     )
   }
@@ -140,7 +148,8 @@ export const collectCanonicalProductAttributeDefinitions = (
         "definition key",
       )
       if (productDefinitionKeys.has(key)) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
           `Product "${product.handle}" contains duplicate Product Attribute definition "${key}"`,
         )
       }
@@ -164,7 +173,8 @@ const ensureDefinition = async (
 ) => {
   let definition = definitionByKey.get(key)
   if (definition && definition.input_type !== source.input_type) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Reserved Product Attribute "${key}" must use input type "${source.input_type}", but persisted type is "${definition.input_type}"`,
     )
   }
@@ -323,7 +333,10 @@ const resolveSeedAttribute = (
   const key = normalizeRequiredProductAttributeKey(attribute.key)
   const definition = definitionByKey.get(key)
   if (!definition) {
-    throw new Error(`Product Attribute definition "${key}" was not reconciled`)
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Product Attribute definition "${key}" was not reconciled`,
+    )
   }
   const optionKey = attribute.option
     ? normalizeRequiredProductAttributeKey(
@@ -335,7 +348,8 @@ const resolveSeedAttribute = (
       ? optionByDefinitionAndKey.get(`${definition.id}:${optionKey}`)
       : undefined
   if (optionKey !== undefined && optionKey !== "" && !option) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Product Attribute option "${key}:${optionKey}" was not reconciled`,
     )
   }
@@ -353,7 +367,10 @@ const resolveBatchProductIds = (
   batch.map(({ handle }) => {
     const productId = productByHandle.get(handle)?.id
     if (productId === undefined || productId === "") {
-      throw new Error(`Product "${handle}" was not found`)
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Product "${handle}" was not found`,
+      )
     }
     return productId
   })
@@ -468,7 +485,10 @@ const reconcileProductAssignments = async ({
 }) => {
   const product = productByHandle.get(inputProduct.handle)
   if (!product) {
-    throw new Error(`Product "${inputProduct.handle}" was not found`)
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Product "${inputProduct.handle}" was not found`,
+    )
   }
   const sourceAttributes = inputProduct.productAttributes ?? []
   const reconcileNext = async (index: number): Promise<void> => {
@@ -575,7 +595,8 @@ export const reconcileProductAttributesStep = createStep(
       .map(({ handle }) => handle)
       .filter((handle) => !productByHandle.has(handle))
     if (missingHandles.length > 0) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
         `Products were not found during Product Attribute reconciliation: ${missingHandles.join(", ")}`,
       )
     }

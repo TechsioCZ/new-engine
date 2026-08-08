@@ -52,13 +52,13 @@ const selectVariants = tv({
   slots: {
     // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
     // its own size, glyph and neutral hover pill.
-    clearTrigger: ["-translate-y-1/2 absolute top-1/2 right-select-right"],
+    clearTrigger: ["absolute top-1/2 right-select-right -translate-y-1/2"],
     content: [
       "border border-select-content-border bg-select-content-bg",
       "max-h-fit rounded-select shadow-select-content",
-      "h-[calc(var(--available-height)-var(--spacing-content))]",
+      "select-content-available-height",
       "z-(--z-content) overflow-auto",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
+      "duration-200 ease-out motion-safe:transition-select-content",
       "transition-discrete",
       "starting:-translate-y-2 starting:opacity-0",
       "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
@@ -85,7 +85,7 @@ const selectVariants = tv({
     positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
     root: ["relative", "flex flex-col gap-select", "w-full"],
     trigger: [
-      "form-control-base w-full",
+      "w-full form-control-base",
       "border-select-trigger-border",
       "group",
       "flex items-center justify-between gap-0",
@@ -94,7 +94,7 @@ const selectVariants = tv({
       "hover:bg-select-trigger-bg-hover",
       "hover:border-select-trigger-border-hover",
       "focus:border-select-trigger-border-focus",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-select-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-[disabled]:cursor-not-allowed",
@@ -103,15 +103,15 @@ const selectVariants = tv({
       "data-[disabled]:border-select-border-disabled",
       "data-[validation=error]:border-(length:--border-width-validation)",
       "data-[validation=error]:border-select-border-error data-[validation=error]:outline-select-border-error",
-      "data-[validation=error]:outline-(style:--default-ring-style) data-[validation=error]:outline-(length:--default-ring-width)",
+      "data-[validation=error]:outline-(length:--default-ring-width) data-[validation=error]:outline-(style:--default-ring-style)",
       "data-[validation=error]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=success]:border-(length:--border-width-validation)",
       "data-[validation=success]:border-select-border-success data-[validation=success]:outline-select-border-success",
-      "data-[validation=success]:outline-(style:--default-ring-style) data-[validation=success]:outline-(length:--default-ring-width)",
+      "data-[validation=success]:outline-(length:--default-ring-width) data-[validation=success]:outline-(style:--default-ring-style)",
       "data-[validation=success]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=warning]:border-(length:--border-width-validation)",
       "data-[validation=warning]:border-select-border-warning data-[validation=warning]:outline-select-border-warning",
-      "data-[validation=warning]:outline-(style:--default-ring-style) data-[validation=warning]:outline-(length:--default-ring-width)",
+      "data-[validation=warning]:outline-(length:--default-ring-width) data-[validation=warning]:outline-(style:--default-ring-style)",
       "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
@@ -373,7 +373,7 @@ const SelectTrigger = ({
     >
       {children}
       <Icon
-        className={`${controlGlyphClass[toControlSize(effectiveSize)]} text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
+        className={`${controlGlyphClass[toControlSize(effectiveSize)]} text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-select-indicator motion-safe:duration-200 motion-reduce:transition-none ${
           api.open ? "rotate-180" : "rotate-0"
         }`}
         icon="token-icon-select-indicator"

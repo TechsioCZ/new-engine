@@ -1,6 +1,5 @@
 "use client"
 
-import { isRecord } from "@techsio/std/object"
 import {
   createElement,
   useEffect,
@@ -13,6 +12,10 @@ import type { RefObject } from "react"
 
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
+import {
+  isPplWidgetError,
+  parsePplAccessPoint,
+} from "./ppl-widget-event-parsers"
 import { loadPplWidgetLoader } from "./ppl-widget-loader"
 import type {
   PplAccessPoint,
@@ -34,50 +37,6 @@ interface PplAccessPointWidgetProps {
 }
 
 const EMPTY_CONFIG: PplWidgetConfig = {}
-
-const readNullableString = (value: unknown) =>
-  typeof value === "string" || value === null ? value : undefined
-
-const parsePplAddress = (value: unknown): PplAccessPoint["address"] => {
-  if (!isRecord(value)) {
-    return value === null ? null : undefined
-  }
-
-  const city = readNullableString(Reflect.get(value, "city"))
-  const country = readNullableString(Reflect.get(value, "country"))
-  const countryCode = readNullableString(Reflect.get(value, "countryCode"))
-  const street = readNullableString(Reflect.get(value, "street"))
-  const zipCode = readNullableString(Reflect.get(value, "zipCode"))
-  return {
-    ...(city === undefined ? {} : { city }),
-    ...(country === undefined ? {} : { country }),
-    ...(countryCode === undefined ? {} : { countryCode }),
-    ...(street === undefined ? {} : { street }),
-    ...(zipCode === undefined ? {} : { zipCode }),
-  }
-}
-
-const parsePplAccessPoint = (value: unknown): PplAccessPoint | null => {
-  if (!isRecord(value)) {
-    return null
-  }
-
-  const address = parsePplAddress(Reflect.get(value, "address"))
-  const code = readNullableString(Reflect.get(value, "code"))
-  const name = readNullableString(Reflect.get(value, "name"))
-  const type = readNullableString(Reflect.get(value, "type"))
-  return {
-    ...(address === undefined ? {} : { address }),
-    ...(code === undefined ? {} : { code }),
-    ...(name === undefined ? {} : { name }),
-    ...(type === undefined ? {} : { type }),
-  }
-}
-
-const isPplWidgetError = (value: unknown): value is PplWidgetError =>
-  isRecord(value) &&
-  typeof Reflect.get(value, "code") === "string" &&
-  typeof Reflect.get(value, "message") === "string"
 
 export const PplAccessPointWidget = ({
   apiKey,
@@ -169,6 +128,8 @@ export const PplAccessPointWidget = ({
   }, [config, isLoaded, widget])
 
   useEffect(() => {
+    const handleClose = handleCloseEvent
+    const handleReady = handleReadyEvent
     const handleSelect = (event: Event) => {
       if ("detail" in event) {
         const accessPoint = parsePplAccessPoint(event.detail)
@@ -176,12 +137,6 @@ export const PplAccessPointWidget = ({
           handleSelectEvent(accessPoint)
         }
       }
-    }
-    const handleClose = () => {
-      handleCloseEvent()
-    }
-    const handleReady = () => {
-      handleReadyEvent()
     }
     const handleError = (event: Event) => {
       if ("detail" in event && isPplWidgetError(event.detail)) {

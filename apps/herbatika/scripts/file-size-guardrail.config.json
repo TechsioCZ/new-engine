@@ -15,13 +15,5 @@
   "thresholds": {
     "warning": 181,
     "error": 261
-  },
-  "allowlist": [
-    "src/app/theme/page.tsx",
-    "src/lib/storefront/blog-content.ts",
-    "src/lib/storefront/ssr.ts",
-    "src/components/herbatika-header.tsx",
-    "src/components/aside-filter.tsx",
-    "src/lib/storefront/catalog-query-state.ts"
-  ]
+  }
 }

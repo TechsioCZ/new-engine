@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 
+import { MedusaError } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 
 const HTTP_CSV_SOURCE_PATTERN = /^https?:\/\//iu
@@ -67,7 +68,8 @@ const parseBooleanCsvValue = (
     return false
   }
 
-  throw new Error(
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
     `Manufacturer "${manufacturerIdentity}" has invalid boolean "${value}" in CSV field "${field}"`,
   )
 }
@@ -126,14 +128,16 @@ const consumeUnquotedCsvCharacter = (
   state: CsvParserState,
 ): void => {
   if (state.afterClosingQuote && char !== delimiter && char !== "\n") {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Malformed manufacturers CSV at line ${state.line}: unexpected character after a closing quote`,
     )
   }
 
   if (char === '"') {
     if (state.currentField.length > 0) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         `Malformed manufacturers CSV at line ${state.line}: quote must start at the beginning of a field`,
       )
     }
@@ -186,7 +190,8 @@ const parseCsvRows = (source: string, delimiter = ";"): string[][] => {
   }
 
   if (state.inQuotes) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Malformed manufacturers CSV: unclosed quoted field starting before line ${state.line}`,
     )
   }
@@ -204,12 +209,16 @@ const parseCsvRows = (source: string, delimiter = ";"): string[][] => {
 
 const validateHeaders = (headers: string[]): void => {
   if (!headers.length || headers.every((header) => header.length === 0)) {
-    throw new Error("Manufacturers CSV has no usable headers")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Manufacturers CSV has no usable headers",
+    )
   }
 
   const emptyHeaderIndex = headers.findIndex((header) => header.length === 0)
   if (emptyHeaderIndex !== -1) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Manufacturers CSV has an empty header at column ${emptyHeaderIndex + 1}`,
     )
   }
@@ -217,14 +226,18 @@ const validateHeaders = (headers: string[]): void => {
   const seen = new Set<string>()
   for (const header of headers) {
     if (seen.has(header)) {
-      throw new Error(`Manufacturers CSV has duplicate header "${header}"`)
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Manufacturers CSV has duplicate header "${header}"`,
+      )
     }
     seen.add(header)
   }
 
   const missing = REQUIRED_HEADERS.filter((header) => !seen.has(header))
   if (missing.length) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Manufacturers CSV is missing required header(s): ${missing.join(", ")}`,
     )
   }
@@ -240,7 +253,8 @@ const validateEmail = (
     value !== "" &&
     !EMAIL_SCHEMA.safeParse(value).success
   ) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Manufacturer "${manufacturerIdentity}" has invalid email "${value}" in CSV field "${field}"`,
     )
   }
@@ -270,7 +284,8 @@ const buildManufacturerCsvFields = (
   ).length
 
   if (representativeFieldCount > 0 && representativeFieldCount < 3) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Manufacturer "${manufacturerIdentity}" must provide all European responsible-person fields or none of them`,
     )
   }
@@ -317,7 +332,8 @@ const toManufacturerCsvRow = (
   sourceRow: number,
 ): ManufacturerCsvRow => {
   if (row.length !== headers.length) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Malformed manufacturers CSV row ${sourceRow}: expected ${headers.length} columns, received ${row.length}`,
     )
   }
@@ -329,7 +345,8 @@ const toManufacturerCsvRow = (
   const id = decodeCsvValue(record["id"] ?? "")
   const name = decodeCsvValue(record["name"] ?? "")
   if (id === null || id === "" || name === null || name === "") {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Malformed manufacturers CSV row ${sourceRow}: both "id" and "name" are required`,
     )
   }
@@ -346,7 +363,10 @@ export const parseManufacturersCsv = (source: string): ManufacturerCsvRow[] => {
   const rows = parseCsvRows(source)
   const [headerRow] = rows
   if (!headerRow) {
-    throw new Error("Manufacturers CSV has no usable headers or rows")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Manufacturers CSV has no usable headers or rows",
+    )
   }
 
   const headers = headerRow.map((header, index) => {
@@ -361,7 +381,10 @@ export const parseManufacturersCsv = (source: string): ManufacturerCsvRow[] => {
     .map((row, index) => toManufacturerCsvRow(headers, row, index + 2))
 
   if (!manufacturers.length) {
-    throw new Error("Manufacturers CSV has headers but no usable data rows")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Manufacturers CSV has headers but no usable data rows",
+    )
   }
 
   return manufacturers
@@ -371,7 +394,10 @@ export const buildManufacturersLookup = (
   rows: ManufacturerCsvRow[],
 ): ManufacturerCsvLookup => {
   if (!rows.length) {
-    throw new Error("Cannot build manufacturers lookup from zero rows")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Cannot build manufacturers lookup from zero rows",
+    )
   }
 
   const lookup = new Map<string, ManufacturerCsvRow>()
@@ -387,14 +413,16 @@ export const buildManufacturersLookup = (
     for (const alias of aliases) {
       const key = normalizeLookupKey(alias.value)
       if (!key) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
           `Manufacturer "${row.name}" (${row.id}) has unusable ${alias.field} alias "${alias.value}"`,
         )
       }
 
       const existing = lookup.get(key)
       if (existing && existing !== row) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
           `Manufacturer alias collision for normalized key "${key}": "${existing.name}" (${existing.id}) and "${row.name}" (${row.id})`,
         )
       }
@@ -432,7 +460,8 @@ export const readCsvSource = async (source: string): Promise<string> => {
       signal: controller.signal,
     })
     if (!response.ok) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Failed to fetch CSV source ${source}: ${response.status} ${response.statusText}`,
       )
     }

@@ -29,7 +29,7 @@ const textareaVariants = tv({
     "transition-all duration-200 motion-reduce:transition-none",
     "hover:border-textarea-border-hover hover:bg-textarea-bg-hover",
     "focus:border-textarea-border-focus focus:bg-textarea-bg-focus",
-    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+    "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
     "focus-visible:outline-textarea-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:pointer-events-none disabled:border-textarea-border-disabled disabled:bg-textarea-bg-disabled disabled:text-textarea-fg-disabled",

@@ -31,7 +31,7 @@ const actionIconVariants = tv({
     "inline-flex shrink-0 cursor-pointer items-center justify-center",
     "rounded-icon-control text-icon-control-fg",
     "transition-colors duration-200 motion-reduce:transition-none",
-    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+    "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
     "focus-visible:outline-offset-(length:--default-ring-offset) focus-visible:outline-icon-control-ring",
     "disabled:cursor-not-allowed disabled:text-icon-control-fg-disabled",
   ],

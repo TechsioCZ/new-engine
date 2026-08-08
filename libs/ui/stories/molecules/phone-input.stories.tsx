@@ -497,7 +497,7 @@ export const CustomCountryList: Story = {
         <PhoneInput.Label>Delivery phone</PhoneInput.Label>
         <PhoneInput.Control>
           <PhoneInput.CountrySelect>
-            <PhoneInput.CountryControl className="border-phone-input-divider border-r">
+            <PhoneInput.CountryControl className="border-r border-phone-input-divider">
               <PhoneInput.CountryTrigger className="min-w-24">
                 <PhoneInput.CountryValue>
                   <PhoneInput.CountryCallingCode />

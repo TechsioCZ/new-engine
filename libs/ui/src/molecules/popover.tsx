@@ -64,7 +64,7 @@ const popoverVariants = tv({
   variants: {
     border: {
       true: {
-        arrowTip: "border-popover-border border-t border-l",
+        arrowTip: "border-t border-l border-popover-border",
         content: "border border-popover-border",
       },
     },

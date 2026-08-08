@@ -41,7 +41,7 @@ const galleryVariants = tv({
     orientation: "vertical",
   },
   slots: {
-    main: "relative flex min-w-0 h-fit",
+    main: "relative flex h-fit min-w-0",
     root: "w-full gap-gallery-root",
     thumbnailTrigger: [
       "relative shrink-0",
@@ -49,7 +49,7 @@ const galleryVariants = tv({
       "aspect-square",
       "overflow-hidden rounded-gallery-trigger border border-gallery-trigger-border bg-gallery-trigger-bg",
       "cursor-pointer p-gallery-trigger",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-gallery-trigger-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-active:border-gallery-trigger-border-active",
@@ -58,7 +58,7 @@ const galleryVariants = tv({
       "brightness-gallery-trigger",
       "hover:brightness-gallery-trigger-active data-active:brightness-gallery-trigger-active",
       "transition-all duration-200 motion-reduce:transition-none",
-      "*:object-cover *:size-full",
+      "*:size-full *:object-cover",
     ],
     thumbnails: "shrink-0",
     thumbnailsList: "flex gap-gallery-sm",
@@ -75,7 +75,7 @@ const galleryVariants = tv({
       },
       vertical: {
         main: "order-1 md:col-start-1 md:row-start-1",
-        root: "flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-start",
+        root: "flex flex-col md:grid md:grid-cols-gallery-vertical md:items-start",
         thumbnails: "order-2 md:col-start-2 md:row-start-1",
         thumbnailsList:
           "flex-row items-center py-gallery-sm md:flex-col md:items-stretch md:px-gallery-xs md:py-0",

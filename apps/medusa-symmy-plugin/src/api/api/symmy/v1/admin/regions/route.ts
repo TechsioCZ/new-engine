@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
   ContainerRegistrationKeys,
+  MedusaError,
   remoteQueryObjectFromString,
 } from "@medusajs/framework/utils"
 
@@ -17,26 +18,47 @@ const get = async (req: MedusaRequest, res: MedusaResponse) => {
 
   const result: unknown = await remoteQuery(query)
   if (typeof result !== "object" || result === null) {
-    throw new Error("Region query returned an invalid result")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Region query returned an invalid result",
+    )
   }
   if (!("rows" in result) || !Array.isArray(result.rows)) {
-    throw new Error("Region query returned invalid rows")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Region query returned invalid rows",
+    )
   }
   if (!("metadata" in result)) {
-    throw new Error("Region query returned no metadata")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Region query returned no metadata",
+    )
   }
   const { metadata } = result
   if (typeof metadata !== "object" || metadata === null) {
-    throw new Error("Region query returned invalid metadata")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Region query returned invalid metadata",
+    )
   }
   if (!("count" in metadata) || typeof metadata.count !== "number") {
-    throw new Error("Region query returned an invalid count")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Region query returned an invalid count",
+    )
   }
   if (!("take" in metadata) || typeof metadata.take !== "number") {
-    throw new Error("Region query returned an invalid limit")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Region query returned an invalid limit",
+    )
   }
   if (!("skip" in metadata) || typeof metadata.skip !== "number") {
-    throw new Error("Region query returned an invalid offset")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Region query returned an invalid offset",
+    )
   }
 
   res.json({

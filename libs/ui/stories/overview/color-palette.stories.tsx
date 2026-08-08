@@ -43,14 +43,14 @@ export const Default: Story = {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {semanticColors.map((color) => (
             <div key={color} className="rounded-xl bg-surface p-6 shadow-lg">
-              <h3 className="mb-4 font-semibold text-fg-primary text-lg capitalize">
+              <h3 className="mb-4 text-lg font-semibold text-fg-primary capitalize">
                 {color}
               </h3>
 
               <div className="space-y-6">
                 {colorVariants.map(({ suffix, label }) => (
                   <div key={suffix}>
-                    <h4 className="mb-3 font-medium text-fg-secondary text-sm">
+                    <h4 className="mb-3 text-sm font-medium text-fg-secondary">
                       {label}
                     </h4>
                     <div className="grid grid-cols-4 gap-4">
@@ -72,7 +72,7 @@ export const Default: Story = {
                             key={state}
                             className="flex min-w-0 flex-col items-center gap-2"
                           >
-                            <div className="flex-shrink-0 size-16">
+                            <div className="size-16 flex-shrink-0">
                               <ColorSelect
                                 colors={[{ color: computedColor }]}
                                 size="full"
@@ -81,10 +81,10 @@ export const Default: Story = {
                               />
                             </div>
                             <div className="w-full text-center">
-                              <div className="truncate font-medium text-fg-primary text-xs">
+                              <div className="truncate text-xs font-medium text-fg-primary">
                                 {state || "Default"}
                               </div>
-                              <div className="mt-1 break-all font-mono text-fg-secondary text-xs leading-tight">
+                              <div className="mt-1 font-mono text-xs leading-tight break-all text-fg-secondary">
                                 {colorTokenName}
                               </div>
                             </div>

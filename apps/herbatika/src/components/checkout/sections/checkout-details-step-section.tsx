@@ -6,13 +6,13 @@ import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 
 import NextLink from "@/components/app-link"
-import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
 import type { AppHref } from "@/lib/routing"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 import { CheckoutAddressSection } from "./checkout-address-section"
 import { CheckoutPickupPointDetailsSection } from "./checkout-pickup-point-details-section"
+import { CheckoutSameAddressField } from "./checkout-same-address-field"
 
 type CheckoutDetailsStepController = Pick<
   CheckoutController,
@@ -96,36 +96,9 @@ export const CheckoutDetailsStepSection = ({
               scope="shipping"
             />
 
-            <div className="rounded-sm border border-border-primary bg-surface px-550 py-350">
-              <controller.checkoutDetailsForm.form.AppField name="useSameAddress">
-                {(field) => (
-                  <field.CheckboxField
-                    id="checkout-use-same-address"
-                    label={tCheckout("billing_same_as_shipping")}
-                    onValueChange={(nextUseSameAddress) => {
-                      controller.checkoutDetailsForm.trackUseSameAddressIntent(
-                        nextUseSameAddress,
-                      )
-
-                      if (
-                        !(
-                          nextUseSameAddress ||
-                          controller.checkoutDetailsForm.hasStoredBillingAddress
-                        ) &&
-                        resolveAddressFormsMatch(
-                          controller.checkoutDetailsForm.values.billing,
-                          controller.checkoutDetailsForm.hydratedValues.billing,
-                        )
-                      ) {
-                        controller.checkoutDetailsForm.copyShippingIntoBilling()
-                      }
-                    }}
-                    size="sm"
-                    validationMode="none"
-                  />
-                )}
-              </controller.checkoutDetailsForm.form.AppField>
-            </div>
+            <CheckoutSameAddressField
+              checkoutDetailsForm={controller.checkoutDetailsForm}
+            />
 
             {checkoutDetailsValues.useSameAddress ? null : (
               <CheckoutAddressSection

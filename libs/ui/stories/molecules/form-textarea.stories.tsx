@@ -316,7 +316,7 @@ export const AllVariants: Story = {
 // Validation States - Dedicated story showing all 4 validation states
 export const ValidationStates: Story = {
   render: () => (
-    <div className="flex flex-col gap-200 w-md">
+    <div className="flex w-md flex-col gap-200">
       <FormTextarea
         id="default-validation"
         label="Default State"
@@ -356,7 +356,7 @@ export const ValidationStates: Story = {
 // Sizes - Dedicated story showing all size variants
 export const Sizes: Story = {
   render: () => (
-    <div className="flex flex-col gap-200 w-md">
+    <div className="flex w-md flex-col gap-200">
       <FormTextarea
         id="small-size"
         label="Small Size"
@@ -407,7 +407,7 @@ const CharacterCountExample = () => {
 
   return (
     <div className="w-lg">
-      <h3 className="mb-200 font-medium text-lg">Character Count Validation</h3>
+      <h3 className="mb-200 text-lg font-medium">Character Count Validation</h3>
       <FormTextarea
         id="character-count"
         label="Tweet"
@@ -443,7 +443,7 @@ const ContactFormExample = () => {
 
   return (
     <div className="w-lg rounded-md border border-border-primary p-300 shadow-sm">
-      <h2 className="mb-300 font-semibold text-xl">Contact Us</h2>
+      <h2 className="mb-300 text-xl font-semibold">Contact Us</h2>
 
       <div className="space-y-200">
         <div className="grid grid-cols-2 gap-200">

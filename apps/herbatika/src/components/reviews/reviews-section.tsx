@@ -1,23 +1,28 @@
 "use client"
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { useFormatter, useTranslations } from "next-intl"
 import type { StaticImageData } from "next/image"
-import NextImage from "next/image"
 import type { MouseEvent } from "react"
 
 import verifiedCustomerBadge from "@/assets/third-parties/overeny-zakaznik.avif"
 import NextLink from "@/components/app-link"
 import { FractionalRating } from "@/components/reviews/fractional-rating"
+import { ReviewCard } from "@/components/reviews/review-card"
+import type { ReviewsVariant } from "@/components/reviews/review-card"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
+import {
+  resolveLinkClickProps,
+  resolveReviewsHeading,
+  resolveReviewsLinkHref,
+  resolveReviewsLinkLabel,
+  resolveTrustSourceProps,
+} from "@/components/reviews/reviews-section-options"
 import { PRODUCT_REVIEWS } from "@/components/reviews/reviews.data"
 import type {
   ReviewItem,
   ReviewTrustSource,
 } from "@/components/reviews/reviews.types"
-
-type ReviewsVariant = "product" | "homepage"
 
 interface ReviewsSectionProps {
   sectionClassName?: string
@@ -33,122 +38,6 @@ interface ReviewsSectionProps {
   trustSources?: readonly ReviewTrustSource[]
   sourceBadge?: StaticImageData
 }
-
-const resolveReviewInitial = (author: string): string => {
-  const trimmed = author.trim()
-  return trimmed.charAt(0).toUpperCase() || "A"
-}
-
-const ReviewCard = ({
-  review,
-  sourceBadge,
-  sourceBadgeAlt,
-  variant,
-  verifiedPurchaseLabel,
-}: {
-  review: ReviewItem
-  sourceBadge: StaticImageData
-  sourceBadgeAlt: string
-  variant: ReviewsVariant
-  verifiedPurchaseLabel: string
-}) => {
-  const isHomepage = variant === "homepage"
-  const shouldShowVerifiedPurchase =
-    !isHomepage && review.verifiedPurchase === true
-
-  return (
-    <article className="flex h-full flex-col gap-350 rounded-md border border-border-secondary bg-highlight p-350 font-roboto shadow-md">
-      <header className="flex items-center gap-350">
-        {isHomepage ? (
-          <div className="flex h-800 w-800 flex-shrink-0 items-center justify-center">
-            <NextImage
-              alt={sourceBadgeAlt}
-              className="h-full w-full object-contain"
-              src={sourceBadge}
-            />
-          </div>
-        ) : (
-          <div className="flex h-800 w-800 flex-shrink-0 items-center justify-center rounded-full bg-surface">
-            <span className="font-normal text-3xl text-fg-secondary leading-none">
-              {resolveReviewInitial(review.author)}
-            </span>
-          </div>
-        )}
-
-        <div className="flex min-w-0 flex-1 flex-col gap-150">
-          <div className="flex items-start justify-between gap-250">
-            <Rating
-              className="pointer-events-none"
-              readOnly
-              size="md"
-              value={review.rating}
-            />
-            <p className="text-fg-placeholder text-xs leading-tight">
-              {review.dateLabel}
-            </p>
-          </div>
-
-          <p className="truncate font-semibold text-fg-primary text-md leading-tight">
-            {review.author}
-          </p>
-        </div>
-      </header>
-
-      <div className="flex flex-1 flex-col gap-250">
-        <p className="line-clamp-3 text-fg-secondary text-md leading-relaxed">
-          {review.message}
-        </p>
-      </div>
-
-      {shouldShowVerifiedPurchase ? (
-        <div className="mt-auto flex items-center gap-150 text-primary">
-          <Icon icon="token-icon-check" size="lg" />
-          <span className="font-medium text-sm leading-relaxed">
-            {verifiedPurchaseLabel}
-          </span>
-        </div>
-      ) : null}
-    </article>
-  )
-}
-
-const resolveReviewsHeading = (
-  headingText: string | undefined,
-  isHomepage: boolean,
-  homepageTitle: string,
-  productTitle: string,
-) => headingText ?? (isHomepage ? homepageTitle : productTitle)
-
-const resolveReviewsLinkHref = (
-  linkHref: string | null | undefined,
-  isHomepage: boolean,
-) => {
-  if (linkHref !== undefined) {
-    return linkHref
-  }
-
-  return isHomepage ? null : "#reviews"
-}
-
-const resolveReviewsLinkLabel = (
-  linkLabel: string | null | undefined,
-  isHomepage: boolean,
-  productLabel: string,
-) => {
-  if (linkLabel !== undefined) {
-    return linkLabel
-  }
-
-  return isHomepage ? null : productLabel
-}
-
-const resolveTrustSourceProps = (
-  sources: readonly ReviewTrustSource[] | undefined,
-) => (sources === undefined ? {} : { sources })
-
-const resolveLinkClickProps = (
-  onClick: ((event: MouseEvent<HTMLAnchorElement>) => void) | undefined,
-) => (onClick === undefined ? {} : { onClick })
 
 export const ReviewsSection = ({
   sectionClassName = "space-y-500 pt-750",

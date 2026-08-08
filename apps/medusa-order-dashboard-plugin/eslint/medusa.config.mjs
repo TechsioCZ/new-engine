@@ -20,7 +20,7 @@ const { default: medusa } = await import("@medusajs/eslint-plugin")
 
 export default defineConfig([
   {
-    ignores: ["eslint.config.ts", "src/**/migrations/**", ".medusa/**"],
+    ignores: ["eslint.config.mjs"],
   },
   ...medusa.configs.strict,
 ])

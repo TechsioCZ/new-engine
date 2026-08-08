@@ -8,6 +8,18 @@ interface AboutTextLink {
 type AboutTextPart = AboutTextLink | string
 export type AboutParagraph = readonly AboutTextPart[] | string
 
+export const getAboutParagraphKey = (paragraph: AboutParagraph) => {
+  if (typeof paragraph === "string") {
+    return paragraph
+  }
+
+  return paragraph
+    .map((part) =>
+      typeof part === "string" ? part : `${part.label}:${part.href}`,
+    )
+    .join("|")
+}
+
 interface AboutImage {
   alt: string
   caption?: string

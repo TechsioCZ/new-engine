@@ -30,7 +30,7 @@ const inputVariants = tv({
     "transition-all duration-200 motion-reduce:transition-none",
     "hover:border-input-border-hover hover:bg-input-bg-hover",
     "focus:border-input-border-focus focus:bg-input-bg-focus",
-    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+    "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
     "focus-visible:outline-input-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:cursor-not-allowed disabled:hover:bg-input-bg-disabled",

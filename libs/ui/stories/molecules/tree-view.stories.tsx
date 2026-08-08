@@ -461,9 +461,9 @@ const ControlledExample = () => {
       </TreeView>
 
       <div className="flex flex-col gap-100">
-        <div className="p-100 bg-overlay rounded-md">
-          <h4 className="text-sm font-semibold mb-100">Expanded Nodes:</h4>
-          <ul className="text-xs space-y-100">
+        <div className="rounded-md bg-overlay p-100">
+          <h4 className="mb-100 text-sm font-semibold">Expanded Nodes:</h4>
+          <ul className="space-y-100 text-xs">
             {expanded.map((id) => (
               <li key={id} className="text-fg-secondary">
                 {id}
@@ -472,9 +472,9 @@ const ControlledExample = () => {
           </ul>
         </div>
 
-        <div className="p-100 bg-overlay rounded-md">
-          <h4 className="text-sm font-semibold mb-100">Selected Nodes:</h4>
-          <ul className="text-xs space-y-100">
+        <div className="rounded-md bg-overlay p-100">
+          <h4 className="mb-100 text-sm font-semibold">Selected Nodes:</h4>
+          <ul className="space-y-100 text-xs">
             {selected.map((id) => (
               <li key={id} className="text-fg-secondary">
                 {id}
@@ -539,7 +539,7 @@ const CustomNode = ({
   <TreeView.NodeProvider node={node} indexPath={indexPath}>
     {node.children ? (
       <TreeView.Branch className="data-disabled:opacity-40">
-        <TreeView.BranchTrigger className="hover:bg-primary/10 rounded-sm transition-colors">
+        <TreeView.BranchTrigger className="rounded-sm transition-colors hover:bg-primary/10">
           <TreeView.BranchControl>
             <span className="text-primary">
               <TreeView.NodeIcon />
@@ -549,7 +549,7 @@ const CustomNode = ({
           <TreeView.BranchIndicator className="text-secondary" />
         </TreeView.BranchTrigger>
         <TreeView.BranchContent>
-          <div className="ml-250 pl-150 border-l-2 border-border-secondary/30">
+          <div className="ml-250 border-l-2 border-border-secondary/30 pl-150">
             {node.children?.map((child, idx) => (
               <CustomNode
                 key={child.id}
@@ -561,7 +561,7 @@ const CustomNode = ({
         </TreeView.BranchContent>
       </TreeView.Branch>
     ) : (
-      <TreeView.Item className="hover:bg-secondary/10 rounded-sm transition-colors ml-150">
+      <TreeView.Item className="ml-150 rounded-sm transition-colors hover:bg-secondary/10">
         <span className="text-secondary">
           <TreeView.NodeIcon />
         </span>
@@ -584,12 +584,12 @@ export const CustomStyling: Story = {
     <TreeView
       data={fileSystemData}
       selectionMode="single"
-      className="w-lg bg-gradient-to-br from-surface to-overlay rounded-lg"
+      className="w-lg rounded-lg bg-gradient-to-br from-surface to-overlay"
     >
-      <h2 className="text-lg font-bold mb-250 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+      <h2 className="mb-250 bg-gradient-to-r from-primary to-secondary bg-clip-text text-lg font-bold text-transparent">
         🎨 Styled File Explorer
       </h2>
-      <TreeView.Tree className="bg-white/50 dark:bg-black/20 backdrop-blur-sm">
+      <TreeView.Tree className="bg-white/50 backdrop-blur-sm dark:bg-black/20">
         {fileSystemData.map((node, index) => (
           <CustomNode key={node.id} node={node} indexPath={[index]} />
         ))}
@@ -655,12 +655,12 @@ const SelectionModesExample = () => {
             ))}
           </TreeView.Tree>
         </TreeView>
-        <div className="mt-100 p-100 bg-overlay rounded-md">
-          <p className="text-xs font-semibold mb-50">Selected:</p>
+        <div className="mt-100 rounded-md bg-overlay p-100">
+          <p className="mb-50 text-xs font-semibold">Selected:</p>
           <p className="text-xs text-fg-secondary">
             {singleSelected.join(", ") || "None"}
           </p>
-          <p className="text-xs text-fg-secondary mt-50">
+          <p className="mt-50 text-xs text-fg-secondary">
             Click any item to select it
           </p>
         </div>
@@ -684,14 +684,14 @@ const SelectionModesExample = () => {
             ))}
           </TreeView.Tree>
         </TreeView>
-        <div className="mt-100 p-100 bg-overlay rounded-md">
-          <p className="text-xs font-semibold mb-50">
+        <div className="mt-100 rounded-md bg-overlay p-100">
+          <p className="mb-50 text-xs font-semibold">
             Selected ({multiSelected.length}):
           </p>
           <p className="text-xs text-fg-secondary">
             {multiSelected.join(", ") || "None"}
           </p>
-          <p className="text-xs text-fg-secondary mt-50">
+          <p className="mt-50 text-xs text-fg-secondary">
             Use Ctrl+Click (Cmd+Click on Mac) to select multiple items
           </p>
         </div>
@@ -728,9 +728,9 @@ const InteractiveTest = () => {
 
   return (
     <div className="space-y-200">
-      <div className="p-100 bg-overlay rounded-md">
-        <h4 className="text-sm font-semibold mb-50">Test Instructions:</h4>
-        <ul className="text-xs space-y-50 text-fg-secondary">
+      <div className="rounded-md bg-overlay p-100">
+        <h4 className="mb-50 text-sm font-semibold">Test Instructions:</h4>
+        <ul className="space-y-50 text-xs text-fg-secondary">
           <li>
             • Click the <strong>chevron arrow</strong> → should ONLY
             expand/collapse
@@ -797,8 +797,8 @@ const InteractiveTest = () => {
         </div>
       </div>
 
-      <div className="p-100 bg-overlay rounded-md">
-        <div className="flex items-center justify-between mb-50">
+      <div className="rounded-md bg-overlay p-100">
+        <div className="mb-50 flex items-center justify-between">
           <h4 className="text-sm font-semibold">Event Log (last 15 events)</h4>
           <Button
             size="sm"
@@ -809,7 +809,7 @@ const InteractiveTest = () => {
             Clear
           </Button>
         </div>
-        <div className="bg-surface rounded-sm p-100 h-48 overflow-y-auto font-mono text-xs">
+        <div className="h-48 overflow-y-auto rounded-sm bg-surface p-100 font-mono text-xs">
           {logs.length === 0 ? (
             <div className="text-fg-secondary">Waiting for interaction...</div>
           ) : (
@@ -944,7 +944,7 @@ const WithHoverEventsStory: NonNullable<Story["render"]> = () => {
       </TreeView>
 
       <div className="flex-1">
-        <div className="flex flex-col mb-200">
+        <div className="mb-200 flex flex-col">
           <h3 className="font-semibold">Hover Events Log</h3>
           <Button
             size="sm"
@@ -955,7 +955,7 @@ const WithHoverEventsStory: NonNullable<Story["render"]> = () => {
             Clear
           </Button>
         </div>
-        <div className="bg-surface w-md rounded-sm p-100 h-48 overflow-y-auto font-mono text-xs">
+        <div className="h-48 w-md overflow-y-auto rounded-sm bg-surface p-100 font-mono text-xs">
           {logs.length === 0 ? (
             <div className="text-fg-secondary">
               Hover over nodes to see events...

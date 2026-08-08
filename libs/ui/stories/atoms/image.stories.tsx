@@ -76,7 +76,7 @@ export const Sizes: Story = {
         src="https://images.unsplash.com/photo-1540206395-68808572332f?w=600&h=600&fit=crop"
         alt="Custom"
         size="custom"
-        className="rounded-xl object-cover size-96"
+        className="size-96 rounded-xl object-cover"
       />
     </div>
   ),

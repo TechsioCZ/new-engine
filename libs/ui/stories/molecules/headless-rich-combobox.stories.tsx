@@ -74,7 +74,7 @@ const HeadlessRichCombobox = () => {
                 <div {...api.getItemGroupProps({ id: group })} key={group}>
                   <div
                     {...api.getItemGroupLabelProps({ htmlFor: group })}
-                    className="p-100 font-semibold text-fg-secondary text-xs"
+                    className="p-100 text-xs font-semibold text-fg-secondary"
                   >
                     {group}
                   </div>
@@ -86,7 +86,7 @@ const HeadlessRichCombobox = () => {
                       key={item.value}
                     >
                       <span className="block font-semibold">{item.label}</span>
-                      <span className="block text-fg-secondary text-sm">
+                      <span className="block text-sm text-fg-secondary">
                         {item.data?.description}
                       </span>
                     </a>

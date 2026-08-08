@@ -1,5 +1,5 @@
 import type { IProductModuleService } from "@medusajs/framework/types"
-import { Modules } from "@medusajs/framework/utils"
+import { MedusaError, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { getSourceVariantId } from "./create-products"
@@ -212,7 +212,8 @@ const setReconciledEan = (
   const target =
     products[variant.productIndex]?.variants?.[variant.variantIndex]
   if (!target) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Unable to reconcile EAN for ${variant.productHandle}/${variant.sku}`,
     )
   }

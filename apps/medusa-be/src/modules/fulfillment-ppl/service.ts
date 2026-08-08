@@ -6,14 +6,12 @@ import type {
   FulfillmentDTO,
   FulfillmentItemDTO,
   FulfillmentOption,
+  IFulfillmentProvider,
   FulfillmentOrderDTO,
   Logger,
   ValidateFulfillmentDataContext,
 } from "@medusajs/framework/types"
-import {
-  AbstractFulfillmentProviderService,
-  MedusaError,
-} from "@medusajs/framework/utils"
+import { MedusaError } from "@medusajs/framework/utils"
 
 import { PPL_CLIENT_MODULE } from "../ppl-client"
 import type { PplClientModuleService } from "../ppl-client"
@@ -99,16 +97,27 @@ const getPplFulfillmentData = (
  */
 export const PPL_PROVIDER_IDENTIFIER = "ppl"
 
-class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
-  static override readonly identifier = PPL_PROVIDER_IDENTIFIER
+/**
+ * The framework's abstract provider currently narrows document methods below
+ * the canonical `IFulfillmentProvider` contract. Implementing that contract
+ * directly keeps the real document results typed while the discovery marker
+ * preserves Medusa's runtime provider identification.
+ */
+class PplFulfillmentProviderService implements IFulfillmentProvider {
+  static readonly _isFulfillmentService = true
+  static readonly identifier = PPL_PROVIDER_IDENTIFIER
 
+  protected readonly identifier = PPL_PROVIDER_IDENTIFIER
   protected readonly logger: Logger
   protected readonly pplClient: PplClientModuleService
 
   constructor(container: InjectedDependencies, _options: PplOptions) {
-    super()
     this.logger = container.logger
     this.pplClient = container[PPL_CLIENT_MODULE]
+  }
+
+  getIdentifier(): string {
+    return this.identifier
   }
 
   private getClient(): PplClientModuleService {
@@ -119,7 +128,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Returns available PPL shipping options for admin UI
    * Returns empty array if PPL is disabled or not configured
    */
-  override async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
+  async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
     // Check if PPL is enabled and configured
     // Wrapped in try-catch to prevent admin UI crash if ppl-client unavailable
     try {
@@ -169,9 +178,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
   /**
    * Validates shipping option configuration
    */
-  override async validateOption(
-    data: Record<string, unknown>,
-  ): Promise<boolean> {
+  async validateOption(data: Record<string, unknown>): Promise<boolean> {
     await Promise.resolve(this)
     return isPplProductType(data["product_type"])
   }
@@ -180,7 +187,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Called during checkout when customer selects shipping method
    * Validates and stores access point selection from PPL Widget
    */
-  override async validateFulfillmentData(
+  async validateFulfillmentData(
     optionData: Record<string, unknown>,
     data: Record<string, unknown>,
     _context: ValidateFulfillmentDataContext,
@@ -243,7 +250,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     return validatedData
   }
 
-  override async createFulfillment(
+  async createFulfillment(
     data: Record<string, unknown>,
     _items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
     order: Partial<FulfillmentOrderDTO> | undefined,
@@ -415,7 +422,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    *
    * NOTE: Cancellation only works BEFORE physical pickup by PPL courier
    */
-  override async cancelFulfillment(
+  async cancelFulfillment(
     data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     const fulfillmentData = getPplFulfillmentData(data)
@@ -480,7 +487,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Called when creating a return fulfillment
    * NOTE: Return flow may differ - verify with PPL documentation
    */
-  override async createReturnFulfillment(
+  async createReturnFulfillment(
     _fulfillment: Record<string, unknown>,
   ): Promise<CreateFulfillmentResult> {
     await Promise.resolve(this)
@@ -494,9 +501,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Whether this provider can calculate shipping prices dynamically
    * Returns false to use flat rates configured in Medusa
    */
-  override async canCalculate(
-    _data: CreateShippingOptionDTO,
-  ): Promise<boolean> {
+  async canCalculate(_data: CreateShippingOptionDTO): Promise<boolean> {
     await Promise.resolve(this)
     return false
   }
@@ -504,7 +509,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
   /**
    * Calculate shipping price (not used when canCalculate returns false)
    */
-  override async calculatePrice(
+  async calculatePrice(
     _optionData: CalculateShippingOptionPriceDTO["optionData"],
     _data: CalculateShippingOptionPriceDTO["data"],
     _context: CalculateShippingOptionPriceDTO["context"],
@@ -520,8 +525,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Returns all documents for a fulfillment (labels, etc.)
    * Called by Medusa to get fulfillment documents
    */
-  // @ts-expect-error Base class returns never[] but we return actual documents
-  override async getFulfillmentDocuments(
+  async getFulfillmentDocuments(
     data: Record<string, unknown>,
   ): Promise<{ type: string; url: string; format?: string }[]> {
     await Promise.resolve(this)
@@ -549,8 +553,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
   /**
    * Retrieves a specific document type for a fulfillment
    */
-  // @ts-expect-error Base class returns void but we return document or null
-  override async retrieveDocuments(
+  async retrieveDocuments(
     fulfillmentData: Record<string, unknown>,
     documentType: string,
   ): Promise<{ type: string; url: string; format?: string } | null> {
@@ -578,9 +581,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Returns documents for a return fulfillment.
    * PPL return fulfillment is currently unsupported.
    */
-  override async getReturnDocuments(
-    _data: Record<string, unknown>,
-  ): Promise<never[]> {
+  async getReturnDocuments(_data: Record<string, unknown>): Promise<never[]> {
     await Promise.resolve(this)
     return []
   }
@@ -589,9 +590,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Returns shipment documents (commercial invoice, packing list, etc.).
    * PPL does not currently expose additional shipment documents here.
    */
-  override async getShipmentDocuments(
-    _data: Record<string, unknown>,
-  ): Promise<never[]> {
+  async getShipmentDocuments(_data: Record<string, unknown>): Promise<never[]> {
     await Promise.resolve(this)
     return []
   }

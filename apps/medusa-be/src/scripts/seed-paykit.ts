@@ -6,7 +6,11 @@ import type {
   Query,
   RegionDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { isRecord } from "@techsio/std/object"
 
 import { PAYKIT_REGION_PAYMENT_PROVIDER_IDS } from "../workflows/seed/paykit-payment-providers"
@@ -78,14 +82,16 @@ const getRegionPaymentProviderLinks = async (
 
   const rows: unknown = data
   if (!Array.isArray(rows)) {
-    throw new TypeError(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       "PayKit region payment provider query returned invalid data",
     )
   }
 
   return rows.map((row) => {
     if (!isRecord(row)) {
-      throw new TypeError(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         "PayKit region payment provider query returned invalid row",
       )
     }
@@ -93,7 +99,8 @@ const getRegionPaymentProviderLinks = async (
     const regionId = row["region_id"]
     const paymentProviderId = row["payment_provider_id"]
     if (typeof regionId !== "string" || typeof paymentProviderId !== "string") {
-      throw new TypeError(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         "PayKit region payment provider query returned invalid row",
       )
     }
@@ -114,7 +121,8 @@ const listRegionPages = async (
   skip: number,
 ): Promise<RegionDTO[]> => {
   if (skip >= MAX_REGION_COUNT) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `PayKit region seed exceeded the ${MAX_REGION_COUNT} region safety limit`,
     )
   }
@@ -169,7 +177,8 @@ const toRegionSeedInput = (
       : trimmedCurrency
 
   if (currencyCode === undefined || currencyCode === "") {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `PayKit seed cannot sync region "${region.name}" (${region.id}) because currency_code is missing`,
     )
   }

@@ -10,10 +10,7 @@ const config: StorybookConfig = {
     name: "storybook-react-rsbuild",
     options: {},
   },
-  stories: [
-    "../stories/**/*.mdx",
-    "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-  ],
+  stories: ["../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
   typescript: {
     check: false,
     reactDocgen: "react-docgen",

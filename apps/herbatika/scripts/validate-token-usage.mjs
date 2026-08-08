@@ -18,7 +18,7 @@ import defaultConfig from "./token-usage.config.mjs"
 /** @typedef {{ message: string, rule: string }} RuleFinding */
 /** @typedef {ClassEntry & RuleFinding & { file: string }} Finding */
 /** @typedef {{ normalized: string, prefix: string, value: string }} PrefixValue */
-/** @typedef {{ enabled: boolean, allowClassPatterns: RegExp[] }} ArbitraryValuesRule */
+/** @typedef {{ enabled: boolean, validClassPatterns: RegExp[] }} ArbitraryValuesRule */
 /** @typedef {{ enabled: boolean, colorUtilityPrefixes: string[], paletteNames: string[] }} PaletteRule */
 /** @typedef {{ enabled: boolean, allowedKeywords: string[], allowedNumericValues: string[], prefixes: string[] }} SpacingRule */
 /** @typedef {{ enabled: boolean, disallowedValues: string[], prefixes: string[] }} ContainerRule */
@@ -129,11 +129,11 @@ const parseConfig = (value) => {
     fileExtensions: parseStringArray(config.fileExtensions, "fileExtensions"),
     rules: {
       noArbitraryValues: {
-        allowClassPatterns: parseRegExpArray(
-          arbitraryRule.allowClassPatterns,
-          "rules.noArbitraryValues.allowClassPatterns",
-        ),
         enabled: parseEnabled(arbitraryRule, "rules.noArbitraryValues"),
+        validClassPatterns: parseRegExpArray(
+          arbitraryRule.validClassPatterns,
+          "rules.noArbitraryValues.validClassPatterns",
+        ),
       },
       noTailwindContainerScale: {
         disallowedValues: parseStringArray(
@@ -321,7 +321,7 @@ const checkNoArbitraryValues = (className, ruleConfig) => {
 
   const baseClass = stripVariants(className)
   if (
-    ruleConfig.allowClassPatterns.some(
+    ruleConfig.validClassPatterns.some(
       (pattern) => pattern.test(className) || pattern.test(baseClass),
     )
   ) {

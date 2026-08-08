@@ -60,7 +60,7 @@ export const DesktopSubmenu = () => {
 
         <Dialog
           behavior="modeless"
-          className="top-full grid grid-rows-[1fr] starting:grid-rows-[0fr] bg-white shadow-none transition-[opacity,transform] duration-500 ease-out"
+          className="top-full grid grid-rows-[1fr] starting:grid-rows-[0fr] bg-white shadow-none transition duration-500 ease-out"
           closeOnInteractOutside={true}
           customTrigger
           hideCloseButton

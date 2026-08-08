@@ -216,7 +216,10 @@ const decodeCreatePricePayload = (
     typeof minQuantity !== "number" ||
     typeof variantId !== "string"
   ) {
-    throw new TypeError("Invalid price create payload")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Invalid price create payload",
+    )
   }
   return {
     amount,
@@ -232,7 +235,10 @@ const decodeUpdatePricePayload = (
   const create = decodeCreatePricePayload(value)
   const id = getObjectValue(value, "id")
   if (typeof id !== "string") {
-    throw new TypeError("Invalid price update payload")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Invalid price update payload",
+    )
   }
   return { ...create, id }
 }
@@ -483,7 +489,10 @@ export class PriceListsClient {
     })
     const workflowResult: unknown = result
     if (!isObjectMap(workflowResult)) {
-      throw new Error("Price batch workflow returned an invalid result")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Price batch workflow returned an invalid result",
+      )
     }
     const rawCreated = getObjectValue(workflowResult, "created")
     const rawUpdated = getObjectValue(workflowResult, "updated")

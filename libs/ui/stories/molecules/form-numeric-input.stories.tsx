@@ -575,9 +575,9 @@ const ComplexDemoStory: NonNullable<Story["render"]> = () => {
         </FormNumericInput>
       </div>
 
-      <div className="bg-overlay rounded-md">
-        <h3 className="text-fg-primary font-semibold mb-100">Current State</h3>
-        <ul className="text-fg-secondary text-sm space-y-50">
+      <div className="rounded-md bg-overlay">
+        <h3 className="mb-100 font-semibold text-fg-primary">Current State</h3>
+        <ul className="space-y-50 text-sm text-fg-secondary">
           <li>
             Value: <strong>{value}</strong>
           </li>

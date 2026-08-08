@@ -126,7 +126,7 @@ const ControlledExample = () => {
   const [value, setValue] = useState("")
 
   return (
-    <div className="w-sm flex flex-col gap-4">
+    <div className="flex w-sm flex-col gap-4">
       <SearchForm value={value} onValueChange={setValue}>
         <SearchForm.Control>
           <SearchForm.Input placeholder="Controlled input..." />
@@ -227,7 +227,7 @@ const SubmitExample = () => {
   const [submitted, setSubmitted] = useState<string | null>(null)
 
   return (
-    <div className="w-sm flex flex-col gap-200">
+    <div className="flex w-sm flex-col gap-200">
       <SearchForm
         size="sm"
         onSubmit={() => {
@@ -257,7 +257,7 @@ const FormDataExample = () => {
   const [result, setResult] = useState<string | null>(null)
 
   return (
-    <div className="w-sm flex flex-col gap-200">
+    <div className="flex w-sm flex-col gap-200">
       <SearchForm
         size="sm"
         onSubmit={(e) => {

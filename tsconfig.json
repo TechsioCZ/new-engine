@@ -25,7 +25,13 @@
       "path": "./scripts/typescript/projects/apps/medusa-order-dashboard-plugin/tsconfig.json"
     },
     {
+      "path": "./scripts/typescript/projects/apps/medusa-order-dashboard-plugin/eslint/tsconfig.json"
+    },
+    {
       "path": "./scripts/typescript/projects/apps/medusa-symmy-plugin/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/medusa-symmy-plugin/eslint/tsconfig.json"
     },
     {
       "path": "./scripts/typescript/projects/apps/n1/tsconfig.json"

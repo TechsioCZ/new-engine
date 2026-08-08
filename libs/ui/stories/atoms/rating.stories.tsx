@@ -124,15 +124,15 @@ export const States: Story = {
   render: () => (
     <VariantContainer>
       <div>
-        <h3 className="mb-2 font-medium text-sm">Normal</h3>
+        <h3 className="mb-2 text-sm font-medium">Normal</h3>
         <Rating defaultValue={3} />
       </div>
       <div>
-        <h3 className="mb-2 font-medium text-sm">Read Only</h3>
+        <h3 className="mb-2 text-sm font-medium">Read Only</h3>
         <Rating defaultValue={3} readOnly />
       </div>
       <div>
-        <h3 className="mb-2 font-medium text-sm">Disabled</h3>
+        <h3 className="mb-2 text-sm font-medium">Disabled</h3>
         <Rating defaultValue={3} disabled />
       </div>
     </VariantContainer>

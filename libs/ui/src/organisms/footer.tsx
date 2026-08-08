@@ -34,13 +34,13 @@ const footerVariants = tv({
       "flex w-full items-center justify-between border-t-(length:--border-footer-width) bg-footer-bottom-bg pt-footer-bottom",
     container: "w-full max-w-footer-max bg-footer-container-bg",
     divider: "flex h-footer-divider w-full border-0 bg-footer-divider-bg",
-    link: "font-footer-link text-footer-link-fg transition-colors duration-200 motion-reduce:transition-none hover:text-footer-link-fg-hover",
+    link: "font-footer-link text-footer-link-fg transition-colors duration-200 hover:text-footer-link-fg-hover motion-reduce:transition-none",
     list: "flex list-none flex-col gap-footer-list bg-footer-list-bg",
     root: "flex w-full items-center justify-center rounded-footer bg-footer-bg",
     section: "bg-footer-section-bg",
     text: "text-footer-text-fg",
     title:
-      "font-footer-title text-footer-title-fg transition-colors duration-200 motion-reduce:transition-none hover:text-footer-title-fg-hover",
+      "font-footer-title text-footer-title-fg transition-colors duration-200 hover:text-footer-title-fg-hover motion-reduce:transition-none",
   },
   variants: {
     direction: {

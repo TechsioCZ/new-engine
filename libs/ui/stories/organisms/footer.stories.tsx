@@ -68,7 +68,7 @@ export const Default: Story = {
 export const Sizes: Story = {
   render: () => (
     <div className="flex flex-col gap-400">
-      <div className="border-border-primary border-t">
+      <div className="border-t border-border-primary">
         <Footer size="sm">
           <Footer.Container>
             <Footer.Section>
@@ -103,7 +103,7 @@ export const Sizes: Story = {
         </Footer>
       </div>
 
-      <div className="border-border-primary border-t">
+      <div className="border-t border-border-primary">
         <Footer size="md">
           <Footer.Container>
             <Footer.Section>
@@ -138,7 +138,7 @@ export const Sizes: Story = {
         </Footer>
       </div>
 
-      <div className="border-border-primary border-t">
+      <div className="border-t border-border-primary">
         <Footer size="lg">
           <Footer.Container>
             <Footer.Section>
@@ -179,7 +179,7 @@ export const Sizes: Story = {
 export const Layouts: Story = {
   render: () => (
     <div className="flex flex-col gap-400">
-      <div className="border-border-primary border-t">
+      <div className="border-t border-border-primary">
         <Footer>
           <Footer.Container>
             <Footer.Section>
@@ -192,7 +192,7 @@ export const Layouts: Story = {
         </Footer>
       </div>
 
-      <div className="border-border-primary border-t">
+      <div className="border-t border-border-primary">
         <Footer>
           <Footer.Container>
             <div className="grid grid-cols-1 gap-300 md:grid-cols-3">
@@ -223,7 +223,7 @@ export const Layouts: Story = {
         </Footer>
       </div>
 
-      <div className="border-border-primary border-t">
+      <div className="border-t border-border-primary">
         <Footer>
           <Footer.Container>
             <div className="flex flex-col gap-300">
@@ -257,7 +257,7 @@ export const Layouts: Story = {
                 </Footer.Section>
               </div>
 
-              <div className="border-border-primary border-t pt-300">
+              <div className="border-t border-border-primary pt-300">
                 <Footer.Text>
                   © 2024 Company Inc. All rights reserved.
                 </Footer.Text>
@@ -370,7 +370,7 @@ export const N1ShopFooter: Story = {
 export const TailwindVarianta1: Story = {
   render: () => (
     <Footer className="p-0" direction="vertical">
-      <Footer.Container className="max-w-full grid-cols-1 px-300 py-800 md:grid-cols-[300px_1fr_1fr_1fr_1fr]">
+      <Footer.Container className="max-w-full grid-cols-1 px-300 py-800 md:grid-cols-footer-brand">
         {/* Brand Section */}
         <Footer.Section className="md:col-span-1">
           <Image
@@ -466,7 +466,7 @@ export const TailwindVarianta1: Story = {
         </Footer.Section>
       </Footer.Container>
 
-      <Footer.Divider className="py-0 my-0" />
+      <Footer.Divider className="my-0 py-0" />
 
       <Footer.Bottom className="py-300">
         <Footer.Text>
@@ -481,7 +481,7 @@ export const TailwindVarianta1: Story = {
 export const TailwindVarianta2: Story = {
   render: () => (
     <Footer className="p-0" direction="vertical">
-      <Footer.Container className="max-w-full grid-cols-1 px-300 py-800 md:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+      <Footer.Container className="max-w-full grid-cols-1 px-300 py-800 md:grid-cols-footer-newsletter">
         {/* Solutions Section */}
         <Footer.Section>
           <Footer.Title>Solutions</Footer.Title>
@@ -544,7 +544,7 @@ export const TailwindVarianta2: Story = {
         </Footer.Section>
       </Footer.Container>
 
-      <Footer.Divider className="py-0 my-0" />
+      <Footer.Divider className="my-0 py-0" />
 
       <Footer.Bottom>
         <Footer.Text>

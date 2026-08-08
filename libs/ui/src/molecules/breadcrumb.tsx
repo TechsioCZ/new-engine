@@ -52,7 +52,7 @@ const breadcrumbVariants = tv({
       "no-underline",
       "cursor-pointer",
       "hover:text-breadcrumb-item-hover",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-breadcrumb-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",

@@ -46,7 +46,7 @@ const numericInputVariants = tv({
   },
   slots: {
     container: [
-      "group form-control-base relative flex",
+      "group relative flex form-control-base",
       "border-numeric-input-border",
       "items-center overflow-hidden",
       "hover:border-numeric-input-border-hover",
@@ -60,7 +60,7 @@ const numericInputVariants = tv({
       "text-numeric-input-fg",
       "has-[input:not(:disabled):hover]:bg-numeric-input-input-bg-hover",
       "has-[input:focus]:bg-numeric-input-input-bg-focus",
-      "focus-within:outline-(style:--default-ring-style) focus-within:outline-(length:--default-ring-width)",
+      "focus-within:outline-(length:--default-ring-width) focus-within:outline-(style:--default-ring-style)",
       "focus-within:outline-numeric-input-ring",
       "focus-within:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -93,7 +93,7 @@ const numericInputVariants = tv({
     // shows the field behind it as a hairline between the two arrows.
     triggerContainer: [
       "flex flex-col gap-px self-stretch",
-      "border-numeric-input-border border-s",
+      "border-s border-numeric-input-border",
     ],
   },
   variants: {

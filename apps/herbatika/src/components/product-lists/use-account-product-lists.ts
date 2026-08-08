@@ -1,572 +1,92 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useState } from "react"
-import type { SubmitEvent } from "react"
 
-import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
-import {
-  getProductListItems,
-  isFavoriteProductList,
-  useCreateCustomProductList,
-  useCreateProductListCart,
-  useDeleteProductList,
-  useDeleteProductListItem,
-  useProductList,
-  useProductLists,
-  useUpdateProductListItem,
-} from "@/lib/storefront/product-lists"
-import type {
-  StoreProductList,
-  StoreProductListItem,
-} from "@/lib/storefront/product-lists"
-import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
-import {
-  resolveAddProductToCartErrorMessage,
-  useAddProductToCart,
-} from "@/lib/storefront/use-add-product-to-cart"
 
-import {
-  buildProductMap,
-  resolveProductListAvailabilitySummary,
-  resolveProductListItemQuantity,
-  resolveProductListPriceSummary,
-  sortProductLists,
-  uniqueProductIds,
-} from "./account-product-lists.utils"
-
-const MISSING_VARIANT_ERROR_PATTERN = /has no variant selected|no variant/iu
-
-interface ListCartErrorMessages {
-  addListFailed: string
-  allAvailableFailed: string
-  missingVariant: string
-  partiallyAvailableFailed: string
-}
-
-const resolveListCartErrorMessage = (
-  error: unknown,
-  messages: ListCartErrorMessages,
-) => {
-  const errorMessage = resolveErrorMessage(error, messages.addListFailed)
-
-  if (MISSING_VARIANT_ERROR_PATTERN.test(errorMessage)) {
-    return messages.missingVariant
-  }
-
-  return errorMessage
-}
-
-const showPartialListCartResult = ({
-  failedCount,
-  messages,
-  toast,
-  totalCount,
-}: {
-  failedCount: number
-  messages: ListCartErrorMessages
-  toast: ReturnType<typeof useAppToast>
-  totalCount: number
-}) => {
-  if (failedCount === 0) {
-    return
-  }
-
-  if (failedCount === totalCount) {
-    toast.error({
-      title: messages.allAvailableFailed,
-    })
-    return
-  }
-
-  toast.warning({
-    title: messages.partiallyAvailableFailed,
-  })
-}
-
-const resolveActiveListId = (
-  sortedLists: StoreProductList[],
-  requestedListId: string | null,
-  selectedListId: string | null,
-) => {
-  if (sortedLists.some((list) => list.id === requestedListId)) {
-    return requestedListId
-  }
-  if (sortedLists.some((list) => list.id === selectedListId)) {
-    return selectedListId
-  }
-  const [firstList] = sortedLists
-  return firstList?.id ?? null
-}
-
-const hasRegionSelection = (
-  regionId: string | undefined,
-  countryCode: string | undefined,
-) =>
-  (regionId !== undefined && regionId !== "") ||
-  (countryCode !== undefined && countryCode !== "")
-
-const resolveRegionMutationOptions = (
-  regionId: string | undefined,
-  countryCode: string | undefined,
-) => ({
-  ...(regionId === undefined ? {} : { regionId }),
-  ...(countryCode === undefined ? {} : { countryCode }),
-})
-
-const resolveActiveList = (
-  sortedLists: StoreProductList[],
-  queriedList: StoreProductList | null,
-  activeListId: string | null,
-) => queriedList ?? sortedLists.find((list) => list.id === activeListId) ?? null
-
-const resolveDeleteList = (
-  sortedLists: StoreProductList[],
-  deleteListId: string | null,
-) =>
-  sortedLists.find(
-    (list) => list.id === deleteListId && !isFavoriteProductList(list),
-  ) ?? null
-
-const shouldLoadProductListProducts = (
-  regionId: string | undefined,
-  activeListId: string | null,
-  productCount: number,
-) => {
-  const hasRegionId = regionId !== undefined && regionId !== ""
-  const hasActiveListId = activeListId !== null && activeListId !== ""
-  return hasRegionId && hasActiveListId && productCount > 0
-}
+import { useAccountProductListCart } from "./use-account-product-list-cart"
+import { useAccountProductListData } from "./use-account-product-list-data"
+import { useAccountProductListDialogs } from "./use-account-product-list-dialogs"
+import { useAccountProductListItems } from "./use-account-product-list-items"
 
 export const useAccountProductLists = () => {
   const tAuth = useTranslations("auth")
-  const tCart = useTranslations("cart")
   const authQuery = useAuth()
   const region = useRegionContext()
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const toast = useAppToast()
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
-  const [showCreateListDialog, setShowCreateListDialog] = useState(false)
-  const [newListTitle, setNewListTitle] = useState("")
-  const [activeProductId, setActiveProductId] = useState<string | null>(null)
-  const [isAddingListToCart, setIsAddingListToCart] = useState(false)
-  const [activeQuantitySetItemId, setActiveQuantitySetItemId] = useState<
-    string | null
-  >(null)
-  const [activeDeleteItemId, setActiveDeleteItemId] = useState<string | null>(
-    null,
-  )
-  const [deleteListId, setDeleteListId] = useState<string | null>(null)
-
   const customerId = authQuery.customer?.id ?? null
   const regionId = region?.region_id
   const countryCode = region?.country_code
-  const listsQuery = useProductLists({
+
+  const data = useAccountProductListData({
+    currencyCode: resolveRegionCurrency(region),
     customerId,
-    enabled: authQuery.isAuthenticated,
-    limit: 100,
-  })
-  const sortedLists = sortProductLists(listsQuery.productLists, {
-    favorite: tAuth("product_lists.favorite_title"),
-    untitled: tAuth("product_lists.untitled_list"),
-  })
-  const requestedListId = searchParams.get("list")
-  const activeListId = resolveActiveListId(
-    sortedLists,
-    requestedListId,
-    selectedListId,
-  )
-  const activeListQuery = useProductList(activeListId, {
-    customerId,
-    enabled:
-      authQuery.isAuthenticated && activeListId !== null && activeListId !== "",
-  })
-  const activeList = resolveActiveList(
-    sortedLists,
-    activeListQuery.productList,
-    activeListId,
-  )
-  const activeListSupportsQuantity = activeList !== null
-  const deleteList = resolveDeleteList(sortedLists, deleteListId)
-  const activeItems = getProductListItems(activeList)
-  const productIds = uniqueProductIds(activeItems)
-  const shouldLoadProducts = shouldLoadProductListProducts(
+    isAuthenticated: authQuery.isAuthenticated,
+    labels: {
+      favorite: tAuth("product_lists.favorite_title"),
+      untitled: tAuth("product_lists.untitled_list"),
+    },
     regionId,
-    activeListId,
-    productIds.length,
-  )
-  const productIdsFilter = productIds.length === 0 ? undefined : productIds
-  const productsQuery = useProducts({
-    enabled: shouldLoadProducts,
-    fields: PRODUCT_CARD_FIELDS,
-    ...(productIdsFilter === undefined ? {} : { id: productIdsFilter }),
-    limit: Math.max(productIds.length, 1),
-    page: 1,
+    requestedListId: searchParams.get("list"),
+    selectedListId,
   })
-  const productsById = buildProductMap(activeItems, productsQuery.products)
-  const activeProductsAreLoading =
-    productsQuery.isLoading &&
-    productIds.some((productId) => !productsById.has(productId))
-  const regionCurrencyCode = resolveRegionCurrency(region)
-  const activeListPriceSummary = resolveProductListPriceSummary({
-    currencyCode: regionCurrencyCode,
-    items: activeItems,
-    productsById,
+  const dialogs = useAccountProductListDialogs({
+    activeListId: data.activeListId,
+    setSelectedListId,
+    sortedLists: data.sortedLists,
   })
-  const activeListAvailabilitySummary = resolveProductListAvailabilitySummary({
-    items: activeItems,
-    productsById,
+  const cart = useAccountProductListCart({
+    activeList: data.activeList,
+    availabilitySummary: data.activeListAvailabilitySummary,
+    countryCode,
+    customerEmail: authQuery.customer?.email,
+    regionId,
   })
-  const createListMutation = useCreateCustomProductList()
-  const createListCartMutation = useCreateProductListCart()
-  const deleteListMutation = useDeleteProductList()
-  const updateItemMutation = useUpdateProductListItem()
-  const deleteItemMutation = useDeleteProductListItem()
-  const addToCart = useAddProductToCart(
-    resolveRegionMutationOptions(regionId, countryCode),
-  )
-  const regionIsSelected = hasRegionSelection(regionId, countryCode)
-  const activeListCanCreateCart =
-    activeList?.id !== undefined &&
-    activeList.id !== "" &&
-    activeListAvailabilitySummary.canAddAnyToCart &&
-    regionIsSelected
-
-  const selectList = (listId: string) => {
-    setSelectedListId(listId)
-    router.replace(`/account/lists?list=${encodeURIComponent(listId)}`, {
-      scroll: false,
-    })
-  }
-
-  const openCreateListDialog = () => {
-    setShowCreateListDialog(true)
-  }
-
-  const closeCreateListDialog = () => {
-    setShowCreateListDialog(false)
-    setNewListTitle("")
-  }
-
-  const openDeleteListDialog = (listId: string) => {
-    const list = sortedLists.find((candidate) => candidate.id === listId)
-    if (list === undefined || isFavoriteProductList(list)) {
-      return
-    }
-
-    setDeleteListId(listId)
-  }
-
-  const closeDeleteListDialog = () => {
-    setDeleteListId(null)
-  }
-
-  const handleCreateList = async (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    const title = newListTitle.trim()
-    if (title === "") {
-      toast.warning({
-        title: tAuth("product_lists.validation.title_required"),
-      })
-      return
-    }
-
-    try {
-      const createdList = await createListMutation.mutateAsync({
-        access_type: "private",
-        title,
-      })
-
-      if (createdList?.id !== undefined && createdList.id !== "") {
-        selectList(createdList.id)
-      }
-
-      setNewListTitle("")
-      setShowCreateListDialog(false)
-    } catch (error) {
-      toast.error({
-        title: resolveErrorMessage(
-          error,
-          tAuth("product_lists.errors.create_failed"),
-        ),
-      })
-    }
-  }
-
-  const handleAddToCart = async (
-    item: StoreProductListItem,
-    product: HttpTypes.StoreProduct,
-  ) => {
-    const quantity =
-      typeof item.quantity === "number" && item.quantity > 0
-        ? Math.floor(item.quantity)
-        : 1
-
-    setActiveProductId(product.id)
-
-    try {
-      await addToCart.addProductToCart({
-        product,
-        quantity,
-        ...(item.variant_id === undefined
-          ? {}
-          : { variantId: item.variant_id }),
-      })
-    } catch (error) {
-      toast.error({
-        title: resolveAddProductToCartErrorMessage(error, tCart("failed")),
-      })
-    } finally {
-      setActiveProductId(null)
-    }
-  }
-
-  const addPurchasableItemsToCart = async () => {
-    const { purchasableItems } = activeListAvailabilitySummary
-    const addResults = await Promise.all(
-      purchasableItems.map(async ({ item, product }) => {
-        try {
-          await addToCart.addProductToCart({
-            product,
-            quantity: resolveProductListItemQuantity(item),
-            ...(item.variant_id === undefined
-              ? {}
-              : { variantId: item.variant_id }),
-          })
-          return true
-        } catch {
-          return false
-        }
-      }),
-    )
-
-    return {
-      failedCount: addResults.filter((wasAdded) => !wasAdded).length,
-      totalCount: purchasableItems.length,
-    }
-  }
-
-  const handleAddListToCart = async () => {
-    if (
-      activeList?.id === undefined ||
-      activeList.id === "" ||
-      !activeListAvailabilitySummary.canAddAnyToCart
-    ) {
-      return
-    }
-
-    if (!regionIsSelected) {
-      toast.warning({
-        title: tCart("missing_region"),
-      })
-      return
-    }
-
-    setIsAddingListToCart(true)
-
-    try {
-      if (activeListAvailabilitySummary.canAddWholeList) {
-        await createListCartMutation.mutateAsync({
-          listId: activeList.id,
-          ...(regionId === undefined ? {} : { regionId }),
-          ...(countryCode === undefined ? {} : { countryCode }),
-          ...(authQuery.customer?.email === undefined
-            ? {}
-            : { email: authQuery.customer?.email }),
-        })
-        return
-      }
-
-      const addResult = await addPurchasableItemsToCart()
-
-      showPartialListCartResult({
-        failedCount: addResult.failedCount,
-        messages: {
-          addListFailed: tAuth("product_lists.errors.add_list_to_cart_failed"),
-          allAvailableFailed: tAuth(
-            "product_lists.errors.add_available_all_failed",
-          ),
-          missingVariant: tAuth("product_lists.errors.missing_variant"),
-          partiallyAvailableFailed: tAuth(
-            "product_lists.errors.add_available_partial_failed",
-          ),
-        },
-        toast,
-        totalCount: addResult.totalCount,
-      })
-    } catch (error) {
-      toast.error({
-        title: resolveListCartErrorMessage(error, {
-          addListFailed: tAuth("product_lists.errors.add_list_to_cart_failed"),
-          allAvailableFailed: tAuth(
-            "product_lists.errors.add_available_all_failed",
-          ),
-          missingVariant: tAuth("product_lists.errors.missing_variant"),
-          partiallyAvailableFailed: tAuth(
-            "product_lists.errors.add_available_partial_failed",
-          ),
-        }),
-      })
-    } finally {
-      setActiveProductId(null)
-      setIsAddingListToCart(false)
-    }
-  }
-
-  const handleQuantitySet = async (
-    item: StoreProductListItem,
-    quantity: number,
-  ) => {
-    if (
-      item.id === undefined ||
-      item.id === "" ||
-      !activeListSupportsQuantity
-    ) {
-      return
-    }
-
-    const nextQuantity = Math.floor(quantity)
-    const currentQuantity =
-      typeof item.quantity === "number" && item.quantity > 0
-        ? Math.floor(item.quantity)
-        : 1
-
-    if (!Number.isFinite(nextQuantity) || nextQuantity < 1) {
-      return
-    }
-
-    if (nextQuantity === currentQuantity) {
-      return
-    }
-
-    setActiveQuantitySetItemId(item.id)
-
-    try {
-      await updateItemMutation.mutateAsync({
-        itemId: item.id,
-        quantity: nextQuantity,
-      })
-    } catch (error) {
-      toast.error({
-        title: resolveErrorMessage(
-          error,
-          tAuth("product_lists.errors.quantity_update_failed"),
-        ),
-      })
-    } finally {
-      setActiveQuantitySetItemId(null)
-    }
-  }
-
-  const handleDeleteList = async () => {
-    if (deleteList?.id === undefined || deleteList.id === "") {
-      return
-    }
-
-    const deletedListId = deleteList.id
-    const deletedListIndex = sortedLists.findIndex(
-      (list) => list.id === deletedListId,
-    )
-    const nextList =
-      sortedLists[deletedListIndex - 1] ??
-      sortedLists.find((list) => list.id !== deletedListId) ??
-      null
-
-    try {
-      await deleteListMutation.mutateAsync({ listId: deletedListId })
-
-      if (activeListId === deletedListId) {
-        if (nextList?.id !== undefined && nextList.id !== "") {
-          selectList(nextList.id)
-        } else {
-          setSelectedListId(null)
-          router.replace("/account/lists", { scroll: false })
-        }
-      }
-
-      setDeleteListId(null)
-    } catch (error) {
-      toast.error({
-        title: resolveErrorMessage(
-          error,
-          tAuth("product_lists.errors.delete_list_failed"),
-        ),
-      })
-    }
-  }
-
-  const handleDeleteItem = async (item: StoreProductListItem) => {
-    if (
-      activeList?.id === undefined ||
-      activeList.id === "" ||
-      item.id === undefined ||
-      item.id === ""
-    ) {
-      return
-    }
-
-    setActiveDeleteItemId(item.id)
-
-    try {
-      await deleteItemMutation.mutateAsync({
-        itemId: item.id,
-        listId: activeList.id,
-      })
-    } catch (error) {
-      toast.error({
-        title: resolveErrorMessage(
-          error,
-          tAuth("product_lists.errors.remove_product_failed"),
-        ),
-      })
-    } finally {
-      setActiveDeleteItemId(null)
-    }
-  }
+  const items = useAccountProductListItems({
+    activeList: data.activeList,
+    supportsQuantity: data.activeListSupportsQuantity,
+  })
 
   return {
-    activeDeleteItemId,
-    activeItems,
-    activeList,
-    activeListAvailabilitySummary,
-    activeListCanCreateCart,
-    activeListId,
-    activeListPriceSummary,
-    activeListQuery,
-    activeListSupportsQuantity,
-    activeProductId,
-    activeProductsAreLoading,
-    activeQuantitySetItemId,
-    closeCreateListDialog,
-    closeDeleteListDialog,
-    createListCartMutation,
-    createListMutation,
-    deleteList,
-    deleteListMutation,
-    handleAddListToCart,
-    handleAddToCart,
-    handleCreateList,
-    handleDeleteItem,
-    handleDeleteList,
-    handleQuantitySet,
-    isAddingListToCart,
-    listsQuery,
-    newListTitle,
-    openCreateListDialog,
-    openDeleteListDialog,
-    productsById,
-    selectList,
-    setNewListTitle,
-    showCreateListDialog,
-    sortedLists,
+    activeDeleteItemId: items.activeDeleteItemId,
+    activeItems: data.activeItems,
+    activeList: data.activeList,
+    activeListAvailabilitySummary: data.activeListAvailabilitySummary,
+    activeListCanCreateCart: cart.activeListCanCreateCart,
+    activeListId: data.activeListId,
+    activeListPriceSummary: data.activeListPriceSummary,
+    activeListQuery: data.activeListQuery,
+    activeListSupportsQuantity: data.activeListSupportsQuantity,
+    activeProductId: cart.activeProductId,
+    activeProductsAreLoading: data.activeProductsAreLoading,
+    activeQuantitySetItemId: items.activeQuantitySetItemId,
+    closeCreateListDialog: dialogs.closeCreateListDialog,
+    closeDeleteListDialog: dialogs.closeDeleteListDialog,
+    createListCartMutation: cart.createListCartMutation,
+    createListMutation: dialogs.createListMutation,
+    deleteList: dialogs.deleteList,
+    deleteListMutation: dialogs.deleteListMutation,
+    handleAddListToCart: cart.handleAddListToCart,
+    handleAddToCart: cart.handleAddToCart,
+    handleCreateList: dialogs.handleCreateList,
+    handleDeleteItem: items.handleDeleteItem,
+    handleDeleteList: dialogs.handleDeleteList,
+    handleQuantitySet: items.handleQuantitySet,
+    isAddingListToCart: cart.isAddingListToCart,
+    listsQuery: data.listsQuery,
+    newListTitle: dialogs.newListTitle,
+    openCreateListDialog: dialogs.openCreateListDialog,
+    openDeleteListDialog: dialogs.openDeleteListDialog,
+    productsById: data.productsById,
+    selectList: dialogs.selectList,
+    setNewListTitle: dialogs.setNewListTitle,
+    showCreateListDialog: dialogs.showCreateListDialog,
+    sortedLists: data.sortedLists,
   }
 }
 
