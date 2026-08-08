@@ -47,6 +47,11 @@ const escapeXml = (value: string): string =>
 const xmlDocument = (body: string): string =>
   `<?xml version="1.0" encoding="UTF-8"?>\n${body}\n`
 
+const urlsetDocument = (body: string): string =>
+  xmlDocument(
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>`
+  )
+
 export function parseSitemapShard(value: string): SitemapShard | null {
   const match = SITEMAP_SHARD_PATTERN.exec(value)
   if (!match) {
@@ -147,8 +152,8 @@ export async function buildSitemapShardXml(
     if (shard.page !== 1) {
       return null
     }
-    return xmlDocument(
-      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${escapeXml(getMarketOrigin(market))}</loc></url>\n</urlset>`
+    return urlsetDocument(
+      `  <url><loc>${escapeXml(getMarketOrigin(market))}</loc></url>`
     )
   }
 
@@ -161,9 +166,7 @@ export async function buildSitemapShardXml(
       (kind) =>
         `  <url><loc>${escapeXml(`${origin}${buildIndexUrl({ market, kind })}`)}</loc></url>`
     ).join("\n")
-    return xmlDocument(
-      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>`
-    )
+    return urlsetDocument(entries)
   }
 
   const start = (shard.page - 1) * SITEMAP_SHARD_SIZE
@@ -184,7 +187,5 @@ export async function buildSitemapShardXml(
     )
     .join("\n")
 
-  return xmlDocument(
-    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>`
-  )
+  return urlsetDocument(entries)
 }
