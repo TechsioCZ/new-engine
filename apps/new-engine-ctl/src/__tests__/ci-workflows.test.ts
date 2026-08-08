@@ -24,6 +24,37 @@ const execFileAsync = promisify(
   },
 )
 
+const execFileWithEnvAsync = promisify(
+  (
+    file: string,
+    args: readonly string[],
+    env: NodeJS.ProcessEnv,
+    settle: (
+      error: ExecFileException | null,
+      stdout: string,
+      stderr: string,
+    ) => void,
+  ) => {
+    execFile(file, args, { env }, settle)
+  },
+)
+
+const runQualityGate = async (
+  script: string,
+  resultEnvironment: Record<string, string>,
+) => {
+  await execFileWithEnvAsync("/bin/bash", ["-c", script], {
+    ...process.env,
+    ...resultEnvironment,
+    GITHUB_STEP_SUMMARY: "/dev/null",
+  })
+}
+
+const findNamedStep = (steps: readonly unknown[], name: string) =>
+  steps.find((step) => isRecord(step) && step["name"] === name)
+
+const githubExpression = (expression: string) => `\${{ ${expression} }}`
+
 const workflowPaths = [
   ".github/workflows/zaneops-main-after-ci.yml",
   ".github/workflows/zaneops-preview-after-ci.yml",
@@ -39,6 +70,24 @@ const previewBaselineCompleteFlagPattern =
   /--preview-baseline-complete "\$PREVIEW_BASELINE_COMPLETE"/u
 const node24Pattern = /node-version: 24/u
 const ciCtlTestPattern = /nubx --node nx run new-engine-ctl:test/u
+const blockingJobIds = [
+  "format-and-lint",
+  "architecture-and-hygiene",
+  "typecheck",
+  "design-tokens",
+  "tests",
+  "builds",
+]
+const blockingResultEnvironment = {
+  ARCHITECTURE_AND_HYGIENE: githubExpression(
+    "needs.architecture-and-hygiene.result",
+  ),
+  BUILDS: githubExpression("needs.builds.result"),
+  DESIGN_TOKENS: githubExpression("needs.design-tokens.result"),
+  FORMAT_AND_LINT: githubExpression("needs.format-and-lint.result"),
+  TESTS: githubExpression("needs.tests.result"),
+  TYPECHECK: githubExpression("needs.typecheck.result"),
+}
 const immutableBaseA11yBaselinePattern =
   /git show "\$\{BASE_SHA\}:libs\/ui\/a11y-baseline\.json" > "\$BASELINE_PATH"/u
 const baseA11yRegressionPattern =
@@ -187,6 +236,104 @@ describe("CI workflow contracts", () => {
 
     expect(raw).toMatch(node24Pattern)
     expect(raw).toMatch(ciCtlTestPattern)
+  })
+
+  test("main CI pins the documented blocking quality-gate contract", async () => {
+    const raw = await readFile(
+      path.join(repoRoot, ".github/workflows/ci.yml"),
+      "utf-8",
+    )
+    const workflow: unknown = parseYaml(raw)
+
+    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
+      throw new TypeError("CI workflow must define a jobs mapping")
+    }
+
+    const qualityGate = workflow["jobs"]["quality-gate"]
+    if (!isRecord(qualityGate)) {
+      throw new TypeError("CI workflow must define the quality-gate job")
+    }
+    const qualityGateSteps: unknown = qualityGate["steps"]
+    if (!Array.isArray(qualityGateSteps)) {
+      throw new TypeError("quality-gate must define its steps")
+    }
+
+    expect(qualityGate["if"]).toBe("always()")
+    expect(qualityGate["needs"]).toStrictEqual(blockingJobIds)
+
+    const reductionStep = findNamedStep(
+      qualityGateSteps,
+      "Require every blocking lane to pass",
+    )
+    if (!isRecord(reductionStep)) {
+      throw new TypeError(
+        "quality-gate must define its blocking reduction step",
+      )
+    }
+
+    expect(reductionStep["env"]).toStrictEqual(blockingResultEnvironment)
+    const qualityGateScript = reductionStep["run"]
+    if (typeof qualityGateScript !== "string") {
+      throw new TypeError("quality-gate reduction step must define a script")
+    }
+
+    const successfulResults = Object.fromEntries(
+      Object.keys(blockingResultEnvironment).map((name) => [name, "success"]),
+    )
+    await expect(
+      runQualityGate(qualityGateScript, successfulResults),
+    ).resolves.toBeUndefined()
+
+    const rejectedResults = [
+      ...Object.keys(blockingResultEnvironment).map((name) => ({
+        ...successfulResults,
+        [name]: "failure",
+      })),
+      ...["cancelled", "skipped"].map((result) => ({
+        ...successfulResults,
+        FORMAT_AND_LINT: result,
+      })),
+    ]
+    await Promise.all(
+      rejectedResults.map(async (results) => {
+        await expect(
+          runQualityGate(qualityGateScript, results),
+        ).rejects.toMatchObject({ code: 1 })
+      }),
+    )
+  })
+
+  test("main CI runs the exact production Knip command", async () => {
+    const raw = await readFile(
+      path.join(repoRoot, ".github/workflows/ci.yml"),
+      "utf-8",
+    )
+    const workflow: unknown = parseYaml(raw)
+
+    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
+      throw new TypeError("CI workflow must define a jobs mapping")
+    }
+
+    const architectureJob = workflow["jobs"]["architecture-and-hygiene"]
+    if (!isRecord(architectureJob)) {
+      throw new TypeError(
+        "CI workflow must define the architecture-and-hygiene job",
+      )
+    }
+    const architectureSteps: unknown = architectureJob["steps"]
+    if (!Array.isArray(architectureSteps)) {
+      throw new TypeError("architecture-and-hygiene must define its steps")
+    }
+
+    const knipStep = findNamedStep(
+      architectureSteps,
+      "Find unused files, exports, and dependencies",
+    )
+    if (!isRecord(knipStep)) {
+      throw new TypeError("architecture-and-hygiene must define the Knip step")
+    }
+
+    expect(knipStep["run"]).toBe("pnpm knip:prod")
   })
 
   test("Storybook accessibility CI uses the immutable base SHA and baseline path", async () => {

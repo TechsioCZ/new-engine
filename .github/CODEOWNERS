@@ -24,6 +24,9 @@
 /dangerfile.ts @RedEyeCZ
 /scripts/ @RedEyeCZ
 /tooling/ @RedEyeCZ
+/patches/ @RedEyeCZ
+/rules/ @RedEyeCZ @KaiUweCZE
+/rule-tests/ @RedEyeCZ @KaiUweCZE
 /docker/ @RedEyeCZ
 /docker-compose*.y*ml @RedEyeCZ
 /apps/medusa-be/ @RedEyeCZ
@@ -39,6 +42,7 @@
 /apps/payload/ @KaiUweCZE
 /libs/analytics/ @KaiUweCZE
 /libs/storefront-data/ @KaiUweCZE
+/libs/storefront-i18n/ @KaiUweCZE
 /libs/storefront-security/ @KaiUweCZE
 /libs/ui/ @KaiUweCZE
 

@@ -103,7 +103,7 @@ jobs:
       - name: Enforce structural rules
         run: pnpm ast-grep
       - name: Find unused files, exports, and dependencies
-        run: pnpm knip
+        run: pnpm knip:prod
       - name: Reject duplicated source blocks above one percent
         run: pnpm jscpd
 
