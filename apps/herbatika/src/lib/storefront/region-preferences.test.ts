@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { persistRegionCookies } from "./region-cookie-persistence"
 import {
   getStoredRegionPreference,
   normalizeCountryCode,
   normalizeRegionId,
-  persistRegionCookies,
   persistRegionPreference,
   REGION_COUNTRY_CODE_STORAGE_KEY,
   REGION_STORAGE_KEY,

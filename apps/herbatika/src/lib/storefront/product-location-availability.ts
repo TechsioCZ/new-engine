@@ -16,7 +16,7 @@ export interface ProductLocationAvailabilityQueryState {
   error: string | null
 }
 
-export const resolveSelectedVariantLocationAvailability = (
+const resolveSelectedVariantLocationAvailability = (
   availability: ProductLocationAvailabilityResponse | null,
   variantId: string | null,
 ) => {

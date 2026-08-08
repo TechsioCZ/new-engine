@@ -17,6 +17,7 @@ import {
   asString,
   readRecordProperty,
 } from "@/components/product-detail/utils/value-utils"
+import { addBusinessDays } from "@/lib/date"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 
 const SECTION_KEY_WHITESPACE_PATTERN = /\s+/gu
@@ -39,21 +40,6 @@ const normalizeSectionKey = (value: unknown): string | null => {
 
 const hasRenderableSectionHtml = (html: string): boolean =>
   hasRenderableHtmlContent(html)
-
-const addBusinessDays = (start: Date, daysToAdd: number) => {
-  const date = new Date(start)
-  let remainingDays = daysToAdd
-
-  while (remainingDays > 0) {
-    date.setDate(date.getDate() + 1)
-    const dayOfWeek = date.getDay()
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      remainingDays -= 1
-    }
-  }
-
-  return date
-}
 
 export const normalizeCategoryName = (
   value?: string | null,

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest"
 import {
   formatLocationAvailability,
   resolveProductLocationAvailabilityState,
-  resolveSelectedVariantLocationAvailability,
 } from "./product-location-availability"
 
 const variantOneLocations = [
@@ -28,6 +27,19 @@ const availability = {
   ],
 }
 
+const resolveItems = (
+  productLocationAvailability: typeof availability | null,
+  variantId: string | null,
+) =>
+  resolveProductLocationAvailabilityState(
+    {
+      error: null,
+      isLoading: false,
+      productLocationAvailability,
+    },
+    variantId,
+  ).items
+
 describe(formatLocationAvailability, () => {
   it.each([
     [Number.NaN, "0 ks"],
@@ -48,36 +60,26 @@ describe(formatLocationAvailability, () => {
   })
 })
 
-describe(resolveSelectedVariantLocationAvailability, () => {
+describe(resolveProductLocationAvailabilityState, () => {
   it("returns the selected variant locations", () => {
-    expect(
-      resolveSelectedVariantLocationAvailability(availability, "variant_1"),
-    ).toStrictEqual(variantOneLocations)
+    expect(resolveItems(availability, "variant_1")).toStrictEqual(
+      variantOneLocations,
+    )
   })
 
   it("returns an empty array when the selected variant has no locations", () => {
-    expect(
-      resolveSelectedVariantLocationAvailability(availability, "variant_empty"),
-    ).toStrictEqual([])
+    expect(resolveItems(availability, "variant_empty")).toStrictEqual([])
   })
 
   it("returns null without availability or selected variant", () => {
-    expect(
-      resolveSelectedVariantLocationAvailability(null, "variant_1"),
-    ).toBeNull()
-    expect(
-      resolveSelectedVariantLocationAvailability(availability, null),
-    ).toBeNull()
+    expect(resolveItems(null, "variant_1")).toBeNull()
+    expect(resolveItems(availability, null)).toBeNull()
   })
 
   it("returns null when the selected variant is missing", () => {
-    expect(
-      resolveSelectedVariantLocationAvailability(availability, "variant_2"),
-    ).toBeNull()
+    expect(resolveItems(availability, "variant_2")).toBeNull()
   })
-})
 
-describe(resolveProductLocationAvailabilityState, () => {
   it("projects query state into selected variant availability state", () => {
     expect(
       resolveProductLocationAvailabilityState(

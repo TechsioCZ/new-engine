@@ -12,11 +12,3 @@ export const addBusinessDays = (start: Date, daysToAdd: number): Date => {
 
   return date
 }
-
-export const formatSkDate = (date: Date): string => {
-  const day = `${date.getDate()}`.padStart(2, "0")
-  const month = `${date.getMonth() + 1}`.padStart(2, "0")
-  const year = date.getFullYear()
-
-  return `${day}.${month}.${year}`
-}
