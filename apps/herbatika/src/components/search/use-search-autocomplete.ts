@@ -1,6 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
+import { useLocale } from "next-intl"
 import { useEffect, useState } from "react"
 
 import {
@@ -19,6 +20,7 @@ interface UseSearchAutocompleteInput {
   countryCode?: string
   query: string
   currencyCode: string
+  enabled: boolean
   regionId?: string
 }
 
@@ -47,8 +49,10 @@ export const useSearchAutocomplete = ({
   countryCode,
   query,
   currencyCode,
+  enabled,
   regionId,
 }: UseSearchAutocompleteInput): UseSearchAutocompleteResult => {
+  const locale = useLocale()
   const normalizedQuery = query
     .trim()
     .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
@@ -56,17 +60,21 @@ export const useSearchAutocomplete = ({
     normalizedQuery,
     countryCode,
     currencyCode,
+    locale,
     regionId,
   ])
   const debouncedRequestKey = useDebouncedValue(requestKey)
-  const isQueryEligible =
+  const hasSearchableQuery =
+    normalizedQuery.length === 0 ||
     normalizedQuery.length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH
+  const isQueryEligible = enabled && hasSearchableQuery
   const isDebouncePending = debouncedRequestKey !== requestKey
   const autocompleteQuery = useQuery({
     enabled: isQueryEligible && !isDebouncePending,
     queryFn: async ({ signal }) => {
       const params = new URLSearchParams({
         currency: currencyCode,
+        locale,
         q: normalizedQuery,
       })
 

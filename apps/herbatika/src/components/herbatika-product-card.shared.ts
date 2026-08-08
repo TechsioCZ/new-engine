@@ -7,6 +7,10 @@ import { useState } from "react"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
 import { resolveThumbnail } from "@/components/product-card/product-card.thumbnail"
+import {
+  asStorefrontRecord,
+  asStorefrontString,
+} from "@/lib/storefront/product-pricing"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
 export interface HerbatikaProductCardBaseProps {
@@ -20,13 +24,33 @@ interface HerbatikaProductCardStateOptions {
   onImageError?: () => void
 }
 
+const createProductHref = (
+  handle: string | null | undefined,
+  variantId: string | null,
+) => {
+  if (handle === undefined || handle === null || handle === "") {
+    return "/#"
+  }
+  if (variantId === null || variantId === "") {
+    return `/p/${handle}`
+  }
+  const encodedVariantId = encodeURIComponent(variantId)
+  return `/p/${handle}?variant=${encodedVariantId}`
+}
+
 export const useHerbatikaProductCardState = (
   product: HttpTypes.StoreProduct,
   { priceUnavailableLabel, onImageError }: HerbatikaProductCardStateOptions,
 ) => {
   const region = useRegionContext()
   const currencyCode = resolveRegionCurrency(region)
-  const productHref = product.handle ? `/p/${product.handle}` : "/#"
+  const productRecord = asStorefrontRecord(product)
+  const searchResult = asStorefrontRecord(productRecord?.["search_result"])
+  const searchResultVariantId = asStorefrontString(searchResult?.["variant_id"])
+  const searchResultVariantTitle = asStorefrontString(
+    searchResult?.["variant_title"],
+  )
+  const productHref = createProductHref(product.handle, searchResultVariantId)
   const price = resolvePriceState(product, currencyCode, priceUnavailableLabel)
   const thumbnail = resolveThumbnail(product)
   const [imageState, setImageState] = useState(() => ({
@@ -35,7 +59,12 @@ export const useHerbatikaProductCardState = (
   }))
   const imageSrc =
     imageState.source === thumbnail ? imageState.value : thumbnail
-  const title = product.title?.trim() || product.handle?.trim() || product.id
+  const productTitle =
+    product.title?.trim() || product.handle?.trim() || product.id
+  const title =
+    searchResultVariantTitle === null || searchResultVariantTitle === ""
+      ? productTitle
+      : `${productTitle} – ${searchResultVariantTitle}`
 
   const handleImageError = () => {
     onImageError?.()

@@ -67,6 +67,7 @@ export const SearchAutocomplete = ({
         {controller.shouldShowPanel ? (
           <SearchAutocompletePanel
             api={controller.api}
+            degraded={controller.degraded}
             query={controller.normalizedQuery}
             sections={controller.sections}
             status={controller.status}

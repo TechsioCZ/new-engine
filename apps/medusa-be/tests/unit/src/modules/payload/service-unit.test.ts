@@ -175,7 +175,7 @@ describe(PayloadModuleService, () => {
   describe("getPublishedPage", () => {
     it("returns cached page when available", async () => {
       const { service, cacheService } = createServiceWithCache()
-      const cachedPage = { id: "page_1", slug: "home", title: "Home" }
+      const cachedPage = { id: 1, slug: "home", title: "Home" }
 
       cacheService.get.mockResolvedValue(cachedPage)
 

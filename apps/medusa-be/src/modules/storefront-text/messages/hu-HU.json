@@ -712,7 +712,8 @@
       "found": "találatok: {count}",
       "page": "oldal: {page}/{totalPages}",
       "empty": "A(z) „{query}” kifejezésre nem találhatók termékek.",
-      "enter_query": "Írjon be egy keresési kifejezést a felső sávba."
+      "enter_query": "Írjon be egy keresési kifejezést a felső sávba.",
+      "related": "Kapcsolódó találatok"
     },
     "input_placeholder": "Írja be, mit keres...",
     "submit_aria": "Keresés",
@@ -722,10 +723,12 @@
       "loading": "Javaslatok keresése...",
       "load_failed": "A javaslatokat nem sikerült betölteni.",
       "empty": "Nincsenek gyors javaslataink a(z) „{query}” kifejezésre.",
+      "degraded": "Néhány javaslat jelenleg nem tölthető be.",
       "sections": {
         "products": "Termékek",
         "categories": "Kategóriák",
-        "brands": "Márkák"
+        "brands": "Márkák",
+        "content": "Tartalom"
       },
       "types": {
         "category": "Kategória",

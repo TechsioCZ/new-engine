@@ -8,8 +8,7 @@ import { setPricingContext } from "@medusajs/medusa/api/utils/middlewares/produc
 import { setTaxContext } from "@medusajs/medusa/api/utils/middlewares/products/set-tax-context"
 
 import {
-  STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS,
-  STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
+  STORE_CATALOG_PRODUCTS_QUERY_CONFIG,
   StoreCatalogProductsSchema,
 } from "./validators"
 
@@ -21,11 +20,10 @@ export const storeCatalogProductsRoutesMiddlewares: MiddlewareRoute[] = [
       authenticate("customer", ["session", "bearer"], {
         allowUnauthenticated: true,
       }),
-      validateAndTransformQuery(StoreCatalogProductsSchema, {
-        allowed: STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS,
-        defaults: STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
-        isList: true,
-      }),
+      validateAndTransformQuery(
+        StoreCatalogProductsSchema,
+        STORE_CATALOG_PRODUCTS_QUERY_CONFIG,
+      ),
       filterByValidSalesChannels(),
       applyDefaultFilters({
         status: ProductStatus.PUBLISHED,

@@ -82,3 +82,13 @@ describe("storefront text admin translations", () => {
     )
   })
 })
+
+describe("Meilisearch admin translations", () => {
+  it("registers matching Czech and English resources", () => {
+    expect(resources.cs.meilisearch.menuItem).toBe("Meilisearch")
+    expect(resources.en.meilisearch.menuItem).toBe("Meilisearch")
+    expect(collectLeafPaths(resources.cs.meilisearch)).toStrictEqual(
+      collectLeafPaths(resources.en.meilisearch),
+    )
+  })
+})

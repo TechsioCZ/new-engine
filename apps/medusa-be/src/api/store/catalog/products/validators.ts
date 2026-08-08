@@ -12,6 +12,11 @@ export const STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS = [
   "thumbnail",
   "metadata",
   "variants.id",
+  "variants.title",
+  "variants.sku",
+  "variants.ean",
+  "variants.upc",
+  "variants.barcode",
   "categories.id",
   "categories.name",
   "categories.handle",
@@ -28,6 +33,11 @@ export const STORE_CATALOG_PRODUCTS_PRICING_FIELDS = [
   "variants.calculated_price.is_original_price_tax_inclusive",
 ]
 
+export const STORE_CATALOG_PRODUCTS_QUERY_FIELDS = [
+  ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
+  ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
+]
+
 const additionalAllowedFields = [
   ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
   ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
@@ -41,6 +51,12 @@ export const STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS = [
   ...new Set([...listProductQueryConfig.defaults, ...additionalAllowedFields]),
 ]
 
+export const STORE_CATALOG_PRODUCTS_QUERY_CONFIG = {
+  allowed: STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS,
+  defaults: STORE_CATALOG_PRODUCTS_QUERY_FIELDS,
+  isList: true,
+}
+
 export const StoreCatalogProductsSchema = z
   .object({
     brand: multiValueParamSchema.optional(),
@@ -51,9 +67,11 @@ export const StoreCatalogProductsSchema = z
     form: multiValueParamSchema.optional(),
     ingredient: multiValueParamSchema.optional(),
     limit: z.coerce.number().int().min(1).max(48).optional().default(12),
+    locale: z.string().trim().min(2).max(20).optional(),
     page: z.coerce.number().int().min(1).optional().default(1),
     price_max: z.coerce.number().nonnegative().optional(),
     price_min: z.coerce.number().nonnegative().optional(),
+    profile: z.string().trim().min(1).max(120).optional(),
     q: z.string().optional().default(""),
     region_id: z.string().optional(),
     sales_channel_id: multiValueParamSchema.optional(),

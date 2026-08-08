@@ -22,6 +22,7 @@ export type CatalogListInputBase = RegionInfo & {
   price_min?: number
   price_max?: number
   currency_code?: string
+  locale?: string
   enabled?: boolean
 }
 
@@ -44,8 +45,15 @@ export interface CatalogFacets {
   price: CatalogPriceFacet
 }
 
+export interface CatalogSearchMetadata {
+  degraded: boolean
+  exactIdentifierMatch: boolean
+  profile: string
+}
+
 export interface CatalogListResponse<TProduct, TFacets = CatalogFacets> {
   products: TProduct[]
+  search?: CatalogSearchMetadata
   count: number
   page: number
   limit: number

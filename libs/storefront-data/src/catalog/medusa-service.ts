@@ -7,6 +7,7 @@ import type {
   CatalogFacets,
   CatalogListInputBase,
   CatalogListResponse,
+  CatalogSearchMetadata,
   CatalogService,
 } from "./types"
 import { resolvePositiveInteger } from "./utils"
@@ -14,12 +15,22 @@ import { resolvePositiveInteger } from "./utils"
 type MedusaCatalogListQuery = Record<string, unknown>
 
 interface MedusaCatalogListResponse {
-  products?: HttpTypes.StoreProduct[] | undefined
-  count?: number | undefined
-  page?: number | undefined
-  limit?: number | undefined
-  totalPages?: number | undefined
-  facets?: unknown
+  count: number
+  facets: CatalogFacets
+  limit: number
+  page: number
+  products: HttpTypes.StoreProduct[]
+  search: CatalogSearchMetadata
+  totalPages: number
+}
+
+export class InvalidMedusaCatalogResponseError extends Error {
+  readonly code = "INVALID_MEDUSA_CATALOG_RESPONSE"
+
+  constructor(field: string) {
+    super(`Medusa catalog response has an invalid ${field}`)
+    this.name = "InvalidMedusaCatalogResponseError"
+  }
 }
 
 export type MedusaCatalogListInput = CatalogListInputBase
@@ -39,6 +50,7 @@ interface MedusaCatalogServiceConfigBase<
   listPath?: string
   defaultLimit?: number
   defaultSort?: string
+  queryDefaults?: MedusaCatalogListQuery
   normalizeListQuery?: (params: TListParams) => MedusaCatalogListQuery
 }
 
@@ -77,35 +89,329 @@ export type MedusaCatalogServiceConfig<
     : MedusaCatalogProductTransforms<TProduct, TListParams, TFacets>) &
   MedusaCatalogFacetTransform<TFacets>
 
-const EMPTY_FACETS: CatalogFacets = {
-  brand: [],
-  form: [],
-  ingredient: [],
-  price: {
-    max: null,
-    min: null,
-  },
-  status: [],
+const isOptionalNullableString = (value: unknown): boolean =>
+  value === undefined || value === null || typeof value === "string"
+
+const isOptionalNullableBoolean = (value: unknown): boolean =>
+  value === undefined || value === null || typeof value === "boolean"
+
+const isOptionalNullableFiniteNumber = (value: unknown): boolean => {
+  if (value === undefined || value === null) {
+    return true
+  }
+  return typeof value === "number" && Number.isFinite(value)
 }
 
-const resolveNonNegativeInteger = (
-  value: number | undefined,
-  fallbackValue: number,
+const isOptionalNullableRecord = (value: unknown): boolean =>
+  value === undefined || value === null || isRecord(value)
+
+const isOptionalNullableArray = (
+  value: unknown,
+  predicate: (item: unknown) => boolean,
+): boolean => {
+  if (value === undefined || value === null) {
+    return true
+  }
+  return Array.isArray(value) && value.every(predicate)
+}
+
+const isCalculatedPrice = (value: unknown): boolean => {
+  if (value === undefined || value === null) {
+    return true
+  }
+  if (!isRecord(value)) {
+    return false
+  }
+  const {
+    currency_code: currencyCode,
+    is_calculated_price_tax_inclusive: calculatedTaxInclusive,
+    is_original_price_tax_inclusive: originalTaxInclusive,
+  } = value
+  const amountFields = [
+    "calculated_amount",
+    "original_amount",
+    "price_per_unit",
+  ]
+  const hasValidAmounts = amountFields.every((field) =>
+    isOptionalNullableFiniteNumber(value[field]),
+  )
+  return [
+    hasValidAmounts,
+    isOptionalNullableString(currencyCode),
+    isOptionalNullableBoolean(calculatedTaxInclusive),
+    isOptionalNullableBoolean(originalTaxInclusive),
+  ].every(Boolean)
+}
+
+const isStoreProductVariant = (value: unknown): boolean => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const { calculated_price: calculatedPrice, id } = value
+  const hasValidStrings = ["barcode", "ean", "sku", "title", "upc"].every(
+    (field) => isOptionalNullableString(value[field]),
+  )
+  return (
+    typeof id === "string" &&
+    hasValidStrings &&
+    isCalculatedPrice(calculatedPrice)
+  )
+}
+
+const isStoreProductCategory = (value: unknown): boolean => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const { id } = value
+  return (
+    typeof id === "string" &&
+    typeof value["handle"] === "string" &&
+    typeof value["name"] === "string" &&
+    isOptionalNullableString(value["parent_category_id"])
+  )
+}
+
+const hasRequiredStringFields = (
+  value: Record<string, unknown>,
+  fields: string[],
+): boolean => fields.every((field) => typeof value[field] === "string")
+
+const isStoreProductBrand = (value: unknown): boolean => {
+  if (value === undefined || value === null) {
+    return true
+  }
+  const isBrand = (brand: unknown): boolean =>
+    isRecord(brand) && hasRequiredStringFields(brand, ["handle", "id", "title"])
+  return Array.isArray(value) ? value.every(isBrand) : isBrand(value)
+}
+
+const isStoreProductImage = (value: unknown): boolean =>
+  isRecord(value) &&
+  hasRequiredStringFields(value, ["id", "url"]) &&
+  typeof value["rank"] === "number" &&
+  Number.isFinite(value["rank"])
+
+const isStoreProductOptionValue = (value: unknown): boolean =>
+  isRecord(value) && hasRequiredStringFields(value, ["id", "value"])
+
+const isStoreProductOption = (value: unknown): boolean =>
+  isRecord(value) &&
+  hasRequiredStringFields(value, ["id", "title"]) &&
+  typeof value["is_exclusive"] === "boolean" &&
+  isOptionalNullableArray(value["values"], isStoreProductOptionValue)
+
+const isStoreProductTag = (value: unknown): boolean =>
+  isRecord(value) && hasRequiredStringFields(value, ["id", "value"])
+
+const isStoreProductCollection = (value: unknown): boolean =>
+  isRecord(value) && hasRequiredStringFields(value, ["handle", "id", "title"])
+
+const isStoreProductType = (value: unknown): boolean =>
+  isRecord(value) && hasRequiredStringFields(value, ["id", "value"])
+
+const isStoreProduct = (value: unknown): value is HttpTypes.StoreProduct => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const {
+    brand,
+    categories,
+    collection,
+    created_at: createdAt,
+    handle,
+    id,
+    images,
+    metadata,
+    options,
+    status,
+    tags,
+    thumbnail,
+    title,
+    type,
+    updated_at: updatedAt,
+    variants,
+  } = value
+  const hasValidCoreFields = [
+    typeof id === "string",
+    typeof title === "string",
+    typeof handle === "string",
+    isOptionalNullableString(thumbnail),
+    isOptionalNullableString(createdAt),
+    isOptionalNullableString(updatedAt),
+    isOptionalNullableString(status),
+    isOptionalNullableRecord(metadata),
+  ].every(Boolean)
+  if (!hasValidCoreFields) {
+    return false
+  }
+  const optionalStringFields = [
+    "collection_id",
+    "description",
+    "external_id",
+    "hs_code",
+    "material",
+    "mid_code",
+    "origin_country",
+    "subtitle",
+    "type_id",
+  ]
+  const optionalNumberFields = ["height", "length", "weight", "width"]
+  const optionalBooleanFields = ["discountable", "is_giftcard"]
+
+  return [
+    optionalStringFields.every((field) =>
+      isOptionalNullableString(value[field]),
+    ),
+    optionalNumberFields.every((field) =>
+      isOptionalNullableFiniteNumber(value[field]),
+    ),
+    optionalBooleanFields.every((field) =>
+      isOptionalNullableBoolean(value[field]),
+    ),
+    isOptionalNullableArray(variants, isStoreProductVariant),
+    isOptionalNullableArray(categories, isStoreProductCategory),
+    isOptionalNullableArray(images, isStoreProductImage),
+    isOptionalNullableArray(options, isStoreProductOption),
+    isOptionalNullableArray(tags, isStoreProductTag),
+    isStoreProductBrand(brand),
+    collection === undefined ||
+      collection === null ||
+      isStoreProductCollection(collection),
+    type === undefined || type === null || isStoreProductType(type),
+  ].every(Boolean)
+}
+
+const parseInteger = (
+  value: unknown,
+  field: string,
+  minimum: number,
 ): number => {
   if (
     typeof value !== "number" ||
-    Number.isNaN(value) ||
-    !Number.isFinite(value)
+    !Number.isFinite(value) ||
+    !Number.isInteger(value) ||
+    value < minimum
   ) {
-    return fallbackValue
+    throw new InvalidMedusaCatalogResponseError(field)
+  }
+  return value
+}
+
+const parseFacetItems = (
+  value: unknown,
+  field: string,
+): CatalogFacets["status"] => {
+  if (!Array.isArray(value)) {
+    throw new InvalidMedusaCatalogResponseError(`facets.${field}`)
   }
 
-  const normalizedValue = Math.trunc(value)
-  if (normalizedValue < 0) {
-    return fallbackValue
+  return value.map((item) => {
+    if (!isRecord(item)) {
+      throw new InvalidMedusaCatalogResponseError(`facets.${field} item`)
+    }
+    const { count: rawCount, id, label } = item
+    if (
+      typeof id !== "string" ||
+      id.trim().length === 0 ||
+      typeof label !== "string" ||
+      label.trim().length === 0
+    ) {
+      throw new InvalidMedusaCatalogResponseError(`facets.${field} item`)
+    }
+    const count = parseInteger(rawCount, `facets.${field} count`, 0)
+    return { count, id, label }
+  })
+}
+
+const parsePriceBoundary = (value: unknown, field: string): number | null => {
+  if (value === null) {
+    return null
+  }
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new InvalidMedusaCatalogResponseError(`facets.price.${field}`)
+  }
+  return value
+}
+
+const parseFacets = (value: unknown): CatalogFacets => {
+  if (!isRecord(value)) {
+    throw new InvalidMedusaCatalogResponseError("facets")
+  }
+  const { brand, form, ingredient, price, status } = value
+  if (!isRecord(price)) {
+    throw new InvalidMedusaCatalogResponseError("facets")
+  }
+  const { max, min } = price
+  return {
+    brand: parseFacetItems(brand, "brand"),
+    form: parseFacetItems(form, "form"),
+    ingredient: parseFacetItems(ingredient, "ingredient"),
+    price: {
+      max: parsePriceBoundary(max, "max"),
+      min: parsePriceBoundary(min, "min"),
+    },
+    status: parseFacetItems(status, "status"),
+  }
+}
+
+const parseSearchMetadata = (value: unknown): CatalogSearchMetadata => {
+  if (!isRecord(value)) {
+    throw new InvalidMedusaCatalogResponseError("search metadata")
+  }
+  const { degraded, exactIdentifierMatch, profile } = value
+  if (
+    typeof degraded !== "boolean" ||
+    typeof exactIdentifierMatch !== "boolean" ||
+    typeof profile !== "string" ||
+    profile.length === 0
+  ) {
+    throw new InvalidMedusaCatalogResponseError("search metadata")
+  }
+  return { degraded, exactIdentifierMatch, profile }
+}
+
+const parseMedusaCatalogResponse = (
+  value: unknown,
+): MedusaCatalogListResponse => {
+  if (!isRecord(value) || !Array.isArray(value["products"])) {
+    throw new InvalidMedusaCatalogResponseError("response body")
+  }
+  if (!value["products"].every(isStoreProduct)) {
+    throw new InvalidMedusaCatalogResponseError("products")
   }
 
-  return normalizedValue
+  const count = parseInteger(value["count"], "count", 0)
+  const facets = parseFacets(value["facets"])
+  const limit = parseInteger(value["limit"], "limit", 1)
+  const page = parseInteger(value["page"], "page", 1)
+  const totalPages = parseInteger(value["totalPages"], "totalPages", 0)
+  const remainingProductCount = Math.max(0, count - (page - 1) * limit)
+  if (
+    value["products"].length > limit ||
+    value["products"].length > remainingProductCount
+  ) {
+    throw new InvalidMedusaCatalogResponseError("products page size")
+  }
+  if (totalPages !== Math.ceil(count / limit)) {
+    throw new InvalidMedusaCatalogResponseError("pagination totals")
+  }
+  if (
+    facets.price.min !== null &&
+    facets.price.max !== null &&
+    facets.price.min > facets.price.max
+  ) {
+    throw new InvalidMedusaCatalogResponseError("facets.price bounds")
+  }
+
+  return {
+    count,
+    facets,
+    limit,
+    page,
+    products: value["products"],
+    search: parseSearchMetadata(value["search"]),
+    totalPages,
+  }
 }
 
 const normalizeNonNegativeNumber = (
@@ -147,64 +453,6 @@ const normalizeStringArray = (
   }
 
   return normalizedValues.length > 0 ? normalizedValues : undefined
-}
-
-const normalizeFacetItems = (items: unknown) => {
-  if (!Array.isArray(items)) {
-    return []
-  }
-
-  return items
-    .map((item) => {
-      if (!isRecord(item)) {
-        return null
-      }
-
-      const { count: rawCount, id: rawId, label: rawLabel } = item
-      const id = typeof rawId === "string" ? rawId.trim() : ""
-      const label = typeof rawLabel === "string" ? rawLabel.trim() : ""
-      const count =
-        typeof rawCount === "number" && Number.isFinite(rawCount) ? rawCount : 0
-
-      if (id.length === 0 || label.length === 0) {
-        return null
-      }
-
-      return {
-        count,
-        id,
-        label,
-      }
-    })
-    .filter((item): item is CatalogFacets["status"][number] => item !== null)
-}
-
-const normalizeFacets = (value: unknown): CatalogFacets => {
-  if (!isRecord(value)) {
-    return EMPTY_FACETS
-  }
-
-  const facetsRecord = value
-  const { price } = facetsRecord
-  const priceRecord = isRecord(price) ? price : {}
-  const { max: rawMax, min: rawMin } = priceRecord
-  const min =
-    typeof rawMin === "number" && Number.isFinite(rawMin) ? rawMin : null
-  const max =
-    typeof rawMax === "number" && Number.isFinite(rawMax) ? rawMax : null
-
-  const { brand, form, ingredient, status } = facetsRecord
-
-  return {
-    brand: normalizeFacetItems(brand),
-    form: normalizeFacetItems(form),
-    ingredient: normalizeFacetItems(ingredient),
-    price: {
-      max,
-      min,
-    },
-    status: normalizeFacetItems(status),
-  }
 }
 
 const toCsv = (values: string[] | undefined): string | undefined => {
@@ -258,6 +506,10 @@ const buildDefaultListQuery = (
     form: toCsv(normalizedForm),
     ingredient: toCsv(normalizedIngredient),
     limit: normalizedLimit,
+    locale:
+      params.locale === undefined || params.locale.trim().length === 0
+        ? undefined
+        : params.locale.trim(),
     page: normalizedPage,
     price_max: normalizedPriceMax,
     price_min: normalizedPriceMin,
@@ -316,6 +568,7 @@ export function createMedusaCatalogService<
     listPath = "/store/catalog/products",
     defaultLimit = 12,
     defaultSort = "recommended",
+    queryDefaults,
     normalizeListQuery,
     transformProduct,
     transformListProduct,
@@ -331,10 +584,16 @@ export function createMedusaCatalogService<
 
   const buildListQuery = (params: TListParams): MedusaCatalogListQuery => {
     if (normalizeListQuery) {
-      return stripNullishValues(normalizeListQuery(params))
+      return stripNullishValues({
+        ...queryDefaults,
+        ...normalizeListQuery(params),
+      })
     }
 
-    return buildDefaultListQuery(params, { defaultLimit, defaultSort })
+    return stripNullishValues({
+      ...queryDefaults,
+      ...buildDefaultListQuery(params, { defaultLimit, defaultSort }),
+    })
   }
 
   return {
@@ -343,30 +602,18 @@ export function createMedusaCatalogService<
       signal?: AbortSignal,
     ): Promise<CatalogListResponse<unknown, unknown>> {
       const query = buildListQuery(params)
-      const rawResponse = await sdk.client.fetch<MedusaCatalogListResponse>(
-        listPath,
-        {
-          query,
-          signal: signal ?? null,
-        },
-      )
+      const rawResponse: unknown = await sdk.client.fetch<unknown>(listPath, {
+        query,
+        signal: signal ?? null,
+      })
+      const parsedResponse = parseMedusaCatalogResponse(rawResponse)
 
       const normalizedResponse: CatalogListResponse<
         HttpTypes.StoreProduct,
         unknown
-      > = {
-        count: rawResponse.count ?? 0,
-        facets: mapFacets(normalizeFacets(rawResponse.facets)),
-        limit: resolvePositiveInteger(
-          rawResponse.limit,
-          resolvePositiveInteger(params.limit, defaultLimit),
-        ),
-        page: resolvePositiveInteger(
-          rawResponse.page,
-          resolvePositiveInteger(params.page, 1),
-        ),
-        products: rawResponse.products ?? [],
-        totalPages: resolveNonNegativeInteger(rawResponse.totalPages, 0),
+      > & { search: CatalogSearchMetadata } = {
+        ...parsedResponse,
+        facets: mapFacets(parsedResponse.facets),
       }
 
       const context: MedusaCatalogTransformContext<TListParams, unknown> = {

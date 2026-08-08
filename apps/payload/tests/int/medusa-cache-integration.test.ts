@@ -18,6 +18,7 @@ vi.mock(import("@/lib/utils/request"), () => ({
 interface HookArguments {
   doc?: unknown
   operation?: string
+  previousDoc?: unknown
   req?: {
     locale?: string | null
     payload: {
@@ -28,7 +29,9 @@ interface HookArguments {
 
 interface InvalidationDocument {
   id?: unknown
+  globalVisibilityChange?: unknown
   locale?: unknown
+  previousSlug?: unknown
   slug?: unknown
 }
 
@@ -140,7 +143,7 @@ describe("medusaCache hooks", () => {
     const mockLogger = createMockLogger()
 
     await invokeHook(hook, {
-      doc: { id: 1, slug: "home" },
+      doc: { contentHTML: "<p>private draft</p>", id: 1, slug: "home" },
       operation: "create",
       req: { locale: "en", payload: { logger: mockLogger } },
     })
@@ -153,6 +156,23 @@ describe("medusaCache hooks", () => {
     const headers = new Headers(options?.headers)
     expect(headers.get("Content-Type")).toBe("application/json")
     expect(headers.get("x-payload-signature")).toMatch(/^[\da-f]{64}$/u)
+  })
+
+  it("does not log CMS document content", async () => {
+    getEnvString
+      .mockReturnValueOnce("http://medusa.test")
+      .mockReturnValueOnce("test-secret")
+    fetchSpy.mockResolvedValue(okResponse())
+    const mockLogger = createMockLogger()
+    const hook = await createHook("pages")
+
+    await invokeHook(hook, {
+      doc: { contentHTML: "<p>private draft</p>", id: 1, slug: "home" },
+      operation: "create",
+      req: { locale: "en", payload: { logger: mockLogger } },
+    })
+
+    expect(mockLogger.info.mock.calls[0]?.[0]).not.toContain("private draft")
   })
 
   it("notifies Medusa on update operation", async () => {
@@ -247,12 +267,15 @@ describe("medusaCache hooks", () => {
 
     const hook = await createHook("pages")
     const mockLogger = createMockLogger()
-    await invokeHook(hook, {
-      doc: { id: 1, slug: "test" },
-      operation: "create",
-      req: { payload: { logger: mockLogger } },
-    })
+    await expect(
+      invokeHook(hook, {
+        doc: { id: 1, slug: "test" },
+        operation: "create",
+        req: { payload: { logger: mockLogger } },
+      }),
+    ).rejects.toThrow("failed after 3 attempts")
 
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
     expect(mockLogger.error).toHaveBeenCalledWith(
       expect.stringContaining("Network error"),
     )
@@ -268,15 +291,41 @@ describe("medusaCache hooks", () => {
 
     const hook = await createHook("pages")
     const mockLogger = createMockLogger()
+    await expect(
+      invokeHook(hook, {
+        doc: { id: 1, slug: "test" },
+        operation: "update",
+        req: { payload: { logger: mockLogger } },
+      }),
+    ).rejects.toThrow("failed after 3 attempts")
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining("Medusa rejected CMS cache invalidation (500)"),
+    )
+  })
+
+  it("marks status changes as global and carries the previous slug", async () => {
+    getEnvString
+      .mockReturnValueOnce("http://medusa.test")
+      .mockReturnValueOnce("test-secret")
+    fetchSpy.mockResolvedValue(okResponse())
+
+    const hook = await createHook("pages")
     await invokeHook(hook, {
-      doc: { id: 1, slug: "test" },
+      doc: { id: 1, slug: "new-slug", status: "published" },
       operation: "update",
-      req: { payload: { logger: mockLogger } },
+      previousDoc: { id: 1, slug: "old-slug", status: "draft" },
+      req: { locale: "en", payload: { logger: createMockLogger() } },
     })
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining("CMS cache invalidation failed (500)"),
-    )
+    const body = parseInvalidationBody(fetchSpy)
+    expect(body.doc).toMatchObject({
+      globalVisibilityChange: true,
+      previousSlug: "old-slug",
+      slug: "new-slug",
+    })
+    expect(body.doc.locale).toBeUndefined()
   })
 
   it("handles localized slug objects", async () => {

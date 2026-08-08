@@ -110,5 +110,7 @@ export const useSearchListingController = () => {
     products: catalogQuery.products,
     productsCurrencyCode: regionCurrencyCode,
     query,
+    searchCountryCode: region?.country_code,
+    searchRegionId: region?.region_id,
   }
 }

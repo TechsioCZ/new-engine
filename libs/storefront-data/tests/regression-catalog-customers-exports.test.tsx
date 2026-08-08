@@ -57,6 +57,7 @@ interface CatalogClientFetchResponse {
   limit?: number
   page?: number
   products?: unknown[]
+  search?: unknown
   totalPages?: number
 }
 
@@ -196,10 +197,21 @@ describe("phase 1 regressions", () => {
     const sdk = createTestMedusaSdk()
     const clientFetch = vi.fn<CatalogClientFetch>().mockResolvedValue({
       count: 0,
-      facets: {},
+      facets: {
+        brand: [],
+        form: [],
+        ingredient: [],
+        price: { max: null, min: null },
+        status: [],
+      },
       limit: 12,
       page: 1,
       products: [],
+      search: {
+        degraded: true,
+        exactIdentifierMatch: false,
+        profile: "default",
+      },
       totalPages: 0,
     })
     Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
@@ -208,6 +220,7 @@ describe("phase 1 regressions", () => {
 
     const malformedInput: Record<string, unknown> = {
       limit: 12,
+      locale: "sk-SK",
       page: 1,
       status: [" active ", null, 5, "draft", ""],
     }
@@ -219,12 +232,166 @@ describe("phase 1 regressions", () => {
     expect(clientFetch).toHaveBeenCalledWith("/store/catalog/products", {
       query: {
         limit: 12,
+        locale: "sk-SK",
         page: 1,
         sort: "recommended",
         status: "active,draft",
       },
       signal: null,
     })
+  })
+
+  it("propagates degraded catalog search metadata after runtime validation", async () => {
+    const sdk = createTestMedusaSdk()
+    const clientFetch = vi.fn<CatalogClientFetch>().mockResolvedValue({
+      count: 0,
+      facets: {
+        brand: [],
+        form: [],
+        ingredient: [],
+        price: { max: null, min: null },
+        status: [],
+      },
+      limit: 12,
+      page: 1,
+      products: [],
+      search: {
+        degraded: true,
+        exactIdentifierMatch: false,
+        profile: "default",
+      },
+      totalPages: 0,
+    })
+    Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+
+    const result: unknown = await createMedusaCatalogService(
+      sdk,
+    ).getCatalogProducts({})
+    expect(isRecord(result) && isRecord(result["search"])).toBeTruthy()
+    if (!(isRecord(result) && isRecord(result["search"]))) {
+      throw new Error("Expected validated search metadata")
+    }
+    expect(result["search"]["degraded"]).toBeTruthy()
+  })
+
+  it("rejects malformed catalog products and scalar pagination", async () => {
+    const sdk = createTestMedusaSdk()
+    const clientFetch = vi.fn<CatalogClientFetch>().mockResolvedValue({
+      count: -1,
+      facets: {
+        brand: [],
+        form: [],
+        ingredient: [],
+        price: { max: null, min: null },
+        status: [],
+      },
+      limit: 12,
+      page: 1,
+      products: [{ handle: "invalid", id: 7, title: "Invalid" }],
+      search: {
+        degraded: false,
+        exactIdentifierMatch: false,
+        profile: "default",
+      },
+      totalPages: 0,
+    })
+    Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+
+    await expect(
+      createMedusaCatalogService(sdk).getCatalogProducts({}),
+    ).rejects.toMatchObject({ code: "INVALID_MEDUSA_CATALOG_RESPONSE" })
+  })
+
+  it("rejects malformed nested catalog product fields", async () => {
+    const sdk = createTestMedusaSdk()
+    const clientFetch = vi.fn<CatalogClientFetch>().mockResolvedValue({
+      count: 1,
+      facets: {
+        brand: [],
+        form: [],
+        ingredient: [],
+        price: { max: 20, min: 10 },
+        status: [],
+      },
+      limit: 12,
+      page: 1,
+      products: [
+        {
+          brand: {},
+          handle: "invalid-brand",
+          id: "prod_1",
+          images: [{}],
+          title: "Invalid brand",
+        },
+      ],
+      search: {
+        degraded: false,
+        exactIdentifierMatch: false,
+        profile: "default",
+      },
+      totalPages: 1,
+    })
+    Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+
+    await expect(
+      createMedusaCatalogService(sdk).getCatalogProducts({}),
+    ).rejects.toMatchObject({ code: "INVALID_MEDUSA_CATALOG_RESPONSE" })
+  })
+
+  it("rejects inconsistent catalog pagination and price bounds", async () => {
+    const sdk = createTestMedusaSdk()
+    const clientFetch = vi.fn<CatalogClientFetch>().mockResolvedValue({
+      count: 13,
+      facets: {
+        brand: [],
+        form: [],
+        ingredient: [],
+        price: { max: 10, min: 20 },
+        status: [],
+      },
+      limit: 12,
+      page: 1,
+      products: [],
+      search: {
+        degraded: false,
+        exactIdentifierMatch: false,
+        profile: "default",
+      },
+      totalPages: 1,
+    })
+    Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+
+    await expect(
+      createMedusaCatalogService(sdk).getCatalogProducts({}),
+    ).rejects.toMatchObject({ code: "INVALID_MEDUSA_CATALOG_RESPONSE" })
+  })
+
+  it("rejects a product page that contradicts its count", async () => {
+    const sdk = createTestMedusaSdk()
+    const clientFetch = vi.fn<CatalogClientFetch>().mockResolvedValue({
+      count: 0,
+      facets: {
+        brand: [],
+        form: [],
+        ingredient: [],
+        price: { max: null, min: null },
+        status: [],
+      },
+      limit: 12,
+      page: 1,
+      products: [{ handle: "unexpected", id: "prod_1", title: "Unexpected" }],
+      search: {
+        degraded: false,
+        exactIdentifierMatch: false,
+        profile: "default",
+      },
+      totalPages: 0,
+    })
+    Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+
+    await expect(
+      createMedusaCatalogService(sdk).getCatalogProducts({}),
+    ).rejects.toMatchObject({ code: "INVALID_MEDUSA_CATALOG_RESPONSE" })
   })
 
   it("selects newly created customer address by id diff instead of array order", async () => {

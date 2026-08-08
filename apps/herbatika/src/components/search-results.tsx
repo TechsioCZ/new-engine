@@ -9,12 +9,25 @@ import { CategoryResultsSection } from "@/components/category/category-results-s
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
 
+import { SearchEntityResults } from "./search/search-entity-results"
+import { useSearchAutocomplete } from "./search/use-search-autocomplete"
 import { useSearchListingController } from "./search/use-search-listing-controller"
 
 export const SearchResults = () => {
   const t = useTranslations("search")
   const controller = useSearchListingController()
   const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1)
+  const autocomplete = useSearchAutocomplete({
+    ...(controller.searchCountryCode === undefined
+      ? {}
+      : { countryCode: controller.searchCountryCode }),
+    currencyCode: controller.productsCurrencyCode,
+    enabled: controller.isSearchQueryEnabled,
+    query: controller.query,
+    ...(controller.searchRegionId === undefined
+      ? {}
+      : { regionId: controller.searchRegionId }),
+  })
   const handleAddToCart = controller.onAddToCart
   const handleBrandToggle = controller.onBrandToggle
   const handleFormToggle = controller.onFormToggle
@@ -55,51 +68,68 @@ export const SearchResults = () => {
       ) : null}
 
       {controller.query ? (
-        <CatalogListingShell
-          facets={
-            <CategoryFacetsPanel
-              activeFilterCount={controller.activeAsideFilterCount}
-              brandItems={controller.asideBrandItems}
-              currencyCode={controller.productsCurrencyCode}
-              formItems={controller.asideFormItems}
-              ingredientItems={controller.asideIngredientItems}
-              isLoading={controller.isFiltersLoading}
-              onBrandToggle={handleBrandToggle}
-              onFormToggle={handleFormToggle}
-              onIngredientToggle={handleIngredientToggle}
-              onPriceRangeCommit={handlePriceRangeCommit}
-              onReset={handleResetFilters}
-              onStatusToggle={handleStatusToggle}
-              priceBounds={controller.priceBounds}
-              selectedPriceRange={controller.selectedPriceRange}
-              statusItems={controller.asideStatusItems}
+        <>
+          <SearchEntityResults
+            brands={autocomplete.data.brands}
+            brandsTitle={t("autocomplete.sections.brands")}
+            categories={autocomplete.data.categories}
+            categoriesTitle={t("autocomplete.sections.categories")}
+            content={autocomplete.data.content}
+            contentTitle={t("autocomplete.sections.content")}
+            heading={t("results.related")}
+          />
+
+          <section className="space-y-300">
+            <h2 className="font-bold text-2xl text-fg-primary">
+              {t("autocomplete.sections.products")}
+            </h2>
+            <CatalogListingShell
+              facets={
+                <CategoryFacetsPanel
+                  activeFilterCount={controller.activeAsideFilterCount}
+                  brandItems={controller.asideBrandItems}
+                  currencyCode={controller.productsCurrencyCode}
+                  formItems={controller.asideFormItems}
+                  ingredientItems={controller.asideIngredientItems}
+                  isLoading={controller.isFiltersLoading}
+                  onBrandToggle={handleBrandToggle}
+                  onFormToggle={handleFormToggle}
+                  onIngredientToggle={handleIngredientToggle}
+                  onPriceRangeCommit={handlePriceRangeCommit}
+                  onReset={handleResetFilters}
+                  onStatusToggle={handleStatusToggle}
+                  priceBounds={controller.priceBounds}
+                  selectedPriceRange={controller.selectedPriceRange}
+                  statusItems={controller.asideStatusItems}
+                />
+              }
+              results={
+                <CategoryResultsSection
+                  activeSort={controller.queryState.sort}
+                  catalogError={controller.catalogQuery.error}
+                  categoriesError={null}
+                  emptyMessage={t("results.empty", { query: controller.query })}
+                  isEmpty={controller.products.length === 0}
+                  isLoading={controller.isResultsLoading}
+                  isProductAdding={controller.isProductAdding}
+                  isRefreshing={controller.isResultsRefreshing}
+                  layout="catalog"
+                  onAddToCart={handleAddToCart}
+                  onProductHoverEnd={handleProductHoverEnd}
+                  onProductHoverStart={handleProductHoverStart}
+                  onSortChange={handleSortChange}
+                  page={controller.page}
+                  pageSize={PLP_PAGE_SIZE}
+                  products={controller.products}
+                  showCategoryNotFound={false}
+                  totalCount={controller.catalogQuery.totalCount}
+                  totalPages={controller.catalogQuery.totalPages}
+                  totalProducts={controller.catalogQuery.totalCount}
+                />
+              }
             />
-          }
-          results={
-            <CategoryResultsSection
-              activeSort={controller.queryState.sort}
-              catalogError={controller.catalogQuery.error}
-              categoriesError={null}
-              emptyMessage={t("results.empty", { query: controller.query })}
-              isEmpty={controller.products.length === 0}
-              isLoading={controller.isResultsLoading}
-              isProductAdding={controller.isProductAdding}
-              isRefreshing={controller.isResultsRefreshing}
-              layout="catalog"
-              onAddToCart={handleAddToCart}
-              onProductHoverEnd={handleProductHoverEnd}
-              onProductHoverStart={handleProductHoverStart}
-              onSortChange={handleSortChange}
-              page={controller.page}
-              pageSize={PLP_PAGE_SIZE}
-              products={controller.products}
-              showCategoryNotFound={false}
-              totalCount={controller.catalogQuery.totalCount}
-              totalPages={controller.catalogQuery.totalPages}
-              totalProducts={controller.catalogQuery.totalCount}
-            />
-          }
-        />
+          </section>
+        </>
       ) : (
         <section className="rounded-lg border border-border-secondary bg-base p-400">
           <p className="text-fg-secondary text-sm">

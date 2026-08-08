@@ -7,16 +7,30 @@ interface ProductDetailPageProps {
   params: Promise<{
     handle: string
   }>
+  searchParams: Promise<{
+    variant?: string | string[]
+  }>
 }
 
-const ProductDetailPage = async ({ params }: ProductDetailPageProps) => {
+const ProductDetailPage = async ({
+  params,
+  searchParams,
+}: ProductDetailPageProps) => {
   const { handle } = await params
+  const resolvedSearchParams = await searchParams
+  const initialVariantId =
+    typeof resolvedSearchParams.variant === "string"
+      ? resolvedSearchParams.variant
+      : undefined
   const { dehydratedState } =
     await prefetchProductDetailPageStorefrontData(handle)
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <ProductDetail handle={handle} />
+      <ProductDetail
+        handle={handle}
+        {...(initialVariantId === undefined ? {} : { initialVariantId })}
+      />
     </HydrationBoundary>
   )
 }

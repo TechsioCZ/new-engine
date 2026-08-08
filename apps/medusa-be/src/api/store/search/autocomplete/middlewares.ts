@@ -1,0 +1,32 @@
+import { validateAndTransformQuery } from "@medusajs/framework"
+import { applyDefaultFilters, authenticate } from "@medusajs/framework/http"
+import type { MiddlewareRoute } from "@medusajs/framework/http"
+import { ProductStatus } from "@medusajs/framework/utils"
+import { filterByValidSalesChannels } from "@medusajs/medusa/api/utils/middlewares/products/filter-by-valid-sales-channels"
+import { normalizeDataForContext } from "@medusajs/medusa/api/utils/middlewares/products/normalize-data-for-context"
+import { setPricingContext } from "@medusajs/medusa/api/utils/middlewares/products/set-pricing-context"
+import { setTaxContext } from "@medusajs/medusa/api/utils/middlewares/products/set-tax-context"
+
+import { STORE_CATALOG_PRODUCTS_QUERY_CONFIG } from "../../catalog/products/validators"
+import { StoreSearchAutocompleteSchema } from "./validators"
+
+export const storeSearchAutocompleteRoutesMiddlewares: MiddlewareRoute[] = [
+  {
+    matcher: "/store/search/autocomplete",
+    methods: ["GET"],
+    middlewares: [
+      authenticate("customer", ["session", "bearer"], {
+        allowUnauthenticated: true,
+      }),
+      validateAndTransformQuery(
+        StoreSearchAutocompleteSchema,
+        STORE_CATALOG_PRODUCTS_QUERY_CONFIG,
+      ),
+      filterByValidSalesChannels(),
+      applyDefaultFilters({ status: ProductStatus.PUBLISHED }),
+      normalizeDataForContext(),
+      setPricingContext(),
+      setTaxContext(),
+    ],
+  },
+]

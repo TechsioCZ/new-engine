@@ -74,9 +74,15 @@ const subscribeToLocationHash = (onStoreChange: () => void) => {
 const getLocationHash = () => window.location.hash
 const getServerLocationHash = () => ""
 
-export const ProductDetail = ({ handle }: ProductDetailProps) => {
+export const ProductDetail = ({
+  handle,
+  initialVariantId,
+}: ProductDetailProps) => {
   const tCatalog = useTranslations("catalog")
-  const controller = useProductDetailController({ handle })
+  const controller = useProductDetailController({
+    handle,
+    ...(initialVariantId === undefined ? {} : { initialVariantId }),
+  })
   const locationHash = useSyncExternalStore(
     subscribeToLocationHash,
     getLocationHash,

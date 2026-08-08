@@ -3,15 +3,20 @@ import { createHash } from "node:crypto"
 import { zodValidator } from "@medusajs/framework"
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
-import type { z } from "@medusajs/framework/zod"
+import { z } from "@medusajs/framework/zod"
 import { isRecord, omitKeys } from "@techsio/std/object"
 import qs from "qs"
 
 import { safeResolve } from "../../utils/safe-resolve"
 import {
   ArticleCategoriesWithArticlesSchema,
+  CmsArticleCategorySchema,
+  CmsArticleSchema,
   CmsArticlesBulkResultSchema,
+  CmsHeroCarouselSchema,
   CmsHeroCarouselsBulkResultSchema,
+  CmsPageCategorySchema,
+  CmsPageSchema,
   CmsPagesBulkResultSchema,
   PageCategoriesWithPagesSchema,
 } from "./schemas"
@@ -218,29 +223,29 @@ const isValidatedBy =
     schema.safeParse(value).success
 
 /**
- * Type predicates for safely narrowing cached `unknown` values back to their
- * expected DTO shape without a type cast. Cache entries always originate
- * from this service's own previously schema-validated writes, so a
- * lightweight shape check (rather than a full schema re-validation) is
- * sufficient here and keeps cache-read behavior unchanged.
+ * Cache storage is an external boundary. Re-validate every cached value after
+ * redaction before exposing it as a CMS DTO.
  */
 const isCachedPage = (value: unknown): value is CmsPageDTO | null =>
-  value === null || isRecord(value)
+  value === null || CmsPageSchema.safeParse(value).success
 
 const isCachedArticle = (value: unknown): value is CmsArticleDTO | null =>
-  value === null || isRecord(value)
+  value === null || CmsArticleSchema.safeParse(value).success
 
 const isCachedPageCategoryList = (
   value: unknown,
-): value is CmsPageCategoryDTO[] => Array.isArray(value)
+): value is CmsPageCategoryDTO[] =>
+  z.array(CmsPageCategorySchema).safeParse(value).success
 
 const isCachedArticleCategoryList = (
   value: unknown,
-): value is CmsArticleCategoryDTO[] => Array.isArray(value)
+): value is CmsArticleCategoryDTO[] =>
+  z.array(CmsArticleCategorySchema).safeParse(value).success
 
 const isCachedHeroCarouselList = (
   value: unknown,
-): value is CmsHeroCarouselDTO[] => Array.isArray(value)
+): value is CmsHeroCarouselDTO[] =>
+  z.array(CmsHeroCarouselSchema).safeParse(value).success
 
 /**
  * Medusa module service for reading Payload CMS content with caching support.
@@ -461,6 +466,78 @@ export default class PayloadModuleService extends MedusaService({}) {
   }
 
   /**
+   * List published public pages for search indexing.
+   */
+  async listPublishedPages(options?: {
+    limit?: number
+    locale?: string
+    page?: number
+  }): Promise<PayloadBulkResult<CmsPageDTO>> {
+    const queryString = this.buildQuery({
+      limit: options?.limit ?? 100,
+      ...(options?.locale === undefined ? {} : { locale: options.locale }),
+      page: options?.page ?? 1,
+      where: {
+        status: { equals: STATUS_PUBLISHED },
+        visibility: { equals: "public" },
+      },
+    })
+
+    const result = await this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
+      "GET",
+      `/${PAGES}${queryString}`,
+      undefined,
+      {
+        headers: {
+          [RETURN_HTML_HEADER]: "true",
+        },
+        schema: CmsPagesBulkResultSchema,
+      },
+    )
+    return result
+  }
+
+  /**
+   * Fetch one published search document by id for a specific locale.
+   */
+  async getPublishedSearchDocument(
+    collection: "articles" | "pages",
+    id: string,
+    locale: string,
+  ): Promise<CmsArticleDTO | CmsPageDTO | null> {
+    const where: Record<string, unknown> = {
+      id: { equals: id },
+      status: { equals: STATUS_PUBLISHED },
+      ...(collection === PAGES ? { visibility: { equals: "public" } } : {}),
+    }
+    const queryString = this.buildQuery({ limit: 1, locale, where })
+
+    if (collection === PAGES) {
+      const result = await this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
+        "GET",
+        `/${PAGES}${queryString}`,
+        undefined,
+        {
+          headers: { [RETURN_HTML_HEADER]: "true" },
+          schema: CmsPagesBulkResultSchema,
+        },
+      )
+      return result.docs[0] ?? null
+    }
+
+    const result = await this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(
+      "GET",
+      `/${ARTICLES}${queryString}`,
+      undefined,
+      {
+        headers: { [RETURN_HTML_HEADER]: "true" },
+        schema: CmsArticlesBulkResultSchema,
+      },
+    )
+    return result.docs[0] ?? null
+  }
+
+  /**
    * List page categories and their pages, optionally filtered by locale/slug.
    */
   async listPageCategoriesWithPages(
@@ -535,6 +612,37 @@ export default class PayloadModuleService extends MedusaService({}) {
       [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLES],
       isCachedArticle,
     )
+  }
+
+  /**
+   * List published articles for search indexing.
+   */
+  async listPublishedArticles(options?: {
+    limit?: number
+    locale?: string
+    page?: number
+  }): Promise<PayloadBulkResult<CmsArticleDTO>> {
+    const queryString = this.buildQuery({
+      limit: options?.limit ?? 100,
+      ...(options?.locale === undefined ? {} : { locale: options.locale }),
+      page: options?.page ?? 1,
+      where: {
+        status: { equals: STATUS_PUBLISHED },
+      },
+    })
+
+    const result = await this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(
+      "GET",
+      `/${ARTICLES}${queryString}`,
+      undefined,
+      {
+        headers: {
+          [RETURN_HTML_HEADER]: "true",
+        },
+        schema: CmsArticlesBulkResultSchema,
+      },
+    )
+    return result
   }
 
   /**

@@ -250,6 +250,10 @@ export const buildModules = (env: MedusaConfigEnv): MedusaModulesConfig => [
     resolve: "./src/modules/product-review",
   },
   {
+    dependencies: [Modules.CACHING],
+    resolve: "./src/modules/search-profile",
+  },
+  {
     resolve: "./src/modules/storefront-text",
   },
   {

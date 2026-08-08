@@ -380,6 +380,7 @@ const resolveTopOfferFacetPrice = (
 const resolveVariantMinFacetPrice = (
   variants: unknown[],
 ): number | undefined => {
+  let currencyCode: string | undefined
   let minPrice: number | undefined
 
   for (const rawVariant of variants) {
@@ -388,6 +389,22 @@ const resolveVariantMinFacetPrice = (
 
     for (const rawPrice of prices) {
       const price = asRecord(rawPrice)
+      const rawCurrencyCode = price?.["currency_code"]
+      if (
+        typeof rawCurrencyCode !== "string" ||
+        rawCurrencyCode.trim().length === 0
+      ) {
+        continue
+      }
+      const normalizedCurrencyCode = rawCurrencyCode.trim().toLowerCase()
+      if (
+        currencyCode !== undefined &&
+        normalizedCurrencyCode !== currencyCode
+      ) {
+        return undefined
+      }
+      currencyCode = normalizedCurrencyCode
+
       const amount = parseNumericValue(price?.["amount"])
       const normalizedPrice =
         amount === undefined

@@ -33,28 +33,33 @@ export const useSearchAutocompleteController = ({
   const generatedId = useId()
   const [value, setValue] = useState("")
   const [requestedOpen, setRequestedOpen] = useState(false)
-  const autocomplete = useSearchAutocomplete({
-    ...(countryCode === undefined ? {} : { countryCode }),
-    currencyCode,
-    query: value,
-    ...(regionId === undefined ? {} : { regionId }),
-  })
+  const { data: autocompleteData, status: autocompleteStatus } =
+    useSearchAutocomplete({
+      ...(countryCode === undefined ? {} : { countryCode }),
+      currencyCode,
+      enabled: requestedOpen,
+      query: value,
+      ...(regionId === undefined ? {} : { regionId }),
+    })
   const normalizedQuery = value.trim()
-  const sections = createSearchAutocompleteSections(autocomplete.data, {
+  const hasSearchableQuery =
+    normalizedQuery.length === 0 ||
+    normalizedQuery.length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH
+  const sections = createSearchAutocompleteSections(autocompleteData, {
     brands: t("autocomplete.sections.brands"),
     categories: t("autocomplete.sections.categories"),
+    content: t("autocomplete.sections.content"),
     products: t("autocomplete.sections.products"),
   })
   const items = sections.flatMap((section) =>
     section.items.map(toSearchComboboxItem),
   )
-  const canOpen =
-    normalizedQuery.length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH &&
-    autocomplete.status !== "idle"
+  const canOpen = hasSearchableQuery && autocompleteStatus !== "idle"
   const handleValueChange = (nextValue: string) => {
     setValue(nextValue)
+    const { length } = nextValue.trim()
     setRequestedOpen(
-      nextValue.trim().length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
+      length === 0 || length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
     )
   }
   const open = requestedOpen && canOpen
@@ -88,13 +93,14 @@ export const useSearchAutocompleteController = ({
 
   return {
     api,
+    degraded: autocompleteData.degraded,
     handleSubmit,
     handleValueChange,
     hasItems: items.length > 0,
     normalizedQuery,
     sections,
     shouldShowPanel: api.open && canOpen,
-    status: autocomplete.status,
+    status: autocompleteStatus,
     value,
   }
 }

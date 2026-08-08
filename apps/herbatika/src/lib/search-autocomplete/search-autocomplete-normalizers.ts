@@ -5,12 +5,6 @@ const BRAND_PATH_PATTERN = /\/brands\/[^/]+/u
 export const normalizeString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
 
-export const normalizeComparable = (value: string) =>
-  value
-    .normalize("NFD")
-    .replaceAll(/[\u0300-\u036F]/gu, "")
-    .toLocaleLowerCase("sk")
-
 export const createHandleLabel = (handle: string) => {
   const label = handle.replaceAll(/[-_]+/gu, " ").trim()
   return label ? label.charAt(0).toUpperCase() + label.slice(1) : ""

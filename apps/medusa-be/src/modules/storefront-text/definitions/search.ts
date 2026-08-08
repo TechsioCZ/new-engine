@@ -22,6 +22,11 @@ export const STOREFRONT_SEARCH_TEXT_DEFINITIONS = [
     namespace: "search",
   },
   {
+    description: "Nadpis sekce souvisejících výsledků vyhledávání.",
+    key: "search.results.related",
+    namespace: "search",
+  },
+  {
     description: "Stavová hláška při načítání návrhů vyhledávání.",
     key: "search.autocomplete.loading",
     namespace: "search",
@@ -37,6 +42,11 @@ export const STOREFRONT_SEARCH_TEXT_DEFINITIONS = [
     namespace: "search",
   },
   {
+    description: "Hláška při částečné nedostupnosti návrhů vyhledávání.",
+    key: "search.autocomplete.degraded",
+    namespace: "search",
+  },
+  {
     description: "Nadpis produktové sekce v návrzích vyhledávání.",
     key: "search.autocomplete.sections.products",
     namespace: "search",
@@ -49,6 +59,11 @@ export const STOREFRONT_SEARCH_TEXT_DEFINITIONS = [
   {
     description: "Nadpis sekce značek v návrzích vyhledávání.",
     key: "search.autocomplete.sections.brands",
+    namespace: "search",
+  },
+  {
+    description: "Nadpis sekce obsahu v návrzích vyhledávání.",
+    key: "search.autocomplete.sections.content",
     namespace: "search",
   },
   {

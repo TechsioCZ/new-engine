@@ -1,5 +1,5 @@
 import "server-only"
-import { isRecord, getRecordValue } from "@techsio/std/object"
+import { isRecord } from "@techsio/std/object"
 
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import {
@@ -7,6 +7,7 @@ import {
   MEDUSA_PUBLISHABLE_KEY,
 } from "@/lib/storefront/ssr/constants"
 
+import { createContentSuggestions } from "./search-autocomplete-content-normalizers"
 import { normalizeString } from "./search-autocomplete-normalizers"
 import { createProductSuggestions } from "./search-autocomplete-product-normalizers"
 import {
@@ -19,38 +20,122 @@ import {
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
 } from "./search-autocomplete-types"
 import type {
-  RawSearchAutocompleteFacetItem,
+  RawSearchAutocompleteBrandRef,
+  RawSearchAutocompleteCategoryRef,
+  RawSearchAutocompleteContentHit,
   RawSearchAutocompleteProductHit,
   SearchAutocompleteResponse,
 } from "./search-autocomplete-types"
 
 interface CatalogAutocompleteResponse {
-  facets?: {
-    brand?: RawSearchAutocompleteFacetItem[]
-  }
-  products?: RawSearchAutocompleteProductHit[]
+  brands: RawSearchAutocompleteBrandRef[]
+  categories: RawSearchAutocompleteCategoryRef[]
+  content: RawSearchAutocompleteContentHit[]
+  degraded: boolean
+  products: RawSearchAutocompleteProductHit[]
 }
 
 interface FetchSearchAutocompleteInput {
   query: string
   countryCode?: string | null
   currencyCode?: string | null
+  locale?: string | null
   regionId?: string | null
 }
 
-const PRODUCT_LIMIT = 5
-const CATEGORY_LIMIT = 5
-const BRAND_LIMIT = 4
-const CANDIDATE_LIMIT = 12
 const CATALOG_FETCH_TIMEOUT_MS = 3000
 
-const isRawVariant = (value: unknown): value is Record<string, unknown> => {
+class InvalidCatalogAutocompleteResponseError extends Error {
+  readonly code = "INVALID_CATALOG_AUTOCOMPLETE_RESPONSE"
+
+  constructor(field: string) {
+    super(`Catalog autocomplete returned an invalid ${field}`)
+    this.name = "InvalidCatalogAutocompleteResponseError"
+  }
+}
+
+const isOptionalNullableRecord = (value: unknown): boolean =>
+  value === undefined || value === null || isRecord(value)
+
+const isOptionalNullableString = (value: unknown): boolean =>
+  value === undefined || value === null || typeof value === "string"
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0
+
+const hasValidStringFields = (
+  value: Record<string, unknown>,
+  fields: readonly string[],
+): boolean => fields.every((field) => isOptionalNullableString(value[field]))
+
+const hasRequiredStringFields = (
+  value: Record<string, unknown>,
+  fields: readonly string[],
+): boolean => fields.every((field) => isNonEmptyString(value[field]))
+
+const isOptionalNullableFiniteNumber = (value: unknown): boolean => {
+  if (value === undefined || value === null) {
+    return true
+  }
+  return typeof value === "number" && Number.isFinite(value)
+}
+
+const isRawCalculatedPrice = (value: unknown): boolean => {
+  if (value === undefined || value === null) {
+    return true
+  }
   if (!isRecord(value)) {
     return false
   }
-  const calculatedPrice = getRecordValue(value, "calculated_price")
-  return calculatedPrice === undefined || isRecord(calculatedPrice)
+
+  const { calculated_amount: amount, currency_code: currencyCode } = value
+  return (
+    isOptionalNullableFiniteNumber(amount) &&
+    isOptionalNullableString(currencyCode)
+  )
 }
+
+const isRawVariant = (value: unknown): value is Record<string, unknown> =>
+  isRecord(value) &&
+  isNonEmptyString(value["id"]) &&
+  hasValidStringFields(value, ["barcode", "ean", "sku", "title", "upc"]) &&
+  isRawCalculatedPrice(value["calculated_price"])
+
+const isRawBrandRef = (
+  value: unknown,
+): value is RawSearchAutocompleteBrandRef =>
+  isRecord(value) && hasRequiredStringFields(value, ["handle", "id", "title"])
+
+const isRawCategoryRef = (
+  value: unknown,
+): value is RawSearchAutocompleteCategoryRef =>
+  isRecord(value) && hasRequiredStringFields(value, ["handle", "id", "name"])
+
+const isSafeLocalHref = (value: unknown): value is string => {
+  if (
+    typeof value !== "string" ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\")
+  ) {
+    return false
+  }
+  for (const character of value) {
+    const codePoint = character.codePointAt(0)
+    if (codePoint === undefined || codePoint < 32) {
+      return false
+    }
+  }
+  return true
+}
+
+const isRawContentHit = (
+  value: unknown,
+): value is RawSearchAutocompleteContentHit =>
+  isRecord(value) &&
+  hasRequiredStringFields(value, ["href", "id", "title"]) &&
+  isSafeLocalHref(value["href"]) &&
+  hasValidStringFields(value, ["excerpt", "type"])
 
 const isRawProductHit = (
   value: unknown,
@@ -58,44 +143,71 @@ const isRawProductHit = (
   if (!isRecord(value)) {
     return false
   }
-  const brand = getRecordValue(value, "brand")
-  if (brand !== undefined && !isRecord(brand)) {
-    return false
-  }
-  const categories = getRecordValue(value, "categories")
+  const {
+    brand,
+    categories,
+    metadata,
+    search_result: searchResult,
+    variants,
+  } = value
   if (
-    categories !== undefined &&
-    (!Array.isArray(categories) || !categories.every(isRecord))
+    !hasRequiredStringFields(value, ["handle", "id", "title"]) ||
+    !isOptionalNullableString(value["thumbnail"]) ||
+    !isOptionalNullableRecord(metadata)
   ) {
     return false
   }
-  const variants = getRecordValue(value, "variants")
+  if (brand !== undefined && brand !== null && !isRawBrandRef(brand)) {
+    return false
+  }
+  if (
+    categories !== undefined &&
+    categories !== null &&
+    (!Array.isArray(categories) || !categories.every(isRawCategoryRef))
+  ) {
+    return false
+  }
+  if (
+    searchResult !== undefined &&
+    (!isRecord(searchResult) ||
+      !hasValidStringFields(searchResult, ["variant_id", "variant_title"]))
+  ) {
+    return false
+  }
   return (
     variants === undefined ||
+    variants === null ||
     (Array.isArray(variants) && variants.every(isRawVariant))
   )
+}
+
+const parseArray = <T>(
+  value: unknown,
+  predicate: (item: unknown) => item is T,
+  field: string,
+): T[] => {
+  if (!Array.isArray(value) || !value.every(predicate)) {
+    throw new InvalidCatalogAutocompleteResponseError(field)
+  }
+  return value
 }
 
 const parseCatalogAutocompleteResponse = (
   value: unknown,
 ): CatalogAutocompleteResponse => {
   if (!isRecord(value)) {
-    return {}
+    throw new InvalidCatalogAutocompleteResponseError("response body")
+  }
+  if (typeof value["degraded"] !== "boolean") {
+    throw new InvalidCatalogAutocompleteResponseError("degraded flag")
   }
 
-  const productsValue = getRecordValue(value, "products")
-  const products = Array.isArray(productsValue)
-    ? productsValue.filter(isRawProductHit)
-    : []
-  const facetsValue = getRecordValue(value, "facets")
-  const facets = isRecord(facetsValue) ? facetsValue : null
-  const brandsValue =
-    facets === null ? undefined : getRecordValue(facets, "brand")
-  const brands = Array.isArray(brandsValue) ? brandsValue.filter(isRecord) : []
-
   return {
-    facets: { brand: brands },
-    products,
+    brands: parseArray(value["brands"], isRawBrandRef, "brands"),
+    categories: parseArray(value["categories"], isRawCategoryRef, "categories"),
+    content: parseArray(value["content"], isRawContentHit, "content"),
+    degraded: value["degraded"],
+    products: parseArray(value["products"], isRawProductHit, "products"),
   }
 }
 
@@ -105,20 +217,24 @@ const normalizeSearchAutocompleteQuery = (query: string) =>
 const createCatalogAutocompleteUrl = ({
   countryCode,
   currencyCode,
+  locale,
   query,
   regionId,
 }: {
   countryCode?: string | null
   currencyCode: string
+  locale?: string | null
   query: string
   regionId?: string | null
 }) => {
-  const url = new URL("/store/catalog/products", MEDUSA_BACKEND_URL)
+  const url = new URL("/store/search/autocomplete", MEDUSA_BACKEND_URL)
   url.searchParams.set("q", query)
-  url.searchParams.set("page", "1")
-  url.searchParams.set("limit", String(CANDIDATE_LIMIT))
-  url.searchParams.set("sort", "recommended")
   url.searchParams.set("currency_code", currencyCode.toLowerCase())
+
+  const normalizedLocale = normalizeString(locale)
+  if (normalizedLocale) {
+    url.searchParams.set("locale", normalizedLocale)
+  }
 
   const normalizedRegionId = normalizeString(regionId)
   if (normalizedRegionId) {
@@ -136,11 +252,13 @@ const createCatalogAutocompleteUrl = ({
 const fetchCatalogCandidates = async ({
   countryCode,
   currencyCode,
+  locale,
   query,
   regionId,
 }: {
   countryCode?: string | null
   currencyCode: string
+  locale?: string | null
   query: string
   regionId?: string | null
 }) => {
@@ -162,6 +280,7 @@ const fetchCatalogCandidates = async ({
       createCatalogAutocompleteUrl({
         ...(countryCode === undefined ? {} : { countryCode }),
         currencyCode,
+        ...(locale === undefined ? {} : { locale }),
         query,
         ...(regionId === undefined ? {} : { regionId }),
       }),
@@ -195,11 +314,15 @@ const fetchCatalogCandidates = async ({
 export const fetchSearchAutocomplete = async ({
   countryCode,
   currencyCode,
+  locale,
   query,
   regionId,
 }: FetchSearchAutocompleteInput): Promise<SearchAutocompleteResponse> => {
   const normalizedQuery = normalizeSearchAutocompleteQuery(query)
-  if (normalizedQuery.length < SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH) {
+  if (
+    normalizedQuery.length > 0 &&
+    normalizedQuery.length < SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH
+  ) {
     return createEmptySearchAutocompleteResponse(normalizedQuery)
   }
 
@@ -207,6 +330,7 @@ export const fetchSearchAutocomplete = async ({
   const catalogResponse = await fetchCatalogCandidates({
     ...(countryCode === undefined ? {} : { countryCode }),
     currencyCode: safeCurrencyCode,
+    ...(locale === undefined ? {} : { locale }),
     query: normalizedQuery,
     ...(regionId === undefined ? {} : { regionId }),
   })
@@ -214,21 +338,14 @@ export const fetchSearchAutocomplete = async ({
 
   return {
     brands: createBrandSuggestions({
-      brandFacets: catalogResponse.facets?.brand ?? [],
-      limit: BRAND_LIMIT,
-      productHits,
-      query: normalizedQuery,
+      brandHits: catalogResponse.brands,
     }),
     categories: createCategorySuggestions({
-      limit: CATEGORY_LIMIT,
-      productHits,
-      query: normalizedQuery,
+      categoryHits: catalogResponse.categories,
     }),
-    products: createProductSuggestions(
-      productHits,
-      safeCurrencyCode,
-      PRODUCT_LIMIT,
-    ),
+    content: createContentSuggestions(catalogResponse.content),
+    degraded: catalogResponse.degraded,
+    products: createProductSuggestions(productHits, safeCurrencyCode),
     query: normalizedQuery,
   }
 }

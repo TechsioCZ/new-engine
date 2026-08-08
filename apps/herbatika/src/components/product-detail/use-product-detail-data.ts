@@ -18,6 +18,7 @@ import {
   resolveProductVolumeDiscountOptions,
   resolveSelectedVolumeDiscountOption,
 } from "@/components/product-detail/product-detail-pricing-data.utils"
+import { resolveInitialVariantId } from "@/components/product-detail/product-detail-selection"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log"
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products"
@@ -45,6 +46,7 @@ import { storefront } from "@/lib/storefront/storefront"
 
 interface UseProductDetailDataProps {
   handle: string
+  initialVariantId?: string
 }
 
 interface ProductDetailSelectionState {
@@ -54,26 +56,34 @@ interface ProductDetailSelectionState {
   selectedVolumeDiscountId: string | null
 }
 
-const createDefaultSelection = (
+const createSelectionKey = (
   productKey: string,
+  initialSelectedVariantId: string | null,
+) => JSON.stringify([productKey, initialSelectedVariantId])
+
+const createDefaultSelection = (
+  selectionKey: string,
+  defaultSelectedVariantId: string | null,
 ): ProductDetailSelectionState => ({
-  productKey,
+  productKey: selectionKey,
   quantity: 1,
-  selectedVariantId: null,
+  selectedVariantId: defaultSelectedVariantId,
   selectedVolumeDiscountId: null,
 })
 
 const resolveCurrentSelection = (
   selection: ProductDetailSelectionState,
-  productKey: string,
+  selectionKey: string,
+  defaultSelectedVariantId: string | null,
 ) =>
-  selection.productKey === productKey
+  selection.productKey === selectionKey
     ? selection
-    : createDefaultSelection(productKey)
+    : createDefaultSelection(selectionKey, defaultSelectedVariantId)
 
 const updateCurrentSelection = (
   selection: ProductDetailSelectionState,
-  productKey: string,
+  selectionKey: string,
+  defaultSelectedVariantId: string | null,
   update: Partial<
     Pick<
       ProductDetailSelectionState,
@@ -81,7 +91,7 @@ const updateCurrentSelection = (
     >
   >,
 ): ProductDetailSelectionState => ({
-  ...resolveCurrentSelection(selection, productKey),
+  ...resolveCurrentSelection(selection, selectionKey, defaultSelectedVariantId),
   ...update,
 })
 
@@ -162,15 +172,22 @@ const resolveDefaultInformationSection = (sections: { key: string }[]) =>
 const isRegionBootstrapping = (regionId: string | undefined) =>
   regionId === undefined || regionId === ""
 
-export const useProductDetailData = ({ handle }: UseProductDetailDataProps) => {
+export const useProductDetailData = ({
+  handle,
+  initialVariantId,
+}: UseProductDetailDataProps) => {
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [selectionState, setSelectionState] =
-    useState<ProductDetailSelectionState>(() =>
-      createDefaultSelection(`handle:${handle}`),
-    )
+    useState<ProductDetailSelectionState>(() => {
+      const defaultSelectedVariantId = initialVariantId ?? null
+      return createDefaultSelection(
+        createSelectionKey(`handle:${handle}`, defaultSelectedVariantId),
+        defaultSelectedVariantId,
+      )
+    })
 
   const productQuery = useProduct({
     fields: PRODUCT_DETAIL_FIELDS,
@@ -179,7 +196,16 @@ export const useProductDetailData = ({ handle }: UseProductDetailDataProps) => {
 
   const { product, productCategories, productKey, variants } =
     resolveProductQueryState(productQuery.product, handle)
-  const currentSelection = resolveCurrentSelection(selectionState, productKey)
+  const initialSelectedVariantId = resolveInitialVariantId(
+    variants,
+    initialVariantId,
+  )
+  const selectionKey = createSelectionKey(productKey, initialSelectedVariantId)
+  const currentSelection = resolveCurrentSelection(
+    selectionState,
+    selectionKey,
+    initialSelectedVariantId,
+  )
   const { selectedVariantId, selectedVolumeDiscountId } = currentSelection
 
   const selectedVariant = resolveSelectedVariant(variants, selectedVariantId)
@@ -303,19 +329,42 @@ export const useProductDetailData = ({ handle }: UseProductDetailDataProps) => {
 
   const setQuantity = (nextQuantity: number) => {
     setSelectionState((current) =>
-      updateCurrentSelection(current, productKey, { quantity: nextQuantity }),
-    )
-  }
-  const setSelectedVariantId = (nextVariantId: string | null) => {
-    setSelectionState((current) =>
-      updateCurrentSelection(current, productKey, {
-        selectedVariantId: nextVariantId,
+      updateCurrentSelection(current, selectionKey, initialSelectedVariantId, {
+        quantity: nextQuantity,
       }),
     )
   }
+  const setSelectedVariantId = (nextVariantId: string | null) => {
+    setSelectionState((current) => {
+      const currentForProduct = resolveCurrentSelection(
+        current,
+        selectionKey,
+        initialSelectedVariantId,
+      )
+      const nextVariant = resolveSelectedVariant(variants, nextVariantId)
+      const nextInventory = resolveVariantInventoryState(
+        nextVariant,
+        currentForProduct.quantity,
+      )
+      const nextQuantity = resolveAvailableQuantity(
+        currentForProduct.quantity,
+        nextInventory.availableQuantity,
+      )
+
+      return updateCurrentSelection(
+        currentForProduct,
+        selectionKey,
+        initialSelectedVariantId,
+        {
+          quantity: nextQuantity,
+          selectedVariantId: nextVariantId,
+        },
+      )
+    })
+  }
   const setSelectedVolumeDiscountId = (nextOptionId: string | null) => {
     setSelectionState((current) =>
-      updateCurrentSelection(current, productKey, {
+      updateCurrentSelection(current, selectionKey, initialSelectedVariantId, {
         selectedVolumeDiscountId: nextOptionId,
       }),
     )

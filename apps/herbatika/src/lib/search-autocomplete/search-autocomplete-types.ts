@@ -1,6 +1,10 @@
 import { isRecord } from "@techsio/std/object"
 
-export type SearchAutocompleteSuggestionType = "product" | "category" | "brand"
+export type SearchAutocompleteSuggestionType =
+  | "product"
+  | "category"
+  | "brand"
+  | "content"
 
 export interface SearchAutocompleteSuggestion {
   id: string
@@ -14,10 +18,12 @@ export interface SearchAutocompleteSuggestion {
 }
 
 export interface SearchAutocompleteResponse {
-  query: string
-  products: SearchAutocompleteSuggestion[]
-  categories: SearchAutocompleteSuggestion[]
   brands: SearchAutocompleteSuggestion[]
+  categories: SearchAutocompleteSuggestion[]
+  content: SearchAutocompleteSuggestion[]
+  degraded: boolean
+  products: SearchAutocompleteSuggestion[]
+  query: string
 }
 
 const isOptionalString = (value: unknown) =>
@@ -68,8 +74,8 @@ const isSearchAutocompleteResponse = (
   if (!isRecord(value)) {
     return false
   }
-  const { brands, categories, products, query } = value
-  if (typeof query !== "string") {
+  const { brands, categories, content, degraded, products, query } = value
+  if (typeof query !== "string" || typeof degraded !== "boolean") {
     return false
   }
   if (!isSuggestionArray(products, "product")) {
@@ -79,7 +85,9 @@ const isSearchAutocompleteResponse = (
     return false
   }
 
-  return isSuggestionArray(brands, "brand")
+  return (
+    isSuggestionArray(brands, "brand") && isSuggestionArray(content, "content")
+  )
 }
 
 class InvalidSearchAutocompleteResponseError extends Error {
@@ -103,12 +111,6 @@ export const parseSearchAutocompleteResponse = (
 
 export type SearchAutocompleteStatus = "idle" | "loading" | "success" | "error"
 
-export interface RawSearchAutocompleteFacetItem {
-  id?: unknown
-  label?: unknown
-  count?: unknown
-}
-
 export interface RawSearchAutocompleteCategoryRef {
   id?: unknown
   name?: unknown
@@ -121,22 +123,42 @@ export interface RawSearchAutocompleteBrandRef {
   handle?: unknown
 }
 
+export interface RawSearchAutocompleteContentHit {
+  excerpt?: unknown
+  href?: unknown
+  id?: unknown
+  title?: unknown
+  type?: unknown
+}
+
 interface RawSearchAutocompleteCalculatedPrice {
   calculated_amount?: unknown
   currency_code?: unknown
 }
 
 export interface RawSearchAutocompleteProductHit {
-  id?: unknown
-  title?: unknown
+  brand?: RawSearchAutocompleteBrandRef | null
+  categories?: RawSearchAutocompleteCategoryRef[] | null
   handle?: unknown
-  thumbnail?: unknown
+  id?: unknown
   metadata?: unknown
-  brand?: RawSearchAutocompleteBrandRef
-  categories?: RawSearchAutocompleteCategoryRef[]
-  variants?: {
-    calculated_price?: RawSearchAutocompleteCalculatedPrice
-  }[]
+  search_result?: {
+    variant_id?: unknown
+    variant_title?: unknown
+  }
+  thumbnail?: unknown
+  title?: unknown
+  variants?:
+    | {
+        barcode?: unknown
+        calculated_price?: RawSearchAutocompleteCalculatedPrice | null
+        ean?: unknown
+        id?: unknown
+        sku?: unknown
+        title?: unknown
+        upc?: unknown
+      }[]
+    | null
 }
 
 export const SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH = 2
@@ -148,6 +170,8 @@ export const createEmptySearchAutocompleteResponse = (
 ): SearchAutocompleteResponse => ({
   brands: [],
   categories: [],
+  content: [],
+  degraded: false,
   products: [],
   query,
 })

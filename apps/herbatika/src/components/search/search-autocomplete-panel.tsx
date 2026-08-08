@@ -15,6 +15,7 @@ import type { SearchAutocompletePanelSection } from "./search-autocomplete-secti
 
 interface SearchAutocompletePanelProps {
   api: ComboboxApi<SearchAutocompleteSuggestion>
+  degraded: boolean
   query: string
   sections: SearchAutocompletePanelSection[]
   status: SearchAutocompleteStatus
@@ -127,6 +128,7 @@ const SearchAutocompleteRow = ({
 
 export const SearchAutocompletePanel = ({
   api,
+  degraded,
   query,
   sections,
   status,
@@ -139,6 +141,8 @@ export const SearchAutocompletePanel = ({
     statusMessage = t("autocomplete.loading")
   } else if (status === "error") {
     statusMessage = t("autocomplete.load_failed")
+  } else if (degraded) {
+    statusMessage = t("autocomplete.degraded")
   }
 
   if (!hasItems) {
@@ -155,6 +159,11 @@ export const SearchAutocompletePanel = ({
 
   return (
     <div {...api.getContentProps()} className={PANEL_CLASS_NAME}>
+      {degraded ? (
+        <output className="block px-300 py-200 text-fg-secondary text-xs">
+          {t("autocomplete.degraded")}
+        </output>
+      ) : null}
       <div
         {...api.getListProps()}
         aria-busy={status === "loading" ? true : undefined}

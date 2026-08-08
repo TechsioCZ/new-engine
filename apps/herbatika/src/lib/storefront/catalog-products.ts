@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import type { UseCatalogProductsResult } from "@techsio/storefront-data/catalog/types"
+import { useLocale } from "next-intl"
 
 import type {
   CatalogProductsParams,
@@ -89,7 +90,11 @@ export const useCatalogProducts = (
   input: CatalogProductsInput,
   options?: UseCatalogProductsOptions,
 ): UseCatalogProductsResult<HttpTypes.StoreProduct> => {
-  const catalogQuery = catalogHooks.useCatalogProducts(input, options)
+  const locale = useLocale()
+  const catalogQuery = catalogHooks.useCatalogProducts(
+    { ...input, locale },
+    options,
+  )
   const inventorySnapshotHandles = resolveInventorySnapshotHandles(
     catalogQuery.products,
   )

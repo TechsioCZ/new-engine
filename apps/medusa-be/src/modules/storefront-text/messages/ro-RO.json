@@ -712,7 +712,8 @@
       "found": "găsite: {count}",
       "page": "pagina: {page}/{totalPages}",
       "empty": "Nu au fost găsite produse pentru „{query}”.",
-      "enter_query": "Introduceți un termen de căutare în bara de sus."
+      "enter_query": "Introduceți un termen de căutare în bara de sus.",
+      "related": "Rezultate asociate"
     },
     "input_placeholder": "Scrieți ce căutați...",
     "submit_aria": "Căutare",
@@ -722,10 +723,12 @@
       "loading": "Căutăm sugestii...",
       "load_failed": "Sugestiile nu au putut fi încărcate.",
       "empty": "Nu avem sugestii rapide pentru „{query}”.",
+      "degraded": "Unele sugestii nu au putut fi încărcate momentan.",
       "sections": {
         "products": "Produse",
         "categories": "Categorii",
-        "brands": "Mărci"
+        "brands": "Mărci",
+        "content": "Conținut"
       },
       "types": {
         "category": "Categorie",

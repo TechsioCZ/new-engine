@@ -6,6 +6,7 @@ export type Product = HttpTypes.StoreProduct
 
 export interface ProductDetailProps {
   handle: string
+  initialVariantId?: string
 }
 
 export interface ProductPriceState {

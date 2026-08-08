@@ -152,9 +152,11 @@ export const resolveCatalogSort = (
   sort: CatalogSortValue,
 ): string[] | undefined => {
   switch (sort) {
-    case "recommended":
-    case "best-selling": {
+    case "recommended": {
       return undefined
+    }
+    case "best-selling": {
+      return ["facet_popularity:desc"]
     }
     case "newest": {
       return ["created_at:desc"]
@@ -272,6 +274,38 @@ export const getFacetDistribution = (
   return result
 }
 
+export const getFacetDistributionFromHits = (
+  hits: unknown,
+  facetKey: string,
+): Map<string, number> => {
+  if (!Array.isArray(hits)) {
+    return new Map()
+  }
+
+  const result = new Map<string, number>()
+  const unknownHits: unknown[] = hits
+  for (const hit of unknownHits) {
+    if (hit === null || typeof hit !== "object" || Array.isArray(hit)) {
+      continue
+    }
+
+    const rawFacet = getOwnPropertyValue(hit, facetKey)
+    const facetValues = Array.isArray(rawFacet) ? rawFacet : [rawFacet]
+    const uniqueValues = new Set(
+      facetValues.filter(
+        (value): value is string =>
+          typeof value === "string" && value.length > 0,
+      ),
+    )
+
+    for (const value of uniqueValues) {
+      result.set(value, (result.get(value) ?? 0) + 1)
+    }
+  }
+
+  return result
+}
+
 export const getNumericFacetStats = (
   facetStats: unknown,
   facetKey: string,
@@ -305,6 +339,33 @@ export const getNumericFacetStats = (
     ...(min === undefined ? {} : { min }),
     ...(max === undefined ? {} : { max }),
   }
+}
+
+export const getNumericFacetStatsFromHits = (
+  hits: unknown,
+  facetKey: string,
+): { min?: number; max?: number } => {
+  if (!Array.isArray(hits)) {
+    return {}
+  }
+
+  const values: number[] = []
+  const unknownHits: unknown[] = hits
+  for (const hit of unknownHits) {
+    if (hit === null || typeof hit !== "object" || Array.isArray(hit)) {
+      continue
+    }
+    const value = getOwnPropertyValue(hit, facetKey)
+    if (typeof value === "number" && Number.isFinite(value)) {
+      values.push(value)
+    }
+  }
+
+  if (values.length === 0) {
+    return {}
+  }
+
+  return { max: Math.max(...values), min: Math.min(...values) }
 }
 
 export const humanizeFacetHandle = (handle: string): string =>

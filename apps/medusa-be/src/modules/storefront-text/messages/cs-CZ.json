@@ -712,7 +712,8 @@
       "found": "nalezeno: {count}",
       "page": "strana: {page}/{totalPages}",
       "empty": "Pro výraz „{query}“ nebyly nalezeny žádné produkty.",
-      "enter_query": "Zadejte výraz do vyhledávání v horním panelu."
+      "enter_query": "Zadejte výraz do vyhledávání v horním panelu.",
+      "related": "Související výsledky"
     },
     "input_placeholder": "Napište, co hledáte...",
     "submit_aria": "Hledat",
@@ -722,10 +723,12 @@
       "loading": "Hledáme návrhy...",
       "load_failed": "Návrhy se nepodařilo načíst.",
       "empty": "Pro výraz „{query}“ nemáme rychlé návrhy.",
+      "degraded": "Některé návrhy se momentálně nepodařilo načíst.",
       "sections": {
         "products": "Produkty",
         "categories": "Kategorie",
-        "brands": "Značky"
+        "brands": "Značky",
+        "content": "Obsah"
       },
       "types": {
         "category": "Kategorie",

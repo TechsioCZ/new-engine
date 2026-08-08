@@ -32,18 +32,31 @@ const resolveProductInStock = (hit: RawSearchAutocompleteProductHit) => {
   return resolveTopOfferInStock(topOffer)
 }
 
+const createProductHref = (handle: string, variantId: string) => {
+  if (variantId === "") {
+    return `/p/${handle}`
+  }
+  const encodedVariantId = encodeURIComponent(variantId)
+  return `/p/${handle}?variant=${encodedVariantId}`
+}
+
 const createProductSuggestion = (
   hit: RawSearchAutocompleteProductHit,
   currencyCode: HerbatikaCurrencyCode,
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(hit.id)
-  const title = normalizeString(hit.title)
+  const productTitle = normalizeString(hit.title)
   const handle = normalizeString(hit.handle)
 
-  if (!(id && title && handle)) {
+  if (!(id && productTitle && handle)) {
     return null
   }
 
+  const variantId = normalizeString(hit.search_result?.variant_id)
+  const variantTitle = normalizeString(hit.search_result?.variant_title)
+  const title = variantTitle
+    ? `${productTitle} – ${variantTitle}`
+    : productTitle
   const brandTitle = normalizeString(hit.brand?.title)
   const firstCategory = hit.categories?.find((category) =>
     Boolean(normalizeString(category.name)),
@@ -52,10 +65,10 @@ const createProductSuggestion = (
   const price = resolveProductPrice(hit, currencyCode)
 
   return {
-    href: `/p/${handle}`,
-    id,
+    href: createProductHref(handle, variantId),
+    id: variantId ? `${id}-${variantId}` : id,
     imageUrl: normalizeString(hit.thumbnail) || undefined,
-    inStock: resolveProductInStock(hit),
+    ...(variantId === "" ? { inStock: resolveProductInStock(hit) } : {}),
     priceLabel: price
       ? formatCurrencyAmount(price.currentAmount, price.currencyCode)
       : undefined,
@@ -68,7 +81,7 @@ const createProductSuggestion = (
 export const createProductSuggestions = (
   hits: RawSearchAutocompleteProductHit[],
   currencyCode: HerbatikaCurrencyCode,
-  limit: number,
+  limit = hits.length,
 ) =>
   hits
     .map((hit) => createProductSuggestion(hit, currencyCode))

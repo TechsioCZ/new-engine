@@ -1,17 +1,15 @@
 import type { MedusaConfigEnv } from "../../config/env"
 import type { MedusaPluginConfig } from "../../config/types"
-import { buildProductFacetDocument } from "./facets/product-facets"
-
-const MEILISEARCH_TYPO_TOLERANCE_SETTINGS = {
-  disableOnAttributes: [],
-  disableOnNumbers: false,
-  disableOnWords: [],
-  enabled: true,
-  minWordSizeForTypos: {
-    oneTypo: 4,
-    twoTypos: 10,
-  },
-}
+import {
+  buildBrandSearchDocument,
+  buildCategorySearchDocument,
+  buildProductSearchDocument,
+} from "./documents"
+import {
+  BRAND_INDEX_SETTINGS,
+  CATEGORY_INDEX_SETTINGS,
+  PRODUCT_INDEX_SETTINGS,
+} from "./settings"
 
 export const buildMeilisearchPlugin = (
   env: MedusaConfigEnv,
@@ -24,26 +22,24 @@ export const buildMeilisearchPlugin = (
     settings: {
       brands: {
         enabled: true,
-        fields: ["id", "title", "handle"],
-        indexSettings: {
-          displayedAttributes: ["id", "title", "handle"],
-          filterableAttributes: ["id", "title", "handle"],
-          searchableAttributes: ["title", "handle"],
-          typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
-        },
+        fields: ["id", "title", "description", "handle"],
+        indexSettings: BRAND_INDEX_SETTINGS,
         primaryKey: "id",
+        transformer: (document: Record<string, unknown>) =>
+          buildBrandSearchDocument(document),
         type: "brands",
       },
       categories: {
         enabled: true,
-        fields: ["id", "description", "handle"],
-        indexSettings: {
-          displayedAttributes: ["id", "description", "handle"],
-          filterableAttributes: ["id", "handle", "description"],
-          searchableAttributes: ["description"],
-          typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
-        },
+        fields: ["id", "name", "description", "handle", "parent_category_id"],
+        indexSettings: CATEGORY_INDEX_SETTINGS,
         primaryKey: "id",
+        transformer: (
+          document: Record<string, unknown>,
+          defaultTransformer: (
+            input: Record<string, unknown>,
+          ) => Record<string, unknown>,
+        ) => buildCategorySearchDocument(defaultTransformer(document)),
         type: "categories",
       },
       products: {
@@ -66,64 +62,14 @@ export const buildMeilisearchPlugin = (
           "sales_channels.id",
           "variants.id",
           "variants.sku",
+          "variants.ean",
+          "variants.upc",
+          "variants.barcode",
+          "variants.metadata",
           "variants.prices.amount",
           "variants.prices.currency_code",
         ],
-        indexSettings: {
-          displayedAttributes: [
-            "id",
-            "status",
-            "title",
-            "description",
-            "thumbnail",
-            "handle",
-            "created_at",
-            "metadata",
-            "brand",
-            "categories",
-            "sales_channels",
-            "facet_product_status",
-            "facet_sales_channel_ids",
-            "facet_status",
-            "facet_form",
-            "facet_brand",
-            "facet_ingredient",
-            "facet_category_ids",
-            "facet_in_stock",
-            "facet_price",
-          ],
-          filterableAttributes: [
-            "id",
-            "handle",
-            "facet_product_status",
-            "facet_sales_channel_ids",
-            "facet_status",
-            "facet_form",
-            "facet_brand",
-            "facet_ingredient",
-            "facet_category_ids",
-            "facet_in_stock",
-            "facet_price",
-          ],
-          rankingRules: [
-            "sort",
-            "words",
-            "typo",
-            "proximity",
-            "attribute",
-            "exactness",
-          ],
-          searchableAttributes: [
-            "title",
-            "description",
-            "handle",
-            "brand.title",
-            "categories.name",
-            "variants.sku",
-          ],
-          sortableAttributes: ["created_at", "title", "facet_price"],
-          typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
-        },
+        indexSettings: PRODUCT_INDEX_SETTINGS,
         primaryKey: "id",
         transformer: (
           document: Record<string, unknown>,
@@ -133,10 +79,7 @@ export const buildMeilisearchPlugin = (
         ) => {
           const transformedDocument = defaultTransformer(document)
 
-          return {
-            ...transformedDocument,
-            ...buildProductFacetDocument(transformedDocument),
-          }
+          return buildProductSearchDocument(transformedDocument)
         },
         type: "products",
       },

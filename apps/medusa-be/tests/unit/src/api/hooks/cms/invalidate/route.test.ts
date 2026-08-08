@@ -1,6 +1,7 @@
 import { createHmac, randomBytes } from "node:crypto"
 
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { isRecord } from "@techsio/std/object"
 import {
   afterAll,
   beforeAll,
@@ -12,17 +13,67 @@ import {
 } from "vitest"
 
 import type { POST as PostHandler } from "../../../../../../../src/api/hooks/cms/invalidate/route"
+import type {
+  loadSearchProfiles,
+  SearchProfile,
+} from "../../../../../../../src/modules/meilisearch/profiles"
 
 const WEBHOOK_SECRET = randomBytes(32).toString("hex")
 
 const mockInvalidateCache =
   vi.fn<(collection: string, slug?: string, locale?: string) => Promise<void>>()
+const mockGetPublishedSearchDocument =
+  vi.fn<
+    (
+      collection: "articles" | "pages",
+      id: string,
+      locale: string,
+    ) => Promise<unknown>
+  >()
+const mockReconcileContentSearchChange =
+  vi.fn<(change: unknown, logger: unknown, scope: unknown) => Promise<void>>()
+const mockLoadSearchProfiles = vi.fn<typeof loadSearchProfiles>(
+  async () => await Promise.resolve([]),
+)
+const createSearchProfile = (locale: string): SearchProfile => ({
+  availability: "all",
+  domain: "example.test",
+  indexes: {
+    brand: `brand_${locale}`,
+    category: `category_${locale}`,
+    content: `content_${locale}`,
+    product: `product_${locale}`,
+  },
+  key: `profile-${locale}`,
+  limits: {
+    autocomplete: { brand: 3, category: 3, content: 3, product: 6 },
+    fullSearch: 1000,
+    page: 48,
+    popular: 12,
+  },
+  locale,
+  minimumRankingScore: 0,
+  salesChannelIds: ["sc_test"],
+  separateVariantResults: false,
+  shop: "test",
+  strict: false,
+})
 const mockLogger = {
   debug: vi.fn<(message: string) => void>(),
   error: vi.fn<(messageOrError: string | Error, error?: Error) => void>(),
   info: vi.fn<(message: string) => void>(),
   warn: vi.fn<(message: string) => void>(),
 }
+
+vi.mock(
+  import("../../../../../../../src/modules/meilisearch/content-events"),
+  () => ({ reconcileContentSearchChange: mockReconcileContentSearchChange }),
+)
+
+vi.mock(
+  import("../../../../../../../src/modules/meilisearch/profiles"),
+  () => ({ loadSearchProfiles: mockLoadSearchProfiles }),
+)
 
 vi.mock(import("../../../../../../../src/modules/payload"), () => ({
   PAYLOAD_MODULE: "payload" as const,
@@ -107,7 +158,10 @@ const createMockRequest = (
     scope: {
       resolve: vi.fn<(key: string) => unknown>((key) => {
         if (key === "payload") {
-          return { invalidateCache: mockInvalidateCache }
+          return {
+            getPublishedSearchDocument: mockGetPublishedSearchDocument,
+            invalidateCache: mockInvalidateCache,
+          }
         }
         if (key === "logger") {
           return mockLogger
@@ -219,6 +273,137 @@ describe("POST /hooks/cms/invalidate route", () => {
       expect(mockInvalidateCache).toHaveBeenCalledWith("pages", "home", "en")
       expect(res.status).toHaveBeenCalledWith(200)
       expect(res.json).toHaveBeenCalledWith({ success: true })
+    })
+
+    it("evicts both current and previous localized slugs", async () => {
+      const body = {
+        collection: "pages",
+        doc: { locale: "en", previousSlug: "old-home", slug: "home" },
+      }
+      const signature = generateSignature(body)
+      const req = createMockRequest(body, {
+        "x-payload-signature": signature,
+      })
+      const res = createMockResponse()
+      mockInvalidateCache.mockResolvedValue()
+
+      await POST(req, res)
+
+      expect(mockInvalidateCache).toHaveBeenNthCalledWith(
+        1,
+        "pages",
+        "home",
+        "en",
+      )
+      expect(mockInvalidateCache).toHaveBeenNthCalledWith(
+        2,
+        "pages",
+        "old-home",
+        "en",
+      )
+      expect(res.status).toHaveBeenCalledWith(200)
+    })
+
+    it("refetches locale-less updates for every profile locale", async () => {
+      const body = {
+        collection: "pages",
+        doc: {
+          id: "page_1",
+          slug: { en: "home", sk: "domov" },
+          status: "published",
+          title: { en: "Home", sk: "Domov" },
+          visibility: "public",
+        },
+        operation: "update",
+      }
+      const signature = generateSignature(body)
+      const req = createMockRequest(body, {
+        "x-payload-signature": signature,
+      })
+      const res = createMockResponse()
+      mockInvalidateCache.mockResolvedValue()
+      mockLoadSearchProfiles.mockResolvedValue([
+        createSearchProfile("en"),
+        createSearchProfile("sk"),
+      ])
+      mockGetPublishedSearchDocument.mockImplementation(
+        async (_collection, id, locale) =>
+          await Promise.resolve({
+            id,
+            locale,
+            slug: locale === "sk" ? "domov" : "home",
+            status: "published",
+            title: locale === "sk" ? "Domov" : "Home",
+            visibility: "public",
+          }),
+      )
+
+      await POST(req, res)
+
+      expect(mockInvalidateCache).toHaveBeenCalledWith(
+        "pages",
+        undefined,
+        undefined,
+      )
+      expect(mockGetPublishedSearchDocument).toHaveBeenCalledTimes(2)
+      expect(mockReconcileContentSearchChange).toHaveBeenCalledTimes(2)
+      const reconciledLocales = mockReconcileContentSearchChange.mock.calls
+        .flatMap(([change]) => {
+          if (!isRecord(change)) {
+            return []
+          }
+          const { doc } = change
+          if (!isRecord(doc)) {
+            return []
+          }
+          const { locale } = doc
+          return typeof locale === "string" ? [locale] : []
+        })
+        .toSorted((left, right) => left.localeCompare(right))
+      expect(reconciledLocales).toStrictEqual(["en", "sk"])
+      const reconciledTitles = mockReconcileContentSearchChange.mock.calls
+        .flatMap(([change]) => {
+          if (!isRecord(change) || !isRecord(change["doc"])) {
+            return []
+          }
+          const { title } = change["doc"]
+          return typeof title === "string" ? [title] : []
+        })
+        .toSorted((left, right) => left.localeCompare(right))
+      expect(reconciledTitles).toStrictEqual(["Domov", "Home"])
+    })
+
+    it("reconciles global unpublish changes for every profile locale", async () => {
+      const body = {
+        collection: "pages",
+        doc: {
+          globalVisibilityChange: true,
+          id: "page_1",
+          slug: "home",
+          status: "draft",
+          visibility: "public",
+        },
+        operation: "update",
+      }
+      const signature = generateSignature(body)
+      const req = createMockRequest(body, {
+        "x-payload-signature": signature,
+      })
+      const res = createMockResponse()
+      mockInvalidateCache.mockResolvedValue()
+      mockLoadSearchProfiles.mockResolvedValue([
+        createSearchProfile("en"),
+        createSearchProfile("sk"),
+      ])
+      mockGetPublishedSearchDocument.mockResolvedValue(null)
+
+      await POST(req, res)
+
+      expect(mockGetPublishedSearchDocument).toHaveBeenCalledTimes(2)
+      expect(mockReconcileContentSearchChange).toHaveBeenCalledTimes(2)
+      for (const [change] of mockReconcileContentSearchChange.mock.calls) {
+        expect(change).toMatchObject({ doc: { status: "unpublished" } })
+      }
     })
 
     it("handles request without doc property", async () => {
