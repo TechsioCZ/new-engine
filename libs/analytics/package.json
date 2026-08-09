@@ -36,7 +36,8 @@
     "build": "rslib build",
     "dev": "rslib build --watch",
     "lint": "pnpm -w exec oxlint libs/analytics/src --type-aware",
-    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/libs/analytics/tsconfig.json"
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/libs/analytics/tsconfig.json",
+    "test": "vitest run test"
   },
   "devDependencies": {
     "@rsbuild/plugin-react": "^2.1.0",
@@ -44,7 +45,8 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "next": "16.3.0-preview.5",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "catalog:vite8-testing"
   },
   "peerDependencies": {
     "next": "^16.3.0-preview.5",

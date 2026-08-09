@@ -52,6 +52,9 @@ const runQualityGate = async (
 const findNamedStep = (steps: readonly unknown[], name: string) =>
   steps.find((step) => isRecord(step) && step["name"] === name)
 
+const findActionStep = (steps: readonly unknown[], action: string) =>
+  steps.find((step) => isRecord(step) && step["uses"] === action)
+
 const githubExpression = (expression: string) => `\${{ ${expression} }}`
 const shellVariable = (name: string) => `\${${name}}`
 
@@ -86,6 +89,12 @@ const previewBaselineCompleteFlagPattern =
   /--preview-baseline-complete "\$PREVIEW_BASELINE_COMPLETE"/u
 const node24Pattern = /node-version: 24/u
 const ciCtlTestPattern = /nubx --node nx run new-engine-ctl:test/u
+const checkoutAction =
+  "actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5"
+const setupNodeAction =
+  "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+const installDependenciesCommand =
+  "pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies"
 const blockingJobIds = [
   "format-and-lint",
   "architecture-and-hygiene",
@@ -93,6 +102,8 @@ const blockingJobIds = [
   "design-tokens",
   "tests",
   "builds",
+  "react-doctor",
+  "konsistent",
 ]
 const blockingResultEnvironment = {
   ARCHITECTURE_AND_HYGIENE: githubExpression(
@@ -101,6 +112,8 @@ const blockingResultEnvironment = {
   BUILDS: githubExpression("needs.builds.result"),
   DESIGN_TOKENS: githubExpression("needs.design-tokens.result"),
   FORMAT_AND_LINT: githubExpression("needs.format-and-lint.result"),
+  KONSISTENT: githubExpression("needs.konsistent.result"),
+  REACT_DOCTOR: githubExpression("needs.react-doctor.result"),
   TESTS: githubExpression("needs.tests.result"),
   TYPECHECK: githubExpression("needs.typecheck.result"),
 }
@@ -211,6 +224,26 @@ describe("CI workflow contracts", () => {
     },
   )
 
+  test("main CI runs for pull requests and master pushes", async () => {
+    const raw = await readFile(
+      path.join(repoRoot, ".github/workflows/ci.yml"),
+      "utf-8",
+    )
+    const workflow: unknown = parseYaml(raw)
+
+    if (!isRecord(workflow) || !isRecord(workflow["on"])) {
+      throw new TypeError("CI workflow must define workflow triggers")
+    }
+
+    const triggers = workflow["on"]
+    expect(Object.hasOwn(triggers, "pull_request")).toBeTruthy()
+    const pushTrigger = triggers["push"]
+    if (!isRecord(pushTrigger) || !Array.isArray(pushTrigger["branches"])) {
+      throw new TypeError("CI workflow must define push branches")
+    }
+    expect(pushTrigger["branches"]).toContain("master")
+  })
+
   test("main CI runs new-engine-ctl tests on the supported Node version", async () => {
     const raw = await readFile(
       path.join(repoRoot, ".github/workflows/ci.yml"),
@@ -219,6 +252,169 @@ describe("CI workflow contracts", () => {
 
     expect(raw).toMatch(node24Pattern)
     expect(raw).toMatch(ciCtlTestPattern)
+  })
+
+  test("main CI never cancels an in-progress master push scan", async () => {
+    const raw = await readFile(
+      path.join(repoRoot, ".github/workflows/ci.yml"),
+      "utf-8",
+    )
+    const workflow: unknown = parseYaml(raw)
+
+    if (!isRecord(workflow) || !isRecord(workflow["concurrency"])) {
+      throw new TypeError("CI workflow must define concurrency controls")
+    }
+
+    expect(workflow["concurrency"]).toStrictEqual({
+      "cancel-in-progress": githubExpression(
+        "github.event_name == 'pull_request'",
+      ),
+      group: `ci-${githubExpression(
+        "github.event.pull_request.number || github.run_id",
+      )}`,
+    })
+  })
+
+  test("blocking quality-tool jobs use secure Node 24 installs", async () => {
+    const raw = await readFile(
+      path.join(repoRoot, ".github/workflows/ci.yml"),
+      "utf-8",
+    )
+    const workflow: unknown = parseYaml(raw)
+
+    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
+      throw new TypeError("CI workflow must define a jobs mapping")
+    }
+
+    expect(workflow["permissions"]).toStrictEqual({
+      actions: "read",
+      contents: "read",
+    })
+
+    for (const jobId of ["react-doctor", "konsistent"]) {
+      const job = workflow["jobs"][jobId]
+      if (!isRecord(job) || !Array.isArray(job["steps"])) {
+        throw new TypeError(`${jobId} must define its steps`)
+      }
+
+      expect(
+        job["steps"].filter(
+          (step) =>
+            isRecord(step) &&
+            typeof step["uses"] === "string" &&
+            step["uses"].startsWith("actions/checkout@"),
+        ),
+      ).toHaveLength(1)
+
+      const checkoutStep = findActionStep(job["steps"], checkoutAction)
+      const setupNodeStep = findActionStep(job["steps"], setupNodeAction)
+      const installStep = findNamedStep(
+        job["steps"],
+        "Install dependencies without lifecycle scripts",
+      )
+      if (
+        !isRecord(checkoutStep) ||
+        !isRecord(setupNodeStep) ||
+        !isRecord(installStep)
+      ) {
+        throw new TypeError(`${jobId} must define its secure bootstrap steps`)
+      }
+
+      expect(checkoutStep["uses"]).toBe(checkoutAction)
+      expect(checkoutStep["with"]).toStrictEqual({
+        "fetch-depth": 0,
+        "persist-credentials": false,
+      })
+      expect(setupNodeStep["with"]).toStrictEqual({
+        cache: "pnpm",
+        "node-version": 24,
+      })
+      expect(installStep["run"]).toBe(installDependenciesCommand)
+    }
+  })
+
+  test("blocking CI lanes cannot be skipped or allowed to fail", async () => {
+    const raw = await readFile(
+      path.join(repoRoot, ".github/workflows/ci.yml"),
+      "utf-8",
+    )
+    const workflow: unknown = parseYaml(raw)
+
+    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
+      throw new TypeError("CI workflow must define a jobs mapping")
+    }
+
+    for (const jobId of blockingJobIds) {
+      const job = workflow["jobs"][jobId]
+      if (!isRecord(job)) {
+        throw new TypeError(`CI workflow must define the ${jobId} job`)
+      }
+
+      // Blocking lanes must run whenever the workflow runs. quality-gate is
+      // the one intentional exception because it reduces skipped dependencies.
+      expect(job["if"]).toBeUndefined()
+      expect(job["continue-on-error"]).toBeUndefined()
+
+      const { steps } = job
+      if (!Array.isArray(steps)) {
+        throw new TypeError(`${jobId} must define its steps`)
+      }
+      for (const step of steps) {
+        const continueOnError = isRecord(step)
+          ? step["continue-on-error"]
+          : undefined
+        expect(continueOnError).toBeUndefined()
+      }
+    }
+
+    const qualityGate = workflow["jobs"]["quality-gate"]
+    if (!isRecord(qualityGate)) {
+      throw new TypeError("CI workflow must define the quality-gate job")
+    }
+    expect(qualityGate["continue-on-error"]).toBeUndefined()
+    const qualityGateSteps = qualityGate["steps"]
+    if (!Array.isArray(qualityGateSteps)) {
+      throw new TypeError("quality-gate must define its steps")
+    }
+    for (const step of qualityGateSteps) {
+      const continueOnError = isRecord(step)
+        ? step["continue-on-error"]
+        : undefined
+      expect(continueOnError).toBeUndefined()
+    }
+  })
+
+  test("root konsistent configuration is schema-valid", async () => {
+    const raw = await readFile(path.join(repoRoot, "konsistent.json"), "utf-8")
+    const config: unknown = JSON.parse(raw)
+
+    expect(config).toStrictEqual({
+      $schema: "node_modules/konsistent/konsistent.schema.json",
+      conventions: [],
+      version: "v1",
+    })
+    await Promise.all([
+      expect(
+        execFileAsync("pnpm", [
+          "--dir",
+          repoRoot,
+          "exec",
+          "konsistent",
+          "validate",
+        ]),
+      ).resolves.toBeDefined(),
+      expect(
+        execFileAsync("pnpm", [
+          "--dir",
+          repoRoot,
+          "exec",
+          "konsistent",
+          "check",
+          "--format=github",
+          "--error-on-warnings",
+        ]),
+      ).resolves.toBeDefined(),
+    ])
   })
 
   test("main CI pins the documented blocking quality-gate contract", async () => {
@@ -267,16 +463,13 @@ describe("CI workflow contracts", () => {
       runQualityGate(qualityGateScript, successfulResults),
     ).resolves.toBeUndefined()
 
-    const rejectedResults = [
-      ...Object.keys(blockingResultEnvironment).map((name) => ({
-        ...successfulResults,
-        [name]: "failure",
-      })),
-      ...["cancelled", "skipped"].map((result) => ({
-        ...successfulResults,
-        FORMAT_AND_LINT: result,
-      })),
-    ]
+    const rejectedResults = Object.keys(blockingResultEnvironment).flatMap(
+      (name) =>
+        ["failure", "cancelled", "skipped"].map((result) => ({
+          ...successfulResults,
+          [name]: result,
+        })),
+    )
     await Promise.all(
       rejectedResults.map(async (results) => {
         await expect(
@@ -284,6 +477,99 @@ describe("CI workflow contracts", () => {
         ).rejects.toMatchObject({ code: 1 })
       }),
     )
+  })
+
+  test("main CI blocks on an independent React Doctor job", async () => {
+    const raw = await readFile(
+      path.join(repoRoot, ".github/workflows/ci.yml"),
+      "utf-8",
+    )
+    const workflow: unknown = parseYaml(raw)
+
+    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
+      throw new TypeError("CI workflow must define a jobs mapping")
+    }
+
+    const reactDoctorJob = workflow["jobs"]["react-doctor"]
+    if (!isRecord(reactDoctorJob)) {
+      throw new TypeError("CI workflow must define the React Doctor job")
+    }
+
+    expect(reactDoctorJob["needs"]).toBeUndefined()
+
+    const reactDoctorSteps = reactDoctorJob["steps"]
+    if (!Array.isArray(reactDoctorSteps)) {
+      throw new TypeError("React Doctor must define its steps")
+    }
+
+    const reactDoctorStep = findNamedStep(
+      reactDoctorSteps,
+      "Reject React Doctor errors introduced by this change",
+    )
+    if (!isRecord(reactDoctorStep)) {
+      throw new TypeError("React Doctor must define its blocking scan step")
+    }
+
+    expect(reactDoctorStep["continue-on-error"]).toBeUndefined()
+    expect(reactDoctorStep["env"]).toStrictEqual({
+      BASE_SHA: githubExpression(
+        "github.event.pull_request.base.sha || github.event.before",
+      ),
+    })
+    expect(reactDoctorStep["run"]).toBe(
+      'pnpm exec react-doctor . --scope changed --base "$BASE_SHA" --blocking error --no-score --no-supply-chain -y',
+    )
+  })
+
+  test("main CI always executes konsistent while Danger stays advisory", async () => {
+    const raw = await readFile(
+      path.join(repoRoot, ".github/workflows/ci.yml"),
+      "utf-8",
+    )
+    const workflow: unknown = parseYaml(raw)
+
+    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
+      throw new TypeError("CI workflow must define a jobs mapping")
+    }
+
+    const konsistentJob = workflow["jobs"]["konsistent"]
+    const advisoryJob = workflow["jobs"]["advisory-trials"]
+    if (!isRecord(konsistentJob) || !isRecord(advisoryJob)) {
+      throw new TypeError(
+        "CI workflow must define konsistent and advisory jobs",
+      )
+    }
+
+    expect(konsistentJob["needs"]).toBeUndefined()
+
+    const konsistentSteps = konsistentJob["steps"]
+    const advisorySteps = advisoryJob["steps"]
+    if (!Array.isArray(konsistentSteps) || !Array.isArray(advisorySteps)) {
+      throw new TypeError("CI quality-tool jobs must define their steps")
+    }
+
+    const konsistentStep = findNamedStep(
+      konsistentSteps,
+      "Validate konsistent configuration and tool execution",
+    )
+    if (!isRecord(konsistentStep)) {
+      throw new TypeError("konsistent must define its execution step")
+    }
+
+    expect(konsistentStep["continue-on-error"]).toBeUndefined()
+    expect(konsistentStep["if"]).toBeUndefined()
+    expect(konsistentStep["run"]).toBe(
+      "pnpm exec konsistent check --format=github --error-on-warnings",
+    )
+
+    const dangerStep = findNamedStep(
+      advisorySteps,
+      "Trial Danger review automation",
+    )
+    if (!isRecord(dangerStep)) {
+      throw new TypeError("Advisory job must define its Danger step")
+    }
+    expect(dangerStep["continue-on-error"]).toBeTruthy()
   })
 
   test("main CI runs the exact production Knip command", async () => {

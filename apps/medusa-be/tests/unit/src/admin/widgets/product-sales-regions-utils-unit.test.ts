@@ -9,9 +9,11 @@ import {
 } from "../../../../../src/admin/utils/product-sales-regions"
 
 describe("product sales regions widget utils", () => {
-  it("formats integer and fractional percentages", () => {
-    expect(formatPercent(20, "en-US")).toBe("20%")
+  it("partitions cached percentage formatting by locale and precision", () => {
     expect(formatPercent(19.5, "en-US")).toBe("19.50%")
+    expect(formatPercent(19.5, "de-DE")).toBe("19,50%")
+    expect(formatPercent(20, "de-DE")).toBe("20%")
+    expect(formatPercent(20, "en-US")).toBe("20%")
   })
 
   it("prefers explicit country names and falls back to country codes", () => {

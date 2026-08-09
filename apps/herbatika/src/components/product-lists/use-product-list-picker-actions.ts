@@ -14,6 +14,7 @@ import {
 
 import type { ProductListPickerRow } from "./product-list-picker-rows"
 import { normalizeProductListPickerQuantity } from "./product-list-picker-rows"
+import { runMutationWithCleanup } from "./run-mutation-with-cleanup"
 
 interface UseProductListPickerActionsInput {
   clearNewListForm: () => void
@@ -52,31 +53,35 @@ export const useProductListPickerActions = ({
     }
 
     setActiveListKey(row.key)
-    try {
-      if (row.isFavorite) {
-        await addFavoriteItemMutation.mutateAsync({
-          productId: product.id,
-          quantity: quantityToAdd,
-          variantId: selectedVariantId,
+    await runMutationWithCleanup({
+      cleanup: () => {
+        setActiveListKey(null)
+      },
+      onError: (mutationError) => {
+        toast.error({
+          title: resolveErrorMessage(
+            mutationError,
+            tAuth("product_lists.errors.add_product_failed"),
+          ),
         })
-      } else if (row.list?.id !== undefined && row.list.id !== "") {
-        await addItemMutation.mutateAsync({
-          listId: row.list.id,
-          productId: product.id,
-          quantity: quantityToAdd,
-          variantId: selectedVariantId,
-        })
-      }
-    } catch (mutationError) {
-      toast.error({
-        title: resolveErrorMessage(
-          mutationError,
-          tAuth("product_lists.errors.add_product_failed"),
-        ),
-      })
-    } finally {
-      setActiveListKey(null)
-    }
+      },
+      operation: async () => {
+        if (row.isFavorite) {
+          await addFavoriteItemMutation.mutateAsync({
+            productId: product.id,
+            quantity: quantityToAdd,
+            variantId: selectedVariantId,
+          })
+        } else if (row.list?.id !== undefined && row.list.id !== "") {
+          await addItemMutation.mutateAsync({
+            listId: row.list.id,
+            productId: product.id,
+            quantity: quantityToAdd,
+            variantId: selectedVariantId,
+          })
+        }
+      },
+    })
   }
 
   const handleCreateList = async (event: SubmitEvent<HTMLFormElement>) => {
@@ -90,31 +95,35 @@ export const useProductListPickerActions = ({
     }
 
     setActiveListKey("new-list")
-    try {
-      const createdList = await createCustomMutation.mutateAsync({
-        access_type: "private",
-        title,
-      })
-      if (createdList?.id === undefined || createdList.id === "") {
-        throw new Error(tAuth("product_lists.errors.create_failed"))
-      }
-      await addItemMutation.mutateAsync({
-        listId: createdList.id,
-        productId: product.id,
-        quantity: quantityToAdd,
-        variantId: selectedVariantId,
-      })
-      clearNewListForm()
-    } catch (mutationError) {
-      toast.error({
-        title: resolveErrorMessage(
-          mutationError,
-          tAuth("product_lists.errors.create_failed"),
-        ),
-      })
-    } finally {
-      setActiveListKey(null)
-    }
+    await runMutationWithCleanup({
+      cleanup: () => {
+        setActiveListKey(null)
+      },
+      onError: (mutationError) => {
+        toast.error({
+          title: resolveErrorMessage(
+            mutationError,
+            tAuth("product_lists.errors.create_failed"),
+          ),
+        })
+      },
+      operation: async () => {
+        const createdList = await createCustomMutation.mutateAsync({
+          access_type: "private",
+          title,
+        })
+        if (createdList?.id === undefined || createdList.id === "") {
+          throw new Error(tAuth("product_lists.errors.create_failed"))
+        }
+        await addItemMutation.mutateAsync({
+          listId: createdList.id,
+          productId: product.id,
+          quantity: quantityToAdd,
+          variantId: selectedVariantId,
+        })
+        clearNewListForm()
+      },
+    })
   }
 
   return {

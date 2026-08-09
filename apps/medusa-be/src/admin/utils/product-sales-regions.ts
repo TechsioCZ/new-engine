@@ -28,12 +28,34 @@ export interface AdminRegionWithCountries {
 }
 
 const REGION_PRIORITY = ["sk", "cz"]
+const MAX_PERCENT_FORMATTERS = 32
+const PERCENT_FORMATTERS = new Map<string, Intl.NumberFormat>()
+
+const getPercentFormatter = (locale: string, minimumFractionDigits: number) => {
+  const cacheKey = JSON.stringify([locale, minimumFractionDigits])
+  const cachedFormatter = PERCENT_FORMATTERS.get(cacheKey)
+  if (cachedFormatter !== undefined) {
+    PERCENT_FORMATTERS.delete(cacheKey)
+    PERCENT_FORMATTERS.set(cacheKey, cachedFormatter)
+    return cachedFormatter
+  }
+
+  const formatter = Intl.NumberFormat(locale, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits,
+  })
+  if (PERCENT_FORMATTERS.size >= MAX_PERCENT_FORMATTERS) {
+    const oldestKey = PERCENT_FORMATTERS.keys().next().value
+    if (oldestKey !== undefined) {
+      PERCENT_FORMATTERS.delete(oldestKey)
+    }
+  }
+  PERCENT_FORMATTERS.set(cacheKey, formatter)
+  return formatter
+}
 
 export const formatPercent = (rate: number, locale: string) =>
-  `${new Intl.NumberFormat(locale, {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: Number.isInteger(rate) ? 0 : 2,
-  }).format(rate)}%`
+  `${getPercentFormatter(locale, Number.isInteger(rate) ? 0 : 2).format(rate)}%`
 
 export const getCountryName = (
   country: RegionCountry | undefined,

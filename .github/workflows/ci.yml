@@ -11,8 +11,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # PR runs share a replaceable group; every push gets its own group so a
+  # pending master scan cannot be superseded while cancel-in-progress is false.
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CI: "true"
@@ -224,10 +226,50 @@ jobs:
       - name: Run affected builds
         run: ./node_modules/.bin/nubx --node nx affected -t build
 
-  # Experimental tools report signal here but are deliberately excluded from
-  # quality-gate until their false-positive rates are proven stable.
+  react-doctor:
+    name: React Doctor
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies
+      - name: Reject React Doctor errors introduced by this change
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: pnpm exec react-doctor . --scope changed --base "$BASE_SHA" --blocking error --no-score --no-supply-chain -y
+
+  konsistent:
+    name: Konsistent
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies
+      - name: Validate konsistent configuration and tool execution
+        run: pnpm exec konsistent check --format=github --error-on-warnings
+
+  # Danger is useful review signal but remains advisory and does not participate
+  # in quality-gate.
   advisory-trials:
-    name: Advisory trials
+    name: Advisory Danger trial
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -247,19 +289,6 @@ jobs:
           cache: pnpm
       - name: Install dependencies without lifecycle scripts
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies
-      - name: Trial React Doctor on changed React code
-        id: react-doctor
-        continue-on-error: true
-        run: pnpm exec react-doctor . --scope changed --base "${{ github.event.pull_request.base.sha }}" --blocking none --max-duration 180 --no-score --no-supply-chain -y
-      - name: Trial konsistent conventions
-        id: konsistent
-        continue-on-error: true
-        run: |
-          if [ -f konsistent.json ]; then
-            pnpm exec konsistent check --format=github --error-on-warnings
-          else
-            echo "No konsistent.json yet; trial recorded as not configured." >> "$GITHUB_STEP_SUMMARY"
-          fi
       - name: Detect Dangerfile
         id: dangerfile
         run: |
@@ -279,16 +308,12 @@ jobs:
       - name: Advisory summary
         if: always()
         env:
-          REACT_DOCTOR: ${{ steps.react-doctor.outcome }}
-          KONSISTENT: ${{ steps.konsistent.outcome }}
           DANGER: ${{ steps.dangerfile.outputs.configured == 'true' && steps.danger.outcome || 'not configured' }}
         run: |
           {
-            printf '%s\n' "## Advisory trials"
-            printf '%s\n' "- React Doctor: $REACT_DOCTOR"
-            printf '%s\n' "- konsistent: $KONSISTENT"
+            printf '%s\n' "## Advisory trial"
             printf '%s\n' "- Danger: $DANGER"
-            printf '%s\n' "These trials do not participate in quality-gate."
+            printf '%s\n' "Danger does not participate in quality-gate."
           } >> "$GITHUB_STEP_SUMMARY"
 
   quality-gate:
@@ -301,6 +326,8 @@ jobs:
       - design-tokens
       - tests
       - builds
+      - react-doctor
+      - konsistent
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -312,6 +339,8 @@ jobs:
           DESIGN_TOKENS: ${{ needs.design-tokens.result }}
           TESTS: ${{ needs.tests.result }}
           BUILDS: ${{ needs.builds.result }}
+          REACT_DOCTOR: ${{ needs.react-doctor.result }}
+          KONSISTENT: ${{ needs.konsistent.result }}
         run: |
           failed=0
           for result in \
@@ -320,7 +349,9 @@ jobs:
             "$TYPECHECK" \
             "$DESIGN_TOKENS" \
             "$TESTS" \
-            "$BUILDS"; do
+            "$BUILDS" \
+            "$REACT_DOCTOR" \
+            "$KONSISTENT"; do
             if [ "$result" != "success" ]; then
               failed=1
             fi
@@ -334,6 +365,8 @@ jobs:
             printf '%s\n' "- Design tokens: $DESIGN_TOKENS"
             printf '%s\n' "- Affected tests: $TESTS"
             printf '%s\n' "- Affected builds: $BUILDS"
+            printf '%s\n' "- React Doctor: $REACT_DOCTOR"
+            printf '%s\n' "- Konsistent: $KONSISTENT"
           } >> "$GITHUB_STEP_SUMMARY"
 
           exit "$failed"

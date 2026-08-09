@@ -558,9 +558,9 @@ export const Slider = ({
                         index
                 return (
                   <div
+                    key={slugify(`marker-${markerValue}`)}
                     {...api.getMarkerProps({ value: markerValue })}
                     className={marker()}
-                    key={slugify(`marker-${markerValue}`)}
                   >
                     {/* hide first and last marker line, if thumb alignmetn is center */}
                     {!(
@@ -586,9 +586,9 @@ export const Slider = ({
         </div>
         {Array.from({ length: api.value.length }, (_, index) => (
           <div
+            key={`thumb-${index}`}
             {...api.getThumbProps({ index })}
             className={thumb()}
-            key={`thumb-${index}`}
           >
             <input {...api.getHiddenInputProps({ index })} />
           </div>

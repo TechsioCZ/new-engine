@@ -206,8 +206,8 @@ const ReviewEditDrawerContent = ({
 
 const ReviewEditDrawer = (props: ReviewEditDrawerProps) => (
   <ReviewEditDrawerContent
-    {...props}
     key={`${props.review.id}:${String(props.open)}`}
+    {...props}
   />
 )
 

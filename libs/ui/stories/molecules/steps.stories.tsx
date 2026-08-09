@@ -206,7 +206,7 @@ const PlaygroundStoryOwner = (args: StepsProps) => {
 }
 
 const renderPlayground: NonNullable<Story["render"]> = (args) => (
-  <PlaygroundStoryOwner {...args} key={args.step ?? 0} />
+  <PlaygroundStoryOwner key={args.step ?? 0} {...args} />
 )
 
 export const Playground: Story = {

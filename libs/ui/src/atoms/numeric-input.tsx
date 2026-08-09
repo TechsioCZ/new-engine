@@ -144,6 +144,8 @@ interface NumericInputContextValue {
   styles: ReturnType<typeof numericInputVariants>
   invalid?: boolean | undefined
   describedBy?: string | undefined
+  controlledValue?: string | undefined
+  defaultValue?: string | undefined
 }
 
 // The provider value is built through this factory so the object is not
@@ -170,20 +172,107 @@ const useNumericInputContext = (): NumericInputContextValue => {
 const hasPrecision = (precision: number | undefined): precision is number =>
   precision !== undefined && precision !== 0 && !Number.isNaN(precision)
 
+const resolveFormatOptions = (
+  formatOptions: Intl.NumberFormatOptions | undefined,
+  precision: number | undefined,
+): Intl.NumberFormatOptions | undefined =>
+  hasPrecision(precision)
+    ? { ...formatOptions, maximumFractionDigits: precision }
+    : formatOptions
+
+// NumberFormat construction is relatively expensive, while NumericInput renders
+// frequently as its machine state changes. Keep a small process-local LRU rather
+// than constructing one during every render. The cache stores option snapshots,
+// not option objects, so mutating a caller-owned options object invalidates its
+// old entry on the next render. Its fixed size also bounds SSR and long-lived
+// browser-process retention.
+const NUMBER_FORMAT_OPTIONS = [
+  "localeMatcher",
+  "numberingSystem",
+  "style",
+  "currency",
+  "currencyDisplay",
+  "currencySign",
+  "unit",
+  "unitDisplay",
+  "notation",
+  "compactDisplay",
+  "useGrouping",
+  "signDisplay",
+  "minimumIntegerDigits",
+  "minimumFractionDigits",
+  "maximumFractionDigits",
+  "minimumSignificantDigits",
+  "maximumSignificantDigits",
+  "roundingPriority",
+  "roundingIncrement",
+  "roundingMode",
+  "trailingZeroDisplay",
+] as const
+
+const MAX_NUMBER_FORMATTERS = 32
+
+interface NumberFormatterCacheEntry {
+  locale: string
+  optionValues: readonly unknown[]
+  formatter: Intl.NumberFormat
+}
+
+const numberFormatterCache: NumberFormatterCacheEntry[] = []
+
+const hasSameNumberFormatOptions = (
+  left: readonly unknown[],
+  right: readonly unknown[],
+): boolean =>
+  left.length === right.length &&
+  left.every((value, index) => Object.is(value, right[index]))
+
+const createNumberFormatter = (
+  locale: string,
+  formatOptions: Intl.NumberFormatOptions | undefined,
+): Intl.NumberFormat | undefined => {
+  if (formatOptions === undefined) {
+    return undefined
+  }
+
+  const optionValues = NUMBER_FORMAT_OPTIONS.map(
+    (option) => formatOptions[option as keyof Intl.NumberFormatOptions],
+  )
+  const cacheIndex = numberFormatterCache.findIndex(
+    (entry) =>
+      entry.locale === locale &&
+      hasSameNumberFormatOptions(entry.optionValues, optionValues),
+  )
+
+  if (cacheIndex !== -1) {
+    const [cachedEntry] = numberFormatterCache.splice(cacheIndex, 1)
+    if (cachedEntry !== undefined) {
+      numberFormatterCache.unshift(cachedEntry)
+      return cachedEntry.formatter
+    }
+  }
+
+  const formatter = Intl.NumberFormat(locale, formatOptions)
+  numberFormatterCache.unshift({ formatter, locale, optionValues })
+  if (numberFormatterCache.length > MAX_NUMBER_FORMATTERS) {
+    numberFormatterCache.pop()
+  }
+  return formatter
+}
+
 // Zag's number-input machine is driven by formatted strings; `undefined` means
 // "not provided" and must stay that way so the machine keeps its own state.
 const formatMachineValue = (
   value: number | undefined,
-  locale: string,
-  formatOptions: Intl.NumberFormatOptions | undefined,
+  formatter: Intl.NumberFormat | undefined,
 ): string | undefined => {
   if (value === undefined) {
     return undefined
   }
-  if (!formatOptions) {
+  if (!formatter) {
     return String(value)
   }
-  return new Intl.NumberFormat(locale, formatOptions).format(value)
+  return formatter.format(value)
 }
 
 interface NumericInputMachineOverrides {
@@ -275,16 +364,11 @@ export const NumericInput = ({
 }: NumericInputProps) => {
   const generatedId = useId()
   const uniqueId = id ?? generatedId
-  const resolvedFormatOptions = hasPrecision(precision)
-    ? { ...formatOptions, maximumFractionDigits: precision }
-    : formatOptions
+  const resolvedFormatOptions = resolveFormatOptions(formatOptions, precision)
+  const numberFormatter = createNumberFormatter(locale, resolvedFormatOptions)
 
-  const stringValue = formatMachineValue(value, locale, resolvedFormatOptions)
-  const stringDefaultValue = formatMachineValue(
-    defaultValue,
-    locale,
-    resolvedFormatOptions,
-  )
+  const stringValue = formatMachineValue(value, numberFormatter)
+  const stringDefaultValue = formatMachineValue(defaultValue, numberFormatter)
 
   const service = useMachine(machine, {
     allowMouseWheel,
@@ -320,6 +404,8 @@ export const NumericInput = ({
 
   const contextValue = createNumericInputContextValue({
     api,
+    controlledValue: stringValue,
+    defaultValue: stringDefaultValue,
     describedBy,
     invalid,
     size,
@@ -379,7 +465,8 @@ const NumericInputInput = ({
   className,
   ...props
 }: NumericInputInputProps) => {
-  const { api, styles, describedBy } = useNumericInputContext()
+  const { api, controlledValue, defaultValue, styles, describedBy } =
+    useNumericInputContext()
   const ariaDescribedBy =
     [props["aria-describedby"], describedBy].filter(Boolean).join(" ") ||
     undefined
@@ -390,6 +477,12 @@ const NumericInputInput = ({
       {...mergeProps(api.getInputProps(), props)}
       aria-describedby={ariaDescribedBy}
       className={styles.input({ className })}
+      defaultValue={
+        controlledValue === undefined
+          ? (props.defaultValue ?? defaultValue)
+          : undefined
+      }
+      value={controlledValue}
     />
   )
 }

@@ -1,7 +1,5 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-
 import type {
   AnalyticsAdapter,
   CoreAddToCartParams,
@@ -80,18 +78,10 @@ export interface Analytics {
  * }
  * ```
  */
-export const useAnalytics = ({
-  adapters,
-  debug,
-}: UseAnalyticsConfig): Analytics => {
-  const adaptersRef = useRef(adapters)
-  const debugRef = useRef(debug)
-
-  useEffect(() => {
-    adaptersRef.current = adapters
-    debugRef.current = debug
-  }, [adapters, debug])
-
+const createAnalytics = (
+  adapters: AnalyticsAdapter[],
+  debug: boolean,
+): Analytics => {
   const executeAcrossAdapters = (
     label: string,
     run: (adapter: AnalyticsAdapter) => boolean | undefined,
@@ -100,12 +90,12 @@ export const useAnalytics = ({
     const keyCounts = new Map<string, number>()
     let allSuccess = true
 
-    for (const adapter of adaptersRef.current) {
+    for (const adapter of adapters) {
       const count = (keyCounts.get(adapter.key) ?? 0) + 1
       keyCounts.set(adapter.key, count)
       const resultKey = count === 1 ? adapter.key : `${adapter.key}#${count}`
 
-      if (count > 1 && debugRef.current === true) {
+      if (count > 1 && debug) {
         console.warn(
           `[Analytics] Duplicate adapter key detected: "${adapter.key}". Results will be keyed as "${resultKey}".`,
         )
@@ -121,14 +111,14 @@ export const useAnalytics = ({
       } catch (error) {
         resultEntries.set(resultKey, false)
         allSuccess = false
-        if (debugRef.current === true) {
+        if (debug) {
           console.error(`[Analytics:${resultKey}] Error in ${label}:`, error)
         }
       }
     }
 
     const results = Object.fromEntries(resultEntries)
-    if (debugRef.current === true) {
+    if (debug) {
       console.log(`[Analytics] ${label} results:`, results)
     }
 
@@ -162,3 +152,35 @@ export const useAnalytics = ({
       ),
   }
 }
+
+const analyticsCache = new WeakMap<
+  AnalyticsAdapter[],
+  Map<boolean, Analytics>
+>()
+
+const getCachedAnalytics = (
+  adapters: AnalyticsAdapter[],
+  debug: boolean,
+): Analytics => {
+  const cachedByDebug = analyticsCache.get(adapters)
+  if (cachedByDebug !== undefined) {
+    const cached = cachedByDebug.get(debug)
+    if (cached !== undefined) {
+      return cached
+    }
+
+    const analytics = createAnalytics(adapters, debug)
+    cachedByDebug.set(debug, analytics)
+    return analytics
+  }
+
+  const analytics = createAnalytics(adapters, debug)
+  analyticsCache.set(adapters, new Map([[debug, analytics]]))
+  return analytics
+}
+
+export const useAnalytics = ({
+  adapters,
+  debug,
+}: UseAnalyticsConfig): Analytics =>
+  getCachedAnalytics(adapters, debug === true)

@@ -13,6 +13,19 @@ interface UseCategoryPrefetchOptions {
   prefetchLimit?: number
 }
 
+const runPrefetchWithCleanup = async (
+  prefetch: Promise<void>,
+  cleanup: () => void,
+) => {
+  try {
+    await prefetch
+  } catch (error) {
+    console.error("Category prefetch failed:", error)
+  } finally {
+    cleanup()
+  }
+}
+
 export const useCategoryPrefetch = (options?: UseCategoryPrefetchOptions) => {
   const { selectedRegion } = useRegions()
   const queryClient = useQueryClient()
@@ -76,19 +89,11 @@ export const useCategoryPrefetch = (options?: UseCategoryPrefetchOptions) => {
       clearTimeout(existingTimeout)
     }
 
-    const runPrefetch = async () => {
-      try {
-        await prefetchCategoryProducts(categoryIds)
-      } catch (error) {
-        console.error("Category prefetch failed:", error)
-      } finally {
-        timeoutsRef.current.delete(id)
-      }
-    }
-
     // Create new timeout
     const timeoutId = setTimeout(() => {
-      void runPrefetch()
+      void runPrefetchWithCleanup(prefetchCategoryProducts(categoryIds), () => {
+        timeoutsRef.current.delete(id)
+      })
     }, delay)
 
     // Store timeout for potential cancellation

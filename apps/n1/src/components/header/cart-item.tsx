@@ -35,9 +35,7 @@ const CartItemContent = ({
   const effectiveMax =
     typeof inventoryQuantity === "number" ? inventoryQuantity : 10
 
-  const debouncedUpdate = useDebounce((quantity: number) => {
-    onUpdateQuantity(quantity)
-  }, 300)
+  const debouncedUpdate = useDebounce(onUpdateQuantity, 300)
 
   const handleQuantityChange = (newQuantity: number) => {
     if (Number.isNaN(newQuantity) || !Number.isFinite(newQuantity)) {

@@ -135,10 +135,32 @@ const formatMoney = (
   }).format(value)
 }
 
-const formatQuantity = (value: number, locale: string) =>
-  new Intl.NumberFormat(locale, {
+const MAX_QUANTITY_FORMATTERS = 32
+const QUANTITY_FORMATTERS = new Map<string, Intl.NumberFormat>()
+
+const getQuantityFormatter = (locale: string) => {
+  const cachedFormatter = QUANTITY_FORMATTERS.get(locale)
+  if (cachedFormatter !== undefined) {
+    QUANTITY_FORMATTERS.delete(locale)
+    QUANTITY_FORMATTERS.set(locale, cachedFormatter)
+    return cachedFormatter
+  }
+
+  const formatter = Intl.NumberFormat(locale, {
     maximumFractionDigits: 3,
-  }).format(value)
+  })
+  if (QUANTITY_FORMATTERS.size >= MAX_QUANTITY_FORMATTERS) {
+    const oldestLocale = QUANTITY_FORMATTERS.keys().next().value
+    if (oldestLocale !== undefined) {
+      QUANTITY_FORMATTERS.delete(oldestLocale)
+    }
+  }
+  QUANTITY_FORMATTERS.set(locale, formatter)
+  return formatter
+}
+
+const formatQuantity = (value: number, locale: string) =>
+  getQuantityFormatter(locale).format(value)
 
 const getItemDisplayName = (
   item: CommercialValuesSnapshot["items"][number],

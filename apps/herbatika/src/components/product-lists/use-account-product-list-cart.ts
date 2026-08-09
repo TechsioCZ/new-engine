@@ -25,6 +25,7 @@ import {
 } from "./account-product-list-controller.utils"
 import { resolveProductListItemQuantity } from "./account-product-lists.utils"
 import type { ProductListAvailabilitySummary } from "./product-list-availability"
+import { runMutationWithCleanup } from "./run-mutation-with-cleanup"
 
 interface UseAccountProductListCartInput {
   activeList: StoreProductList | null
@@ -70,21 +71,25 @@ export const useAccountProductListCart = ({
     product: HttpTypes.StoreProduct,
   ) => {
     setActiveProductId(product.id)
-    try {
-      await addToCart.addProductToCart({
-        product,
-        quantity: resolveProductListItemQuantity(item),
-        ...(item.variant_id === undefined
-          ? {}
-          : { variantId: item.variant_id }),
-      })
-    } catch (error) {
-      toast.error({
-        title: resolveAddProductToCartErrorMessage(error, tCart("failed")),
-      })
-    } finally {
-      setActiveProductId(null)
-    }
+    await runMutationWithCleanup({
+      cleanup: () => {
+        setActiveProductId(null)
+      },
+      onError: (error) => {
+        toast.error({
+          title: resolveAddProductToCartErrorMessage(error, tCart("failed")),
+        })
+      },
+      operation: async () => {
+        await addToCart.addProductToCart({
+          product,
+          quantity: resolveProductListItemQuantity(item),
+          ...(item.variant_id === undefined
+            ? {}
+            : { variantId: item.variant_id }),
+        })
+      },
+    })
   }
 
   const addPurchasableItemsToCart = async () => {
@@ -124,30 +129,34 @@ export const useAccountProductListCart = ({
     }
 
     setIsAddingListToCart(true)
-    try {
-      if (availabilitySummary.canAddWholeList) {
-        await createListCartMutation.mutateAsync({
-          listId: activeList.id,
-          ...(regionId === undefined ? {} : { regionId }),
-          ...(countryCode === undefined ? {} : { countryCode }),
-          ...(customerEmail === undefined ? {} : { email: customerEmail }),
+    await runMutationWithCleanup({
+      cleanup: () => {
+        setActiveProductId(null)
+        setIsAddingListToCart(false)
+      },
+      onError: (error) => {
+        toast.error({
+          title: resolveListCartErrorMessage(error, errorMessages),
         })
-        return
-      }
-      const addResult = await addPurchasableItemsToCart()
-      showPartialListCartResult({
-        ...addResult,
-        messages: errorMessages,
-        toast,
-      })
-    } catch (error) {
-      toast.error({
-        title: resolveListCartErrorMessage(error, errorMessages),
-      })
-    } finally {
-      setActiveProductId(null)
-      setIsAddingListToCart(false)
-    }
+      },
+      operation: async () => {
+        if (availabilitySummary.canAddWholeList) {
+          await createListCartMutation.mutateAsync({
+            listId: activeList.id,
+            ...(regionId === undefined ? {} : { regionId }),
+            ...(countryCode === undefined ? {} : { countryCode }),
+            ...(customerEmail === undefined ? {} : { email: customerEmail }),
+          })
+        } else {
+          const addResult = await addPurchasableItemsToCart()
+          showPartialListCartResult({
+            ...addResult,
+            messages: errorMessages,
+            toast,
+          })
+        }
+      },
+    })
   }
 
   return {

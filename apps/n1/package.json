@@ -11,7 +11,8 @@
     "format": "oxfmt",
     "generate:categories": "node --experimental-strip-types scripts/generate-categories.ts",
     "validate:token-usage": "node scripts/validate-token-usage.mjs",
-    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/n1/tsconfig.json"
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/n1/tsconfig.json",
+    "test": "vitest run src"
   },
   "dependencies": {
     "@medusajs/js-sdk": "^2.18.0",
@@ -30,15 +31,19 @@
     "@iconify/tailwind4": "^1.2.3",
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-query-devtools": "^5.101.2",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "24.12.4",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "dotenv": "^17.4.2",
+    "happy-dom": "20.10.6",
     "postcss": "^8.5.19",
     "postcss-import": "^16.1.1",
     "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vite": "catalog:vite8-testing",
+    "vitest": "catalog:vite8-testing"
   },
   "engines": {
     "node": "24.x"

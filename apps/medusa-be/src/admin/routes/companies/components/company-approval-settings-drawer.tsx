@@ -106,7 +106,7 @@ export const CompanyApprovalSettingsDrawer = (
   props: CompanyApprovalSettingsDrawerProps,
 ) => (
   <CompanyApprovalSettingsDrawerContent
-    {...props}
     key={`${props.company.id}:${String(props.open)}`}
+    {...props}
   />
 )

@@ -67,9 +67,9 @@ export const SearchAutocompletePanel = ({
         {sections.map((section) =>
           section.items.length > 0 ? (
             <div
+              key={section.key}
               {...api.getItemGroupProps({ id: section.key })}
               className="border-border-secondary border-b py-100 last:border-b-0"
-              key={section.key}
             >
               <div
                 {...api.getItemGroupLabelProps({ htmlFor: section.key })}

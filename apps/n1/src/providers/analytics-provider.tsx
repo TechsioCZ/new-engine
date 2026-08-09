@@ -1,16 +1,16 @@
 "use client"
 
 import { useAnalytics as useUnifiedAnalytics } from "@techsio/analytics"
-import type { Analytics } from "@techsio/analytics"
-import { useGoogleAdapter } from "@techsio/analytics/google"
-import { useLeadhubAdapter } from "@techsio/analytics/leadhub"
+import type { Analytics, AnalyticsAdapter } from "@techsio/analytics"
+import { useGoogleAdapter as createGoogleAdapter } from "@techsio/analytics/google"
+import { useLeadhubAdapter as createLeadhubAdapter } from "@techsio/analytics/leadhub"
 import type {
   LeadhubIdentifyParams,
   LeadhubSetCartParams,
   LeadhubViewCategoryParams,
 } from "@techsio/analytics/leadhub"
-import { useMetaAdapter } from "@techsio/analytics/meta"
-import { createContext, useContext } from "react"
+import { useMetaAdapter as createMetaAdapter } from "@techsio/analytics/meta"
+import { createContext, useContext, useState } from "react"
 import type { ReactNode } from "react"
 
 /**
@@ -29,7 +29,7 @@ interface AnalyticsContextValue extends Analytics {
 
 const createAnalyticsContextValue = (
   analytics: Analytics,
-  leadhubAdapter: ReturnType<typeof useLeadhubAdapter>,
+  leadhubAdapter: ReturnType<typeof createLeadhubAdapter>,
 ): AnalyticsContextValue => ({
   ...analytics,
   trackIdentify: leadhubAdapter.trackIdentify,
@@ -38,7 +38,55 @@ const createAnalyticsContextValue = (
   trackViewCategory: leadhubAdapter.trackViewCategory,
 })
 
+const createAnalyticsContextState = (
+  analytics: Analytics,
+  leadhubAdapter: ReturnType<typeof createLeadhubAdapter>,
+): AnalyticsContextState => ({
+  analytics,
+  leadhubAdapter,
+  value: createAnalyticsContextValue(analytics, leadhubAdapter),
+})
+
 const AnalyticsContext = createContext<AnalyticsContextValue | null>(null)
+
+const DEFAULT_DEBUG = process.env.NODE_ENV === "development"
+
+interface AnalyticsAdapters {
+  adapters: AnalyticsAdapter[]
+  leadhubAdapter: ReturnType<typeof createLeadhubAdapter>
+}
+
+interface AnalyticsProviderState extends AnalyticsAdapters {
+  debug: boolean
+  googleConversionLabel: string | undefined
+}
+
+const createAnalyticsAdapters = (
+  debug: boolean,
+  googleConversionLabel?: string,
+): AnalyticsProviderState => {
+  const leadhubAdapter = createLeadhubAdapter({ debug })
+  const adapters = [
+    createMetaAdapter({ debug }),
+    createGoogleAdapter({
+      debug,
+      ...(googleConversionLabel !== null &&
+      googleConversionLabel !== undefined &&
+      googleConversionLabel !== ""
+        ? { conversionLabel: googleConversionLabel }
+        : {}),
+    }),
+    leadhubAdapter,
+  ]
+
+  return { adapters, debug, googleConversionLabel, leadhubAdapter }
+}
+
+interface AnalyticsContextState {
+  analytics: Analytics
+  leadhubAdapter: ReturnType<typeof createLeadhubAdapter>
+  value: AnalyticsContextValue
+}
 
 interface AnalyticsProviderProps {
   children: ReactNode
@@ -65,30 +113,39 @@ interface AnalyticsProviderProps {
  */
 export const AnalyticsProvider = ({
   children,
-  debug = process.env.NODE_ENV === "development",
+  debug = DEFAULT_DEBUG,
   googleConversionLabel,
 }: AnalyticsProviderProps) => {
-  // Create Leadhub adapter - we need direct access to its specific methods
-  const leadhubAdapter = useLeadhubAdapter({ debug })
+  const [adapterState, setAdapterState] = useState(() =>
+    createAnalyticsAdapters(debug, googleConversionLabel),
+  )
+  const nextAdapterState =
+    adapterState.debug === debug &&
+    adapterState.googleConversionLabel === googleConversionLabel
+      ? adapterState
+      : createAnalyticsAdapters(debug, googleConversionLabel)
 
-  // Create unified analytics with all adapters
+  if (nextAdapterState !== adapterState) {
+    setAdapterState(nextAdapterState)
+  }
+
   const analytics = useUnifiedAnalytics({
-    adapters: [
-      useMetaAdapter({ debug }),
-      useGoogleAdapter({
-        debug,
-        ...(googleConversionLabel !== null &&
-        googleConversionLabel !== undefined &&
-        googleConversionLabel !== ""
-          ? { conversionLabel: googleConversionLabel }
-          : {}),
-      }),
-      leadhubAdapter,
-    ],
+    adapters: nextAdapterState.adapters,
     debug,
   })
+  const [contextState, setContextState] = useState<AnalyticsContextState>(() =>
+    createAnalyticsContextState(analytics, nextAdapterState.leadhubAdapter),
+  )
+  const nextContextState =
+    contextState.analytics === analytics &&
+    contextState.leadhubAdapter === nextAdapterState.leadhubAdapter
+      ? contextState
+      : createAnalyticsContextState(analytics, nextAdapterState.leadhubAdapter)
 
-  const value = createAnalyticsContextValue(analytics, leadhubAdapter)
+  if (nextContextState !== contextState) {
+    setContextState(nextContextState)
+  }
+  const { value } = nextContextState
 
   return (
     <AnalyticsContext.Provider value={value}>

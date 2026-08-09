@@ -14,6 +14,8 @@ import type {
   StoreProductListItem,
 } from "@/lib/storefront/product-lists"
 
+import { runMutationWithCleanup } from "./run-mutation-with-cleanup"
+
 interface UseAccountProductListItemsInput {
   activeList: StoreProductList | null
   supportsQuantity: boolean
@@ -57,21 +59,25 @@ export const useAccountProductListItems = ({
     }
 
     setActiveQuantitySetItemId(item.id)
-    try {
-      await updateItemMutation.mutateAsync({
-        itemId: item.id,
-        quantity: nextQuantity,
-      })
-    } catch (error) {
-      toast.error({
-        title: resolveErrorMessage(
-          error,
-          tAuth("product_lists.errors.quantity_update_failed"),
-        ),
-      })
-    } finally {
-      setActiveQuantitySetItemId(null)
-    }
+    await runMutationWithCleanup({
+      cleanup: () => {
+        setActiveQuantitySetItemId(null)
+      },
+      onError: (error) => {
+        toast.error({
+          title: resolveErrorMessage(
+            error,
+            tAuth("product_lists.errors.quantity_update_failed"),
+          ),
+        })
+      },
+      operation: async () => {
+        await updateItemMutation.mutateAsync({
+          itemId: item.id,
+          quantity: nextQuantity,
+        })
+      },
+    })
   }
 
   const handleDeleteItem = async (item: StoreProductListItem) => {
@@ -85,21 +91,25 @@ export const useAccountProductListItems = ({
     }
 
     setActiveDeleteItemId(item.id)
-    try {
-      await deleteItemMutation.mutateAsync({
-        itemId: item.id,
-        listId: activeList.id,
-      })
-    } catch (error) {
-      toast.error({
-        title: resolveErrorMessage(
-          error,
-          tAuth("product_lists.errors.remove_product_failed"),
-        ),
-      })
-    } finally {
-      setActiveDeleteItemId(null)
-    }
+    await runMutationWithCleanup({
+      cleanup: () => {
+        setActiveDeleteItemId(null)
+      },
+      onError: (error) => {
+        toast.error({
+          title: resolveErrorMessage(
+            error,
+            tAuth("product_lists.errors.remove_product_failed"),
+          ),
+        })
+      },
+      operation: async () => {
+        await deleteItemMutation.mutateAsync({
+          itemId: item.id,
+          listId: activeList.id,
+        })
+      },
+    })
   }
 
   return {

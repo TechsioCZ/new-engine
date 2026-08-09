@@ -50,9 +50,9 @@ const HeadlessComboboxHarness = ({
           <div {...api.getListProps()}>
             {options.map((item) => (
               <a
+                key={item.value}
                 {...api.getItemProps({ item })}
                 href={item.data?.href ?? "#"}
-                key={item.value}
               >
                 {item.label}
               </a>

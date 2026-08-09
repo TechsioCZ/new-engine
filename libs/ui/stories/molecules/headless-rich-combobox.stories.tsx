@@ -71,7 +71,7 @@ const HeadlessRichCombobox = () => {
                 (item) => item.data?.group === group,
               )
               return groupItems.length > 0 ? (
-                <div {...api.getItemGroupProps({ id: group })} key={group}>
+                <div key={group} {...api.getItemGroupProps({ id: group })}>
                   <div
                     {...api.getItemGroupLabelProps({ htmlFor: group })}
                     className="p-100 text-xs font-semibold text-fg-secondary"
@@ -80,10 +80,10 @@ const HeadlessRichCombobox = () => {
                   </div>
                   {groupItems.map((item) => (
                     <a
+                      key={item.value}
                       {...api.getItemProps({ item })}
                       className="block rounded-combobox-sm p-200 text-fg-primary data-[highlighted]:bg-combobox-item-bg-hover"
                       href={item.data?.href}
-                      key={item.value}
                     >
                       <span className="block font-semibold">{item.label}</span>
                       <span className="block text-sm text-fg-secondary">

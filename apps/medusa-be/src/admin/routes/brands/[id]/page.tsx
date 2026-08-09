@@ -355,10 +355,10 @@ const ProductAssignmentDrawerContent = ({
 
 const ProductAssignmentDrawer = (props: ProductAssignmentDrawerProps) => (
   <ProductAssignmentDrawerContent
-    {...props}
     key={
       props.open ? `open:${JSON.stringify(props.currentProductIds)}` : "closed"
     }
+    {...props}
   />
 )
 
