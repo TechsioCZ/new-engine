@@ -3,6 +3,7 @@ import { describe, it } from "node:test"
 
 import {
   hasUploadedCommits,
+  isUiKitGateHook,
   parsePushLines,
   touchesDangerPolicy,
 } from "./files.mjs"
@@ -37,6 +38,16 @@ void describe("hook file helpers", () => {
       hasUploadedCommits(`refs/heads/main ${SHA} refs/heads/main ${ZERO}\n`),
       true,
     )
+  })
+
+  void it("recognizes an installed UI gate without matching unrelated hooks", () => {
+    assert.equal(
+      isUiKitGateHook(
+        "/** git pre-push hook — the REAL ui-kit quality gate. */",
+      ),
+      true,
+    )
+    assert.equal(isUiKitGateHook("#!/bin/sh\nlefthook run pre-push"), false)
   })
 
   void it("recognizes owned policy and hook files", () => {

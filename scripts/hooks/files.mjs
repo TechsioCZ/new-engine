@@ -46,6 +46,8 @@ const fileSystem = isFileSystem(importedFileSystem) ? importedFileSystem : null
 const pathTools = isPathTools(importedPathTools) ? importedPathTools : null
 
 const ZERO_SHA = /^0+$/u
+const UI_KIT_GATE_SIGNATURE =
+  "git pre-push hook — the REAL ui-kit quality gate."
 const FORMATTABLE_FILE = /\.(?:[cm]?[jt]sx?|jsonc?|css|scss|mdx?|ya?ml)$/iu
 const LINTABLE_FILE = /\.[cm]?[jt]sx?$/iu
 
@@ -84,6 +86,13 @@ export const parsePushLines = (stdin) =>
  */
 export const hasUploadedCommits = (stdin) =>
   parsePushLines(stdin).some(({ localSha }) => !ZERO_SHA.test(localSha))
+
+/**
+ * @param {string} hookSource - Source text of a previously installed hook.
+ * @returns {boolean} Whether Lefthook already runs this repository's UI gate.
+ */
+export const isUiKitGateHook = (hookSource) =>
+  hookSource.includes(UI_KIT_GATE_SIGNATURE)
 
 /**
  * @param {readonly string[]} files - Paths relative to the root directory.

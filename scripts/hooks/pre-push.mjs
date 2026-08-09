@@ -18,6 +18,7 @@ import path from "node:path"
 import {
   formattableFiles as findFormattableFiles,
   hasUploadedCommits as containsUploadedCommits,
+  isUiKitGateHook,
   lintableFiles as findLintableFiles,
   parsePushLines as parseRawPushLines,
   touchesDangerPolicy as includesDangerPolicy,
@@ -41,6 +42,7 @@ import {
 /**
  * @typedef {object} RunOptions
  * @property {string} [cwd] - Child process working directory.
+ * @property {NodeJS.ProcessEnv} [env] - Child process environment.
  * @property {string | Uint8Array} [input] - Standard input payload.
  */
 
@@ -71,6 +73,7 @@ const run = (command, args, options = {}) => {
   }
   const result = spawnSync(command, args, {
     cwd: options.cwd,
+    env: options.env,
     input: options.input,
     shell: false,
     stdio,
@@ -147,9 +150,10 @@ const tryCapture = (command, args) => {
  * @param {string} hook - Hook file to execute.
  * @param {string[]} args - Hook arguments.
  * @param {string} stdin - Hook standard input.
+ * @param {NodeJS.ProcessEnv} [env] - Child process environment.
  */
-const runNodeHook = (hook, args, stdin) => {
-  run(process.execPath, [hook, ...args], { input: stdin })
+const runNodeHook = (hook, args, stdin, env) => {
+  run(process.execPath, [hook, ...args], { env, input: stdin })
 }
 
 /** @param {string} stdin - Push input. */
@@ -160,7 +164,15 @@ const runPreviousHook = (stdin) => {
     return
   }
 
-  const firstLine = readFileSync(previousHook, "utf-8").split("\n", 1)[0] ?? ""
+  const previousHookSource = readFileSync(previousHook, "utf-8")
+  // The installed UI gate chains back to Lefthook through pre-push.pre-ui-kit.
+  // This hook runs that gate directly below, so chaining the installed copy
+  // would recurse Lefthook -> this script -> UI gate -> Lefthook forever.
+  if (isUiKitGateHook(previousHookSource)) {
+    return
+  }
+
+  const firstLine = previousHookSource.split("\n", 1)[0] ?? ""
   if (NODE_SHEBANG.test(firstLine)) {
     // Node's loader refuses the lefthook-renamed ".old" extension, so run a
     // sibling extensionless copy; staying in the same directory preserves
@@ -187,7 +199,10 @@ const runPreviousHook = (stdin) => {
 const runUiGate = (stdin) => {
   const hook = path.resolve("libs/ui/agent-plugin/hooks/pre-push")
   if (existsSync(hook)) {
-    runNodeHook(hook, process.argv.slice(2), stdin)
+    runNodeHook(hook, process.argv.slice(2), stdin, {
+      ...process.env,
+      TECHSIO_SKIP_CHAINED_PRE_PUSH: "1",
+    })
   }
 }
 

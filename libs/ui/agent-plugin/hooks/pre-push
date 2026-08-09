@@ -102,7 +102,9 @@ process.stdin.on("data", (c) => {
   raw += c;
 });
 process.stdin.on("end", () => {
-  runChainedHooks(raw);
+  if (process.env.TECHSIO_SKIP_CHAINED_PRE_PUSH !== "1") {
+    runChainedHooks(raw);
+  }
 
   const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
   if (!lines.length) process.exit(0); // nothing being pushed
