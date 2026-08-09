@@ -96,13 +96,21 @@ const parseTagAttributes = (rawAttributes: string) => {
   return attributes
 }
 
-const isAttributeAllowed = (
-  tag: string,
-  name: string,
-  value: string,
-  allowedAttributesForTag: Set<string>,
+type AttributeAllowanceInput = {
+  allowedAttributesForTag: Set<string>
+  name: string
   options: SanitizeHtmlOptions
-) => {
+  tag: string
+  value: string
+}
+
+const isAttributeAllowed = ({
+  allowedAttributesForTag,
+  name,
+  options,
+  tag,
+  value,
+}: AttributeAllowanceInput) => {
   if (
     ALLOWED_GLOBAL_ATTRIBUTES.has(name) ||
     allowedAttributesForTag.has(name)
@@ -258,7 +266,13 @@ const sanitizeOpeningTag = (
     const { name, value } = attribute
 
     if (
-      !isAttributeAllowed(tag, name, value, allowedAttributesForTag, options)
+      !isAttributeAllowed({
+        allowedAttributesForTag,
+        name,
+        options,
+        tag,
+        value,
+      })
     ) {
       continue
     }

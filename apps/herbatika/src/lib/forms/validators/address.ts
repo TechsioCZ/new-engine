@@ -5,12 +5,19 @@ import {
   createEmailAddressValidator,
   createOptionalPhoneNumberValidator,
 } from "@/lib/forms/validators/shared"
+import type { HerbatikaCountryCode } from "@/lib/storefront/market-context"
 
 type AddressFieldValidator = (value: string) => string | undefined
 
 export type { AddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 
 const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/
+const POSTAL_CODE_DIGIT_COUNT = {
+  cz: 5,
+  hu: 4,
+  ro: 6,
+  sk: 5,
+} as const satisfies Record<HerbatikaCountryCode, number>
 
 const createRequiredTextValidator =
   (
@@ -47,8 +54,9 @@ const createPostalCodeValidator =
   (
     messages: Pick<
       AddressValidationMessageSet,
-      "postalCodeInvalid" | "postalCodeMinDigits" | "postalCodeRequired"
-    >
+      "postalCodeInvalid" | "postalCodeRequired"
+    >,
+    countryCode: HerbatikaCountryCode
   ): AddressFieldValidator =>
   (value) => {
     const normalized = value.trim()
@@ -61,9 +69,10 @@ const createPostalCodeValidator =
       return messages.postalCodeInvalid
     }
 
-    return normalized.replace(/\D/g, "").length < 4
-      ? messages.postalCodeMinDigits
-      : undefined
+    return normalized.replace(/\D/g, "").length ===
+      POSTAL_CODE_DIGIT_COUNT[countryCode]
+      ? undefined
+      : messages.postalCodeInvalid
   }
 
 const createCountryCodeValidator =
@@ -82,7 +91,8 @@ const createCountryCodeValidator =
   }
 
 export const createAddressFieldValidators = (
-  messages: AddressValidationMessageSet
+  messages: AddressValidationMessageSet,
+  countryCode: HerbatikaCountryCode
 ) => ({
   address1: createRequiredTextValidator(
     messages.addressRequired,
@@ -109,7 +119,7 @@ export const createAddressFieldValidators = (
   firstName: createCustomerNameValidator(messages.firstNameMinLength),
   lastName: createCustomerNameValidator(messages.lastNameMinLength),
   phone: createRequiredPhoneNumberValidator(messages),
-  postalCode: createPostalCodeValidator(messages),
+  postalCode: createPostalCodeValidator(messages, countryCode),
   taxId: createRequiredTextValidator(
     messages.taxIdRequired,
     messages.taxIdMinLength,

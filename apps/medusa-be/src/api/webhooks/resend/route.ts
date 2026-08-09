@@ -1,6 +1,12 @@
 import crypto from "node:crypto"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import {
+  getCredentialString,
+  INTEGRATION_CONFIG_NAMES,
+  requireCredentialObject,
+  retrieveIntegrationConfig,
+} from "../../../modules/api-store/integration-config"
 import { EMAIL_LOG_MODULE } from "../../../modules/email-log"
 import type EmailLogModuleService from "../../../modules/email-log/service"
 import { CHECKED_RESEND_EVENT_TYPES } from "../../../utils/resend-webhook-events"
@@ -190,9 +196,25 @@ async function storePendingWebhookEvent({
   ])
 }
 
+const getResendWebhookSecret = async (
+  req: MedusaRequest
+): Promise<string | undefined> => {
+  const config = await retrieveIntegrationConfig(
+    req.scope as unknown as Record<string, unknown>,
+    INTEGRATION_CONFIG_NAMES.RESEND
+  )
+
+  if (config?.enabled) {
+    const credentials = requireCredentialObject(config)
+    return getCredentialString(credentials, "webhookSecret", "webhook_secret")
+  }
+
+  return process.env.RESEND_WEBHOOK_SECRET
+}
+
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const payload = getPayload(req)
-  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
+  const webhookSecret = await getResendWebhookSecret(req)
 
   if (webhookSecret) {
     const isValidSignature = verifySvixSignature({

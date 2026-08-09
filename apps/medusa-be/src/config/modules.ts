@@ -1,4 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { API_STORE_MODULE } from "../modules/api-store"
 import { DATABASE_MODULE } from "../modules/database"
 import { GLS_CLIENT_MODULE } from "../modules/gls-client/constants"
 import { buildPaykitPaymentProviders } from "../modules/payment-paykit/medusa-config"
@@ -40,7 +41,7 @@ function buildPaymentProviders(env: MedusaConfigEnv): PaymentProviderConfig[] {
 }
 
 function buildPaymentDependencies(env: MedusaConfigEnv): string[] {
-  const dependencies: string[] = []
+  const dependencies: string[] = [API_STORE_MODULE]
 
   if (env.featurePaymentQrEnabled) {
     dependencies.push(QR_PAYMENT_MODULE)
@@ -89,7 +90,7 @@ function buildFulfillmentClientModules(
   if (env.featurePacketaEnabled) {
     modules.push({
       resolve: "./src/modules/packeta-client",
-      dependencies: [Modules.LOCKING],
+      dependencies: [Modules.LOCKING, API_STORE_MODULE],
       options: {
         environment: env.packetaEnvironment,
       },
@@ -218,6 +219,7 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "@medusajs/medusa/notification",
+      dependencies: [API_STORE_MODULE],
       options: {
         providers: buildNotificationProviders(env),
       },
@@ -233,10 +235,21 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/product-attribute",
     },
     {
+      resolve: "./src/modules/api-store",
+    },
+    {
+      resolve: "./src/modules/shop-review",
+      dependencies: [API_STORE_MODULE],
+    },
+    {
       resolve: "./src/modules/product-list",
     },
     {
       resolve: "./src/modules/product-review",
+    },
+    {
+      resolve: "./src/modules/search-profile",
+      dependencies: [Modules.CACHING],
     },
     {
       resolve: "./src/modules/storefront-text",

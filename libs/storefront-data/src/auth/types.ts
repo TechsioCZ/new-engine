@@ -21,11 +21,18 @@ export type AuthService<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
+  TRequestAccountDeactivationResult = unknown,
+  TConfirmAccountDeactivationInput = unknown,
+  TConfirmAccountDeactivationResult = unknown,
 > = {
+  confirmAccountDeactivation?: (
+    input: TConfirmAccountDeactivationInput
+  ) => Promise<TConfirmAccountDeactivationResult>
   getCustomer: (signal?: AbortSignal) => Promise<TCustomer | null>
   login: (input: TLoginInput) => Promise<TLoginResult>
   logout: () => Promise<void>
   register: (input: TRegisterInput) => Promise<TRegisterResult>
+  requestAccountDeactivation?: () => Promise<TRequestAccountDeactivationResult>
   createCustomer?: (input: TCreateCustomerInput) => Promise<TCustomer>
   updateCustomer?: (input: TUpdateInput) => Promise<TCustomer>
   refresh?: () => Promise<unknown>
