@@ -3,5 +3,10 @@
   "name": "n1",
   "projectType": "application",
   "sourceRoot": "apps/n1/src",
-  "tags": ["type:app", "platform:web", "framework:next"]
+  "tags": ["type:app", "platform:web", "framework:next"],
+  "targets": {
+    "test": {
+      "dependsOn": [{ "projects": ["analytics"], "target": "build" }]
+    }
+  }
 }
