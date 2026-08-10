@@ -1,3 +1,5 @@
+export * from "./build-company-application-approved-notification"
+export * from "./build-company-application-rejected-notification"
 export * from "./clear-company-admin-auth-metadata"
 export * from "./create-companies"
 export * from "./delete-companies"
