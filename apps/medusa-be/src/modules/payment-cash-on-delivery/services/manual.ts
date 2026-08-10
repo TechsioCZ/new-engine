@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type {
 	AuthorizePaymentInput,
 	AuthorizePaymentOutput,
@@ -26,6 +27,7 @@ import { CASH_ON_DELIVERY_PAYMENT_PROVIDER_IDENTIFIER } from '../constants'
 type CashOnDeliveryPaymentProviderOptions = Record<string, never>
 
 const CASH_ON_DELIVERY_DATA_KEY = 'cash_on_delivery'
+const CASH_ON_DELIVERY_REFERENCE_KEY = 'cash_on_delivery_reference'
 
 export class CashOnDeliveryPaymentProvider extends AbstractPaymentProvider<CashOnDeliveryPaymentProviderOptions> {
 	static override identifier = CASH_ON_DELIVERY_PAYMENT_PROVIDER_IDENTIFIER
@@ -35,17 +37,20 @@ export class CashOnDeliveryPaymentProvider extends AbstractPaymentProvider<CashO
 	}
 
 	async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
-		const id =
+		const existingReference =
+			readString(input.data?.[CASH_ON_DELIVERY_REFERENCE_KEY]) ??
 			readString(input.data?.id) ??
-			readString(input.context?.idempotency_key) ??
-			['cod-', Date.now()].join('')
+			readString(input.context?.idempotency_key)
+
+		const id = existingReference ?? 'cod-' + randomUUID()
 
 		return {
 			id,
 			status: 'pending',
 			data: {
 				...input.data,
-				[CASH_ON_DELIVERY_DATA_KEY]: true
+				[CASH_ON_DELIVERY_DATA_KEY]: true,
+				[CASH_ON_DELIVERY_REFERENCE_KEY]: id
 			}
 		}
 	}

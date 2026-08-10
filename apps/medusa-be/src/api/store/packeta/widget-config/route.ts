@@ -10,6 +10,8 @@ type PacketaWidgetConfigResponse = {
 }
 
 export async function GET(request: MedusaRequest, response: MedusaResponse<PacketaWidgetConfigResponse>) {
+	response.setHeader('Cache-Control', 'no-store')
+
 	const packetaService = safeResolve<PacketaClientModuleService>(request.scope, PACKETA_CLIENT_MODULE)
 	if (!packetaService) {
 		return response.json({ enabled: false, api_key: null, countries: [] })
@@ -22,6 +24,5 @@ export async function GET(request: MedusaRequest, response: MedusaResponse<Packe
 	const api_key = enabled ? apiKey : null
 	const countries = enabled ? configuredCountries : []
 
-	response.setHeader('Cache-Control', 'no-store')
 	return response.json({ enabled, api_key, countries })
 }

@@ -541,7 +541,9 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       )
     }
 
-    if (!Number.isInteger(amount * 100)) {
+    const amountInMinorUnits = amount * 100
+    const nearestMinorUnit = Math.round(amountInMinorUnits)
+    if (Math.abs(amountInMinorUnits - nearestMinorUnit) > 1e-7) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Packeta: COD amount cannot have more than two decimal places"

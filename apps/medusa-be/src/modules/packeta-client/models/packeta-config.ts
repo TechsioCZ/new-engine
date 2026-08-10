@@ -16,7 +16,7 @@ const PacketaConfig = model
     api_password: model.text().nullable(),
 
     widget_api_key: model.text().nullable(),
-    widget_countries: model.array(),
+    widget_countries: model.array().default([]),
 
     // Sender identity
     sender_label: model.text().nullable(),

@@ -6,7 +6,6 @@ import type {
   PacketaConfigDTO,
   PacketaConfigResponse,
 } from "../../../modules/packeta-client/types"
-import { updatePacketaConfigWorkflow } from "../../../workflows/packeta-config/update-packeta-config"
 import type { PostAdminPacketaConfigSchemaType } from "./validators"
 
 /** Maps config DTO to API response with sensitive fields masked. */
@@ -76,9 +75,11 @@ export async function POST(
   req: MedusaRequest<PostAdminPacketaConfigSchemaType>,
   res: MedusaResponse
 ) {
-  const { result: updated } = await updatePacketaConfigWorkflow(req.scope).run({
-    input: req.validatedBody,
-  })
+  const packetaService = req.scope.resolve<PacketaClientModuleService>(
+    PACKETA_CLIENT_MODULE
+  )
+  const { environment, ...config } = req.validatedBody
+  const updated = await packetaService.updateConfig(environment, config)
 
   res.json({ config: toConfigResponse(updated) })
 }

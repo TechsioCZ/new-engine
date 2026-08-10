@@ -69,7 +69,6 @@ const isDisabledConfigCacheEntry = (
 export class PacketaClientModuleService extends MedusaService({
   PacketaConfig,
 }) {
-  private readonly clients_ = new Map<string, PacketaClient>()
   protected readonly container_: InjectedDependencies
   protected readonly logger_: Logger
   protected readonly lockingService_: ILockingModule
@@ -333,7 +332,6 @@ export class PacketaClientModuleService extends MedusaService({
   }
 
   async invalidateAllCaches(): Promise<void> {
-    this.clients_.clear()
     if (this.cacheService_) {
       await this.cacheService_.clear({ tags: [CACHE_TAGS.ALL] })
       this.logger_.info("Packeta: Invalidated all caches")
@@ -366,14 +364,7 @@ export class PacketaClientModuleService extends MedusaService({
       )
     }
 
-    const existingClient = this.clients_.get(config.config_id)
-    if (existingClient) {
-      return existingClient
-    }
-
-    const client = new PacketaClient(config)
-    this.clients_.set(config.config_id, client)
-    return client
+    return new PacketaClient(config)
   }
 
   // ============================================
