@@ -149,6 +149,7 @@ export type PaykitClientFactory = () =>
   | Promise<PaykitPaymentClient>
 
 export type PaykitAdapterOptions = {
+  apiStoreName?: string
   debug?: boolean
   capture?: boolean
   client?: PaykitPaymentClient

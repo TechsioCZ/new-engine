@@ -7,11 +7,6 @@ import {
 import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
 import type ProductReviewModuleService from "../../../modules/product-review/service"
 
-type AuthContext = {
-  actor_id?: string
-  actor_type?: string
-}
-
 type CustomerRecord = {
   first_name?: null | string
   id: string
@@ -79,20 +74,17 @@ type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
   ) => Promise<ReviewTokenDTO[]>
 }
 
-export const getCustomerId = (req: MedusaRequest) => {
-  const authContext =
-    "auth_context" in req
-      ? (req.auth_context as AuthContext | undefined)
-      : undefined
+export const getAuthenticatedCustomerId = (req: MedusaRequest) => {
+  const authContext = "auth_context" in req ? req.auth_context : undefined
 
-  if (authContext?.actor_type !== "customer" || !authContext.actor_id) {
-    throw new MedusaError(
-      MedusaError.Types.UNAUTHORIZED,
-      "Product reviews require an authenticated customer."
-    )
+  if (!isRecord(authContext)) {
+    return
   }
 
-  return authContext.actor_id
+  return authContext.actor_type === "customer" &&
+    typeof authContext.actor_id === "string"
+    ? authContext.actor_id
+    : undefined
 }
 
 export const getReviewTokenCustomerId = (reviewToken: ReviewTokenDTO) =>
@@ -100,13 +92,16 @@ export const getReviewTokenCustomerId = (reviewToken: ReviewTokenDTO) =>
 
 export const getReviewAuthorName = ({
   customer,
+  isGuest = false,
   reviewToken,
 }: {
   customer?: CustomerRecord
+  isGuest?: boolean
   reviewToken?: ReviewTokenDTO
 }) => ({
-  first_name: reviewToken ? "Anonym" : (customer?.first_name ?? null),
-  last_name: reviewToken ? null : (customer?.last_name ?? null),
+  first_name:
+    reviewToken || isGuest ? "Anonym" : (customer?.first_name ?? null),
+  last_name: reviewToken || isGuest ? null : (customer?.last_name ?? null),
 })
 
 export function assertReviewTokenUsable(

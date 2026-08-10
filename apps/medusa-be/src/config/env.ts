@@ -35,8 +35,6 @@ export type MedusaConfigEnv = {
   minioRegion: string | undefined
   minioSecretKey: string | undefined
   notificationProvider: "local" | "resend"
-  glsEnvironment: string
-  packetaEnvironment: string
   payloadApiKey: string | undefined
   payloadBaseUrl: string | undefined
   payloadContentCacheTtl: number
@@ -254,8 +252,6 @@ export function readMedusaConfigEnv(
       "local",
       "resend",
     ] as const),
-    glsEnvironment: env.GLS_ENVIRONMENT ?? "testing",
-    packetaEnvironment: env.PACKETA_ENVIRONMENT ?? "testing",
     payloadApiKey: env.PAYLOAD_API_KEY,
     payloadBaseUrl: env.PAYLOAD_BASE_URL,
     payloadContentCacheTtl: Number.parseInt(env.CMS_CACHE_TTL ?? "3600", 10),

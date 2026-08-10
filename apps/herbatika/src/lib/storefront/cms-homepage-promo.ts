@@ -32,6 +32,4 @@ export const mapCmsPageToHomepagePromo = (
 }
 
 export const fetchCmsHomepagePromo = async () =>
-  mapCmsPageToHomepagePromo(
-    await fetchCmsPageBySlug(HOMEPAGE_PROMO_PAGE_SLUG)
-  )
+  mapCmsPageToHomepagePromo(await fetchCmsPageBySlug(HOMEPAGE_PROMO_PAGE_SLUG))

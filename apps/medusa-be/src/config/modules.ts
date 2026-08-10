@@ -1,6 +1,8 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { API_STORE_MODULE } from "../modules/api-store"
 import { DATABASE_MODULE } from "../modules/database"
 import { GLS_CLIENT_MODULE } from "../modules/gls-client/constants"
+import { CASH_ON_DELIVERY_PAYMENT_PROVIDER_ID } from "../modules/payment-cash-on-delivery/constants"
 import { buildPaykitPaymentProviders } from "../modules/payment-paykit/medusa-config"
 import {
   QR_PAYMENT_MODULE,
@@ -24,7 +26,13 @@ type PaymentProviderConfig = {
 }
 
 function buildPaymentProviders(env: MedusaConfigEnv): PaymentProviderConfig[] {
-  const providers: PaymentProviderConfig[] = []
+  const providers: PaymentProviderConfig[] = [
+    {
+      resolve: "./src/modules/payment-cash-on-delivery/services/manual",
+      id: CASH_ON_DELIVERY_PAYMENT_PROVIDER_ID,
+      options: {},
+    },
+  ]
 
   if (env.featurePaymentQrEnabled) {
     providers.push({
@@ -40,7 +48,7 @@ function buildPaymentProviders(env: MedusaConfigEnv): PaymentProviderConfig[] {
 }
 
 function buildPaymentDependencies(env: MedusaConfigEnv): string[] {
-  const dependencies: string[] = []
+  const dependencies: string[] = [API_STORE_MODULE]
 
   if (env.featurePaymentQrEnabled) {
     dependencies.push(QR_PAYMENT_MODULE)
@@ -89,10 +97,7 @@ function buildFulfillmentClientModules(
   if (env.featurePacketaEnabled) {
     modules.push({
       resolve: "./src/modules/packeta-client",
-      dependencies: [Modules.LOCKING],
-      options: {
-        environment: env.packetaEnvironment,
-      },
+      dependencies: [Modules.LOCKING, API_STORE_MODULE],
     })
   }
 
@@ -100,9 +105,6 @@ function buildFulfillmentClientModules(
     modules.push({
       resolve: "./src/modules/gls-client",
       dependencies: [Modules.LOCKING],
-      options: {
-        environment: env.glsEnvironment,
-      },
     })
   }
 
@@ -218,6 +220,7 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "@medusajs/medusa/notification",
+      dependencies: [API_STORE_MODULE],
       options: {
         providers: buildNotificationProviders(env),
       },
@@ -233,10 +236,21 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/product-attribute",
     },
     {
+      resolve: "./src/modules/api-store",
+    },
+    {
+      resolve: "./src/modules/shop-review",
+      dependencies: [API_STORE_MODULE],
+    },
+    {
       resolve: "./src/modules/product-list",
     },
     {
       resolve: "./src/modules/product-review",
+    },
+    {
+      resolve: "./src/modules/search-profile",
+      dependencies: [Modules.CACHING],
     },
     {
       resolve: "./src/modules/storefront-text",

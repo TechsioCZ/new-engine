@@ -12,6 +12,7 @@ type CheckoutShippingPaymentStepController = Pick<
   CheckoutController,
   | "checkoutPaymentQuery"
   | "checkoutShippingQuery"
+  | "cartQuery"
   | "currencyCode"
   | "handleSelectPaymentProvider"
   | "handleSelectShipping"
@@ -56,6 +57,7 @@ export function CheckoutShippingPaymentStepSection({
   return (
     <section className="space-y-400">
       <CheckoutShippingSection
+        cartId={controller.cartQuery.cart?.id ?? ""}
         currencyCode={controller.currencyCode}
         isBusy={controller.isBusy}
         onPendingPickupOptionIdChange={setPendingPickupOptionId}

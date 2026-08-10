@@ -71,6 +71,8 @@ export function AccountShell({ children }: AccountShellProps) {
   const authQuery = useAuth()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const redirectTarget = pathname
+  const isDeactivationConfirmationRoute =
+    pathname === "/account/deactivate/confirm"
   const isOrdersListRoute = pathname === "/account/orders"
   const isOrderDetailRoute = pathname.startsWith("/account/orders/")
   const {
@@ -86,6 +88,10 @@ export function AccountShell({ children }: AccountShellProps) {
   })
 
   useEffect(() => {
+    if (isDeactivationConfirmationRoute) {
+      return
+    }
+
     if (isLoggingOut) {
       return
     }
@@ -98,6 +104,7 @@ export function AccountShell({ children }: AccountShellProps) {
   }, [
     authQuery.isAuthenticated,
     authQuery.isLoading,
+    isDeactivationConfirmationRoute,
     isLoggingOut,
     redirectTarget,
     router,
@@ -111,6 +118,10 @@ export function AccountShell({ children }: AccountShellProps) {
     if (!result.ok) {
       setIsLoggingOut(false)
     }
+  }
+
+  if (isDeactivationConfirmationRoute) {
+    return children
   }
 
   if (authQuery.isLoading) {

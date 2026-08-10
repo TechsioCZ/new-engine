@@ -15,6 +15,7 @@ export type QueryService = {
     entity: string
     fields: string[]
     filters?: Record<string, unknown>
+    pagination?: { take?: number }
   }) => Promise<{ data: unknown[] }>
 }
 
@@ -43,17 +44,16 @@ type FulfillmentItemWithQuantity = {
 
 const DEFAULT_PACKET_WEIGHT_KG = 0.5
 const GRAMS_PER_KG = 1000
+const MINOR_UNITS_PER_MAJOR_UNIT = 100
+const MINOR_UNIT_TOLERANCE = 1e-7
 const ADDRESS_WITH_HOUSE_NUMBER_REGEX = /^(.+?)\s+(\d+[\w/-]*)$/u
 const HOUSE_NUMBER_REGEX = /^(\d+)(.*)$/u
-
-type PacketOrderTotal = {
-  total: number
-  usedFallback: boolean
-}
-
-type PacketCurrency = {
-  currency: string
-  usedFallback: boolean
+const ISO_CURRENCY_CODE_REGEX = /^[A-Z]{3}$/
+const GLS_COD_CURRENCIES_BY_COUNTRY: Record<string, string> = {
+  CZ: "CZK",
+  HU: "HUF",
+  RO: "RON",
+  SK: "EUR",
 }
 
 type PacketWeight = {
@@ -84,7 +84,7 @@ export function toFiniteNumber(value: unknown): number | undefined {
 export async function buildGLSPacketAttributes(params: {
   order: Partial<FulfillmentOrderDTO>
   shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
-  accessPointId: string
+  accessPointId?: string
   shippingData: GLSShippingOptionData
   items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[]
   config: GLSOptions
@@ -104,16 +104,8 @@ export async function buildGLSPacketAttributes(params: {
 
   const recipient = getRequiredRecipientName(shippingAddress)
   const orderNumber = getPacketOrderNumber(order)
-  const orderTotal = getPacketOrderTotal(order, shippingData)
   const packetWeight = await getPacketWeight(order, items, shippingData, query)
-  const currency = getPacketCurrency(order, shippingData)
   const email = await getRequiredOrderEmail(order, shippingData, query)
-
-  if (orderTotal.usedFallback) {
-    logger.warn(
-      `GLS: Falling back to placeholder order total 1 for non-COD order ${orderNumber}. Fill order total or item_total in Medusa to send an exact parcel value.`
-    )
-  }
 
   if (packetWeight.usedFallback) {
     logger.warn(
@@ -121,26 +113,19 @@ export async function buildGLSPacketAttributes(params: {
     )
   }
 
-  if (currency.usedFallback) {
-    logger.warn(
-      `GLS: Falling back to placeholder currency CZK for non-COD order ${orderNumber}. Fill order currency_code in Medusa to send the exact parcel currency.`
-    )
-  }
-
   const attributes = buildBasePacketAttributes({
     accessPointId,
     config,
-    currency: currency.currency,
     email,
     orderNumber,
     packetWeight: packetWeight.weight,
     recipient,
     shippingAddress,
-    totalNumber: orderTotal.total,
   })
 
   if (shippingData.supports_cod) {
-    attributes.cod = orderTotal.total
+    attributes.cod = getRequiredPacketOrderTotal(order)
+    attributes.currency = getRequiredPacketCurrency(order, attributes.delivery_country)
   }
 
   return attributes
@@ -180,31 +165,48 @@ function getRequiredRecipientName(
 }
 
 function getPacketOrderNumber(order: Partial<FulfillmentOrderDTO>): string {
-  return order.display_id?.toString() ?? order.id ?? `fulfillment-${Date.now()}`
+  const displayId = order.display_id?.toString().trim()
+  const orderId = order.id?.trim()
+
+  if (displayId) {
+    return displayId
+  }
+  if (orderId) {
+    return orderId
+  }
+
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    "GLS: A stable order id or display_id is required"
+  )
 }
 
-function getPacketOrderTotal(
-  order: Partial<FulfillmentOrderDTO>,
-  shippingData: GLSShippingOptionData
-): PacketOrderTotal {
+function getRequiredPacketOrderTotal(
+  order: Partial<FulfillmentOrderDTO>
+): number {
   const orderRecord: unknown = order
   const itemTotal: unknown = isRecord(orderRecord)
     ? orderRecord.item_total
     : undefined
   const orderTotal = toFiniteNumber(order.total) ?? toFiniteNumber(itemTotal)
 
-  if (orderTotal !== undefined) {
-    return { total: orderTotal, usedFallback: false }
+  if (orderTotal === undefined || orderTotal <= 0) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "GLS: A positive order total or item_total is required for COD shipments"
+    )
   }
 
-  if (!shippingData.supports_cod) {
-    return { total: 1, usedFallback: true }
+  const amountInMinorUnits = orderTotal * MINOR_UNITS_PER_MAJOR_UNIT
+  const nearestMinorUnit = Math.round(amountInMinorUnits)
+  if (Math.abs(amountInMinorUnits - nearestMinorUnit) > MINOR_UNIT_TOLERANCE) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "GLS: COD amount cannot have more than two decimal places"
+    )
   }
 
-  throw new MedusaError(
-    MedusaError.Types.INVALID_DATA,
-    "GLS: order total or item_total is required for COD shipments"
-  )
+  return orderTotal
 }
 
 async function getPacketWeight(
@@ -226,55 +228,48 @@ async function getPacketWeight(
   return { weight: DEFAULT_PACKET_WEIGHT_KG, usedFallback: true }
 }
 
-function getPacketCurrency(
+function getRequiredPacketCurrency(
   order: Partial<FulfillmentOrderDTO>,
-  shippingData: GLSShippingOptionData
-): PacketCurrency {
+  countryCode: string
+): string {
   const orderRecord: unknown = order
   const currency = getOptionalString(
     isRecord(orderRecord) ? orderRecord.currency_code : undefined
   )?.toUpperCase()
 
-  if (currency) {
-    return { currency, usedFallback: false }
-  }
-
-  if (!shippingData.supports_cod) {
-    return { currency: "CZK", usedFallback: true }
+  const expectedCurrency = GLS_COD_CURRENCIES_BY_COUNTRY[countryCode]
+  if (currency && ISO_CURRENCY_CODE_REGEX.test(currency) && expectedCurrency === currency) {
+    return currency
   }
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    "GLS: currency_code is required on the order for COD shipments"
+    "GLS: COD currency does not match the shipping market"
   )
 }
 
 function buildBasePacketAttributes(params: {
   shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
-  accessPointId: string
+  accessPointId?: string
   config: GLSOptions
-  currency: string
   email: string
   orderNumber: string
   packetWeight: number
   recipient: { firstName: string; lastName: string }
-  totalNumber: number
 }): GLSPacketAttributes {
   const {
     shippingAddress,
     accessPointId,
-    currency,
     email,
     orderNumber,
     packetWeight,
     recipient,
-    totalNumber,
   } = params
   const address = normalizeShippingAddress(shippingAddress)
   const shippingAddressRecord: unknown = shippingAddress
   const phone = getRequiredString(
     isRecord(shippingAddressRecord) ? shippingAddressRecord.phone : undefined,
-    "GLS: Shipping address phone is required for ParcelShop delivery"
+    "GLS: Shipping address phone is required"
   )
 
   return {
@@ -283,9 +278,7 @@ function buildBasePacketAttributes(params: {
     surname: recipient.lastName,
     email,
     phone,
-    addressId: accessPointId,
-    value: totalNumber,
-    currency,
+    ...(accessPointId ? { addressId: accessPointId } : {}),
     weight: packetWeight,
     content: `Order ${orderNumber}`,
     delivery_street: address.street,

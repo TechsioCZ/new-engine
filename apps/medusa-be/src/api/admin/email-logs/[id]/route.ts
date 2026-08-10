@@ -1,5 +1,11 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import {
+  getCredentialString,
+  INTEGRATION_CONFIG_NAMES,
+  requireCredentialObject,
+  requireEnabledIntegrationConfig,
+} from "../../../../modules/api-store/integration-config"
 import { EMAIL_LOG_MODULE } from "../../../../modules/email-log"
 import type EmailLogModuleService from "../../../../modules/email-log/service"
 
@@ -48,13 +54,22 @@ const toEmailLogResponse = (emailLog: EmailLogDTO) => ({
   updated_at: emailLog.updated_at,
 })
 
-async function retrieveResendEmail(emailId: string) {
-  const apiKey = process.env.RESEND_API_KEY
+async function retrieveResendEmail(
+  emailId: string,
+  container: Record<string, unknown>
+) {
+  const config = await requireEnabledIntegrationConfig(
+    container,
+    INTEGRATION_CONFIG_NAMES.RESEND
+  )
+  const credentials = requireCredentialObject(config)
+  const apiKey =
+    config.api_key ?? getCredentialString(credentials, "apiKey", "api_key")
 
   if (!apiKey) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "RESEND_API_KEY is not configured"
+      "Resend API key is not configured in Settings → API Store"
     )
   }
 
@@ -114,7 +129,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   }
 
   const emailLog = await emailLogService.retrieveEmailLog(id)
-  const resendEmail = await retrieveResendEmail(emailLog.email_id)
+  const resendEmail = await retrieveResendEmail(
+    emailLog.email_id,
+    req.scope as Record<string, unknown>
+  )
 
   res.json({
     email_log: toEmailLogResponse(emailLog),

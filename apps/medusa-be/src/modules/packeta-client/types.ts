@@ -11,6 +11,8 @@
 
 export type PacketaEnvironment = "testing" | "production"
 
+export type PacketaWidgetCountry = "sk" | "cz" | "hu" | "ro"
+
 /** Packeta label size. A6 is the default thermal printer format. */
 export type PacketaLabelFormat = "A6" | "A7"
 
@@ -18,9 +20,13 @@ export type PacketaLabelFormat = "A6" | "A7"
  * Configuration options passed from medusa-config.ts / stored in DB
  */
 export type PacketaOptions = {
+  config_id: string
   /** API password from Packeta admin portal */
   api_password: string
+  /** Optional pickup-point feed key. Defaults to api_password. */
+  pickup_points_api_key?: string
   environment: PacketaEnvironment
+  allow_live_operations: boolean
   default_label_format: PacketaLabelFormat
   /** Label offset on sheet (0 = top-left) */
   default_label_offset: number
@@ -186,6 +192,8 @@ export interface PacketaFulfillmentData extends Record<string, unknown> {
   /** Pickup point ID selected by customer */
   access_point_id: number
   supports_cod: boolean
+  config_id: string
+  environment: PacketaEnvironment
 
   /** Stored label URL in S3/MinIO */
   label_url?: string
@@ -221,6 +229,7 @@ export type PacketaShippingOptionData = {
 
 export const PACKETA_SENSITIVE_FIELDS = [
   "api_password",
+  "widget_api_key",
   "cod_bank_account",
   "cod_bank_code",
   "cod_iban",
@@ -230,8 +239,12 @@ export const PACKETA_SENSITIVE_FIELDS = [
 export type PacketaConfigDTO = {
   id: string
   environment: PacketaEnvironment
+  is_active: boolean
   is_enabled: boolean
+  allow_live_operations: boolean
   api_password: string | null
+  widget_api_key: string | null
+  widget_countries: PacketaWidgetCountry[]
   sender_label: string | null
   eshop_id: string | null
   default_label_format: string
@@ -258,7 +271,10 @@ export type PacketaConfigDTO = {
  */
 export type UpdatePacketaConfigInput = {
   is_enabled?: boolean
+  allow_live_operations?: boolean
   api_password?: string | null
+  widget_api_key?: string | null
+  widget_countries?: PacketaWidgetCountry[]
   sender_label?: string
   eshop_id?: string
   default_label_format?: PacketaLabelFormat
@@ -276,12 +292,25 @@ export type UpdatePacketaConfigInput = {
   sender_email?: string
 }
 
+export type UpdatePacketaProfileInput = UpdatePacketaConfigInput & {
+  environment: PacketaEnvironment
+}
+
+export type ActivatePacketaProfileInput = {
+  environment: PacketaEnvironment
+  confirmed: boolean
+}
+
 /** Admin API response — sensitive fields replaced with *_set booleans */
 export type PacketaConfigResponse = {
   id: string
   environment: PacketaEnvironment
+  is_active: boolean
   is_enabled: boolean
+  allow_live_operations: boolean
   api_password_set: boolean
+  widget_api_key_set: boolean
+  widget_countries: PacketaWidgetCountry[]
   sender_label: string | null
   eshop_id: string | null
   default_label_format: string
@@ -297,4 +326,9 @@ export type PacketaConfigResponse = {
   sender_country: string | null
   sender_phone: string | null
   sender_email: string | null
+}
+
+export type PacketaConfigReference = {
+  config_id?: string | null
+  environment?: PacketaEnvironment | null
 }

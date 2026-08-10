@@ -7,13 +7,11 @@ import {
 import { prefetchHomePageStorefrontData } from "@/lib/storefront/ssr"
 
 export default async function HomePage() {
-  const [{ dehydratedState }, heroBanners, homepagePromo] = await Promise.all(
-    [
-      prefetchHomePageStorefrontData(),
-      fetchCmsHeroBanners(),
-      fetchCmsHomepagePromo(),
-    ]
-  )
+  const [{ dehydratedState }, heroBanners, homepagePromo] = await Promise.all([
+    prefetchHomePageStorefrontData(),
+    fetchCmsHeroBanners(),
+    fetchCmsHomepagePromo(),
+  ])
 
   return (
     <HydrationBoundary state={dehydratedState}>

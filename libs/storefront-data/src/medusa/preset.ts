@@ -9,7 +9,10 @@ import {
   createMedusaAuthService,
   type MedusaAuthCredentials,
   type MedusaAuthServiceConfig,
+  type MedusaConfirmCustomerAccountDeactivationInput,
+  type MedusaDeactivateCustomerAccountResult,
   type MedusaRegisterData,
+  type MedusaRequestCustomerAccountDeactivationResult,
   type MedusaUpdateCustomerData,
 } from "../auth/medusa-service"
 import type { AuthQueryKeys, AuthService } from "../auth/types"
@@ -220,7 +223,10 @@ type MedusaAuthHooksConfig = OmitFactoryConfig<
     MedusaUpdateCustomerData,
     unknown,
     string,
-    string
+    string,
+    MedusaRequestCustomerAccountDeactivationResult,
+    MedusaConfirmCustomerAccountDeactivationInput,
+    MedusaDeactivateCustomerAccountResult
   >
 >
 
@@ -231,7 +237,10 @@ type MedusaAuthService = AuthService<
   MedusaUpdateCustomerData,
   unknown,
   string,
-  string
+  string,
+  MedusaRequestCustomerAccountDeactivationResult,
+  MedusaConfirmCustomerAccountDeactivationInput,
+  MedusaDeactivateCustomerAccountResult
 >
 
 type MedusaCartHooksConfig<TAddressInput, TAddressPayload> = Omit<
@@ -677,7 +686,10 @@ type MedusaStorefrontHooks<
     MedusaUpdateCustomerData,
     unknown,
     string,
-    string
+    string,
+    MedusaRequestCustomerAccountDeactivationResult,
+    MedusaConfirmCustomerAccountDeactivationInput,
+    MedusaDeactivateCustomerAccountResult
   >
   cart: CartHooks<
     HttpTypes.StoreCart,

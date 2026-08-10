@@ -42,6 +42,7 @@ packageExtensionsChecksum: sha256-bfmqySvf7v98NPrRPcdoQkmEmUgdZs7NYgYf9oapspM=
 
 patchedDependencies:
   '@lexical/code@0.35.0': 38ef93d18a7c26b06c6c76116b49aa8fca1128da4eb27c3cda2b27d210788fd6
+  '@rokmohar/medusa-plugin-meilisearch@1.4.3': 2c4bd4dbbc19dd75662a8779e611e20b5726274443f18c32d678e388f8af56de
   object-inspect@1.13.4: 901c1ec93cfdee21c7fbef4ed06bc68e8f176055c3c556d9a5ea9fabcb9cc0eb
 
 importers:
@@ -388,7 +389,7 @@ importers:
         version: 1.1.1(@types/react@19.2.3)(react@19.2.3)
       '@rokmohar/medusa-plugin-meilisearch':
         specifier: ^1.4.3
-        version: 1.4.3(@medusajs/admin-sdk@2.18.0)(@medusajs/framework@2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3))(@medusajs/medusa@2.18.0)(@medusajs/ui@4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(@tanstack/react-query@5.64.2(react@19.2.3))(@types/node@24.12.4)(awilix@8.0.1)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)
+        version: 1.4.3(patch_hash=2c4bd4dbbc19dd75662a8779e611e20b5726274443f18c32d678e388f8af56de)(@medusajs/admin-sdk@2.18.0)(@medusajs/framework@2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3))(@medusajs/medusa@2.18.0)(@medusajs/ui@4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(@tanstack/react-query@5.64.2(react@19.2.3))(@types/node@24.12.4)(awilix@8.0.1)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)
       '@sentry/node':
         specifier: ^10.67.0
         version: 10.67.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.220.0(@opentelemetry/api@1.9.1))(supports-color@8.1.1)
@@ -501,6 +502,9 @@ importers:
       '@types/escape-html':
         specifier: ^1.0.4
         version: 1.0.4
+      '@types/jsonwebtoken':
+        specifier: ^9.0.10
+        version: 9.0.10
       '@types/node':
         specifier: 24.12.4
         version: 24.12.4
@@ -519,9 +523,15 @@ importers:
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
+      jsonwebtoken:
+        specifier: ^9.0.3
+        version: 9.0.3
       pg-god:
         specifier: 1.0.12
         version: 1.0.12(supports-color@8.1.1)
+      scrypt-kdf:
+        specifier: ^4.0.0
+        version: 4.0.0
       ts-node:
         specifier: 10.9.2
         version: 10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.18))(@types/node@24.12.4)(typescript@5.9.3)
@@ -16865,6 +16875,10 @@ packages:
     resolution: {integrity: sha512-dMhpgBVJPDWZP5erOCwTjI6oAO9hKhFAjZsdSQ0spaWJYHuA/wFNF2weQQfsyCIk8eNKoLfEDxr3zAtM+gZo0Q==}
     engines: {node: '>=8.5.0'}
 
+  scrypt-kdf@4.0.0:
+    resolution: {integrity: sha512-Gw7nImFqHQhxCANNnmQFiQIiRVDa/gOpGW6rpD18w+bNjG7x41RvfAcJOdjXiOoI5lPaEWoYZhY7h6qorGdBQw==}
+    engines: {deno: '>=2.5.0', node: '>=19.0.0'}
+
   secure-json-parse@4.1.0:
     resolution: {integrity: sha512-l4KnYfEyqYJxDwlNVyRfO2E4NTHfMKAWdUuA8J0yve2Dz/E/PdBepY03RvyJpssIpRFwJoCD55wA+mEDs6ByWA==}
 
@@ -24413,7 +24427,7 @@ snapshots:
       enquirer: 2.3.6
       minimatch: 10.1.1
       nx: 22.4.2(@swc-node/register@1.11.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/types@0.1.27)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.3(@swc/helpers@0.5.23))(debug@4.4.3(supports-color@8.1.1))
-      semver: 7.8.0
+      semver: 7.8.5
       tslib: 2.8.1
       yargs-parser: 21.1.1
 
@@ -24466,7 +24480,7 @@ snapshots:
       '@nx/devkit': 22.4.2(nx@22.4.2(@swc-node/register@1.11.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/types@0.1.27)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.3(@swc/helpers@0.5.23))(debug@4.4.3(supports-color@8.1.1)))
       '@nx/js': 22.4.2(@babel/traverse@7.29.7(supports-color@8.1.1))(@swc-node/register@1.11.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/types@0.1.27)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.3(@swc/helpers@0.5.23))(debug@4.4.3(supports-color@8.1.1))(nx@22.4.2(@swc-node/register@1.11.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/types@0.1.27)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.3(@swc/helpers@0.5.23))(debug@4.4.3(supports-color@8.1.1)))(supports-color@8.1.1)
       eslint: 9.39.1(jiti@2.7.0)(supports-color@8.1.1)
-      semver: 7.8.0
+      semver: 7.8.5
       tslib: 2.8.1
       typescript: 5.9.3
     optionalDependencies:
@@ -24574,7 +24588,7 @@ snapshots:
       enquirer: 2.3.6
       nx: 22.4.2(@swc-node/register@1.11.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/types@0.1.27)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.3(@swc/helpers@0.5.23))(debug@4.4.3(supports-color@8.1.1))
       picomatch: 4.0.2
-      semver: 7.8.0
+      semver: 7.8.5
       tslib: 2.8.1
       yargs-parser: 21.1.1
     transitivePeerDependencies:
@@ -24589,7 +24603,7 @@ snapshots:
       '@oclif/help': 1.0.15(supports-color@8.1.1)
       '@oclif/parser': 3.8.17
       debug: 4.4.3(supports-color@8.1.1)
-      semver: 7.8.0
+      semver: 7.8.5
     transitivePeerDependencies:
       - supports-color
 
@@ -24600,7 +24614,7 @@ snapshots:
       '@oclif/help': 1.0.15(supports-color@8.1.1)
       '@oclif/parser': 3.8.17
       debug: 4.4.3(supports-color@8.1.1)
-      semver: 7.8.0
+      semver: 7.8.5
     transitivePeerDependencies:
       - supports-color
 
@@ -27221,7 +27235,7 @@ snapshots:
 
   '@remix-run/router@1.23.3': {}
 
-  '@rokmohar/medusa-plugin-meilisearch@1.4.3(@medusajs/admin-sdk@2.18.0)(@medusajs/framework@2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3))(@medusajs/medusa@2.18.0)(@medusajs/ui@4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(@tanstack/react-query@5.64.2(react@19.2.3))(@types/node@24.12.4)(awilix@8.0.1)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)':
+  '@rokmohar/medusa-plugin-meilisearch@1.4.3(patch_hash=2c4bd4dbbc19dd75662a8779e611e20b5726274443f18c32d678e388f8af56de)(@medusajs/admin-sdk@2.18.0)(@medusajs/framework@2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3))(@medusajs/medusa@2.18.0)(@medusajs/ui@4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(@tanstack/react-query@5.64.2(react@19.2.3))(@types/node@24.12.4)(awilix@8.0.1)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)':
     dependencies:
       '@medusajs/admin-sdk': 2.18.0
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
@@ -28868,7 +28882,7 @@ snapshots:
       fast-glob: 3.3.3
       is-glob: 4.0.3
       minimatch: 9.0.5
-      semver: 7.8.0
+      semver: 7.8.5
       ts-api-utils: 2.1.0(typescript@5.9.3)
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -28882,7 +28896,7 @@ snapshots:
       '@typescript-eslint/visitor-keys': 8.53.0
       debug: 4.4.3(supports-color@8.1.1)
       minimatch: 9.0.5
-      semver: 7.8.0
+      semver: 7.8.5
       tinyglobby: 0.2.17
       ts-api-utils: 2.4.0(typescript@5.9.3)
       typescript: 5.9.3
@@ -30899,7 +30913,7 @@ snapshots:
       natural-orderby: 2.0.3
       object-treeify: 1.1.33
       password-prompt: 1.1.3
-      semver: 7.8.0
+      semver: 7.8.5
       string-width: 4.2.3
       strip-ansi: 6.0.1
       supports-color: 8.1.1
@@ -31177,7 +31191,7 @@ snapshots:
       conventional-commits-filter: 5.0.0
       handlebars: 4.7.8
       meow: 13.2.0
-      semver: 7.8.0
+      semver: 7.8.5
 
   conventional-commits-filter@5.0.0: {}
 
@@ -33649,7 +33663,7 @@ snapshots:
 
   is-bun-module@2.0.0:
     dependencies:
-      semver: 7.8.0
+      semver: 7.8.5
 
   is-callable@1.2.7: {}
 
@@ -34515,7 +34529,7 @@ snapshots:
       acorn: 8.15.0
       eslint-visitor-keys: 3.4.3
       espree: 9.6.1
-      semver: 7.8.0
+      semver: 7.8.5
 
   jsonc-parser@3.2.0: {}
 
@@ -36167,7 +36181,7 @@ snapshots:
   normalize-package-data@8.0.0:
     dependencies:
       hosted-git-info: 9.0.3
-      semver: 7.8.0
+      semver: 7.8.5
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
@@ -38198,6 +38212,8 @@ snapshots:
 
   scrypt-kdf@2.0.1: {}
 
+  scrypt-kdf@4.0.0: {}
+
   secure-json-parse@4.1.0: {}
 
   selderee@0.11.0:
@@ -38243,7 +38259,7 @@ snapshots:
 
   semver-diff@5.0.0:
     dependencies:
-      semver: 7.8.0
+      semver: 7.8.5
 
   semver-regex@4.0.5: {}
 
@@ -38361,7 +38377,7 @@ snapshots:
     dependencies:
       '@img/colour': 1.0.0
       detect-libc: 2.1.2
-      semver: 7.8.0
+      semver: 7.8.5
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.34.5
       '@img/sharp-darwin-x64': 0.34.5

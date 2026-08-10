@@ -131,6 +131,11 @@
     "pickup_selection_failed": "Az átvételi pont kiválasztása nem sikerült. Kérjük, próbálja újra.",
     "pickup_point_unavailable": "A kiválasztott átvételi pont jelenleg nem érhető el.",
     "pickup_selector_unavailable": "Az átvételi pont kiválasztása átmenetileg nem érhető el. Kérjük, próbálja újra később.",
+    "gls_pickup_search_label": "GLS ParcelShop keresése",
+    "gls_pickup_search_placeholder": "Város, irányítószám vagy név",
+    "gls_pickup_search_action": "Átvételi pont keresése",
+    "gls_pickup_search_loading": "Keresés...",
+    "gls_pickup_search_empty": "Nem található GLS átvételi pont.",
     "review_customer_note": "Megjegyzés",
     "review_marketing_consent": "Hozzájárulok marketinginformációk küldéséhez",
     "review_heureka_consent": "Hozzájárulok a Heureka elégedettségi kérdőívének elküldéséhez",
@@ -725,7 +730,8 @@
       "sections": {
         "products": "Termékek",
         "categories": "Kategóriák",
-        "brands": "Márkák"
+        "brands": "Márkák",
+        "content": "Tartalom"
       },
       "types": {
         "category": "Kategória",

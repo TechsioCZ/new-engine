@@ -42,9 +42,15 @@ import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visit
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { storefront } from "@/lib/storefront/storefront"
 
-type UseProductDetailDataProps = { handle: string }
+type UseProductDetailDataProps = {
+  handle: string
+  initialVariantId?: string
+}
 
-export function useProductDetailData({ handle }: UseProductDetailDataProps) {
+export function useProductDetailData({
+  handle,
+  initialVariantId,
+}: UseProductDetailDataProps) {
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
@@ -179,9 +185,13 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
   useEffect(() => {
     setQuantity(1)
-    setSelectedVariantId(product?.variants?.[0]?.id ?? null)
+    setSelectedVariantId(
+      product?.variants?.some((variant) => variant.id === initialVariantId)
+        ? (initialVariantId ?? null)
+        : (product?.variants?.[0]?.id ?? null)
+    )
     setSelectedVolumeDiscountId(null)
-  }, [product?.variants])
+  }, [initialVariantId, product?.variants])
 
   useEffect(() => {
     if (availableQuantity === null || availableQuantity < 1) {
