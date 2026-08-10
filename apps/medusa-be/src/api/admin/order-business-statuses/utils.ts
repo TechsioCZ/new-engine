@@ -2,8 +2,6 @@ import type { Query } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 import {
   getManualOrderBusinessStatusId,
-  type ManualOrderBusinessStatusId,
-  ORDER_BUSINESS_STATUS_METADATA_KEY,
   type OrderBusinessStatusInput,
   type OrderBusinessStatusSummary,
   resolveOrderBusinessStatus,
@@ -99,21 +97,6 @@ export function toOrderBusinessStatusSummary(
     manual_status: getManualOrderBusinessStatusId(order) ?? null,
     total: order.total,
   }
-}
-
-export function buildOrderBusinessStatusMetadata(
-  metadata: Record<string, unknown> | null | undefined,
-  status: ManualOrderBusinessStatusId | null
-) {
-  const nextMetadata = { ...(metadata ?? {}) }
-
-  if (status === null) {
-    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = null
-  } else {
-    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = status
-  }
-
-  return nextMetadata
 }
 
 function normalizeDate(value: Date | string | null | undefined) {

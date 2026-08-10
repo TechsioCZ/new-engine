@@ -122,29 +122,12 @@ export type OrderDashboardAdminI18nNamespace = {
     string
   >
   labelFormats: Record<"a6" | "a7", string>
-  manualStatus: Record<
-    "canceled" | "clear" | "none" | "processing" | "waiting_for_supplier",
-    string
-  >
+  manualStatus: Record<"clear" | "none", string>
   manualStatusPrompt: Record<
-    | "description"
-    | "skipped"
-    | "skippedMore"
-    | "target"
-    | "title"
-    | "updated"
-    | "updatedMore"
-    | "willChange",
+    "description" | "target" | "title" | "willChange",
     string
   >
   menuItem: string
-  manualStatusBlocker: Record<
-    | "alreadyClear"
-    | "alreadyStatus"
-    | "canceledStayCanceled"
-    | "higherPriority",
-    string
-  >
   packetaSkip: Record<"noActiveLabel" | "notPacketa" | "unchecked", string>
   packetaLabelPositionPrompt: Record<
     "description" | "position" | "print" | "selected" | "title",
@@ -235,10 +218,7 @@ export type OrderDashboardAdminI18nNamespace = {
   >
   title: string
   toast: Record<
-    | "businessStatusUpdated_few"
-    | "businessStatusUpdated_one"
-    | "businessStatusUpdated_other"
-    | "businessStatusUpdatedWithSkipped"
+    | "businessStatusProcessed"
     | "blockedOrderStatus"
     | "fulfillmentCreated_few"
     | "fulfillmentCreated_one"
@@ -246,7 +226,6 @@ export type OrderDashboardAdminI18nNamespace = {
     | "fulfillmentCreatedWithFailed"
     | "fulfillmentLimit"
     | "fulfillmentSkipped"
-    | "manualStatusSkipped"
     | "missingBusinessStatus"
     | "missingOrderStatus"
     | "noPacketaSelection"
@@ -389,29 +368,17 @@ const englishOrderDashboardAdminI18n = {
     a7: "A7",
   },
   manualStatus: {
-    canceled: "Canceled",
     clear: "Clear manual status",
     none: "No manual status",
-    processing: "Processing",
-    waiting_for_supplier: "Waiting for supplier",
   },
   manualStatusPrompt: {
     description: "Only manually selected orders will be updated.",
-    skipped: "{{order}}: skipped - {{reason}}",
-    skippedMore: "Additional orders to skip: {{count}}",
     target: "Target manual status: {{status}}",
     title: "Set manual status",
-    updated: "{{order}}: set manual status to {{status}}",
-    updatedMore: "Additional orders to update: {{count}}",
-    willChange: "To update: {{updatedCount}}. To skip: {{skippedCount}}.",
+    willChange:
+      "Selected: {{processedCount}}. To change: {{changedCount}}. Already matching: {{unchangedCount}}.",
   },
   menuItem: "Dashboard",
-  manualStatusBlocker: {
-    alreadyClear: "Manual status is already clear",
-    alreadyStatus: "Manual status is already {{status}}",
-    canceledStayCanceled: "Canceled orders stay canceled",
-    higherPriority: "{{status}} status has higher priority",
-  },
   packetaSkip: {
     noActiveLabel: "No active Packeta shipping label",
     notPacketa: "Carrier is {{carrier}}, not Packeta",
@@ -526,11 +493,8 @@ const englishOrderDashboardAdminI18n = {
   },
   title: "Orders",
   toast: {
-    businessStatusUpdated_few: "Manual status updated for {{count}} orders.",
-    businessStatusUpdated_one: "Manual status updated for 1 order.",
-    businessStatusUpdated_other: "Manual status updated for {{count}} orders.",
-    businessStatusUpdatedWithSkipped:
-      "Manual status update completed. Updated: {{count}}. Skipped: {{skippedCount}}.",
+    businessStatusProcessed:
+      "Processed: {{processedCount}}. Changed: {{changedCount}}. Already matching: {{unchangedCount}}.",
     blockedOrderStatus: "Selected orders do not support that status change.",
     fulfillmentCreated_few: "Fulfillments created for {{count}} orders.",
     fulfillmentCreated_one: "Fulfillment created for 1 order.",
@@ -539,7 +503,6 @@ const englishOrderDashboardAdminI18n = {
       "Fulfillment completed. Successful: {{count}}. Failed: {{failedCount}}.",
     fulfillmentLimit: "Select up to {{count}} orders for bulk fulfillment.",
     fulfillmentSkipped: "No selected orders can be fulfilled.",
-    manualStatusSkipped: "Manual status was not changed.",
     missingBusinessStatus: "Select a manual status.",
     missingOrderStatus: "Select a target order status.",
     noPacketaSelection: "No selected orders have printable Packeta labels.",
@@ -681,29 +644,17 @@ const czechOrderDashboardAdminI18n = {
     a7: "A7",
   },
   manualStatus: {
-    canceled: "Zrušeno",
     clear: "Vymazat manuální stav",
     none: "Žádný manuální stav",
-    processing: "Zpracovává se",
-    waiting_for_supplier: "Čeká na dodavatele",
   },
   manualStatusPrompt: {
     description: "Upraví se pouze ručně vybrané objednávky.",
-    skipped: "{{order}}: přeskočeno - {{reason}}",
-    skippedMore: "Další objednávky k přeskočení: {{count}}",
     target: "Cílový manuální stav: {{status}}",
     title: "Nastavit manuální stav",
-    updated: "{{order}}: manuální stav bude nastaven na {{status}}",
-    updatedMore: "Další objednávky k úpravě: {{count}}",
-    willChange: "K úpravě: {{updatedCount}}. K přeskočení: {{skippedCount}}.",
+    willChange:
+      "Vybráno: {{processedCount}}. Změní se: {{changedCount}}. Beze změny: {{unchangedCount}}.",
   },
   menuItem: "Přehled",
-  manualStatusBlocker: {
-    alreadyClear: "Manuální stav je už vymazaný",
-    alreadyStatus: "Manuální stav je už {{status}}",
-    canceledStayCanceled: "Zrušené objednávky zůstávají zrušené",
-    higherPriority: "Stav {{status}} má vyšší prioritu",
-  },
   packetaSkip: {
     noActiveLabel: "Žádný aktivní štítek zásilky Packeta",
     notPacketa: "Dopravce je {{carrier}}, ne Packeta",
@@ -819,13 +770,8 @@ const czechOrderDashboardAdminI18n = {
   },
   title: "Objednávky",
   toast: {
-    businessStatusUpdated_few:
-      "Manuální stav byl upraven u {{count}} objednávek.",
-    businessStatusUpdated_one: "Manuální stav byl upraven u 1 objednávky.",
-    businessStatusUpdated_other:
-      "Manuální stav byl upraven u {{count}} objednávek.",
-    businessStatusUpdatedWithSkipped:
-      "Úprava manuálního stavu dokončena. Upraveno: {{count}}. Přeskočeno: {{skippedCount}}.",
+    businessStatusProcessed:
+      "Zpracováno: {{processedCount}}. Změněno: {{changedCount}}. Beze změny: {{unchangedCount}}.",
     blockedOrderStatus: "Vybrané objednávky nepodporují tuto změnu stavu.",
     fulfillmentCreated_few: "Expedice byly vytvořeny pro {{count}} objednávky.",
     fulfillmentCreated_one: "Expedice byla vytvořena pro 1 objednávku.",
@@ -837,7 +783,6 @@ const czechOrderDashboardAdminI18n = {
       "Pro hromadné vytvoření expedic vyberte nejvýše {{count}} objednávek.",
     fulfillmentSkipped:
       "Pro žádnou vybranou objednávku nelze vytvořit expedici.",
-    manualStatusSkipped: "Manuální stav nebyl změněn.",
     missingBusinessStatus: "Vyberte manuální stav.",
     missingOrderStatus: "Vyberte cílový stav objednávky.",
     noPacketaSelection:

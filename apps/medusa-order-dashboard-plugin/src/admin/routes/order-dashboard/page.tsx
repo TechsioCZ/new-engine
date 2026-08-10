@@ -43,6 +43,7 @@ import { setOrderDashboardSidebarBadgeCount } from "../../sidebar-badge"
 import {
   downloadOrderDashboardExpeditionPdf,
   downloadOrderDashboardPacketaLabels,
+  getOrderDashboardBusinessStatusCatalog,
   getOrderDashboardSummary,
   listOrderDashboardOrders,
   listOrderDashboardPacketaEligibility,
@@ -59,6 +60,7 @@ import {
   formatPaymentStatusLabel,
   getCarrierLabel,
   getOrderDashboardTransitionBlockReason,
+  isOrderDashboardBusinessStatusId,
   isOrderDashboardCarrierKey,
   isOrderDashboardTargetStatus,
 } from "./format"
@@ -71,12 +73,12 @@ import {
 import { OrderPdfExportPrompt } from "./pdf-export-prompt"
 import {
   ORDER_DASHBOARD_CARRIER_KEYS,
-  ORDER_DASHBOARD_MANUAL_STATUS_IDS,
   ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
   ORDER_DASHBOARD_PAGE_SIZE,
   ORDER_DASHBOARD_QUEUE_IDS,
   ORDER_DASHBOARD_TARGET_STATUSES,
   type OrderDashboardBlockingOrder,
+  type OrderDashboardBusinessStatus,
   type OrderDashboardBusinessStatusGroupId,
   type OrderDashboardBusinessStatusId,
   type OrderDashboardCarrierKey,
@@ -93,6 +95,8 @@ import {
 
 const ORDER_DASHBOARD_QUERY_KEY = "order-dashboard-orders"
 const ORDER_DASHBOARD_SUMMARY_QUERY_KEY = "order-dashboard-summary"
+const ORDER_DASHBOARD_STATUS_CATALOG_QUERY_KEY =
+  "order-dashboard-status-catalog"
 const PACKETA_ELIGIBILITY_QUERY_KEY = "order-dashboard-packeta-eligibility"
 const ORDER_DASHBOARD_SEARCH_DEBOUNCE_MS = 300
 const ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID = {
@@ -245,8 +249,13 @@ const OrderDashboardPage = () => {
     queryFn: getOrderDashboardSummary,
     queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
   })
+  const businessStatusCatalogQuery = useQuery({
+    queryFn: getOrderDashboardBusinessStatusCatalog,
+    queryKey: [ORDER_DASHBOARD_STATUS_CATALOG_QUERY_KEY],
+  })
 
   const orders = ordersQuery.data?.orders ?? []
+  const businessStatusCatalog = businessStatusCatalogQuery.data?.statuses ?? []
   const orderCount = ordersQuery.data?.count ?? 0
   const orderPageCount = Math.max(Math.ceil(orderCount / limit), 1)
   const selectedOrders = Array.from(selectedOrdersById.values())
@@ -285,8 +294,8 @@ const OrderDashboardPage = () => {
   const manualStatusTarget = getManualStatusTarget(manualStatus)
   const manualStatusPreview =
     manualStatusTarget === undefined
-      ? { skipped: [], updatable: [] }
-      : getBulkManualStatusPreview(selectedOrders, manualStatusTarget, t)
+      ? { changedCount: 0, unchangedCount: 0 }
+      : getBulkManualStatusPreview(selectedOrders, manualStatusTarget)
   const manualStatusLabel =
     manualStatusTarget === undefined
       ? ""
@@ -426,6 +435,7 @@ const OrderDashboardPage = () => {
         <ManualStatusControl
           manualStatus={row.original.manual_status}
           orderId={row.original.id}
+          statuses={businessStatusCatalog}
         />
       ),
       header: t("columns.manualStatus"),
@@ -645,24 +655,13 @@ const OrderDashboardPage = () => {
       toast.error(t("toast.requestFailed"))
     },
     onSuccess: (result) => {
-      const localizedSkipped = result.skipped.map((order) => ({
-        ...order,
-        reason: t("toast.manualStatusSkipped"),
-      }))
-
-      setBlockingOrders(localizedSkipped)
-      if (result.count > 0) {
-        toast.success(
-          result.skipped_count
-            ? t("toast.businessStatusUpdatedWithSkipped", {
-                count: result.count,
-                skippedCount: result.skipped_count,
-              })
-            : t("toast.businessStatusUpdated", { count: result.count })
-        )
-      } else {
-        toast.error(t("toast.manualStatusSkipped"))
-      }
+      toast.success(
+        t("toast.businessStatusProcessed", {
+          changedCount: result.changed_count,
+          processedCount: result.processed_count,
+          unchangedCount: result.unchanged_count,
+        })
+      )
       setManualStatus("")
       setIsManualStatusPromptOpen(false)
       invalidateOrders()
@@ -1002,60 +1001,11 @@ const OrderDashboardPage = () => {
             </Text>
             <Text leading="compact" size="small">
               {t("manualStatusPrompt.willChange", {
-                skippedCount: manualStatusPreview.skipped.length,
-                updatedCount: manualStatusPreview.updatable.length,
+                changedCount: manualStatusPreview.changedCount,
+                processedCount: selectedCount,
+                unchangedCount: manualStatusPreview.unchangedCount,
               })}
             </Text>
-            {manualStatusPreview.updatable.length ? (
-              <div className="flex max-h-[160px] flex-col gap-1 overflow-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
-                {manualStatusPreview.updatable.slice(0, 10).map((order) => (
-                  <Text key={order.id} leading="compact" size="small">
-                    {t("manualStatusPrompt.updated", {
-                      order: order.order_display_id,
-                      status: manualStatusLabel,
-                    })}
-                  </Text>
-                ))}
-                {manualStatusPreview.updatable.length > 10 ? (
-                  <Text
-                    className="text-ui-fg-muted"
-                    leading="compact"
-                    size="small"
-                  >
-                    {t("manualStatusPrompt.updatedMore", {
-                      count: manualStatusPreview.updatable.length - 10,
-                    })}
-                  </Text>
-                ) : null}
-              </div>
-            ) : null}
-            {manualStatusPreview.skipped.length ? (
-              <div className="flex max-h-[160px] flex-col gap-1 overflow-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
-                {manualStatusPreview.skipped.slice(0, 10).map((order) => (
-                  <Text
-                    key={`${order.id}-${order.reason}`}
-                    leading="compact"
-                    size="small"
-                  >
-                    {t("manualStatusPrompt.skipped", {
-                      order: order.order_display_id,
-                      reason: order.reason,
-                    })}
-                  </Text>
-                ))}
-                {manualStatusPreview.skipped.length > 10 ? (
-                  <Text
-                    className="text-ui-fg-muted"
-                    leading="compact"
-                    size="small"
-                  >
-                    {t("manualStatusPrompt.skippedMore", {
-                      count: manualStatusPreview.skipped.length - 10,
-                    })}
-                  </Text>
-                ) : null}
-              </div>
-            ) : null}
           </div>
           <Prompt.Footer>
             <Prompt.Cancel>{t("actions.cancel")}</Prompt.Cancel>
@@ -1273,7 +1223,7 @@ const OrderDashboardPage = () => {
               value={targetStatus}
             >
               <Select.Trigger
-                className="w-[180px] enabled:data-[placeholder]:!text-ui-fg-base"
+                className="enabled:data-[placeholder]:!text-ui-fg-base w-[180px]"
                 disabled={!selectedCount}
               >
                 <Select.Value
@@ -1306,23 +1256,27 @@ const OrderDashboardPage = () => {
             </Button>
 
             <Select
+              disabled={businessStatusCatalogQuery.isPending}
               onValueChange={(value) => {
-                if (value === "clear" || isManualStatus(value)) {
+                if (
+                  value === "clear" ||
+                  isOrderDashboardBusinessStatusId(value)
+                ) {
                   setManualStatus(value)
                   setBlockingOrders([])
                 }
               }}
               value={manualStatus}
             >
-              <Select.Trigger className="w-[200px] data-[placeholder]:!text-ui-fg-base">
+              <Select.Trigger className="data-[placeholder]:!text-ui-fg-base w-[200px]">
                 <Select.Value
                   placeholder={t("actions.businessStatusPlaceholder")}
                 />
               </Select.Trigger>
               <Select.Content>
-                {ORDER_DASHBOARD_MANUAL_STATUS_IDS.map((status) => (
-                  <Select.Item key={status} value={status}>
-                    {t(`manualStatus.${status}`)}
+                {businessStatusCatalog.map((status) => (
+                  <Select.Item key={status.id} value={status.id}>
+                    {t(status.translation_key)}
                   </Select.Item>
                 ))}
                 <Select.Item value="clear">
@@ -1516,9 +1470,11 @@ function OrderDashboardSearchInput({
 function ManualStatusControl({
   manualStatus,
   orderId,
+  statuses,
 }: {
   manualStatus?: OrderDashboardManualStatusId | null
   orderId: string
+  statuses: OrderDashboardBusinessStatus[]
 }) {
   const { t } = useTranslation("orderDashboard")
   const queryClient = useQueryClient()
@@ -1532,11 +1488,13 @@ function ManualStatusControl({
       toast.error(t("toast.requestFailed"))
     },
     onSuccess: (result) => {
-      if (result.count > 0) {
-        toast.success(t("toast.businessStatusUpdated", { count: result.count }))
-      } else {
-        toast.error(t("toast.manualStatusSkipped"))
-      }
+      toast.success(
+        t("toast.businessStatusProcessed", {
+          changedCount: result.changed_count,
+          processedCount: result.processed_count,
+          unchangedCount: result.unchanged_count,
+        })
+      )
 
       queryClient.invalidateQueries({ queryKey: [ORDER_DASHBOARD_QUERY_KEY] })
       queryClient.invalidateQueries({
@@ -1549,7 +1507,7 @@ function ManualStatusControl({
     <Select
       disabled={mutation.isPending}
       onValueChange={(value) => {
-        if (value === "clear" || isManualStatus(value)) {
+        if (value === "clear" || isOrderDashboardBusinessStatusId(value)) {
           mutation.mutate(value)
         }
       }}
@@ -1563,9 +1521,9 @@ function ManualStatusControl({
       </Select.Trigger>
       <Select.Content>
         <Select.Item value="clear">{t("manualStatus.none")}</Select.Item>
-        {ORDER_DASHBOARD_MANUAL_STATUS_IDS.map((status) => (
-          <Select.Item key={status} value={status}>
-            {t(`manualStatus.${status}`)}
+        {statuses.map((status) => (
+          <Select.Item key={status.id} value={status.id}>
+            {t(status.translation_key)}
           </Select.Item>
         ))}
       </Select.Content>
@@ -1583,7 +1541,7 @@ function OrderDashboardDetailModal({
   const { i18n, t } = useTranslation("orderDashboard")
   const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
   const manualStatusLabel = order.manual_status
-    ? t(`manualStatus.${order.manual_status}`)
+    ? t(`statuses.${order.manual_status}`)
     : t("manualStatus.none")
   const fulfillmentStatus = getFulfillmentStatusDisplay(order, t)
 
@@ -1747,7 +1705,7 @@ function getManualStatusLabel(
   status: ManualStatusTarget,
   t: TranslationFunction
 ) {
-  return status === null ? t("manualStatus.clear") : t(`manualStatus.${status}`)
+  return status === null ? t("manualStatus.clear") : t(`statuses.${status}`)
 }
 
 function getFulfillmentStatusDisplay(
@@ -1784,65 +1742,18 @@ function isKnownFulfillmentStatus(
   return status in fulfillmentStatusColors
 }
 
-function getBulkManualStatusBlockReason(
-  order: OrderDashboardOrder,
-  status: ManualStatusTarget,
-  t: TranslationFunction
-) {
-  const currentManualStatus = order.manual_status ?? null
-
-  if (currentManualStatus === status) {
-    return status === null
-      ? t("manualStatusBlocker.alreadyClear")
-      : t("manualStatusBlocker.alreadyStatus", {
-          status: getManualStatusLabel(status, t),
-        })
-  }
-
-  if (status === null || status === "canceled") {
-    return
-  }
-
-  if (order.status === "canceled") {
-    return t("manualStatusBlocker.canceledStayCanceled")
-  }
-
-  if (
-    order.business_status.id === "delivered" ||
-    order.business_status.id === "shipped"
-  ) {
-    return t("manualStatusBlocker.higherPriority", {
-      status: t(order.business_status.translation_key),
-    })
-  }
-
-  return
-}
-
 function getBulkManualStatusPreview(
   orders: OrderDashboardOrder[],
-  status: ManualStatusTarget,
-  t: TranslationFunction
+  status: ManualStatusTarget
 ) {
-  const skipped: OrderDashboardBlockingOrder[] = []
-  const updatable: OrderDashboardOrder[] = []
+  const changedCount = orders.filter(
+    (order) => (order.manual_status ?? null) !== status
+  ).length
 
-  for (const order of orders) {
-    const reason = getBulkManualStatusBlockReason(order, status, t)
-
-    if (reason) {
-      skipped.push({
-        id: order.id,
-        order_display_id: order.order_display_id,
-        reason,
-      })
-      continue
-    }
-
-    updatable.push(order)
+  return {
+    changedCount,
+    unchangedCount: orders.length - changedCount,
   }
-
-  return { skipped, updatable }
 }
 
 function StatusSelectItem({
@@ -2032,15 +1943,6 @@ function getBusinessStatusGroupFilter(
   queueId: OrderDashboardQueueId
 ): OrderDashboardBusinessStatusGroupId | undefined {
   return queueId === "action_required" ? queueId : undefined
-}
-
-function isManualStatus(value: unknown): value is OrderDashboardManualStatusId {
-  return (
-    typeof value === "string" &&
-    ORDER_DASHBOARD_MANUAL_STATUS_IDS.includes(
-      value as OrderDashboardManualStatusId
-    )
-  )
 }
 
 function isOrderDashboardQueueId(

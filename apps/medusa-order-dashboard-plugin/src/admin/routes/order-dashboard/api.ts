@@ -1,6 +1,7 @@
 import type { DataTableDateComparisonOperator } from "@medusajs/ui"
 import { sdk } from "../../lib/sdk"
 import type {
+  OrderDashboardBusinessStatusCatalogResponse,
   OrderDashboardBusinessStatusGroupId,
   OrderDashboardBusinessStatusId,
   OrderDashboardCarrierKey,
@@ -93,6 +94,12 @@ export function listOrderDashboardOrders(
 export function getOrderDashboardSummary() {
   return sdk.client.fetch<OrderDashboardSummaryResponse>(
     "/admin/order-expedition/summary"
+  )
+}
+
+export function getOrderDashboardBusinessStatusCatalog() {
+  return sdk.client.fetch<OrderDashboardBusinessStatusCatalogResponse>(
+    "/admin/order-business-statuses/catalog"
   )
 }
 

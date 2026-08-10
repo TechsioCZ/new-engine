@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest"
 import {
-  buildOrderBusinessStatusMetadata,
   ORDER_BUSINESS_STATUS_ORDER_FIELDS,
   type OrderBusinessStatusOrder,
   parseOrderBusinessStatusOrders,
   toOrderBusinessStatusSummary,
 } from "../../../../../../src/api/admin/order-business-statuses/utils"
-import { ORDER_BUSINESS_STATUS_METADATA_KEY } from "../../../../../../src/utils/order-business-status"
+import {
+  buildOrderBusinessStatusMetadata,
+  ORDER_BUSINESS_STATUS_METADATA_KEY,
+} from "../../../../../../src/utils/order-business-status"
 
 describe("order business status API utilities", () => {
   it("loads shipping methods through the versioned order relation", () => {

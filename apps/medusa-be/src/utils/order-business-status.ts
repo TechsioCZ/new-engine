@@ -27,14 +27,11 @@ export const ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS = [
   "waiting_for_supplier",
 ] as const satisfies readonly OrderBusinessStatusId[]
 
-export const MANUAL_ORDER_BUSINESS_STATUS_IDS = [
-  "processing",
-  "waiting_for_supplier",
-  "canceled",
-] as const satisfies readonly OrderBusinessStatusId[]
+export const ASSIGNABLE_ORDER_BUSINESS_STATUS_IDS = ORDER_BUSINESS_STATUS_IDS
+export const MANUAL_ORDER_BUSINESS_STATUS_IDS =
+  ASSIGNABLE_ORDER_BUSINESS_STATUS_IDS
 
-export type ManualOrderBusinessStatusId =
-  (typeof MANUAL_ORDER_BUSINESS_STATUS_IDS)[number]
+export type ManualOrderBusinessStatusId = OrderBusinessStatusId
 
 export type OrderBusinessStatusTone =
   | "blue"
@@ -175,7 +172,7 @@ export function isActionRequiredOrderBusinessStatusId(
 export function isManualOrderBusinessStatusId(
   value: unknown
 ): value is ManualOrderBusinessStatusId {
-  return isIncluded(MANUAL_ORDER_BUSINESS_STATUS_IDS, value)
+  return isIncluded(ASSIGNABLE_ORDER_BUSINESS_STATUS_IDS, value)
 }
 
 export function getManualOrderBusinessStatusId(
@@ -188,38 +185,6 @@ export function getManualOrderBusinessStatusId(
   }
 
   return manualStatus
-}
-
-export function getOrderBusinessManualStatusUpdateBlockReason(
-  order: OrderBusinessStatusInput,
-  status: ManualOrderBusinessStatusId | null
-) {
-  const currentManualStatus = getManualOrderBusinessStatusId(order) ?? null
-
-  if (currentManualStatus === status) {
-    return status === null
-      ? "Manual status is already clear"
-      : `Manual status is already ${formatBusinessStatus(status)}`
-  }
-
-  if (status === null) {
-    return
-  }
-
-  const nextOrder = {
-    ...order,
-    metadata: {
-      ...(order.metadata ?? {}),
-      [ORDER_BUSINESS_STATUS_METADATA_KEY]: status,
-    },
-  }
-  const nextBusinessStatus = resolveOrderBusinessStatus(nextOrder)
-
-  if (nextBusinessStatus.id !== status) {
-    return `${formatBusinessStatus(nextBusinessStatus.id)} status has higher priority`
-  }
-
-  return
 }
 
 export function getOrderBusinessPaymentStatus(order: OrderBusinessStatusInput) {
@@ -253,16 +218,16 @@ function hasPaidPaymentSignal(order: OrderBusinessStatusInput) {
   )
 }
 
-function formatBusinessStatus(status: OrderBusinessStatusId) {
-  return status.replace(/_/g, " ")
-}
-
 export function resolveOrderBusinessStatus(
   order: OrderBusinessStatusInput
 ): OrderBusinessStatus {
   const manualStatus = getManualOrderBusinessStatusId(order)
 
-  if (manualStatus === "canceled" || order.status === "canceled") {
+  if (manualStatus) {
+    return ORDER_BUSINESS_STATUSES[manualStatus]
+  }
+
+  if (order.status === "canceled") {
     return ORDER_BUSINESS_STATUSES.canceled
   }
 
@@ -293,14 +258,6 @@ export function resolveOrderBusinessStatus(
     return ORDER_BUSINESS_STATUSES.shipped
   }
 
-  if (manualStatus === "waiting_for_supplier") {
-    return ORDER_BUSINESS_STATUSES.waiting_for_supplier
-  }
-
-  if (manualStatus === "processing") {
-    return ORDER_BUSINESS_STATUSES.processing
-  }
-
   const paymentStatus = getOrderBusinessPaymentStatus(order)
 
   if (hasPaidPaymentSignal(order)) {
@@ -312,4 +269,14 @@ export function resolveOrderBusinessStatus(
   }
 
   return ORDER_BUSINESS_STATUSES.new
+}
+
+export function buildOrderBusinessStatusMetadata(
+  metadata: Record<string, unknown> | null | undefined,
+  status: ManualOrderBusinessStatusId | null
+) {
+  return {
+    ...(metadata ?? {}),
+    [ORDER_BUSINESS_STATUS_METADATA_KEY]: status,
+  }
 }

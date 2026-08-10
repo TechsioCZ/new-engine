@@ -32,12 +32,6 @@ export const ORDER_DASHBOARD_QUEUE_IDS = [
   "canceled",
 ] as const
 
-export const ORDER_DASHBOARD_MANUAL_STATUS_IDS = [
-  "processing",
-  "waiting_for_supplier",
-  "canceled",
-] as const
-
 export const ORDER_DASHBOARD_TARGET_STATUSES = [
   "pending",
   "completed",
@@ -69,8 +63,7 @@ export type OrderDashboardBusinessStatusGroupId =
 
 export type OrderDashboardQueueId = (typeof ORDER_DASHBOARD_QUEUE_IDS)[number]
 
-export type OrderDashboardManualStatusId =
-  (typeof ORDER_DASHBOARD_MANUAL_STATUS_IDS)[number]
+export type OrderDashboardManualStatusId = OrderDashboardBusinessStatusId
 
 export type OrderDashboardTargetStatus =
   (typeof ORDER_DASHBOARD_TARGET_STATUSES)[number]
@@ -234,6 +227,10 @@ export type OrderDashboardSummaryResponse = {
   unhandled_count: number
 }
 
+export type OrderDashboardBusinessStatusCatalogResponse = {
+  statuses: OrderDashboardBusinessStatus[]
+}
+
 export type OrderDashboardStatusResponse = {
   count: number
   target_status: OrderDashboardTargetStatus
@@ -245,17 +242,11 @@ export type OrderDashboardStatusResponse = {
 }
 
 export type OrderDashboardManualStatusResponse = {
+  changed_count: number
   count: number
-  skipped_count: number
+  order_ids: string[]
+  processed_count: number
+  requested_count: number
   status: OrderDashboardManualStatusId | null
-  orders: Array<{
-    id: string
-    business_status: OrderDashboardBusinessStatus
-    manual_status?: OrderDashboardManualStatusId | null
-  }>
-  skipped: Array<{
-    id: string
-    order_display_id: string
-    reason: string
-  }>
+  unchanged_count: number
 }

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { GetAdminOrderBusinessStatusesByIdsSchema } from "../../../../../../src/api/admin/order-business-statuses/validators"
+import {
+  GetAdminOrderBusinessStatusesByIdsSchema,
+  PostAdminOrderBusinessStatusesBulkSchema,
+} from "../../../../../../src/api/admin/order-business-statuses/validators"
 
 describe("order business status validators", () => {
   describe("GetAdminOrderBusinessStatusesByIdsSchema", () => {
@@ -31,6 +34,38 @@ describe("order business status validators", () => {
       expect(() =>
         GetAdminOrderBusinessStatusesByIdsSchema.parse({
           ids: ["order_1", { id: "order_2" }],
+        })
+      ).toThrow()
+    })
+  })
+
+  describe("PostAdminOrderBusinessStatusesBulkSchema", () => {
+    it("accepts every existing target status and clearing the override", () => {
+      for (const status of [
+        "new",
+        "awaiting_payment",
+        "paid",
+        "processing",
+        "waiting_for_supplier",
+        "shipped",
+        "delivered",
+        "canceled",
+        null,
+      ]) {
+        expect(
+          PostAdminOrderBusinessStatusesBulkSchema.parse({
+            order_ids: ["order_1"],
+            status,
+          }).status
+        ).toBe(status)
+      }
+    })
+
+    it("rejects unknown target statuses", () => {
+      expect(() =>
+        PostAdminOrderBusinessStatusesBulkSchema.parse({
+          order_ids: ["order_1"],
+          status: "unknown",
         })
       ).toThrow()
     })
