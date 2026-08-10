@@ -13,6 +13,7 @@ import {
   ProductStatus,
 } from "@medusajs/framework/utils"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
+import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
 
 type DemoVariant = {
   id: string
@@ -99,6 +100,11 @@ const SIZES = ["S", "M", "L"] as const
 const COLORS = ["Black", "Olive", "Natural", "Navy"] as const
 const DEMO_ORDER_COUNT = 60
 const DEMO_ORDER_EMAIL_REGEX = /^expedition\.demo\.(\d+)@example\.test$/u
+const DEMO_ORDER_CUSTOMER_NOTES: Partial<Record<number, string>> = {
+  0: "Please call before delivery. The entrance is in the courtyard.",
+  4: "Leave the package at the reception desk on the second floor.",
+  9: "Customer requested plastic-free packaging.",
+}
 const DEMO_ORDER_DATE_OFFSETS = [
   { daysAgo: 0, hour: 8, minute: 10 },
   { daysAgo: 0, hour: 10, minute: 45 },
@@ -163,6 +169,7 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
   )
 
   if (existingDemoOrders.length >= DEMO_ORDER_COUNT) {
+    await seedDemoOrderCustomerNotes(container, existingDemoOrders, logger)
     logger.info(
       `Order expedition demo already has ${existingDemoOrders.length} orders, skipping order creation.`
     )
@@ -254,6 +261,39 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
       existingDemoOrders.length + ordersToCreate.length
     }.`
   )
+
+  await seedDemoOrderCustomerNotes(
+    container,
+    await fetchExistingDemoOrders(query),
+    logger
+  )
+}
+
+async function seedDemoOrderCustomerNotes(
+  container: ExecArgs["container"],
+  orders: ExistingDemoOrder[],
+  logger: Logger
+) {
+  let seededCount = 0
+
+  for (const [fallbackIndex, order] of orders.entries()) {
+    const orderIndex = getExistingDemoOrderSortIndex(order, fallbackIndex)
+    const note = DEMO_ORDER_CUSTOMER_NOTES[orderIndex]
+
+    if (!note) {
+      continue
+    }
+
+    await syncOrderNoteWorkflow(container).run({
+      input: {
+        note,
+        order_id: order.id,
+      },
+    })
+    seededCount += 1
+  }
+
+  logger.info(`Seeded customer notes for ${seededCount} demo orders.`)
 }
 
 async function ensureRegion(container: ExecArgs["container"]) {

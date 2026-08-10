@@ -140,6 +140,7 @@ export type OrderDashboardOrder = {
   has_active_fulfillment: boolean
   items: OrderDashboardItem[]
   manual_status?: OrderDashboardManualStatusId | null
+  note?: string | null
   order_display_id: string
   payment_method: string | null
   payment_status?: string | null

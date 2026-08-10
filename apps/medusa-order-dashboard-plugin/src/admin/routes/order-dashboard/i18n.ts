@@ -30,6 +30,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "manualStatus"
     | "order"
     | "payment"
+    | "signals"
     | "total",
     string
   >
@@ -38,6 +39,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "address"
     | "businessStatus"
     | "carrier"
+    | "customerNote"
     | "fulfillment"
     | "items"
     | "manualStatus"
@@ -50,6 +52,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "total",
     string
   >
+  signals: Record<"customerNote", string>
   filters: Record<
     | "allCarriers"
     | "createdAt"
@@ -282,6 +285,7 @@ const englishOrderDashboardAdminI18n = {
     manualStatus: "Manual status",
     order: "Order",
     payment: "Payment",
+    signals: "Alerts",
     total: "Total",
   },
   detail: {
@@ -289,6 +293,7 @@ const englishOrderDashboardAdminI18n = {
     address: "Address",
     businessStatus: "Business status",
     carrier: "Carrier",
+    customerNote: "Customer note",
     fulfillment: "Fulfillment",
     items: "Items",
     manualStatus: "Manual status",
@@ -299,6 +304,9 @@ const englishOrderDashboardAdminI18n = {
     quantity: "{{count}} pcs",
     title: "Order {{order}}",
     total: "Total",
+  },
+  signals: {
+    customerNote: "Note",
   },
   filters: {
     allCarriers: "All carriers",
@@ -563,6 +571,7 @@ const czechOrderDashboardAdminI18n = {
     manualStatus: "Manuální stav",
     order: "Objednávka",
     payment: "Platba",
+    signals: "Upozornění",
     total: "Celkem",
   },
   detail: {
@@ -570,6 +579,7 @@ const czechOrderDashboardAdminI18n = {
     address: "Adresa",
     businessStatus: "Provozní stav",
     carrier: "Dopravce",
+    customerNote: "Poznámka zákazníka",
     fulfillment: "Expedice",
     items: "Položky",
     manualStatus: "Manuální stav",
@@ -580,6 +590,9 @@ const czechOrderDashboardAdminI18n = {
     quantity: "{{count}} ks",
     title: "Objednávka {{order}}",
     total: "Celkem",
+  },
+  signals: {
+    customerNote: "Poznámka",
   },
   filters: {
     allCarriers: "Všichni dopravci",

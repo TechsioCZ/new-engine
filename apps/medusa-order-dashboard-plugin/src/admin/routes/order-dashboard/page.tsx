@@ -19,6 +19,7 @@ import {
   type DataTableSortingState,
   FocusModal,
   Heading,
+  IconBadge,
   IconButton,
   Input,
   Prompt,
@@ -42,8 +43,8 @@ import { Link } from "react-router-dom"
 import { setOrderDashboardSidebarBadgeCount } from "../../sidebar-badge"
 import {
   downloadOrderDashboardExpeditionPdf,
-  getOrderDashboardBusinessStatusCatalog,
   downloadOrderDashboardShippingLabels,
+  getOrderDashboardBusinessStatusCatalog,
   getOrderDashboardSummary,
   listOrderDashboardLabelEligibility,
   listOrderDashboardOrders,
@@ -330,24 +331,21 @@ const OrderDashboardPage = () => {
     }),
     columnHelper.accessor("customer", {
       cell: ({ row }) => (
-        <>
+        <div className="flex min-w-0 flex-col">
           <Text as="span" leading="compact" size="small" weight="plus">
-            {row.original.customer}{" "}
+            {row.original.customer}
           </Text>
           {row.original.email ? (
-            <>
-              <br />
-              <Text
-                as="span"
-                className="text-ui-fg-subtle"
-                leading="compact"
-                size="small"
-              >
-                {row.original.email}
-              </Text>
-            </>
+            <Text
+              as="span"
+              className="text-ui-fg-subtle"
+              leading="compact"
+              size="small"
+            >
+              {row.original.email}
+            </Text>
           ) : null}
-        </>
+        </div>
       ),
       enableSorting: true,
       header: t("columns.customer"),
@@ -356,6 +354,25 @@ const OrderDashboardPage = () => {
       size: 220,
       sortLabel: t("columns.customer"),
       ...sortableColumnLabels,
+    }),
+    columnHelper.display({
+      cell: ({ row }) =>
+        row.original.note ? (
+          <Tooltip content={row.original.note}>
+            <IconBadge
+              aria-label={t("signals.customerNote")}
+              color="grey"
+              size="base"
+            >
+              <DocumentText />
+            </IconBadge>
+          </Tooltip>
+        ) : null,
+      header: t("columns.signals"),
+      id: "signals",
+      maxSize: 80,
+      minSize: 72,
+      size: 72,
     }),
     columnHelper.accessor("carrier.value", {
       cell: ({ row }) => (
@@ -1637,6 +1654,19 @@ function OrderDashboardDetailModal({
                 {fulfillmentStatus.label}
               </OrderDetailField>
             </div>
+
+            {order.note ? (
+              <div className="flex flex-col gap-2">
+                <Text leading="compact" size="small" weight="plus">
+                  {t("detail.customerNote")}
+                </Text>
+                <div className="rounded-md bg-ui-bg-subtle px-3 py-2">
+                  <Text className="whitespace-pre-wrap" size="small">
+                    {order.note}
+                  </Text>
+                </div>
+              </div>
+            ) : null}
 
             <div>
               <Text leading="compact" size="small" weight="plus">
