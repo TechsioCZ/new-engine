@@ -8,21 +8,22 @@ import {
   PACKETA_CLIENT_MODULE,
   type PacketaClientModuleService,
 } from "../../modules/packeta-client"
-import type { UpdatePacketaConfigInput } from "../../modules/packeta-client/types"
+import type { UpdatePacketaProfileInput } from "../../modules/packeta-client/types"
 
 const updatePacketaConfigStep = createStep(
   "update-packeta-config",
-  async (input: UpdatePacketaConfigInput, { container }) => {
+  async (input: UpdatePacketaProfileInput, { container }) => {
     const service = container.resolve<PacketaClientModuleService>(
       PACKETA_CLIENT_MODULE
     )
 
-    return new StepResponse(await service.updateConfig(input))
+    const { environment, ...config } = input
+    return new StepResponse(await service.updateConfig(environment, config))
   }
 )
 
 export const updatePacketaConfigWorkflow = createWorkflow(
   "update-packeta-config",
-  (input: UpdatePacketaConfigInput) =>
+  (input: UpdatePacketaProfileInput) =>
     new WorkflowResponse(updatePacketaConfigStep(input))
 )

@@ -6,10 +6,17 @@ const PacketaConfig = model
 
     environment: model.text(),
 
+    is_active: model.boolean().default(false),
+
     is_enabled: model.boolean().default(false),
+
+    allow_live_operations: model.boolean().default(false),
 
     // Credentials (encrypted)
     api_password: model.text().nullable(),
+
+    widget_api_key: model.text().nullable(),
+    widget_countries: model.array(),
 
     // Sender identity
     sender_label: model.text().nullable(),
@@ -34,6 +41,14 @@ const PacketaConfig = model
     sender_phone: model.text().nullable(),
     sender_email: model.text().nullable(),
   })
-  .indexes([{ on: ["environment"], unique: true, where: { deleted_at: null } }])
+  .indexes([
+    { on: ["environment"], unique: true, where: { deleted_at: null } },
+    {
+      name: "IDX_packeta_config_active_unique",
+      on: ["is_active"],
+      unique: true,
+      where: { is_active: true, deleted_at: null },
+    },
+  ])
 
 export default PacketaConfig
