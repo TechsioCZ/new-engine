@@ -245,6 +245,12 @@ export function OrderFulfillmentModal({
   return (
     <FocusModal onOpenChange={handleOpenChange} open={open}>
       <FocusModal.Content>
+        <FocusModal.Title className="sr-only">
+          {t("fulfillmentModal.title")}
+        </FocusModal.Title>
+        <FocusModal.Description className="sr-only">
+          {t("fulfillmentModal.description")}
+        </FocusModal.Description>
         <div className="flex h-full flex-col overflow-hidden">
           <FocusModal.Header>
             <div className="flex w-full items-center justify-end gap-x-2">
@@ -795,7 +801,11 @@ function getOrderShippingSummary(order: OrderDashboardFulfillmentOrder) {
   const accessPointStreet = getNonEmptyString(data?.access_point_street)
   const accessPointZip = getNonEmptyString(data?.access_point_zip)
   const accessPointCity = getNonEmptyString(data?.access_point_city)
-  const accessPointAddress = [accessPointStreet, accessPointZip, accessPointCity]
+  const accessPointAddress = [
+    accessPointStreet,
+    accessPointZip,
+    accessPointCity,
+  ]
     .filter(Boolean)
     .join(", ")
   const accessPoint = [accessPointName, accessPointAddress]
