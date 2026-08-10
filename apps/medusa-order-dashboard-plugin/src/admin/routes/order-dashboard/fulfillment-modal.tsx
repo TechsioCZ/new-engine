@@ -149,11 +149,11 @@ export function OrderFulfillmentModal({
             id: order.id,
             order_display_id: order.order_display_id,
           })
-        } catch {
+        } catch (error) {
           failed.push({
             id: order.id,
             order_display_id: order.order_display_id,
-            reason: t("toast.requestFailed"),
+            reason: getErrorMessage(error, t("toast.requestFailed")),
           })
         }
       }
@@ -372,7 +372,7 @@ function FulfillmentPreviewContent({
   if (previewError) {
     return (
       <Text className="text-ui-fg-error" leading="compact" size="small">
-        {t("toast.requestFailed")}
+        {getErrorMessage(previewError, t("toast.requestFailed"))}
       </Text>
     )
   }
@@ -443,6 +443,14 @@ function FulfillmentPreviewContent({
       {result ? <FulfillmentResultPanel result={result} /> : null}
     </div>
   )
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+
+  return fallback
 }
 
 function FulfillmentMetric({ label }: { label: string }) {
