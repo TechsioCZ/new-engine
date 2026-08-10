@@ -32,7 +32,8 @@ export async function POST(request: MedusaRequest<PostAdminPPLLabelsSchemaType>,
 	const { data: orders } = await query.graph({
 		entity: 'order',
 		fields: ['id', 'display_id', 'fulfillments.id', 'fulfillments.provider_id', 'fulfillments.canceled_at', 'fulfillments.data'],
-		filters: { id: orderIds }
+		filters: { id: orderIds },
+		pagination: { skip: 0, take: orderIds.length }
 	})
 	const labels = collectPrintablePPLLabels(orderIds, validatePPLLabelOrders(orders))
 	const config = pplClient ? await pplClient.getConfig() : null
@@ -84,7 +85,10 @@ async function downloadPPLLabel(label: PrintablePPLLabel, pplClient: PplClientMo
 
 	if (isAllowedStoredPPLLabelUrl(label.label_url, allowedBaseUrls)) {
 		try {
-			const fileResponse = await fetch(label.label_url, { signal: AbortSignal.timeout(PPL_LABEL_DOWNLOAD_TIMEOUT_MS) })
+			const fileResponse = await fetch(label.label_url, {
+				redirect: 'error',
+				signal: AbortSignal.timeout(PPL_LABEL_DOWNLOAD_TIMEOUT_MS)
+			})
 
 			if (fileResponse.ok) {
 				const buffer = Buffer.from(await fileResponse.arrayBuffer())
