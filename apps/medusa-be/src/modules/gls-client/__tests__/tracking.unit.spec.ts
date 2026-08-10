@@ -11,6 +11,15 @@ describe('fetchPendingFulfillments', () => {
 		await expect(fetchPendingFulfillments({ graph } as unknown as Query, 25)).resolves.toEqual([fulfillment('live_1', false)])
 		expect(graph).toHaveBeenCalledTimes(2)
 		expect(graph.mock.calls[1][0].pagination.skip).toBe(100)
+		expect(graph.mock.calls[0][0].pagination.order).toEqual({ shipped_at: 'ASC', id: 'ASC' })
+	})
+
+	it('ignores malformed records without a configuration id', async () => {
+		const malformed = fulfillment('malformed_1', false)
+		malformed.data.config_id = ' '
+		const graph = vi.fn().mockResolvedValue({ data: [malformed] })
+
+		await expect(fetchPendingFulfillments({ graph } as unknown as Query, 25)).resolves.toEqual([])
 	})
 })
 

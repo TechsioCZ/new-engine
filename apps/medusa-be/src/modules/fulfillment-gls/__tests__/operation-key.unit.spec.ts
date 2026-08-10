@@ -44,6 +44,13 @@ describe('buildGLSFulfillmentOperationIdentity', () => {
 		expect(alternatives.every((alternative) => alternative.operationKey !== baseline.operationKey)).toBe(true)
 	})
 
+	it('does not change when recalculated carrier attributes change during recovery', () => {
+		const baseline = buildGLSFulfillmentOperationIdentity({ environment: 'testing', orderId: 'order_1', attributes: { ...attributes, weight: 1, content: 'Original' }, items: [{ line_item_id: 'item_1', quantity: 1 }] })
+		const recalculated = buildGLSFulfillmentOperationIdentity({ environment: 'testing', orderId: 'order_1', attributes: { ...attributes, weight: 2, content: 'Updated' }, items: [{ line_item_id: 'item_1', quantity: 1 }] })
+
+		expect(recalculated).toEqual(baseline)
+	})
+
 	it('rejects incomplete fulfillment items', () => {
 		expect(() => buildGLSFulfillmentOperationIdentity({ environment: 'testing', orderId: 'order_1', attributes, items: [{ quantity: 1 }] })).toThrow('line_item_id and quantity')
 	})

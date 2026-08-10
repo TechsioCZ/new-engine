@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
-import type { ICachingModuleService, ILockingModule, Logger } from "@medusajs/framework/types"
-import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
+import type { Context, ICachingModuleService, ILockingModule, Logger } from "@medusajs/framework/types"
+import { InjectTransactionManager, MedusaContext, MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import { GLSClient } from "./client"
@@ -10,6 +11,7 @@ import {
   GLS_COUNTRY_CODES,
   GLS_PRINTER_TYPES,
   GLS_SENSITIVE_FIELDS,
+  GLS_STOREFRONT_COUNTRY_CODES,
   type GLSBranch,
   type GLSConfigDTO,
   type GLSConfigReference,
@@ -21,11 +23,13 @@ import {
   type GLSPacketAttributes,
   type GLSPacketStatusRecord,
   type GLSPrinterType,
+  type GLSStorefrontCountryCode,
   type UpdateGLSConfigInput,
 } from "./types"
 
 const DEFAULT_COUNTRY_CODE: GLSCountryCode = "SK"
 const DEFAULT_PRINTER_TYPE: GLSPrinterType = "A4_2x2"
+const STOREFRONT_COUNTRY_CODE_SET: ReadonlySet<string> = new Set(GLS_STOREFRONT_COUNTRY_CODES)
 
 const CACHE_TAGS = {
   ALL: "gls",
@@ -64,6 +68,9 @@ const isGLSCountryCode = (value: unknown): value is GLSCountryCode =>
   typeof value === "string" &&
   (GLS_COUNTRY_CODES as readonly string[]).includes(value)
 
+const isGLSStorefrontCountryCode = (value: unknown): value is GLSStorefrontCountryCode =>
+  typeof value === "string" && STOREFRONT_COUNTRY_CODE_SET.has(value)
+
 const isGLSPrinterType = (value: unknown): value is GLSPrinterType =>
   typeof value === "string" &&
   (GLS_PRINTER_TYPES as readonly string[]).includes(value)
@@ -86,7 +93,7 @@ const isCachedGLSOptions = (value: unknown): value is CachedGLSOptions =>
   isGLSEnvironment(value.environment) &&
   isGLSCountryCode(value.country_code) &&
   Array.isArray(value.supported_countries) &&
-  value.supported_countries.every(isGLSCountryCode) &&
+  value.supported_countries.every(isGLSStorefrontCountryCode) &&
   isGLSPrinterType(value.type_of_printer) &&
   isPositiveNumber(value.print_position) &&
   isBoolean(value.hide_phone_number_on_labels) &&
@@ -151,7 +158,11 @@ const toPrintPosition = (value: unknown): number => {
   return Math.min(Math.max(value, 1), 4)
 }
 
-const hasRequiredPickupAddress = (config: GLSConfigDTO): boolean =>
+type PickupAddressConfiguration = Pick<GLSConfigDTO, "sender_name" | "sender_street" | "sender_house_number" | "sender_city" | "sender_zip_code" | "sender_country">
+
+type EnabledConfiguration = PickupAddressConfiguration & Pick<GLSConfigDTO, "is_enabled" | "username" | "password" | "client_number" | "supported_countries">
+
+const hasRequiredPickupAddress = (config: PickupAddressConfiguration): boolean =>
   Boolean(
     config.sender_name &&
       config.sender_street &&
@@ -161,7 +172,7 @@ const hasRequiredPickupAddress = (config: GLSConfigDTO): boolean =>
       config.sender_country
   )
 
-const hasRequiredEnabledConfiguration = (config: GLSConfigDTO): boolean => Boolean(
+const hasRequiredEnabledConfiguration = (config: EnabledConfiguration): boolean => Boolean(
   config.is_enabled &&
   config.username &&
   config.password &&
@@ -180,11 +191,29 @@ const normalizeConfigUpdate = (data: UpdateGLSConfigInput): UpdateGLSConfigInput
   }
 
   if (normalized.supported_countries) {
+    if (!normalized.supported_countries.every(isGLSStorefrontCountryCode)) {
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, "GLS storefront delivery is supported only for SK, CZ, HU, and RO")
+    }
+
     normalized.supported_countries = Array.from(new Set(normalized.supported_countries))
   }
 
   return normalized
 }
+
+const buildEnabledConfiguration = (existing: GLSConfigDTO | null, input: UpdateGLSConfigInput): EnabledConfiguration => ({
+  is_enabled: input.is_enabled ?? existing?.is_enabled ?? false,
+  username: input.username ?? existing?.username ?? null,
+  password: input.password === undefined ? existing?.password ?? null : input.password,
+  client_number: input.client_number === undefined ? existing?.client_number ?? null : input.client_number,
+  supported_countries: input.supported_countries ?? existing?.supported_countries ?? [],
+  sender_name: input.sender_name ?? existing?.sender_name ?? null,
+  sender_street: input.sender_street ?? existing?.sender_street ?? null,
+  sender_house_number: input.sender_house_number ?? existing?.sender_house_number ?? null,
+  sender_city: input.sender_city ?? existing?.sender_city ?? null,
+  sender_zip_code: input.sender_zip_code ?? existing?.sender_zip_code ?? null,
+  sender_country: input.sender_country ?? existing?.sender_country ?? null,
+})
 
 const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
   if (!isRecord(config)) {
@@ -221,7 +250,7 @@ const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
     client_number: nullableNumber(config.client_number),
     country_code: toCountryCode(config.country_code),
     supported_countries: Array.isArray(config.supported_countries)
-      ? config.supported_countries.filter(isGLSCountryCode)
+      ? config.supported_countries.filter(isGLSStorefrontCountryCode)
       : [],
     type_of_printer: toPrinterType(config.type_of_printer),
     print_position: toPrintPosition(config.print_position),
@@ -319,16 +348,7 @@ export class GLSClientModuleService extends MedusaService({
     const filteredData = normalizeConfigUpdate(data)
     const encrypted = encryptFields(filteredData, [...GLS_SENSITIVE_FIELDS])
 
-    const proposedConfig = {
-      ...existing,
-      ...filteredData,
-      environment,
-      is_enabled: filteredData.is_enabled ?? existing?.is_enabled ?? false,
-      username: filteredData.username ?? existing?.username ?? null,
-      password: filteredData.password === undefined ? existing?.password ?? null : filteredData.password,
-      client_number: filteredData.client_number === undefined ? existing?.client_number ?? null : filteredData.client_number,
-      supported_countries: filteredData.supported_countries ?? existing?.supported_countries ?? [],
-    } as GLSConfigDTO
+    const proposedConfig = buildEnabledConfiguration(existing, filteredData)
     if (proposedConfig.is_enabled && !hasRequiredEnabledConfiguration(proposedConfig)) {
       throw new MedusaError(MedusaError.Types.INVALID_DATA, "GLS requires credentials, sender details, and at least one supported market before it can be enabled")
     }
@@ -373,15 +393,34 @@ export class GLSClientModuleService extends MedusaService({
       }
 
       const inactiveUpdates = profiles.filter((profile) => profile.id !== target.id && profile.is_active).map((profile) => ({ id: profile.id, is_active: false }))
-      const updatedProfiles = await this.updateGLSConfigs([...inactiveUpdates, { id: target.id, is_active: true }])
+      const updatedTarget = await this.switchActiveConfig(inactiveUpdates, target.id)
       await this.invalidateAllCaches()
-      const updatedTarget = updatedProfiles.find((profile) => profile.id === target.id)
       if (!updatedTarget) {
         throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "GLS active profile was not persisted")
       }
 
       return decryptFields(mapGLSConfigDTO(updatedTarget), [...GLS_SENSITIVE_FIELDS])
     })
+  }
+
+  @InjectTransactionManager()
+  protected async switchActiveConfig(
+    inactiveUpdates: Array<{ id: string; is_active: boolean }>,
+    targetId: string,
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+  ): Promise<unknown> {
+    if (inactiveUpdates.length > 0) {
+      await this.updateGLSConfigs(inactiveUpdates, sharedContext)
+
+      const transactionManager = sharedContext.transactionManager
+      if (!transactionManager) {
+        throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "GLS configuration transaction manager is unavailable")
+      }
+
+      await transactionManager.flush()
+    }
+
+    return await this.updateGLSConfigs({ id: targetId, is_active: true }, sharedContext)
   }
 
   /**
@@ -420,8 +459,13 @@ export class GLSClientModuleService extends MedusaService({
   }
 
   private async resolveConfig(reference: GLSConfigReference): Promise<GLSConfigDTO | null> {
-    if (reference.config_id) {
-      const configs = await this.listGLSConfigs({ id: reference.config_id }, { take: 1 })
+    if (reference.config_id !== undefined && reference.config_id !== null) {
+      const configId = reference.config_id.trim()
+      if (!configId) {
+        return null
+      }
+
+      const configs = await this.listGLSConfigs({ id: configId }, { take: 1 })
       const config = configs[0]
       if (!config) {
         return null
@@ -647,7 +691,7 @@ export class GLSClientModuleService extends MedusaService({
 
     const reference = { config_id: input.config_id, environment: input.environment }
     const client = await this.getClient(reference)
-    const recovered = await client.findPacketByClientReference(attempt.client_reference, attempt.updated_at)
+    const recovered = await client.findPacketByClientReference(attempt.client_reference, attempt.created_at)
 
     if (recovered) {
       const completed = await this.completeFulfillmentAttempt(attempt.id, input.fulfillment_id, recovered)
@@ -679,11 +723,13 @@ export class GLSClientModuleService extends MedusaService({
       return true
     }
 
+    const previousFulfillmentId = attempt.fulfillment_id
+
     return (
       attempt.status === "completed" &&
-      Boolean(attempt.fulfillment_id) &&
-      attempt.fulfillment_id !== input.fulfillment_id &&
-      input.active_fulfillment_ids.includes(attempt.fulfillment_id as string)
+      typeof previousFulfillmentId === "string" &&
+      previousFulfillmentId !== input.fulfillment_id &&
+      input.active_fulfillment_ids.includes(previousFulfillmentId)
     )
   }
 

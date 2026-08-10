@@ -86,6 +86,7 @@ const isGLSFulfillmentData = (
     (attemptId === undefined || typeof attemptId === "string") &&
     (operationKey === undefined || typeof operationKey === "string") &&
     typeof configId === "string" &&
+    configId.trim().length > 0 &&
     (environment === "testing" || environment === "production") &&
     typeof supportsCod === "boolean" &&
     (status === "completed" || status === "error")
@@ -242,7 +243,7 @@ export class GLSFulfillmentProviderService extends AbstractFulfillmentProviderSe
             access_point_country: branch.country,
           }
         : {}),
-      email: data.email as string | undefined,
+      email: typeof data.email === "string" ? data.email.trim() || undefined : undefined,
     } satisfies GLSShippingOptionData
   }
 

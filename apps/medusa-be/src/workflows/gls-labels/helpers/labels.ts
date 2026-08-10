@@ -178,6 +178,7 @@ function isPrintableGLSFulfillmentData(
     typeof barcode === "string" &&
     barcode.trim().length > 0 &&
     typeof configId === "string" &&
+    configId.trim().length > 0 &&
     (environment === "testing" || environment === "production")
   )
 }

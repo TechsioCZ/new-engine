@@ -29,7 +29,7 @@ export default async function createDefaultConfigLoader({
     }
 
     try {
-      await glsConfigService.create({ environment, is_active: environment === "testing", supported_countries: [] })
+      await glsConfigService.create({ environment, is_active: false, supported_countries: [] })
       logger.info(`GLS: Created ${environment} profile (disabled)`)
     } catch (error) {
       const errorMessage = String(error)

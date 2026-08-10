@@ -2,6 +2,7 @@ import { z } from "@medusajs/framework/zod"
 import {
   GLS_COUNTRY_CODES,
   GLS_PRINTER_TYPES,
+  GLS_STOREFRONT_COUNTRY_CODES,
 } from "../../../modules/gls-client/types"
 
 /** Zod schema for MyGLS config updates (admin API). */
@@ -12,7 +13,7 @@ export const PostAdminGLSConfigSchema = z.object({
   password: z.string().max(255).nullable().optional(),
   client_number: z.number().int().positive().nullable().optional(),
   country_code: z.enum(GLS_COUNTRY_CODES).optional(),
-  supported_countries: z.array(z.enum(GLS_COUNTRY_CODES)).max(GLS_COUNTRY_CODES.length).optional(),
+  supported_countries: z.array(z.enum(GLS_STOREFRONT_COUNTRY_CODES)).max(GLS_STOREFRONT_COUNTRY_CODES.length).optional(),
   type_of_printer: z.enum(GLS_PRINTER_TYPES).optional(),
   print_position: z.number().int().min(1).max(4).optional(),
   hide_phone_number_on_labels: z.boolean().optional(),

@@ -240,6 +240,15 @@ export const GLS_COUNTRY_CODES = [
   "RS",
 ] as const satisfies readonly GLSCountryCode[]
 
+export const GLS_STOREFRONT_COUNTRY_CODES = [
+  "CZ",
+  "HU",
+  "RO",
+  "SK",
+] as const satisfies readonly GLSCountryCode[]
+
+export type GLSStorefrontCountryCode = (typeof GLS_STOREFRONT_COUNTRY_CODES)[number]
+
 export const GLS_PRINTER_TYPES = [
   "A4_2x2",
   "A4_4x1",

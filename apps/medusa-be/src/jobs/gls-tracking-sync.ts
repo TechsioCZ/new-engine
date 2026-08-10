@@ -173,6 +173,7 @@ export async function fetchPendingFulfillments(
       pagination: {
         order: {
           shipped_at: "ASC",
+          id: "ASC",
         },
         skip,
         take: PENDING_FETCH_PAGE_SIZE,
@@ -230,6 +231,7 @@ function isPendingFulfillment(value: unknown): value is PendingFulfillment {
     (accessPointId === undefined || typeof accessPointId === "string") &&
     typeof supportsCod === "boolean" &&
     typeof configId === "string" &&
+    configId.trim().length > 0 &&
     (environment === "testing" || environment === "production")
   )
 }

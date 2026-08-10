@@ -19,4 +19,10 @@ describe('resolveGLSCartContext', () => {
 
 		await expect(resolveGLSCartContext(query, 'cart_1')).rejects.toThrow('no Sales Channel')
 	})
+
+	it('rejects GLS account countries that are not supported storefront markets', async () => {
+		const query = { graph: vi.fn().mockResolvedValue({ data: [{ id: 'cart_1', sales_channel_id: 'sc_hr', shipping_address: { country_code: 'hr' }, region: { countries: [{ iso_2: 'hr' }] } }] }) }
+
+		await expect(resolveGLSCartContext(query, 'cart_1')).rejects.toThrow('unavailable for this cart country')
+	})
 })
