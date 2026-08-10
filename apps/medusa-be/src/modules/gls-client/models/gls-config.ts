@@ -5,6 +5,7 @@ const GLSConfig = model
     id: model.id().primaryKey(),
 
     environment: model.text(),
+    is_active: model.boolean().default(false),
     is_enabled: model.boolean().default(false),
 
     // MyGLS credentials / account routing
@@ -12,6 +13,7 @@ const GLSConfig = model
     password: model.text().nullable(),
     client_number: model.number().nullable(),
     country_code: model.text().default("SK"),
+    supported_countries: model.array().default([]),
     webshop_engine: model.text().nullable(),
 
     // Label printing options accepted by MyGLS PrintLabels
@@ -51,6 +53,14 @@ const GLSConfig = model
       expression: (columns) => `${columns.print_position} between 1 and 4`,
     },
   ])
-  .indexes([{ on: ["environment"], unique: true, where: { deleted_at: null } }])
+  .indexes([
+    { on: ["environment"], unique: true, where: { deleted_at: null } },
+    {
+      name: "IDX_gls_config_active_unique",
+      on: ["is_active"],
+      unique: true,
+      where: { is_active: true, deleted_at: null },
+    },
+  ])
 
 export default GLSConfig

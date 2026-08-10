@@ -12,14 +12,14 @@ export type OrderDashboardAdminI18nNamespace = {
     | "fulfillItems"
     | "labelFormat"
     | "openOrder"
-    | "packetaEligible"
-    | "packetaLabels"
     | "selected"
+    | "shippingLabelCarrier"
+    | "shippingLabels"
     | "sorting"
     | "targetStatusPlaceholder",
     string
   >
-  carriers: Record<"other" | "packeta" | "ppl", string>
+  carriers: Record<"gls" | "other" | "packeta" | "ppl", string>
   columns: Record<
     | "businessStatus"
     | "carrier"
@@ -128,7 +128,10 @@ export type OrderDashboardAdminI18nNamespace = {
     string
   >
   menuItem: string
-  packetaSkip: Record<"noActiveLabel" | "notPacketa" | "unchecked", string>
+  shippingLabelSkip: Record<
+    "mixedCarrier" | "noActiveLabel" | "unchecked",
+    string
+  >
   packetaLabelPositionPrompt: Record<
     "description" | "position" | "print" | "selected" | "title",
     string
@@ -228,12 +231,13 @@ export type OrderDashboardAdminI18nNamespace = {
     | "fulfillmentSkipped"
     | "missingBusinessStatus"
     | "missingOrderStatus"
-    | "noPacketaSelection"
+    | "mixedLabelCarriers"
+    | "noPrintableLabels"
     | "noSelection"
-    | "packetaLabelLimit"
-    | "packetaLabelsReady"
     | "pdfReady"
     | "requestFailed"
+    | "shippingLabelLimit"
+    | "shippingLabelsReady"
     | "statusUpdated_few"
     | "statusUpdated_one"
     | "statusUpdated_other",
@@ -255,13 +259,14 @@ const englishOrderDashboardAdminI18n = {
     fulfillItems: "Create fulfillments",
     labelFormat: "Format",
     openOrder: "Open order",
-    packetaEligible: "Printable Packeta labels: {{count}} of {{selectedCount}}",
-    packetaLabels: "Packeta labels",
     selected: "{{count}} selected",
+    shippingLabelCarrier: "Label carrier: {{carrier}}",
+    shippingLabels: "Shipping labels",
     sorting: "Sort orders",
     targetStatusPlaceholder: "Order status",
   },
   carriers: {
+    gls: "GLS",
     other: "Other",
     packeta: "Packeta",
     ppl: "PPL",
@@ -379,10 +384,10 @@ const englishOrderDashboardAdminI18n = {
       "Selected: {{processedCount}}. To change: {{changedCount}}. Already matching: {{unchangedCount}}.",
   },
   menuItem: "Dashboard",
-  packetaSkip: {
-    noActiveLabel: "No active Packeta shipping label",
-    notPacketa: "Carrier is {{carrier}}, not Packeta",
-    unchecked: "Packeta label status could not be checked",
+  shippingLabelSkip: {
+    mixedCarrier: "Carrier {{carrier}} does not match the selection",
+    noActiveLabel: "No active {{carrier}} shipping label",
+    unchecked: "Shipping label status could not be checked",
   },
   packetaLabelPositionPrompt: {
     description:
@@ -505,12 +510,14 @@ const englishOrderDashboardAdminI18n = {
     fulfillmentSkipped: "No selected orders can be fulfilled.",
     missingBusinessStatus: "Select a manual status.",
     missingOrderStatus: "Select a target order status.",
-    noPacketaSelection: "No selected orders have printable Packeta labels.",
+    mixedLabelCarriers:
+      "Select orders from one carrier only before downloading labels.",
+    noPrintableLabels: "No selected orders have printable shipping labels.",
     noSelection: "Select at least one order.",
-    packetaLabelLimit: "Select up to {{count}} orders.",
-    packetaLabelsReady: "Packeta labels were downloaded.",
     pdfReady: "The export was downloaded.",
     requestFailed: "Operation failed.",
+    shippingLabelLimit: "Select up to {{count}} orders.",
+    shippingLabelsReady: "Shipping labels were downloaded.",
     statusUpdated_few: "Status updated for {{count}} orders.",
     statusUpdated_one: "Status updated for 1 order.",
     statusUpdated_other: "Status updated for {{count}} orders.",
@@ -531,13 +538,14 @@ const czechOrderDashboardAdminI18n = {
     fulfillItems: "Vytvořit expedice",
     labelFormat: "Formát",
     openOrder: "Otevřít objednávku",
-    packetaEligible: "Štítky Packeta k tisku: {{count}} z {{selectedCount}}",
-    packetaLabels: "Štítky Packeta",
     selected: "{{count}} vybráno",
+    shippingLabelCarrier: "Dopravce štítků: {{carrier}}",
+    shippingLabels: "Expediční štítky",
     sorting: "Seřadit objednávky",
     targetStatusPlaceholder: "Stav objednávky",
   },
   carriers: {
+    gls: "GLS",
     other: "Ostatní",
     packeta: "Packeta",
     ppl: "PPL",
@@ -655,10 +663,10 @@ const czechOrderDashboardAdminI18n = {
       "Vybráno: {{processedCount}}. Změní se: {{changedCount}}. Beze změny: {{unchangedCount}}.",
   },
   menuItem: "Přehled",
-  packetaSkip: {
-    noActiveLabel: "Žádný aktivní štítek zásilky Packeta",
-    notPacketa: "Dopravce je {{carrier}}, ne Packeta",
-    unchecked: "Stav štítku Packeta se nepodařilo ověřit",
+  shippingLabelSkip: {
+    mixedCarrier: "Dopravce {{carrier}} neodpovídá výběru",
+    noActiveLabel: "Žádný aktivní expediční štítek {{carrier}}",
+    unchecked: "Stav expedičního štítku se nepodařilo ověřit",
   },
   packetaLabelPositionPrompt: {
     description:
@@ -785,13 +793,15 @@ const czechOrderDashboardAdminI18n = {
       "Pro žádnou vybranou objednávku nelze vytvořit expedici.",
     missingBusinessStatus: "Vyberte manuální stav.",
     missingOrderStatus: "Vyberte cílový stav objednávky.",
-    noPacketaSelection:
-      "Žádné vybrané objednávky nemají štítky Packeta k tisku.",
+    mixedLabelCarriers:
+      "Před stažením štítků vyberte objednávky pouze jednoho dopravce.",
+    noPrintableLabels:
+      "Žádné vybrané objednávky nemají expediční štítky k tisku.",
     noSelection: "Vyberte alespoň jednu objednávku.",
-    packetaLabelLimit: "Vyberte nejvýše {{count}} objednávek.",
-    packetaLabelsReady: "Štítky Packeta byly staženy.",
     pdfReady: "Export byl stažen.",
     requestFailed: "Operace selhala.",
+    shippingLabelLimit: "Vyberte nejvýše {{count}} objednávek.",
+    shippingLabelsReady: "Expediční štítky byly staženy.",
     statusUpdated_few: "Stav byl upraven u {{count}} objednávek.",
     statusUpdated_one: "Stav byl upraven u 1 objednávky.",
     statusUpdated_other: "Stav byl upraven u {{count}} objednávek.",

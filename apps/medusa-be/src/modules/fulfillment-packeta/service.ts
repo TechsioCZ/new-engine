@@ -85,6 +85,8 @@ const toFiniteNumber = (value: unknown): number | undefined => {
 
 const medusaWeightGramsToKg = (weight: number): number => weight / GRAMS_PER_KG
 
+const PACKETA_COD_CURRENCIES = new Set(["CZK", "EUR", "HUF", "PLN", "RON"])
+
 const getOrderItemRawWeight = (
   orderItem: OrderLineItemWithWeight,
   productWeights: Map<string, unknown>
@@ -277,12 +279,21 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       `Packeta: Creating packet for ${fulfillmentId}, access point ${shippingData.access_point_id}`
     )
 
-    const result = await this.getClient().createPacket(attributes)
+    const configReference = {
+      config_id: config.config_id,
+      environment: config.environment,
+    }
+    const result = await this.getClient().createPacket(attributes, configReference)
     const trackingUrl = `https://tracking.packeta.com/${result.barcode}`
 
     let labelUrl: string | undefined
     try {
-      const pdfBuffer = await this.getClient().downloadLabelPdf(result.id)
+      const pdfBuffer = await this.getClient().downloadLabelPdf(
+        result.id,
+        undefined,
+        undefined,
+        configReference
+      )
       const uploaded = await this.fileService_.createFiles([
         {
           filename: `packeta-label-${result.barcode}.pdf`,
@@ -303,6 +314,8 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       barcode: result.barcode,
       access_point_id: shippingData.access_point_id,
       supports_cod: shippingData.supports_cod,
+      config_id: config.config_id,
+      environment: config.environment,
       ...(labelUrl && { label_url: labelUrl }),
       tracking_url: trackingUrl,
     }
@@ -334,7 +347,10 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       return { cancelled: false, note: "No packet_id on fulfillment" }
     }
 
-    const cancelled = await this.getClient().cancelPacket(packetId)
+    const cancelled = await this.getClient().cancelPacket(packetId, {
+      config_id: fulfillmentData.config_id,
+      environment: fulfillmentData.environment,
+    })
     if (!cancelled) {
       return {
         cancelled: false,
@@ -473,6 +489,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     })
 
     if (shippingData.supports_cod) {
+      this.validateCodAmount(totalNumber, attributes.currency)
       attributes.cod = totalNumber
     }
 
@@ -493,6 +510,45 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       MedusaError.Types.INVALID_DATA,
       "Packeta: Shipping address first_name or last_name is required"
     )
+  }
+
+  private validateCodAmount(amount: number, currency: string): void {
+    if (amount <= 0) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: COD amount must be positive"
+      )
+    }
+
+    if (!PACKETA_COD_CURRENCIES.has(currency)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Packeta: Currency ${currency} is not supported for COD shipments`
+      )
+    }
+
+    if (currency === "CZK" && !Number.isInteger(amount)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: CZK COD amount must be a whole number"
+      )
+    }
+
+    if (currency === "HUF" && (!Number.isInteger(amount) || amount % 5 !== 0)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: HUF COD amount must be a whole-number multiple of 5"
+      )
+    }
+
+    const amountInMinorUnits = amount * 100
+    const nearestMinorUnit = Math.round(amountInMinorUnits)
+    if (Math.abs(amountInMinorUnits - nearestMinorUnit) > 1e-7) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: COD amount cannot have more than two decimal places"
+      )
+    }
   }
 
   private getPacketOrderNumber(order: Partial<FulfillmentOrderDTO>): string {

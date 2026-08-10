@@ -22,6 +22,7 @@ import { adminPacketaConfigRoutesMiddlewares } from "./admin/packeta-config/midd
 import { adminPacketaLabelsRoutesMiddlewares } from "./admin/packeta-labels/middlewares"
 import { adminPayloadSsoRoutesMiddlewares } from "./admin/payload/sso/middlewares"
 import { adminPplConfigRoutesMiddlewares } from "./admin/ppl-config/middlewares"
+import { adminPPLLabelsRoutesMiddlewares } from "./admin/ppl-labels/middlewares"
 import { adminProductAttributeRoutesMiddlewares } from "./admin/product-attributes/middlewares"
 import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewares"
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
@@ -34,6 +35,7 @@ import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
 import { storeCustomerReviewRoutesMiddlewares } from "./store/customers/me/reviews/middlewares"
+import { storeGLSBranchesRoutesMiddlewares } from "./store/gls/branches/middlewares"
 import { storeMiddlewares } from "./store/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
@@ -81,6 +83,7 @@ export default defineMiddlewares({
     ...adminPacketaConfigRoutesMiddlewares,
     ...adminPacketaLabelsRoutesMiddlewares,
     ...adminPplConfigRoutesMiddlewares,
+    ...adminPPLLabelsRoutesMiddlewares,
     ...adminApiStoreRoutesMiddlewares,
     ...adminBrandRoutesMiddlewares,
     ...adminPromotionsExtensionMiddlewares,
@@ -91,6 +94,7 @@ export default defineMiddlewares({
     ...adminSearchProfileRoutesMiddlewares,
     ...adminStorefrontTextRoutesMiddlewares,
     ...storeMiddlewares,
+    ...storeGLSBranchesRoutesMiddlewares,
     ...storeCustomerReviewRoutesMiddlewares,
     ...storeCatalogProductsRoutesMiddlewares,
     ...storeSearchAutocompleteRoutesMiddlewares,

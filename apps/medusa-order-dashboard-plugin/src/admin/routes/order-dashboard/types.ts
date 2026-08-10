@@ -1,8 +1,13 @@
 export const ORDER_DASHBOARD_PAGE_SIZE = 50
 export const ORDER_DASHBOARD_MAX_FULFILLMENT_IDS = 50
-export const ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS = 100
+export const ORDER_DASHBOARD_MAX_LABEL_IDS = 100
 
-export const ORDER_DASHBOARD_CARRIER_KEYS = ["ppl", "packeta", "other"] as const
+export const ORDER_DASHBOARD_CARRIER_KEYS = [
+  "gls",
+  "ppl",
+  "packeta",
+  "other",
+] as const
 
 export const ORDER_DASHBOARD_BUSINESS_STATUS_IDS = [
   "new",
@@ -54,6 +59,11 @@ export const ORDER_DASHBOARD_SORT_FIELDS = [
 
 export type OrderDashboardCarrierKey =
   (typeof ORDER_DASHBOARD_CARRIER_KEYS)[number]
+
+export type OrderDashboardLabelCarrier = Exclude<
+  OrderDashboardCarrierKey,
+  "other"
+>
 
 export type OrderDashboardBusinessStatusId =
   (typeof ORDER_DASHBOARD_BUSINESS_STATUS_IDS)[number]
@@ -136,20 +146,17 @@ export type OrderDashboardOrder = {
   total?: number | string | null
 }
 
-export type OrderDashboardPacketaFulfillment = {
+export type OrderDashboardLabelFulfillment = {
   id: string
   canceled_at?: string | null
-  data?: {
-    barcode?: string
-    packet_id?: number
-  } | null
+  data?: Record<string, unknown> | null
   provider_id?: string | null
 }
 
-export type OrderDashboardPacketaEligibilityOrder = {
+export type OrderDashboardLabelEligibilityOrder = {
   id: string
   display_id?: number | null
-  fulfillments?: OrderDashboardPacketaFulfillment[] | null
+  fulfillments?: OrderDashboardLabelFulfillment[] | null
 }
 
 export type OrderDashboardFulfillmentItem = {
@@ -175,6 +182,7 @@ export type OrderDashboardFulfillmentShippingMethod = {
   id?: string | null
   name?: string | null
   shipping_option_id?: string | null
+  data?: Record<string, unknown> | null
 }
 
 export type OrderDashboardFulfillmentOrder = {

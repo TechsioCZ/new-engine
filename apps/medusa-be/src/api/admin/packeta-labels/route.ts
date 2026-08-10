@@ -34,6 +34,8 @@ type PrintablePacketaLabel = {
   fulfillment_id: string
   packet_id: number
   barcode?: string
+  config_id?: string
+  environment?: PacketaFulfillmentData["environment"]
 }
 
 const PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE = 10
@@ -139,6 +141,8 @@ function collectPrintableLabels(
         fulfillment_id: fulfillment.id,
         packet_id: data.packet_id,
         barcode: data.barcode,
+        config_id: data.config_id,
+        environment: data.environment,
       })
     }
   }
@@ -177,7 +181,10 @@ async function downloadLabelPdfsInChunks(
     const chunk = labels.slice(index, index + PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE)
     const chunkPdfs = await Promise.all(
       chunk.map((label) =>
-        packetaClient.downloadLabelPdf(label.packet_id, labelFormat, 0)
+        packetaClient.downloadLabelPdf(label.packet_id, labelFormat, 0, {
+          config_id: label.config_id,
+          environment: label.environment,
+        })
       )
     )
 

@@ -8,10 +8,11 @@ import type {
   OrderDashboardFulfillmentCreateItem,
   OrderDashboardFulfillmentOrder,
   OrderDashboardLabelFormat,
+  OrderDashboardLabelEligibilityOrder,
+  OrderDashboardLabelCarrier,
   OrderDashboardManualStatusId,
   OrderDashboardManualStatusResponse,
   OrderDashboardOrdersResponse,
-  OrderDashboardPacketaEligibilityOrder,
   OrderDashboardPdfExportMode,
   OrderDashboardShippingOption,
   OrderDashboardSortOrder,
@@ -22,7 +23,7 @@ import type {
 } from "./types"
 
 const CONTENT_DISPOSITION_FILENAME_REGEX = /filename="?([^";]+)"?/i
-const PACKETA_ELIGIBILITY_ORDER_FIELDS = [
+const LABEL_ELIGIBILITY_ORDER_FIELDS = [
   "id",
   "display_id",
   "fulfillments.id",
@@ -41,6 +42,7 @@ const FULFILLMENT_ORDER_FIELDS = [
   "+items.variant.product.shipping_profile.id",
   "+shipping_methods.shipping_option_id",
   "shipping_methods.name",
+  "shipping_methods.data",
 ].join(",")
 const FULFILLMENT_SHIPPING_OPTION_FIELDS = [
   "id",
@@ -166,19 +168,56 @@ export function downloadOrderDashboardPacketaLabels(input: {
   )
 }
 
-export async function listOrderDashboardPacketaEligibility(orderIds: string[]) {
+export function downloadOrderDashboardGLSLabels(orderIds: string[]) {
+  return downloadFile(
+    "/admin/gls-labels",
+    { order_ids: orderIds },
+    `gls-labels-${new Date().toISOString().slice(0, 10)}.pdf`
+  )
+}
+
+export function downloadOrderDashboardPPLLabels(orderIds: string[]) {
+  return downloadFile(
+    "/admin/ppl-labels",
+    { order_ids: orderIds },
+    orderIds.length === 1
+      ? `ppl-label-${new Date().toISOString().slice(0, 10)}.png`
+      : `ppl-labels-${new Date().toISOString().slice(0, 10)}.zip`,
+    "application/pdf, application/zip, image/png, image/jpeg, image/svg+xml"
+  )
+}
+
+export function downloadOrderDashboardShippingLabels(input: {
+  carrier: OrderDashboardLabelCarrier
+  labelFormat: OrderDashboardLabelFormat
+  labelOffset?: number
+  orderIds: string[]
+}) {
+  switch (input.carrier) {
+    case "gls":
+      return downloadOrderDashboardGLSLabels(input.orderIds)
+    case "packeta":
+      return downloadOrderDashboardPacketaLabels(input)
+    case "ppl":
+      return downloadOrderDashboardPPLLabels(input.orderIds)
+    default:
+      throw new Error("Unsupported shipping label carrier")
+  }
+}
+
+export async function listOrderDashboardLabelEligibility(orderIds: string[]) {
   if (!orderIds.length) {
     return []
   }
 
   const response = await sdk.admin.order.list({
-    fields: PACKETA_ELIGIBILITY_ORDER_FIELDS,
+    fields: LABEL_ELIGIBILITY_ORDER_FIELDS,
     id: orderIds,
     limit: orderIds.length,
     offset: 0,
   })
 
-  return response.orders as OrderDashboardPacketaEligibilityOrder[]
+  return response.orders as OrderDashboardLabelEligibilityOrder[]
 }
 
 export async function listOrderDashboardFulfillmentOrders(orderIds: string[]) {
@@ -253,7 +292,7 @@ export function createOrderDashboardFulfillment(input: {
   noNotification: boolean
   orderId: string
   shippingOptionId?: string
-}) {
+}): Promise<unknown> {
   return sdk.admin.order.createFulfillment(input.orderId, {
     items: input.items,
     location_id: input.locationId,

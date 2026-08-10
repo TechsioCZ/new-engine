@@ -169,8 +169,8 @@ const sharedEnvCleanupKeys = [
   "FEATURE_PPL_ENABLED",
   "PPL_ENVIRONMENT",
   "FEATURE_PACKETA_ENABLED",
-  "PACKETA_ENVIRONMENT",
   "PACKETA_PICKUP_POINTS_API_KEY",
+  "FEATURE_GLS_ENABLED",
   "FEATURE_PAYKIT_ENABLED",
   "FEATURE_PAYKIT_GOPAY_ENABLED",
   "FEATURE_PAYKIT_STRIPE_ENABLED",
@@ -222,8 +222,8 @@ const sharedEnvCleanupKeys = [
   "MEDUSA_BE_FEATURE_PPL_ENABLED",
   "MEDUSA_BE_PPL_ENVIRONMENT",
   "MEDUSA_BE_FEATURE_PACKETA_ENABLED",
-  "MEDUSA_BE_PACKETA_ENVIRONMENT",
   "MEDUSA_BE_PACKETA_PICKUP_POINTS_API_KEY",
+  "MEDUSA_BE_FEATURE_GLS_ENABLED",
   "MEDUSA_BE_FEATURE_PAYKIT_ENABLED",
   "MEDUSA_BE_FEATURE_PAYKIT_GOPAY_ENABLED",
   "MEDUSA_BE_FEATURE_PAYKIT_STRIPE_ENABLED",
@@ -815,8 +815,8 @@ function buildZaneProjectServices(
         "DC_FEATURE_PPL_ENABLED",
         "DC_PPL_ENVIRONMENT",
         "DC_FEATURE_PACKETA_ENABLED",
-        "DC_PACKETA_ENVIRONMENT",
         "DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
+        "DC_FEATURE_GLS_ENABLED",
         "DC_FEATURE_PAYMENT_QR_ENABLED",
         "DC_FEATURE_PAYKIT_ENABLED",
         "DC_FEATURE_PAYKIT_GOPAY_ENABLED",
@@ -1031,16 +1031,8 @@ function buildZaneProjectServices(
           source: literalSource(process.env.DC_FEATURE_PACKETA_ENABLED ?? "0"),
         },
         {
-          envVar: "PACKETA_ENVIRONMENT",
-          source: literalSource(
-            process.env.DC_PACKETA_ENVIRONMENT ?? "testing"
-          ),
-        },
-        {
-          envVar: "PACKETA_PICKUP_POINTS_API_KEY",
-          source: literalSource(
-            process.env.DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
-          ),
+          envVar: "FEATURE_GLS_ENABLED",
+          source: literalSource(process.env.DC_FEATURE_GLS_ENABLED ?? "0"),
         },
         {
           envVar: "FEATURE_PAYMENT_QR_ENABLED",
@@ -1396,19 +1388,6 @@ function buildZaneProjectServices(
           source: literalSource(
             process.env.DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE ??
               "session_proxy"
-          ),
-        },
-        {
-          envVar: "NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
-          source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES ??
-              "sk"
-          ),
-        },
-        {
-          envVar: "NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
-          source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
           ),
         },
         {
