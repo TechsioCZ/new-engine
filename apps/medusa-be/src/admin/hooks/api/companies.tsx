@@ -247,7 +247,6 @@ const useUpdateCompanyApplicationStatus = (
           body,
         }
       ),
-    ...options,
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
@@ -260,6 +259,7 @@ const useUpdateCompanyApplicationStatus = (
       })
       options?.onSuccess?.(data, variables, context)
     },
+    ...options,
   })
 }
 

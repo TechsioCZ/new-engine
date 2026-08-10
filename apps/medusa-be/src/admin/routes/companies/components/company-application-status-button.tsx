@@ -87,6 +87,7 @@ export const CompanyApplicationStatusButton = ({
       toast.error(
         `${t("errors.changeCompanyApplicationStatusFailed")}: ${getErrorMessage(error)}`
       )
+      return
     }
   }
 

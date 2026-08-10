@@ -59,6 +59,14 @@ const getCompanyStatusBadgeColor = (
   return company.application_status === "approved" ? "green" : "orange"
 }
 
+const isCompanyApplicationStatusFilter = (
+  value: unknown
+): value is CompanyApplicationStatusFilter =>
+  typeof value === "string" &&
+  COMPANY_APPLICATION_STATUS_OPTIONS.includes(
+    value as CompanyApplicationStatusFilter
+  )
+
 const getCompanyStatusLabelKey = (company: QueryCompany) => {
   if (company.deleted_at) {
     return "deleted"
@@ -250,16 +258,12 @@ const Companies = () => {
           </Select>
           <Select
             onValueChange={(value) => {
-              if (
-                !COMPANY_APPLICATION_STATUS_OPTIONS.includes(
-                  value as CompanyApplicationStatusFilter
-                )
-              ) {
+              if (!isCompanyApplicationStatusFilter(value)) {
                 return
               }
 
               setPageIndex(0)
-              setApplicationStatus(value as CompanyApplicationStatusFilter)
+              setApplicationStatus(value)
             }}
             value={applicationStatus}
           >
