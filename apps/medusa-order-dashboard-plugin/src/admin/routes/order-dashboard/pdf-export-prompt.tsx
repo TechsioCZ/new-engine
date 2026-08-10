@@ -1,7 +1,10 @@
 import { Button, Prompt, RadioGroup } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import type { OrderDashboardPdfExportMode } from "./types"
+import {
+  ORDER_DASHBOARD_MAX_SEPARATE_PDF_IDS,
+  type OrderDashboardPdfExportMode,
+} from "./types"
 
 type OrderPdfExportPromptProps = {
   isPending: boolean
@@ -20,12 +23,14 @@ export function OrderPdfExportPrompt({
 }: OrderPdfExportPromptProps) {
   const { t } = useTranslation("orderDashboard")
   const [mode, setMode] = useState<OrderDashboardPdfExportMode>("combined")
+  const canExportSeparatePdfs =
+    selectedCount <= ORDER_DASHBOARD_MAX_SEPARATE_PDF_IDS
 
   useEffect(() => {
-    if (!open) {
+    if (!open || !canExportSeparatePdfs) {
       setMode("combined")
     }
-  }, [open])
+  }, [canExportSeparatePdfs, open])
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (isPending && !nextOpen) {
@@ -58,7 +63,14 @@ export function OrderPdfExportPrompt({
               value="combined"
             />
             <RadioGroup.ChoiceBox
-              description={t("pdfExportPrompt.separateDescription")}
+              description={
+                canExportSeparatePdfs
+                  ? t("pdfExportPrompt.separateDescription")
+                  : t("pdfExportPrompt.separateLimitDescription", {
+                      count: ORDER_DASHBOARD_MAX_SEPARATE_PDF_IDS,
+                    })
+              }
+              disabled={isPending || !canExportSeparatePdfs}
               label={t("pdfExportPrompt.separateLabel")}
               value="separate"
             />

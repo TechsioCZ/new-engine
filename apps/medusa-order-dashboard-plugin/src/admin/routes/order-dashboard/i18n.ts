@@ -145,6 +145,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "export"
     | "separateDescription"
     | "separateLabel"
+    | "separateLimitDescription"
     | "title",
     string
   >
@@ -406,6 +407,8 @@ const englishOrderDashboardAdminI18n = {
     export: "Export",
     separateDescription: "Each order will have its own PDF in one ZIP archive.",
     separateLabel: "Separate PDFs",
+    separateLimitDescription:
+      "Separate PDFs can be exported for at most {{count}} orders. Choose one PDF instead.",
     title: "Export orders",
   },
   pagination: {
@@ -686,6 +689,8 @@ const czechOrderDashboardAdminI18n = {
     separateDescription:
       "Každá objednávka bude mít vlastní PDF v jednom ZIP archivu.",
     separateLabel: "Samostatná PDF",
+    separateLimitDescription:
+      "Samostatná PDF lze exportovat nejvýše pro {{count}} objednávek. Zvolte místo nich jedno PDF.",
     title: "Export objednávek",
   },
   pagination: {

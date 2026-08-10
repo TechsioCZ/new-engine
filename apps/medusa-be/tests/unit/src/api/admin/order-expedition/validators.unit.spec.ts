@@ -3,6 +3,7 @@ import {
   GetAdminOrderExpeditionOrdersSchema,
   PostAdminOrderExpeditionPdfSchema,
 } from "../../../../../../src/api/admin/order-expedition/validators"
+import { ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS } from "../../../../../../src/utils/order-expedition"
 
 describe("GetAdminOrderExpeditionOrdersSchema", () => {
   it("accepts native order search and created date filters", () => {
@@ -91,19 +92,38 @@ describe("PostAdminOrderExpeditionPdfSchema", () => {
   })
 
   it("bounds separate PDF archives without reducing the combined export limit", () => {
-    const orderIds = Array.from({ length: 101 }, (_, index) => `order_${index}`)
+    const orderIds = Array.from(
+      { length: ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS + 1 },
+      (_, index) => `order_${index}`
+    )
 
     expect(() =>
       PostAdminOrderExpeditionPdfSchema.parse({
         mode: "separate",
         order_ids: orderIds,
       })
-    ).toThrow("Separate PDF export supports at most 100 orders")
+    ).toThrow(
+      `Separate PDF export supports at most ${ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS} orders`
+    )
     expect(
       PostAdminOrderExpeditionPdfSchema.parse({
         mode: "combined",
         order_ids: orderIds,
       })
     ).toEqual({ mode: "combined", order_ids: orderIds })
+  })
+
+  it("accepts a separate PDF archive at the exact order limit", () => {
+    const orderIds = Array.from(
+      { length: ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS },
+      (_, index) => `order_${index}`
+    )
+
+    expect(
+      PostAdminOrderExpeditionPdfSchema.parse({
+        mode: "separate",
+        order_ids: orderIds,
+      })
+    ).toEqual({ mode: "separate", order_ids: orderIds })
   })
 })
